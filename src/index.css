@@ -16,6 +16,24 @@ body {
   to { left: 100%; }
 }
 
+@keyframes slide {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
 /* We create custom classes that use repeating SVGs as backgrounds */
 .bg-ecg {
   background-image: url("data:image/svg+xml,%3Csvg width='200' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='0,50 10,50 15,30 20,70 25,20 35,90 40,50 50,50 60,40 70,50 200,50' fill='none' stroke='%2322c55e' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E");
