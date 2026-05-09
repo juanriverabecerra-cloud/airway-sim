@@ -1,506 +1,162 @@
-/**
- * Helper function to calculate Ideal Body Weight (IBW) based on the Devine formula.
- * @param {number} heightCm - Height in centimeters.
- * @param {string} sex - 'male' or 'female'.
- * @returns {number} Ideal Body Weight in kg.
- */
 export function calculateIBW(heightCm, sex) {
-  const heightInches = heightCm / 2.54;
-  const heightOver60 = Math.max(0, heightInches - 60);
-
-  if (sex.toLowerCase() === 'male') {
-    return 50.0 + (2.3 * heightOver60);
-  } else {
-    return 45.5 + (2.3 * heightOver60);
-  }
+  const h = Math.max(0, (heightCm / 2.54) - 60);
+  return sex.toLowerCase() === 'male' ? 50.0 + (2.3 * h) : 45.5 + (2.3 * h);
 }
-
-/**
- * Helper function to calculate Lean Body Weight (LBW) based on the Boer formula.
- * @param {number} heightCm - Height in centimeters.
- * @param {number} weightKg - Total body weight in kg.
- * @param {string} sex - 'male' or 'female'.
- * @returns {number} Lean Body Weight in kg.
- */
 export function calculateLBW(heightCm, weightKg, sex) {
-  if (sex.toLowerCase() === 'male') {
-    return (0.407 * weightKg) + (0.267 * heightCm) - 19.2;
-  } else {
-    return (0.252 * weightKg) + (0.473 * heightCm) - 48.3;
-  }
+  return sex.toLowerCase() === 'male' ? (0.407 * weightKg) + (0.267 * heightCm) - 19.2 : (0.252 * weightKg) + (0.473 * heightCm) - 48.3;
 }
 
-/**
- * MEDICATIONS Database
- * Contains pharmacokinetic and pharmacodynamic properties of common anesthesia medications.
- */
 export const MEDICATIONS = {
-  // ==========================================
-  // 1. IV Induction Agents
-  // ==========================================
-  propofol: {
-    name: 'Propofol',
-    class: 'Sedative/Hypnotic',
-    dosingWeight: 'LBW',
-    standardDoseRange: [1.5, 2.5], // mg/kg
-    onsetSeconds: 30,
-    durationMinutes: 5,
-    hrEffect: -10,
-    sysEffect: -20
-  },
-  etomidate: {
-    name: 'Etomidate',
-    class: 'Sedative/Hypnotic',
-    dosingWeight: 'TBW',
-    standardDoseRange: [0.2, 0.3], // mg/kg
-    onsetSeconds: 30,
-    durationMinutes: 5,
-    hrEffect: 0,
-    sysEffect: 0
-  },
-  ketamine: {
-    name: 'Ketamine',
-    class: 'NMDA Antagonist / Dissociative',
-    dosingWeight: 'IBW',
-    standardDoseRange: [1.0, 2.0], // mg/kg
-    onsetSeconds: 45,
-    durationMinutes: 15,
-    hrEffect: 20,
-    sysEffect: 20
-  },
-  thiopental: {
-    name: 'Thiopental',
-    class: 'Barbiturate',
-    dosingWeight: 'LBW',
-    standardDoseRange: [3.0, 5.0], // mg/kg
-    onsetSeconds: 30,
-    durationMinutes: 10,
-    hrEffect: 10,
-    sysEffect: -15
-  },
+  // === SEDATIVES & HYPNOTICS ===
+  propofol: { name: 'Propofol', classes: ['Sedative', 'Hypnotic'], routes: ['IV'], types: ['Bolus', 'Infusion'],
+    indications: { 'Induction': { dose: '1.5-2.5', unit: 'mg/kg', type: 'Bolus' }, 'Maintenance (TIVA)': { dose: '100-200', unit: 'mcg/kg/min', type: 'Infusion' }, 'Sedation': { dose: '25-50', unit: 'mcg/kg/min', type: 'Infusion' } },
+    pk: { V1: 4.27, V2: 18.9, V3: 238, k10: 0.443, k12: 0.303, k21: 0.055, k13: 0.196, k31: 0.0033, ke0: 1.2 },
+    pd: { c50: 2.5, gamma: 2, sysMax: -40, hrMax: -15, rrMax: -14, inducesApneaAtCe: 2.5 } },
+  etomidate: { name: 'Etomidate', classes: ['Sedative', 'Hypnotic'], routes: ['IV'], types: ['Bolus'],
+    indications: { 'Induction (Cardio-stable)': { dose: '0.2-0.3', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 40.0, V3: 120, k10: 0.1, k12: 0.15, k21: 0.08, k13: 0.05, k31: 0.01, ke0: 1.8 },
+    pd: { c50: 0.3, gamma: 3, sysMax: -5, hrMax: 0, rrMax: -12, inducesApneaAtCe: 0.4 } },
+  ketamine: { name: 'Ketamine', classes: ['Dissociative', 'Analgesic'], routes: ['IV', 'IM'], types: ['Bolus', 'Infusion'],
+    indications: { 'Induction': { dose: '1.0-2.0', unit: 'mg/kg', type: 'Bolus' }, 'Pain/Agitation': { dose: '0.1-0.3', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 45.0, V3: 150, k10: 0.15, k12: 0.2, k21: 0.1, k13: 0.05, k31: 0.02, ke0: 1.5 },
+    pd: { c50: 1.0, gamma: 2, sysMax: 30, hrMax: 20, rrMax: -2, inducesApneaAtCe: 5.0 } },
+  midazolam: { name: 'Midazolam', classes: ['Benzodiazepine'], routes: ['IV', 'IM'], types: ['Bolus', 'Infusion'],
+    indications: { 'Pre-op Anxiolysis': { dose: '0.02-0.04', unit: 'mg/kg', type: 'Bolus' }, 'Sedation': { dose: '1-5', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 12.0, V2: 30.0, V3: 80, k10: 0.12, k12: 0.1, k21: 0.05, k13: 0.03, k31: 0.01, ke0: 0.8 },
+    pd: { c50: 0.05, gamma: 1.5, sysMax: -10, hrMax: 0, rrMax: -6, inducesApneaAtCe: 0.2 } },
+  dexmedetomidine: { name: 'Dexmedetomidine', classes: ['Alpha-2 Agonist'], routes: ['IV'], types: ['Bolus', 'Infusion'],
+    indications: { 'Sedation': { dose: '0.2-1.5', unit: 'mcg/kg/hr', type: 'Infusion' }, 'Loading Dose': { dose: '1.0', unit: 'mcg/kg', type: 'Bolus' } },
+    pk: { V1: 8.0, V2: 25.0, V3: 40, k10: 0.06, k12: 0.08, k21: 0.04, k13: 0.02, k31: 0.01, ke0: 0.5 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: -20, hrMax: -25, rrMax: -2, inducesApneaAtCe: 999 } },
 
-  // ==========================================
-  // 2. Inhalational (Volatile) Anesthetics
-  // ==========================================
-  sevoflurane: {
-    name: 'Sevoflurane',
-    class: 'Volatile Anesthetic',
-    dosingWeight: 'TBW', // Not dosed by weight, but MAC
-    standardDoseRange: [1.0, 3.0], // % Vol
-    onsetSeconds: 60,
-    durationMinutes: 10,
-    hrEffect: 0,
-    sysEffect: -15
-  },
-  desflurane: {
-    name: 'Desflurane',
-    class: 'Volatile Anesthetic',
-    dosingWeight: 'TBW', // MAC
-    standardDoseRange: [4.0, 8.0], // % Vol
-    onsetSeconds: 30,
-    durationMinutes: 5,
-    hrEffect: 15, // Transient tachycardia
-    sysEffect: -10
-  },
-  isoflurane: {
-    name: 'Isoflurane',
-    class: 'Volatile Anesthetic',
-    dosingWeight: 'TBW', // MAC
-    standardDoseRange: [1.0, 2.0], // % Vol
-    onsetSeconds: 120,
-    durationMinutes: 15,
-    hrEffect: 5,
-    sysEffect: -15
-  },
-  nitrousOxide: {
-    name: 'Nitrous Oxide',
-    class: 'Inhalational Anesthetic',
-    dosingWeight: 'TBW', // MAC
-    standardDoseRange: [50, 70], // % Vol
-    onsetSeconds: 60,
-    durationMinutes: 5,
-    hrEffect: 0,
-    sysEffect: 0
-  },
+  // === OPIOIDS & ANALGESICS ===
+  fentanyl: { name: 'Fentanyl', classes: ['Opioid'], routes: ['IV', 'IM'], types: ['Bolus', 'Infusion'],
+    indications: { 'Analgesia': { dose: '25-100', unit: 'mcg', type: 'Bolus' }, 'Induction': { dose: '1-3', unit: 'mcg/kg', type: 'Bolus' } },
+    pk: { V1: 13.0, V2: 30.0, V3: 250, k10: 0.05, k12: 0.1, k21: 0.05, k13: 0.05, k31: 0.01, ke0: 0.15 },
+    pd: { c50: 0.002, gamma: 1.5, sysMax: -10, hrMax: -20, rrMax: -12, inducesApneaAtCe: 0.003 } },
+  sufentanil: { name: 'Sufentanil', classes: ['Opioid (Potent)'], routes: ['IV'], types: ['Bolus', 'Infusion'],
+    indications: { 'Analgesia': { dose: '5-10', unit: 'mcg', type: 'Bolus' }, 'Induction': { dose: '0.1-0.5', unit: 'mcg/kg', type: 'Bolus' } },
+    pk: { V1: 14.0, V2: 40.0, V3: 300, k10: 0.04, k12: 0.08, k21: 0.04, k13: 0.03, k31: 0.005, ke0: 0.12 },
+    pd: { c50: 0.0004, gamma: 1.5, sysMax: -15, hrMax: -25, rrMax: -12, inducesApneaAtCe: 0.0006 } },
+  remifentanil: { name: 'Remifentanil', classes: ['Opioid (Ultra-short)'], routes: ['IV'], types: ['Infusion', 'Bolus'],
+    indications: { 'Maintenance': { dose: '0.1-0.5', unit: 'mcg/kg/min', type: 'Infusion' }, 'Intubation Spike': { dose: '1.0', unit: 'mcg/kg', type: 'Bolus' } },
+    pk: { V1: 5.0, V2: 10.0, V3: 15.0, k10: 1.5, k12: 0.8, k21: 0.5, k13: 0.2, k31: 0.1, ke0: 2.5 },
+    pd: { c50: 0.001, gamma: 2.5, sysMax: -20, hrMax: -30, rrMax: -14, inducesApneaAtCe: 0.0015 } },
+  hydromorphone: { name: 'Hydromorphone (Dilaudid)', classes: ['Opioid'], routes: ['IV'], types: ['Bolus'],
+    indications: { 'Analgesia': { dose: '0.2-1.0', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 50.0, V3: 100, k10: 0.03, k12: 0.05, k21: 0.05, k13: 0.02, k31: 0.01, ke0: 0.05 },
+    pd: { c50: 0.015, gamma: 1.5, sysMax: -5, hrMax: -10, rrMax: -8, inducesApneaAtCe: 0.03 } },
+  morphine: { name: 'Morphine', classes: ['Opioid'], routes: ['IV', 'IM'], types: ['Bolus'],
+    indications: { 'Analgesia': { dose: '2-10', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 30.0, V2: 60.0, V3: 200, k10: 0.02, k12: 0.04, k21: 0.03, k13: 0.01, k31: 0.005, ke0: 0.03 },
+    pd: { c50: 0.05, gamma: 1.2, sysMax: -15, hrMax: -10, rrMax: -8, inducesApneaAtCe: 0.1 } }, // Histamine release drops sysMax
 
-  // ==========================================
-  // 3. Opioid Analgesics
-  // ==========================================
-  fentanyl: {
-    name: 'Fentanyl',
-    class: 'Opioid',
-    dosingWeight: 'LBW',
-    standardDoseRange: [1.0, 2.0], // mcg/kg
-    onsetSeconds: 120,
-    durationMinutes: 30,
-    hrEffect: -10,
-    sysEffect: -10
-  },
-  remifentanil: {
-    name: 'Remifentanil',
-    class: 'Opioid',
-    dosingWeight: 'IBW',
-    standardDoseRange: [0.5, 1.0], // mcg/kg (bolus/loading)
-    onsetSeconds: 60,
-    durationMinutes: 5,
-    hrEffect: -15,
-    sysEffect: -15
-  },
-  sufentanil: {
-    name: 'Sufentanil',
-    class: 'Opioid',
-    dosingWeight: 'LBW',
-    standardDoseRange: [0.1, 0.5], // mcg/kg
-    onsetSeconds: 180,
-    durationMinutes: 45,
-    hrEffect: -15,
-    sysEffect: -10
-  },
-  morphine: {
-    name: 'Morphine',
-    class: 'Opioid',
-    dosingWeight: 'TBW',
-    standardDoseRange: [0.05, 0.2], // mg/kg
-    onsetSeconds: 300,
-    durationMinutes: 120,
-    hrEffect: -5,
-    sysEffect: -10
-  },
+  // === PARALYTICS (NMBAs) & REVERSAL ===
+  rocuronium: { name: 'Rocuronium', classes: ['NDMR'], routes: ['IV'], types: ['Bolus', 'Infusion'],
+    indications: { 'Intubation': { dose: '0.6', unit: 'mg/kg', type: 'Bolus' }, 'RSI': { dose: '1.2', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 16.0, V2: 30.0, V3: 0, k10: 0.08, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.1 },
+    pd: { c50: 1.5, gamma: 4, sysMax: 0, hrMax: 0, rrMax: -20, inducesParalysisAtCe: 1.0, inducesApneaAtCe: 1.0 } },
+  vecuronium: { name: 'Vecuronium', classes: ['NDMR'], routes: ['IV'], types: ['Bolus', 'Infusion'],
+    indications: { 'Intubation': { dose: '0.1', unit: 'mg/kg', type: 'Bolus' }, 'Maintenance': { dose: '0.01', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 25.0, V3: 0, k10: 0.06, k12: 0.04, k21: 0.04, k13: 0, k31: 0, ke0: 0.08 },
+    pd: { c50: 0.2, gamma: 4, sysMax: 0, hrMax: 0, rrMax: -20, inducesParalysisAtCe: 0.15, inducesApneaAtCe: 0.15 } },
+  cisatracurium: { name: 'Cisatracurium', classes: ['NDMR'], routes: ['IV'], types: ['Bolus', 'Infusion'],
+    indications: { 'Intubation': { dose: '0.15-0.2', unit: 'mg/kg', type: 'Bolus' }, 'Infusion': { dose: '1-3', unit: 'mcg/kg/min', type: 'Infusion' } },
+    pk: { V1: 10.0, V2: 20.0, V3: 0, k10: 0.1, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.1 }, // Hofmann elimination
+    pd: { c50: 0.3, gamma: 4, sysMax: 0, hrMax: 0, rrMax: -20, inducesParalysisAtCe: 0.2, inducesApneaAtCe: 0.2 } },
+  succinylcholine: { name: 'Succinylcholine', classes: ['Depolarizing NMBA'], routes: ['IV', 'IM'], types: ['Bolus'],
+    indications: { 'RSI': { dose: '1.0-1.5', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 5.0, V2: 0, V3: 0, k10: 1.8, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 2.0 },
+    pd: { c50: 0.5, gamma: 4, sysMax: 0, hrMax: 10, rrMax: -20, inducesParalysisAtCe: 0.3, inducesApneaAtCe: 0.3 } },
+  sugammadex: { name: 'Sugammadex', classes: ['Reversal'], routes: ['IV'], types: ['Bolus'],
+    indications: { 'Routine Reversal': { dose: '2.0-4.0', unit: 'mg/kg', type: 'Bolus' }, 'Immediate Rescue': { dose: '16.0', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.1, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.0 }, pd: { c50: 0, gamma: 1, sysMax: 0, hrMax: 0, rrMax: 0 } },
+  neostigmine: { name: 'Neostigmine', classes: ['Reversal'], routes: ['IV'], types: ['Bolus'],
+    indications: { 'Reversal': { dose: '0.03-0.07', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.05, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5 }, pd: { c50: 0.05, gamma: 1, sysMax: 0, hrMax: -30, rrMax: 0 } }, // Severe bradycardia
+  glycopyrrolate: { name: 'Glycopyrrolate', classes: ['Anticholinergic'], routes: ['IV'], types: ['Bolus'],
+    indications: { 'Given w/ Neostigmine': { dose: '0.2-0.6', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.05, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5 }, pd: { c50: 0.01, gamma: 1, sysMax: 5, hrMax: 30, rrMax: 0 } },
 
-  // ==========================================
-  // 4. Neuromuscular Blocking Agents (Paralytics)
-  // ==========================================
-  succinylcholine: {
-    name: 'Succinylcholine',
-    class: 'Depolarizing Muscle Relaxant (DMR)',
-    dosingWeight: 'TBW',
-    standardDoseRange: [1.0, 1.5], // mg/kg
-    onsetSeconds: 45,
-    durationMinutes: 5,
-    hrEffect: 5,
-    sysEffect: 0
-  },
-  rocuronium: {
-    name: 'Rocuronium',
-    class: 'Non-Depolarizing Muscle Relaxant (NDMR)',
-    dosingWeight: 'IBW',
-    standardDoseRange: [0.6, 1.2], // mg/kg
-    onsetSeconds: 60,
-    durationMinutes: 45,
-    hrEffect: 5,
-    sysEffect: 0
-  },
-  vecuronium: {
-    name: 'Vecuronium',
-    class: 'Non-Depolarizing Muscle Relaxant (NDMR)',
-    dosingWeight: 'IBW',
-    standardDoseRange: [0.08, 0.1], // mg/kg
-    onsetSeconds: 180,
-    durationMinutes: 45,
-    hrEffect: 0,
-    sysEffect: 0
-  },
-  cisatracurium: {
-    name: 'Cisatracurium',
-    class: 'Non-Depolarizing Muscle Relaxant (NDMR)',
-    dosingWeight: 'IBW',
-    standardDoseRange: [0.1, 0.2], // mg/kg
-    onsetSeconds: 180,
-    durationMinutes: 45,
-    hrEffect: 0,
-    sysEffect: 0
-  },
+  // === PRESSORS, INOTROPES, & VASODILATORS ===
+  epinephrine: { name: 'Epinephrine', classes: ['Vasopressor'], routes: ['IV'], types: ['Bolus', 'Infusion'],
+    indications: { 'Push Dose': { dose: '10-20', unit: 'mcg', type: 'Bolus' }, 'Code': { dose: '1.0', unit: 'mg', type: 'Bolus' }, 'Infusion': { dose: '0.01-0.1', unit: 'mcg/kg/min', type: 'Infusion' } },
+    pk: { V1: 5.0, V2: 0, V3: 0, k10: 0.8, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 2.0 }, pd: { c50: 0.0005, gamma: 1.5, sysMax: 80, hrMax: 60, rrMax: 0 } },
+  norepinephrine: { name: 'Norepinephrine', classes: ['Vasopressor'], routes: ['IV'], types: ['Infusion'],
+    indications: { 'Shock / Vasoplegia': { dose: '0.01-0.3', unit: 'mcg/kg/min', type: 'Infusion' } },
+    pk: { V1: 8.0, V2: 0, V3: 0, k10: 0.6, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.5 }, pd: { c50: 0.001, gamma: 1.5, sysMax: 70, hrMax: 10, rrMax: 0 } },
+  phenylephrine: { name: 'Phenylephrine', classes: ['Alpha-1 Agonist'], routes: ['IV'], types: ['Bolus', 'Infusion'],
+    indications: { 'Push Dose': { dose: '50-100', unit: 'mcg', type: 'Bolus' }, 'Infusion': { dose: '0.1-0.5', unit: 'mcg/kg/min', type: 'Infusion' } },
+    pk: { V1: 10.0, V2: 0, V3: 0, k10: 0.5, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.5 }, pd: { c50: 0.002, gamma: 1, sysMax: 60, hrMax: -20, rrMax: 0 } },
+  vasopressin: { name: 'Vasopressin', classes: ['Vasopressor'], routes: ['IV'], types: ['Bolus', 'Infusion'],
+    indications: { 'Push Dose': { dose: '1-2', unit: 'Units', type: 'Bolus' }, 'Infusion': { dose: '0.01-0.04', unit: 'Units/min', type: 'Infusion' } },
+    pk: { V1: 6.0, V2: 0, V3: 0, k10: 0.2, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.0 }, pd: { c50: 0.05, gamma: 1.5, sysMax: 50, hrMax: 0, rrMax: 0 } },
+  ephedrine: { name: 'Ephedrine', classes: ['Mixed Agonist'], routes: ['IV'], types: ['Bolus'],
+    indications: { 'Hypotension w/ Bradycardia': { dose: '5-10', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.05, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5 }, pd: { c50: 0.2, gamma: 1, sysMax: 30, hrMax: 15, rrMax: 0 } },
+  dopamine: { name: 'Dopamine', classes: ['Inotrope/Pressor'], routes: ['IV'], types: ['Infusion'],
+    indications: { 'Inotropy/Chronotropy': { dose: '5-20', unit: 'mcg/kg/min', type: 'Infusion' } },
+    pk: { V1: 10.0, V2: 0, V3: 0, k10: 0.5, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.0 }, pd: { c50: 0.01, gamma: 1.5, sysMax: 40, hrMax: 30, rrMax: 0 } },
+  dobutamine: { name: 'Dobutamine', classes: ['Inotrope'], routes: ['IV'], types: ['Infusion'],
+    indications: { 'Inotropy': { dose: '2-20', unit: 'mcg/kg/min', type: 'Infusion' } },
+    pk: { V1: 12.0, V2: 0, V3: 0, k10: 0.6, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.0 }, pd: { c50: 0.01, gamma: 1.5, sysMax: 10, hrMax: 25, rrMax: 0 } },
+  milrinone: { name: 'Milrinone', classes: ['Inodilator'], routes: ['IV'], types: ['Bolus', 'Infusion'],
+    indications: { 'Inotropy': { dose: '0.375-0.75', unit: 'mcg/kg/min', type: 'Infusion' }, 'Loading': { dose: '50', unit: 'mcg/kg', type: 'Bolus' } },
+    pk: { V1: 25.0, V2: 0, V3: 0, k10: 0.02, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5 }, pd: { c50: 0.005, gamma: 1.5, sysMax: -15, hrMax: 10, rrMax: 0 } }, // Lowers BP, raises CO
+  esmolol: { name: 'Esmolol', classes: ['Beta Blocker'], routes: ['IV'], types: ['Bolus', 'Infusion'],
+    indications: { 'Tachycardia': { dose: '10-20', unit: 'mg', type: 'Bolus' }, 'Infusion': { dose: '50-200', unit: 'mcg/kg/min', type: 'Infusion' } },
+    pk: { V1: 10.0, V2: 0, V3: 0, k10: 0.9, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 2.0 }, pd: { c50: 0.5, gamma: 1.5, sysMax: -15, hrMax: -30, rrMax: 0 } },
+  labetalol: { name: 'Labetalol', classes: ['Alpha/Beta Blocker'], routes: ['IV'], types: ['Bolus'],
+    indications: { 'Hypertension': { dose: '10-20', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.05, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.3 }, pd: { c50: 0.5, gamma: 1.5, sysMax: -25, hrMax: -15, rrMax: 0 } },
+  metoprolol: { name: 'Metoprolol', classes: ['Beta Blocker'], routes: ['IV'], types: ['Bolus'],
+    indications: { 'Tachycardia': { dose: '2.5-5.0', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 25.0, V2: 0, V3: 0, k10: 0.03, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.2 }, pd: { c50: 0.2, gamma: 1.5, sysMax: -10, hrMax: -25, rrMax: 0 } },
+  nitroglycerin: { name: 'Nitroglycerin', classes: ['Vasodilator'], routes: ['IV'], types: ['Bolus', 'Infusion'],
+    indications: { 'Ischemia/HTN': { dose: '10-100', unit: 'mcg', type: 'Bolus' }, 'Infusion': { dose: '10-200', unit: 'mcg/min', type: 'Infusion' } },
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 1.2, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 2.5 }, pd: { c50: 0.005, gamma: 1.5, sysMax: -40, hrMax: 15, rrMax: 0 } },
+  nitroprusside: { name: 'Nitroprusside', classes: ['Vasodilator'], routes: ['IV'], types: ['Infusion'],
+    indications: { 'Hypertensive Crisis': { dose: '0.3-10', unit: 'mcg/kg/min', type: 'Infusion' } },
+    pk: { V1: 10.0, V2: 0, V3: 0, k10: 1.5, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 3.0 }, pd: { c50: 0.002, gamma: 1.5, sysMax: -60, hrMax: 20, rrMax: 0 } },
+  clevidipine: { name: 'Clevidipine', classes: ['CCB (Fast)'], routes: ['IV'], types: ['Infusion'],
+    indications: { 'Hypertension': { dose: '1-16', unit: 'mg/hr', type: 'Infusion' } },
+    pk: { V1: 8.0, V2: 0, V3: 0, k10: 1.0, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 2.0 }, pd: { c50: 0.05, gamma: 1.5, sysMax: -50, hrMax: 10, rrMax: 0 } },
+  nicardipine: { name: 'Nicardipine', classes: ['CCB (Slow)'], routes: ['IV'], types: ['Infusion'],
+    indications: { 'Hypertension': { dose: '5-15', unit: 'mg/hr', type: 'Infusion' } },
+    pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.08, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5 }, pd: { c50: 0.1, gamma: 1.5, sysMax: -40, hrMax: 5, rrMax: 0 } },
 
-  // ==========================================
-  // 5. Sedatives and Anxiolytics
-  // ==========================================
-  midazolam: {
-    name: 'Midazolam',
-    class: 'Benzodiazepine',
-    dosingWeight: 'TBW',
-    standardDoseRange: [0.02, 0.04], // mg/kg
-    onsetSeconds: 120,
-    durationMinutes: 30,
-    hrEffect: 0,
-    sysEffect: -5
-  },
-  dexmedetomidine: {
-    name: 'Dexmedetomidine',
-    class: 'Alpha-2 Agonist',
-    dosingWeight: 'TBW',
-    standardDoseRange: [0.5, 1.0], // mcg/kg
-    onsetSeconds: 300,
-    durationMinutes: 60,
-    hrEffect: -15,
-    sysEffect: -15
-  },
-  lorazepam: {
-    name: 'Lorazepam',
-    class: 'Benzodiazepine',
-    dosingWeight: 'TBW',
-    standardDoseRange: [0.02, 0.04], // mg/kg
-    onsetSeconds: 300,
-    durationMinutes: 240,
-    hrEffect: 0,
-    sysEffect: -5
-  },
-  diazepam: {
-    name: 'Diazepam',
-    class: 'Benzodiazepine',
-    dosingWeight: 'TBW',
-    standardDoseRange: [0.05, 0.1], // mg/kg
-    onsetSeconds: 120,
-    durationMinutes: 120,
-    hrEffect: 0,
-    sysEffect: -5
-  },
+  // === ANTI-ARRHYTHMICS & ELECTROLYTES ===
+  amiodarone: { name: 'Amiodarone', classes: ['Anti-Arrhythmic'], routes: ['IV'], types: ['Bolus', 'Infusion'],
+    indications: { 'VT/VF Arrest': { dose: '300', unit: 'mg', type: 'Bolus' }, 'Stable VT': { dose: '150', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 50.0, V2: 200.0, V3: 5000, k10: 0.01, k12: 0.1, k21: 0.02, k13: 0.05, k31: 0.001, ke0: 0.2 }, pd: { c50: 2.0, gamma: 1.5, sysMax: -15, hrMax: -20, rrMax: 0 } },
+  lidocaine: { name: 'Lidocaine', classes: ['Anti-Arrhythmic'], routes: ['IV'], types: ['Bolus', 'Infusion'],
+    indications: { 'VT/VF': { dose: '1.0-1.5', unit: 'mg/kg', type: 'Bolus' }, 'Intubation Reflex Blocker': { dose: '1.0', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 40.0, V3: 100, k10: 0.1, k12: 0.15, k21: 0.1, k13: 0.05, k31: 0.02, ke0: 0.8 }, pd: { c50: 2.0, gamma: 1.5, sysMax: -5, hrMax: -5, rrMax: 0 } },
+  adenosine: { name: 'Adenosine', classes: ['Anti-Arrhythmic'], routes: ['IV'], types: ['Bolus'],
+    indications: { 'SVT': { dose: '6', unit: 'mg', type: 'Bolus' }, 'SVT (2nd dose)': { dose: '12', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 2.0, V2: 0, V3: 0, k10: 6.0, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 6.0 }, pd: { c50: 1.0, gamma: 4, sysMax: -20, hrMax: -100, rrMax: 0 } }, // Massive HR drop, instantaneous off
+  atropine: { name: 'Atropine', classes: ['Anticholinergic'], routes: ['IV'], types: ['Bolus'],
+    indications: { 'Bradycardia': { dose: '0.5-1.0', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 25.0, V2: 0, V3: 0, k10: 0.05, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.8 }, pd: { c50: 0.01, gamma: 2, sysMax: 5, hrMax: 40, rrMax: 0 } },
+  magnesium: { name: 'Magnesium Sulfate', classes: ['Electrolyte'], routes: ['IV'], types: ['Bolus'],
+    indications: { 'Torsades / Eclampsia': { dose: '1-2', unit: 'g', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.02, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5 }, pd: { c50: 0.05, gamma: 1.5, sysMax: -10, hrMax: -5, rrMax: 0 } },
+  calcium: { name: 'Calcium Chloride', classes: ['Electrolyte'], routes: ['IV'], types: ['Bolus'],
+    indications: { 'Hypocalcemia / Inotropy': { dose: '0.5-1.0', unit: 'g', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.05, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.0 }, pd: { c50: 0.02, gamma: 1.5, sysMax: 15, hrMax: 0, rrMax: 0 } },
+  bicarbonate: { name: 'Sodium Bicarbonate', classes: ['Alkalinizer'], routes: ['IV'], types: ['Bolus'],
+    indications: { 'Severe Acidosis': { dose: '50', unit: 'mEq', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.05, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.0 }, pd: { c50: 0.1, gamma: 1, sysMax: 0, hrMax: 0, rrMax: 0 } }
+};
 
-  // ==========================================
-  // 6. Local and Regional Anesthetics
-  // ==========================================
-  lidocaine: {
-    name: 'Lidocaine',
-    class: 'Local Anesthetic',
-    dosingWeight: 'TBW',
-    standardDoseRange: [1.0, 1.5], // mg/kg (Systemic dose)
-    onsetSeconds: 60,
-    durationMinutes: 60,
-    hrEffect: 0,
-    sysEffect: 0
-  },
-  bupivacaine: {
-    name: 'Bupivacaine',
-    class: 'Local Anesthetic',
-    dosingWeight: 'TBW',
-    standardDoseRange: [1.0, 2.0], // mg/kg max
-    onsetSeconds: 300,
-    durationMinutes: 240,
-    hrEffect: 0,
-    sysEffect: 0
-  },
-  ropivacaine: {
-    name: 'Ropivacaine',
-    class: 'Local Anesthetic',
-    dosingWeight: 'TBW',
-    standardDoseRange: [2.0, 3.0], // mg/kg max
-    onsetSeconds: 300,
-    durationMinutes: 240,
-    hrEffect: 0,
-    sysEffect: 0
-  },
-
-  // ==========================================
-  // 7. Adjuncts and Reversal Agents
-  // ==========================================
-  ondansetron: {
-    name: 'Ondansetron',
-    class: 'Antiemetic',
-    dosingWeight: 'TBW',
-    standardDoseRange: [4.0, 8.0], // mg
-    onsetSeconds: 180,
-    durationMinutes: 240,
-    hrEffect: 0,
-    sysEffect: 0
-  },
-  dexamethasone: {
-    name: 'Dexamethasone',
-    class: 'Corticosteroid',
-    dosingWeight: 'TBW',
-    standardDoseRange: [4.0, 8.0], // mg
-    onsetSeconds: 600,
-    durationMinutes: 1440,
-    hrEffect: 0,
-    sysEffect: 0
-  },
-  sugammadex: {
-    name: 'Sugammadex',
-    class: 'Reversal Agent',
-    dosingWeight: 'TBW',
-    standardDoseRange: [2.0, 4.0], // mg/kg
-    onsetSeconds: 60,
-    durationMinutes: 120,
-    hrEffect: 0,
-    sysEffect: 0
-  },
-  neostigmine: {
-    name: 'Neostigmine',
-    class: 'Acetylcholinesterase Inhibitor / Reversal',
-    dosingWeight: 'TBW',
-    standardDoseRange: [0.03, 0.05], // mg/kg
-    onsetSeconds: 180,
-    durationMinutes: 60,
-    hrEffect: -20,
-    sysEffect: 0
-  },
-  glycopyrrolate: {
-    name: 'Glycopyrrolate',
-    class: 'Anticholinergic',
-    dosingWeight: 'TBW',
-    standardDoseRange: [0.01, 0.02], // mg/kg
-    onsetSeconds: 60,
-    durationMinutes: 120,
-    hrEffect: 20,
-    sysEffect: 0
-  },
-
-  // ==========================================
-  // 8. Vasoactive / Cardiovascular Agents
-  // ==========================================
-  epinephrine: {
-    name: 'Epinephrine',
-    class: 'Inotrope/Vasopressor',
-    dosingWeight: 'TBW',
-    standardDoseRange: [10, 100], // mcg (bolus)
-    onsetSeconds: 30,
-    durationMinutes: 5,
-    hrEffect: 30,
-    sysEffect: 40
-  },
-  phenylephrine: {
-    name: 'Phenylephrine',
-    class: 'Vasopressor',
-    dosingWeight: 'TBW',
-    standardDoseRange: [50, 100], // mcg (bolus)
-    onsetSeconds: 30,
-    durationMinutes: 5,
-    hrEffect: -15,
-    sysEffect: 30
-  },
-  esmolol: {
-    name: 'Esmolol',
-    class: 'Beta Blocker',
-    dosingWeight: 'TBW',
-    standardDoseRange: [0.5, 1.0], // mg/kg
-    onsetSeconds: 60,
-    durationMinutes: 10,
-    hrEffect: -20,
-    sysEffect: -15
-  },
-
-  // ==========================================
-  // 9. Primary Cardiac Arrest Medications
-  // ==========================================
-  // Note: Epinephrine and Lidocaine are defined in other categories but are also used here.
-  amiodarone: {
-    name: 'Amiodarone',
-    class: 'Antiarrhythmic',
-    dosingWeight: 'TBW',
-    standardDoseRange: [150, 300], // mg (bolus)
-    onsetSeconds: 120,
-    durationMinutes: 60,
-    hrEffect: -10,
-    sysEffect: -15
-  },
-
-  // ==========================================
-  // 10. Medications for Tachycardia
-  // ==========================================
-  adenosine: {
-    name: 'Adenosine',
-    class: 'Antiarrhythmic',
-    dosingWeight: 'TBW',
-    standardDoseRange: [6, 12], // mg (rapid push)
-    onsetSeconds: 10,
-    durationMinutes: 1,
-    hrEffect: -40, // Can cause brief asystole
-    sysEffect: -20
-  },
-  procainamide: {
-    name: 'Procainamide',
-    class: 'Antiarrhythmic',
-    dosingWeight: 'TBW',
-    standardDoseRange: [20, 50], // mg/min (infusion)
-    onsetSeconds: 300,
-    durationMinutes: 180,
-    hrEffect: -15,
-    sysEffect: -20
-  },
-  metoprolol: {
-    name: 'Metoprolol',
-    class: 'Beta Blocker',
-    dosingWeight: 'TBW',
-    standardDoseRange: [2.5, 5], // mg (IV push)
-    onsetSeconds: 300,
-    durationMinutes: 240,
-    hrEffect: -25,
-    sysEffect: -15
-  },
-  diltiazem: {
-    name: 'Diltiazem',
-    class: 'Calcium Channel Blocker',
-    dosingWeight: 'TBW',
-    standardDoseRange: [15, 20], // mg (IV bolus)
-    onsetSeconds: 180,
-    durationMinutes: 60,
-    hrEffect: -20,
-    sysEffect: -15
-  },
-
-  // ==========================================
-  // 11. Medications for Bradycardia
-  // ==========================================
-  atropine: {
-    name: 'Atropine',
-    class: 'Anticholinergic',
-    dosingWeight: 'TBW',
-    standardDoseRange: [0.5, 1.0], // mg (bolus)
-    onsetSeconds: 60,
-    durationMinutes: 60,
-    hrEffect: 30, // Primary use is to increase HR
-    sysEffect: 0
-  },
-  dopamine: {
-    name: 'Dopamine',
-    class: 'Inotrope/Vasopressor',
-    dosingWeight: 'TBW',
-    standardDoseRange: [5, 20], // mcg/kg/min (infusion)
-    onsetSeconds: 120,
-    durationMinutes: 10,
-    hrEffect: 20,
-    sysEffect: 30
-  },
-
-  // ==========================================
-  // 12. Special Resuscitation & Reversal Agents
-  // ==========================================
-  magnesiumSulfate: {
-    name: 'Magnesium Sulfate',
-    class: 'Electrolyte',
-    dosingWeight: 'TBW',
-    standardDoseRange: [1000, 2000], // mg
-    onsetSeconds: 180,
-    durationMinutes: 30,
-    hrEffect: -5,
-    sysEffect: -10
-  },
-  sodiumBicarbonate: {
-    name: 'Sodium Bicarbonate',
-    class: 'Alkalinizing Agent',
-    dosingWeight: 'TBW',
-    standardDoseRange: [50, 100], // mEq
-    onsetSeconds: 60,
-    durationMinutes: 60,
-    hrEffect: 0,
-    sysEffect: 0
-  },
-  nitroglycerin: {
-    name: 'Nitroglycerin',
-    class: 'Vasodilator',
-    dosingWeight: 'TBW',
-    standardDoseRange: [0.4, 0.8], // mg (sublingual) or mcg/min (infusion)
-    onsetSeconds: 60,
-    durationMinutes: 5,
-    hrEffect: 10, // Reflex tachycardia possible
-    sysEffect: -30
-  },
-  naloxone: {
-    name: 'Naloxone',
-    class: 'Opioid Antagonist',
-    dosingWeight: 'TBW',
-    standardDoseRange: [0.4, 2.0], // mg
-    onsetSeconds: 60,
-    durationMinutes: 45,
-    hrEffect: 10, // Can cause tachycardia due to abrupt opioid reversal
-    sysEffect: 15
-  }
+export const FLUIDS = {
+  'Normal Saline (0.9% NS)': { type: 'Crystalloid', defaultVol: 1000, na: 154, cl: 154, k: 0, ca: 0, retention: 0.25, coag: { r: 0, ma: -2, angle: 0 } },
+  'Lactated Ringers (LR)': { type: 'Crystalloid', defaultVol: 1000, na: 130, cl: 109, k: 4, ca: 1.5, retention: 0.25, coag: { r: 0, ma: -1, angle: 0 } },
+  'Plasmalyte': { type: 'Crystalloid', defaultVol: 1000, na: 140, cl: 98, k: 5, ca: 0, retention: 0.25, coag: { r: 0, ma: -1, angle: 0 } },
+  'Albumin 5%': { type: 'Colloid', defaultVol: 500, na: 145, cl: 145, k: 0, ca: 0, retention: 1.0, coag: { r: 0, ma: -2, angle: -2 } },
+  'Packed Red Blood Cells (PRBC)': { type: 'Colloid', defaultVol: 300, na: 0, cl: 0, k: 15, ca: -1.0, retention: 1.0, coag: { r: 0, ma: 0, angle: 0 } }, 
+  'Fresh Frozen Plasma (FFP)': { type: 'Colloid', defaultVol: 250, na: 0, cl: 0, k: 0, ca: -0.5, retention: 1.0, coag: { r: -4, ma: 0, angle: 5 } }, 
+  'Platelets': { type: 'Colloid', defaultVol: 50, na: 0, cl: 0, k: 0, ca: 0, retention: 1.0, coag: { r: 0, ma: 20, angle: 0 } }, 
+  'Cryoprecipitate': { type: 'Colloid', defaultVol: 15, na: 0, cl: 0, k: 0, ca: 0, retention: 1.0, coag: { r: 0, ma: 5, angle: 15 } }, 
+  'Fibrinogen Concentrate': { type: 'Colloid', defaultVol: 50, na: 0, cl: 0, k: 0, ca: 0, retention: 1.0, coag: { r: 0, ma: 2, angle: 25 } }
 };

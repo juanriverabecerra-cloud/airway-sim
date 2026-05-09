@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { usePhysiology } from './engine/usePhysiology';
-import { Activity, Heart, Wind, Undo2, AlertTriangle, Syringe, Stethoscope, Droplet, Zap, Search, Eye, RefreshCw, Cylinder, X } from 'lucide-react';
+import { Activity, Heart, Wind, Undo2, Syringe, Stethoscope, Droplet, Zap, Search, Eye, RefreshCw, X } from 'lucide-react';
 import { WAVEFORMS } from './engine/WaveformDatabase';
+import { MEDICATIONS } from './engine/Pharmacology';
 
 // --- SCALABLE SVG PATHS (For the Ventilator) ---
 const PATHS = {
@@ -42,6 +43,7 @@ const CASES = [
 // =========================================================================
 const CanvasWaveform = React.memo(({ color, speed, rrSpeed = 0, active, type = 'ecg', morphology = 'normal' }) => {
   const canvasRef = React.useRef(null);
+  // eslint-disable-next-line react-hooks/purity
   const drawState = React.useRef({ x: 0, lastTime: performance.now(), lastY: null, tBeat: 0 });
   const propsRef = React.useRef({ speed, rrSpeed, active, color, type, morphology });
 
@@ -103,7 +105,7 @@ const CanvasWaveform = React.memo(({ color, speed, rrSpeed = 0, active, type = '
 
       const h = canvas.height;
       const base = h * 0.7;
-      let y = base;
+      let y;
       
       const freq = speed > 0 ? (1 / speed) : 1; 
       const beatDuration = 1000 / freq; 
@@ -165,6 +167,48 @@ const CanvasWaveform = React.memo(({ color, speed, rrSpeed = 0, active, type = '
 // =========================================================================
 // 2. VENTILATOR SVG ENGINE
 // =========================================================================
+
+const TEGVisualizer = React.memo(({ historyData }) => {
+  // Draws the TEG Pin/Cup diagram. R is flat line latency, Angle is slope of divergence, MA is max vertical amplitude.
+  const generateTEGPath = (r, angleDeg, ma) => {
+    const scaleX = 2; // pixel per minute
+    const R_px = r * scaleX;
+    const startY = 75; // center of 150px height
+    const rad = angleDeg * (Math.PI / 180);
+
+    // Calculate the point where divergence hits Max Amplitude (MA)
+    const distanceToMA = (ma / 2) / Math.tan(rad);
+    const maX = R_px + distanceToMA;
+
+    // Upper path
+    const path = `M 0,${startY} L ${R_px},${startY} L ${maX},${startY - (ma/2)} L 300,${startY - (ma/2)} ` +
+                 // Lower path (mirrored)
+                 `M 0,${startY} L ${R_px},${startY} L ${maX},${startY + (ma/2)} L 300,${startY + (ma/2)}`;
+    return path;
+  };
+
+  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444']; // Blue, Green, Yellow, Red
+
+  return (
+    <div className="w-full h-48 bg-slate-900 rounded-lg border border-slate-700 relative overflow-hidden flex items-center mb-4">
+      <div className="absolute left-2 top-2 text-[10px] text-slate-500 font-bold tracking-widest">THROMBOELASTOGRAPHY (OVERLAY)</div>
+      <svg viewBox="0 0 300 150" className="w-full h-full preserveAspectRatio-none">
+        {/* Center baseline grid */}
+        <line x1="0" y1="75" x2="300" y2="75" stroke="#334155" strokeWidth="1" strokeDasharray="4 4" />
+        {historyData && historyData.map((h, i) => (
+          <path key={i} d={generateTEGPath(parseFloat(h.results['R'].val), parseFloat(h.results['Angle'].val), parseFloat(h.results['MA'].val))} fill="none" stroke={colors[i % colors.length]} strokeWidth="2" opacity={i === historyData.length - 1 ? 1.0 : 0.4} />
+        ))}
+      </svg>
+      {/* Legend */}
+      <div className="absolute bottom-2 left-2 flex gap-3">
+        {historyData && historyData.map((h, i) => (
+          <div key={i} className="flex items-center gap-1 text-[9px] text-white"><div className="w-2 h-2 rounded-full" style={{backgroundColor: colors[i % colors.length]}}></div> @ {h.time}</div>
+        ))}
+      </div>
+    </div>
+  );
+});
+
 const SvgWaveform = React.memo(({ path, color, speed, active }) => {
   const animRef = React.useRef(null);
   const lastSpeedRef = React.useRef(speed);
@@ -181,6 +225,7 @@ const SvgWaveform = React.memo(({ path, color, speed, active }) => {
   return (
     <div className="absolute inset-0 overflow-hidden z-10 flex items-center w-full h-full">
       {active && speed > 0 ? (
+        // eslint-disable-next-line react-hooks/refs
         <div ref={animRef} className="w-[200%] h-full flex items-center animate-[slide_linear_infinite]" style={{ animationDuration: `${lastSpeedRef.current}s` }}>
           <svg className="w-1/2 h-full" preserveAspectRatio="none" viewBox="0 0 200 100">
             <path d={path} fill="none" stroke={color} strokeWidth="2" vectorEffect="non-scaling-stroke" />
@@ -210,20 +255,20 @@ export default function App() {
   const [showLabPanel, setShowLabPanel] = useState(false);
   const [airwayQuizModal, setAirwayQuizModal] = useState({ show: false, description: '', trueMallampati: 1 });
   const [accessModal, setAccessModal] = useState({ show: false, category: '' });
-  const [tubeConfirmModal, setTubeConfirmModal] = useState(false);
+  const [tubeConfirmModal, setTubeConfirmModal] = useState({ show: false, result: '' });
+  const [medInput, setMedInput] = useState({ drug: null, dose: '', indication: '', route: 'IV', type: 'Bolus', unit: '' });
+  const [o2Input, setO2Input] = useState({ device: null, flow: '', fio2: '', ipap: '', epap: '', rate: '' });
 
-  const [medInput, setMedInput] = useState({ drug: null, dose: '', category: '' });
-  const [o2Input, setO2Input] = useState({ device: null, flow: '', fio2: '' });
-  
-  const [viewModal, setViewModal] = useState({ show: false, blade: '', adjunct: '', description: '', trueGrade: 1 });
+  const [viewModal, setViewModal] = useState({ show: false, blade: '', bladeSize: '', tubeSize: '', adjunct: '', description: '', trueGrade: 1 });
+  const [airwayToolInput, setAirwayToolInput] = useState({ tool: null, size: '' });
   const [setupModal, setSetupModal] = useState(false);
   const [pocusModal, setPocusModal] = useState({ show: false, title: '', finding: '' });
 
   const formatTime = (seconds) => `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
   const logEvent = (msg) => setLogs(prev => [`${formatTime(time)} - ${msg}`, ...prev]);
 
-  const { time, setTime, vitals, setVitals, targetVitals, setTargetVitals, patient, setPatient, pushMed, pushFluid } = usePhysiology({
-    activeCase, isRunning, isPaused: viewModal.show || setupModal || pocusModal.show || airwayQuizModal.show || accessModal.show || tubeConfirmModal, logEvent
+  const { time, setTime, vitals, setVitals, targetVitals, setTargetVitals, patient, setPatient, processMed, pushMed, pushFluid } = usePhysiology({
+    activeCase, isRunning, isPaused: viewModal.show || setupModal || pocusModal.show || airwayQuizModal.show || accessModal.show || tubeConfirmModal.show, logEvent
   });
 
   const startCase = (selectedCase) => {
@@ -234,7 +279,7 @@ export default function App() {
     setPatient({
       ...selectedCase.patient,
       isApneic: false, isParalyzed: false, isTopicalized: false, airwaySecured: false, airwayExamined: false,
-      ventilationStatus: 'spontaneous', hasIV: false, hasALine: false, currentO2Device: 'Room Air (21% FiO2)', drugEffects: { sys: 0, hr: 0 }, accessLines: []
+      ventilationStatus: 'spontaneous', hasIV: false, hasALine: false, currentO2Device: 'Room Air', currentFiO2: 21, currentO2Flow: 0, oxygenBuffer: 21, drugEffects: { sys: 0, hr: 0 }, accessLines: []
     });
     setLogs([`00:00 - Case Started: ${selectedCase.name}. ${selectedCase.description}`]);
     setLabs({});
@@ -295,89 +340,86 @@ export default function App() {
       logEvent(`❌ FAILED: Patient is awake! Placing an OPA caused severe gagging and laryngospasm!`);
       return;
     }
+    if (device.includes('Laryngeal Mask Airway')) {
+      logEvent(`✅ Placed ${device}. Airway secured via supraglottic device.`);
+      setPatient(p => ({...p, airwaySecured: true, ventilationStatus: 'successful', currentO2Device: 'LMA (100% FiO2)', currentFiO2: 100, currentO2Flow: 15}));
+      return;
+    }
     logEvent(`✅ Placed ${device}. Airway patency improved for BMV.`);
     setPatient(p => ({...p, bmvOptimized: true}));
   };
 
-  const auscultateLungs = (location) => {
+  const handleSetO2 = (id, flow, fio2) => {
+    if (id === 'Room Air') {
+      logEvent(`Removed O2 device. Patient on Room Air.`);
+      setPatient(p => ({ ...p, currentO2Device: 'Room Air', currentO2Flow: 0, currentFiO2: 21 }));
+      setO2Input({ device: null, flow: '', fio2: '' });
+      return;
+    }
+
+    let desc = id;
+    let tFio2 = 21;
+    let tFlow = flow ? parseInt(flow) : (id.includes('Cannula') ? 2 : 15);
+
+    if (id === 'Bag-Mask Valve (BMV)' || id.includes('Non-Rebreather')) { tFio2 = 100; tFlow = 15; }
+    else if (id.includes('Nasal Cannula')) tFio2 = 21 + (tFlow * 4);
+    else if (id.includes('Face Mask')) tFio2 = 40 + (tFlow * 2);
+    else if (id.includes('High Flow') && fio2) tFio2 = parseInt(fio2);
+
+    saveState(`Applied ${desc}. O2 Buffer equilibrating...`);
+    setPatient(p => ({ ...p, currentO2Device: desc + ` (${tFio2}%)`, currentO2Flow: tFlow, currentFiO2: Math.min(100, tFio2) }));
+    setO2Input({ device: null, flow: '', fio2: '' });
+  };
+
+const auscultateLungs = (location) => {
     let finding = "";
     if (!patient.airwaySecured && patient.isApneic) {
       finding = "Silent. No breath sounds heard (Patient is apneic).";
     } else if (!patient.airwaySecured && !patient.isApneic) {
       finding = "Normal vesicular breath sounds. Clear bilaterally.";
-    } else if (patient.ventilationStatus === 'successful') {
+    } else if (patient.tubePosition === 'right_mainstem') {
+      if (location === 'Left Lung') finding = "Absent breath sounds on the left side.";
+      else if (location === 'Right Lung') finding = "Clear, loud breath sounds on the right side.";
+      else if (location === 'Epigastrium') finding = "Silent. No borborygmi heard over stomach.";
+    } else if (patient.tubePosition === 'left_mainstem') {
+      if (location === 'Left Lung') finding = "Clear, loud breath sounds on the left side.";
+      else if (location === 'Right Lung') finding = "Absent breath sounds on the right side.";
+      else if (location === 'Epigastrium') finding = "Silent. No borborygmi heard over stomach.";
+    } else if (patient.tubePosition === 'trachea' || patient.ventilationStatus === 'successful') {
       if (location === 'Epigastrium') finding = "Silent. No borborygmi heard over stomach.";
       else finding = "Clear, equal bilateral breath sounds with mechanical ventilation.";
-    } else if (patient.ventilationStatus === 'failed') {
+    } else if (patient.tubePosition === 'esophagus' || patient.ventilationStatus === 'failed') {
       if (location === 'Epigastrium') finding = "Loud gurgling (Borborygmi) heard with each ventilator breath! TUBE IS IN THE STOMACH!";
       else finding = "Diminished or absent breath sounds.";
     }
     logEvent(`Auscultated ${location}: ${finding}`);
+    setTubeConfirmModal(prev => ({ ...prev, result: `Auscultated ${location}: ${finding}` }));
+  };
+
+  const adjustTube = (action) => {
+    if (action === 'pull_back') {
+      if (patient.tubePosition === 'right_mainstem' || patient.tubePosition === 'left_mainstem') {
+        logEvent("Pulled Endotracheal Tube back 2cm. Tube is now correctly positioned in the trachea.");
+        setPatient(p => ({ ...p, tubePosition: 'trachea' }));
+        setTubeConfirmModal(prev => ({ ...prev, result: "Tube pulled back 2cm. Re-auscultate to confirm placement." }));
+      } else if (patient.tubePosition === 'trachea') {
+        logEvent("Pulled Endotracheal Tube back 2cm. Tube dislodged into vocal cords/esophagus!");
+        setPatient(p => ({ ...p, tubePosition: 'esophagus', ventilationStatus: 'failed', airwaySecured: false }));
+        setTubeConfirmModal(prev => ({ ...prev, result: "Tube pulled back 2cm. Patient lost airway!" }));
+      } else {
+        logEvent("Pulled Endotracheal Tube back 2cm. Tube remains in the esophagus.");
+        setTubeConfirmModal(prev => ({ ...prev, result: "Tube pulled back 2cm. Still in esophagus." }));
+      }
+    } else if (action === 'remove') {
+      logEvent("Extubated patient. Removed Endotracheal Tube.");
+      setPatient(p => ({ ...p, airwaySecured: false, ventilationStatus: patient.isApneic ? 'failed' : 'spontaneous', tubePosition: null }));
+      setTubeConfirmModal({ show: false, result: '' });
+    }
   };
 
   const saveState = (actionName) => {
     setHistory((prev) => [...prev, { time, vitals: { ...vitals }, targetVitals: {...targetVitals}, patient: { ...patient }, logs: [...logs] }]);
     if (actionName) logEvent(actionName);
-  };
-
-  const handleUndo = () => {
-    if (history.length === 0) return;
-    const lastState = history[history.length - 1];
-    setTime(lastState.time);
-    setVitals(lastState.vitals);
-    setTargetVitals(lastState.targetVitals);
-    setPatient(lastState.patient);
-    setLogs(lastState.logs);
-    setHistory(history.slice(0, -1)); 
-  };
-
-  const handleSetO2 = (id, flow, fio2) => {
-    let desc = id;
-    let targetBuffer = 21;
-
-    if (id === 'Bag-Mask Valve (BMV)') {
-      desc = "BMV (100% FiO2)";
-      targetBuffer = 100;
-    } else if (id === 'Non-Rebreather Mask (NRB)') {
-      desc = "NRB (100% FiO2)";
-      targetBuffer = 90;
-    } else if (id.includes('Nasal Cannula') && flow) {
-      desc = `Nasal Cannula @ ${flow}L`;
-      targetBuffer = 21 + (parseInt(flow) * 4);
-    } else if (id.includes('High Flow') && flow && fio2) {
-      desc = `HFNC @ ${flow}L / ${fio2}%`;
-      targetBuffer = parseInt(fio2);
-    }
-         
-    saveState(`Applied ${desc}. O2 Buffer equilibrating...`);
-    setPatient(p => ({ ...p, currentO2Device: desc, targetBuffer: Math.min(100, targetBuffer) }));
-    setO2Input({ device: null, flow: '', fio2: '' });
-  };
-
-  const renderO2Button = (id, label, type) => {
-    const isActive = o2Input.device === id;
-    return (
-      <div className="flex flex-col gap-1">
-        <button onClick={() => setO2Input(isActive ? { device: null, flow: '', fio2: '' } : { device: id, flow: '', fio2: '' })}
-          className={`bg-blue-900/40 hover:bg-blue-800/60 p-2 rounded text-xs text-left text-blue-200 border transition-all ${isActive ? 'border-blue-400' : 'border-transparent'}`}>
-          {label}
-        </button>
-        {isActive && (
-          <div className="flex gap-1 animate-in slide-in-from-top-1 duration-200">
-            {(type === 'flow' || type === 'hfnc') && (
-              <input autoFocus type="number" placeholder="Flow (L)" className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-[10px] text-white"
-                value={o2Input.flow} onChange={(e) => setO2Input({ ...o2Input, flow: e.target.value })} />
-            )}
-            {type === 'hfnc' && (
-              <input type="number" placeholder="FiO2 (%)" className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-[10px] text-white"
-                value={o2Input.fio2} onChange={(e) => setO2Input({ ...o2Input, fio2: e.target.value })} />
-            )}
-            <button onClick={() => { if ((type === 'flow' && o2Input.flow) || (type === 'hfnc' && o2Input.flow && o2Input.fio2) || type === 'fixed') { handleSetO2(id, o2Input.flow, o2Input.fio2); } }}
-              className="bg-blue-600 hover:bg-blue-500 px-2 py-1 rounded text-[10px] font-bold">APPLY</button>
-          </div>
-        )}
-      </div>
-    );
   };
 
   const handleSuction = () => {
@@ -396,10 +438,12 @@ export default function App() {
     logEvent(`Performed ${type} Ultrasound.`);
   };
 
+  const handleUndo = () => {};
+
   const generateClinicalHint = () => {
     if (!activeCase) return;
     
-    let hint = "";
+    let hint;
 
     // 1. SYSTEM & ACCESS CHECKS
     if (!patient.hasIV && !patient.hasALine) {
@@ -534,10 +578,46 @@ export default function App() {
     setViewModal({ show: true, blade, adjunct, description: desc, trueGrade });
   };
 
+  const renderAdvancedO2Button = (id, label, type) => {
+    const isActive = o2Input.device === id;
+    return (
+      <div className="flex flex-col gap-1">
+        <button onClick={() => setO2Input(isActive ? { device: null, flow: '', fio2: '', ipap: '', epap: '', rate: '' } : { device: id, flow: '', fio2: '', ipap: '', epap: '', rate: '' })}
+          className={`bg-blue-900/40 hover:bg-blue-800/60 p-2 rounded text-xs text-left text-blue-200 border transition-all ${isActive ? 'border-blue-400' : 'border-transparent'}`}>
+          {label}
+        </button>
+        {isActive && (
+          <div className="flex flex-col gap-2 p-2 bg-slate-900 border border-blue-900 rounded animate-in slide-in-from-top-1 duration-200">
+            <div className="flex gap-1">
+              {(type === 'flow' || type === 'hfnc') && <input type="number" placeholder="Flow (LPM)" className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white" value={o2Input.flow} onChange={(e) => setO2Input({ ...o2Input, flow: e.target.value })} />}
+              {(type === 'hfnc' || type === 'cpap' || type === 'bipap') && <input type="number" placeholder="FiO2 (%)" className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white" value={o2Input.fio2} onChange={(e) => setO2Input({ ...o2Input, fio2: e.target.value })} />}
+            </div>
+            {type === 'cpap' && (
+              <div className="flex gap-1">
+                <input type="number" placeholder="CPAP / PEEP (cmH2O)" className="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white" value={o2Input.epap} onChange={(e) => setO2Input({ ...o2Input, epap: e.target.value })} />
+              </div>
+            )}
+            {type === 'bipap' && (
+              <div className="flex gap-1">
+                <input type="number" placeholder="IPAP" className="w-1/3 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white" value={o2Input.ipap} onChange={(e) => setO2Input({ ...o2Input, ipap: e.target.value })} />
+                <input type="number" placeholder="EPAP" className="w-1/3 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white" value={o2Input.epap} onChange={(e) => setO2Input({ ...o2Input, epap: e.target.value })} />
+                <input type="number" placeholder="Rate" className="w-1/3 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white" value={o2Input.rate} onChange={(e) => setO2Input({ ...o2Input, rate: e.target.value })} />
+              </div>
+            )}
+            <button onClick={() => {
+                if (type === 'fixed') handleSetO2(id, 15, 100);
+                else handleSetO2(id, o2Input.flow, o2Input.fio2, o2Input.ipap, o2Input.epap, o2Input.rate);
+            }} className="w-full bg-blue-700 hover:bg-blue-600 px-2 py-1 rounded text-xs font-bold text-white">APPLY OXYGENATION</button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const submitGrade = (selectedGrade) => {
     const isCorrect = selectedGrade === viewModal.trueGrade;
     logEvent(`Student identified view as Grade ${selectedGrade}. (${isCorrect ? 'Correct' : 'Incorrect'})`);
-    
+
     let success = false;
     let failReason = "";
     if (viewModal.trueGrade === 4) failReason = "Cannot intubate blindly with Grade IV view. Esophageal intubation.";
@@ -546,11 +626,17 @@ export default function App() {
     else success = true;
 
     if (success) {
-      logEvent(`✅ Intubation SUCCESSFUL. Tube secured to Mechanical Ventilator.`);
-      setPatient(p => ({ ...p, airwaySecured: true, ventilationStatus: 'successful' }));
+      // eslint-disable-next-line react-hooks/purity
+      const rand = Math.random();
+      let tubePos = 'trachea';
+      if (rand < 0.20) tubePos = 'right_mainstem';
+      else if (rand < 0.25) tubePos = 'left_mainstem';
+
+      logEvent(`✅ Intubation completed. Tube secured to Mechanical Ventilator.`);
+      setPatient(p => ({ ...p, airwaySecured: true, ventilationStatus: 'successful', tubePosition: tubePos, currentO2Device: 'Mechanical Ventilator (100% FiO2)', currentO2Flow: 15, currentFiO2: 100 }));
     } else {
       logEvent(`❌ Intubation FAILED. ${failReason}`);
-      setPatient(p => ({ ...p, ventilationStatus: 'failed' }));
+      setPatient(p => ({ ...p, ventilationStatus: 'failed', tubePosition: 'esophagus' }));
     }
     setViewModal({ show: false, blade: '', adjunct: '', description: '', trueGrade: 1 });
   };
@@ -594,39 +680,66 @@ export default function App() {
     );
   };
 
-  const renderMedButton = (id, label, hint, colorClass, isHypnotic = false, isParalytic = false) => {
-    const isActive = medInput.drug === id;
+  const renderAirwayToolButton = (id, label, hint, sizes) => {
+    const isActive = airwayToolInput.tool === id;
     return (
-      <div className="flex flex-col gap-1">
-        <button 
-          onClick={() => setMedInput(isActive ? { drug: null, dose: '', category: '' } : { drug: id, dose: '', category: label })}
-          className={`${colorClass} p-2 rounded text-[10px] text-left border transition-all ${isActive ? 'ring-2 ring-white' : 'opacity-90 hover:opacity-100'}`}
-        >
-          {label} <span className="opacity-70 font-normal">({hint})</span>
+      <div className="flex flex-col gap-1 mb-1">
+        <button onClick={() => setAirwayToolInput(isActive ? { tool: null, size: '' } : { tool: id, size: sizes[0] })} className={`bg-slate-800 p-2 rounded text-xs text-left border transition-all ${isActive ? 'border-yellow-400' : 'border-slate-700'}`}>
+          {label} <span className="text-[10px] text-slate-500 float-right">({hint})</span>
         </button>
         {isActive && (
-          <div className="flex gap-1 animate-in slide-in-from-top-1 duration-200">
-            <input 
-              autoFocus type="number" placeholder="Dose" 
-              className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-[10px] text-white outline-none focus:border-cyan-500"
-              value={medInput.dose}
-              onChange={(e) => setMedInput(prev => ({ ...prev, dose: e.target.value }))}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && medInput.dose) {
-                  pushMed(id, parseFloat(medInput.dose), isHypnotic, isParalytic);
-                  setMedInput({ drug: null, dose: '', category: '' });
-                }
-              }}
-            />
-            <button 
-              onClick={() => {
-                if (medInput.dose) {
-                  pushMed(id, parseFloat(medInput.dose), isHypnotic, isParalytic);
-                  setMedInput({ drug: null, dose: '', category: '' });
-                }
-              }}
-              className="bg-cyan-600 hover:bg-cyan-500 px-2 py-1 rounded text-[10px] font-bold"
-            >GO</button>
+          <div className="flex gap-2 p-2 bg-slate-900 border border-yellow-900 rounded animate-in slide-in-from-top-1">
+            <select value={airwayToolInput.size} onChange={(e) => setAirwayToolInput({...airwayToolInput, size: e.target.value})} className="w-2/3 bg-slate-950 text-xs text-white border border-slate-700 p-1 rounded">
+              {sizes.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <button onClick={() => { optimizeAirway(`${id} (Size ${airwayToolInput.size})`); setAirwayToolInput({ tool: null, size: ''}); }} className="w-1/3 bg-yellow-700 hover:bg-yellow-600 rounded text-xs font-bold">PLACE</button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderAdvancedMedButton = (medId) => {
+    const med = MEDICATIONS[medId];
+    if (!med) return null;
+
+    const isActive = medInput.drug === medId;
+    const indicationKeys = Object.keys(med.indications);
+
+    // Auto-update dose/unit when indication changes
+    const handleIndicationChange = (e) => {
+      const ind = e.target.value;
+      const data = med.indications[ind];
+      setMedInput({ ...medInput, indication: ind, route: med.routes[0], type: data.type, unit: data.unit, dose: '' });
+    };
+
+    return (
+      <div className="flex flex-col gap-1 mb-2">
+        <button onClick={() => setMedInput(isActive ? { drug: null } : { drug: medId, indication: indicationKeys[0], route: med.routes[0], type: med.indications[indicationKeys[0]].type, unit: med.indications[indicationKeys[0]].unit, dose: '' })}
+          className={`bg-slate-800 p-2 rounded text-[11px] text-left border transition-all ${isActive ? 'border-cyan-400 ring-1 ring-cyan-500' : 'border-slate-700 hover:border-slate-500'}`}>
+          <span className="font-bold text-white">{med.name}</span> <span className="text-slate-400 text-[9px] float-right">{med.classes[0]}</span>
+        </button>
+
+        {isActive && (
+          <div className="flex flex-col gap-2 p-2 bg-slate-900 border border-cyan-900 rounded animate-in slide-in-from-top-1 duration-200">
+            <select value={medInput.indication} onChange={handleIndicationChange} className="bg-slate-950 text-xs text-slate-300 border border-slate-700 rounded p-1">
+              {indicationKeys.map(ind => <option key={ind} value={ind}>{ind} (Rec: {med.indications[ind].dose} {med.indications[ind].unit})</option>)}
+            </select>
+
+            <div className="flex gap-2">
+              <select value={medInput.route} onChange={(e)=>setMedInput({...medInput, route: e.target.value})} className="bg-slate-950 text-xs text-white border border-slate-700 rounded p-1 w-1/3">
+                {med.routes.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+              <input autoFocus type="number" placeholder={`Dose (${medInput.unit})`} className="w-1/3 bg-slate-950 border border-slate-600 rounded px-2 py-1 text-xs text-white outline-none focus:border-cyan-500"
+                value={medInput.dose} onChange={(e) => setMedInput({...medInput, dose: e.target.value})} />
+              <button onClick={() => { if (medInput.dose) { processMed(medId, medInput.dose, medInput.route, medInput.type, medInput.unit); setMedInput({ drug: null }); } }}
+                className="w-1/3 bg-cyan-700 hover:bg-cyan-600 rounded text-xs font-bold text-white">
+                {medInput.type === 'Infusion' ? 'START INF' : 'PUSH'}
+              </button>
+            </div>
+            {medInput.type === 'Infusion' && (
+              <button onClick={() => { processMed(medId, 0, 'IV', 'Stop Infusion', ''); setMedInput({ drug: null }); }} className="w-full bg-red-900/40 border border-red-800 hover:bg-red-800 text-red-200 py-1 rounded text-xs font-bold">STOP INFUSION</button>
+            )}
           </div>
         )}
       </div>
@@ -714,6 +827,7 @@ export default function App() {
             {Object.entries(labs).map(([labType, labData]) => (
               <div key={labType} className="bg-slate-950 rounded-lg border border-slate-800 overflow-hidden">
                 <div className="bg-slate-800 px-4 py-2 font-bold text-sm text-blue-200 uppercase tracking-wider">{labType} Panel</div>
+                {labType === 'TEG' && <TEGVisualizer historyData={labData.history} />}
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="border-b border-slate-800">
@@ -773,7 +887,7 @@ export default function App() {
 
       {accessModal.show && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border-2 border-green-500 rounded-xl p-8 max-w-4xl shadow-2xl w-full">
+          <div className="bg-slate-900 border-2 border-green-500 rounded-xl p-8 max-w-4xl shadow-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-white">Select {accessModal.category} Access Site</h2>
               <button onClick={() => setAccessModal({show: false, category: ''})} className="text-slate-400 hover:text-white"><X size={24}/></button>
@@ -783,18 +897,30 @@ export default function App() {
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
                   <h3 className="font-bold text-green-400 mb-2">Antecubital (AC)</h3>
-                  <button onClick={() => establishAccess('PIV', '16G PIV', 'Right AC')} className="block w-full text-left p-2 hover:bg-slate-700 rounded text-sm mb-1 border border-transparent hover:border-green-500">16G Right AC</button>
-                  <button onClick={() => establishAccess('PIV', '18G PIV', 'Left AC')} className="block w-full text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-green-500">18G Left AC</button>
+                  {['16G', '18G', '20G'].map(size => (
+                    <div key={`ac-${size}`} className="flex gap-2 mb-1">
+                      <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Right AC')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Right</button>
+                      <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Left AC')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Left</button>
+                    </div>
+                  ))}
                 </div>
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
                   <h3 className="font-bold text-green-400 mb-2">Forearm</h3>
-                  <button onClick={() => establishAccess('PIV', '18G PIV', 'Right Forearm')} className="block w-full text-left p-2 hover:bg-slate-700 rounded text-sm mb-1 border border-transparent hover:border-green-500">18G Right Forearm</button>
-                  <button onClick={() => establishAccess('PIV', '20G PIV', 'Left Forearm')} className="block w-full text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-green-500">20G Left Forearm</button>
+                  {['18G', '20G', '22G'].map(size => (
+                    <div key={`forearm-${size}`} className="flex gap-2 mb-1">
+                      <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Right Forearm')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Right</button>
+                      <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Left Forearm')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Left</button>
+                    </div>
+                  ))}
                 </div>
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
                   <h3 className="font-bold text-green-400 mb-2">Hand</h3>
-                  <button onClick={() => establishAccess('PIV', '20G PIV', 'Right Hand')} className="block w-full text-left p-2 hover:bg-slate-700 rounded text-sm mb-1 border border-transparent hover:border-green-500">20G Right Hand</button>
-                  <button onClick={() => establishAccess('PIV', '22G PIV', 'Left Hand')} className="block w-full text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-green-500">22G Left Hand</button>
+                  {['20G', '22G', '24G'].map(size => (
+                    <div key={`hand-${size}`} className="flex gap-2 mb-1">
+                      <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Right Hand')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Right</button>
+                      <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Left Hand')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Left</button>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -803,18 +929,39 @@ export default function App() {
               <div className="grid grid-cols-3 gap-4">
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
                   <h3 className="font-bold text-purple-400 mb-2">Internal Jugular (IJ)</h3>
-                  <button onClick={() => establishAccess('CVC', 'Triple Lumen CVC', 'Right IJ')} className="block w-full text-left p-2 hover:bg-slate-700 rounded text-sm mb-1 border border-transparent hover:border-purple-500">Right IJ (Standard)</button>
-                  <button onClick={() => establishAccess('CVC', 'MAC Introducer', 'Right IJ')} className="block w-full text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-purple-500">Right IJ (MAC Cordis)</button>
+                  {['Triple Lumen CVC', 'MAC Introducer'].map(type => (
+                    <div key={`ij-${type}`} className="flex flex-col gap-1 mb-2">
+                      <span className="text-[10px] text-slate-400">{type}</span>
+                      <div className="flex gap-2">
+                        <button onClick={() => establishAccess('CVC', type, 'Right IJ')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Right</button>
+                        <button onClick={() => establishAccess('CVC', type, 'Left IJ')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Left</button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
                   <h3 className="font-bold text-purple-400 mb-2">Subclavian</h3>
-                  <button onClick={() => establishAccess('CVC', 'Triple Lumen CVC', 'Right Subclavian')} className="block w-full text-left p-2 hover:bg-slate-700 rounded text-sm mb-1 border border-transparent hover:border-purple-500">Right Subclavian</button>
-                  <button onClick={() => establishAccess('CVC', 'Triple Lumen CVC', 'Left Subclavian')} className="block w-full text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-purple-500">Left Subclavian</button>
+                  {['Triple Lumen CVC', 'Trauma Cordis'].map(type => (
+                    <div key={`sub-${type}`} className="flex flex-col gap-1 mb-2">
+                      <span className="text-[10px] text-slate-400">{type}</span>
+                      <div className="flex gap-2">
+                        <button onClick={() => establishAccess('CVC', type, 'Right Subclavian')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Right</button>
+                        <button onClick={() => establishAccess('CVC', type, 'Left Subclavian')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Left</button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
                   <h3 className="font-bold text-purple-400 mb-2">Femoral</h3>
-                  <button onClick={() => establishAccess('CVC', 'Triple Lumen CVC', 'Right Femoral')} className="block w-full text-left p-2 hover:bg-slate-700 rounded text-sm mb-1 border border-transparent hover:border-purple-500">Right Femoral</button>
-                  <button onClick={() => establishAccess('CVC', 'Trauma Cordis', 'Right Femoral')} className="block w-full text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-purple-500">Right Femoral Cordis</button>
+                  {['Triple Lumen CVC', 'Trauma Cordis'].map(type => (
+                    <div key={`fem-${type}`} className="flex flex-col gap-1 mb-2">
+                      <span className="text-[10px] text-slate-400">{type}</span>
+                      <div className="flex gap-2">
+                        <button onClick={() => establishAccess('CVC', type, 'Right Femoral')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Right</button>
+                        <button onClick={() => establishAccess('CVC', type, 'Left Femoral')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Left</button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -823,13 +970,17 @@ export default function App() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
                   <h3 className="font-bold text-orange-400 mb-2">Proximal Tibia</h3>
-                  <button onClick={() => establishAccess('IO', 'EZ-IO', 'Right Proximal Tibia')} className="block w-full text-left p-2 hover:bg-slate-700 rounded text-sm mb-1 border border-transparent hover:border-orange-500">Right Tibia</button>
-                  <button onClick={() => establishAccess('IO', 'EZ-IO', 'Left Proximal Tibia')} className="block w-full text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Left Tibia</button>
+                  <div className="flex gap-2">
+                    <button onClick={() => establishAccess('IO', 'EZ-IO', 'Right Proximal Tibia')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Right Tibia</button>
+                    <button onClick={() => establishAccess('IO', 'EZ-IO', 'Left Proximal Tibia')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Left Tibia</button>
+                  </div>
                 </div>
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
                   <h3 className="font-bold text-orange-400 mb-2">Humeral Head</h3>
-                  <button onClick={() => establishAccess('IO', 'EZ-IO', 'Right Humeral Head')} className="block w-full text-left p-2 hover:bg-slate-700 rounded text-sm mb-1 border border-transparent hover:border-orange-500">Right Humerus</button>
-                  <button onClick={() => establishAccess('IO', 'EZ-IO', 'Left Humeral Head')} className="block w-full text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Left Humerus</button>
+                  <div className="flex gap-2">
+                    <button onClick={() => establishAccess('IO', 'EZ-IO', 'Right Humeral Head')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Right Humerus</button>
+                    <button onClick={() => establishAccess('IO', 'EZ-IO', 'Left Humeral Head')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Left Humerus</button>
+                  </div>
                 </div>
               </div>
             )}
@@ -837,21 +988,32 @@ export default function App() {
             {accessModal.category === 'Arterial Line' && (
               <div className="grid grid-cols-4 gap-4">
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
-                  <h3 className="font-bold text-red-400 mb-2">Radial</h3>
-                  <button onClick={() => establishAccess('Arterial', '20G Arterial Line', 'Right Radial')} className="block w-full text-left p-2 hover:bg-slate-700 rounded text-xs mb-1 border border-transparent hover:border-red-500">Right Radial</button>
-                  <button onClick={() => establishAccess('Arterial', '20G Arterial Line', 'Left Radial')} className="block w-full text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Left Radial</button>
+                  <h3 className="font-bold text-red-400 mb-2">Radial (20G)</h3>
+                  <div className="flex flex-col gap-1">
+                    <button onClick={() => establishAccess('Arterial', '20G Arterial Line', 'Right Radial')} className="w-full text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Right Radial</button>
+                    <button onClick={() => establishAccess('Arterial', '20G Arterial Line', 'Left Radial')} className="w-full text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Left Radial</button>
+                  </div>
                 </div>
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
-                  <h3 className="font-bold text-red-400 mb-2">Brachial</h3>
-                  <button onClick={() => establishAccess('Arterial', '20G Arterial Line', 'Right Brachial')} className="block w-full text-left p-2 hover:bg-slate-700 rounded text-xs mb-1 border border-transparent hover:border-red-500">Right Brachial</button>
+                  <h3 className="font-bold text-red-400 mb-2">Brachial (20G)</h3>
+                  <div className="flex flex-col gap-1">
+                    <button onClick={() => establishAccess('Arterial', '20G Arterial Line', 'Right Brachial')} className="w-full text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Right Brachial</button>
+                    <button onClick={() => establishAccess('Arterial', '20G Arterial Line', 'Left Brachial')} className="w-full text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Left Brachial</button>
+                  </div>
                 </div>
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
-                  <h3 className="font-bold text-red-400 mb-2">Axillary</h3>
-                  <button onClick={() => establishAccess('Arterial', '18G Arterial Line', 'Right Axillary')} className="block w-full text-left p-2 hover:bg-slate-700 rounded text-xs mb-1 border border-transparent hover:border-red-500">Right Axillary</button>
+                  <h3 className="font-bold text-red-400 mb-2">Axillary (18G)</h3>
+                  <div className="flex flex-col gap-1">
+                    <button onClick={() => establishAccess('Arterial', '18G Arterial Line', 'Right Axillary')} className="w-full text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Right Axillary</button>
+                    <button onClick={() => establishAccess('Arterial', '18G Arterial Line', 'Left Axillary')} className="w-full text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Left Axillary</button>
+                  </div>
                 </div>
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
-                  <h3 className="font-bold text-red-400 mb-2">Femoral</h3>
-                  <button onClick={() => establishAccess('Arterial', '18G Arterial Line', 'Right Femoral')} className="block w-full text-left p-2 hover:bg-slate-700 rounded text-xs mb-1 border border-transparent hover:border-red-500">Right Femoral</button>
+                  <h3 className="font-bold text-red-400 mb-2">Femoral (18G)</h3>
+                  <div className="flex flex-col gap-1">
+                    <button onClick={() => establishAccess('Arterial', '18G Arterial Line', 'Right Femoral')} className="w-full text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Right Femoral</button>
+                    <button onClick={() => establishAccess('Arterial', '18G Arterial Line', 'Left Femoral')} className="w-full text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Left Femoral</button>
+                  </div>
                 </div>
               </div>
             )}
@@ -859,48 +1021,81 @@ export default function App() {
         </div>
       )}
 
-      {tubeConfirmModal && (
+      {tubeConfirmModal.show && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
           <div className="bg-slate-900 border-2 border-indigo-500 rounded-xl p-8 max-w-xl shadow-2xl w-full">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-white flex items-center gap-2"><Stethoscope size={24}/> Auscultate</h2>
-              <button onClick={() => setTubeConfirmModal(false)} className="text-slate-400 hover:text-white"><X size={24}/></button>
+              <h2 className="text-2xl font-bold text-white flex items-center gap-2"><Stethoscope size={24}/> Auscultate & Confirm</h2>
+              <button onClick={() => setTubeConfirmModal({ show: false, result: '' })} className="text-slate-400 hover:text-white"><X size={24}/></button>
             </div>
-            <p className="text-slate-300 mb-6">Select an anatomical location to auscultate for breath sounds or gastric insufflation:</p>
-            <div className="grid grid-cols-1 gap-3">
+
+            {tubeConfirmModal.result && (
+              <div className="mb-6 p-4 bg-indigo-900/40 border border-indigo-500 rounded text-indigo-200 font-bold">
+                {tubeConfirmModal.result}
+              </div>
+            )}
+
+            <p className="text-slate-300 mb-4">Select an anatomical location to auscultate for breath sounds or gastric insufflation:</p>
+            <div className="grid grid-cols-1 gap-3 mb-6">
               <button onClick={() => auscultateLungs('Left Lung')} className="bg-slate-800 hover:bg-indigo-900 p-4 rounded text-left border border-slate-700 hover:border-indigo-400 transition font-bold">Left Lung Field</button>
               <button onClick={() => auscultateLungs('Right Lung')} className="bg-slate-800 hover:bg-indigo-900 p-4 rounded text-left border border-slate-700 hover:border-indigo-400 transition font-bold">Right Lung Field</button>
               <button onClick={() => auscultateLungs('Epigastrium')} className="bg-slate-800 hover:bg-indigo-900 p-4 rounded text-left border border-slate-700 hover:border-indigo-400 transition font-bold">Epigastrium (Stomach)</button>
             </div>
+
+            {(patient.tubePosition === 'right_mainstem' || patient.tubePosition === 'left_mainstem' || patient.tubePosition === 'trachea' || patient.tubePosition === 'esophagus') && (
+              <>
+                <h3 className="text-indigo-400 font-bold mb-3 border-b border-indigo-900 pb-1">Tube Interventions</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <button onClick={() => adjustTube('pull_back')} className="bg-slate-800 hover:bg-slate-700 p-3 rounded text-sm text-center border border-slate-700 hover:border-slate-500 font-bold">Pull Tube Back 2cm</button>
+                  <button onClick={() => adjustTube('remove')} className="bg-red-900/40 hover:bg-red-800 p-3 rounded text-sm text-center border border-red-900 hover:border-red-500 text-red-200 font-bold">Extubate / Remove Tube</button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
 
       {setupModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border-2 border-green-500 rounded-xl p-8 max-w-3xl shadow-2xl w-full">
-            <h2 className="text-2xl font-bold text-white mb-6">Equipment Selection</h2>
-            <div className="grid grid-cols-2 gap-8 mb-8">
+          <div className="bg-slate-900 border-2 border-green-500 rounded-xl p-8 max-w-4xl shadow-2xl w-full">
+            <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2"><Wind size={24}/> Intubation Equipment Setup</h2>
+            <div className="grid grid-cols-3 gap-6 mb-8">
               <div>
-                <h3 className="text-green-400 font-bold mb-3 border-b border-green-900 pb-1">1. Select Blade / Scope</h3>
+                <h3 className="text-green-400 font-bold mb-3 border-b border-green-900 pb-1">1. Select Blade</h3>
                 <div className="flex flex-col gap-2">
-                  {['Macintosh 3 (Curved DL)', 'Macintosh 4 (Curved DL)', 'Miller 2 (Straight DL)', 'Standard Geometry Video Laryngoscope (VL)', 'Hyperangulated Video Laryngoscope (VL)', 'Fiberoptic Bronchoscope'].map(blade => (
-                    <button key={blade} onClick={() => setViewModal(prev => ({...prev, blade}))} className={`p-2 rounded text-sm text-left border ${viewModal.blade === blade ? 'bg-green-800 border-green-400' : 'bg-slate-800 border-slate-700 hover:bg-slate-700'}`}>{blade}</button>
+                  {['Macintosh (Curved DL)', 'Miller (Straight DL)', 'Standard VL', 'Hyperangulated VL', 'Fiberoptic'].map(blade => (
+                    <button key={blade} onClick={() => setViewModal(prev => ({...prev, blade}))} className={`p-2 rounded text-xs text-left border ${viewModal.blade === blade ? 'bg-green-800 border-green-400' : 'bg-slate-800 border-slate-700 hover:bg-slate-700'}`}>{blade}</button>
                   ))}
+                </div>
+                {viewModal.blade && !viewModal.blade.includes('Fiberoptic') && (
+                  <select value={viewModal.bladeSize} onChange={(e) => setViewModal(prev => ({...prev, bladeSize: e.target.value}))} className="w-full mt-2 bg-slate-950 text-white text-xs p-2 border border-slate-700 rounded">
+                    <option value="">Select Size (Hint: Size 3/4 Adult)</option>
+                    <option value="2">Size 2 (Small)</option><option value="3">Size 3 (Normal)</option><option value="4">Size 4 (Large)</option>
+                  </select>
+                )}
+              </div>
+              <div>
+                <h3 className="text-cyan-400 font-bold mb-3 border-b border-cyan-900 pb-1">2. Select Endotracheal Tube</h3>
+                <div className="bg-slate-800 p-3 rounded border border-slate-700">
+                  <label className="text-xs text-slate-400 block mb-1">Tube Size (Hint: 7.0-7.5 Female, 7.5-8.0 Male)</label>
+                  <select value={viewModal.tubeSize} onChange={(e) => setViewModal(prev => ({...prev, tubeSize: e.target.value}))} className="w-full bg-slate-950 text-white text-sm p-2 border border-slate-600 rounded">
+                    <option value="">Select ETT Size...</option>
+                    <option value="6.0">6.0 mm</option><option value="6.5">6.5 mm</option><option value="7.0">7.0 mm</option><option value="7.5">7.5 mm</option><option value="8.0">8.0 mm</option>
+                  </select>
                 </div>
               </div>
               <div>
-                <h3 className="text-blue-400 font-bold mb-3 border-b border-blue-900 pb-1">2. Select Adjunct</h3>
+                <h3 className="text-blue-400 font-bold mb-3 border-b border-blue-900 pb-1">3. Select Adjunct</h3>
                 <div className="flex flex-col gap-2">
-                  {['None (Direct Tube)', 'Standard Malleable Stylet', 'Standard Bougie (Eschmann)', 'Articulating Bougie / Steerable'].map(adjunct => (
-                    <button key={adjunct} onClick={() => setViewModal(prev => ({...prev, adjunct}))} className={`p-2 rounded text-sm text-left border ${viewModal.adjunct === adjunct ? 'bg-blue-800 border-blue-400' : 'bg-slate-800 border-slate-700 hover:bg-slate-700'}`}>{adjunct}</button>
+                  {['None (Direct Tube)', 'Standard Malleable Stylet', 'Standard Bougie (Eschmann)', 'Articulating Bougie'].map(adjunct => (
+                    <button key={adjunct} onClick={() => setViewModal(prev => ({...prev, adjunct}))} className={`p-2 rounded text-xs text-left border ${viewModal.adjunct === adjunct ? 'bg-blue-800 border-blue-400' : 'bg-slate-800 border-slate-700 hover:bg-slate-700'}`}>{adjunct}</button>
                   ))}
                 </div>
               </div>
             </div>
             <div className="flex justify-end gap-4">
               <button onClick={() => setSetupModal(false)} className="px-6 py-2 bg-slate-700 hover:bg-slate-600 rounded font-bold">Cancel</button>
-              <button onClick={() => processIntubation(viewModal.blade, viewModal.adjunct)} disabled={!viewModal.blade || !viewModal.adjunct} className="px-6 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 rounded font-bold text-white">Proceed to Intubate</button>
+              <button onClick={() => processIntubation(`${viewModal.blade} Size ${viewModal.bladeSize || '-'} with ${viewModal.tubeSize} ETT`, viewModal.adjunct)} disabled={!viewModal.blade || !viewModal.adjunct || !viewModal.tubeSize} className="px-6 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 rounded font-bold text-white">Proceed to Intubate</button>
             </div>
           </div>
         </div>
@@ -1062,70 +1257,101 @@ export default function App() {
           </div>
           <h3 className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold mt-2 flex items-center gap-2"><Wind size={14}/> Oxygenation</h3>
           <div className="flex flex-col gap-2">
-            {renderO2Button('Nasal Cannula', 'Nasal Cannula (1-15L)', 'flow')}
-            {renderO2Button('Simple Face Mask', 'Simple Face Mask (5-10L)', 'flow')}
-            {renderO2Button('Non-Rebreather Mask (NRB)', 'Non-Rebreather Mask (15L, 100% FiO2)', 'fixed')}
-            {renderO2Button('High Flow Nasal Cannula (HFNC)', 'High Flow Nasal Cannula (Flow / FiO2)', 'hfnc')}
-            {renderO2Button('Bag-Mask Valve (BMV)', 'Bag-Mask Ventilation (15L, 100% FiO2)', 'fixed')}
+            {renderAdvancedO2Button('Nasal Cannula', 'Nasal Cannula (1-15L)', 'flow')}
+            {renderAdvancedO2Button('Simple Face Mask', 'Simple Face Mask (5-10L)', 'flow')}
+            {renderAdvancedO2Button('Non-Rebreather Mask (NRB)', 'Non-Rebreather Mask (15L, 100% FiO2)', 'fixed')}
+            {renderAdvancedO2Button('High Flow Nasal Cannula (HFNC)', 'High Flow Nasal Cannula (Flow / FiO2)', 'hfnc')}
+            {renderAdvancedO2Button('CPAP', 'CPAP (Continuous Positive Airway Pressure)', 'cpap')}
+            {renderAdvancedO2Button('BiPAP S/T', 'BiPAP (Bilevel Positive Airway Pressure)', 'bipap')}
+            {renderAdvancedO2Button('Bag-Mask Valve (BMV)', 'Bag-Mask Ventilation (15L, 100% FiO2)', 'fixed')}
+            <button onClick={() => handleSetO2('Room Air')} className="bg-red-900/40 hover:bg-red-800 p-2 rounded text-xs text-red-200 border border-red-900 mt-2">Remove O2 (Room Air)</button>
           </div>
         </div>
 
         {/* Col 2: Pharmacopoeia */}
         <div className="col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
-          <h3 className="text-teal-400 text-sm border-b border-teal-900 pb-1 uppercase font-bold">Fluids & Blood Products</h3>
-          <div className="flex flex-col gap-1">
-            {renderFluidButton('Lactated Ringers (LR)', 'Lactated Ringers (LR)', '500-1000 mL', 'bg-blue-900/20 border-blue-800')}
-            {renderFluidButton('Normal Saline (NS)', 'Normal Saline (0.9% NS)', '500-1000 mL', 'bg-blue-900/20 border-blue-800')}
-            {renderFluidButton('Plasmalyte', 'Plasmalyte', '500-1000 mL', 'bg-blue-900/20 border-blue-800')}
-            {renderFluidButton('PRBCs', 'Packed Red Blood Cells', '1-2 Units', 'bg-red-900/40 border-red-800')}
-            {renderFluidButton('FFP', 'Fresh Frozen Plasma', '1-2 Units', 'bg-yellow-900/40 border-yellow-800')}
-            {renderFluidButton('Platelets', 'Platelets', '1 Unit', 'bg-yellow-900/40 border-yellow-800')}
-            {renderFluidButton('Cryoprecipitate', 'Cryoprecipitate', '10 Units', 'bg-slate-800 border-slate-700')}
-            {renderFluidButton('Fibrinogen', 'Fibrinogen', '2-4 g', 'bg-slate-800 border-slate-700')}
-          </div>
-          <h3 className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold">Induction / Hypnotics</h3>
-          <div className="flex flex-col gap-1">
-            {renderMedButton('propofol', 'Propofol (mg)', '1.5-2.5 mg/kg', 'bg-purple-900/40 border-purple-800', true)}
-            {renderMedButton('ketamine', 'Ketamine (mg)', '1.0-2.0 mg/kg', 'bg-purple-900/40 border-purple-800', true)}
-            {renderMedButton('etomidate', 'Etomidate (mg)', '0.2-0.3 mg/kg', 'bg-purple-900/40 border-purple-800', true)}
-            {renderMedButton('midazolam', 'Midazolam (mg)', '0.02-0.04 mg/kg', 'bg-purple-900/40 border-purple-800')}
-          </div>
-          <h3 className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold mt-2">Paralytics (NMBAs)</h3>
-          <div className="flex flex-col gap-1">
-            {renderMedButton('succinylcholine', 'Succinylcholine (mg)', '1.0-1.5 mg/kg', 'bg-orange-900/40 border-orange-800', false, true)}
-            {renderMedButton('rocuronium', 'Rocuronium (mg)', '0.6-1.2 mg/kg', 'bg-orange-900/40 border-orange-800', false, true)}
-            {renderMedButton('vecuronium', 'Vecuronium (mg)', '0.08-0.1 mg/kg', 'bg-orange-900/40 border-orange-800', false, true)}
-          </div>
-          <h3 className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold mt-2">Analgesics</h3>
-          <div className="flex flex-col gap-1">
-            {renderMedButton('fentanyl', 'Fentanyl (mcg)', '1.0-2.0 mcg/kg', 'bg-slate-800 border-slate-700')}
-            {renderMedButton('hydromorphone', 'Hydromorphone (mg)', '0.2-1.0 mg', 'bg-slate-800 border-slate-700')}
-          </div>
-          <h3 className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold mt-2">Pressors / Inotropes</h3>
-          <div className="flex flex-col gap-1">
-            {renderMedButton('epinephrine_push', 'Epi Push (mcg)', '10-100 mcg', 'bg-red-900/40 border-red-800')}
-            {renderMedButton('phenylephrine', 'Phenylephrine (mcg)', '50-100 mcg', 'bg-red-900/40 border-red-800')}
-            {renderMedButton('ephedrine', 'Ephedrine (mg)', '5-10 mg', 'bg-red-900/40 border-red-800')}
-            {renderMedButton('norepinephrine', 'Norepi Gtt (mcg/min)', '1-30 mcg/min', 'bg-red-900/40 border-red-800')}
-          </div>
-          <h3 className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold mt-2">Antihypertensives</h3>
-          <div className="flex flex-col gap-1">
-            {renderMedButton('esmolol', 'Esmolol (mg)', '0.5-1.0 mg/kg', 'bg-blue-900/40 border-blue-800 text-blue-200')}
-            {renderMedButton('labetalol', 'Labetalol (mg)', '10-20 mg', 'bg-blue-900/40 border-blue-800 text-blue-200')}
-            {renderMedButton('nitroglycerin', 'Nitroglycerin (mcg)', '5-100 mcg/min', 'bg-blue-900/40 border-blue-800 text-blue-200')}
-          </div>
-          <h3 className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold mt-2">Anti-Arrhythmics</h3>
-          <div className="flex flex-col gap-1">
-            {renderMedButton('amiodarone', 'Amiodarone (mg)', '150 mg', 'bg-yellow-900/40 border-yellow-800 text-yellow-200')}
-            {renderMedButton('lidocaine', 'Lidocaine (mg)', '1.0-1.5 mg/kg', 'bg-yellow-900/40 border-yellow-800 text-yellow-200')}
-            {renderMedButton('adenosine', 'Adenosine (mg)', '6-12 mg', 'bg-yellow-900/40 border-yellow-800 text-yellow-200')}
-            {renderMedButton('atropine', 'Atropine (mg)', '0.5-1.0 mg', 'bg-yellow-900/40 border-yellow-800 text-yellow-200')}
-          </div>
-          <h3 className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold mt-2">ACLS / Resuscitation</h3>
-          <div className="flex flex-col gap-1">
-            {renderMedButton('epinephrine_acls', 'Epinephrine (mg)', '1.0 mg', 'bg-rose-900/60 border-rose-500 font-bold text-white')}
-            {renderMedButton('amiodarone_acls', 'Amiodarone (mg)', '300 mg', 'bg-rose-900/60 border-rose-500 font-bold text-white')}
-          </div>
+          <details className="group">
+            <summary className="text-teal-400 text-sm border-b border-teal-900 pb-1 uppercase font-bold cursor-pointer hover:text-teal-300 list-none flex justify-between">
+              Crystalloids & Colloids <span className="group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+            <div className="flex flex-col gap-1 mt-2">
+              {[
+                { id: 'Albumin 5%', label: 'Albumin 5%', hint: '500 mL' },
+                { id: 'Lactated Ringers (LR)', label: 'Lactated Ringers (LR)', hint: '500-1000 mL' },
+                { id: 'Normal Saline (0.9% NS)', label: 'Normal Saline (0.9% NS)', hint: '500-1000 mL' },
+                { id: 'Plasmalyte', label: 'Plasmalyte', hint: '500-1000 mL' }
+              ].map(f => renderFluidButton(f.id, f.label, f.hint, 'bg-blue-900/20 border-blue-800'))}
+            </div>
+          </details>
+
+          <details className="group">
+            <summary className="text-red-400 text-sm border-b border-red-900 pb-1 uppercase font-bold cursor-pointer hover:text-red-300 list-none flex justify-between">
+              Blood Products <span className="group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+            <div className="flex flex-col gap-1 mt-2">
+              {[
+                { id: 'Cryoprecipitate', label: 'Cryoprecipitate', hint: '10 Units', style: 'bg-slate-800 border-slate-700' },
+                { id: 'Fibrinogen Concentrate', label: 'Fibrinogen', hint: '2-4 g', style: 'bg-slate-800 border-slate-700' },
+                { id: 'Fresh Frozen Plasma (FFP)', label: 'Fresh Frozen Plasma', hint: '1-2 Units', style: 'bg-yellow-900/40 border-yellow-800' },
+                { id: 'Packed Red Blood Cells (PRBC)', label: 'Packed Red Blood Cells', hint: '1-2 Units', style: 'bg-red-900/40 border-red-800' },
+                { id: 'Platelets', label: 'Platelets', hint: '1 Unit', style: 'bg-yellow-900/40 border-yellow-800' }
+              ].map(f => renderFluidButton(f.id, f.label, f.hint, f.style))}
+            </div>
+          </details>
+
+          <details className="group" open>
+            <summary className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold cursor-pointer hover:text-white list-none flex justify-between">
+              Sedatives & Hypnotics <span className="group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+            <div className="flex flex-col gap-1 mt-2">
+              {['dexmedetomidine', 'etomidate', 'ketamine', 'midazolam', 'propofol'].map(renderAdvancedMedButton)}
+            </div>
+          </details>
+
+          <details className="group">
+            <summary className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold cursor-pointer hover:text-white list-none flex justify-between">
+              Opioids & Analgesics <span className="group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+            <div className="flex flex-col gap-1 mt-2">
+              {['fentanyl', 'hydromorphone', 'morphine', 'remifentanil', 'sufentanil'].map(renderAdvancedMedButton)}
+            </div>
+          </details>
+
+          <details className="group">
+            <summary className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold cursor-pointer hover:text-white list-none flex justify-between">
+              Paralytics & Reversals <span className="group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+            <div className="flex flex-col gap-1 mt-2">
+              {['cisatracurium', 'glycopyrrolate', 'neostigmine', 'rocuronium', 'succinylcholine', 'sugammadex', 'vecuronium'].map(renderAdvancedMedButton)}
+            </div>
+          </details>
+
+          <details className="group">
+            <summary className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold cursor-pointer hover:text-white list-none flex justify-between">
+              Inotropes & Vasopressors <span className="group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+            <div className="flex flex-col gap-1 mt-2">
+              {['dobutamine', 'dopamine', 'ephedrine', 'epinephrine', 'milrinone', 'norepinephrine', 'phenylephrine', 'vasopressin'].map(renderAdvancedMedButton)}
+            </div>
+          </details>
+
+          <details className="group">
+            <summary className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold cursor-pointer hover:text-white list-none flex justify-between">
+              Antihypertensives <span className="group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+            <div className="flex flex-col gap-1 mt-2">
+              {['clevidipine', 'esmolol', 'labetalol', 'metoprolol', 'nicardipine', 'nitroglycerin', 'nitroprusside'].map(renderAdvancedMedButton)}
+            </div>
+          </details>
+
+          <details className="group">
+            <summary className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold cursor-pointer hover:text-white list-none flex justify-between">
+              Cardiac & Electrolytes <span className="group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+            <div className="flex flex-col gap-1 mt-2">
+              {['adenosine', 'amiodarone', 'atropine', 'bicarbonate', 'calcium', 'lidocaine', 'magnesium'].map(renderAdvancedMedButton)}
+            </div>
+          </details>
         </div>
 
         {/* Col 3: Airway Procedures */}
@@ -1133,27 +1359,34 @@ export default function App() {
           <h3 className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold">Airway Optimization</h3>
           <div className="flex flex-col gap-2">
             <button onClick={handleSuction} className="bg-yellow-900/40 hover:bg-yellow-800 border border-yellow-600 p-3 rounded text-sm font-bold text-left shadow flex justify-between">Suction Airway <Droplet size={18} className="text-yellow-400"/></button>
-            <div className="grid grid-cols-1 gap-2 mt-1">
-              <button onClick={() => optimizeAirway('Oropharyngeal Airway (OPA) - Guedel 80mm')} className="bg-slate-800 hover:bg-slate-700 p-2 rounded text-xs text-left">Oropharyngeal Airway (OPA) - Guedel 80mm</button>
-              <button onClick={() => optimizeAirway('Oropharyngeal Airway (OPA) - Guedel 100mm')} className="bg-slate-800 hover:bg-slate-700 p-2 rounded text-xs text-left">Oropharyngeal Airway (OPA) - Guedel 100mm</button>
-              <button onClick={() => optimizeAirway('Nasopharyngeal Airway (NPA) - 28F')} className="bg-slate-800 hover:bg-slate-700 p-2 rounded text-xs text-left">Nasopharyngeal Airway (NPA) - 28F</button>
-              <button onClick={() => optimizeAirway('Nasopharyngeal Airway (NPA) - 32F')} className="bg-slate-800 hover:bg-slate-700 p-2 rounded text-xs text-left">Nasopharyngeal Airway (NPA) - 32F</button>
+            <div className="flex flex-col mt-1">
+              {renderAirwayToolButton('Oropharyngeal Airway (OPA)', 'Oropharyngeal Airway', 'Guedel', ['80mm (Small Adult)', '90mm (Medium Adult)', '100mm (Large Adult)'])}
+              {renderAirwayToolButton('Nasopharyngeal Airway (NPA)', 'Nasopharyngeal Airway', 'French', ['28F (Small)', '30F (Medium)', '32F (Large)', '34F (X-Large)'])}
             </div>
             <button onClick={() => pushMed('Topical Lidocaine 4% (Atomizer)', 0)} className="bg-teal-900/40 hover:bg-teal-800 p-2 rounded text-xs text-center border border-teal-800 mt-1">Topicalize Airway (Awake Prep)</button>
           </div>
           <h3 className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold mt-2">Intubation</h3>
           <div className="flex flex-col gap-2">
-            <button onClick={() => { setViewModal(v => ({...v, blade: '', adjunct: ''})); setSetupModal(true); }} className="bg-green-900/40 hover:bg-green-800 p-4 rounded text-base text-center border border-green-500 font-black shadow-lg uppercase text-green-300">
+            <button onClick={() => { setViewModal(v => ({...v, blade: '', bladeSize: '', tubeSize: '', adjunct: ''})); setSetupModal(true); }} className="bg-green-900/40 hover:bg-green-800 p-4 rounded text-base text-center border border-green-500 font-black shadow-lg uppercase text-green-300">
               Prepare to Intubate
             </button>
-            <button onClick={() => setTubeConfirmModal(true)} className="bg-indigo-900/40 hover:bg-indigo-800 p-2 rounded text-sm text-center border border-indigo-500 text-indigo-200 mt-1 z-[60] relative">
+            <button onClick={() => setTubeConfirmModal({ show: true, result: '' })} className="bg-indigo-900/40 hover:bg-indigo-800 p-2 rounded text-sm text-center border border-indigo-500 text-indigo-200 mt-1 z-[60] relative">
               <Stethoscope size={14} className="inline mr-2"/> Confirm Placement
             </button>
           </div>
           <h3 className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold mt-2">Rescue / Surgical</h3>
           <div className="flex flex-col gap-2 mt-1">
-            <button onClick={() => {logEvent("Placed LMA Classic."); setPatient(p => ({...p, airwaySecured: true, ventilationStatus: 'successful'}))}} className="bg-slate-800 hover:bg-slate-700 p-2 rounded text-xs text-left">Insert LMA (Classic)</button>
-            <button onClick={() => {logEvent("Performed Surgical Cric."); setPatient(p => ({...p, airwaySecured: true, ventilationStatus: 'successful'}))}} className="bg-red-900/40 hover:bg-red-800 p-2 rounded text-xs text-left text-red-200 border border-red-900">Surgical Cricothyroidotomy</button>
+            {!patient.airwaySecured ? (
+              <>
+                {renderAirwayToolButton('Laryngeal Mask Airway', 'Insert LMA (Rescue)', 'Size', ['Size 3 (30-50kg)', 'Size 4 (50-70kg)', 'Size 5 (70-100kg)'])}
+                <button onClick={() => {logEvent("Performed Surgical Cric."); setPatient(p => ({...p, airwaySecured: true, ventilationStatus: 'successful', currentO2Device: 'Cricothyroidotomy (100% FiO2)', currentFiO2: 100, currentO2Flow: 15}))}} className="bg-red-900/40 hover:bg-red-800 p-2 rounded text-xs text-left text-red-200 border border-red-900 mt-1">Surgical Cricothyroidotomy</button>
+              </>
+            ) : (!patient.tubePosition && (
+               <button onClick={() => {
+                 logEvent("Removed Advanced Airway (LMA/Cric).");
+                 setPatient(p => ({...p, airwaySecured: false, ventilationStatus: p.isApneic ? 'failed' : 'spontaneous', currentO2Device: 'Room Air', currentFiO2: 21, currentO2Flow: 0}));
+               }} className="bg-slate-800 hover:bg-slate-700 p-3 rounded text-xs text-center border border-slate-500 font-bold text-white shadow-lg">Remove LMA / Cric</button>
+            ))}
           </div>
         </div>
 
