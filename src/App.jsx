@@ -776,10 +776,10 @@ const auscultateLungs = (location) => {
     <div className="min-h-screen bg-slate-950 text-white p-4 font-mono select-none flex flex-col gap-4">
       
       {/* HEADER & NEW HORIZONTAL FRC BUFFER */}
-      <header className="flex justify-between items-center bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-lg">
-        <div className="flex flex-col gap-2">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-lg gap-4">
+        <div className="flex flex-col gap-2 w-full md:w-auto">
           <h1 className="text-2xl font-bold text-cyan-400">{activeCase.name}</h1>
-          <div className="flex items-center gap-4 text-xs text-slate-300">
+          <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs text-slate-300">
             <span><span className="text-slate-500">Age:</span> {patient.age}</span>
             <span><span className="text-slate-500">Sex:</span> {patient.sex}</span>
             <span><span className="text-slate-500">Height:</span> {patient.height} cm</span>
@@ -787,37 +787,37 @@ const auscultateLungs = (location) => {
           </div>
           
           {/* HORIZONTAL 3D CYLINDER FOR OXYGEN BUFFER */}
-          <div className="flex items-center gap-4 mt-2 bg-slate-950 p-3 rounded-lg border border-slate-800 w-max shadow-inner">
-            <p className="text-slate-400 text-sm font-bold uppercase tracking-widest">Pre-Ox FRC</p>
-            <div className="h-6 w-64 bg-slate-900 rounded-full overflow-hidden border border-slate-700 relative shadow-inner">
+          <div className="flex flex-wrap items-center gap-2 md:gap-4 mt-2 bg-slate-950 p-2 md:p-3 rounded-lg border border-slate-800 w-full md:w-max shadow-inner">
+            <p className="text-slate-400 text-xs md:text-sm font-bold uppercase tracking-widest">Pre-Ox FRC</p>
+            <div className="h-6 w-full max-w-[200px] md:max-w-xs bg-slate-900 rounded-full overflow-hidden border border-slate-700 relative shadow-inner">
                <div className="bg-blue-500 h-full transition-all duration-1000 ease-linear relative" style={{width: `${patient.oxygenBuffer}%`}}>
                   <div className="absolute top-0 left-0 right-0 h-1/2 bg-white/20"></div> {/* 3D Shine Effect */}
                </div>
             </div>
-            <span className="text-blue-400 font-black text-lg w-12 text-right">{Math.round(patient.oxygenBuffer)}%</span>
-            <p className="text-slate-500 text-xs ml-2 border-l border-slate-700 pl-4">Device: <br/><span className="text-slate-300 font-bold">{patient.currentO2Device}</span></p>
+            <span className="text-blue-400 font-black text-base md:text-lg w-10 md:w-12 text-right">{Math.round(patient.oxygenBuffer)}%</span>
+            <p className="text-slate-500 text-[10px] md:text-xs ml-0 md:ml-2 border-l-0 md:border-l border-slate-700 pl-0 md:pl-4">Device: <br className="hidden md:block"/><span className="text-slate-300 font-bold">{patient.currentO2Device}</span></p>
           </div>
         </div>
 
-        <div className="flex gap-4">
-          <button onClick={() => setActiveCase(null)} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded text-sm transition">End Case</button>
-          <button onClick={handleUndo} disabled={history.length === 0} className="flex items-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 rounded text-sm font-bold transition">
+        <div className="flex flex-wrap md:flex-nowrap justify-start md:justify-end gap-2 md:gap-4 w-full md:w-auto mt-2 md:mt-0">
+          <button onClick={() => setActiveCase(null)} className="px-3 md:px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded text-xs md:text-sm transition flex-1 md:flex-none">End Case</button>
+          <button onClick={handleUndo} disabled={history.length === 0} className="flex items-center justify-center gap-2 px-3 md:px-4 py-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 rounded text-xs md:text-sm font-bold transition flex-1 md:flex-none">
             <Undo2 size={16} /> Undo
           </button>
-          <button onClick={() => setShowLabPanel(!showLabPanel)} className="px-4 py-2 bg-blue-900/50 hover:bg-blue-800 text-blue-200 border border-blue-700 rounded text-sm font-bold flex items-center gap-2 transition">
+          <button onClick={() => setShowLabPanel(!showLabPanel)} className="px-3 md:px-4 py-2 bg-blue-900/50 hover:bg-blue-800 text-blue-200 border border-blue-700 rounded text-xs md:text-sm font-bold flex items-center justify-center gap-2 transition flex-1 md:flex-none">
             EMR Labs
           </button>
-          <button onClick={() => setIsRunning(!isRunning)} className={`px-6 py-2 rounded font-bold shadow-lg transition ${isRunning ? 'bg-red-600' : 'bg-green-600'}`}>
+          <button onClick={() => setIsRunning(!isRunning)} className={`px-4 md:px-6 py-2 rounded text-xs md:text-sm font-bold shadow-lg transition w-full md:w-auto ${isRunning ? 'bg-red-600' : 'bg-green-600'}`}>
             {isRunning ? 'PAUSE SIM' : 'START SIM'}
           </button>
         </div>
       </header>
 
       {/* EMR SLIDING PANEL */}
-      <div className={`fixed top-0 right-0 h-full w-[500px] bg-slate-900 border-l border-slate-700 shadow-2xl z-[150] transform transition-transform duration-300 ease-in-out overflow-y-auto p-6 ${showLabPanel ? 'translate-x-0' : 'translate-x-full'}`}>
+      <div className={`fixed top-0 right-0 h-full w-full md:w-[500px] bg-slate-900 border-l border-slate-700 shadow-2xl z-[150] transform transition-transform duration-300 ease-in-out overflow-y-auto p-4 md:p-6 ${showLabPanel ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
-          <h2 className="text-2xl font-bold text-blue-400 flex items-center gap-2"><Search size={24}/> Electronic Medical Record</h2>
-          <button onClick={() => setShowLabPanel(false)} className="text-slate-400 hover:text-white text-2xl">&times;</button>
+          <h2 className="text-xl md:text-2xl font-bold text-blue-400 flex items-center gap-2"><Search size={20} className="md:w-6 md:h-6"/> Electronic Medical Record</h2>
+          <button onClick={() => setShowLabPanel(false)} className="text-slate-400 hover:text-white text-3xl leading-none">&times;</button>
         </div>
 
         {Object.keys(labs).length === 0 ? (
@@ -828,28 +828,30 @@ const auscultateLungs = (location) => {
               <div key={labType} className="bg-slate-950 rounded-lg border border-slate-800 overflow-hidden">
                 <div className="bg-slate-800 px-4 py-2 font-bold text-sm text-blue-200 uppercase tracking-wider">{labType} Panel</div>
                 {labType === 'TEG' && <TEGVisualizer historyData={labData.history} />}
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-800">
-                      <th className="p-3 text-slate-500 font-normal">Test Name</th>
-                      {labData.history.map((h, i) => (
-                        <th key={i} className="p-3 text-center text-slate-300">@ {h.time}</th>
-                      ))}
-                      <th className="p-3 text-slate-500 font-normal">Ref Range</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {labData.testNames.map(testName => (
-                      <tr key={testName} className="border-b border-slate-900 hover:bg-slate-900/50">
-                        <td className="p-3 font-bold text-slate-300">{testName}</td>
+                <div className="overflow-x-auto pb-2">
+                  <table className="w-full text-left text-xs border-collapse min-w-[350px]">
+                    <thead>
+                      <tr className="border-b border-slate-800">
+                        <th className="p-3 text-slate-500 font-normal">Test Name</th>
                         {labData.history.map((h, i) => (
-                          <td key={i} className={`p-3 text-center font-mono text-sm ${h.results[testName].alert ? 'text-red-500 font-bold' : 'text-green-400'}`}>{h.results[testName].val}</td>
+                          <th key={i} className="p-3 text-center text-slate-300 whitespace-nowrap">@ {h.time}</th>
                         ))}
-                        <td className="p-3 text-slate-500 italic">{labData.history[0].results[testName].range}</td>
+                        <th className="p-3 text-slate-500 font-normal">Ref Range</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {labData.testNames.map(testName => (
+                        <tr key={testName} className="border-b border-slate-900 hover:bg-slate-900/50">
+                          <td className="p-3 font-bold text-slate-300">{testName}</td>
+                          {labData.history.map((h, i) => (
+                            <td key={i} className={`p-3 text-center font-mono text-sm ${h.results[testName].alert ? 'text-red-500 font-bold' : 'text-green-400'}`}>{h.results[testName].val}</td>
+                          ))}
+                          <td className="p-3 text-slate-500 italic whitespace-nowrap">{labData.history[0].results[testName].range}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             ))}
           </div>
@@ -887,20 +889,20 @@ const auscultateLungs = (location) => {
 
       {accessModal.show && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border-2 border-green-500 rounded-xl p-8 max-w-4xl shadow-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
+          <div className="bg-slate-900 border-2 border-green-500 rounded-xl p-4 md:p-8 max-w-4xl shadow-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-white">Select {accessModal.category} Access Site</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-white">Select {accessModal.category} Access Site</h2>
               <button onClick={() => setAccessModal({show: false, category: ''})} className="text-slate-400 hover:text-white"><X size={24}/></button>
             </div>
             
             {accessModal.category === 'Peripheral IV' && (
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
                   <h3 className="font-bold text-green-400 mb-2">Antecubital (AC)</h3>
                   {['16G', '18G', '20G'].map(size => (
                     <div key={`ac-${size}`} className="flex gap-2 mb-1">
-                      <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Right AC')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Right</button>
-                      <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Left AC')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Left</button>
+                      <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Right AC')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Right</button>
+                      <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Left AC')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Left</button>
                     </div>
                   ))}
                 </div>
@@ -908,8 +910,8 @@ const auscultateLungs = (location) => {
                   <h3 className="font-bold text-green-400 mb-2">Forearm</h3>
                   {['18G', '20G', '22G'].map(size => (
                     <div key={`forearm-${size}`} className="flex gap-2 mb-1">
-                      <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Right Forearm')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Right</button>
-                      <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Left Forearm')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Left</button>
+                      <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Right Forearm')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Right</button>
+                      <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Left Forearm')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Left</button>
                     </div>
                   ))}
                 </div>
@@ -917,8 +919,8 @@ const auscultateLungs = (location) => {
                   <h3 className="font-bold text-green-400 mb-2">Hand</h3>
                   {['20G', '22G', '24G'].map(size => (
                     <div key={`hand-${size}`} className="flex gap-2 mb-1">
-                      <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Right Hand')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Right</button>
-                      <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Left Hand')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Left</button>
+                      <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Right Hand')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Right</button>
+                      <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Left Hand')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Left</button>
                     </div>
                   ))}
                 </div>
@@ -926,15 +928,15 @@ const auscultateLungs = (location) => {
             )}
 
             {accessModal.category === 'Central Line' && (
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
                   <h3 className="font-bold text-purple-400 mb-2">Internal Jugular (IJ)</h3>
                   {['Triple Lumen CVC', 'MAC Introducer'].map(type => (
-                    <div key={`ij-${type}`} className="flex flex-col gap-1 mb-2">
+                    <div key={`ij-${type}`} className="flex flex-col gap-1 mb-3">
                       <span className="text-[10px] text-slate-400">{type}</span>
                       <div className="flex gap-2">
-                        <button onClick={() => establishAccess('CVC', type, 'Right IJ')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Right</button>
-                        <button onClick={() => establishAccess('CVC', type, 'Left IJ')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Left</button>
+                        <button onClick={() => establishAccess('CVC', type, 'Right IJ')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Right</button>
+                        <button onClick={() => establishAccess('CVC', type, 'Left IJ')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Left</button>
                       </div>
                     </div>
                   ))}
@@ -942,11 +944,11 @@ const auscultateLungs = (location) => {
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
                   <h3 className="font-bold text-purple-400 mb-2">Subclavian</h3>
                   {['Triple Lumen CVC', 'Trauma Cordis'].map(type => (
-                    <div key={`sub-${type}`} className="flex flex-col gap-1 mb-2">
+                    <div key={`sub-${type}`} className="flex flex-col gap-1 mb-3">
                       <span className="text-[10px] text-slate-400">{type}</span>
                       <div className="flex gap-2">
-                        <button onClick={() => establishAccess('CVC', type, 'Right Subclavian')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Right</button>
-                        <button onClick={() => establishAccess('CVC', type, 'Left Subclavian')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Left</button>
+                        <button onClick={() => establishAccess('CVC', type, 'Right Subclavian')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Right</button>
+                        <button onClick={() => establishAccess('CVC', type, 'Left Subclavian')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Left</button>
                       </div>
                     </div>
                   ))}
@@ -954,11 +956,11 @@ const auscultateLungs = (location) => {
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
                   <h3 className="font-bold text-purple-400 mb-2">Femoral</h3>
                   {['Triple Lumen CVC', 'Trauma Cordis'].map(type => (
-                    <div key={`fem-${type}`} className="flex flex-col gap-1 mb-2">
+                    <div key={`fem-${type}`} className="flex flex-col gap-1 mb-3">
                       <span className="text-[10px] text-slate-400">{type}</span>
                       <div className="flex gap-2">
-                        <button onClick={() => establishAccess('CVC', type, 'Right Femoral')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Right</button>
-                        <button onClick={() => establishAccess('CVC', type, 'Left Femoral')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Left</button>
+                        <button onClick={() => establishAccess('CVC', type, 'Right Femoral')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Right</button>
+                        <button onClick={() => establishAccess('CVC', type, 'Left Femoral')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Left</button>
                       </div>
                     </div>
                   ))}
@@ -967,52 +969,52 @@ const auscultateLungs = (location) => {
             )}
 
             {accessModal.category === 'Intraosseous (IO)' && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
                   <h3 className="font-bold text-orange-400 mb-2">Proximal Tibia</h3>
                   <div className="flex gap-2">
-                    <button onClick={() => establishAccess('IO', 'EZ-IO', 'Right Proximal Tibia')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Right Tibia</button>
-                    <button onClick={() => establishAccess('IO', 'EZ-IO', 'Left Proximal Tibia')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Left Tibia</button>
+                    <button onClick={() => establishAccess('IO', 'EZ-IO', 'Right Proximal Tibia')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Right Tibia</button>
+                    <button onClick={() => establishAccess('IO', 'EZ-IO', 'Left Proximal Tibia')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Left Tibia</button>
                   </div>
                 </div>
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
                   <h3 className="font-bold text-orange-400 mb-2">Humeral Head</h3>
                   <div className="flex gap-2">
-                    <button onClick={() => establishAccess('IO', 'EZ-IO', 'Right Humeral Head')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Right Humerus</button>
-                    <button onClick={() => establishAccess('IO', 'EZ-IO', 'Left Humeral Head')} className="w-1/2 text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Left Humerus</button>
+                    <button onClick={() => establishAccess('IO', 'EZ-IO', 'Right Humeral Head')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Right Humerus</button>
+                    <button onClick={() => establishAccess('IO', 'EZ-IO', 'Left Humeral Head')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Left Humerus</button>
                   </div>
                 </div>
               </div>
             )}
 
             {accessModal.category === 'Arterial Line' && (
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
                   <h3 className="font-bold text-red-400 mb-2">Radial (20G)</h3>
-                  <div className="flex flex-col gap-1">
-                    <button onClick={() => establishAccess('Arterial', '20G Arterial Line', 'Right Radial')} className="w-full text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Right Radial</button>
-                    <button onClick={() => establishAccess('Arterial', '20G Arterial Line', 'Left Radial')} className="w-full text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Left Radial</button>
+                  <div className="flex sm:flex-col gap-2 sm:gap-1">
+                    <button onClick={() => establishAccess('Arterial', '20G Arterial Line', 'Right Radial')} className="w-1/2 sm:w-full text-center sm:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Right</button>
+                    <button onClick={() => establishAccess('Arterial', '20G Arterial Line', 'Left Radial')} className="w-1/2 sm:w-full text-center sm:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Left</button>
                   </div>
                 </div>
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
                   <h3 className="font-bold text-red-400 mb-2">Brachial (20G)</h3>
-                  <div className="flex flex-col gap-1">
-                    <button onClick={() => establishAccess('Arterial', '20G Arterial Line', 'Right Brachial')} className="w-full text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Right Brachial</button>
-                    <button onClick={() => establishAccess('Arterial', '20G Arterial Line', 'Left Brachial')} className="w-full text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Left Brachial</button>
+                  <div className="flex sm:flex-col gap-2 sm:gap-1">
+                    <button onClick={() => establishAccess('Arterial', '20G Arterial Line', 'Right Brachial')} className="w-1/2 sm:w-full text-center sm:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Right</button>
+                    <button onClick={() => establishAccess('Arterial', '20G Arterial Line', 'Left Brachial')} className="w-1/2 sm:w-full text-center sm:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Left</button>
                   </div>
                 </div>
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
                   <h3 className="font-bold text-red-400 mb-2">Axillary (18G)</h3>
-                  <div className="flex flex-col gap-1">
-                    <button onClick={() => establishAccess('Arterial', '18G Arterial Line', 'Right Axillary')} className="w-full text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Right Axillary</button>
-                    <button onClick={() => establishAccess('Arterial', '18G Arterial Line', 'Left Axillary')} className="w-full text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Left Axillary</button>
+                  <div className="flex sm:flex-col gap-2 sm:gap-1">
+                    <button onClick={() => establishAccess('Arterial', '18G Arterial Line', 'Right Axillary')} className="w-1/2 sm:w-full text-center sm:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Right</button>
+                    <button onClick={() => establishAccess('Arterial', '18G Arterial Line', 'Left Axillary')} className="w-1/2 sm:w-full text-center sm:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Left</button>
                   </div>
                 </div>
                 <div className="bg-slate-800 p-4 rounded border border-slate-700">
                   <h3 className="font-bold text-red-400 mb-2">Femoral (18G)</h3>
-                  <div className="flex flex-col gap-1">
-                    <button onClick={() => establishAccess('Arterial', '18G Arterial Line', 'Right Femoral')} className="w-full text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Right Femoral</button>
-                    <button onClick={() => establishAccess('Arterial', '18G Arterial Line', 'Left Femoral')} className="w-full text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Left Femoral</button>
+                  <div className="flex sm:flex-col gap-2 sm:gap-1">
+                    <button onClick={() => establishAccess('Arterial', '18G Arterial Line', 'Right Femoral')} className="w-1/2 sm:w-full text-center sm:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Right</button>
+                    <button onClick={() => establishAccess('Arterial', '18G Arterial Line', 'Left Femoral')} className="w-1/2 sm:w-full text-center sm:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Left</button>
                   </div>
                 </div>
               </div>
@@ -1057,9 +1059,9 @@ const auscultateLungs = (location) => {
 
       {setupModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border-2 border-green-500 rounded-xl p-8 max-w-4xl shadow-2xl w-full">
-            <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2"><Wind size={24}/> Intubation Equipment Setup</h2>
-            <div className="grid grid-cols-3 gap-6 mb-8">
+          <div className="bg-slate-900 border-2 border-green-500 rounded-xl p-4 md:p-8 max-w-4xl shadow-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
+            <h2 className="text-xl md:text-2xl font-bold text-white mb-6 flex items-center gap-2"><Wind size={24}/> Intubation Equipment Setup</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
               <div>
                 <h3 className="text-green-400 font-bold mb-3 border-b border-green-900 pb-1">1. Select Blade</h3>
                 <div className="flex flex-col gap-2">
@@ -1075,9 +1077,9 @@ const auscultateLungs = (location) => {
                 )}
               </div>
               <div>
-                <h3 className="text-cyan-400 font-bold mb-3 border-b border-cyan-900 pb-1">2. Select Endotracheal Tube</h3>
+                <h3 className="text-cyan-400 font-bold mb-3 border-b border-cyan-900 pb-1">2. Select ETT</h3>
                 <div className="bg-slate-800 p-3 rounded border border-slate-700">
-                  <label className="text-xs text-slate-400 block mb-1">Tube Size (Hint: 7.0-7.5 Female, 7.5-8.0 Male)</label>
+                  <label className="text-[10px] md:text-xs text-slate-400 block mb-1">Tube Size (Hint: 7.0-7.5 Female, 7.5-8.0 Male)</label>
                   <select value={viewModal.tubeSize} onChange={(e) => setViewModal(prev => ({...prev, tubeSize: e.target.value}))} className="w-full bg-slate-950 text-white text-sm p-2 border border-slate-600 rounded">
                     <option value="">Select ETT Size...</option>
                     <option value="6.0">6.0 mm</option><option value="6.5">6.5 mm</option><option value="7.0">7.0 mm</option><option value="7.5">7.5 mm</option><option value="8.0">8.0 mm</option>
@@ -1093,9 +1095,9 @@ const auscultateLungs = (location) => {
                 </div>
               </div>
             </div>
-            <div className="flex justify-end gap-4">
-              <button onClick={() => setSetupModal(false)} className="px-6 py-2 bg-slate-700 hover:bg-slate-600 rounded font-bold">Cancel</button>
-              <button onClick={() => processIntubation(`${viewModal.blade} Size ${viewModal.bladeSize || '-'} with ${viewModal.tubeSize} ETT`, viewModal.adjunct)} disabled={!viewModal.blade || !viewModal.adjunct || !viewModal.tubeSize} className="px-6 py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 rounded font-bold text-white">Proceed to Intubate</button>
+            <div className="flex flex-col sm:flex-row justify-end gap-3 md:gap-4">
+              <button onClick={() => setSetupModal(false)} className="px-6 py-3 sm:py-2 bg-slate-700 hover:bg-slate-600 rounded font-bold w-full sm:w-auto">Cancel</button>
+              <button onClick={() => processIntubation(`${viewModal.blade} Size ${viewModal.bladeSize || '-'} with ${viewModal.tubeSize} ETT`, viewModal.adjunct)} disabled={!viewModal.blade || !viewModal.adjunct || !viewModal.tubeSize} className="px-6 py-3 sm:py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 rounded font-bold text-white w-full sm:w-auto">Proceed to Intubate</button>
             </div>
           </div>
         </div>
@@ -1120,100 +1122,90 @@ const auscultateLungs = (location) => {
       )}
 
       {/* PRIMARY ICU MONITOR */}
-      <div className="bg-black border-2 border-slate-800 rounded-xl p-4 grid grid-cols-4 gap-4 h-80 shadow-2xl relative overflow-hidden">
-        
-        <div className="col-span-3 flex flex-col justify-between relative z-10 w-full h-full">
-          <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
-            <div className="absolute text-green-500/30 text-xs top-1 left-1 z-20">ECG II</div>
+      <div className="bg-black border-2 border-slate-800 rounded-xl p-2 md:p-4 flex flex-col lg:grid lg:grid-cols-4 gap-4 min-h-[450px] lg:h-80 shadow-2xl relative overflow-hidden">
+        <div className="col-span-1 lg:col-span-3 flex flex-col justify-between relative z-10 w-full h-[300px] lg:h-full gap-1 lg:gap-0">
+          <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden min-h-[70px]">
+            <div className="absolute text-green-500/30 text-[10px] md:text-xs top-1 left-1 z-20">ECG II</div>
             <CanvasWaveform color="#22c55e" speed={hrSpeed} rrSpeed={rrSpeed} active={true} type="ecg" />
           </div>
-          
-          <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
-            <div className="absolute text-cyan-500/30 text-xs top-1 left-1 z-20">PLETH</div>
+          <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden min-h-[70px]">
+            <div className="absolute text-cyan-500/30 text-[10px] md:text-xs top-1 left-1 z-20">PLETH</div>
             <CanvasWaveform color="#06b6d4" speed={hrSpeed} rrSpeed={rrSpeed} active={vitals.spo2 > 50} type="pleth" />
           </div>
-          
-          <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
-            <div className="absolute text-yellow-400/30 text-xs top-1 left-1 z-20">EtCO2</div>
+          <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden min-h-[70px]">
+            <div className="absolute text-yellow-400/30 text-[10px] md:text-xs top-1 left-1 z-20">EtCO2</div>
             <CanvasWaveform color="#facc15" speed={rrSpeed} rrSpeed={rrSpeed} active={vitals.etco2 > 5} type="etco2" />
           </div>
-
           {patient.hasALine && (
-            <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
-              <div className="absolute text-red-500/30 text-xs top-1 left-1 z-20">ART (A-Line)</div>
+            <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden min-h-[70px]">
+              <div className="absolute text-red-500/30 text-[10px] md:text-xs top-1 left-1 z-20">ART (A-Line)</div>
               <CanvasWaveform color="#ef4444" speed={hrSpeed} rrSpeed={rrSpeed} active={true} type="aline" />
             </div>
           )}
         </div>
-
-        <div className="col-span-1 flex flex-col justify-between bg-slate-900/50 p-3 rounded z-30">
-          <div className="flex justify-between items-start">
-            <div className="text-green-500 font-bold flex items-center gap-1"><Heart size={14}/> HR</div>
-            <div className="text-5xl font-black text-green-400">{vitals.hr}</div>
+        <div className="col-span-1 flex flex-row flex-wrap lg:flex-col justify-between bg-slate-900/50 p-2 md:p-3 rounded z-30 gap-2 lg:gap-0">
+          <div className="flex flex-col lg:flex-row justify-between items-start w-[48%] lg:w-full">
+            <div className="text-green-500 font-bold flex items-center gap-1 text-xs md:text-base"><Heart size={14} className="hidden md:block"/> HR</div>
+            <div className="text-3xl md:text-5xl font-black text-green-400">{vitals.hr}</div>
           </div>
-          
-          <div className="flex justify-between items-start mt-2">
-            <div className="text-cyan-500 font-bold flex items-center gap-1"><Wind size={14}/> SpO2</div>
-            <div className={`text-5xl font-black ${vitals.spo2 < 88 ? 'text-cyan-600 animate-pulse' : 'text-cyan-400'}`}>{vitals.spo2}</div>
+          <div className="flex flex-col lg:flex-row justify-between items-start mt-0 lg:mt-2 w-[48%] lg:w-full">
+            <div className="text-cyan-500 font-bold flex items-center gap-1 text-xs md:text-base"><Wind size={14} className="hidden md:block"/> SpO2</div>
+            <div className={`text-3xl md:text-5xl font-black ${vitals.spo2 < 88 ? 'text-cyan-600 animate-pulse' : 'text-cyan-400'}`}>{vitals.spo2}</div>
           </div>
-          
-          <div className="flex justify-between items-start mt-2">
-            <div className="text-red-500 font-bold flex flex-col items-start gap-1">
-              <span className="flex items-center gap-1"><Activity size={14}/> {patient.hasALine ? 'ART' : 'NIBP'}</span>
-              {!patient.hasALine && <button onClick={cycleNibp} className="text-slate-400 hover:text-white bg-slate-800 p-1 rounded transition ml-1"><RefreshCw size={10}/></button>}
+          <div className="flex justify-between items-end lg:items-start mt-2 w-full">
+            <div className="text-red-500 font-bold flex flex-col items-start gap-1 w-1/3 lg:w-auto">
+              <span className="flex items-center gap-1 text-xs md:text-base"><Activity size={14} className="hidden md:block"/> {patient.hasALine ? 'ART' : 'NIBP'}</span>
+              {!patient.hasALine && <button onClick={cycleNibp} className="text-slate-400 hover:text-white bg-slate-800 p-1 md:p-2 rounded transition mt-1 w-full lg:w-auto"><RefreshCw size={12} className="mx-auto"/></button>}
             </div>
-            <div className="text-3xl font-black text-red-400 mt-1 text-right">
+            <div className="text-3xl md:text-4xl font-black text-red-400 mt-1 text-right leading-none w-2/3 lg:w-auto">
               {patient.hasALine ? `${vitals.sys}/${vitals.dia}` : `${nibp.sys}/${nibp.dia}`}
             </div>
           </div>
-
-          <div className="flex justify-between items-end mt-2 pt-2 border-t border-slate-800">
-            <div>
-              <div className="text-yellow-400 font-bold text-xs mb-1">EtCO2</div>
-              <div className="text-4xl font-black text-yellow-400">{vitals.etco2}</div>
+          <div className="flex justify-between items-end mt-2 pt-2 border-t border-slate-800 w-full">
+            <div className="w-1/2">
+              <div className="text-yellow-400 font-bold text-[10px] md:text-xs mb-1">EtCO2</div>
+              <div className="text-3xl md:text-4xl font-black text-yellow-400 leading-none">{vitals.etco2}</div>
             </div>
-            <div className="text-right">
-              <div className="text-white font-bold text-xs mb-1">RR</div>
-              <div className={`text-4xl font-black ${vitals.rr < 8 ? 'text-slate-400 animate-pulse' : 'text-white'}`}>{vitals.rr}</div>
+            <div className="text-right w-1/2">
+              <div className="text-white font-bold text-[10px] md:text-xs mb-1">RR</div>
+              <div className={`text-3xl md:text-4xl font-black leading-none ${vitals.rr < 8 ? 'text-slate-400 animate-pulse' : 'text-white'}`}>{vitals.rr}</div>
             </div>
           </div>
         </div>
       </div>
-
       {/* SECONDARY VENTILATOR MONITOR */}
       {patient.airwaySecured && (
-        <div className="bg-slate-950 border-2 border-slate-700 rounded-xl p-3 grid grid-cols-4 gap-4 h-48 shadow-2xl relative overflow-hidden">
-          <div className="col-span-3 flex flex-col justify-between relative z-10 gap-1">
+        <div className="bg-slate-950 border-2 border-slate-700 rounded-xl p-2 md:p-3 flex flex-col lg:grid lg:grid-cols-4 gap-4 min-h-[300px] lg:h-48 shadow-2xl relative overflow-hidden">
+          <div className="col-span-1 lg:col-span-3 flex flex-col justify-between relative z-10 gap-1 h-[200px] lg:h-full">
             <div className="h-1/3 flex items-center w-full border-b border-slate-800 relative overflow-hidden">
-              <div className="absolute text-yellow-500/50 text-xs top-0 left-1 z-20">Paw (cmH2O)</div>
+              <div className="absolute text-yellow-500/50 text-[10px] md:text-xs top-0 left-1 z-20">Paw</div>
               <SvgWaveform path={PATHS.ventPressure} color="#eab308" speed={rrSpeed} active={rrSpeed > 0} />
             </div>
             <div className="h-1/3 flex items-center w-full border-b border-slate-800 relative overflow-hidden">
-              <div className="absolute text-green-500/50 text-xs top-0 left-1 z-20">Flow (L/min)</div>
+              <div className="absolute text-green-500/50 text-[10px] md:text-xs top-0 left-1 z-20">Flow</div>
               <SvgWaveform path={PATHS.ventFlow} color="#22c55e" speed={rrSpeed} active={rrSpeed > 0} />
             </div>
             <div className="h-1/3 flex items-center w-full relative overflow-hidden">
-              <div className="absolute text-cyan-500/50 text-xs top-0 left-1 z-20">Volume (mL)</div>
+              <div className="absolute text-cyan-500/50 text-[10px] md:text-xs top-0 left-1 z-20">Vol</div>
               <SvgWaveform path={PATHS.ventVolume} color="#06b6d4" speed={rrSpeed} active={rrSpeed > 0} />
             </div>
           </div>
-
-          <div className="col-span-1 grid grid-cols-2 gap-2 bg-black p-2 rounded z-30 content-start">
-            <div className="text-right bg-slate-900 p-1 rounded border border-slate-800">
-              <div className="text-yellow-500 text-[10px] uppercase font-bold">PIP</div>
-              <div className="text-xl font-black text-yellow-400">{Math.round(vitals.pip)}</div>
+          <div className="col-span-1 grid grid-cols-4 lg:grid-cols-2 gap-2 bg-black p-2 rounded z-30 content-start">
+            <div className="text-center lg:text-right bg-slate-900 p-1 md:p-2 rounded border border-slate-800">
+              <div className="text-yellow-500 text-[9px] md:text-[10px] uppercase font-bold">PIP</div>
+              <div className="text-sm md:text-xl font-black text-yellow-400">{Math.round(vitals.pip)}</div>
             </div>
-            <div className="text-right bg-slate-900 p-1 rounded border border-slate-800">
-              <div className="text-yellow-600 text-[10px] uppercase font-bold">Pplat</div>
-              <div className="text-xl font-black text-yellow-500">{Math.round(vitals.pplat)}</div>
+            <div className="text-center lg:text-right bg-slate-900 p-1 md:p-2 rounded border border-slate-800">
+              <div className="text-yellow-600 text-[9px] md:text-[10px] uppercase font-bold">Pplat</div>
+              <div className="text-sm md:text-xl font-black text-yellow-500">{Math.round(vitals.pplat)}</div>
             </div>
-            <div className="text-right bg-slate-900 p-1 rounded border border-slate-800">
-              <div className="text-cyan-500 text-[10px] uppercase font-bold">VTE</div>
-              <div className="text-xl font-black text-cyan-400">{Math.round(vitals.vte)}</div>
+            <div className="text-center lg:text-right bg-slate-900 p-1 md:p-2 rounded border border-slate-800">
+              <div className="text-cyan-500 text-[9px] md:text-[10px] uppercase font-bold">VTE</div>
+              <div className="text-sm md:text-xl font-black text-cyan-400">{Math.round(vitals.vte)}</div>
             </div>
-            <div className="text-right bg-slate-900 p-1 rounded border border-slate-800">
-              <div className="text-slate-400 text-[10px] uppercase font-bold">RR</div>
-              <div className="text-xl font-black text-white">{vitals.rr}</div>
+            <div className="text-center lg:text-right bg-slate-900 p-1 md:p-2 rounded border border-slate-800">
+              <div className="text-slate-400 text-[9px] md:text-[10px] uppercase font-bold">RR</div>
+              <div className="text-sm md:text-xl font-black text-white">{vitals.rr}</div>
             </div>
           </div>
         </div>
@@ -1224,13 +1216,13 @@ const auscultateLungs = (location) => {
         {/* Col 1: Assess, Access & O2 */}
         <div className="col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
           <h3 className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold flex items-center gap-2"><Eye size={14}/> Assess / POCUS</h3>
-          <div className="grid grid-cols-2 gap-2">
-            <button onClick={examineAirway} className="bg-slate-800 hover:bg-slate-700 p-2 rounded text-xs text-left shadow border border-slate-600 col-span-2 text-center font-bold">Examine Airway (Look/Feel)</button>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <button onClick={examineAirway} className="bg-slate-800 hover:bg-slate-700 p-2 md:p-3 rounded text-xs text-left shadow border border-slate-600 sm:col-span-2 text-center font-bold">Examine Airway (Look/Feel)</button>
             <button onClick={() => handlePocus('Cardiac (TTE)')} className="bg-slate-800 hover:bg-slate-700 p-2 rounded text-xs text-left shadow">Cardiac (TTE)</button>
             <button onClick={() => handlePocus('Lung')} className="bg-slate-800 hover:bg-slate-700 p-2 rounded text-xs text-left shadow">Lung (Pleural)</button>
             <button onClick={() => handlePocus('Gastric')} className="bg-slate-800 hover:bg-slate-700 p-2 rounded text-xs text-left shadow">Gastric (Antrum)</button>
             <button onClick={() => handlePocus('Airway')} className="bg-slate-800 hover:bg-slate-700 p-2 rounded text-xs text-left shadow border border-blue-900 text-blue-200">Airway (Trachea)</button>
-            <button onClick={() => handlePocus('eFAST')} className="bg-slate-800 hover:bg-slate-700 p-2 rounded text-xs text-left shadow col-span-2 text-center border border-purple-900 text-purple-200">Trauma eFAST Exam</button>
+            <button onClick={() => handlePocus('eFAST')} className="bg-slate-800 hover:bg-slate-700 p-2 md:p-3 rounded text-xs text-left shadow sm:col-span-2 text-center border border-purple-900 text-purple-200">Trauma eFAST Exam</button>
           </div>
           <h3 className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold mt-2 flex items-center gap-2"><Syringe size={14}/> Vascular Access</h3>
           <div className="grid grid-cols-2 gap-2">
