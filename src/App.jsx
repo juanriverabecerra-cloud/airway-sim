@@ -16,19 +16,19 @@ const CASES = [
     id: 'normal', name: 'Elective Surgery (Perfect Baseline)', difficulty: ' Easy',
     description: '45yo Female, ASA 1. Fasting for 12 hours. Normal neck anatomy, Mallampati I. Perfectly stable hemodynamics.',
     baseVitals: { hr: 72, sys: 120, dia: 80, spo2: 99, etco2: 0, rr: 12 },
-    patient: { age: 45, sex: 'female', weight: 60, height: 165, bmi: 22.0, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: false, isObese: false, baseGrade: 1, isSeptic: false, hasCCollar: false, stomach: 'empty', limitedMouth: false, trauma: false }
+    patient: { age: 45, sex: 'female', weight: 60, height: 165, ibw: 56, bmi: 22.0, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: false, isObese: false, baseGrade: 1, isSeptic: false, hasCCollar: false, stomach: 'empty', limitedMouth: false, trauma: false }
   },
   {
     id: 'trauma', name: 'Motor Vehicle Trauma (Bloody Airway)', difficulty: ' Hard',
     description: '54yo Male, GCS 7. Facial trauma, active bleeding in airway. Cervical collar in place restricting neck extension.',
     baseVitals: { hr: 115, sys: 105, dia: 65, spo2: 88, etco2: 0, rr: 24 },
-    patient: { age: 54, sex: 'male', weight: 85, height: 180, bmi: 26.2, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: true, isObese: false, baseGrade: 3, isSeptic: false, hasCCollar: true, stomach: 'full', limitedMouth: false, trauma: true }
+    patient: { age: 54, sex: 'male', weight: 85, height: 180, ibw: 75, bmi: 26.2, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: true, isObese: false, baseGrade: 3, isSeptic: false, hasCCollar: true, stomach: 'full', limitedMouth: false, trauma: true }
   },
   {
     id: 'septic', name: 'Septic Shock (Hemodynamic Cliff)', difficulty: ' Hard',
     description: '68yo Male, urosepsis. Profoundly vasodilated, living on endogenous catecholamines. High risk of cardiovascular collapse.',
     baseVitals: { hr: 135, sys: 85, dia: 40, spo2: 92, etco2: 0, rr: 28 },
-    patient: { age: 68, sex: 'male', weight: 70, height: 175, bmi: 22.9, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: false, isObese: false, baseGrade: 2, isSeptic: true, hasCCollar: false, stomach: 'empty', limitedMouth: false, trauma: false }
+    patient: { age: 68, sex: 'male', weight: 70, height: 175, ibw: 70, bmi: 22.9, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: false, isObese: false, baseGrade: 2, isSeptic: true, hasCCollar: false, stomach: 'empty', limitedMouth: false, trauma: false }
   },
   {
     id: 'obese', name: 'Morbid Obesity / OSA (Rapid Desat)', difficulty: ' Medium',
@@ -699,52 +699,52 @@ const auscultateLungs = (location) => {
     );
   };
 
-  const renderAdvancedMedButton = (medId) => {
-    const med = MEDICATIONS[medId];
-    if (!med) return null;
+const renderAdvancedMedButton = (medId) => {
+  const med = MEDICATIONS[medId];
+  if (!med) return null;
+  const isActive = medInput.drug === medId;
+  const indicationKeys = Object.keys(med.indications);
 
-    const isActive = medInput.drug === medId;
-    const indicationKeys = Object.keys(med.indications);
-
-    // Auto-update dose/unit when indication changes
-    const handleIndicationChange = (e) => {
-      const ind = e.target.value;
-      const data = med.indications[ind];
-      setMedInput({ ...medInput, indication: ind, route: med.routes[0], type: data.type, unit: data.unit, dose: '' });
-    };
-
-    return (
-      <div className="flex flex-col gap-1 mb-2">
-        <button onClick={() => setMedInput(isActive ? { drug: null } : { drug: medId, indication: indicationKeys[0], route: med.routes[0], type: med.indications[indicationKeys[0]].type, unit: med.indications[indicationKeys[0]].unit, dose: '' })}
-          className={`bg-slate-800 p-2 rounded text-[11px] text-left border transition-all ${isActive ? 'border-cyan-400 ring-1 ring-cyan-500' : 'border-slate-700 hover:border-slate-500'}`}>
-          <span className="font-bold text-white">{med.name}</span> <span className="text-slate-400 text-[9px] float-right">{med.classes[0]}</span>
-        </button>
-
-        {isActive && (
-          <div className="flex flex-col gap-2 p-2 bg-slate-900 border border-cyan-900 rounded animate-in slide-in-from-top-1 duration-200">
-            <select value={medInput.indication} onChange={handleIndicationChange} className="bg-slate-950 text-xs text-slate-300 border border-slate-700 rounded p-1">
-              {indicationKeys.map(ind => <option key={ind} value={ind}>{ind} (Rec: {med.indications[ind].dose} {med.indications[ind].unit})</option>)}
-            </select>
-
-            <div className="flex gap-2">
-              <select value={medInput.route} onChange={(e)=>setMedInput({...medInput, route: e.target.value})} className="bg-slate-950 text-xs text-white border border-slate-700 rounded p-1 w-1/3">
-                {med.routes.map(r => <option key={r} value={r}>{r}</option>)}
-              </select>
-              <input autoFocus type="number" placeholder={`Dose (${medInput.unit})`} className="w-1/3 bg-slate-950 border border-slate-600 rounded px-2 py-1 text-xs text-white outline-none focus:border-cyan-500"
-                value={medInput.dose} onChange={(e) => setMedInput({...medInput, dose: e.target.value})} />
-              <button onClick={() => { if (medInput.dose) { processMed(medId, medInput.dose, medInput.route, medInput.type, medInput.unit); setMedInput({ drug: null }); } }}
-                className="w-1/3 bg-cyan-700 hover:bg-cyan-600 rounded text-xs font-bold text-white">
-                {medInput.type === 'Infusion' ? 'START INF' : 'PUSH'}
-              </button>
-            </div>
-            {medInput.type === 'Infusion' && (
-              <button onClick={() => { processMed(medId, 0, 'IV', 'Stop Infusion', ''); setMedInput({ drug: null }); }} className="w-full bg-red-900/40 border border-red-800 hover:bg-red-800 text-red-200 py-1 rounded text-xs font-bold">STOP INFUSION</button>
-            )}
-          </div>
-        )}
-      </div>
-    );
+  const handleIndicationChange = (e) => {
+    const ind = e.target.value;
+    const data = med.indications[ind];
+    setMedInput({ ...medInput, indication: ind, route: med.routes[0], type: data.type, unit: data.unit, dose: '' });
   };
+
+  return (
+    <div className="flex flex-col gap-1 mb-2">
+      <button onClick={() => setMedInput(isActive ? { drug: null } : { drug: medId, indication: indicationKeys[0], route: med.routes[0], type: med.indications[indicationKeys[0]].type, unit: med.indications[indicationKeys[0]].unit, dose: '' })}
+        className={`bg-slate-800 p-2 rounded text-[11px] text-left border transition-all ${isActive ? 'border-cyan-400 ring-1 ring-cyan-500' : 'border-slate-700 hover:border-slate-500'}`}>
+        <span className="font-bold text-white">{med.name}</span> <span className="text-slate-400 text-[9px] float-right">{med.classes[0]}</span>
+      </button>
+      {isActive && (
+        <div className="flex flex-col gap-2 p-2 bg-slate-900 border border-cyan-900 rounded animate-in slide-in-from-top-1 duration-200">
+          <div className="flex justify-between items-center text-[10px] text-cyan-400 font-bold px-1 uppercase tracking-widest border-b border-cyan-900/50 pb-1">
+            <span>Dosing Profile</span>
+            <span className="bg-slate-800 px-2 py-0.5 rounded text-white">Uses {med.dosingWeight || 'TBW'}</span>
+          </div>
+          <select value={medInput.indication} onChange={handleIndicationChange} className="bg-slate-950 text-xs text-slate-300 border border-slate-700 rounded p-1">
+            {indicationKeys.map(ind => <option key={ind} value={ind}>{ind} (Rec: {med.indications[ind].dose} {med.indications[ind].unit})</option>)}
+          </select>
+          <div className="flex gap-2">
+            <select value={medInput.route} onChange={(e)=>setMedInput({...medInput, route: e.target.value})} className="bg-slate-950 text-xs text-white border border-slate-700 rounded p-1 w-1/3">
+              {med.routes.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+            <input autoFocus type="number" placeholder={`Dose (${medInput.unit})`} className="w-1/3 bg-slate-950 border border-slate-600 rounded px-2 py-1 text-xs text-white outline-none focus:border-cyan-500"
+              value={medInput.dose} onChange={(e) => setMedInput({...medInput, dose: e.target.value})} />
+            <button onClick={() => { if (medInput.dose) { processMed(medId, medInput.dose, medInput.route, medInput.type, medInput.unit); setMedInput({ drug: null }); } }}
+              className="w-1/3 bg-cyan-700 hover:bg-cyan-600 rounded text-xs font-bold text-white">
+              {medInput.type === 'Infusion' ? 'START INF' : 'PUSH'}
+            </button>
+          </div>
+          {medInput.type === 'Infusion' && (
+            <button onClick={() => { processMed(medId, 0, 'IV', 'Stop Infusion', ''); setMedInput({ drug: null }); }} className="w-full bg-red-900/40 border border-red-800 hover:bg-red-800 text-red-200 py-1 rounded text-xs font-bold">STOP INFUSION</button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
   if (!activeCase) {
     return (
@@ -784,6 +784,7 @@ const auscultateLungs = (location) => {
             <span><span className="text-slate-500">Sex:</span> {patient.sex}</span>
             <span><span className="text-slate-500">Height:</span> {patient.height} cm</span>
             <span><span className="text-slate-500">TBW:</span> {patient.weight} kg</span>
+            <span><span className="text-slate-500">IBW:</span> {Math.round(patient.ibw || 0)} kg</span>
           </div>
           
           {/* HORIZONTAL 3D CYLINDER FOR OXYGEN BUFFER */}
@@ -861,21 +862,26 @@ const auscultateLungs = (location) => {
       {/* MODALS */}
       {pocusModal.show && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border-2 border-blue-500 rounded-xl p-8 max-w-lg shadow-2xl w-full text-center">
-            <Search size={48} className="text-blue-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-4">{pocusModal.title} Finding</h2>
-            <p className="text-lg text-slate-300 mb-8 p-4 bg-slate-800 rounded border border-slate-700">"{pocusModal.finding}"</p>
-            <button onClick={() => setPocusModal({show: false, title:'', finding:''})} className="bg-blue-600 hover:bg-blue-500 font-bold py-2 px-8 rounded">Close</button>
+          <div className="bg-slate-900 border-2 border-purple-500 rounded-xl p-6 md:p-8 max-h-[85vh] overflow-y-auto custom-scrollbar w-11/12 max-w-md shadow-2xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2"><Eye size={24}/> {pocusModal.title}</h2>
+              <button onClick={() => setPocusModal({ show: false, title: '', finding: '' })} className="text-slate-400 hover:text-white"><X size={24}/></button>
+            </div>
+            <div className="p-4 bg-slate-800 border border-slate-700 rounded-lg">
+              <p className="text-purple-300 font-bold text-sm uppercase mb-2">Ultrasound Findings</p>
+              <p className="text-white text-base md:text-lg">{pocusModal.finding}</p>
+            </div>
+            <button onClick={() => setPocusModal({ show: false, title: '', finding: '' })} className="mt-6 w-full bg-slate-700 hover:bg-slate-600 p-3 rounded font-bold text-white">Close Image</button>
           </div>
         </div>
       )}
 
       {airwayQuizModal.show && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border-2 border-cyan-500 rounded-xl p-8 max-w-2xl shadow-2xl w-full">
-            <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2"><Eye size={24}/> Pre-Intubation Airway Assessment</h2>
-            <p className="text-lg text-slate-300 mb-6 italic border-l-4 border-cyan-500 pl-4 py-2 bg-slate-800/50 whitespace-pre-wrap">{airwayQuizModal.description}</p>
-            <h3 className="text-yellow-400 font-bold mb-4">Based on your visualization, select the correct Mallampati Score:</h3>
+          <div className="bg-slate-900 border-2 border-cyan-500 rounded-xl p-6 md:p-8 max-h-[85vh] overflow-y-auto custom-scrollbar w-11/12 max-w-2xl shadow-2xl">
+            <h2 className="text-xl md:text-2xl font-bold text-white mb-4 flex items-center gap-2"><Eye size={24}/> Pre-Intubation Airway Assessment</h2>
+            <p className="text-sm md:text-lg text-slate-300 mb-6 italic border-l-4 border-cyan-500 pl-4 py-2 bg-slate-800/50 whitespace-pre-wrap">{airwayQuizModal.description}</p>
+            <h3 className="text-yellow-400 font-bold mb-4 text-sm md:text-base">Based on your visualization, select the correct Mallampati Score:</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[1, 2, 3, 4].map(grade => (
                 <button key={grade} onClick={() => submitAirwayQuiz(grade)} className="bg-slate-800 hover:bg-cyan-900 p-4 rounded text-left border border-slate-700 hover:border-cyan-400 transition">
@@ -1025,29 +1031,29 @@ const auscultateLungs = (location) => {
 
       {tubeConfirmModal.show && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-slate-900 border-2 border-indigo-500 rounded-xl p-8 max-w-xl shadow-2xl w-full">
+          <div className="bg-slate-900 border-2 border-indigo-500 rounded-xl p-6 md:p-8 max-h-[85vh] overflow-y-auto custom-scrollbar w-11/12 max-w-xl shadow-2xl">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-white flex items-center gap-2"><Stethoscope size={24}/> Auscultate & Confirm</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2"><Stethoscope size={24}/> Auscultate & Confirm</h2>
               <button onClick={() => setTubeConfirmModal({ show: false, result: '' })} className="text-slate-400 hover:text-white"><X size={24}/></button>
             </div>
 
             {tubeConfirmModal.result && (
-              <div className="mb-6 p-4 bg-indigo-900/40 border border-indigo-500 rounded text-indigo-200 font-bold">
+              <div className="mb-6 p-4 bg-indigo-900/40 border border-indigo-500 rounded text-indigo-200 font-bold text-sm md:text-base">
                 {tubeConfirmModal.result}
               </div>
             )}
 
-            <p className="text-slate-300 mb-4">Select an anatomical location to auscultate for breath sounds or gastric insufflation:</p>
+            <p className="text-sm md:text-base text-slate-300 mb-4">Select an anatomical location to auscultate for breath sounds or gastric insufflation:</p>
             <div className="grid grid-cols-1 gap-3 mb-6">
-              <button onClick={() => auscultateLungs('Left Lung')} className="bg-slate-800 hover:bg-indigo-900 p-4 rounded text-left border border-slate-700 hover:border-indigo-400 transition font-bold">Left Lung Field</button>
-              <button onClick={() => auscultateLungs('Right Lung')} className="bg-slate-800 hover:bg-indigo-900 p-4 rounded text-left border border-slate-700 hover:border-indigo-400 transition font-bold">Right Lung Field</button>
-              <button onClick={() => auscultateLungs('Epigastrium')} className="bg-slate-800 hover:bg-indigo-900 p-4 rounded text-left border border-slate-700 hover:border-indigo-400 transition font-bold">Epigastrium (Stomach)</button>
+              <button onClick={() => auscultateLungs('Left Lung')} className="bg-slate-800 hover:bg-indigo-900 p-4 rounded text-left border border-slate-700 hover:border-indigo-400 transition font-bold text-sm md:text-base">Left Lung Field</button>
+              <button onClick={() => auscultateLungs('Right Lung')} className="bg-slate-800 hover:bg-indigo-900 p-4 rounded text-left border border-slate-700 hover:border-indigo-400 transition font-bold text-sm md:text-base">Right Lung Field</button>
+              <button onClick={() => auscultateLungs('Epigastrium')} className="bg-slate-800 hover:bg-indigo-900 p-4 rounded text-left border border-slate-700 hover:border-indigo-400 transition font-bold text-sm md:text-base">Epigastrium (Stomach)</button>
             </div>
 
             {(patient.tubePosition === 'right_mainstem' || patient.tubePosition === 'left_mainstem' || patient.tubePosition === 'trachea' || patient.tubePosition === 'esophagus') && (
               <>
                 <h3 className="text-indigo-400 font-bold mb-3 border-b border-indigo-900 pb-1">Tube Interventions</h3>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <button onClick={() => adjustTube('pull_back')} className="bg-slate-800 hover:bg-slate-700 p-3 rounded text-sm text-center border border-slate-700 hover:border-slate-500 font-bold">Pull Tube Back 2cm</button>
                   <button onClick={() => adjustTube('remove')} className="bg-red-900/40 hover:bg-red-800 p-3 rounded text-sm text-center border border-red-900 hover:border-red-500 text-red-200 font-bold">Extubate / Remove Tube</button>
                 </div>
