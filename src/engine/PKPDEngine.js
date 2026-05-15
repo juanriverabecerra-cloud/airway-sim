@@ -1,7 +1,9 @@
 /**
- * HIGH-FIDELITY PK/PD ENGINE (V2.0)
+ * HIGH-FIDELITY PK/PD ENGINE (V3.1)
  * Uses multi-compartment mammillary modeling with flow-dependent clearance.
- * Implements internal sub-stepping for numerical stability with short-acting agents.
+ * Implements dynamic V1 (hemoconcentration/dilution), protein-binding free fractions,
+ * and organ-specific perfusion-coupled ke0 (Cerebral Autoregulation vs Systemic).
+ * Includes absolute NaN-guards for zero-C50 chelators.
  */
 
 export class PKPDModel {
@@ -42,15 +44,14 @@ export class PKPDModel {
    * Tick the physics forward
    * @param {number} dt seconds
    * @param {number} coRatio Current CO / Baseline CO (1.0 = normal)
+   * @param {number} v1VolumeRatio Current Blood Vol / Baseline EBV (Hemoconcentration modifier)
    */
-  tick(dt = 1, coRatio = 1.0) {
+  tick(dt = 1, coRatio = 1.0, v1VolumeRatio = 1.0) {
     // Internal sub-stepping for numerical stability (10 steps per tick)
     const subSteps = 10;
     const subDt = dt / subSteps;
 
     // Apply flow-dependency to elimination (k10) and distribution (k12, k13)
-    // coSensitivity 0.8 means clearance is 80% dependent on CO (e.g. Fentanyl)
-    // coSensitivity 0.1 means clearance is mostly independent (e.g. Remifentanil)
     const coMod = 1 + (coRatio - 1) * (this.pk.coSensitivity || 0.5);
     
     const k10 = ((this.pk.k10 || 0) / 60) * coMod;
@@ -58,7 +59,28 @@ export class PKPDModel {
     const k21 = (this.pk.k21 || 0) / 60;
     const k13 = ((this.pk.k13 || 0) / 60) * coMod;
     const k31 = (this.pk.k31 || 0) / 60;
-    const ke0 = (this.pk.ke0 || 0.1) / 60; 
+
+    // Autoregulation of Effect-Site Equilibration (ke0)
+    let ke0Mod = 1.0;
+    if (this.classes.includes('Sedative') || this.classes.includes('Hypnotic') || this.classes.includes('Opioid')) {
+        // Cerebral autoregulation preserves brain blood flow (and ke0) until severe shock
+        ke0Mod = coRatio < 0.5 ? (coRatio * 2) : 1.0; 
+    } else {
+        // Systemic/Muscle perfusion drops linearly with CO (delays paralytic/pressor onset in shock)
+        ke0Mod = Math.max(0.1, coRatio);
+    }
+    const ke0 = ((this.pk.ke0 || 0.1) / 60) * ke0Mod;
+
+    // Dynamic V1 based on hemorrhage / massive fluid resuscitation
+    // A drop in blood volume shrinks V1, concentrating the drug aggressively.
+    const dynamicV1 = Math.max(0.1, this.pk.V1 * v1VolumeRatio);
+
+    // Protein Binding & Free Fraction
+    // Only the unbound fraction of the drug is active and crosses into Ce.
+    const proteinBinding = this.pk.proteinBinding || 0;
+    const freeFraction = 1.0 - proteinBinding; 
+    // Severe hemodilution (v1VolumeRatio > 1.2) dilutes plasma proteins, increasing free fraction.
+    const effectiveFreeFraction = Math.min(1.0, freeFraction * (v1VolumeRatio > 1.2 ? 1.2 : 1.0));
 
     for (let i = 0; i < subSteps; i++) {
       // 1. Add continuous infusion to Central Compartment
@@ -76,8 +98,8 @@ export class PKPDModel {
       this.A2 = Math.max(0, this.A2 + flux12 - flux21);
       this.A3 = Math.max(0, this.A3 + flux13 - flux31);
 
-      // 4. Update Effect-Site Concentration (Ce)
-      const Cp = this.A1 / this.pk.V1;
+      // 4. Update Effect-Site Concentration (Ce) driven by Unbound Plasma Concentration
+      const Cp = (this.A1 / dynamicV1) * effectiveFreeFraction;
       this.Ce += ke0 * (Cp - this.Ce) * subDt;
     }
 
@@ -98,11 +120,15 @@ export class PKPDModel {
 
     if (!this.pd) return effects;
 
-    // The Hill Equation: E = Emax * (Ce^gamma / (Ce^gamma + C50^gamma))
-    const gamma = this.pd.gamma || 1;
-    const ceGamma = Math.pow(this.Ce, gamma);
-    const c50Gamma = Math.pow(this.pd.c50, gamma);
-    const fraction = ceGamma / (ceGamma + c50Gamma);
+    // Bulletproof against NaN divide-by-zero for Chelators (Sugammadex c50 = 0)
+    let fraction = 0;
+    if (this.pd.c50 && this.pd.c50 > 0) {
+        const gamma = this.pd.gamma || 1;
+        const safeCe = Math.max(0, this.Ce); 
+        const ceGamma = Math.pow(safeCe, gamma);
+        const c50Gamma = Math.pow(this.pd.c50, gamma);
+        fraction = ceGamma / (ceGamma + c50Gamma);
+    }
 
     // Cardiovascular Deltas
     if (this.pd.hrMax) effects.hrDelta = this.pd.hrMax * fraction;
@@ -111,7 +137,6 @@ export class PKPDModel {
     if (this.pd.rrMax) effects.rrDelta = this.pd.rrMax * fraction;
 
     // Clinical Hypnosis (Used for BIS and surgical responsiveness)
-    // Propofol and Midazolam are in the 'Sedative' synergy group
     if (this.classes.includes('Sedative') || 
         this.classes.includes('Hypnotic') || 
         this.classes.includes('Dissociative') || 

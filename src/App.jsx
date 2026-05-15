@@ -145,7 +145,7 @@ export default function App() {
     }
   };
 
-  // WRAPPED ACTION HANDLERS
+// WRAPPED ACTION HANDLERS
   const handlePushFluid = (...args) => { saveState(); pushFluid(...args); };
   const handleProcessMed = (...args) => { saveState(); processMed(...args); };
   const handlePushMed = (...args) => { saveState(); pushMed(...args); };
@@ -156,6 +156,9 @@ export default function App() {
   const handleSetGasSettings = (update) => { saveState(); setGasSettings(update); };
   const handleSetSurgicalPhase = (val) => { saveState(); setSurgicalPhase(val); };
   const handleSetDefibSettings = (val) => { saveState(); setDefibSettings(val); };
+  const handleToggleBis = () => { saveState(); setPatient(p => ({...p, hasBisMonitor: !p.hasBisMonitor})); logEvent(patient.hasBisMonitor ? "Removed BIS Monitor." : "Attached BIS Monitor."); };
+  const handleToggleTof = () => { saveState(); setPatient(p => ({...p, hasTofMonitor: !p.hasTofMonitor})); logEvent(patient.hasTofMonitor ? "Removed TOF Monitor." : "Attached TOF Monitor."); };
+  const handleCheckRhythm = () => { saveState(); logEvent("⏸ Rhythm Check: CPR Paused. Assessing monitor..."); setPatient(p => ({ ...p, cprActive: false })); };
 
   const handleSurgicalCric = () => {
     saveState();
@@ -246,13 +249,13 @@ export default function App() {
     setAirwayQuizModal({ show: false, description: '', trueMallampati: 1 });
   };
 
-  const establishAccess = (category, type, location) => {
+const establishAccess = (category, type, location) => {
     const fullName = `${type} (${location})`;
     logEvent(`Placed ${fullName}.`);
     setPatient(p => ({ 
        ...p, 
-       hasIV: p.hasIV || category !== 'Arterial', 
-       hasALine: p.hasALine || category === 'Arterial',
+       hasIV: p.hasIV || !category.includes('Arterial'), 
+       hasALine: p.hasALine || category.includes('Arterial'),
       accessLines: [...(p.accessLines || []), fullName]
     }));
     setAccessModal({ show: false, category: '' });
@@ -381,7 +384,6 @@ export default function App() {
     setTimeout(() => {
       let results = {};
       if (type === 'ABG') {
-        // Chronic Obese/OSA patients live with compensated respiratory acidosis (High PaCO2, High HCO3)
         const baseHco3 = patient.isObese ? 32 : 24; 
         const metabolicAcidosis = (patient.isSeptic ? 8 : 0) + ((patient.ebl || 0) > 1500 ? 6 : 0);
         const currentHco3 = Math.max(10, baseHco3 - metabolicAcidosis);
@@ -401,7 +403,6 @@ export default function App() {
         const currentHb = Math.max(3.0, (baseHb * (1 - bloodLossRatio)) - (dilutionFactor * 3.0));
         const currentHct = currentHb * 3;
         
-        // Sepsis induces leukocytosis and consumptive thrombocytopenia (DIC risk)
         const wbc = patient.isSeptic ? (Math.random() * 5 + 18).toFixed(1) : (Math.random() * 2 + 6).toFixed(1);
         const basePlt = patient.isSeptic ? 90 : 250;
         const currentPlt = Math.round(basePlt * (1 - bloodLossRatio));
@@ -416,13 +417,10 @@ export default function App() {
         results = {
           Na: { val: 138, range: '135-145', alert: false },
           K: { val: (patient.trauma ? (Math.random() * 0.5 + 5.0).toFixed(1) : 4.1), range: '3.5-5.1', alert: patient.trauma },
-          // Sepsis induces Acute Kidney Injury (AKI)
           Cr: { val: (patient.isSeptic ? (Math.random() * 0.5 + 2.2).toFixed(1) : 0.9), range: '0.7-1.3', alert: patient.isSeptic },
-          // Sepsis induces stress hyperglycemia
           Gluc: { val: (patient.isSeptic ? Math.round(Math.random() * 40 + 180) : 105), range: '70-100', alert: patient.isSeptic }
         };
       } else if (type === 'TEG') {
-        // Trauma induces acute traumatic coagulopathy (ATC) -> prolonged R time, decreased Alpha Angle and MA
         results = {
           R: { val: (patient.trauma ? (Math.random() * 2 + 11).toFixed(1) : 6), range: '5-10 min', alert: patient.trauma },
           Angle: { val: (patient.trauma ? Math.round(Math.random() * 5 + 42) : 65), range: '53-72 deg', alert: patient.trauma },
@@ -520,10 +518,9 @@ export default function App() {
     );
   }
 
-  const stableHr = Math.round((vitals.hr || 70) / 5) * 5;
-  const stableRr = Math.round((vitals.rr || 12) / 2) * 2;
-  const hrSpeed = stableHr > 0 ? (60 / stableHr).toFixed(3) : 0;
-  const rrSpeed = stableRr > 0 ? (60 / stableRr).toFixed(3) : 0;
+  // PASS THE ACTUAL RATE (BPM/RPM) TO THE RENDERING ENGINE
+  const hrSpeed = Math.round((vitals.hr || 70) / 5) * 5;
+  const rrSpeed = Math.round((vitals.rr || 12) / 2) * 2;
 
   return (
     <div className="min-h-screen bg-slate-950 text-white p-4 font-mono select-none flex flex-col gap-4">
@@ -594,6 +591,7 @@ export default function App() {
         hrSpeed={hrSpeed} 
         rrSpeed={rrSpeed} 
         gasSettings={gasSettings} 
+        ventSettings={ventSettings}
       />
 
       {patient.airwaySecured && (
@@ -602,6 +600,7 @@ export default function App() {
           vitals={vitals} 
           rrSpeed={rrSpeed} 
           ventSettings={ventSettings} 
+          setVentSettings={handleSetVentSettings}
         />
       )}
       
@@ -629,9 +628,14 @@ export default function App() {
            logEvent={logEvent} 
            surgicalPhase={surgicalPhase} 
            setSurgicalPhase={handleSetSurgicalPhase}
+           toggleBis={handleToggleBis}
+           toggleTof={handleToggleTof}
+           checkRhythm={handleCheckRhythm}
+           time={time}
+           formatTime={formatTime}
         />
         
-        <Pharmacopoeia 
+        <Pharmacopoeia
            pushFluid={handlePushFluid} 
            processMed={handleProcessMed} 
            patient={patient} 
@@ -649,6 +653,8 @@ export default function App() {
            logEvent={logEvent} 
            handleSurgicalCric={handleSurgicalCric}
            handleExtubation={handleExtubation}
+           activeMeds={activeMeds}
+           processMed={handleProcessMed}
         />
         
         <LogPanel 

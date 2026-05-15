@@ -1,8 +1,10 @@
 import React from 'react';
-import { Activity, Heart, Wind, RefreshCw } from 'lucide-react';
+import { Activity, Heart, Wind, RefreshCw, Thermometer } from 'lucide-react';
 import { CanvasWaveform } from '../CanvasWaveform';
 
-export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, hrSpeed, rrSpeed, gasSettings }) => {
+export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, hrSpeed, rrSpeed, gasSettings, ventSettings }) => {
+  const showBottomRow = patient.hasBisMonitor || patient.hasTofMonitor || (patient.airwaySecured && vitals.mac > 0);
+
   return (
     <div className="bg-black border-2 border-slate-800 rounded-xl p-2 flex flex-col lg:grid lg:grid-cols-4 gap-2 min-h-[450px] lg:h-[450px] shadow-2xl relative overflow-hidden">
       
@@ -18,30 +20,38 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, hrSpeed, rrSp
       {/* Primary Waveforms */}
       <div className="col-span-1 lg:col-span-3 flex flex-col justify-between relative w-full h-[300px] lg:h-full gap-1">
         <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
-          <div className="absolute text-green-500/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">ECG II {patient.isArrest ? `(${patient.cardiacRhythm.toUpperCase()})` : ''}</div>
+          <div className="absolute text-green-500/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">ECG II {patient.isArrest ? `(${patient.cardiacRhythm.toUpperCase()})` : (patient.ischemicDamage > 400 ? '(ST-ELEV)' : '')}</div>
           <CanvasWaveform 
              color="#22c55e" 
-             speed={patient.isArrest ? (patient.cardiacRhythm === 'vfib' ? 1.5 : (patient.cardiacRhythm === 'asystole' ? 0 : hrSpeed)) : hrSpeed} 
+             speed={patient.isArrest ? (patient.cardiacRhythm === 'vfib' ? 150 : (patient.cardiacRhythm === 'asystole' ? 0 : hrSpeed)) : hrSpeed} 
              rrSpeed={rrSpeed} 
              active={true} 
              type="ecg" 
-             morphology={patient.isArrest ? (patient.cardiacRhythm === 'vfib' ? 'vfib' : (patient.cardiacRhythm === 'vtach' ? 'vtach' : 'normal')) : 'normal'} 
+             morphology={patient.isArrest ? (patient.cardiacRhythm === 'vfib' ? 'vfib' : (patient.cardiacRhythm === 'vtach' ? 'vtach' : 'normal')) : (patient.ischemicDamage > 400 ? 'st_elevation' : 'normal')} 
           />
         </div>
         {patient.hasALine && (
           <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
             <div className="absolute text-red-500/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">ART</div>
-            <CanvasWaveform color="#ef4444" speed={patient.cprActive ? 1.6 : hrSpeed} rrSpeed={rrSpeed} active={vitals.sys > 20 || patient.cprActive} type="aline" />
+            <CanvasWaveform color="#ef4444" speed={patient.cprActive ? 100 : hrSpeed} rrSpeed={rrSpeed} active={vitals.sys > 20 || patient.cprActive} type="aline" />
           </div>
         )}
         <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
           <div className="absolute text-cyan-500/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">PLETH</div>
-          <CanvasWaveform color="#06b6d4" speed={patient.cprActive ? 1.6 : hrSpeed} rrSpeed={rrSpeed} active={(vitals.spo2 > 50 && !patient.isArrest) || patient.cprActive} type="pleth" />
+          <CanvasWaveform color="#06b6d4" speed={patient.cprActive ? 100 : hrSpeed} rrSpeed={rrSpeed} active={(vitals.spo2 > 50 && !patient.isArrest) || patient.cprActive} type="pleth" />
         </div>
         {patient.airwaySecured && (
           <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
             <div className="absolute text-yellow-400/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">EtCO2</div>
-            <CanvasWaveform color="#facc15" speed={rrSpeed} rrSpeed={rrSpeed} active={vitals.etco2 > 5} type="etco2" />
+            <CanvasWaveform 
+              color="#facc15" 
+              speed={rrSpeed} 
+              rrSpeed={rrSpeed} 
+              active={vitals.etco2 > 5} 
+              type="etco2" 
+              ieRatio={ventSettings?.ieRatio || 2}
+              ampScale={Math.min(1.5, (vitals.etco2 || 40) / 40)} 
+            />
           </div>
         )}
       </div>
@@ -56,6 +66,12 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, hrSpeed, rrSp
         <div className="flex justify-between items-center w-full mt-1">
           <div className="text-cyan-500 font-bold flex flex-col"><span className="text-xs"><Wind size={14} className="inline mr-1"/>SpO2</span></div>
           <div className={`text-4xl lg:text-5xl font-black leading-none ${vitals.spo2 < 88 ? 'text-cyan-600 animate-pulse' : 'text-cyan-400'}`}>{vitals.spo2}</div>
+        </div>
+
+        {/* Core Temperature Addition */}
+        <div className="flex justify-between items-center w-full mt-1">
+          <div className="text-slate-400 font-bold flex flex-col"><span className="text-xs"><Thermometer size={14} className="inline mr-1"/>TEMP</span></div>
+          <div className="text-2xl lg:text-3xl font-black text-slate-300 leading-none">{(vitals.temp || 37.0).toFixed(1)} <span className="text-sm">°C</span></div>
         </div>
         
         <div className="flex flex-col w-full my-1 pt-2 border-t border-slate-800">
@@ -91,7 +107,7 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, hrSpeed, rrSp
           </div>
         </div>
 
-        {(patient.hasBisMonitor || patient.hasTofMonitor) && (
+        {showBottomRow && (
           <div className="flex justify-between w-full border-t border-slate-800 pt-1 mt-1">
             {(patient.airwaySecured && vitals.mac > 0) ? (
                <div className="flex flex-col items-start w-1/3 pr-2">

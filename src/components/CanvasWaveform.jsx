@@ -1,10 +1,12 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { WAVEFORMS } from '../engine/WaveformDatabase';
 
 export const CanvasWaveform = React.memo(({ color, speed, rrSpeed = 0, active, type = 'ecg', morphology = 'normal', ieRatio = 2, ampScale = 1, baseScale = 0 }) => {
-  const canvasRef = React.useRef(null);
-  const drawState = React.useRef({ x: 0, lastTime: performance.now(), lastY: null, tBeat: 0 });
-  const propsRef = React.useRef({ speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale });
+  const canvasRef = useRef(null);
+  
+  // Initialize lastTime as null to securely sync with the exact rAF epoch on frame 1
+  const drawState = useRef({ x: 0, lastTime: null, lastY: null, tBeat: 0 });
+  const propsRef = useRef({ speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale });
 
   useEffect(() => {
     propsRef.current = { speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale };
@@ -17,68 +19,130 @@ export const CanvasWaveform = React.memo(({ color, speed, rrSpeed = 0, active, t
     let animationFrameId;
 
     const render = (time) => {
+      // Unmount protection to prevent React lifecycle crashes
+      if (!canvas || !canvas.parentElement) return;
+
+      if (drawState.current.lastTime === null) {
+          drawState.current.lastTime = time;
+      }
+      let dtMs = time - drawState.current.lastTime;
+      drawState.current.lastTime = time;
+
+      // Frame-drop protection (Caps dt to prevent massive beam jumps if tab goes inactive)
+      if (dtMs > 100) dtMs = 16; 
+
       const { speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale } = propsRef.current;
+      
+      // CSS Flexbox Sizing Bridge
       const rect = canvas.parentElement.getBoundingClientRect();
-      const roundedWidth = Math.floor(rect.width);
-      const roundedHeight = Math.floor(rect.height);
-      if (roundedWidth > 0 && roundedHeight > 0 && (canvas.width !== roundedWidth || canvas.height !== roundedHeight)) {
-        canvas.width = roundedWidth;
-        canvas.height = roundedHeight;
-        drawState.current.x = 0;
+      const w = Math.floor(rect.width);
+      const h = Math.floor(rect.height);
+      
+      if (w > 0 && h > 0 && (canvas.width !== w || canvas.height !== h)) {
+        canvas.width = w;
+        canvas.height = h;
+        drawState.current.x = 0; // Reset beam to start on resize
         drawState.current.lastY = null;
       }
 
-      if (canvas.width === 0) { animationFrameId = requestAnimationFrame(render); return; }
-
-      if (!active || speed <= 0) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.globalAlpha = 0.5;
-        ctx.moveTo(0, canvas.height * 0.8); ctx.lineTo(canvas.width, canvas.height * 0.8); ctx.stroke();
-        ctx.globalAlpha = 1.0;
+      if (w === 0 || h === 0) {
         animationFrameId = requestAnimationFrame(render);
         return;
       }
 
-      let dt = (time - drawState.current.lastTime) / 1000;
-      if (dt > 0.1) dt = 0.016; 
-      drawState.current.lastTime = time;
-
-      const pixelsPerSec = canvas.width / 4;
-      let newX = drawState.current.x + (dt * pixelsPerSec);
-      let isWrapping = false;
-      if (newX >= canvas.width) { newX = 0; isWrapping = true; }
-
-      const h = canvas.height;
-      const base = h * 0.7;
-      let y;
-      const freq = speed > 0 ? (1 / speed) : 1; 
-      const beatDuration = 1000 / freq;
-      drawState.current.tBeat += (dt * 1000);
-      if (drawState.current.tBeat >= beatDuration) { drawState.current.tBeat %= beatDuration; }
-      const tBeat = drawState.current.tBeat;
+      // === CLINICAL SWEEP SPEED DECOUPLING ===
+      // Standard monitor: ECG/A-line sweep at 25 mm/sec (~6 sec screen transit). 
+      // Respiratory waves sweep at 12.5 mm/sec (~12 sec screen transit).
+      const isSlowSweep = type === 'etco2' || type.startsWith('vent');
+      const secondsAcrossScreen = isSlowSweep ? 12.0 : 6.0; 
       
-      let respShift = 0;
-      if ((type === 'pleth' || type === 'aline') && rrSpeed > 0) {
-          const rrFreq = 1 / rrSpeed;
-          const totalSecs = time / 1000;
-          respShift = Math.sin(totalSecs * Math.PI * 2 * rrFreq) * (h * 0.1);
+      const pixelsPerSec = w / secondsAcrossScreen; 
+      const dx = pixelsPerSec * (dtMs / 1000);
+      
+      let newX = drawState.current.x + dx;
+      let isWrapping = false;
+      
+      if (newX >= w) {
+        newX = 0;
+        isWrapping = true;
       }
 
-      if (type === 'etco2') {
-        const phase = tBeat / beatDuration;
-        const baseline = h * 0.9;
-        const peak = h * 0.2;
-        const morphFn = WAVEFORMS.etco2[morphology] || WAVEFORMS.etco2.normal;
-        y = morphFn(phase, baseline, peak, h);
+      // === BIOLOGICAL TIMING CALCULUS ===
+      // Parse floats to prevent string-coercion NaN injection
+      const parsedSpeed = parseFloat(speed);
+      const parsedRR = parseFloat(rrSpeed);
+      
+      // CRITICAL FIX: Convert physiological Rate (BPM/RPM) to chronological Period (Seconds per cycle)
+      // e.g., 70 BPM -> 60/70 = 0.857 seconds per beat.
+      const beatDuration = (parsedSpeed > 0 && !isNaN(parsedSpeed)) ? (60 / parsedSpeed) : 1.0; 
+      
+      drawState.current.tBeat += (dtMs / 1000);
+      if (drawState.current.tBeat >= beatDuration) {
+          drawState.current.tBeat %= beatDuration;
+      }
+      const tBeat = drawState.current.tBeat;
+
+      const isCardiac = type === 'ecg' || type === 'aline' || type === 'pleth';
+      const base = isCardiac ? (h / 2) : (h * 0.9); 
+      let y = base;
+
+      const isActiveAndBeating = active && parsedSpeed > 0 && !isNaN(parsedSpeed);
+
+      if (isActiveAndBeating) {
+          // === TRUE RESPIRATORY VARIATION (Pulse Pressure / Pleth Variability) ===
+          // Positive Pressure Ventilation increases intrathoracic pressure, decreasing venous return.
+          // This dynamically squeezes the amplitude of the stroke volume (PPV).
+          let respAmpMod = 1.0;
+          let respBaseShift = 0;
+          
+          if ((type === 'pleth' || type === 'aline') && parsedRR > 0 && !isNaN(parsedRR)) {
+              // CRITICAL FIX: Convert RPM to standard Hz (cycles per second) for the sine wave
+              const rrFreq = parsedRR / 60; 
+              const totalSecs = time / 1000;
+              const respPhase = Math.sin(totalSecs * Math.PI * 2 * rrFreq);
+              
+              respBaseShift = respPhase * (h * 0.02); // Minor mechanical baseline wander
+              respAmpMod = Math.max(0.1, 1.0 - (respPhase * 0.12)); // True PPV/PVI amplitude squeeze
+          }
+
+          const morphGroup = WAVEFORMS[type] || WAVEFORMS.ecg;
+          const morphFn = morphGroup[morphology] || morphGroup.normal || Object.values(morphGroup)[0];
+
+          // Unified Morphology Signature for ALL waveforms (Phase-locked via ieRatio)
+          const effectiveAmpScale = ampScale * respAmpMod;
+          y = morphFn(tBeat, beatDuration, h, base, time, ieRatio, effectiveAmpScale, baseScale);
+          
+          if (type !== 'etco2') {
+              y += respBaseShift;
+          }
+
       } else {
-        const morphFn = (WAVEFORMS[type] && WAVEFORMS[type][morphology]) ? WAVEFORMS[type][morphology] : WAVEFORMS[type].normal;
-        y = morphFn(tBeat, beatDuration, h, base, time, ieRatio, ampScale, baseScale) + respShift;
+          // === ASYSTOLE / INACTIVE PHYSICS ===
+          if (type === 'aline' || type === 'pleth') {
+              y = h * 0.95;
+          } else if (type === 'ecg') {
+              y = h / 2;
+          } else {
+              y = base;
+          }
       }
 
-      ctx.clearRect(newX, 0, 30, h);
+      if (isNaN(y) || !isFinite(y)) {
+          y = base;
+      }
+
+      // === RENDER VECTOR ===
+      const eraserWidth = Math.max(20, w * 0.05);
+      ctx.clearRect(newX, 0, eraserWidth, h);
+      
       if (!isWrapping && drawState.current.lastY !== null) {
-        ctx.beginPath(); ctx.strokeStyle = color; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
-        ctx.moveTo(drawState.current.x, drawState.current.lastY); ctx.lineTo(newX, y); ctx.stroke();
+          ctx.beginPath(); 
+          ctx.strokeStyle = color; 
+          ctx.lineWidth = 2.5; 
+          ctx.lineJoin = 'round';
+          ctx.moveTo(drawState.current.x, drawState.current.lastY); 
+          ctx.lineTo(newX, y);
+          ctx.stroke();
       }
 
       drawState.current.x = newX;
@@ -87,8 +151,13 @@ export const CanvasWaveform = React.memo(({ color, speed, rrSpeed = 0, active, t
     };
 
     animationFrameId = requestAnimationFrame(render);
-    return () => cancelAnimationFrame(animationFrameId);
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
   }, []);
 
-  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block" />;
+  return (
+    <canvas ref={canvasRef} className="absolute inset-0 w-full h-full block" />
+  );
 });

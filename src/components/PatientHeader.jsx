@@ -14,7 +14,7 @@ export const PatientHeader = ({ activeCase, patient, vitals, setActiveCase, hand
             <span><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Height:</span> {patient.height} cm</span>
             <span><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">TBW:</span> {patient.weight} kg</span>
             <span><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">IBW:</span> {Math.round(patient.ibw || 0)} kg</span>
-            <span className="text-pink-300 ml-auto lg:ml-2 border-l border-slate-700 pl-3"><span className="text-pink-500/70 font-bold uppercase tracking-wider text-[10px] mr-1">Temp:</span>{(vitals.temp || 37.0).toFixed(1)}°C</span>
+            <span className={`ml-auto lg:ml-2 border-l border-slate-700 pl-3 ${patient.bmi > 30 ? 'text-orange-400 font-bold' : ''}`}><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px] mr-1">BMI:</span>{(patient.bmi || 22).toFixed(1)}</span>
             <span className="text-red-300 ml-2 border-l border-slate-700 pl-3 bg-red-950/30 px-2 py-0.5 rounded"><span className="text-red-500 font-bold uppercase tracking-wider text-[10px] mr-1">EBL:</span>{Math.round(patient.ebl || 0)} mL</span>
           </div>
         </div>
@@ -27,17 +27,41 @@ export const PatientHeader = ({ activeCase, patient, vitals, setActiveCase, hand
         </div>
       </div>
 
-      {/* Bottom Row: FRC Oxygen Buffer */}
+      {/* Bottom Row: FRC Oxygen Buffer / Denitrogenation Status */}
       <div className="flex flex-col md:flex-row items-start md:items-center gap-3 bg-slate-950 p-3 rounded-lg border border-slate-800 w-full shadow-inner">
         <p className="text-slate-400 text-xs font-bold uppercase tracking-widest min-w-max">Pre-Ox FRC</p>
+        
+        {/* Clinical FRC Visualizer */}
         <div className="h-6 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-700 relative shadow-inner">
-           <div className="bg-blue-500 h-full transition-all duration-1000 ease-linear relative" style={{width: `${patient.oxygenBuffer}%`}}>
+           {/* Danger Zone (< 21%) */}
+           <div className="absolute top-0 bottom-0 left-0 w-[21%] bg-red-950/40"></div>
+           {/* Room Air Marker */}
+           <div className="absolute top-0 bottom-0 left-[21%] border-l-2 border-red-500/50 z-10"></div>
+           <span className="absolute top-[3px] left-[22%] text-[9px] font-bold text-red-400/80 z-10 leading-none">RA (21%)</span>
+           
+           {/* Denitrogenation Target Marker (> 90%) */}
+           <div className="absolute top-0 bottom-0 left-[90%] border-l-2 border-green-500/50 z-10"></div>
+           <span className="absolute top-[3px] left-[91%] text-[9px] font-bold text-green-400/80 z-10 leading-none">TARGET</span>
+           <div className="absolute top-0 bottom-0 left-[90%] right-0 bg-green-950/20"></div>
+
+           {/* Active Fill Level */}
+           <div 
+             className={`h-full transition-all duration-1000 ease-linear relative ${
+               patient.oxygenBuffer < 21 ? 'bg-red-500' : (patient.oxygenBuffer > 88 ? 'bg-green-500' : 'bg-blue-500')
+             }`} 
+             style={{width: `${Math.min(100, Math.max(0, patient.oxygenBuffer))}%`}}
+           >
               <div className="absolute top-0 left-0 right-0 h-1/2 bg-white/20"></div> {/* 3D Shine */}
            </div>
         </div>
+
         <div className="flex items-center justify-between w-full md:w-auto gap-4 min-w-max">
-           <span className="text-blue-400 font-black text-lg w-12 text-right">{Math.round(patient.oxygenBuffer)}%</span>
-           <div className="text-slate-500 text-[10px] leading-tight border-l border-slate-700 pl-3">Device:<br/><span className="text-slate-300 font-bold text-xs">{patient.currentO2Device}</span></div>
+           <span className={`font-black text-lg w-12 text-right ${patient.oxygenBuffer < 21 ? 'text-red-500' : (patient.oxygenBuffer > 88 ? 'text-green-400' : 'text-blue-400')}`}>
+             {Math.round(patient.oxygenBuffer)}%
+           </span>
+           <div className="text-slate-500 text-[10px] leading-tight border-l border-slate-700 pl-3">
+             Device:<br/><span className="text-slate-300 font-bold text-xs">{patient.currentO2Device}</span>
+           </div>
         </div>
       </div>
     </header>

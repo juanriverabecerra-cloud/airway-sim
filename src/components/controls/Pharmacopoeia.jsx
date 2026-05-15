@@ -59,9 +59,6 @@ export const Pharmacopoeia = ({ pushFluid, processMed, patient }) => {
                 {medInput.type === 'Infusion' ? 'START INF' : 'PUSH'}
               </button>
             </div>
-            {medInput.type === 'Infusion' && (
-              <button onClick={() => { processMed(medId, 0, 'IV', 'Stop Infusion', ''); setMedInput({ drug: null }); }} className="w-full bg-red-900/40 border border-red-800 hover:bg-red-800 text-red-200 py-1 rounded text-xs font-bold">STOP INFUSION</button>
-            )}
           </div>
         )}
       </div>
@@ -70,6 +67,7 @@ export const Pharmacopoeia = ({ pushFluid, processMed, patient }) => {
 
   return (
     <div className="col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-4 overflow-y-auto custom-scrollbar h-full max-h-[800px]">
+      
       <details className="group">
         <summary className="text-teal-400 text-sm border-b border-teal-900 pb-1 uppercase font-bold cursor-pointer hover:text-teal-300 list-none flex justify-between">
           Crystalloids & Colloids <span className="group-open:rotate-180 transition-transform">▼</span>
@@ -104,7 +102,7 @@ export const Pharmacopoeia = ({ pushFluid, processMed, patient }) => {
           Sedatives & Hypnotics <span className="group-open:rotate-180 transition-transform">▼</span>
         </summary>
         <div className="flex flex-col gap-1 mt-2">
-          {['dexmedetomidine', 'etomidate', 'ketamine', 'midazolam', 'propofol'].map(renderAdvancedMedButton)}
+          {['dexmedetomidine', 'etomidate', 'ketamine', 'lorazepam', 'midazolam', 'propofol', 'thiopental'].map(renderAdvancedMedButton)}
         </div>
       </details>
 
@@ -113,16 +111,25 @@ export const Pharmacopoeia = ({ pushFluid, processMed, patient }) => {
           Opioids & Analgesics <span className="group-open:rotate-180 transition-transform">▼</span>
         </summary>
         <div className="flex flex-col gap-1 mt-2">
-          {['fentanyl', 'hydromorphone', 'morphine', 'remifentanil', 'sufentanil'].map(renderAdvancedMedButton)}
+          {['fentanyl', 'hydromorphone', 'meperidine', 'morphine', 'remifentanil', 'sufentanil'].map(renderAdvancedMedButton)}
         </div>
       </details>
 
       <details className="group">
         <summary className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold cursor-pointer hover:text-white list-none flex justify-between">
-          Paralytics & Reversals <span className="group-open:rotate-180 transition-transform">▼</span>
+          Paralytics <span className="group-open:rotate-180 transition-transform">▼</span>
         </summary>
         <div className="flex flex-col gap-1 mt-2">
-          {['cisatracurium', 'glycopyrrolate', 'neostigmine', 'rocuronium', 'succinylcholine', 'sugammadex', 'vecuronium'].map(renderAdvancedMedButton)}
+          {['cisatracurium', 'pancuronium', 'rocuronium', 'succinylcholine', 'vecuronium'].map(renderAdvancedMedButton)}
+        </div>
+      </details>
+
+      <details className="group">
+        <summary className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold cursor-pointer hover:text-white list-none flex justify-between">
+          Reversals & Rescue <span className="group-open:rotate-180 transition-transform">▼</span>
+        </summary>
+        <div className="flex flex-col gap-1 mt-2">
+          {['flumazenil', 'glycopyrrolate', 'naloxone', 'neostigmine', 'sugammadex'].map(renderAdvancedMedButton)}
         </div>
       </details>
 
@@ -131,7 +138,7 @@ export const Pharmacopoeia = ({ pushFluid, processMed, patient }) => {
           Inotropes & Vasopressors <span className="group-open:rotate-180 transition-transform">▼</span>
         </summary>
         <div className="flex flex-col gap-1 mt-2">
-          {['dobutamine', 'dopamine', 'ephedrine', 'epinephrine', 'milrinone', 'norepinephrine', 'phenylephrine', 'vasopressin'].map(renderAdvancedMedButton)}
+          {['angiotensin_ii', 'dobutamine', 'dopamine', 'ephedrine', 'epinephrine', 'methylene_blue', 'milrinone', 'norepinephrine', 'phenylephrine', 'vasopressin'].map(renderAdvancedMedButton)}
         </div>
       </details>
 
@@ -140,7 +147,7 @@ export const Pharmacopoeia = ({ pushFluid, processMed, patient }) => {
           Antihypertensives <span className="group-open:rotate-180 transition-transform">▼</span>
         </summary>
         <div className="flex flex-col gap-1 mt-2">
-          {['clevidipine', 'esmolol', 'labetalol', 'metoprolol', 'nicardipine', 'nitroglycerin', 'nitroprusside'].map(renderAdvancedMedButton)}
+          {['clevidipine', 'clonidine', 'enalaprilat', 'esmolol', 'hydralazine', 'labetalol', 'metoprolol', 'nicardipine', 'nitroglycerin', 'nitroprusside', 'phentolamine'].map(renderAdvancedMedButton)}
         </div>
       </details>
 
@@ -149,7 +156,34 @@ export const Pharmacopoeia = ({ pushFluid, processMed, patient }) => {
           Cardiac & Electrolytes <span className="group-open:rotate-180 transition-transform">▼</span>
         </summary>
         <div className="flex flex-col gap-1 mt-2">
-          {['adenosine', 'amiodarone', 'atropine', 'bicarbonate', 'calcium', 'lidocaine', 'magnesium'].map(renderAdvancedMedButton)}
+          {['adenosine', 'amiodarone', 'atropine', 'bicarbonate', 'calcium', 'digoxin', 'diltiazem', 'ibutilide', 'lidocaine', 'magnesium', 'procainamide', 'sotalol', 'verapamil'].map(renderAdvancedMedButton)}
+        </div>
+      </details>
+
+      <details className="group">
+        <summary className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold cursor-pointer hover:text-white list-none flex justify-between">
+          Diuretics <span className="group-open:rotate-180 transition-transform">▼</span>
+        </summary>
+        <div className="flex flex-col gap-1 mt-2">
+          {['acetazolamide', 'bumetanide', 'furosemide', 'mannitol'].map(renderAdvancedMedButton)}
+        </div>
+      </details>
+
+      <details className="group">
+        <summary className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold cursor-pointer hover:text-white list-none flex justify-between">
+          Coagulation & Hematologic <span className="group-open:rotate-180 transition-transform">▼</span>
+        </summary>
+        <div className="flex flex-col gap-1 mt-2">
+          {['heparin', 'protamine', 'tranexamic_acid'].map(renderAdvancedMedButton)}
+        </div>
+      </details>
+
+      <details className="group">
+        <summary className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold cursor-pointer hover:text-white list-none flex justify-between">
+          Antiemetics & Respiratory <span className="group-open:rotate-180 transition-transform">▼</span>
+        </summary>
+        <div className="flex flex-col gap-1 mt-2">
+          {['albuterol', 'dexamethasone', 'ondansetron'].map(renderAdvancedMedButton)}
         </div>
       </details>
     </div>
