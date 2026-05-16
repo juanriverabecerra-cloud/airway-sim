@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { usePhysiology } from './engine/usePhysiology';
 import { Search, Activity } from 'lucide-react';
+import { CaseManager } from './components/controls/CaseManager';
 
 // Components
 import { PatientHeader } from './components/PatientHeader';
@@ -88,6 +89,7 @@ export default function App() {
   const [viewModal, setViewModal] = useState({ show: false, blade: '', bladeSize: '', tubeSize: '', adjunct: '', description: '', trueGrade: 1 });
   const [setupModal, setSetupModal] = useState(false);
   const [pocusModal, setPocusModal] = useState({ show: false, title: '', finding: '' });
+  const [isCyclingNibp, setIsCyclingNibp] = useState(false);
   
   const [ventSettings, setVentSettings] = useState({ mode: 'PCV-VG', vt: 500, rr: 12, peep: 5, fio2: 50, pinsp: 20, ieRatio: 2, pmax: 40, ps: 10, air: 0.4, o2: 0.6 });
   const [gasSettings, setGasSettings] = useState({ agent: 'sevoflurane', dial: 0, airFlow: 0.0, o2Flow: 2.0, n2oFlow: 0.0 });
@@ -113,6 +115,21 @@ export default function App() {
     gasSettings,
     logEvent
   });
+
+  // === QoL: GLOBAL CLINICAL TIME-OUT (SPACEBAR) ===
+  useEffect(() => {
+    const handleGlobalKey = (e) => {
+      // Ignore if user is actively typing in an input field
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+      
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (activeCase) setIsRunning(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKey);
+    return () => window.removeEventListener('keydown', handleGlobalKey);
+  }, [activeCase]);
 
   // DEEP STATE SERIALIZATION: Enables the master undo function
   const saveState = (actionName = null) => {
@@ -213,16 +230,26 @@ export default function App() {
     });
     setLogs([`00:00 - Case Started: ${selectedCase.name}. ${selectedCase.description}`]);
     setLabs({});
+    setIsCyclingNibp(false);
     setTime(0); setHistory([]); setIsRunning(true);
   };
 
-  const cycleNibp = () => { setNibp({ sys: vitals.sys, dia: vitals.dia, time: time }); logEvent(`Cycled NIBP: ${vitals.sys}/${vitals.dia} mmHg`); };
+  const cycleNibp = () => { 
+    if (isCyclingNibp) return;
+    setIsCyclingNibp(true);
+    logEvent(`Started NIBP measurement cycle (15s)...`);
+    setTimeout(() => {
+      setNibp({ sys: vitals.sys, dia: vitals.dia, time: time }); 
+      logEvent(`NIBP Result: ${Math.round(vitals.sys)}/${Math.round(vitals.dia)} mmHg`); 
+      setIsCyclingNibp(false);
+    }, 15000); 
+  };
 
   const examineAirway = () => {
-    let mallampati = patient.baseGrade || 1;
-    let thyromental = patient.isObese ? "< 6cm (Short / Anterior Airway Risk)" : "> 6cm (Normal)";
-    let biteTest = patient.limitedMouth ? "Class III (Cannot bite upper lip)" : "Class I (Lower incisors bite above vermillion border)";
-    let mobility = patient.hasCCollar ? "Severely Restricted (C-Collar in place)" : "Normal full extension/flexion";
+    const mallampati = patient.mallampati || 1;
+    const thyromental = patient.isObese ? "< 6cm (Short / Anterior Airway Risk)" : "> 6cm (Normal)";
+    const biteTest = patient.limitedMouth ? "Class III (Cannot bite upper lip)" : "Class I (Lower incisors bite above vermillion border)";
+    const mobility = patient.neckMobility === 'reduced' ? "Severely Restricted (C-Collar or anatomical limitation)" : "Normal full extension/flexion";
           
     let desc = `Thyromental Distance: ${thyromental}\nUpper Lip Bite Test: ${biteTest}\nNeck Mobility: ${mobility}\n\nYou ask the patient to open their mouth wide and protrude their tongue without phonating. `;
           
@@ -249,7 +276,7 @@ export default function App() {
     setAirwayQuizModal({ show: false, description: '', trueMallampati: 1 });
   };
 
-const establishAccess = (category, type, location) => {
+  const establishAccess = (category, type, location) => {
     const fullName = `${type} (${location})`;
     logEvent(`Placed ${fullName}.`);
     setPatient(p => ({ 
@@ -347,36 +374,73 @@ const establishAccess = (category, type, location) => {
     logEvent(`Performed ${type} Ultrasound.`);
   };
 
-  const generateClinicalHint = () => {
+const generateClinicalHint = () => {
     if (!activeCase) return;
-    let hint;
+    
+    let currentStatus = "";
+    let forecast = "";
 
+    // --- 1. CURRENT STATE ASSESSMENT ---
     if (!patient.hasIV && !patient.hasALine) {
-      hint = "⚠️ VASCULAR ACCESS REQUIRED: The patient has no Intravenous (IV) access. You cannot administer systemic medications. Prioritize placing an 18G Peripheral IV (PIV).";
+      currentStatus = "🔴 VASCULAR ACCESS REQUIRED: Patient has no IV access. Cannot administer systemic medications.";
     } else if (patient.airwayBlood && !patient.airwaySecured) {
-      hint = "🔴 AIRWAY COMPROMISED: Active bleeding/secretions detected in the oropharynx. Attempting Bag-Mask Ventilation (BMV) or intubation will force aspirate into the lungs. IMMEDIATE ACTION: Use Suction Airway.";
+      currentStatus = "🔴 AIRWAY COMPROMISED: Active bleeding/secretions detected. BMV or intubation will force aspirate into the lungs.";
+      forecast = "IMMEDIATE ACTION: Use Yankauer Suction before attempting airway maneuvers.";
     } else if (patient.ventilationStatus === 'failed') {
-      hint = "🔴 FAILED AIRWAY: Direct Laryngoscopy has failed. Call for help. Optimize with a Hyperangulated Video Laryngoscope (VL) or place a rescue Laryngeal Mask Airway (LMA) to re-establish oxygenation.";
+      currentStatus = "🔴 FAILED AIRWAY: Direct Laryngoscopy failed. Patient cannot be ventilated.";
+      forecast = "Anticipate rapid hypoxic arrest. Call for help. Prepare rescue LMA or Surgical Cricothyroidotomy.";
     } else if (vitals.spo2 < 90 && !patient.airwaySecured) {
-      hint = "🟠 HYPOXEMIA: Oxygen Saturation (SpO2) is critically low. Ensure High Flow Nasal Cannula or Bag-Mask Ventilation (BMV) is applied. If apneic, prioritize securing the airway immediately.";
+      currentStatus = "🟠 HYPOXEMIA: Oxygen Saturation (SpO2) is critically low.";
+      forecast = "If apneic, hypoxic brain injury is imminent. Secure airway immediately or initiate 100% O2 BMV.";
     } else if (patient.isApneic && patient.oxygenBuffer < 30 && !patient.airwaySecured) {
-      hint = "🟠 CRITICAL APNEA: The patient is not breathing and their Functional Residual Capacity (FRC) oxygen buffer is depleting. Denitrogenate (Pre-oxygenate) using Bag-Mask Ventilation (BMV) to buy time before intubation.";
+      currentStatus = "🟠 CRITICAL APNEA: FRC oxygen buffer is severely depleted.";
+      forecast = "Desaturation cliff approaching. Denitrogenate using BMV to buy time before intubation.";
     } else if (vitals.sys < 90) {
-      if (vitals.hr > 100) hint = "🔴 HYPOTENSION W/ TACHYCARDIA: The patient is hypotensive and tachycardic (compensatory or vasodilatory). Avoid Ephedrine (will worsen tachycardia). SUGGESTION: Administer Phenylephrine (50-100 mcg push) to increase Systemic Vascular Resistance (SVR).";
-      else hint = "🔴 HYPOTENSION W/ BRADYCARDIA: The patient is hypotensive and heart rate is low/normal. SUGGESTION: Administer Ephedrine (5-10 mg push) for mixed alpha/beta-1 agonism, or Epinephrine (10-20 mcg push) if profound.";
+      if (vitals.hr > 100) currentStatus = "🔴 HYPOTENSION W/ TACHYCARDIA: Compensatory or vasodilatory shock detected.";
+      else currentStatus = "🔴 HYPOTENSION W/ BRADYCARDIA: Profound shock state with loss of compensatory chronotropy.";
     } else if (vitals.sys > 160) {
-      if (vitals.hr > 100) hint = "🟠 HYPERTENSION W/ TACHYCARDIA: Sympathetic overdrive detected (likely pain or light anesthesia). SUGGESTION: Deepen anesthesia (Propofol 10-20 mg) or provide analgesia (Fentanyl 50-100 mcg). If vitals persist, consider Esmolol (10-20 mg push) to control HR and BP.";
-      else hint = "🟠 ISOLATED HYPERTENSION: SUGGESTION: Consider deepening anesthesia, or administer a direct vasodilator like Nitroglycerin (50-100 mcg push) or a mixed antagonist like Labetalol (10-20 mg push).";
+      if (vitals.hr > 100) currentStatus = "🟠 HYPERTENSION W/ TACHYCARDIA: Sympathetic overdrive (likely pain, light anesthesia, or hypoxemia).";
+      else currentStatus = "🟠 ISOLATED HYPERTENSION: Elevated SVR or light anesthesia.";
     } else if (vitals.hr < 45) {
-      hint = "🔴 SEVERE BRADYCARDIA: Heart rate is critically low, risking cardiac output. SUGGESTION: Administer Atropine (0.5 mg push) to block vagal tone, or Ephedrine (5-10 mg push) if accompanied by hypotension.";
-    } else if (vitals.hr > 130 && vitals.sys > 100) {
-      hint = "🟠 TACHYCARDIA: Evaluate for underlying causes (hypovolemia, pain, light anesthesia, hypoxia). If a primary arrhythmia is suspected, consider Adenosine (6 mg rapid push) for SVT or Amiodarone (150 mg) for ventricular rhythms.";
-    } else if (!patient.airwaySecured && !patient.isApneic) {
-      hint = "🟢 STABLE INDUCTION PREP: Hemodynamics are currently optimized. Continue pre-oxygenation to maximize the FRC buffer. Prepare Induction (e.g., Propofol 1.5-2.5 mg/kg) and Paralytic (e.g., Rocuronium 0.6-1.2 mg/kg) when ready to secure the airway.";
+      currentStatus = "🔴 SEVERE BRADYCARDIA: Critically low chronotropy risking cardiac output.";
     } else {
-      hint = "🟢 HEMODYNAMICALLY STABLE: The patient's vitals are currently within acceptable clinical parameters. Continue monitoring End-Tidal Carbon Dioxide (EtCO2) and hemodynamics.";
+      currentStatus = "🟢 HEMODYNAMICALLY STABLE: Core vitals are currently within acceptable parameters.";
     }
-    logEvent(`💡 ATTENDING CONSULT: ${hint}`);
+
+    // --- 2. PREDICTIVE FORECASTING & PREP ---
+    const hasHypnotic = activeMeds.some(m => m.classes.includes('Sedative') || m.classes.includes('Hypnotic'));
+    const hasParalytic = activeMeds.some(m => m.classes.includes('NDMR') || m.classes.includes('Depolarizing NMBA'));
+    
+    if (forecast === "") {
+        if (!patient.airwaySecured) {
+            if (hasHypnotic && !patient.isApneic) {
+                forecast = "Induction agents circulating. Anticipate imminent apnea, loss of airway reflexes, and dose-dependent vasodilation. Prepare to mask ventilate and push pressors.";
+            } else if (hasHypnotic && patient.isApneic) {
+                forecast = "Patient is apneic from induction. Monitor FRC buffer. Prepare to intubate once neuromuscular blockade is optimal.";
+            } else if (patient.oxygenBuffer > 85) {
+                forecast = "Excellent denitrogenation achieved. Safe to proceed with induction and paralysis. Expect 3-5 minutes of safe apnea time.";
+            } else if (patient.position === 'Trendelenburg' || patient.position === 'Lithotomy') {
+                forecast = "Gravitational visceral shift is actively crushing FRC. Expect highly accelerated desaturation if patient becomes apneic. Consider ramping patient.";
+            } else {
+                forecast = "Pre-oxygenate to wash out nitrogen and build FRC buffer prior to induction.";
+            }
+        } else {
+            // Airway Secured Forecasting
+            if (hasParalytic && vitals.tofCount > 0) {
+                forecast = "Neuromuscular blockade is wearing off (TOF recovering). Anticipate return of spontaneous ventilation or patient bucking the ventilator. Consider redosing or reversal.";
+            } else if (vitals.mac > 1.2 && vitals.sys < 100) {
+                forecast = "High volatile anesthetic concentration. Anticipate progressive myocardial depression and worsening vasoplegia. Consider titrating down MAC or starting pressor infusion.";
+            } else if ((patient.ebl || 0) > 1000) {
+                forecast = `Massive hemorrhage detected (${patient.ebl} mL). Venous return is dropping. Anticipate hemorrhagic shock. Prepare MTP (PRBCs/FFP/Plt) and TXA.`;
+            } else if (patient.position === 'Sitting') {
+                forecast = "Beach Chair/Sitting position causing massive venous pooling in lower extremities. Anticipate sudden, profound hypotensive drops. Keep vasopressors in line.";
+            } else {
+                forecast = "Maintain anesthetic depth. Monitor surgical stimulation phases to titrate analgesia proactively.";
+            }
+        }
+    }
+
+    logEvent(`💡 ATTENDING CONSULT:\n[STATUS] ${currentStatus}\n[FORECAST] ${forecast}`);
   };
 
   const generateLab = (type) => {
@@ -428,9 +492,9 @@ const establishAccess = (category, type, location) => {
         };
       } else if (type === 'VBG') {
         results = {
-          pvH: { val: (7.31 - (patient.isSeptic ? 0.15 : 0)).toFixed(2), range: '7.31-7.41', alert: patient.isSeptic },
-          pvCO2: { val: (46 + (patient.isApneic ? 12 : 0) + (patient.isObese ? 10 : 0)).toFixed(1), range: '41-51 mmHg', alert: patient.isApneic || patient.isObese },
-          Lactate: { val: (patient.isSeptic ? 6.2 : 0.8).toFixed(1), range: '0.5-2.2 mmol/L', alert: patient.isSeptic }
+          pvH: { val: ((vitals.ph || 7.4) - 0.04).toFixed(2), range: '7.31-7.41', alert: ((vitals.ph || 7.4) - 0.04) < 7.31 },
+          pvCO2: { val: ((vitals.paco2 || 40) + 5).toFixed(1), range: '41-51 mmHg', alert: ((vitals.paco2 || 40) + 5) > 51 },
+          Lactate: { val: (patient.isSeptic ? 6.2 : ((patient.ebl || 0) > 1500 ? 4.5 : 1.2)).toFixed(1), range: '0.5-2.2 mmol/L', alert: patient.isSeptic || (patient.ebl || 0) > 1500 }
         };
       }
       setLabs(prev => {
@@ -447,29 +511,45 @@ const establishAccess = (category, type, location) => {
 
   const processIntubation = (blade, adjunct) => {
     setSetupModal(false);
-    let desc = `You insert the ${blade}. `;
-    let trueGrade = patient.baseGrade;
     setPatient(p => ({...p, dlAttempts: (p.dlAttempts || 0) + 1}));
 
     if (!patient.isApneic && !blade.includes('Fiberoptic')) {
        if (!patient.isTopicalized) {
-          logEvent(` FAILED: Patient is awake and not topicalized! Severe gag reflex and laryngospasm triggered!`);
+          logEvent(`❌ FAILED: Patient is awake and not topicalized! Severe gag reflex and laryngospasm triggered!`);
           setPatient(p => ({...p, ventilationStatus: 'failed', targetBuffer: 0}));
           return;
        }
     }
 
-    if (patient.airwayBlood) { desc += "The lens/view is obscured by thick red blood and secretions."; trueGrade = 4; } 
-    else if (patient.hasCCollar || patient.limitedMouth) {
-      desc += "Anatomy is highly restricted. ";
-      if (blade.includes('Hyperangulated')) { desc += "Looking around the curve, you get a view of the glottic opening."; trueGrade = 2; } 
-      else if (blade.includes('Fiberoptic')) { desc += "You visualize the vocal cords perfectly through the scope."; trueGrade = 1; } 
-      else { desc += "Using a standard blade, you can only see the epiglottis."; trueGrade = 3; }
-    } 
-    else if (patient.baseGrade === 1) { desc += "You sweep the tongue and have a direct line of sight to the cords."; trueGrade = 1; }
+    // Calculate Base Cormack-Lehane Grade from Anatomy
+    let baseGrade = patient.mallampati || 1;
+    if (patient.neckMobility === 'reduced') baseGrade += 1;
+    if (patient.isObese) baseGrade += 1;
+    let finalGrade = Math.min(4, baseGrade);
+
+    let desc = `You insert the ${blade}. `;
+
+    if (patient.airwayBlood) { 
+        desc += "The lens/view is completely obscured by thick red blood and secretions. You cannot see any anatomical landmarks."; 
+        finalGrade = 4; 
+    } else if (blade.includes('Fiberoptic')) { 
+        desc += "Navigating the flexible scope, you bypass the upper airway soft tissue and clearly visualize the vocal cords."; 
+        finalGrade = 1; 
+    } else if (blade.includes('Hyperangulated')) {
+        finalGrade = Math.max(1, finalGrade - 2); // Improves view significantly
+        if (finalGrade === 1) desc += "The steep angle of the hyperangulated blade provides an excellent 'around the corner' view of the glottic opening.";
+        else if (finalGrade === 2) desc += "You can see the posterior half of the vocal cords and the arytenoids.";
+        else desc += "Even with the hyperangulated blade, you can only see the tip of the epiglottis due to the severe anterior airway.";
+    } else {
+        // Standard Mac/Miller
+        if (finalGrade === 1) desc += "You sweep the tongue and have a direct, full line of sight to the vocal cords.";
+        else if (finalGrade === 2) desc += "You can see the posterior half of the glottic opening and arytenoids, but the anterior commissure is hidden.";
+        else if (finalGrade === 3) desc += "You can only see the epiglottis. The vocal cords are completely hidden (Anterior Airway).";
+        else desc += "You can only see the soft palate and posterior pharynx. No laryngeal structures are visible.";
+    }
 
     logEvent(`Attempted Intubation using ${blade} with ${adjunct}. Analyzing view...`);
-    setViewModal({ show: true, blade, adjunct, description: desc, trueGrade });
+    setViewModal({ show: true, blade, adjunct, description: desc, trueGrade: finalGrade });
   };
 
   const submitGrade = (selectedGrade) => {
@@ -478,18 +558,29 @@ const establishAccess = (category, type, location) => {
 
     let success = false;
     let failReason = "";
-    if (viewModal.trueGrade === 4) failReason = "Cannot intubate blindly with Grade IV view. Esophageal intubation.";
-    else if (viewModal.blade.includes('Hyperangulated') && viewModal.adjunct.includes('Standard Bougie')) failReason = "Standard Bougie cannot navigate the steep angle of a hyperangulated VL blade.";
-    else if (viewModal.trueGrade === 3 && viewModal.adjunct.includes('None')) failReason = "Cannot direct tube into anterior airway without an adjunct on a Grade III view.";
-    else success = true;
+    
+    if (viewModal.trueGrade === 4 && !viewModal.blade.includes('Fiberoptic')) {
+        failReason = "Cannot intubate blindly with Grade IV view. Esophageal intubation.";
+    } else if (viewModal.blade.includes('Hyperangulated') && !viewModal.adjunct.includes('Hyperangulated') && !viewModal.adjunct.includes('Articulating')) {
+        failReason = "A hyperangulated blade requires a rigid hyperangulated stylet or articulating bougie to navigate the steep curve. A standard stylet/bougie cannot make the turn.";
+    } else if (viewModal.trueGrade === 3 && viewModal.adjunct.includes('None')) {
+        failReason = "Cannot direct tube into anterior airway without a stylet or bougie on a Grade III view.";
+    } else {
+        success = true;
+    }
 
     if (success) {
+      const height = patient.height || 170;
+      const mainstemRisk = Math.max(0.01, 0.40 - ((height - 140) * 0.01));
+      
       const rand = Math.random();
       let tubePos = 'trachea';
-      if (rand < 0.20) tubePos = 'right_mainstem';
-      else if (rand < 0.25) tubePos = 'left_mainstem';
+      if (rand < mainstemRisk) tubePos = 'right_mainstem';
+      else if (rand < mainstemRisk + 0.02) tubePos = 'left_mainstem';
 
       logEvent(`✅ Intubation completed. Tube secured to Mechanical Ventilator.`);
+      if (tubePos === 'right_mainstem' || tubePos === 'left_mainstem') logEvent(`⚠️ Note: Tube depth may be excessive for patient's height.`);
+
       setPatient(p => ({ ...p, airwaySecured: true, ventilationStatus: 'successful', tubePosition: tubePos, currentO2Device: 'Mechanical Ventilator (100% FiO2)', currentO2Flow: 15, currentFiO2: 100 }));
     } else {
       logEvent(`❌ Intubation FAILED. ${failReason}`);
@@ -500,19 +591,17 @@ const establishAccess = (category, type, location) => {
 
   if (!activeCase) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white p-8 font-mono flex flex-col items-center justify-center">
-        <h1 className="text-4xl font-bold text-cyan-400 mb-2 flex items-center gap-3"><Activity size={36}/> AirwaySim OS</h1>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl w-full mt-8">
-          {CASES.map((c) => (
-            <div key={c.id} onClick={() => startCase(c)} className="bg-slate-900 border border-slate-700 hover:border-cyan-400 p-6 rounded-xl cursor-pointer shadow-lg group">
-              <div className="flex justify-between items-start mb-2">
-                <h2 className="text-xl font-bold text-white group-hover:text-cyan-400">{c.name}</h2>
-                <span className="text-sm bg-slate-800 px-2 py-1 rounded">{c.difficulty}</span>
-              </div>
-              <p className="text-slate-400 text-sm mb-4">{c.description}</p>
-              <button className="w-full bg-slate-800 group-hover:bg-cyan-900 font-bold py-2 rounded">Load Scenario</button>
-            </div>
-          ))}
+      <div className="min-h-screen bg-slate-950 text-white p-8 font-mono flex flex-col items-center justify-center relative overflow-hidden">
+        {/* Ambient background decoration */}
+        <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-cyan-900/20 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-blue-900/20 rounded-full blur-[100px] pointer-events-none"></div>
+        
+        <h1 className="text-5xl font-black text-cyan-400 mb-8 flex items-center gap-4 z-10 drop-shadow-[0_0_15px_rgba(34,211,238,0.4)]">
+           <Activity size={48} className="animate-pulse"/> AirwaySim OS
+        </h1>
+        
+        <div className="z-10 w-full flex justify-center">
+           <CaseManager onStart={startCase} />
         </div>
       </div>
     );
@@ -588,6 +677,7 @@ const establishAccess = (category, type, location) => {
         vitals={vitals} 
         nibp={nibp} 
         cycleNibp={cycleNibp} 
+        isCyclingNibp={isCyclingNibp}
         hrSpeed={hrSpeed} 
         rrSpeed={rrSpeed} 
         gasSettings={gasSettings} 

@@ -361,7 +361,32 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const unbluntedStimulus = Math.max(0, stimulus * (1 - totalAnalgesia));
 
           const VO2_sec = 0.250 / 60;
-          const FRC_Liters = (st.patient.height * 0.02) - (st.patient.isObese ? 0.8 : 0) + ((st.ventSettings?.peep || 0) * 0.05);
+
+          // === POSITIONAL PHYSIOLOGY MODIFIERS ===
+          let positionFRCMod = 0;
+          let positionPreloadMod = 0;
+          const pos = st.patient.position || 'Supine';
+
+          if (pos === 'Ramped' || pos === 'Rev Trendelenburg') {
+              positionFRCMod = 0.3;
+              positionPreloadMod = -200; // Venous pooling
+          } else if (pos === 'Sitting') {
+              positionFRCMod = 0.5;
+              positionPreloadMod = -400; // Severe venous pooling
+          } else if (pos === 'Trendelenburg') {
+              positionFRCMod = -0.5; // Visceral compression
+              positionPreloadMod = 300; // Venous auto-transfusion
+          } else if (pos === 'Lithotomy') {
+              positionFRCMod = -0.4;
+              positionPreloadMod = 400; // Leg auto-transfusion
+          } else if (pos === 'Prone') {
+              positionFRCMod = 0.2; // Posterior recruitment
+              positionPreloadMod = -100; // IVC compression risk
+          } else if (pos === 'Lateral') {
+              positionFRCMod = -0.1;
+          }
+
+          const FRC_Liters = Math.max(0.5, (st.patient.height * 0.02) - (st.patient.isObese ? 0.8 : 0) + ((st.ventSettings?.peep || 0) * 0.05) + positionFRCMod);
           let buffer = st.patient.oxygenBuffer || 21;
 
           if ((st.patient.isApneic || st.patient.isParalyzed) && !st.patient.airwaySecured) {
@@ -385,9 +410,13 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           if (st.patient.isObese) currentCompliance -= 25; 
           if (st.patient.isSeptic) currentCompliance -= 20; 
           if (st.patient.trauma) currentCompliance -= 15; 
+          if (st.patient.chf) currentCompliance -= 20; // Pulmonary Edema
+          if (st.patient.copd) currentCompliance += 15; // Emphysema hyper-compliance
+          if (positionFRCMod < 0) currentCompliance -= 10; // Positional restriction
           
           let currentResistance = 5; 
           if (st.patient.isObese) currentResistance += 3;
+          if (st.patient.copd) currentResistance += 18; // Massive bronchospasm/airway resistance
 
           if (st.patient.airwaySecured && st.ventSettings) {
               newPeep = st.ventSettings.peep || 0;
@@ -436,7 +465,9 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const currentAlvVent_L_min = Math.max(0, (tidalVolLiters - deadSpace) * targetRR);
           const baseTidalVolLiters = (st.patient.ibw * 7) / 1000;
           const baseAlvVent_L_min = (baseTidalVolLiters - deadSpace) * (st.targetVitals.rr || 12);
-          const baselinePaCO2 = st.patient.isObese ? 52 : 40;
+          
+          // COPD dictates a severely elevated baseline CO2
+          const baselinePaCO2 = st.patient.copd ? 55 : (st.patient.isObese ? 48 : 40);
 
           let targetPaCO2;
           let targetEtco2 = 0;
@@ -447,7 +478,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           } else {
               targetPaCO2 = baselinePaCO2 * (baseAlvVent_L_min / currentAlvVent_L_min);
               targetPaCO2 = Math.max(15, Math.min(120, targetPaCO2)); 
-              let co2Gradient = st.patient.isObese ? 7 : 4;
+              let co2Gradient = st.patient.isObese ? 7 : (st.patient.copd ? 10 : 4);
               if (safeSys < 80) co2Gradient += (80 - safeSys) * 0.5; 
               targetEtco2 = Math.max(0, targetPaCO2 - co2Gradient);
           }
@@ -460,13 +491,18 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let autonomicHrMod = 0;
           if (drugSvrMod > 1.5 && currentMac < 0.5) autonomicHrMod = -20; 
 
+          // Gravitational shift mathematically modifies circulating volume equivalent
+          const effectiveIntravascularVolume = st.intravascularVolume + positionPreloadMod;
+          
           const inotropyFinal = 1.0 - ((st.patient.myocardialStunning || 0) / 100) + (unbluntedStimulus / 500) + (drugInotropyMod - 1.0);
-          const preloadSV = Math.max(0.1, 1.0 - (bloodLossRatio * 1.2) + (st.intravascularVolume / 2500));
+          const preloadSV = Math.max(0.1, 1.0 - (bloodLossRatio * 1.2) + (effectiveIntravascularVolume / 2500));
           
           const targetHR = Math.max(0, (st.targetVitals.hr || 70) + totalHrDelta + autonomicHrMod + (bloodLossRatio * 150) + unbluntedStimulus);
           
-          const maxSV = (st.patient.patientBaseSV || 70) * 1.6;
-          let currentSV = Math.min(maxSV, (st.patient.patientBaseSV || 70) * preloadSV * Math.max(0.1, inotropyFinal));
+          // CHF cripples max stroke volume capacity
+          const chfInotropicPenalty = st.patient.chf ? 0.5 : 1.0;
+          const maxSV = (st.patient.patientBaseSV || 70) * (st.patient.chf ? 1.0 : 1.6);
+          let currentSV = Math.min(maxSV, (st.patient.patientBaseSV || 70) * preloadSV * Math.max(0.1, inotropyFinal) * chfInotropicPenalty);
           
           const baseSVR = st.patient.patientBaseSVR || 1200;
           let targetSVR = (baseSVR * svrMod * drugSvrMod * (st.patient.isSeptic ? 0.6 : 1.0)) + (unbluntedStimulus * 8);
@@ -477,7 +513,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let targetMAP = (targetCO * targetSVR) / 80;
           targetMAP = Math.min(220, Math.max(15, targetMAP));
 
-          const sysPressorEffect = (st.intravascularVolume / 250) * 12;
+          const sysPressorEffect = (effectiveIntravascularVolume / 250) * 12;
           const pulsePressureRatio = Math.max(0.2, Math.min(2.5, (currentSV / (st.patient.patientBaseSV || 70))));
           
           let targetSys = targetMAP + (targetMAP * 0.3 * pulsePressureRatio) + sysPressorEffect - (st.patient.isSeptic ? 20 : 0);
@@ -490,7 +526,6 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let newHr = (st.vitals.hr || 70) + (targetHR - (st.vitals.hr || 70)) * 0.1 + hrNoise;
           let newSys = safeSys + (targetSys - safeSys) * 0.1 + sysNoise;
           let newDia = safeDia + (targetDia - safeDia) * 0.1 + diaNoise;
-
           // === ACID-BASE CALCULUS ===
           const baseDeficit = (st.patient.isSeptic ? 8 : 0) + (bloodLossRatio * 20);
           const hco3 = Math.max(8, 24 - baseDeficit);

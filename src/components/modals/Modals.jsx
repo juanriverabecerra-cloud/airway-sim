@@ -14,7 +14,7 @@ export const PocusModal = ({ data, close }) => {
           <p className="text-purple-300 font-bold text-sm uppercase mb-2">Ultrasound Findings</p>
           <p className="text-white text-base md:text-lg">{data.finding}</p>
         </div>
-        <button onClick={close} className="mt-6 w-full bg-slate-700 hover:bg-slate-600 p-3 rounded font-bold text-white">Close Image</button>
+        <button onClick={close} className="mt-6 w-full bg-slate-700 hover:bg-slate-600 p-3 rounded font-bold text-white transition">Close Report</button>
       </div>
     </div>
   );
@@ -227,11 +227,11 @@ export const SetupModal = ({ show, close, viewModal, setViewModal, processIntuba
             <h3 className="text-green-400 font-bold mb-3 border-b border-green-900 pb-1">1. Select Blade</h3>
             <div className="flex flex-col gap-2">
               {['Macintosh (Curved DL)', 'Miller (Straight DL)', 'Standard VL', 'Hyperangulated VL', 'Fiberoptic'].map(blade => (
-                <button key={blade} onClick={() => setViewModal(prev => ({...prev, blade}))} className={`p-2 rounded text-xs text-left border ${viewModal.blade === blade ? 'bg-green-800 border-green-400' : 'bg-slate-800 border-slate-700 hover:bg-slate-700'}`}>{blade}</button>
+                <button key={blade} onClick={() => setViewModal(prev => ({...prev, blade}))} className={`p-2 rounded text-xs text-left border ${viewModal.blade === blade ? 'bg-green-800 border-green-400' : 'bg-slate-800 border-slate-700 hover:bg-slate-700 transition'}`}>{blade}</button>
               ))}
             </div>
             {viewModal.blade && !viewModal.blade.includes('Fiberoptic') && (
-              <select value={viewModal.bladeSize} onChange={(e) => setViewModal(prev => ({...prev, bladeSize: e.target.value}))} className="w-full mt-2 bg-slate-950 text-white text-xs p-2 border border-slate-700 rounded">
+              <select value={viewModal.bladeSize} onChange={(e) => setViewModal(prev => ({...prev, bladeSize: e.target.value}))} className="w-full mt-2 bg-slate-950 text-white text-xs p-2 border border-slate-700 rounded outline-none focus:border-green-500 transition">
                 <option value="">Select Size (Hint: Size 3/4 Adult)</option>
                 <option value="2">Size 2 (Small)</option><option value="3">Size 3 (Normal)</option><option value="4">Size 4 (Large)</option>
               </select>
@@ -241,7 +241,7 @@ export const SetupModal = ({ show, close, viewModal, setViewModal, processIntuba
             <h3 className="text-cyan-400 font-bold mb-3 border-b border-cyan-900 pb-1">2. Select ETT</h3>
             <div className="bg-slate-800 p-3 rounded border border-slate-700">
               <label className="text-[10px] md:text-xs text-slate-400 block mb-1">Tube Size (Hint: 7.0-7.5 Female, 7.5-8.0 Male)</label>
-              <select value={viewModal.tubeSize} onChange={(e) => setViewModal(prev => ({...prev, tubeSize: e.target.value}))} className="w-full bg-slate-950 text-white text-sm p-2 border border-slate-600 rounded">
+              <select value={viewModal.tubeSize} onChange={(e) => setViewModal(prev => ({...prev, tubeSize: e.target.value}))} className="w-full bg-slate-950 text-white text-sm p-2 border border-slate-600 rounded outline-none focus:border-cyan-500 transition">
                 <option value="">Select ETT Size...</option>
                 <option value="6.0">6.0 mm</option><option value="6.5">6.5 mm</option><option value="7.0">7.0 mm</option><option value="7.5">7.5 mm</option><option value="8.0">8.0 mm</option>
               </select>
@@ -250,15 +250,21 @@ export const SetupModal = ({ show, close, viewModal, setViewModal, processIntuba
           <div>
             <h3 className="text-blue-400 font-bold mb-3 border-b border-blue-900 pb-1">3. Select Adjunct</h3>
             <div className="flex flex-col gap-2">
-              {['None (Direct Tube)', 'Standard Malleable Stylet', 'Standard Bougie (Eschmann)', 'Articulating Bougie'].map(adjunct => (
-                <button key={adjunct} onClick={() => setViewModal(prev => ({...prev, adjunct}))} className={`p-2 rounded text-xs text-left border ${viewModal.adjunct === adjunct ? 'bg-blue-800 border-blue-400' : 'bg-slate-800 border-slate-700 hover:bg-slate-700'}`}>{adjunct}</button>
+              {[
+                'None (Direct Tube)', 
+                'Standard Malleable Stylet', 
+                'Standard Bougie (Eschmann)', 
+                'Hyperangulated Rigid Stylet', 
+                'Articulating Bougie'
+              ].map(adjunct => (
+                <button key={adjunct} onClick={() => setViewModal(prev => ({...prev, adjunct}))} className={`p-2 rounded text-xs text-left border ${viewModal.adjunct === adjunct ? 'bg-blue-800 border-blue-400' : 'bg-slate-800 border-slate-700 hover:bg-slate-700 transition'}`}>{adjunct}</button>
               ))}
             </div>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row justify-end gap-3 md:gap-4">
-          <button onClick={close} className="px-6 py-3 sm:py-2 bg-slate-700 hover:bg-slate-600 rounded font-bold w-full sm:w-auto">Cancel</button>
-          <button onClick={() => processIntubation(`${viewModal.blade} Size ${viewModal.bladeSize || '-'} with ${viewModal.tubeSize} ETT`, viewModal.adjunct)} disabled={!viewModal.blade || !viewModal.adjunct || !viewModal.tubeSize} className="px-6 py-3 sm:py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 rounded font-bold text-white w-full sm:w-auto">Proceed to Intubate</button>
+        <div className="flex flex-col sm:flex-row justify-end gap-3 md:gap-4 border-t border-slate-800 pt-4">
+          <button onClick={close} className="px-6 py-3 sm:py-2 bg-slate-700 hover:bg-slate-600 rounded font-bold w-full sm:w-auto transition">Cancel</button>
+          <button onClick={() => processIntubation(`${viewModal.blade} Size ${viewModal.bladeSize || '-'} with ${viewModal.tubeSize} ETT`, viewModal.adjunct)} disabled={!viewModal.blade || !viewModal.adjunct || !viewModal.tubeSize} className="px-6 py-3 sm:py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 rounded font-bold text-white w-full sm:w-auto transition">Proceed to Intubate</button>
         </div>
       </div>
     </div>
@@ -270,14 +276,14 @@ export const ViewModal = ({ data, submitGrade }) => {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div className="bg-slate-900 border-2 border-cyan-500 rounded-xl p-8 max-w-2xl shadow-2xl w-full">
-        <h2 className="text-2xl font-bold text-white mb-4">Direct Visualization: {data.blade}</h2>
-        <p className="text-lg text-slate-300 mb-8 italic border-l-4 border-cyan-500 pl-4 py-2 bg-slate-800/50">"{data.description}"</p>
+        <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2"><Eye size={24}/> Direct Visualization: {data.blade}</h2>
+        <p className="text-lg text-slate-300 mb-8 italic border-l-4 border-cyan-500 pl-4 py-2 bg-slate-800/50 whitespace-pre-wrap">"{data.description}"</p>
         <h3 className="text-yellow-400 font-bold mb-4">Select the Cormack-Lehane Grade:</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2, 3, 4].map(grade => (
             <button key={grade} onClick={() => submitGrade(grade)} className="bg-slate-800 hover:bg-cyan-900 p-4 rounded text-left border border-slate-700 hover:border-cyan-400 transition">
               <span className="font-bold text-white block">Grade {['I', 'II', 'III', 'IV'][grade-1]}</span>
-              {['Full view of glottis', 'Partial view of glottis', 'Epiglottis only visible', 'No structures visible'][grade-1]}
+              <span className="text-sm text-slate-400">{['Full view of glottis', 'Partial view of glottis', 'Epiglottis only visible', 'No structures visible'][grade-1]}</span>
             </button>
           ))}
         </div>

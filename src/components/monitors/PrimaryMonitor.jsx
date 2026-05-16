@@ -2,7 +2,7 @@ import React from 'react';
 import { Activity, Heart, Wind, RefreshCw, Thermometer } from 'lucide-react';
 import { CanvasWaveform } from '../CanvasWaveform';
 
-export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, hrSpeed, rrSpeed, gasSettings, ventSettings }) => {
+export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp, hrSpeed, rrSpeed, gasSettings, ventSettings }) => {
   const showBottomRow = patient.hasBisMonitor || patient.hasTofMonitor || (patient.airwaySecured && vitals.mac > 0);
 
   return (
@@ -77,7 +77,7 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, hrSpeed, rrSp
         <div className="flex flex-col w-full my-1 pt-2 border-t border-slate-800">
           <div className="text-red-500 font-bold flex justify-between items-end w-full mb-1">
             <span className="flex items-center gap-1 text-xs"><Activity size={14} className="inline"/> {patient.hasALine ? 'ART' : 'NIBP'}</span>
-            {!patient.hasALine && <button onClick={cycleNibp} className="text-slate-400 hover:text-white bg-slate-800 p-1 rounded transition"><RefreshCw size={10}/></button>}
+            {!patient.hasALine && <button onClick={cycleNibp} disabled={isCyclingNibp} className={`text-slate-400 hover:text-white bg-slate-800 p-1 rounded transition ${isCyclingNibp ? 'animate-spin text-cyan-400' : ''}`}><RefreshCw size={10}/></button>}
           </div>
           <div className="flex flex-col items-end w-full">
             <div className="text-3xl lg:text-4xl font-black text-red-400 leading-none tracking-tighter">
