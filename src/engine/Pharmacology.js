@@ -6,6 +6,7 @@
  * - MAC: Mapleson age-adjustment logic
  * - PK: Multi-compartment mammillary models
  * - PD: Sigmoid Emax (Hill Equation) parameters
+ * - CA-1 Integration: Exact receptor affinities and fluid stoichiometry
  */
 
 export function calculateIBW(heightCm, sex) {
@@ -30,19 +31,19 @@ export function calculateAgeAdjustedMAC(mac40, age) {
 
 export const INHALATIONAL_AGENTS = {
   sevoflurane: { 
-    name: 'Sevoflurane', mac40: 2.1, bgPartition: 0.65, brainBgPartition: 1.7, vaporPress: 157, 
+    name: 'Sevoflurane', mac40: 2.0, bgPartition: 0.65, brainBgPartition: 1.7, vaporPress: 160, 
     sysMax: -30, diaMax: -25, hrMax: 0, rrMax: -15, 
-    description: 'Sweet smelling, low pungency. Ideal for inhalational induction.' 
+    description: 'Sweet smelling, low pungency. Ideal for inhalational induction. Breaks down to Compound A. Produces fluoride ions.' 
   },
   desflurane: { 
-    name: 'Desflurane', mac40: 6.6, bgPartition: 0.42, brainBgPartition: 1.3, vaporPress: 669, 
+    name: 'Desflurane', mac40: 6.0, bgPartition: 0.45, brainBgPartition: 1.3, vaporPress: 669, 
     sysMax: -25, diaMax: -25, hrMax: 15, rrMax: -15,
-    description: 'Pungent, rapid offset. Risk of sympathetic surge/tachycardia.'
+    description: 'Pungent, rapid offset. Risk of sympathetic surge/tachycardia if rapidly increased. Boils at sea level.'
   },
   isoflurane: { 
-    name: 'Isoflurane', mac40: 1.15, bgPartition: 1.46, brainBgPartition: 1.6, vaporPress: 238, 
+    name: 'Isoflurane', mac40: 1.2, bgPartition: 1.46, brainBgPartition: 1.6, vaporPress: 240, 
     sysMax: -35, diaMax: -35, hrMax: 5, rrMax: -15,
-    description: 'Highly potent, slow kinetics. Potent vasodilator.'
+    description: 'Highly potent, slow kinetics. Potent vasodilator. Cardioprotective (ischemic preconditioning).'
   },
   halothane: { 
     name: 'Halothane', mac40: 0.75, bgPartition: 2.54, brainBgPartition: 2.9, vaporPress: 243, 
@@ -55,9 +56,9 @@ export const INHALATIONAL_AGENTS = {
     description: 'Inert noble gas. NMDA antagonist. Extremely rapid onset/offset. Cardio-stable.' 
   },
   n2o: { 
-    name: 'Nitrous Oxide', mac40: 104, bgPartition: 0.46, brainBgPartition: 1.1, vaporPress: 38760, 
+    name: 'Nitrous Oxide', mac40: 104, bgPartition: 0.46, brainBgPartition: 1.1, vaporPress: 38770, 
     sysMax: 5, diaMax: 5, hrMax: 5, rrMax: -5,
-    description: 'Second gas effect provider. Inhibits B12 metabolism.'
+    description: 'Low potency. Diffuses into air-filled cavities (pneumothorax, bowel, ETT cuff). NMDA antagonist analgesic.'
   }
 };
 
@@ -72,7 +73,7 @@ export const MEDICATIONS = {
   },
   etomidate: { 
     name: 'Etomidate', classes: ['Sedative', 'Hypnotic'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
-    metabolism: 'Plasma Esterase/Liver', proteinBinding: 0.76, synergyGroup: 'Sedative', pkModel: 'Standard Compartmental',
+    metabolism: 'Plasma Esterase/Liver', proteinBinding: 0.77, synergyGroup: 'Sedative', pkModel: 'Standard Compartmental',
     indications: { 'Induction (Cardio-stable)': { dose: '0.2-0.3', unit: 'mg/kg', type: 'Bolus' } },
     pk: { V1: 15.0, V2: 40.0, V3: 120, k10: 0.1, k12: 0.15, k21: 0.08, k13: 0.05, k31: 0.01, ke0: 1.8, coSensitivity: 0.1 },
     pd: { c50: 0.3, gamma: 3, sysMax: -5, diaMax: -5, hrMax: 0, rrMax: -12, inducesApneaAtCe: 0.4 } 
@@ -86,14 +87,14 @@ export const MEDICATIONS = {
   },
   midazolam: { 
     name: 'Midazolam', classes: ['Benzodiazepine'], routes: ['IV', 'IM'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic', proteinBinding: 0.97, synergyGroup: 'Sedative', pkModel: 'Greenblatt',
+    metabolism: 'Hepatic', proteinBinding: 0.94, synergyGroup: 'Sedative', pkModel: 'Greenblatt',
     indications: { 'Pre-op Anxiolysis': { dose: '0.02-0.04', unit: 'mg/kg', type: 'Bolus' }, 'Sedation': { dose: '1-5', unit: 'mg', type: 'Bolus' } },
     pk: { V1: 12.0, V2: 30.0, V3: 80, k10: 0.12, k12: 0.1, k21: 0.05, k13: 0.03, k31: 0.01, ke0: 0.8, coSensitivity: 0.2 },
     pd: { c50: 0.05, gamma: 1.5, sysMax: -10, diaMax: -10, hrMax: 0, rrMax: -6, inducesApneaAtCe: 0.2 } 
   },
   propofol: { 
     name: 'Propofol', classes: ['Sedative', 'Hypnotic'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'LBW',
-    metabolism: 'Hepatic/Extrahepatic', proteinBinding: 0.98, synergyGroup: 'Sedative', pkModel: 'Schnider',
+    metabolism: 'Hepatic/Extrahepatic', proteinBinding: 0.97, synergyGroup: 'Sedative', pkModel: 'Schnider',
     indications: { 'Induction': { dose: '1.5-2.5', unit: 'mg/kg', type: 'Bolus' }, 'Maintenance (TIVA)': { dose: '100-200', unit: 'mcg/kg/min', type: 'Infusion' }, 'Sedation': { dose: '25-50', unit: 'mcg/kg/min', type: 'Infusion' } },
     pk: { V1: 4.27, V2: 18.9, V3: 238, k10: 0.443, k12: 0.303, k21: 0.055, k13: 0.196, k31: 0.0033, ke0: 1.2, coSensitivity: 0.6 },
     pd: { c50: 2.5, gamma: 2, sysMax: -40, diaMax: -30, hrMax: -15, rrMax: -14, inducesApneaAtCe: 2.5 } 
@@ -207,14 +208,14 @@ export const MEDICATIONS = {
     metabolism: 'Hepatic/Renal', mechanism: 'Direct/Indirect Agonist', targetReceptor: 'Alpha & Beta',
     indications: { 'Hypotension': { dose: '5-10', unit: 'mg', type: 'Bolus' } },
     pk: { V1: 25.0, V2: 0, V3: 0, k10: 0.05, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.2 }, 
-    pd: { c50: 0.5, gamma: 1.5, sysMax: 40, diaMax: 25, hrMax: 30, rrMax: 0 } 
+    pd: { c50: 0.5, gamma: 1.5, sysMax: 40, diaMax: 25, hrMax: 30, rrMax: 0, receptors: { Alpha1: 2, Beta1: 3, Beta2: 2 } } 
   },
   epinephrine: { 
     name: 'Epinephrine', classes: ['Vasopressor', 'Inotrope'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
     metabolism: 'MAO/COMT', mechanism: 'Agonist', targetReceptor: 'Alpha-Beta',
     indications: { 'Push Dose': { dose: '10-20', unit: 'mcg', type: 'Bolus' }, 'Code': { dose: '1.0', unit: 'mg', type: 'Bolus' }, 'Infusion': { dose: '0.01-0.1', unit: 'mcg/kg/min', type: 'Infusion' } },
     pk: { V1: 5.0, V2: 0, V3: 0, k10: 0.8, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 2.0, coSensitivity: 0.1 }, 
-    pd: { c50: 0.002, gamma: 1.5, sysMax: 60, diaMax: 30, hrMax: 50, rrMax: 0 } 
+    pd: { c50: 0.002, gamma: 1.5, sysMax: 60, diaMax: 30, hrMax: 50, rrMax: 0, receptors: { Alpha1: 3, Beta1: 3, Beta2: 2 } } 
   },
   milrinone: { 
     name: 'Milrinone', classes: ['PDE3 Inhibitor'], routes: ['IV'], types: ['Infusion', 'Bolus'], dosingWeight: 'TBW',
@@ -228,21 +229,21 @@ export const MEDICATIONS = {
     metabolism: 'MAO/COMT', mechanism: 'Agonist', targetReceptor: 'Alpha-1 > Beta-1',
     indications: { 'Shock / Vasoplegia': { dose: '0.01-0.3', unit: 'mcg/kg/min', type: 'Infusion' } },
     pk: { V1: 8.0, V2: 0, V3: 0, k10: 0.6, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.5, coSensitivity: 0.1 }, 
-    pd: { c50: 0.005, gamma: 1.5, sysMax: 40, diaMax: 50, hrMax: 10, rrMax: 0 } 
+    pd: { c50: 0.005, gamma: 1.5, sysMax: 40, diaMax: 50, hrMax: 10, rrMax: 0, receptors: { Alpha1: 3, Beta1: 2, Beta2: 0 } } 
   },
   phenylephrine: { 
     name: 'Phenylephrine', classes: ['Alpha-1 Agonist'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
     metabolism: 'MAO', mechanism: 'Agonist', targetReceptor: 'Alpha-1',
     indications: { 'Push Dose': { dose: '50-100', unit: 'mcg', type: 'Bolus' }, 'Infusion': { dose: '0.1-0.5', unit: 'mcg/kg/min', type: 'Infusion' } },
     pk: { V1: 10.0, V2: 0, V3: 0, k10: 0.5, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.5, coSensitivity: 0.2 }, 
-    pd: { c50: 0.02, gamma: 1, sysMax: 30, diaMax: 45, hrMax: -15, rrMax: 0 } 
+    pd: { c50: 0.02, gamma: 1, sysMax: 30, diaMax: 45, hrMax: -15, rrMax: 0, receptors: { Alpha1: 3, Beta1: 0, Beta2: 0 } } 
   },
   vasopressin: { 
     name: 'Vasopressin', classes: ['V1 Agonist'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
     metabolism: 'Hepatic/Renal', mechanism: 'Agonist', targetReceptor: 'V1 Receptors',
     indications: { 'Push Dose': { dose: '1-2', unit: 'Unit', type: 'Bolus' }, 'Infusion': { dose: '0.04', unit: 'Unit/min', type: 'Infusion' } },
     pk: { V1: 12.0, V2: 0, V3: 0, k10: 0.1, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.8, coSensitivity: 0.1 }, 
-    pd: { c50: 0.05, gamma: 2, sysMax: 20, diaMax: 35, hrMax: -5, rrMax: 0 } 
+    pd: { c50: 0.05, gamma: 2, sysMax: 20, diaMax: 35, hrMax: -5, rrMax: 0, receptors: { V1: 3 } } 
   },
 
   // === ANTIHYPERTENSIVES ===
@@ -330,7 +331,7 @@ export const MEDICATIONS = {
     metabolism: 'Renal (Unchanged)', mechanism: 'Inhibitor', targetReceptor: 'Carbonic Anhydrase',
     indications: { 'Metabolic Alkalosis': { dose: '250-500', unit: 'mg', type: 'Bolus' } },
     pk: { V1: 15.0, V2: 30.0, V3: 0, k10: 0.02, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.05, coSensitivity: 0.1 }, 
-    pd: { c50: 5.0, gamma: 1.0, sysMax: -5, diaMax: -5, hrMax: 0, rrMax: 5 } // Induces non-gap acidosis causing compensatory hyperventilation
+    pd: { c50: 5.0, gamma: 1.0, sysMax: -5, diaMax: -5, hrMax: 0, rrMax: 5 }
   },
   bumetanide: { 
     name: 'Bumetanide', classes: ['Loop Diuretic'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
@@ -344,14 +345,14 @@ export const MEDICATIONS = {
     metabolism: 'Renal/Hepatic', mechanism: 'Inhibitor', targetReceptor: 'Na-K-2Cl Symporter',
     indications: { 'Edema / Oliguria': { dose: '20-80', unit: 'mg', type: 'Bolus' } },
     pk: { V1: 8.0, V2: 12.0, V3: 0, k10: 0.03, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.2 }, 
-    pd: { c50: 2.0, gamma: 1.5, sysMax: -15, diaMax: -15, hrMax: 0, rrMax: 0 } // Acute venodilation
+    pd: { c50: 2.0, gamma: 1.5, sysMax: -15, diaMax: -15, hrMax: 0, rrMax: 0 }
   },
   mannitol: { 
     name: 'Mannitol 20%', classes: ['Osmotic Diuretic'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
     metabolism: 'Renal (Unchanged)', mechanism: 'Osmotic Agent', targetReceptor: 'Tubular Lumen',
     indications: { 'Elevated ICP': { dose: '50-100', unit: 'g', type: 'Bolus' } },
     pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.02, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.1 }, 
-    pd: { c50: 50.0, gamma: 1.0, sysMax: 5, diaMax: 5, hrMax: -5, rrMax: 0 } // Transient intravascular volume expansion
+    pd: { c50: 50.0, gamma: 1.0, sysMax: 5, diaMax: 5, hrMax: -5, rrMax: 0 }
   },
 
   // === ANTIARRHYTHMICS & ELECTROLYTES ===
@@ -559,35 +560,36 @@ export const MEDICATIONS = {
 
 export const FLUIDS = {
   'Normal Saline (0.9% NS)': { 
-    type: 'Crystalloid', defaultVol: 1000, na: 154, cl: 154, k: 0, ca: 0, citrateLoad: 0,
-    retentionIntact: 0.75, retentionInflamed: 0.20, osm: 308, tonicity: 'Isotonic', coag: { r: 0, ma: -2, angle: 0 } 
+    type: 'Crystalloid', defaultVol: 1000, na: 154, cl: 154, k: 0, ca: 0, citrateLoad: 0, buffer: 0,
+    retentionIntact: 0.75, retentionInflamed: 0.20, osm: 308, tonicity: 'Isotonic', coag: { r: 0, ma: -2, angle: 0 },
+    acidosisRisk: true 
   },
   'Lactated Ringers (LR)': { 
-    type: 'Crystalloid', defaultVol: 1000, na: 130, cl: 109, k: 4, ca: 1.5, citrateLoad: 0,
+    type: 'Crystalloid', defaultVol: 1000, na: 130, cl: 109, k: 4, ca: 3.0, citrateLoad: 0, buffer: 28,
     retentionIntact: 0.80, retentionInflamed: 0.25, osm: 273, tonicity: 'Hypotonic', coag: { r: 0, ma: -1, angle: 0 } 
   },
   'Plasmalyte': { 
-    type: 'Crystalloid', defaultVol: 1000, na: 140, cl: 98, k: 5, ca: 0, citrateLoad: 0,
+    type: 'Crystalloid', defaultVol: 1000, na: 140, cl: 98, k: 5, ca: 0, citrateLoad: 0, buffer: 27,
     retentionIntact: 0.80, retentionInflamed: 0.25, osm: 294, tonicity: 'Isotonic', coag: { r: 0, ma: -1, angle: 0 } 
   },
   'Albumin 5%': { 
-    type: 'Colloid', defaultVol: 500, na: 145, cl: 145, k: 0, ca: 0, citrateLoad: 0,
-    retentionIntact: 1.0, retentionInflamed: 0.75, osm: 300, tonicity: 'Isotonic', coag: { r: 0, ma: -2, angle: -2 } 
+    type: 'Colloid', defaultVol: 500, na: 140, cl: 150, k: 0, ca: 0, citrateLoad: 0, buffer: 0,
+    retentionIntact: 1.0, retentionInflamed: 0.75, osm: 290, tonicity: 'Isotonic', coag: { r: 0, ma: -2, angle: -2 } 
   },
   'Packed Red Blood Cells (PRBC)': { 
-    type: 'Blood Product', defaultVol: 300, na: 0, cl: 0, k: 15, ca: 0, citrateLoad: 15, // High citrate load chelates ionized calcium
+    type: 'Blood Product', defaultVol: 300, na: 0, cl: 0, k: 15, ca: 0, citrateLoad: 15, buffer: 0,
     retentionIntact: 1.0, retentionInflamed: 0.90, hct: 0.70, coag: { r: 0, ma: 0, angle: 0 } 
   }, 
   'Fresh Frozen Plasma (FFP)': { 
-    type: 'Blood Product', defaultVol: 250, na: 0, cl: 0, k: 0, ca: 0, citrateLoad: 10, 
+    type: 'Blood Product', defaultVol: 250, na: 0, cl: 0, k: 4, ca: 0, citrateLoad: 10, buffer: 0,
     retentionIntact: 1.0, retentionInflamed: 0.90, coag: { r: -4, ma: 0, angle: 5 } 
   },
   'Platelets': { 
-    type: 'Blood Product', defaultVol: 250, na: 0, cl: 0, k: 0, ca: 0, citrateLoad: 5, 
+    type: 'Blood Product', defaultVol: 250, na: 0, cl: 0, k: 4, ca: 0, citrateLoad: 5, buffer: 0,
     retentionIntact: 1.0, retentionInflamed: 0.90, coag: { r: -1, ma: 15, angle: 10 } 
   },
   'Cryoprecipitate': { 
-    type: 'Blood Product', defaultVol: 50, na: 0, cl: 0, k: 0, ca: 0, citrateLoad: 2, 
+    type: 'Blood Product', defaultVol: 50, na: 0, cl: 0, k: 0, ca: 0, citrateLoad: 5, buffer: 0,
     retentionIntact: 1.0, retentionInflamed: 0.95, coag: { r: 0, ma: 5, angle: 15 } 
   }
 };

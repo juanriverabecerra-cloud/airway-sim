@@ -1,16 +1,16 @@
 /**
- * HIGH-FIDELITY PK/PD ENGINE (V3.1)
+ * HIGH-FIDELITY PK/PD ENGINE (V4.0)
  * Uses multi-compartment mammillary modeling with flow-dependent clearance.
  * Implements dynamic V1 (hemoconcentration/dilution), protein-binding free fractions,
  * and organ-specific perfusion-coupled ke0 (Cerebral Autoregulation vs Systemic).
- * Includes absolute NaN-guards for zero-C50 chelators.
+ * CA-1 INTEGRATION: Dynamic SVR/CO multipliers based on specific receptor affinities.
  */
 
 export class PKPDModel {
   constructor(med, weight) {
     this.name = med.name;
     this.pk = med.pk; // V1, V2, V3, k10, k12, k21, k13, k31, ke0, coSensitivity
-    this.pd = med.pd; // c50, gamma, maxEffects, mechanism
+    this.pd = med.pd; // c50, gamma, maxEffects, mechanism, receptors
     this.classes = med.classes || [];
     this.weight = weight;
     
@@ -115,7 +115,9 @@ export class PKPDModel {
       rrDelta: 0, 
       hypnoticEffect: 0, 
       receptorOccupancy: 0,
-      group: this.pd?.synergyGroup || 'None'
+      group: this.pd?.synergyGroup || 'None',
+      svrMultiplier: 1.0,
+      coMultiplier: 1.0
     };
 
     if (!this.pd) return effects;
@@ -130,11 +132,37 @@ export class PKPDModel {
         fraction = ceGamma / (ceGamma + c50Gamma);
     }
 
-    // Cardiovascular Deltas
-    if (this.pd.hrMax) effects.hrDelta = this.pd.hrMax * fraction;
-    if (this.pd.sysMax) effects.sysDelta = this.pd.sysMax * fraction;
-    if (this.pd.diaMax) effects.diaDelta = this.pd.diaMax * fraction;
+    // Direct Deltas for non-vasopressor agents (Sedatives, Opioids)
+    if (this.pd.sysMax && !this.pd.receptors) effects.sysDelta = this.pd.sysMax * fraction;
+    if (this.pd.diaMax && !this.pd.receptors) effects.diaDelta = this.pd.diaMax * fraction;
+    if (this.pd.hrMax && !this.pd.receptors) effects.hrDelta = this.pd.hrMax * fraction;
     if (this.pd.rrMax) effects.rrDelta = this.pd.rrMax * fraction;
+
+    // HIGH-FIDELITY VASOPRESSOR / RECEPTOR COUPLING (CA-1 Integration)
+    // Modifies underlying SVR and CO rather than flat BP deltas
+    if (this.pd.receptors) {
+        let alpha1 = this.pd.receptors.Alpha1 || 0;
+        let beta1 = this.pd.receptors.Beta1 || 0;
+        let beta2 = this.pd.receptors.Beta2 || 0;
+        let v1 = this.pd.receptors.V1 || 0;
+
+        // SVR is driven heavily by Alpha-1 and V1, antagonized by Beta-2
+        let svrIncrease = (alpha1 * 0.25 * fraction) + (v1 * 0.30 * fraction);
+        let svrDecrease = (beta2 * 0.15 * fraction);
+        effects.svrMultiplier += (svrIncrease - svrDecrease);
+
+        // Cardiac Output (Contractility) is driven purely by Beta-1
+        let coIncrease = (beta1 * 0.25 * fraction);
+        effects.coMultiplier += coIncrease;
+        
+        // Beta-1 directly drives chronotropy
+        effects.hrDelta += (beta1 * 15 * fraction);
+        
+        // Baroreceptor Reflex Simulation: 
+        // Pure Alpha-1 / V1 triggers reflex bradycardia if beta-1 is absent to offset it
+        if (alpha1 > 0 && beta1 === 0) effects.hrDelta -= (alpha1 * 5 * fraction);
+        if (v1 > 0 && beta1 === 0) effects.hrDelta -= (v1 * 5 * fraction);
+    }
 
     // Clinical Hypnosis (Used for BIS and surgical responsiveness)
     if (this.classes.includes('Sedative') || 
@@ -145,7 +173,7 @@ export class PKPDModel {
     }
 
     // Neuromuscular Junction Occupancy (Used for Train-of-Four calculation)
-    if (this.classes.includes('NDMR') || this.classes.includes('Depolarizing NMBA')) {
+    if (this.classes.includes('NDMR') || this.classes.includes('Depolarizing NMBA') || this.classes.includes('NMBA')) {
         effects.receptorOccupancy = fraction;
     }
     

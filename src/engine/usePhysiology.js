@@ -39,7 +39,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
         pao2: activeCase.patient.isObese ? 75 : 100, 
         paco2: activeCase.patient.isObese ? 52 : 40, 
         ph: activeCase.patient.isSeptic ? 7.22 : (activeCase.patient.isObese ? 7.36 : 7.4), 
-        co: initialCO, svr: calculatedBaseSVR 
+        co: initialCO, svr: calculatedBaseSVR, cmap: initialMap // Baseline Cerebral MAP
       });
       setTargetVitals({ ...activeCase.baseVitals });
       
@@ -57,7 +57,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
         hasIV: false, hasALine: false, currentO2Device: 'Room Air', currentO2Flow: 0, currentFiO2: 21, oxygenBuffer: 21,
         hasBisMonitor: false, hasTofMonitor: false,
         isArrest: false, cardiacRhythm: 'normal', cprActive: false, ischemicDamage: 0, biologicalDeath: false, myocardialStunning: 0,
-        arrestThreshold: 1200, codeStartTime: null,
+        arrestThreshold: 1200, codeStartTime: null, apneaStartTime: null,
         shuntFraction: activeCase.id === 'trauma' ? 0.20 : (activeCase.patient.isObese ? 0.12 : 0.05),
         patientBaseSVR: calculatedBaseSVR,
         patientBaseSV: assumedBaseSV
@@ -301,6 +301,11 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
           let currentMac = 0; let currentEtAgent = 0; let currentEtN2O = 0; 
           let deliveredFiO2 = 21; let n2oPercent = 0;
+          
+          const baseHb = st.patient.trauma ? 11.2 : 14.5;
+          const currentEbl = (st.patient.ebl || 0) + (st.patient.bleedRate || 0);
+          const bloodLossRatio = currentEbl / (st.patient.ebv || 5000);
+          const currentHb = Math.max(3.0, (baseHb * (1 - bloodLossRatio)) - ((st.intravascularVolume / (st.patient.ebv || 5000)) * 3.0));
 
           if (st.gasSettings && st.patient.airwaySecured) {
             const o2F = st.gasSettings.o2Flow || 0; 
@@ -328,7 +333,15 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                 const gasState = model.tick(1, effectiveMv, currentCOForPK, currentFRC, st.patient.ibw, st.patient.shuntFraction);
                 if (gasState.Fa > 0.01) {
                   currentEtAgent = gasState.Fa;
-                  const adjMac = calculateAgeAdjustedMAC(agentData.mac40, st.patient.age || 40);
+                  
+                  // CA-1 Dynamic MAC Sensitization
+                  let macModifier = 1.0;
+                  if (st.vitals.temp < 36.0) macModifier -= (36.0 - st.vitals.temp) * 0.05; // 5% reduction per degree C
+                  if (st.patient.isSeptic) macModifier -= 0.1;
+                  if (currentHb < 5.0) macModifier -= 0.1;
+                  macModifier = Math.max(0.4, macModifier);
+                  
+                  const adjMac = calculateAgeAdjustedMAC(agentData.mac40, st.patient.age || 40) * macModifier;
                   const macContribution = gasState.Fb / adjMac;
                   currentMac += macContribution;
                   sedativeEff = 1 - (1 - sedativeEff) * (1 - Math.min(1, macContribution));
@@ -360,28 +373,49 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           if (safePaCO2 > 55) stimulus += (safePaCO2 - 55) * 2;
           const unbluntedStimulus = Math.max(0, stimulus * (1 - totalAnalgesia));
 
-          const VO2_sec = 0.250 / 60;
+          // === CA-1 PHASE 1 THERMOREGULATION & SHIVERING METABOLISM ===
+          let tempDropRate = 0.0001;
+          if (currentMac > 0.5 && st.time < 1800) { // First 30 mins (Redistribution Hypothermia)
+              tempDropRate = 0.0008; 
+          }
+          let newTemp = (st.vitals.temp || 37.0) - tempDropRate;
+          if (st.patient.cprActive) newTemp -= 0.002;
+
+          let shiveringMultiplier = 1.0;
+          // Trigger shivering if hypothermic during emergence (interthreshold range narrows)
+          if (newTemp < 35.5 && currentMac < 0.2 && maxNMJOccupancy < 0.5 && st.surgicalPhase === 'Emergence') {
+              // Shivering increases O2 consumption and CO2 production by up to 500%
+              shiveringMultiplier = Math.min(5.0, 1.0 + ((35.5 - newTemp) * 2.5)); 
+          }
+          
+          const VO2_sec = (0.250 * shiveringMultiplier) / 60; // Base 250ml/min -> scales up to 1250ml/min
+          const VCO2_sec = (0.200 * shiveringMultiplier) / 60; // Base 200ml/min -> scales up to 1000ml/min
 
           // === POSITIONAL PHYSIOLOGY MODIFIERS ===
           let positionFRCMod = 0;
           let positionPreloadMod = 0;
+          let positionHydrostaticMod = 0; // MAP difference at the circle of Willis
           const pos = st.patient.position || 'Supine';
 
+          // CA-1 Hydrostatic Rule: 7.4 mmHg per 10cm gradient between cuff and brain
           if (pos === 'Ramped' || pos === 'Rev Trendelenburg') {
               positionFRCMod = 0.3;
-              positionPreloadMod = -200; // Venous pooling
+              positionPreloadMod = -200; 
+              positionHydrostaticMod = -14.8; // ~20cm elevation
           } else if (pos === 'Sitting') {
               positionFRCMod = 0.5;
-              positionPreloadMod = -400; // Severe venous pooling
+              positionPreloadMod = -400; 
+              positionHydrostaticMod = -29.6; // ~40cm elevation (Beach chair)
           } else if (pos === 'Trendelenburg') {
-              positionFRCMod = -0.5; // Visceral compression
-              positionPreloadMod = 300; // Venous auto-transfusion
+              positionFRCMod = -0.5; 
+              positionPreloadMod = 300; 
+              positionHydrostaticMod = +14.8; // Brain is dependent
           } else if (pos === 'Lithotomy') {
               positionFRCMod = -0.4;
-              positionPreloadMod = 400; // Leg auto-transfusion
+              positionPreloadMod = 400; 
           } else if (pos === 'Prone') {
-              positionFRCMod = 0.2; // Posterior recruitment
-              positionPreloadMod = -100; // IVC compression risk
+              positionFRCMod = 0.2; 
+              positionPreloadMod = -100; 
           } else if (pos === 'Lateral') {
               positionFRCMod = -0.1;
           }
@@ -402,7 +436,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
           let newPip = 0; let newVte = 0; let newPplat = 0; let newPmean = 0; let newMv = 0; let newPeep = 0;
           const opioidRRDrop = opioidEff * 10;
-          let patientDriveRR = (st.patient.isApneic || st.patient.isParalyzed) ? 0 : Math.max(0, (st.targetVitals.rr || 12) + compensatoryRR + totalRrDelta - opioidRRDrop);
+          
+          // Shivering heavily overrides opioid respiratory depression
+          const shiveringRRDrive = (shiveringMultiplier > 1.5) ? (shiveringMultiplier * 4) : 0;
+          let patientDriveRR = (st.patient.isApneic || st.patient.isParalyzed) ? 0 : Math.max(0, (st.targetVitals.rr || 12) + compensatoryRR + shiveringRRDrive + totalRrDelta - opioidRRDrop);
           let targetRR = patientDriveRR;
 
           // === DYNAMIC PULMONARY MECHANICS ===
@@ -466,17 +503,21 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const baseTidalVolLiters = (st.patient.ibw * 7) / 1000;
           const baseAlvVent_L_min = (baseTidalVolLiters - deadSpace) * (st.targetVitals.rr || 12);
           
-          // COPD dictates a severely elevated baseline CO2
           const baselinePaCO2 = st.patient.copd ? 55 : (st.patient.isObese ? 48 : 40);
 
           let targetPaCO2;
           let targetEtco2 = 0;
 
+          // CA-1 Strict Apnea Calculus (6mmHg in 1st min, 3mmHg thereafter)
           if (targetRR === 0 || currentAlvVent_L_min <= 0.1) {
-              targetPaCO2 = safePaCO2 + 0.05; 
+              const currentApneaDuration = st.patient.apneaStartTime ? (st.time - st.patient.apneaStartTime) : 0;
+              const co2RiseRate_sec = (currentApneaDuration < 60) ? (6/60) : (3/60);
+              
+              // Shivering (high VCO2) multiplies this rise linearly
+              targetPaCO2 = safePaCO2 + (co2RiseRate_sec * shiveringMultiplier);
               targetEtco2 = 0;
           } else {
-              targetPaCO2 = baselinePaCO2 * (baseAlvVent_L_min / currentAlvVent_L_min);
+              targetPaCO2 = baselinePaCO2 * ((baseAlvVent_L_min * shiveringMultiplier) / Math.max(0.1, currentAlvVent_L_min));
               targetPaCO2 = Math.max(15, Math.min(120, targetPaCO2)); 
               let co2Gradient = st.patient.isObese ? 7 : (st.patient.copd ? 10 : 4);
               if (safeSys < 80) co2Gradient += (80 - safeSys) * 0.5; 
@@ -485,11 +526,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let newPaCO2 = safePaCO2 + (targetPaCO2 - safePaCO2) * 0.05;
 
           // === HEMODYNAMIC COUPLING ===
-          let currentEbl = (st.patient.ebl || 0) + (st.patient.bleedRate || 0);
-          const bloodLossRatio = currentEbl / (st.patient.ebv || 5000);
-
+          // Autonomic baroreflex to drug-induced SVR changes (Reflex bradycardia/tachycardia)
           let autonomicHrMod = 0;
-          if (drugSvrMod > 1.5 && currentMac < 0.5) autonomicHrMod = -20; 
+          if (drugSvrMod > 1.5 && currentMac < 0.5) autonomicHrMod = -20; // Reflex bradycardia to pure alpha agonists if un-anesthetized
+          else if (drugSvrMod < 0.7 && currentMac < 0.5) autonomicHrMod = 25; // Reflex tachycardia to vasodilators
 
           // Gravitational shift mathematically modifies circulating volume equivalent
           const effectiveIntravascularVolume = st.intravascularVolume + positionPreloadMod;
@@ -497,7 +537,9 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const inotropyFinal = 1.0 - ((st.patient.myocardialStunning || 0) / 100) + (unbluntedStimulus / 500) + (drugInotropyMod - 1.0);
           const preloadSV = Math.max(0.1, 1.0 - (bloodLossRatio * 1.2) + (effectiveIntravascularVolume / 2500));
           
-          const targetHR = Math.max(0, (st.targetVitals.hr || 70) + totalHrDelta + autonomicHrMod + (bloodLossRatio * 150) + unbluntedStimulus);
+          // Shivering acts as massive sympathetic stimulus
+          const shiveringHRDrive = (shiveringMultiplier > 1.0) ? ((shiveringMultiplier - 1.0) * 15) : 0;
+          const targetHR = Math.max(0, (st.targetVitals.hr || 70) + totalHrDelta + autonomicHrMod + (bloodLossRatio * 150) + unbluntedStimulus + shiveringHRDrive);
           
           // CHF cripples max stroke volume capacity
           const chfInotropicPenalty = st.patient.chf ? 0.5 : 1.0;
@@ -526,28 +568,36 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let newHr = (st.vitals.hr || 70) + (targetHR - (st.vitals.hr || 70)) * 0.1 + hrNoise;
           let newSys = safeSys + (targetSys - safeSys) * 0.1 + sysNoise;
           let newDia = safeDia + (targetDia - safeDia) * 0.1 + diaNoise;
+          
+          // CA-1 Hydrostatic Perfusion Calculation
+          const newMap = Math.round((newSys + 2*newDia)/3);
+          const newCmap = Math.max(0, newMap + positionHydrostaticMod);
+          
           // === ACID-BASE CALCULUS ===
           const baseDeficit = (st.patient.isSeptic ? 8 : 0) + (bloodLossRatio * 20);
           const hco3 = Math.max(8, 24 - baseDeficit);
           let newPh = 6.1 + Math.log10(hco3 / (0.03 * newPaCO2));
 
-          // === ADVANCED OXYGENATION CALCULUS (FICK PRINCIPLE & RILEY SHUNT) ===
+          // === CA-1 ADVANCED OXYGENATION CALCULUS (FICK PRINCIPLE & RILEY SHUNT) ===
           const PAO2 = (713 * (currentBuffer / 100)) - (newPaCO2 / 0.8);
-          const AaGradient = (st.patient.age * 0.3) + (st.patient.isObese ? 12 : 5);
+          // Standard Age-adjusted A-a gradient formula + pathological modifiers
+          const baseAaGradient = (st.patient.age / 4) + 4; 
+          const AaGradient = baseAaGradient + (st.patient.isObese ? 12 : 0) + (st.patient.isSeptic ? 15 : 0);
           const capillaryPO2 = Math.max(10, PAO2 - AaGradient);
 
-          const bohrShift = Math.pow(10, 0.48 * (newPh - 7.4) - 0.024 * ((st.vitals.temp || 37.0) - 37.0));
+          // Advanced Bohr Shift (Includes Volatiles & massive transfusion 2,3-DPG depletion)
+          const dpgDepletionShift = Math.min(0.15, (st.intravascularVolume / 5000) * 0.1); 
+          const volatileRightShift = currentMac * 0.05; 
+          const bohrShift = Math.pow(10, 0.48 * (newPh - 7.4) - 0.024 * ((st.vitals.temp || 37.0) - 37.0) - volatileRightShift + dpgDepletionShift);
+          
           const effectiveCapillaryPO2 = capillaryPO2 * bohrShift;
-
           const ScO2 = Math.min(100, ((Math.pow(effectiveCapillaryPO2, 3) + 150 * effectiveCapillaryPO2) / (Math.pow(effectiveCapillaryPO2, 3) + 150 * effectiveCapillaryPO2 + 23400)) * 100);
-
-          const baseHb = st.patient.trauma ? 11.2 : 14.5;
-          const currentHb = Math.max(3.0, (baseHb * (1 - bloodLossRatio)) - ((st.intravascularVolume / (st.patient.ebv || 5000)) * 3.0));
           
           const capillaryO2Content = (currentHb * 1.34 * (ScO2 / 100)) + (capillaryPO2 * 0.0031);
-          const VO2 = st.patient.weight * 3.5; 
+          const VO2_ml_min = VO2_sec * 60 * 1000; 
           
-          const venousO2Content = Math.max(1.0, capillaryO2Content - (VO2 / (Math.max(0.5, targetCO) * 10)));
+          // Fick Equation for Venous O2
+          const venousO2Content = Math.max(1.0, capillaryO2Content - (VO2_ml_min / (Math.max(0.5, targetCO) * 10)));
           
           const actualShunt = st.patient.shuntFraction || 0.05;
           const arterialO2Content = (capillaryO2Content * (1 - actualShunt)) + (venousO2Content * actualShunt);
@@ -567,7 +617,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           if (Math.abs(targetEtco2 - (st.vitals.etco2 || 40)) < 1.5) newEtco2 = targetEtco2;
 
           let hypoxiaSeverity = Math.max(0, 90 - newSpo2);
-          let hypoPerfusionSeverity = Math.max(0, 55 - targetMAP);
+          // Brain uses cmap for ischemic thresholds
+          let hypoPerfusionSeverity = Math.max(0, 55 - newCmap); 
           
           let newDamage = (st.patient.ischemicDamage || 0) + (hypoxiaSeverity * 0.4) + (hypoPerfusionSeverity * 0.7);
           if (st.patient.cprActive) newDamage = Math.max(0, newDamage - 1.5); 
@@ -621,8 +672,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const corticalSuppression = aggregateHypnosis;
           const burstSuppression = Math.max(0, (currentMac - 1.5) * 40); 
           let targetBis = 98 - (corticalSuppression * 55) - burstSuppression;
-          if (targetMAP < 50) {
-              const ischemicSlowing = (50 - targetMAP) * 1.5;
+          if (newCmap < 50) {
+              const ischemicSlowing = (50 - newCmap) * 1.5;
               targetBis -= ischemicSlowing;
           }
           let finalBis = Math.max(0, Math.min(98, targetBis + (unbluntedStimulus * 0.2)));
@@ -655,20 +706,25 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               
               let newThreshold = prev.arrestThreshold || 1200;
               if (spontaneousRosc) newThreshold = newDamage + 1500;
+              
+              // Apnea Tracker logic
+              let newApneaStart = prev.apneaStartTime;
+              if ((targetRR === 0 || currentAlvVent_L_min <= 0.1) && !prev.apneaStartTime) newApneaStart = time;
+              else if (targetRR > 0 && currentAlvVent_L_min > 0.1) newApneaStart = null;
 
               return { 
                   ...prev, ebl: currentEbl, oxygenBuffer: currentBuffer, 
                   ischemicDamage: newDamage, isArrest: currentIsArrest, biologicalDeath: bioDeath,
                   cardiacRhythm: activeRhythm, myocardialStunning: Math.max(0, (prev.myocardialStunning || 0) - 0.2),
-                  codeStartTime: codeTime, arrestThreshold: newThreshold
+                  codeStartTime: codeTime, arrestThreshold: newThreshold, apneaStartTime: newApneaStart
               };
           });
 
           setVitals(prev => ({
               ...prev, hr: Math.round(newHr), sys: Math.max(0, Math.round(newSys)), dia: Math.max(0, Math.round(newDia)),
-              co: targetCO, svr: targetSVR, map: Math.round((newSys + 2*newDia)/3),
+              co: targetCO, svr: targetSVR, map: newMap, cmap: newCmap,
               spo2: Math.round(newSpo2), etco2: Math.max(0, Math.round(newEtco2)), rr: Math.round(newRr),
-              temp: (prev.temp || 37.0) - 0.0001, bis: Math.round(finalBis), 
+              temp: newTemp, bis: Math.round(finalBis), 
               tofCount: targetTofCount, tofRatio: targetTofRatio,
               vte: Math.round(newVte), pip: Math.round(newPip), pplat: Math.round(newPplat), 
               peep: newPeep, pmean: Math.round(newPmean), mv: newMv,

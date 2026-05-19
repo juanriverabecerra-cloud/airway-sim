@@ -1,0 +1,811 @@
+{
+  "metadata": {
+    "sourceId": "CA1_2025",
+    "sourceName": "Stanford CA-1 Tutorial Textbook 2025",
+    "version": "1.0",
+    "lastUpdated": "2026-05-17"
+  },
+  "database": {
+    "PreOpLabIndications": {
+      "BMP": [
+        {"condition": "Age >= 65 and major surgery", "action": "Order BMP", "citations": ["CA1_2025:121", "CA1_2025:122"]},
+        {"condition": "Age < 65 and major surgery with expected significant blood loss or neuraxial technique", "action": "Order BMP", "citations": ["CA1_2025:123"]},
+        {"condition": "Age > 60 and intermediate/major surgery", "action": "Order BMP", "citations": ["CA1_2025:124"]}
+      ],
+      "HbA1c": [
+        {"condition": "Cardiac/vascular surgery", "action": "Order HbA1c", "citations": ["CA1_2025:125"]},
+        {"condition": "Diabetics", "action": "Order HbA1c", "citations": ["CA1_2025:125"]}
+      ],
+      "Pregnancy": [
+        {"condition": "All women of child-bearing age", "action": "Order Pregnancy Test", "citations": ["CA1_2025:133"]}
+      ],
+      "Coags": [
+        {"condition": "Routine surgery in absence of risk factors", "action": "Do NOT routinely order", "citations": ["CA1_2025:128"]}
+      ],
+      "LFTs": [
+        {"condition": "Absence of specific H&P exam findings", "action": "Rarely indicated", "citations": ["CA1_2025:127"]}
+      ]
+    },
+    "PerioperativeMedicationManagement": {
+      "Endocrine": {
+        "Oral_Hypoglycemics": {"dayOfSurgery": "Stop", "citations": ["CA1_2025:153"]},
+        "Basal_Insulin": {"dayOfSurgery": "Continue 1/2 or full dose", "note": "Schedule in AM. If poorly controlled, may need closer to usual dose.", "citations": ["CA1_2025:153"]},
+        "Metformin": {"dayOfSurgery": "Discontinue day of surgery if low risk. Discontinue 24-48hrs prior if renal disease.", "citations": ["CA1_2025:154", "CA1_2025:155"]},
+        "SGLT_2_Inhibitors": {"preOpHold": "Stop 3-4 days prior", "citations": ["CA1_2025:156"]},
+        "GLP_1_Agonists": {
+          "dailyDose": {"preOpHold": "Hold on day of surgery", "citations": ["CA1_2025:159"]},
+          "weeklyDose": {"preOpHold": "Hold 1 week prior", "citations": ["CA1_2025:160"]},
+          "ifNotHeld": {"action": "Discuss aspiration risk, consider gastric US, reschedule elective, or do RSI for urgent", "citations": ["CA1_2025:161"]}
+        },
+        "Steroids": {
+          "stressDoseNotNeeded": ["Any dose < 3 weeks", "5mg Prednisone/day or equivalent", "10mg Prednisone every other day"],
+          "suppressedHPA_Axis": [">20mg Prednisone/day for > 3wks", "Clinical Cushing's syndrome"],
+          "equivalencies": "4mg Decadron = 27mg Prednisone = 107mg Hydrocortisone",
+          "inductionDose": "50-100mg Hydrocortisone",
+          "citations": ["CA1_2025:220", "CA1_2025:221", "CA1_2025:222", "CA1_2025:223", "CA1_2025:225", "CA1_2025:226", "CA1_2025:227", "CA1_2025:228", "CA1_2025:233"]
+        }
+      },
+      "Cardiovascular": {
+        "ACE_Inhibitors_ARBs": {"dayOfSurgery": "Stop", "risk": "Refractory hypotension under anesthesia", "restart": "Must restart within 48 hours to prevent increased 30-day mortality", "citations": ["CA1_2025:175", "CA1_2025:176", "CA1_2025:177"]},
+        "Diuretics": {"dayOfSurgery": "Stop", "citations": ["CA1_2025:175"]},
+        "Beta_Blockers": {
+          "chronic": {"action": "Continue (Class 1)", "citations": ["CA1_2025:197"]},
+          "initiation": {"action": "Begin 1 day before (ideal >2-7 days) if 3+ RCRI factors or moderate/severe ischemia", "targetHR": "60-70", "citations": ["CA1_2025:198", "CA1_2025:199", "CA1_2025:200", "CA1_2025:201"]},
+          "dayOfSurgery": {"action": "DO NOT START on day of surgery (Class III)", "citations": ["CA1_2025:202"]}
+        },
+        "CCB_Alpha2Agonists": {"dayOfSurgery": "Continue", "citations": ["CA1_2025:174"]},
+        "Statins": {"dayOfSurgery": "Continue", "citations": ["CA1_2025:179"]}
+      },
+      "Pulmonary_Psych_Neuro": {
+        "Inhalers": {"dayOfSurgery": "Continue all", "citations": ["CA1_2025:205"]},
+        "Theophylline": {"preOpHold": "Discontinue day before", "citations": ["CA1_2025:206"]},
+        "MAOIs": {"note": "Avoid Meperidine/Tramadol and Ephedrine due to serotonin syndrome risk", "citations": ["CA1_2025:209"]},
+        "TCAs": {"action": "Continue but obtain EKG for QT prolongation", "citations": ["CA1_2025:210"]},
+        "SSRIs": {"risk": "Increased bleeding in neurosurgery. May discontinue 3wks before if high risk.", "citations": ["CA1_2025:212"]}
+      },
+      "Hematologic_GI": {
+        "Aspirin": {"preOpHold": "Hold prior to intracranial neurosurgery, middle ear, posterior eye, intramedullary spine, prostate", "citations": ["CA1_2025:183"]},
+        "NSAIDs": {"preOpHold": "Hold 5 days prior", "note": "Salicylate has no anti-platelet activity", "citations": ["CA1_2025:184", "CA1_2025:185", "CA1_2025:186"]},
+        "PPI_H2Blockers": {"dayOfSurgery": "Continue", "citations": ["CA1_2025:171"]},
+        "Estrogens": {
+          "lowRiskVTE": {"action": "Continue", "citations": ["CA1_2025:167"]},
+          "highRiskVTE": {"preOpHold": "Stop OCPs 4 weeks prior. Stop postmenopausal replacements 2 weeks prior. Stop SERMs 2 weeks prior (Raloxifene 3 days prior)", "citations": ["CA1_2025:168", "CA1_2025:169"]}
+        }
+      }
+    },
+    "PulseOximetryPhysics": {
+      "Wavelengths": {
+        "Red": {"nm": 660, "absorbs": "Deoxygenated Hemoglobin (Hb)", "citations": ["CA1_2025:514"]},
+        "Infrared": {"nm": 940, "absorbs": "Oxygenated Hemoglobin (O2Hb)", "citations": ["CA1_2025:514"]}
+      },
+      "SignalRatio": {
+        "Formula": "R = (AC/DC)660 / (AC/DC)940",
+        "IsosbesticPoint": {"R_Value": "1:1", "CorrespondsToSpO2": "85%", "citations": ["CA1_2025:522", "CA1_2025:529"]}
+      },
+      "CyanosisThreshold": {"DesaturatedHb_g_dL": 5.0, "ClinicalSpO2": "< 85%", "citations": ["CA1_2025:555", "CA1_2025:556"]}
+    },
+    "Electrocardiography": {
+      "LeadSensitivities": {
+        "Lead_II": {"bestFor": ["Atrial dysrhythmias", "P waves", "Sinus rhythm"], "citations": ["CA1_2025:564", "CA1_2025:584", "CA1_2025:586"]},
+        "Lead_V5": {"bestFor": ["Ischemic events"], "sensitivity": "75%", "placement": "Left anterior axillary line, 5th ICS", "citations": ["CA1_2025:567", "CA1_2025:568"]},
+        "Lead_II_V5_Combo": {"sensitivity": "80%", "citations": ["CA1_2025:569"]},
+        "Lead_II_V4_V5_Combo": {"sensitivity": "98%", "citations": ["CA1_2025:570"]}
+      },
+      "PlacementMnemonic": "Smoke over fire (Black over Red on Left). Clouds over grass (White over Green on Right). White/Green on Right.",
+      "citations": ["CA1_2025:581", "CA1_2025:582"]
+    },
+    "HemodynamicsPhysics": {
+      "NIBP": {
+        "MAP_Formula": "MAP = (SBP + 2DBP) / 3",
+        "BladderCoverage": "> 80% of extremity",
+        "BladderWidth": "> 40% arm circumference",
+        "citations": ["CA1_2025:596", "CA1_2025:597", "CA1_2025:602"]
+      },
+      "HydrostaticConversion": {
+        "cmH2O_to_mmHg": 0.74,
+        "10cm_height_change": "7.4 mmHg",
+        "citations": ["CA1_2025:641", "CA1_2025:642", "CA1_2025:643"]
+      },
+      "ArterialLineAmplification": {
+        "DistalEffects": ["Later dicrotic notch", "Higher systolic pressure (widened pulse pressure)", "MAP is unchanged"],
+        "citations": ["CA1_2025:686"]
+      }
+    },
+    "TemperatureMonitoringSites": {
+      "Core_Accurate": {
+        "PulmonaryArtery": "Gold Standard",
+        "Distal_1_3_Esophagus": "Correlates well with core (avoid if esophageal varices)",
+        "Nasopharyngeal": "Correlates well with core/brain (caution coagulopathy/epistaxis)",
+        "TympanicMembrane": "Approximates brain/hypothalamic temp",
+        "citations": ["CA1_2025:809", "CA1_2025:810", "CA1_2025:811", "CA1_2025:812", "CA1_2025:813", "CA1_2025:814"]
+      },
+      "Inaccurate_Delayed": {
+        "Bladder": "Delayed, depends on high urine flow",
+        "Axillary": "Varies by skin perfusion",
+        "Rectal": "Affected by LE venous return, stool insulation",
+        "Skin": "Inaccurate",
+        "citations": ["CA1_2025:816", "CA1_2025:817", "CA1_2025:818", "CA1_2025:819"]
+      },
+      "HeatLossMechanisms_GA": {
+        "Phase_1": "Redistribution (vasodilation shifting blood from core to periphery)",
+        "Phase_2": "Radiation (primary loss to colder environment)",
+        "citations": ["CA1_2025:820", "CA1_2025:828", "CA1_2025:829"]
+      }
+    },
+    "InhalationalAgents": {
+      "Desflurane": {
+        "bloodGasPartition": 0.45,
+        "vaporPressure_mmHg": 669,
+        "mac_1_0": 6.0,
+        "oilGasPartition": 19,
+        "properties": [
+          "Lowest blood:gas solubility coefficient",
+          "Boils at sea level, requires heated pressurized vaporizer (2 atm)",
+          "Very pungent / airway irritant (causes breath-holding, bronchospasm, laryngospasm)",
+          "Sympathetic surge (tachycardia, HTN) if rapidly increased",
+          "High risk of CO formation in desiccated absorbent"
+        ],
+        "citations": ["CA1_2025:972", "CA1_2025:1064", "CA1_2025:1065", "CA1_2025:1066", "CA1_2025:1068", "CA1_2025:1069", "CA1_2025:1070", "CA1_2025:1071", "CA1_2025:1171"]
+      },
+      "NitrousOxide": {
+        "bloodGasPartition": 0.46,
+        "vaporPressure_mmHg": 38770,
+        "mac_1_0": 104.0,
+        "oilGasPartition": 1.3,
+        "properties": [
+          "Low potency (cannot reach 1 MAC at 1 atm)",
+          "Does NOT produce skeletal muscle relaxation",
+          "Diffuses into air-filled cavities (pneumothorax, bowel, middle ear, ETT cuff)",
+          "NMDA antagonist analgesic effects",
+          "Prolonged exposure causes bone marrow depression and megaloblastic anemia",
+          "NOT a trigger for Malignant Hyperthermia"
+        ],
+        "citations": ["CA1_2025:972", "CA1_2025:1028", "CA1_2025:1032", "CA1_2025:1033", "CA1_2025:1035", "CA1_2025:1036", "CA1_2025:1037", "CA1_2025:1171"]
+      },
+      "Sevoflurane": {
+        "bloodGasPartition": 0.65,
+        "vaporPressure_mmHg": 160,
+        "mac_1_0": 2.0,
+        "oilGasPartition": 50,
+        "properties": [
+          "Sweet smelling, non-pungent (ideal for mask induction)",
+          "Breaks down to Compound A in alkali absorbents (except calcium hydroxide)",
+          "Highest production of fluoride ions",
+          "Can induce emergence agitation in pediatrics"
+        ],
+        "citations": ["CA1_2025:972", "CA1_2025:1057", "CA1_2025:1058", "CA1_2025:1059", "CA1_2025:1060", "CA1_2025:1061", "CA1_2025:1171"]
+      },
+      "Isoflurane": {
+        "bloodGasPartition": 1.46,
+        "vaporPressure_mmHg": 240,
+        "mac_1_0": 1.2,
+        "oilGasPartition": 90.8,
+        "properties": [
+          "Highly pungent",
+          "Metabolized to trifluoroacetic acid",
+          "Cardioprotective (ischemic preconditioning)",
+          "Increases CBF (at 1.6 MAC) and ICP (at >1 MAC)",
+          "Produces electrically silent EEG at 2 MAC"
+        ],
+        "citations": ["CA1_2025:972", "CA1_2025:1043", "CA1_2025:1045", "CA1_2025:1049", "CA1_2025:1050", "CA1_2025:1051", "CA1_2025:1053", "CA1_2025:1171"]
+      }
+    },
+    "IntravenousAgents": {
+      "Propofol": {
+        "inductionDose_mg_kg": "1.5-2.5",
+        "infusion_mcg_kg_min": "100-200 (Hypnosis), 25-75 (Sedation)",
+        "duration_min": "2-8",
+        "Vd_L_kg": "2-10",
+        "t1_2_min": "2-4",
+        "proteinBinding_percent": 97,
+        "clearance_ml_kg_min": "20-30",
+        "targetReceptor": "GABA",
+        "clinicalEffects": {
+          "neuro": "Decreases CMRO2, CBF, ICP. Anticonvulsant.",
+          "cv": "Decreases SVR, direct myocardial depression.",
+          "pulm": "Dose-dependent respiratory depression/apnea. Bronchodilator.",
+          "special": "Antiemetic properties. Pain on injection."
+        },
+        "citations": ["CA1_2025:1444", "CA1_2025:1455", "CA1_2025:1456", "CA1_2025:1460", "CA1_2025:1463", "CA1_2025:1464", "CA1_2025:1465", "CA1_2025:1466", "CA1_2025:1468", "CA1_2025:1469"]
+      },
+      "Etomidate": {
+        "inductionDose_mg_kg": "0.2-0.3",
+        "duration_min": "3-8",
+        "Vd_L_kg": "2.5-4.5",
+        "t1_2_min": "2-4",
+        "proteinBinding_percent": 77,
+        "clearance_ml_kg_min": "18-25",
+        "targetReceptor": "GABA",
+        "clinicalEffects": {
+          "neuro": "Decreases CMRO2, CBF, ICP.",
+          "cv": "Maintains hemodynamic stability. Minimal change to HR or CO.",
+          "pulm": "Respiratory depression (less than propofol).",
+          "special": "Myoclonus, hiccups, thrombophlebitis. Adrenocortical inhibition (4-8 hours). High PONV."
+        },
+        "citations": ["CA1_2025:1455", "CA1_2025:1482", "CA1_2025:1486", "CA1_2025:1487", "CA1_2025:1488", "CA1_2025:1489", "CA1_2025:1491", "CA1_2025:1493", "CA1_2025:1494"]
+      },
+      "Ketamine": {
+        "inductionDose_mg_kg": "1-2",
+        "duration_min": "5-10",
+        "Vd_L_kg": "1.1-1.6",
+        "t1_2_min": "3.1",
+        "proteinBinding_percent": 12,
+        "clearance_ml_kg_min": "12-17",
+        "targetReceptor": "NMDA Antagonist",
+        "clinicalEffects": {
+          "neuro": "Increases CMRO2 and CBF. Analgesia & Amnesia. Psychomimetic reactions.",
+          "cv": "Increases BP, HR, and CO (unless catecholamine depleted).",
+          "pulm": "Minimal respiratory depression. Bronchodilation. Increased secretions. Risk of laryngospasm.",
+          "special": "Low protein binding. S(+) enantiomer is more potent."
+        },
+        "citations": ["CA1_2025:1448", "CA1_2025:1455", "CA1_2025:1510", "CA1_2025:1515", "CA1_2025:1516", "CA1_2025:1518", "CA1_2025:1519", "CA1_2025:1520", "CA1_2025:1521", "CA1_2025:1526", "CA1_2025:1527", "CA1_2025:1529", "CA1_2025:1538"]
+      },
+      "Midazolam": {
+        "inductionDose_mg_kg": "0.1-0.3",
+        "premedicationDose_mg_kg": "0.02-0.04",
+        "duration_min": "15-20",
+        "Vd_L_kg": "1.1-1.7",
+        "t1_2_min": "7-15",
+        "proteinBinding_percent": 94,
+        "clearance_ml_kg_min": "6.4-11",
+        "targetReceptor": "GABA",
+        "clinicalEffects": {
+          "neuro": "Anterograde amnesia, anxiolysis, anticonvulsant. Decreases CMRO2/CBF.",
+          "cv": "Hemodynamically stable (decreases BP in large doses).",
+          "pulm": "Dose-dependent respiratory depression (synergistic with opioids)."
+        },
+        "citations": ["CA1_2025:1445", "CA1_2025:1455", "CA1_2025:1543", "CA1_2025:1544", "CA1_2025:1549", "CA1_2025:1550", "CA1_2025:1551", "CA1_2025:1552", "CA1_2025:1554"]
+      },
+      "Dexmedetomidine": {
+        "loadingDose_mcg_kg": "0.5-1.0 (over 10 min)",
+        "infusion_mcg_kg_hr": "0.4-1.2",
+        "duration_min": "N/A",
+        "Vd_L_kg": "2-3",
+        "t1_2_min": "120 (terminal)",
+        "proteinBinding_percent": 94,
+        "clearance_ml_kg_min": "10-30",
+        "targetReceptor": "Alpha-2 Agonist (Central)",
+        "clinicalEffects": {
+          "neuro": "Decreases CBF, CMRO2, ICP. Analgesia. Mimics natural sleep EEG. Reduces postoperative delirium.",
+          "cv": "Bradycardia and hypotension (initial hypertension with bolus).",
+          "pulm": "Minimal respiratory depression."
+        },
+        "citations": ["CA1_2025:1450", "CA1_2025:1451", "CA1_2025:1452", "CA1_2025:1455", "CA1_2025:1569", "CA1_2025:1570", "CA1_2025:1571", "CA1_2025:1574", "CA1_2025:1575", "CA1_2025:1576", "CA1_2025:1577", "CA1_2025:1578", "CA1_2025:1580", "CA1_2025:1584"]
+      }
+    },
+    "SedationLevels": {
+      "Minimal": {"Responsiveness": "Normal response to verbal", "Airway": "Unaffected", "SpontaneousVentilation": "Unaffected", "CV": "Unaffected", "citations": ["CA1_2025:1288", "CA1_2025:1289"]},
+      "Moderate": {"Responsiveness": "Purposeful to verbal/tactile", "Airway": "No intervention required", "SpontaneousVentilation": "Adequate", "CV": "Usually maintained", "citations": ["CA1_2025:1290", "CA1_2025:1291"]},
+      "Deep": {"Responsiveness": "Purposeful to repeated/painful stimulus", "Airway": "Intervention may be required", "SpontaneousVentilation": "May be inadequate", "CV": "Usually maintained", "citations": ["CA1_2025:1293", "CA1_2025:1294", "CA1_2025:1295"]},
+      "GeneralAnesthesia": {"Responsiveness": "Unarousable to pain", "Airway": "Intervention often required", "SpontaneousVentilation": "Frequently inadequate", "CV": "May be impaired", "citations": ["CA1_2025:1296", "CA1_2025:1297", "CA1_2025:1298", "CA1_2025:1299", "CA1_2025:1300"]}
+    },
+    "Opioids": {
+      "Equivalencies": {
+        "Morphine_10mg_IV": {
+          "Fentanyl_IV": "100 mcg",
+          "Hydromorphone_IV": "1.5 mg",
+          "Meperidine_IV": "75 mg",
+          "Methadone_IV": "10 mg",
+          "citations": ["CA1_2025:1491", "CA1_2025:1492", "CA1_2025:1494", "CA1_2025:1497", "CA1_2025:1498"]
+        }
+      },
+      "ReceptorSubtypes": {
+        "Mu": {
+          "Effects": ["Supraspinal analgesia (u1)", "Respiratory depression (u2)", "Physical dependence", "Muscle rigidity", "Nausea", "Pruritus"],
+          "Agonists": ["Morphine", "Fentanyl", "Met-enkephalin", "B-endorphin"],
+          "citations": ["CA1_2025:1231", "CA1_2025:1234", "CA1_2025:1235", "CA1_2025:1236", "CA1_2025:1237", "CA1_2025:1238", "CA1_2025:1239", "CA1_2025:1244", "CA1_2025:1247"]
+        },
+        "Kappa": {
+          "Effects": ["Sedation", "Spinal analgesia", "Decreased itching"],
+          "Agonists": ["Morphine", "Nalbuphine", "Butorphanol", "Oxycodone"],
+          "citations": ["CA1_2025:1250", "CA1_2025:1251", "CA1_2025:1248", "CA1_2025:1249", "CA1_2025:1252", "CA1_2025:1254"]
+        }
+      },
+      "Metabolism": {
+        "Remifentanil": {
+          "Pathway": "Non-specific plasma and RBC esterases",
+          "Notes": "Context-independent metabolism; lasts 5-10 min regardless of infusion duration",
+          "citations": ["CA1_2025:1329", "CA1_2025:1330", "CA1_2025:1349", "CA1_2025:1351"]
+        }
+      }
+    },
+    "HemodynamicEquations": {
+      "CardiacOutput_CO": {"Formula": "HR x SV", "citations": ["CA1_2025:1726"]},
+      "StrokeVolume_SV": {"Formula": "EDV - ESV", "citations": ["CA1_2025:1727"]},
+      "EjectionFraction_EF": {"Formula": "(SV / EDV) * 100", "citations": ["CA1_2025:1728"]},
+      "MeanArterialPressure_MAP": {"Formula": "[(2 x DBP) + SBP] / 3", "citations": ["CA1_2025:1729"]},
+      "CoronaryPerfusionPressure_CPP": {"Formula": "AoDP - LVEDP", "citations": ["CA1_2025:1729"]},
+      "SystemicVascularResistance_SVR": {"Formula": "[(MAP - CVP) / CO] * 80", "Units": "dynes x sec/cm5", "citations": ["CA1_2025:1729", "CA1_2025:1730"]}
+    },
+    "VasopressorsAndInotropes": {
+      "Phenylephrine": {
+        "Bolus_mcg": "50-100",
+        "Onset_min": "<1",
+        "Duration_min": "10-15",
+        "Receptors": {"Alpha1": "+++", "Beta1": "0", "Beta2": "0"},
+        "Physiology": "Increased SVR, Decreased/Neutral CO",
+        "citations": ["CA1_2025:1681", "CA1_2025:1683", "CA1_2025:1684", "CA1_2025:1703", "CA1_2025:1704", "CA1_2025:1722"]
+      },
+      "Norepinephrine": {
+        "Bolus_mcg": "5-10",
+        "Onset_min": "<1",
+        "Duration_min": "1-2",
+        "Receptors": {"Alpha1": "+++", "Beta1": "++", "Beta2": "0"},
+        "Physiology": "Greatly Increased SVR, Neutral/Increased CO",
+        "citations": ["CA1_2025:1681", "CA1_2025:1683", "CA1_2025:1688", "CA1_2025:1700", "CA1_2025:1704"]
+      },
+      "Epinephrine": {
+        "Bolus_mcg": "5-10",
+        "Onset_min": "<1",
+        "Duration_min": "<5",
+        "Receptors": {"Alpha1": "+++", "Beta1": "+++", "Beta2": "++"},
+        "Physiology": "Increased CO, Decreased SVR (low dose), Increased SVR (high dose)",
+        "citations": ["CA1_2025:1682", "CA1_2025:1683", "CA1_2025:1690", "CA1_2025:1709", "CA1_2025:1710", "CA1_2025:1711", "CA1_2025:1712", "CA1_2025:1713"]
+      },
+      "Ephedrine": {
+        "Bolus_mg": "5-10",
+        "Onset_min": "1-2",
+        "Duration_min": "60",
+        "Receptors": {"Alpha1": "++", "Beta1": "+++", "Beta2": "++"},
+        "Physiology": "Increased CO, Decreased SVR",
+        "citations": ["CA1_2025:1681", "CA1_2025:1683", "CA1_2025:1688", "CA1_2025:1705", "CA1_2025:1707"]
+      },
+      "Vasopressin": {
+        "Bolus_unit": "0.5-1",
+        "Onset_min": "<1",
+        "Duration_min": "30-60",
+        "Receptors": "V1",
+        "Physiology": "Increased SVR",
+        "citations": ["CA1_2025:1681", "CA1_2025:1683", "CA1_2025:1685"]
+      }
+    },
+    "NeuromuscularBlockingAgents": {
+      "Succinylcholine": {
+        "Type": "Depolarizing",
+        "ED95_mg_kg": 0.3,
+        "IntubatingDose_mg_kg": "1-1.5",
+        "Onset_min": "1-1.5",
+        "Duration_min": "6-8",
+        "Metabolism": "Plasma cholinesterase (pseudocholinesterase)",
+        "citations": ["CA1_2025:1770", "CA1_2025:1772", "CA1_2025:1773", "CA1_2025:1777", "CA1_2025:1877"]
+      },
+      "Rocuronium": {
+        "Type": "Non-Depolarizing",
+        "ED95_mg_kg": 0.3,
+        "IntubatingDose_mg_kg": "0.6 (RSI: 1-1.2)",
+        "Onset_min": "1.5-2 (RSI: 1)",
+        "Duration_min": "30-40 (RSI: >60)",
+        "Metabolism": ">70% Liver, Bile, Urine",
+        "citations": ["CA1_2025:1877"]
+      },
+      "Vecuronium": {
+        "Type": "Non-Depolarizing",
+        "ED95_mg_kg": 0.05,
+        "IntubatingDose_mg_kg": "0.1-0.2",
+        "Onset_min": "3-4",
+        "Duration_min": "35-45",
+        "Metabolism": "50% Liver, Bile, Urine (Active 3-OH metabolite)",
+        "citations": ["CA1_2025:1877", "CA1_2025:1878"]
+      },
+      "Cisatracurium": {
+        "Type": "Non-Depolarizing",
+        "ED95_mg_kg": 0.05,
+        "IntubatingDose_mg_kg": "0.15-0.2",
+        "Onset_min": "5-7",
+        "Duration_min": "35-45",
+        "Metabolism": "Hofmann elimination",
+        "citations": ["CA1_2025:1877"]
+      }
+    },
+    "TrainOfFourMonitoring": {
+      "Stages": [
+        {"TOF_Ratio": ">0.9", "Status": "Full recovery", "citations": ["CA1_2025:1902"]},
+        {"TOF_Ratio": "0.7-0.75", "Status": "Partial recovery", "citations": ["CA1_2025:1900"]}
+      ]
+    },
+    "Fluids": {
+      "Crystalloids": {
+        "NormalSaline": {
+          "Osm_mOsm_L": 308,
+          "Na_mEq_L": 154,
+          "Cl_mEq_L": 154,
+          "K_mEq_L": 0,
+          "Ca_mEq_L": 0,
+          "Buffer": "None",
+          "Disadvantages": "Produces hyperchloremic metabolic acidosis in large volumes; decreases GFR",
+          "citations": ["CA1_2025:2522", "CA1_2025:2528"]
+        },
+        "LactatedRingers": {
+          "Osm_mOsm_L": 273,
+          "Na_mEq_L": 130,
+          "Cl_mEq_L": 109,
+          "K_mEq_L": 4,
+          "Ca_mEq_L": 3,
+          "Buffer": "28 mEq/L (Lactate)",
+          "Notes": "Lactate converted to HCO3 by liver. Avoid in hyperkalemia. Calcium may theoretically bind to citrate in pRBCs.",
+          "citations": ["CA1_2025:2522", "CA1_2025:2530", "CA1_2025:2531"]
+        },
+        "Normosol": {
+          "Osm_mOsm_L": 294,
+          "Na_mEq_L": 140,
+          "Cl_mEq_L": 98,
+          "K_mEq_L": 5,
+          "Ca_mEq_L": 0,
+          "Buffer": "27 mEq/L (Acetate/Gluconate)",
+          "citations": ["CA1_2025:2522"]
+        }
+      },
+      "Colloids": {
+        "Albumin": {
+          "Concentrations": ["5%", "25%"],
+          "Osm_mOsm_L": 290,
+          "Na_mEq_L": 140,
+          "Cl_mEq_L": 150,
+          "Notes": "Derived from pooled blood, heat-treated. 25% used for volume restriction. Expensive.",
+          "citations": ["CA1_2025:2558", "CA1_2025:2561", "CA1_2025:2669"]
+        },
+        "Hetastarch": {
+          "MaxDose_ml_kg_day": 20,
+          "SideEffects": ["Increases PTT via Factor VIII/vWF inhibition", "Anaphylactoid reactions", "Renal failure"],
+          "Contraindications": ["Coagulopathy", "Heart Failure", "Renal Failure"],
+          "citations": ["CA1_2025:2562", "CA1_2025:2572", "CA1_2025:2578", "CA1_2025:2586"]
+        }
+      }
+    },
+    "BloodProducts": {
+      "PackedRBCs": {
+        "Volume_ml": "250-300",
+        "Hct_percent": "60-70",
+        "Effect": "1 unit increases adult Hgb by 1 g/dl or Hct by 3%",
+        "Storage": "CPD (21 days), CPDA (35 days), Adsol (42 days) at 4 degrees C",
+        "citations": ["CA1_2025:2744", "CA1_2025:2745", "CA1_2025:2750"]
+      },
+      "FreshFrozenPlasma_FFP": {
+        "Contents": "All clotting factors, fibrinogen, plasma proteins, protein C/S, antithrombin, citrate",
+        "Effect": "10-20ml/kg raises factors by 20-30%",
+        "Indications": ["Microvascular bleeding with INR > 2", "Massive transfusion", "Urgent warfarin reversal", "Heparin resistance"],
+        "citations": ["CA1_2025:2771", "CA1_2025:2772", "CA1_2025:2785", "CA1_2025:2787"]
+      },
+      "Platelets": {
+        "Volume_ml": "50-70 per donated unit (Pooled pack is 250-400ml)",
+        "Effect": "1 pooled pack (6 donors) or 1 apheresis unit increases Plt by 30k-50k",
+        "Storage": "Room temperature for 5 days (Highest risk of bacterial contamination)",
+        "citations": ["CA1_2025:2792", "CA1_2025:2794", "CA1_2025:2795", "CA1_2025:2799", "CA1_2025:3084"]
+      },
+      "Cryoprecipitate": {
+        "Contents": "Fibrinogen, Factor VIII, Factor XIII, vWF",
+        "Effect": "10 units raises fibrinogen by 70mg/dL",
+        "Indications": ["Fibrinogen < 100 mg/dL with bleeding", "Von Willebrand Disease"],
+        "citations": ["CA1_2025:2810", "CA1_2025:2811", "CA1_2025:2817", "CA1_2025:2819"]
+      }
+    },
+    "DOAC_ReversalAgents": {
+      "Dabigatran": { "Agent": "Idarucizumab (Praxbind)", "Dose": "5 grams IV", "citations": ["CA1_2025:2836", "CA1_2025:2842"] },
+      "FactorXa_Inhibitors": { "Agent": "Andexanet alfa (AndexXa) OR 4-factor PCC (Kcentra)", "citations": ["CA1_2025:2837", "CA1_2025:2843", "CA1_2025:2845"] },
+      "Warfarin": { "Agent": "Prothrombin Complex Concentrate (PCC) / Kcentra", "citations": ["CA1_2025:2822"] }
+    },
+    "HemodynamicCalculations": {
+      "AllowableBloodLoss": {
+        "Formula": "EBV * ((Starting_Hct - Target_Hct) / Starting_Hct)",
+        "EBV_ml_kg": {
+          "Preemie": 100,
+          "TermNeonate": 90,
+          "Infant_Under_1yr": 80,
+          "Child_1_to_6yrs": 75,
+          "Adult_Male": 70,
+          "Adult_Female": 65,
+          "Obese": 60
+        },
+        "citations": ["CA1_2025:2871", "CA1_2025:2873", "CA1_2025:2888"]
+      },
+      "OxygenDelivery_DO2": {
+        "Formula": "CO * [(Hb * 1.36 * SaO2/100) + (PaO2 * 0.003)] * 10",
+        "citations": ["CA1_2025:2866", "CA1_2025:2868"]
+      }
+    },
+    "EquipmentPhysics": {
+      "CatheterFlowRates": {
+        "Law": "Poiseuille's Law: Q is proportional to radius^4, inversely proportional to length",
+        "14G": "250-300 mL/min",
+        "16G": "180-200 mL/min",
+        "18G": "75-120 mL/min",
+        "20G": "40-80 mL/min",
+        "22G": "36-55 mL/min",
+        "citations": ["CA1_2025:2455", "CA1_2025:2464", "CA1_2025:2466", "CA1_2025:2469", "CA1_2025:2471", "CA1_2025:2474"]
+      },
+      "TransfusionInfusers": {
+        "Ranger": "Portable, precise temperature control, lower max infusion rate",
+        "Level_1": "High max infusion rate, simple set-up",
+        "Belmont": "High max infusion rate, adjustable transfusion rate, robust warming",
+        "citations": ["CA1_2025:2899", "CA1_2025:2901", "CA1_2025:2903"]
+      }
+    },
+    "Thromboelastography_TEG": {
+      "R_Time": { "Definition": "Time to start forming clot", "Normal": "5-10 mins", "Problem": "Coagulation factors", "Treatment": "FFP", "citations": ["CA1_2025:2969"] },
+      "K_Time": { "Definition": "Time until clot reaches a fixed strength", "Normal": "1-3 mins", "Problem": "Fibrinogen", "Treatment": "Cryoprecipitate", "citations": ["CA1_2025:2969"] },
+      "Alpha_Angle": { "Definition": "Speed of fibrin accumulation", "Normal": "53-72 degrees", "Problem": "Fibrinogen", "Treatment": "Cryoprecipitate", "citations": ["CA1_2025:2969"] },
+      "Maximum_Amplitude_MA": { "Definition": "Highest vertical amplitude of TEG", "Normal": "50-70 mm", "Problem": "Platelets", "Treatment": "Platelets and/or DDAVP", "citations": ["CA1_2025:2969"] },
+      "Lysis_at_30_mins_LY30": { "Definition": "Percentage of amplitude reduction 30 min after max amplitude", "Normal": "0-8%", "Problem": "Excess Fibrinolysis", "Treatment": "Tranexamic Acid (TXA) / Aminocaproic acid", "citations": ["CA1_2025:2969"] }
+    },
+    "RespiratoryPhysics": {
+      "AlveolarGasEquation": {
+        "Formula": "PAO2 = FiO2 * (Patm - PH2O) - (PaCO2 / 0.8)",
+        "Constants": {
+          "Patm_sea_level_mmHg": 760,
+          "PH2O_body_temp_mmHg": 47
+        },
+        "citations": ["CA1_2025:1126", "CA1_2025:1130"]
+      },
+      "A_a_Gradient": {
+        "Formula": "PAO2 - PaO2",
+        "Normal_RoomAir_mmHg": "< 10",
+        "Normal_100_O2_mmHg": "< 60",
+        "Age_Estimation_Formula": "(Age / 4) + 4",
+        "citations": ["CA1_2025:1125", "CA1_2025:1127", "CA1_2025:1129"]
+      },
+      "OxygenContent": {
+        "Arterial_CaO2": {
+          "Formula": "(Hb * 1.36 * SaO2/100) + (PaO2 * 0.003)",
+          "Normal_cc_dl": 20,
+          "citations": ["CA1_2025:1247", "CA1_2025:1248"]
+        },
+        "MixedVenous_CvO2": {
+          "Formula": "(Hb * 1.36 * SvO2/100) + (PvO2 * 0.003)",
+          "Normal_cc_dl": 15,
+          "citations": ["CA1_2025:1258", "CA1_2025:1259", "CA1_2025:1260"]
+        },
+        "OxygenExtractionRatio_ERO2": {
+          "Formula": "(VO2 / DO2) * 100",
+          "Normal_Percent": "22-30",
+          "citations": ["CA1_2025:1283", "CA1_2025:1286"]
+        }
+      },
+      "HemoglobinP50": {
+        "NormalAdult_mmHg": 26.6,
+        "Fetal_mmHg": 18,
+        "Maternal_mmHg": 30,
+        "citations": ["CA1_2025:1275", "CA1_2025:1276"]
+      }
+    },
+    "Electrolytes": {
+      "Potassium": {
+        "Hyperkalemia_Thresholds": {
+          "Mild": "5.5 - 6.5 mEq/L",
+          "Moderate": "6.6 - 7.5 mEq/L",
+          "Severe": "> 7.5 mEq/L",
+          "citations": ["CA1_2025:1349", "CA1_2025:1352", "CA1_2025:1353"]
+        },
+        "ECG_Progression_HyperK": [
+          "Tall peaked T waves",
+          "Prolonged PR interval, loss of P wave",
+          "Wide QRS complex",
+          "Sine wave, V-Fib, Asystole"
+        ],
+        "Treatment_HyperK": [
+          "Calcium gluconate/chloride (stabilize myocardium)",
+          "Sodium bicarbonate, Hyperventilation, Insulin+D50, Albuterol (shift intracellularly)",
+          "Diuretics, Kayexalate, Dialysis (eliminate)"
+        ],
+        "citations": ["CA1_2025:1396", "CA1_2025:1397", "CA1_2025:1398", "CA1_2025:1424", "CA1_2025:1429", "CA1_2025:1430", "CA1_2025:1432", "CA1_2025:1433"]
+      },
+      "Calcium": {
+        "Hypocalcemia_ECG": "Prolonged QT interval",
+        "Hypercalcemia_ECG": "Shortened QT interval, flat/inverted T waves",
+        "citations": ["CA1_2025:1561", "CA1_2025:1538", "CA1_2025:1607", "CA1_2025:1668"]
+      },
+      "Magnesium": {
+        "Hypermagnesemia_ECG": "Long PR interval, wide QRS, prolonged QT",
+        "Hypomagnesemia_ECG": "Long QT, PACs, PVCs",
+        "citations": ["CA1_2025:1579", "CA1_2025:1590"]
+      }
+    },
+    "Thermoregulation": {
+      "HeatLossMechanisms": [
+        "Radiation (Most significant)",
+        "Convection",
+        "Evaporation",
+        "Conduction (Least significant)"
+      ],
+      "InterthresholdRange": {
+        "Normal": "0.2 C",
+        "GeneralAnesthesia": "4.0 C (20-fold increase)",
+        "NeuraxialAnesthesia": "0.8 C (4-fold increase)"
+      },
+      "ShiveringMetabolism": "Increases O2 consumption up to 500%",
+      "citations": ["CA1_2025:1727", "CA1_2025:1730", "CA1_2025:1734", "CA1_2025:1749", "CA1_2025:1753", "CA1_2025:1757", "CA1_2025:1759", "CA1_2025:1838"]
+    },
+    "PONV": {
+      "Apfel_RiskFactors_Adult": [
+        "Female Gender",
+        "History of PONV / Motion Sickness",
+        "Non-smoking Status",
+        "Post-operative Opioids"
+      ],
+      "Eberhart_RiskFactors_Peds": [
+        "Age > 3 years",
+        "History of PONV in child or relative",
+        "Strabismus surgery",
+        "Surgery duration > 30 minutes"
+      ],
+      "AntiemeticClasses": {
+        "5HT3_Antagonists": "Ondansetron (Zofran)",
+        "Steroids": "Dexamethasone",
+        "Anticholinergics": "Scopolamine",
+        "Dopamine_Antagonists": "Droperidol, Haloperidol, Metoclopramide, Promethazine",
+        "NK1_Antagonists": "Aprepitant"
+      },
+      "citations": ["CA1_2025:1937", "CA1_2025:1964", "CA1_2025:1968", "CA1_2025:1979", "CA1_2025:1988", "CA1_2025:1998", "CA1_2025:2002", "CA1_2025:2040", "CA1_2025:2046"]
+    },
+    "AirwayAnatomy": {
+      "Pharynx": {
+        "Nasopharynx": "Base of skull to soft palate",
+        "Oropharynx": "Soft palate to epiglottis",
+        "Laryngopharynx": "Epiglottis to cricoid cartilage (C6 level)",
+        "citations": ["CA1_2025:1171", "CA1_2025:1172", "CA1_2025:1173"]
+      },
+      "Innervation": {
+        "RecurrentLaryngealNerve_RLN": {
+          "Motor": "All intrinsic muscles of larynx EXCEPT cricothyroid",
+          "Sensory": "Larynx below the glottis (subglottic mucosa)",
+          "Injury_Unilateral": "Cord assumes paramedian position, hoarseness",
+          "Injury_Bilateral": "Aphonia and severe airway obstruction",
+          "citations": ["CA1_2025:1207", "CA1_2025:1222", "CA1_2025:1227", "CA1_2025:1393", "CA1_2025:1395", "CA1_2025:1396", "CA1_2025:1400"]
+        },
+        "SuperiorLaryngealNerve_SLN": {
+          "InternalBranch": "Sensory above glottis up to epiglottis (afferent limb of laryngospasm)",
+          "ExternalBranch": "Motor to cricothyroid muscle (tenses/adducts vocal cords)",
+          "citations": ["CA1_2025:1210", "CA1_2025:1212", "CA1_2025:1228", "CA1_2025:1229", "CA1_2025:1394", "CA1_2025:1399"]
+        }
+      }
+    },
+    "NPO_Guidelines": {
+      "Clears": {"hours": 2, "citations": ["CA1_2025:1364", "CA1_2025:1365"]},
+      "BreastMilk": {"hours": 4, "citations": ["CA1_2025:1366", "CA1_2025:1367"]},
+      "Formula": {"hours": 6, "citations": ["CA1_2025:1368", "CA1_2025:1369"]},
+      "NonHumanMilk": {"hours": 6, "citations": ["CA1_2025:1370", "CA1_2025:1371"]},
+      "LightMeal": {"hours": 6, "citations": ["CA1_2025:1372", "CA1_2025:1373"]},
+      "FattyMeal": {"hours": 8, "citations": ["CA1_2025:1374", "CA1_2025:1375"]}
+    },
+    "GasCylinders": {
+      "Oxygen_O2": {
+        "ECylinderCapacity_L": 660,
+        "Pressure_psi": 1900,
+        "Color_USA": "Green",
+        "Color_Intl": "White",
+        "Form": "Gas",
+        "Consumption_Formula": "PSI / 3 = Liters remaining",
+        "citations": ["CA1_2025:1455", "CA1_2025:1458"]
+      },
+      "Air": {
+        "ECylinderCapacity_L": 625,
+        "Pressure_psi": 1900,
+        "Color_USA": "Yellow",
+        "Color_Intl": "White & Black",
+        "Form": "Gas",
+        "citations": ["CA1_2025:1455"]
+      },
+      "NitrousOxide_N2O": {
+        "ECylinderCapacity_L": 1590,
+        "Pressure_psi": 745,
+        "Color_USA": "Blue",
+        "Color_Intl": "Blue",
+        "Form": "Liquid + Gas",
+        "Notes": "Pressure will not decrease until tank is at 1/4 capacity (400L); must weigh tank to know true volume",
+        "citations": ["CA1_2025:1455", "CA1_2025:1456"]
+      }
+    },
+    "Anaphylaxis": {
+      "RingAndMessmerScale": {
+        "Grade_I": "Skin signs (erythema, urticaria +/- angioedema)",
+        "Grade_II": "Skin signs + Moderate hypotension/tachycardia +/- Moderate bronchospasm",
+        "Grade_III": "Skin signs + Severe hypotension/bradycardia/tachycardia + Severe bronchospasm",
+        "Grade_IV": "Cardiac arrest (Most often PEA due to severe hypovolemia)",
+        "citations": ["CA1_2025:1613", "CA1_2025:1614", "CA1_2025:1615", "CA1_2025:1616", "CA1_2025:1617", "CA1_2025:1618"]
+      },
+      "CommonTriggers": {
+        "MuscleRelaxants": {"incidence_percent": 58.2, "agents": "Succinylcholine, rocuronium, atracurium"},
+        "Latex": {"incidence_percent": 12.1, "agents": "Gloves, tourniquets, foley"},
+        "Antibiotics": {"incidence_percent": 8, "agents": "Penicillin, cephalosporins"},
+        "Colloids": {"incidence_percent": 2.7, "agents": "Dextran, gelatin, Albumin, HES"},
+        "citations": ["CA1_2025:1625", "CA1_2025:1626", "CA1_2025:1627", "CA1_2025:1628", "CA1_2025:1632", "CA1_2025:1633", "CA1_2025:1635"]
+      },
+      "LatexAllergy_RiskFactors": {
+        "items": [
+          "Healthcare workers",
+          "Spina bifida patients",
+          "Urogenital abnormalities / multiple prior surgeries",
+          "Food allergies: Mango, kiwi, avocado, passion fruit, bananas, fig, chestnut"
+        ],
+        "citations": ["CA1_2025:1644", "CA1_2025:1645", "CA1_2025:1647", "CA1_2025:1648", "CA1_2025:1649"]
+      }
+    },
+    "EpinephrineDosing": {
+      "DilutionRule": "Always dilute standard 1mg/cc vial. Mix with 100cc NS = 10mcg/cc",
+      "Hypotension_Bronchospasm": "10 mcg",
+      "SevereHypotension": "100 mcg",
+      "ACLS_Code": "1 mg",
+      "citations": ["CA1_2025:1707", "CA1_2025:1708", "CA1_2025:1709", "CA1_2025:1710", "CA1_2025:1711", "CA1_2025:1712", "CA1_2025:1713"]
+    },
+    "LocalAnesthetics": {
+      "Mechanism": {
+        "Target": "Voltage-gated sodium channels",
+        "Subunit": "Intracellular alpha subunit",
+        "BindingNature": "Reversible",
+        "Effect": "Inhibits Na+ influx to prevent action potential",
+        "UnalteredVariables": ["Resting membrane potential", "Threshold potential"],
+        "citations": ["CA1_2025:441"]
+      },
+      "PhysiochemicalProperties": {
+        "IonizationEquilibrium": "B + H+ <-> BH+",
+        "ActiveBindingForm": "BH+ (Ionized/Cationic)",
+        "MembranePenetratingForm": "B (Nonionized/Lipid-soluble/Base)",
+        "citations": ["CA1_2025:442"]
+      },
+      "OnsetKinetics": {
+        "PrimaryDeterminant": "pKa relative to physiologic pH and concentration",
+        "Bupivacaine": {
+          "pKa": 8.2,
+          "IonizedFraction": "High",
+          "OnsetSpeed": "Slower",
+          "citations": ["CA1_2025:442"]
+        },
+        "Lidocaine": {
+          "pKa": 7.9,
+          "IonizedFraction": "Lower (more non-ionized available)",
+          "OnsetSpeed": "Faster",
+          "citations": ["CA1_2025:442"]
+        }
+      }
+    },
+    "CardiacElectrophysiology": {
+      "RestingPotential": {
+        "Value_mV": -90,
+        "MajorDeterminant": "K+ gradient",
+        "PumpMechanism": "Na/K ATPase",
+        "citations": ["CA1_2025:526"]
+      },
+      "ActionPotentials": {
+        "FastMyocytes_Ventricular": {
+          "Phase_0": "Na+ channels open (depolarization)",
+          "Phase_1": "Na+ close, K+ diffuses out (slight repolarization)",
+          "Phase_2": "K+ outflow balanced by Ca2+ inflow (plateau)",
+          "Phase_3": "Ca2+ close, only K+ open (repolarization)",
+          "Phase_4": "Resting potential",
+          "citations": ["CA1_2025:526"]
+        },
+        "SlowMyocytes_SA_AV_Node": {
+          "Phase_0": "Ca2+ channels open (depolarization upstroke)",
+          "Phase_1": "Absent",
+          "Phase_2": "Absent",
+          "Phase_3": "K+ channels open (repolarization)",
+          "Phase_4": "Na+ and Ca2+ channels open (slow spontaneous depolarization)",
+          "citations": ["CA1_2025:526"]
+        }
+      }
+    },
+    "CardiacCycle_CVP": {
+      "AtrialKick": {
+        "ContributionToEDV_Percent": 25,
+        "citations": ["CA1_2025:527"]
+      },
+      "CVP_Morphology": {
+        "a_wave": "Atrial contraction",
+        "c_wave": "Isovolumic ventricular contraction (tricuspid motion toward right atrium)",
+        "x_descent": "Atrial relaxation, descent of the base, systolic collapse",
+        "v_wave": "Systolic filling of atrium",
+        "y_descent": "Early ventricular filling, diastolic collapse",
+        "citations": ["CA1_2025:528"]
+      }
+    },
+    "FrankStarlingMechanics": {
+      "X_Axis": "Ventricular end-diastolic volume (Myocardial fiber length / Preload)",
+      "Y_Axis": "Ventricular performance (Stroke Volume / Cardiac Output)",
+      "CurveShifts": {
+        "Up_Left": "Increased contractile state (e.g., Exercise/Running/Walking)",
+        "Normal": "Resting physiological baseline",
+        "Down_Right": ["Heart failure", "Fatal myocardium depression"],
+        "citations": ["CA1_2025:528"]
+      }
+    }
+  }
+}
