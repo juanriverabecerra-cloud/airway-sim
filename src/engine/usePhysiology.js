@@ -153,6 +153,11 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
     const effectiveVolumeML = isUnit && !fluidName.includes('Fibrinogen') ? volume * (fluidData.defaultVol || 300) : volume;
 
+    let initialUserRate = undefined;
+    if (fluidName.includes('Lactated') || fluidName.includes('Normal Saline') || fluidName.includes('Plasmalyte')) {
+        initialUserRate = 0;
+    }
+
     setPatient(prev => {
         const newLines = [...(prev.accessLines || [])];
         const lineIndex = newLines.findIndex(l => l.id === lineId);
@@ -161,7 +166,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                 ...newLines[lineIndex],
                 activeInfusions: [
                     ...(newLines[lineIndex].activeInfusions || []),
-                    { id: Date.now().toString(), name: fluidName, remainingVolume: effectiveVolumeML }
+                    { id: Date.now().toString(), name: fluidName, remainingVolume: effectiveVolumeML, userRate: initialUserRate, currentRate: 0 }
                 ]
             };
         }
@@ -459,10 +464,12 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let coagDelta = { r: 0, ma: 0, angle: 0 };
           let rbcVolumeAdded = 0;
           let activeInfusionMessages = [];
+          let hasActiveInfusions = false;
 
           for (let lineIndex = 0; lineIndex < newLines.length; lineIndex++) {
               let line = newLines[lineIndex];
               if (!line.activeInfusions || line.activeInfusions.length === 0) continue;
+              hasActiveInfusions = true;
               
               // Base Delta P (mmHg)
               let deltaP = 74; // Gravity default
@@ -492,6 +499,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               }
               
               const q_ml_sec = q_ml_min / 60;
+              currentInfusion.currentRate = q_ml_min * 60;
               let infusedThisTick = Math.min(currentInfusion.remainingVolume, q_ml_sec);
               
               if (infusedThisTick > 0 && fluidData) {
@@ -545,7 +553,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                   });
                   return { ...prev, accessLines: newLines };
               });
-          } else if (tbwDelta > 0) {
+          } else if (tbwDelta > 0 || hasActiveInfusions) {
               setPatient(prev => ({ ...prev, accessLines: newLines })); // Sync line state silently
           }
           // === END POISEUILLE DRAINAGE ===

@@ -73,9 +73,10 @@ export const AirwayPanel = ({ patient, setPatient, handleSuction, optimizeAirway
                              <span className="text-teal-400 font-mono text-xs bg-teal-900/20 px-1.5 py-0.5 rounded border border-teal-900/50">
                                 {Math.round(fluid.remainingVolume)} mL left
                              </span>
-                             {fluid.userRate !== undefined && (
-                                <span className="text-[9px] text-teal-500 mt-0.5 font-bold">Rate: {fluid.userRate} mL/hr</span>
-                             )}
+                             <span className="text-[9px] text-teal-500 mt-0.5 font-bold">
+                                Rate: {fluid.currentRate ? Math.round(fluid.currentRate) : 0} mL/hr
+                                {fluid.userRate !== undefined ? ' (Limit)' : ' (Max)'}
+                             </span>
                          </div>
                       </div>
                       

@@ -65,6 +65,7 @@ export const AirwayQuizModal = ({ data, submitAirwayQuiz }) => {
 };
 
 export const AccessModal = ({ data, close, establishAccess }) => {
+  const [cvcType, setCvcType] = React.useState('Triple Lumen CVC');
   if (!data.show) return null;
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
@@ -128,54 +129,43 @@ export const AccessModal = ({ data, close, establishAccess }) => {
         )}
 
         {data.category === 'Central Line' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-slate-800 p-4 rounded border border-slate-700">
-              <h3 className="font-bold text-purple-400 mb-2">Internal Jugular (IJ)</h3>
-              <span className="text-[10px] text-purple-400 font-bold uppercase tracking-widest text-center border-b border-purple-900/50 pb-1 mb-1 block">Central Access</span>
-              {[
-                { type: 'Single Lumen CVC (14G)', rate: '100mL/min' },
-                { type: 'Double Lumen CVC (14G, 18G)', rate: '100mL/min, 30mL/min' },
-                { type: 'Triple Lumen CVC', rate: '30mL/min (each)' },
-                { type: 'MAC Introducer (9Fr)', rate: '300mL/min' }
-              ].map(item => (
-                <div key={`ij-${item.type}`} className="flex flex-col gap-1 mb-3">
-                  <span className="text-[10px] text-slate-400">{item.type} (Max: ~{item.rate})</span>
-                  <div className="flex gap-2">
-                    <button onClick={() => establishAccess('CVC', item.type, 'Right IJ')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Right</button>
-                    <button onClick={() => establishAccess('CVC', item.type, 'Left IJ')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Left</button>
-                  </div>
-                </div>
-              ))}
+          <div className="flex flex-col gap-4">
+            <div className="bg-slate-800 p-4 rounded border border-slate-700 flex flex-col md:flex-row gap-4 items-center">
+              <label className="text-white font-bold whitespace-nowrap">Catheter Type:</label>
+              <select 
+                value={cvcType} 
+                onChange={e => setCvcType(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 text-white rounded p-2 focus:border-purple-500 focus:outline-none"
+              >
+                <option value="Single Lumen CVC (14G)">Single Lumen CVC (14G) - Max ~100mL/min</option>
+                <option value="Double Lumen CVC (14G, 18G)">Double Lumen CVC (14G, 18G) - Max ~100/30mL/min</option>
+                <option value="Triple Lumen CVC">Triple Lumen CVC (16G, 18G, 18G) - Max ~30mL/min per port</option>
+                <option value="MAC Introducer (9Fr)">MAC Introducer (9Fr) - Max ~300mL/min</option>
+                <option value="Trauma Cordis">Trauma Cordis (8.5Fr) - Max 500+mL/min</option>
+              </select>
             </div>
-            <div className="bg-slate-800 p-4 rounded border border-slate-700">
-              <h3 className="font-bold text-purple-400 mb-2">Subclavian</h3>
-              {[
-                { type: 'Triple Lumen CVC', rate: '30mL/min (each)' },
-                { type: 'Trauma Cordis', rate: '500+mL/min' }
-              ].map(item => (
-                <div key={`sub-${item.type}`} className="flex flex-col gap-1 mb-3">
-                  <span className="text-[10px] text-slate-400">{item.type} (Max: ~{item.rate})</span>
-                  <div className="flex gap-2">
-                    <button onClick={() => establishAccess('CVC', item.type, 'Right Subclavian')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Right</button>
-                    <button onClick={() => establishAccess('CVC', item.type, 'Left Subclavian')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Left</button>
-                  </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-slate-800 p-4 rounded border border-slate-700">
+                <h3 className="font-bold text-purple-400 mb-3 text-center border-b border-slate-700 pb-2">Internal Jugular (IJ)</h3>
+                <div className="flex gap-2">
+                  <button onClick={() => establishAccess('CVC', cvcType, 'Right IJ')} className="w-1/2 p-2 bg-slate-700 hover:bg-purple-600 rounded text-white font-bold transition-colors">Right</button>
+                  <button onClick={() => establishAccess('CVC', cvcType, 'Left IJ')} className="w-1/2 p-2 bg-slate-700 hover:bg-purple-600 rounded text-white font-bold transition-colors">Left</button>
                 </div>
-              ))}
-            </div>
-            <div className="bg-slate-800 p-4 rounded border border-slate-700">
-              <h3 className="font-bold text-purple-400 mb-2">Femoral</h3>
-              {[
-                { type: 'Triple Lumen CVC', rate: '30mL/min (each)' },
-                { type: 'Trauma Cordis', rate: '500+mL/min' }
-              ].map(item => (
-                <div key={`fem-${item.type}`} className="flex flex-col gap-1 mb-3">
-                  <span className="text-[10px] text-slate-400">{item.type} (Max: ~{item.rate})</span>
-                  <div className="flex gap-2">
-                    <button onClick={() => establishAccess('CVC', item.type, 'Right Femoral')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Right</button>
-                    <button onClick={() => establishAccess('CVC', item.type, 'Left Femoral')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Left</button>
-                  </div>
+              </div>
+              <div className="bg-slate-800 p-4 rounded border border-slate-700">
+                <h3 className="font-bold text-purple-400 mb-3 text-center border-b border-slate-700 pb-2">Subclavian</h3>
+                <div className="flex gap-2">
+                  <button onClick={() => establishAccess('CVC', cvcType, 'Right Subclavian')} className="w-1/2 p-2 bg-slate-700 hover:bg-purple-600 rounded text-white font-bold transition-colors">Right</button>
+                  <button onClick={() => establishAccess('CVC', cvcType, 'Left Subclavian')} className="w-1/2 p-2 bg-slate-700 hover:bg-purple-600 rounded text-white font-bold transition-colors">Left</button>
                 </div>
-              ))}
+              </div>
+              <div className="bg-slate-800 p-4 rounded border border-slate-700">
+                <h3 className="font-bold text-purple-400 mb-3 text-center border-b border-slate-700 pb-2">Femoral</h3>
+                <div className="flex gap-2">
+                  <button onClick={() => establishAccess('CVC', cvcType, 'Right Femoral')} className="w-1/2 p-2 bg-slate-700 hover:bg-purple-600 rounded text-white font-bold transition-colors">Right</button>
+                  <button onClick={() => establishAccess('CVC', cvcType, 'Left Femoral')} className="w-1/2 p-2 bg-slate-700 hover:bg-purple-600 rounded text-white font-bold transition-colors">Left</button>
+                </div>
+              </div>
             </div>
           </div>
         )}
