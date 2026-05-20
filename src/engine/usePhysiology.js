@@ -54,7 +54,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
       const age = activeCase.patient.age || 40;
       const bmi = activeCase.patient.bmi || (weightKg / Math.pow(heightCm / 100, 2));
       const position = activeCase.patient.position || 'Supine';
-      const lungVols = calculateLungVolumes(heightCm, age, sex, bmi, position);
+      const lungVols = calculateLungVolumes(heightCm, age, sex, bmi, position, activeCase.patient.copd || false, activeCase.patient.restrictive || false);
 
       setPatient({
         ...activeCase.patient, height: heightCm, weight: weightKg, sex, ebv, ebl: activeCase.patient.ebl || 0, bleedRate: baseBleedRate,
@@ -120,19 +120,28 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     const fluidData = FLUIDS[fluidName]; if (!fluidData) return false;
     const isBlood = fluidData.type === 'Blood Product';
     
-    if (isBlood && !patient.bloodPreOrdered && !patient.bloodAvailable) {
-        if (!patient.bloodOrderTime) {
-            logEvent(`🚨 Blood Bank: Order placed for ${fluidName}. It will take exactly 10 minutes (real-time) for the cooler to arrive in the OR!`);
-            setPatient(prev => ({ ...prev, bloodOrderTime: Date.now() }));
-            return false;
+    if (isBlood && !patient.bloodAvailable) {
+        const hasTypeAndScreen = patient.preOpOrders?.labs?.typeAndScreen;
+        const hasTypeAndCross = patient.preOpOrders?.labs?.typeAndCross;
+        
+        if (hasTypeAndCross) {
+            setPatient(prev => ({ ...prev, bloodAvailable: true }));
         } else {
-            const elapsed = (Date.now() - patient.bloodOrderTime) / 1000;
-            if (elapsed < 600) {
-                logEvent(`❌ FAILED: Blood products have not arrived yet! (${Math.ceil((600 - elapsed)/60)} minutes remaining).`);
+            const delaySeconds = hasTypeAndScreen ? 300 : 600;
+            if (!patient.bloodOrderTime) {
+                logEvent(`🚨 Blood Bank: Order placed for ${fluidName}. Because ${hasTypeAndScreen ? 'Type & Screen was ordered pre-operatively, cooler delivery will take only 5 minutes (300s)' : 'no pre-operative blood workup was ordered, cooler delivery will take 10 minutes (600s)'} to arrive in the OR!`);
+                setPatient(prev => ({ ...prev, bloodOrderTime: Date.now() }));
                 return false;
             } else {
-                setPatient(prev => ({ ...prev, bloodAvailable: true }));
-                logEvent(`✅ Blood Bank: Cooler has arrived in the OR! Continuing administration.`);
+                const elapsed = (Date.now() - patient.bloodOrderTime) / 1000;
+                if (elapsed < delaySeconds) {
+                    const remaining = Math.ceil(delaySeconds - elapsed);
+                    logEvent(`❌ FAILED: Blood products have not arrived yet! (${remaining} seconds remaining).`);
+                    return false;
+                } else {
+                    setPatient(prev => ({ ...prev, bloodAvailable: true }));
+                    logEvent(`✅ Blood Bank: Cooler has arrived in the OR! Continuing administration.`);
+                }
             }
         }
     }
@@ -404,7 +413,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
             
             const bloodLossRatio = (p.ebl || 0) / (p.ebv || 5000);
             // Volume-based hypoxia penalty: depleted if O2 in FRC < 40% of capacity
-            const patLungVols = calculateLungVolumes(p.height || 170, p.age || 40, p.sex || 'male', p.bmi || 25, p.position || 'Supine');
+            const patLungVols = calculateLungVolumes(p.height || 170, p.age || 40, p.sex || 'male', p.bmi || 25, p.position || 'Supine', p.copd || false, p.restrictive || false);
             const hypoxiaPenalty = (p.oxygenBuffer || 0) < (patLungVols.frc_L * 0.40) ? 0.6 : 0; 
             const hypovolemiaPenalty = bloodLossRatio > 0.3 ? 0.6 : 0;
             
@@ -851,7 +860,9 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               st.patient.age || 40,
               st.patient.sex || 'male',
               st.patient.bmi || 25,
-              st.patient.position || 'Supine'
+              st.patient.position || 'Supine',
+              st.patient.copd || false,
+              st.patient.restrictive || false
           );
           const currentFRC_L = currentLungVols.frc_L; // Position & obesity-adjusted FRC in liters
 

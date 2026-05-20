@@ -684,24 +684,49 @@ export const MEDICATIONS = {
  * @param {string} position - Patient position (default 'Supine')
  * @returns {object} { frc_mL, tlc_mL, rv_mL, vc_mL, erv_mL, irv_mL, fvc_mL, fev1_mL, vd_mL, frc_L, tlc_L, obesityFactor, positionFactor }
  */
-export function calculateLungVolumes(heightCm, age, sex, bmi, position = 'Supine') {
+export function calculateLungVolumes(heightCm, age, sex, bmi, position = 'Supine', isCopd = false, isRestrictive = false) {
     const H = heightCm / 100; // Convert to meters
     const isMale = sex.toLowerCase() === 'male';
     
-    // ECCS/ERS 1993 Reference Equations (Quanjer et al.)
-    let fvc, fev1, tlc, rv, frc;
+    // ECCS/ERS 1993 Reference Equations (Quanjer et al.) - Predicted/Baseline values
+    let fvc_pred, fev1_pred, tlc_pred, rv_pred, frc_pred;
     if (isMale) {
-        fvc  = 5.76 * H - 0.026 * age - 4.34;  // Liters
-        fev1 = 4.30 * H - 0.029 * age - 2.49;
-        tlc  = 7.99 * H - 7.08;
-        rv   = 1.31 * H + 0.022 * age - 1.23;
-        frc  = 2.34 * H + 0.009 * age - 1.09;
+        fvc_pred  = 5.76 * H - 0.026 * age - 4.34;  // Liters
+        fev1_pred = 4.30 * H - 0.029 * age - 2.49;
+        tlc_pred  = 7.99 * H - 7.08;
+        rv_pred   = 1.31 * H + 0.022 * age - 1.23;
+        frc_pred  = 2.34 * H + 0.009 * age - 1.09;
     } else {
-        fvc  = 4.43 * H - 0.026 * age - 2.89;
-        fev1 = 3.95 * H - 0.025 * age - 2.60;
-        tlc  = 6.60 * H - 5.79;
-        rv   = 1.81 * H + 0.016 * age - 2.00;
-        frc  = 2.24 * H + 0.001 * age - 1.00;
+        fvc_pred  = 4.43 * H - 0.026 * age - 2.89;
+        fev1_pred = 3.95 * H - 0.025 * age - 2.60;
+        tlc_pred  = 6.60 * H - 5.79;
+        rv_pred   = 1.81 * H + 0.016 * age - 2.00;
+        frc_pred  = 2.24 * H + 0.001 * age - 1.00;
+    }
+
+    // Initialize actual parameters with predicted baselines
+    let fvc = fvc_pred;
+    let fev1 = fev1_pred;
+    let tlc = tlc_pred;
+    let rv = rv_pred;
+    let frc = frc_pred;
+
+    // Apply disease corrections (prior to position/obesity scaling on FRC)
+    if (isCopd) {
+        rv = rv_pred * 1.40;
+        frc = frc_pred * 1.35;
+        tlc = tlc_pred * 1.05; // Hyperinflation/air trapping
+        fvc = fvc_pred * 0.86;
+        fev1 = fvc * 0.44;     // Classic obstructive ratio < 70% (44%)
+    } else if (isRestrictive) {
+        rv = rv_pred * 0.52;
+        frc = frc_pred * 0.52;
+        tlc = tlc_pred * 0.52; // Severe volume restriction
+        fvc = fvc_pred * 0.48;
+        fev1 = fvc * 0.84;     // Normal ratio (84%), but proportional loss in volumes
+    } else {
+        fvc = fvc_pred * 0.98;
+        fev1 = fvc * 0.81;     // Healthy normal ratio (81%)
     }
     
     // Obesity correction — Pelosi et al. 1998
@@ -741,6 +766,11 @@ export function calculateLungVolumes(heightCm, age, sex, bmi, position = 'Supine
     
     // Anatomic dead space — Radford nomogram approximation (~2.2 mL/kg IBW)
     const vd = ibwKg * 2.2 / 1000; // Liters
+
+    // Clinical spirometry metrics
+    const fev1PercentPredicted = Math.round((fev1 / fev1_pred) * 100);
+    const fvcPercentPredicted = Math.round((fvc / fvc_pred) * 100);
+    const fev1FvcRatio = Math.round((fev1 / fvc) * 100);
     
     return {
         frc_mL:  Math.round(frc * 1000),
@@ -755,7 +785,10 @@ export function calculateLungVolumes(heightCm, age, sex, bmi, position = 'Supine
         frc_L:   parseFloat(frc.toFixed(2)),
         tlc_L:   parseFloat(tlc.toFixed(2)),
         obesityFactor: parseFloat(obesityFactor.toFixed(3)),
-        positionFactor: posFactor
+        positionFactor: posFactor,
+        fev1PercentPredicted,
+        fvcPercentPredicted,
+        fev1FvcRatio
     };
 }
 

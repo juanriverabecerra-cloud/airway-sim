@@ -615,6 +615,29 @@ export const PreopModal = ({ show, close, patient, setPatient, logEvent }) => {
       typeAndCross: false
   });
 
+  React.useEffect(() => {
+    if (patient.verifiedRisk) {
+      setRcri({
+        highRiskSurg: patient.verifiedRisk.rcriHighRisk || false,
+        ischemicHeart: patient.verifiedRisk.rcriIhd || false,
+        chf: patient.verifiedRisk.rcriChf || false,
+        cerebrovascular: patient.verifiedRisk.rcriCva || false,
+        insulin: patient.verifiedRisk.rcriInsulin || false,
+        creatinine: patient.verifiedRisk.rcriCr || false
+      });
+      setMets(patient.verifiedRisk.mets || null);
+    }
+    if (patient.preOpOrders && patient.preOpOrders.labs) {
+      setPreopOrders({
+        cbc: patient.preOpOrders.labs.cbc || false,
+        bmp: patient.preOpOrders.labs.bmp || false,
+        coags: patient.preOpOrders.labs.coags || false,
+        typeAndScreen: patient.preOpOrders.labs.typeAndScreen || false,
+        typeAndCross: patient.preOpOrders.labs.typeAndCross || false
+      });
+    }
+  }, [patient]);
+
   const calculateRcriScore = () => {
     return Object.values(rcri).filter(Boolean).length;
   };

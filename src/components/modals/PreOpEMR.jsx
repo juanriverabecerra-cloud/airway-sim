@@ -77,6 +77,224 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     }
   };
 
+  // Interactive Clinical Assessment Wizard States & Ground Truths
+  const [assessment, setAssessment] = useState({
+    rcriHighRisk: false,
+    rcriIhd: false,
+    rcriChf: false,
+    rcriCva: false,
+    rcriInsulin: false,
+    rcriCr: false,
+    mets: '',
+    asa: '',
+    mallampati: '',
+    neckMobility: '',
+    npoStatus: ''
+  });
+  const [assessmentVerified, setAssessmentVerified] = useState(false);
+  const [assessmentErrors, setAssessmentErrors] = useState({});
+  const [assessmentChecked, setAssessmentChecked] = useState(false);
+
+  const getGroundTruth = () => {
+    const id = stagedCase.id;
+    if (id === 'normal') {
+      return {
+        rcriHighRisk: false,
+        rcriIhd: false,
+        rcriChf: false,
+        rcriCva: false,
+        rcriInsulin: false,
+        rcriCr: false,
+        mets: 'excellent',
+        asa: 'ASA I',
+        mallampati: 'Class I',
+        neckMobility: 'Normal',
+        npoStatus: 'Compliant',
+        vignette: "Patient is a 45-year-old female scheduled for elective laparoscopic cholecystectomy. She reports running 3 miles every morning without chest pain or shortness of breath. She has no past medical history and takes no medications. She ate her last solid meal 12 hours ago. On physical exam, full opening of the mouth reveals completely visible soft palate, fauces, uvula, and pillars with a normal cervical spine range of motion."
+      };
+    } else if (id === 'trauma') {
+      return {
+        rcriHighRisk: true,
+        rcriIhd: false,
+        rcriChf: false,
+        rcriCva: false,
+        rcriInsulin: false,
+        rcriCr: false,
+        mets: 'poor',
+        asa: 'ASA IV',
+        mallampati: 'Class IV',
+        neckMobility: 'Reduced',
+        npoStatus: 'Aspiration Risk',
+        vignette: "Patient is a 54-year-old male unrestrained passenger in a high-speed motor vehicle collision, brought in via EMS with a rigid cervical collar and a Glasgow Coma Scale of 7. There is active, profuse oropharyngeal bleeding from nasal and facial fractures, with thick pooling blood completely obscuring all soft tissue structures of the oral cavity. His spouse reports he ate a large burger and fries 2 hours before the crash."
+      };
+    } else if (id === 'septic') {
+      return {
+        rcriHighRisk: true,
+        rcriIhd: true,
+        rcriChf: false,
+        rcriCva: false,
+        rcriInsulin: false,
+        rcriCr: true,
+        mets: 'poor',
+        asa: 'ASA IV',
+        mallampati: 'Class II',
+        neckMobility: 'Normal',
+        npoStatus: 'Aspiration Risk',
+        vignette: "Patient is a 68-year-old male from a nursing home with high fever and altered mental status. Blood pressure is 85/40 mmHg on a continuous norepinephrine infusion, with blood cultures positive for Gram-negative rods (urosepsis). EMR indicates a history of coronary artery disease (stented anterior MI 2 years ago) and chronic kidney disease stage III (baseline creatinine is 2.2 mg/dL). He was placed on NPO status 6 hours ago after a light breakfast, but has active shock-induced gastroparesis."
+      };
+    } else if (id === 'obese') {
+      return {
+        rcriHighRisk: false,
+        rcriIhd: false,
+        rcriChf: true,
+        rcriCva: false,
+        rcriInsulin: true,
+        rcriCr: false,
+        mets: 'poor',
+        asa: 'ASA III',
+        mallampati: 'Class III',
+        neckMobility: 'Reduced',
+        npoStatus: 'Aspiration Risk',
+        vignette: "Patient is a 50-year-old male with a BMI of 45 scheduled for an elective umbilical hernia repair. He reports he can walk only about 1 block before getting severely short of breath. He has severe obstructive sleep apnea (uses CPAP). He has type 2 diabetes managed with daily insulin, and a history of heart failure (EF 35% on carvedilol). He fasted for 8 hours, but takes daily Semaglutide (Ozempic) which was NOT held pre-operatively. Exam shows a thick, short neck with restricted extension due to a prominent posterior fat pad, and mouth opening reveals only the base of the uvula."
+      };
+    }
+    return {
+      rcriHighRisk: false,
+      rcriIhd: false,
+      rcriChf: false,
+      rcriCva: false,
+      rcriInsulin: false,
+      rcriCr: false,
+      mets: 'excellent',
+      asa: 'ASA II',
+      mallampati: 'Class I',
+      neckMobility: 'Normal',
+      npoStatus: 'Compliant',
+      vignette: "Pre-operative evaluation vignette."
+    };
+  };
+
+  const verifyAssessment = () => {
+    const truth = getGroundTruth();
+    const errors = {};
+    let hasError = false;
+
+    // Check RCRI
+    if (assessment.rcriHighRisk !== truth.rcriHighRisk) {
+      errors.rcriHighRisk = truth.rcriHighRisk 
+        ? "Emergency trauma/septic surgery counts as a high-risk surgical procedure." 
+        : "Elective laparoscopic or hernia surgeries are not high-risk procedures (intermediate/low risk).";
+      hasError = true;
+    }
+    if (assessment.rcriIhd !== truth.rcriIhd) {
+      errors.rcriIhd = truth.rcriIhd 
+        ? "Patient has a documented history of Ischemic Heart Disease (CAD, prior MI)." 
+        : "Patient has no history of Ischemic Heart Disease.";
+      hasError = true;
+    }
+    if (assessment.rcriChf !== truth.rcriChf) {
+      errors.rcriChf = truth.rcriChf 
+        ? "Patient has a documented history of heart failure (EF 35%)." 
+        : "Patient has no history of congestive heart failure.";
+      hasError = true;
+    }
+    if (assessment.rcriCva !== truth.rcriCva) {
+      errors.rcriCva = "Patient has no history of stroke or cerebrovascular disease.";
+      hasError = true;
+    }
+    if (assessment.rcriInsulin !== truth.rcriInsulin) {
+      errors.rcriInsulin = truth.rcriInsulin 
+        ? "Patient is on preoperative insulin treatment for diabetes." 
+        : "Patient does not have insulin-dependent diabetes.";
+      hasError = true;
+    }
+    if (assessment.rcriCr !== truth.rcriCr) {
+      errors.rcriCr = truth.rcriCr 
+        ? "Patient's baseline creatinine is > 2.0 mg/dL (CKD Stage III, Cr 2.2)." 
+        : "Patient's baseline creatinine is normal (< 2.0 mg/dL).";
+      hasError = true;
+    }
+
+    // Check METs
+    if (assessment.mets !== truth.mets) {
+      errors.mets = truth.mets === 'excellent' 
+        ? "Correct functional capacity is Excellent (METs ≥ 4) - patient runs 3 miles daily." 
+        : "Correct functional capacity is Poor (METs < 4) - walk capacity is severely limited or patient is comatose/GCS 7.";
+      hasError = true;
+    }
+
+    // Check ASA
+    if (assessment.asa !== truth.asa) {
+      errors.asa = `Correct ASA classification is ${truth.asa}. ` + (
+        truth.asa === 'ASA I' ? "Healthy patient without systemic illness." :
+        truth.asa === 'ASA III' ? "Morbid obesity (BMI 45), severe OSA, insulin-dependent diabetes, and heart failure (EF 35%) qualify as severe, limiting systemic disease (ASA III)." :
+        truth.asa === 'ASA IV' ? "Septic shock or acute traumatic hemorrhage with GCS 7 is a severe systemic disease that is a constant threat to life (ASA IV)." : "Mild/moderate systemic illness."
+      );
+      hasError = true;
+    }
+
+    // Check Mallampati
+    if (assessment.mallampati !== truth.mallampati) {
+      errors.mallampati = `Correct Mallampati class is ${truth.mallampati}. ` + (
+        truth.mallampati === 'Class I' ? "Soft palate, fauces, uvula, and pillars are fully visible." :
+        truth.mallampati === 'Class II' ? "Uvula and soft palate are partially visible." :
+        truth.mallampati === 'Class III' ? "Only the base of the uvula and soft palate are visible." :
+        "Airway bleeding completely obscures all visualization of the oral cavity (Class IV)."
+      );
+      hasError = true;
+    }
+
+    // Check Neck Mobility
+    if (assessment.neckMobility !== truth.neckMobility) {
+      errors.neckMobility = truth.neckMobility === 'Reduced' 
+        ? "Correct neck mobility is Reduced (rigid cervical collar in trauma, or severe thick neck fat pad in obesity limits extension)." 
+        : "Correct neck mobility is Normal (no anatomical limits to extension).";
+      hasError = true;
+    }
+
+    // Check NPO
+    if (assessment.npoStatus !== truth.npoStatus) {
+      errors.npoStatus = truth.npoStatus === 'Aspiration Risk' 
+        ? "Correct gastric status is Aspiration Risk: a full stomach is physiologically present due to eating recently, severe shock/sepsis-induced gastroparesis, or active Ozempic/Semaglutide delay." 
+        : "Correct gastric status is NPO Compliant: fasted > 8 hours with no delay factors.";
+      hasError = true;
+    }
+
+    setAssessmentErrors(errors);
+    setAssessmentChecked(true);
+
+    if (!hasError) {
+      setAssessmentVerified(true);
+      const score = (truth.rcriHighRisk?1:0) + (truth.rcriIhd?1:0) + (truth.rcriChf?1:0) + (truth.rcriCva?1:0) + (truth.rcriInsulin?1:0) + (truth.rcriCr?1:0);
+      const verifiedData = {
+        rcriHighRisk: truth.rcriHighRisk,
+        rcriIhd: truth.rcriIhd,
+        rcriChf: truth.rcriChf,
+        rcriCva: truth.rcriCva,
+        rcriInsulin: truth.rcriInsulin,
+        rcriCr: truth.rcriCr,
+        rcriScore: score,
+        mets: truth.mets,
+        asa: truth.asa,
+        mallampati: truth.mallampati,
+        neckMobility: truth.neckMobility,
+        npoStatus: truth.npoStatus,
+        verified: true
+      };
+      if (setStagedCase) {
+        setStagedCase(prev => ({
+          ...prev,
+          patient: {
+            ...prev.patient,
+            verifiedRisk: verifiedData
+          }
+        }));
+      }
+    } else {
+      setAssessmentVerified(false);
+    }
+  };
+
   // Generate dynamic results based on patient demographics and comorbidities
   const generatePreOpResults = () => {
     const res = {
@@ -445,42 +663,42 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     logEvent(`📋 Pre-Op EMR Evaluation Complete. Plan locked: ${anesthesiaPlan.type} with ${anesthesiaPlan.airway} airway plan, ${anesthesiaPlan.monitoring} monitoring. Proceeding to OR.`);
     
     // Inject pre-op lab results into the stagedCase so they are carried forward
+    // Map ALL ordered pre-op labs into the intra-op EMR history format.
+    // Each panel is keyed by its canonical intra-op title so that subsequent
+    // intra-op draws of the same panel append to the same history[] array,
+    // enabling temporal trending (e.g., Pre-Op Hb vs. intra-op Hb after hemorrhage).
     const preOpLabRecords = {};
+
+    const labKeyToTitleMap = {
+      cbc: 'CBC',
+      bmp: 'CMP',
+      coags: 'Coagulation',
+      lfts: 'LFTs',
+      typeAndScreen: 'Type & Screen',
+      typeAndCross: 'Type & Cross',
+      hba1c: 'HbA1c',
+      pregnancy: 'Pregnancy',
+      urinalysis: 'Urinalysis',
+      thyroid: 'Thyroid'
+    };
+
     Object.keys(orders.labs).forEach(labKey => {
-      if (orders.labs[labKey]) {
-        // Map CBC, BMP, Coags, LFTs into the format expected by the intra-op EMR panel
-        let resultsObj = {};
-        let testNames = [];
-        let title = '';
+      if (orders.labs[labKey] && results.labs[labKey]) {
+        const title = labKeyToTitleMap[labKey];
+        if (!title) return;
 
-        if (labKey === 'cbc' && results.labs.cbc) {
-          title = 'CBC';
-          testNames = results.labs.cbc.values.map(v => v.name);
-          results.labs.cbc.values.forEach(v => {
-            resultsObj[v.name] = { val: parseFloat(v.val) || v.val, range: v.range, alert: v.alert };
-          });
-        } else if (labKey === 'bmp' && results.labs.bmp) {
-          title = 'CMP'; // Map BMP/CMP to the CMP category in simulator
-          testNames = results.labs.bmp.values.map(v => v.name);
-          results.labs.bmp.values.forEach(v => {
-            resultsObj[v.name] = { val: parseFloat(v.val) || v.val, range: v.range, alert: v.alert };
-          });
-        } else if (labKey === 'coags' && results.labs.coags) {
-          title = 'Coagulation';
-          testNames = results.labs.coags.values.map(v => v.name);
-          results.labs.coags.values.forEach(v => {
-            resultsObj[v.name] = { val: parseFloat(v.val) || v.val, range: v.range, alert: v.alert };
-          });
-        }
+        const resultsObj = {};
+        const testNames = results.labs[labKey].values.map(v => v.name);
+        results.labs[labKey].values.forEach(v => {
+          resultsObj[v.name] = { val: parseFloat(v.val) || v.val, range: v.range, alert: v.alert };
+        });
 
-        if (title) {
-          preOpLabRecords[title] = {
-            testNames,
-            history: [
-              { time: 'Pre-Op', results: resultsObj }
-            ]
-          };
-        }
+        preOpLabRecords[title] = {
+          testNames,
+          history: [
+            { time: 'Pre-Op', results: resultsObj }
+          ]
+        };
       }
     });
 
@@ -604,37 +822,116 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                 </div>
               </div>
 
-              {/* Spirometric Lung Volumes Card */}
+              {/* Spirometric Lung Volumes & Flow Metrics Card */}
               <div className="bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 rounded-xl p-6 shadow-lg">
                 <h3 className="text-indigo-400 font-bold text-xs uppercase tracking-wider mb-4 border-b border-slate-800 pb-2 flex justify-between">
-                  <span>2. Predicted Spirometric Lung Volumes (ECCS/ERS Reference)</span>
-                  <span className="text-[10px] text-slate-500 lowercase font-normal italic">Adjusted for Obesity & Sitting Position</span>
+                  <span>2. Predicted Spirometry & Lung Volumes (ECCS/ERS Reference)</span>
+                  <span className="text-[10px] text-slate-500 lowercase font-normal italic">Quanjer et al. 1993 · Pelosi et al. 1998 (Obesity) · Rehder et al. 1977 (Position)</span>
                 </h3>
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
-                  <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
-                    <span className="text-slate-500 block text-[10px] uppercase font-bold mb-1">TLC</span>
-                    <span className="text-white font-extrabold text-lg">{lungVols.tlc_mL} mL</span>
-                    <span className="text-[9px] text-slate-500 block mt-0.5">Total Lung Cap</span>
+
+                {/* PRIMARY CLINICAL METRIC: FEV1/FVC Ratio */}
+                <div className={`mb-4 p-4 rounded-lg border-2 ${
+                  lungVols.fev1FvcRatio < 70
+                    ? 'border-red-500 bg-red-950/20'
+                    : lungVols.fev1FvcRatio > 85
+                      ? 'border-yellow-500 bg-yellow-950/15'
+                      : 'border-green-500 bg-green-950/15'
+                }`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">FEV₁/FVC Ratio (Primary Diagnostic Index)</span>
+                    <span className={`text-[10px] font-extrabold uppercase px-2 py-0.5 rounded ${
+                      lungVols.fev1FvcRatio < 70
+                        ? 'bg-red-500/20 text-red-400'
+                        : lungVols.fev1FvcRatio > 85
+                          ? 'bg-yellow-500/20 text-yellow-400'
+                          : 'bg-green-500/20 text-green-400'
+                    }`}>
+                      {lungVols.fev1FvcRatio < 70 ? 'OBSTRUCTIVE DEFECT' : lungVols.fev1FvcRatio > 85 ? 'POSSIBLE RESTRICTIVE PATTERN' : 'NORMAL'}
+                    </span>
                   </div>
-                  <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                  <div className="flex items-baseline gap-3">
+                    <span className={`font-black text-3xl ${
+                      lungVols.fev1FvcRatio < 70 ? 'text-red-400' : lungVols.fev1FvcRatio > 85 ? 'text-yellow-300' : 'text-green-400'
+                    }`}>
+                      {lungVols.fev1FvcRatio}%
+                    </span>
+                    <span className="text-slate-500 text-xs">(Normal ≥ 70% · Obstructive &lt; 70% · Restrictive: normal ratio but ↓↓ FVC)</span>
+                  </div>
+                  {lungVols.fev1FvcRatio < 70 && (
+                    <p className="text-[10px] text-red-300/80 mt-2 leading-tight">
+                      ⚠ Obstructive physiology confirmed. Prolonged expiratory phase required during mechanical ventilation (I:E ≥ 1:3). Risk of auto-PEEP, dynamic hyperinflation, and bronchospasm on intubation. Avoid histamine-releasing agents.
+                    </p>
+                  )}
+                  {lungVols.fev1FvcRatio > 85 && lungVols.fvcPercentPredicted < 80 && (
+                    <p className="text-[10px] text-yellow-300/80 mt-2 leading-tight">
+                      ⚠ Restrictive pattern: FEV₁/FVC ratio preserved but FVC significantly reduced ({lungVols.fvcPercentPredicted}% predicted). Reduced tidal volumes and increased respiratory rate may be required. Monitor for rapid desaturation due to diminished total lung capacity.
+                    </p>
+                  )}
+                </div>
+
+                {/* Flow Metrics Row: FEV1, FVC with % Predicted */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                  <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800 text-center">
+                    <span className="text-cyan-400 block text-[10px] uppercase font-bold mb-1">FEV₁</span>
+                    <span className="text-white font-extrabold text-lg">{lungVols.fev1_mL} mL</span>
+                    <span className={`block text-xs font-bold mt-0.5 ${
+                      lungVols.fev1PercentPredicted < 50 ? 'text-red-400' : lungVols.fev1PercentPredicted < 80 ? 'text-yellow-400' : 'text-green-400'
+                    }`}>
+                      {lungVols.fev1PercentPredicted}% predicted
+                    </span>
+                    <span className="text-[9px] text-slate-500 block">Forced Exp Vol 1s</span>
+                  </div>
+                  <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800 text-center">
+                    <span className="text-cyan-400 block text-[10px] uppercase font-bold mb-1">FVC</span>
+                    <span className="text-white font-extrabold text-lg">{lungVols.fvc_mL} mL</span>
+                    <span className={`block text-xs font-bold mt-0.5 ${
+                      lungVols.fvcPercentPredicted < 50 ? 'text-red-400' : lungVols.fvcPercentPredicted < 80 ? 'text-yellow-400' : 'text-green-400'
+                    }`}>
+                      {lungVols.fvcPercentPredicted}% predicted
+                    </span>
+                    <span className="text-[9px] text-slate-500 block">Forced Vital Cap</span>
+                  </div>
+                  <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800 text-center">
                     <span className="text-indigo-400 block text-[10px] uppercase font-bold mb-1">FRC</span>
                     <span className="text-indigo-300 font-extrabold text-lg">{lungVols.frc_mL} mL</span>
                     <span className="text-[9px] text-slate-500 block mt-0.5">Func Residual Cap</span>
+                    {bmi > 25 && (
+                      <span className="text-[8px] text-yellow-500/70 block mt-0.5">Pelosi decay: {lungVols.obesityFactor}</span>
+                    )}
                   </div>
-                  <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
-                    <span className="text-slate-500 block text-[10px] uppercase font-bold mb-1">VC</span>
-                    <span className="text-white font-extrabold text-lg">{lungVols.vc_mL} mL</span>
-                    <span className="text-[9px] text-slate-500 block mt-0.5">Vital Capacity</span>
+                  <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800 text-center">
+                    <span className="text-slate-400 block text-[10px] uppercase font-bold mb-1">TLC</span>
+                    <span className="text-white font-extrabold text-lg">{lungVols.tlc_mL} mL</span>
+                    <span className="text-[9px] text-slate-500 block mt-0.5">Total Lung Cap</span>
                   </div>
-                  <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
-                    <span className="text-slate-500 block text-[10px] uppercase font-bold mb-1">FEV1</span>
-                    <span className="text-white font-extrabold text-lg">{lungVols.fev1_mL} mL</span>
-                    <span className="text-[9px] text-slate-500 block mt-0.5">Forced Exp Vol 1s</span>
+                </div>
+
+                {/* Secondary Volumes Row */}
+                <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                  <div className="bg-slate-900/40 p-2.5 rounded-lg border border-slate-800/60 text-center">
+                    <span className="text-slate-500 block text-[9px] uppercase font-bold mb-0.5">VC</span>
+                    <span className="text-slate-200 font-bold text-sm">{lungVols.vc_mL} mL</span>
+                    <span className="text-[8px] text-slate-600 block">Vital Cap</span>
                   </div>
-                  <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
-                    <span className="text-slate-500 block text-[10px] uppercase font-bold mb-1">Dead Space</span>
-                    <span className="text-white font-extrabold text-lg">{lungVols.vd_mL} mL</span>
-                    <span className="text-[9px] text-slate-500 block mt-0.5">Anatomic Dead Sp.</span>
+                  <div className="bg-slate-900/40 p-2.5 rounded-lg border border-slate-800/60 text-center">
+                    <span className="text-slate-500 block text-[9px] uppercase font-bold mb-0.5">RV</span>
+                    <span className="text-slate-200 font-bold text-sm">{lungVols.rv_mL} mL</span>
+                    <span className="text-[8px] text-slate-600 block">Residual Vol</span>
+                  </div>
+                  <div className="bg-slate-900/40 p-2.5 rounded-lg border border-slate-800/60 text-center">
+                    <span className="text-slate-500 block text-[9px] uppercase font-bold mb-0.5">ERV</span>
+                    <span className="text-slate-200 font-bold text-sm">{lungVols.erv_mL} mL</span>
+                    <span className="text-[8px] text-slate-600 block">Exp Reserve</span>
+                  </div>
+                  <div className="bg-slate-900/40 p-2.5 rounded-lg border border-slate-800/60 text-center">
+                    <span className="text-slate-500 block text-[9px] uppercase font-bold mb-0.5">IRV</span>
+                    <span className="text-slate-200 font-bold text-sm">{lungVols.irv_mL} mL</span>
+                    <span className="text-[8px] text-slate-600 block">Insp Reserve</span>
+                  </div>
+                  <div className="bg-slate-900/40 p-2.5 rounded-lg border border-slate-800/60 text-center">
+                    <span className="text-slate-500 block text-[9px] uppercase font-bold mb-0.5">V<sub>D</sub></span>
+                    <span className="text-slate-200 font-bold text-sm">{lungVols.vd_mL} mL</span>
+                    <span className="text-[8px] text-slate-600 block">Dead Space</span>
                   </div>
                 </div>
               </div>
@@ -847,14 +1144,41 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                         DIAGNOSTIC FINDINGS
                       </div>
                       <div className="divide-y divide-slate-800">
-                        {Object.entries(results.diagnostics).map(([diagKey, diagData]) => (
-                          <div key={diagKey} className="p-4">
-                            <h4 className="text-xs font-black text-cyan-400 uppercase tracking-wider mb-2">{diagData.title}</h4>
-                            <p className="text-sm text-slate-300 bg-slate-900/60 p-3 rounded-lg border border-slate-800/80 italic leading-relaxed">
-                              "{diagData.finding}"
-                            </p>
-                          </div>
-                        ))}
+                        {Object.entries(results.diagnostics).map(([diagKey, diagData]) => {
+                          const vols = calculateLungVolumes(heightCm, age, sex, bmi, 'Sitting', patient.copd || false, patient.restrictive || false);
+                          return (
+                            <div key={diagKey} className="p-4">
+                              <h4 className="text-xs font-black text-cyan-400 uppercase tracking-wider mb-2">{diagData.title}</h4>
+                              {diagKey === 'pfts' ? (
+                                <div className="space-y-4">
+                                  <p className="text-sm text-slate-300 italic mb-2 bg-slate-900/40 p-2 rounded border border-slate-800">"{diagData.finding}"</p>
+                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                    {[
+                                      { label: 'FEV1 (L)', val: (vols.fev1_mL / 1000).toFixed(2), desc: 'Forced Exp. Vol. 1s' },
+                                      { label: 'FVC (L)', val: (vols.fvc_mL / 1000).toFixed(2), desc: 'Forced Vital Capacity' },
+                                      { label: 'FEV1/FVC Ratio', val: vols.fev1FvcRatio + '%', desc: 'FEV1% (Obstructive <70%)', highlight: vols.fev1FvcRatio < 70 },
+                                      { label: 'FEV1 % Predicted', val: vols.fev1PercentPredicted + '%', desc: 'Mild >80% | Mod 50-80% | Sev <50%', highlight: vols.fev1PercentPredicted < 80 },
+                                      { label: 'FVC % Predicted', val: vols.fvcPercentPredicted + '%', desc: 'Restriction indicator', highlight: vols.fvcPercentPredicted < 80 },
+                                      { label: 'TLC (L)', val: vols.tlc_L.toFixed(2), desc: 'Total Lung Volume', highlight: patient.restrictive }
+                                    ].map((card, idx) => (
+                                      <div key={idx} className="bg-slate-900/80 p-3 rounded-lg border border-slate-800 flex flex-col justify-between hover:border-indigo-500/50 transition duration-200">
+                                        <div>
+                                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">{card.label}</span>
+                                          <span className={`text-xl font-black block mt-1 ${card.highlight ? 'text-red-400' : 'text-emerald-400'}`}>{card.val}</span>
+                                        </div>
+                                        <span className="text-[9px] text-slate-500 mt-2 block leading-snug">{card.desc}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="text-sm text-slate-300 bg-slate-900/60 p-3 rounded-lg border border-slate-800/80 italic leading-relaxed">
+                                  "{diagData.finding}"
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}

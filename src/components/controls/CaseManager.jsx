@@ -239,7 +239,7 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
 
     const ebv = sex === 'male' ? weight * 75 : weight * 65;
     const bsa = Math.sqrt((height * weight) / 3600);
-    const lung = calculateLungVolumes(height, age, sex, bmi, position);
+    const lung = calculateLungVolumes(height, age, sex, bmi, position, customForm.copd || false, customForm.restrictive || false);
 
     setDemographics({
       bmi: parseFloat(bmi.toFixed(1)),
@@ -249,7 +249,7 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
       bsa: parseFloat(bsa.toFixed(2)),
       lung: lung
     });
-  }, [customForm.height, customForm.weight, customForm.sex, customForm.age, customForm.position]);
+  }, [customForm.height, customForm.weight, customForm.sex, customForm.age, customForm.position, customForm.copd, customForm.restrictive]);
 
   const calculateDifficulty = (data) => {
     let score = 0;
