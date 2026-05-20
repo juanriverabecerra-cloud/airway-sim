@@ -339,6 +339,26 @@ export default function App() {
 
   const establishAccess = (category, type, location) => {
     const fullName = `${type} (${location})`;
+
+    if (type.includes('Triple Lumen CVC')) {
+       const newLine1 = { id: Date.now().toString() + '1', name: `Distal Lumen (16G) - ${location}`, category, type: '16G CVC', location, radius: 0.8, length: 200, penalty: 0, fluidLine: 'gravity', activeInfusions: [] };
+       const newLine2 = { id: Date.now().toString() + '2', name: `Medial Lumen (18G) - ${location}`, category, type: '18G CVC', location, radius: 0.65, length: 200, penalty: 0, fluidLine: 'gravity', activeInfusions: [] };
+       const newLine3 = { id: Date.now().toString() + '3', name: `Proximal Lumen (18G) - ${location}`, category, type: '18G CVC', location, radius: 0.65, length: 200, penalty: 0, fluidLine: 'gravity', activeInfusions: [] };
+       
+       logEvent(`Placed Triple Lumen CVC (${location}). 3 ports available.`);
+       setPatient(p => ({ ...p, hasIV: true, hasCVC: true, accessLines: [...(p.accessLines || []).filter(l => typeof l !== 'string'), newLine1, newLine2, newLine3] }));
+       setAccessModal({ show: false, category: '' });
+       return;
+    }
+    if (type.includes('Double Lumen CVC')) {
+       const newLine1 = { id: Date.now().toString() + '1', name: `Distal Lumen (14G) - ${location}`, category, type: '14G CVC', location, radius: 1.05, length: 200, penalty: 0, fluidLine: 'gravity', activeInfusions: [] };
+       const newLine2 = { id: Date.now().toString() + '2', name: `Proximal Lumen (18G) - ${location}`, category, type: '18G CVC', location, radius: 0.65, length: 200, penalty: 0, fluidLine: 'gravity', activeInfusions: [] };
+       
+       logEvent(`Placed Double Lumen CVC (${location}). 2 ports available.`);
+       setPatient(p => ({ ...p, hasIV: true, hasCVC: true, accessLines: [...(p.accessLines || []).filter(l => typeof l !== 'string'), newLine1, newLine2] }));
+       setAccessModal({ show: false, category: '' });
+       return;
+    }
     
     let radius = 0.5; // mm default
     let length = 30; // mm default
@@ -351,8 +371,6 @@ export default function App() {
     else if (type.includes('22G') && !type.includes('CVC')) { radius = 0.4; length = 25; }
     else if (type.includes('24G') && !type.includes('CVC')) { radius = 0.28; length = 19; }
     else if (type.includes('Single Lumen CVC')) { radius = 1.05; length = 200; }
-    else if (type.includes('Double Lumen CVC')) { radius = 0.9; length = 200; }
-    else if (type.includes('Triple Lumen CVC')) { radius = 0.8; length = 200; }
     else if (type.includes('CVC')) { radius = 0.8; length = 200; }
     else if (type.includes('Cordis') || type.includes('MAC')) { radius = 1.4; length = 100; }
     else if (category.includes('IO')) { radius = 0.9; length = 25; penalty = 10; }
@@ -378,6 +396,7 @@ export default function App() {
        ...p, 
        hasIV: p.hasIV || !category.includes('Arterial'), 
        hasALine: p.hasALine || category.includes('Arterial'),
+       hasCVC: p.hasCVC || category.includes('CVC') || type.includes('MAC'),
        accessLines: [...(p.accessLines || []).filter(l => typeof l !== 'string'), newLine] // Clear legacy string lines
     }));
     setAccessModal({ show: false, category: '' });

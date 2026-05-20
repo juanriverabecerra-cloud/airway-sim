@@ -138,6 +138,19 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     }
 
     const isUnit = isBlood || fluidData.type === 'Colloid';
+    
+    if (isUnit) {
+        if (volume > 20) {
+            logEvent(`❌ FAILED: Attempted to infuse ${volume} units of ${fluidName}. That is physiologically impossible and clinically absurd.`);
+            return false;
+        }
+    } else {
+        if (volume > 5000) {
+            logEvent(`❌ FAILED: Attempted to infuse ${volume} mL of ${fluidName} in a single bolus. That is clinically absurd.`);
+            return false;
+        }
+    }
+
     const effectiveVolumeML = isUnit && !fluidName.includes('Fibrinogen') ? volume * (fluidData.defaultVol || 300) : volume;
 
     setPatient(prev => {
@@ -161,18 +174,38 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
   const updateFluidRate = (lineId, infusionId, newRate_ml_hr) => {
     setPatient(prev => {
-        const newLines = [...(prev.accessLines || [])];
+        const newLines = (prev.accessLines || []).map(l => ({ ...l, activeInfusions: [...(l.activeInfusions || [])] }));
         const lineIndex = newLines.findIndex(l => l.id === lineId);
         if (lineIndex >= 0) {
-            const infusions = [...(newLines[lineIndex].activeInfusions || [])];
+            const line = newLines[lineIndex];
+            const infusions = line.activeInfusions;
             const infIndex = infusions.findIndex(i => i.id === infusionId);
             if (infIndex >= 0) {
                 if (newRate_ml_hr === '' || newRate_ml_hr === null || isNaN(parseFloat(newRate_ml_hr))) {
                     delete infusions[infIndex].userRate;
+                    logEvent(`Max flow enabled for ${infusions[infIndex].name} on ${line.name}.`);
                 } else {
-                    infusions[infIndex] = { ...infusions[infIndex], userRate: parseFloat(newRate_ml_hr) };
+                    let rate = parseFloat(newRate_ml_hr);
+                    let deltaP = 74; 
+                    const lType = line.fluidLine || 'gravity';
+                    if (lType === 'ranger') deltaP = 150;
+                    else if (lType === 'belmont') deltaP = 300;
+                    deltaP -= (10 + (line.penalty || 0));
+                    if (deltaP < 0) deltaP = 0;
+                    
+                    const fluidData = FLUIDS[infusions[infIndex].name];
+                    const eta = fluidData ? (fluidData.viscosity || 1.0) : 1.0;
+                    
+                    let q_ml_min = 200 * (deltaP * Math.pow(line.radius || 0.65, 4)) / (eta * (line.length || 32));
+                    if (lType === 'belmont' && q_ml_min > 500) q_ml_min = 500;
+                    
+                    const max_ml_hr = q_ml_min * 60;
+                    if (rate > max_ml_hr) {
+                        rate = max_ml_hr;
+                        logEvent(`⚠️ Requested rate exceeds physical limits of ${line.name}. Capped at ${Math.round(rate)} mL/hr.`);
+                    }
+                    infusions[infIndex] = { ...infusions[infIndex], userRate: rate };
                 }
-                newLines[lineIndex] = { ...newLines[lineIndex], activeInfusions: infusions };
             }
         }
         return { ...prev, accessLines: newLines };
@@ -420,7 +453,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           
           // === POISEUILLE FLUID RESUSCITATION DRAINAGE (MULTI-LINE) ===
           let totalFluidVolumeLiters = 0;
-          let newLines = [...(st.patient.accessLines || [])];
+          let newLines = (st.patient.accessLines || []).map(l => ({ ...l, activeInfusions: [...(l.activeInfusions || [])] }));
           let updatedElectrolytes = { ...st.electrolytes };
           let tbwDelta = 0;
           let coagDelta = { r: 0, ma: 0, angle: 0 };
