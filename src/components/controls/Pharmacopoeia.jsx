@@ -53,7 +53,7 @@ export const Pharmacopoeia = ({ pushFluid, processMed, patient, setPatient }) =>
               <input 
               autoFocus 
               type="number" 
-              placeholder="Vol" 
+              placeholder={`Vol (${FLUIDS[fluidId]?.type === 'Blood Product' || FLUIDS[fluidId]?.type === 'Colloid' ? 'Units' : 'mL'})`} 
               className="w-1/2 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-white outline-none focus:border-blue-500" 
               value={fluidInput.dose} 
               onChange={(e) => setFluidInput({...fluidInput, dose: e.target.value})} 

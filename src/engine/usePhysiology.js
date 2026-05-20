@@ -179,6 +179,20 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     });
   };
 
+  const removeFluid = (lineId, infusionId) => {
+    setPatient(prev => {
+        const newLines = [...(prev.accessLines || [])];
+        const lineIndex = newLines.findIndex(l => l.id === lineId);
+        if (lineIndex >= 0) {
+            const infusions = [...(newLines[lineIndex].activeInfusions || [])];
+            const filtered = infusions.filter(i => i.id !== infusionId);
+            newLines[lineIndex] = { ...newLines[lineIndex], activeInfusions: filtered };
+        }
+        return { ...prev, accessLines: newLines };
+    });
+    logEvent(`Stopped and removed fluid infusion.`);
+  };
+
   const processMed = (medId, doseInput, route, type, unit) => {
     const hasCVC = patient.accessLines?.some(l => l.includes('CVC') || l.includes('Cordis') || l.includes('Introducer'));
     const hasPIV = patient.accessLines?.some(l => l.includes('PIV'));
@@ -1359,5 +1373,5 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     };
   };
 
-  return { time, setTime, vitals, setVitals, targetVitals, setTargetVitals, patient, setPatient, processMed, pushMed, pushFluid, updateFluidRate, activeMeds, intravascularVolume, electrolytes, coags, deliverShock, toggleCPR, surgicalPhase, setSurgicalPhase, createSnapshot, restoreSnapshot };
+  return { time, setTime, vitals, setVitals, targetVitals, setTargetVitals, patient, setPatient, processMed, pushMed, pushFluid, updateFluidRate, removeFluid, activeMeds, intravascularVolume, electrolytes, coags, deliverShock, toggleCPR, surgicalPhase, setSurgicalPhase, createSnapshot, restoreSnapshot };
 }

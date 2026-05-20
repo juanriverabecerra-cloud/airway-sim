@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Droplet, Wind, Stethoscope, AlertTriangle } from 'lucide-react';
 import { MEDICATIONS } from '../../engine/Pharmacology';
 
-export const AirwayPanel = ({ patient, setPatient, handleSuction, optimizeAirway, pushMed, setViewModal, setSetupModal, setTubeConfirmModal, logEvent, handleSurgicalCric, handleExtubation, activeMeds, processMed, updateFluidRate }) => {
+export const AirwayPanel = ({ patient, setPatient, handleSuction, optimizeAirway, pushMed, setViewModal, setSetupModal, setTubeConfirmModal, logEvent, handleSurgicalCric, handleExtubation, activeMeds, processMed, updateFluidRate, removeFluid }) => {
   const [airwayToolInput, setAirwayToolInput] = useState({ tool: null, size: '' });
   const [editInfusionDose, setEditInfusionDose] = useState({});
   const [bolusInfusionDose, setBolusInfusionDose] = useState({});
@@ -79,13 +79,15 @@ export const AirwayPanel = ({ patient, setPatient, handleSuction, optimizeAirway
                          </div>
                       </div>
                       
-                      <div className="flex gap-1.5 mt-1">
-                         <input type="number" placeholder="Rate (mL/hr) or empty for Max" className="w-1/2 bg-slate-950 border border-slate-600 focus:border-teal-500 rounded px-1 py-1 text-[10px] text-white outline-none text-center transition-colors" 
+                      <div className="flex gap-1 mt-1">
+                         <input type="number" placeholder="Rate (mL/hr) or Max" className="w-[35%] bg-slate-950 border border-slate-600 focus:border-teal-500 rounded px-1 py-1 text-[9px] text-white outline-none text-center transition-colors" 
                                 value={editInfusionDose[fluid.id] !== undefined ? editInfusionDose[fluid.id] : ''} onChange={(e) => setEditInfusionDose({...editInfusionDose, [fluid.id]: e.target.value})} />
                          <button onClick={() => { updateFluidRate(fluid.lineId, fluid.id, editInfusionDose[fluid.id]); setEditInfusionDose({...editInfusionDose, [fluid.id]: ''}); }} 
-                                 className="w-1/4 bg-teal-900/40 hover:bg-teal-800/60 border border-teal-800 text-teal-200 text-[9px] font-bold rounded uppercase tracking-wider transition-colors">Set Rate</button>
+                                 className="flex-1 bg-teal-900/40 hover:bg-teal-800/60 border border-teal-800 text-teal-200 text-[9px] font-bold rounded uppercase tracking-wider transition-colors">Set</button>
                          <button onClick={() => updateFluidRate(fluid.lineId, fluid.id, '')} 
-                                 className="w-1/4 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 text-[9px] font-bold rounded uppercase tracking-wider transition-colors">Max Flow</button>
+                                 className="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 text-[9px] font-bold rounded uppercase tracking-wider transition-colors">Max</button>
+                         <button onClick={() => removeFluid(fluid.lineId, fluid.id)} 
+                                 className="flex-1 bg-red-900/40 hover:bg-red-800/60 border border-red-800 text-red-200 text-[9px] font-bold rounded uppercase tracking-wider transition-colors">Stop</button>
                       </div>
                    </div>
               ))}

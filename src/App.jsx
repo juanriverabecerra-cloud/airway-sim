@@ -121,7 +121,7 @@ export default function App() {
  
   const {
     time, setTime, vitals, setVitals, targetVitals, setTargetVitals, patient, setPatient,
-    processMed, pushMed, pushFluid, updateFluidRate, activeMeds, intravascularVolume, electrolytes, coags,
+    processMed, pushMed, pushFluid, updateFluidRate, removeFluid, activeMeds, intravascularVolume, electrolytes, coags,
     deliverShock, toggleCPR, surgicalPhase, setSurgicalPhase, createSnapshot, restoreSnapshot
   } = usePhysiology({
     activeCase,
@@ -193,6 +193,8 @@ export default function App() {
 
 // WRAPPED ACTION HANDLERS
   const handlePushFluid = (...args) => { saveState(); pushFluid(...args); };
+  const handleUpdateFluidRate = (...args) => { saveState(); updateFluidRate(...args); };
+  const handleRemoveFluid = (...args) => { saveState(); removeFluid(...args); };
   const handleProcessMed = (...args) => { saveState(); processMed(...args); };
   const handlePushMed = (...args) => { saveState(); pushMed(...args); };
   const handleToggleCPR = () => { saveState(); toggleCPR(); };
@@ -342,12 +344,15 @@ export default function App() {
     let length = 30; // mm default
     let penalty = 0; // mmHg default
     
-    if (type.includes('14G')) { radius = 1.05; length = 45; }
-    else if (type.includes('16G')) { radius = 0.8; length = 45; }
-    else if (type.includes('18G')) { radius = 0.65; length = 32; }
-    else if (type.includes('20G')) { radius = 0.5; length = 30; }
-    else if (type.includes('22G')) { radius = 0.4; length = 25; }
-    else if (type.includes('24G')) { radius = 0.28; length = 19; }
+    if (type.includes('14G') && !type.includes('CVC')) { radius = 1.05; length = 45; }
+    else if (type.includes('16G') && !type.includes('CVC')) { radius = 0.8; length = 45; }
+    else if (type.includes('18G') && !type.includes('CVC')) { radius = 0.65; length = 32; }
+    else if (type.includes('20G') && !type.includes('CVC')) { radius = 0.5; length = 30; }
+    else if (type.includes('22G') && !type.includes('CVC')) { radius = 0.4; length = 25; }
+    else if (type.includes('24G') && !type.includes('CVC')) { radius = 0.28; length = 19; }
+    else if (type.includes('Single Lumen CVC')) { radius = 1.05; length = 200; }
+    else if (type.includes('Double Lumen CVC')) { radius = 0.9; length = 200; }
+    else if (type.includes('Triple Lumen CVC')) { radius = 0.8; length = 200; }
     else if (type.includes('CVC')) { radius = 0.8; length = 200; }
     else if (type.includes('Cordis') || type.includes('MAC')) { radius = 1.4; length = 100; }
     else if (category.includes('IO')) { radius = 0.9; length = 25; penalty = 10; }
@@ -959,6 +964,7 @@ const generateClinicalHint = () => {
            activeMeds={activeMeds}
            processMed={handleProcessMed}
            updateFluidRate={updateFluidRate}
+           removeFluid={handleRemoveFluid}
         />
         
         <LogPanel 

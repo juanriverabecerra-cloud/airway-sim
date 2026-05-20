@@ -131,9 +131,12 @@ export const AccessModal = ({ data, close, establishAccess }) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-slate-800 p-4 rounded border border-slate-700">
               <h3 className="font-bold text-purple-400 mb-2">Internal Jugular (IJ)</h3>
+              <span className="text-[10px] text-purple-400 font-bold uppercase tracking-widest text-center border-b border-purple-900/50 pb-1 mb-1 block">Central Access</span>
               {[
+                { type: 'Single Lumen CVC (14G)', rate: '100mL/min' },
+                { type: 'Double Lumen CVC (14G, 18G)', rate: '100mL/min, 30mL/min' },
                 { type: 'Triple Lumen CVC', rate: '30mL/min (each)' },
-                { type: 'MAC Introducer', rate: '500+mL/min' }
+                { type: 'MAC Introducer (9Fr)', rate: '300mL/min' }
               ].map(item => (
                 <div key={`ij-${item.type}`} className="flex flex-col gap-1 mb-3">
                   <span className="text-[10px] text-slate-400">{item.type} (Max: ~{item.rate})</span>
