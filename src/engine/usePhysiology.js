@@ -48,17 +48,19 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
       const heightCm = activeCase.patient.height || 170;
       const weightKg = activeCase.patient.weight || 70;
       const sex = activeCase.patient.sex || 'male';
-      const ebv = weightKg * (sex.toLowerCase() === 'male' ? 75 : 65);
-      const baseBleedRate = activeCase.id === 'trauma' ? 1.5 : 0.05; 
+      const ebv = activeCase.patient.ebv || (weightKg * (sex.toLowerCase() === 'male' ? 75 : 65));
+      const baseBleedRate = activeCase.patient.bleedRate !== undefined ? activeCase.patient.bleedRate : (activeCase.id === 'trauma' ? 1.5 : 0.05); 
 
       const age = activeCase.patient.age || 40;
       const bmi = activeCase.patient.bmi || (weightKg / Math.pow(heightCm / 100, 2));
-      const lungVols = calculateLungVolumes(heightCm, age, sex, bmi);
+      const position = activeCase.patient.position || 'Supine';
+      const lungVols = calculateLungVolumes(heightCm, age, sex, bmi, position);
 
       setPatient({
-        ...activeCase.patient, height: heightCm, weight: weightKg, sex, ebv, ebl: 0, bleedRate: baseBleedRate,
+        ...activeCase.patient, height: heightCm, weight: weightKg, sex, ebv, ebl: activeCase.patient.ebl || 0, bleedRate: baseBleedRate,
         ibw: calculateIBW(heightCm, sex), lbw: calculateLBW(heightCm, weightKg, sex),
         lungVolumes: lungVols,
+        position: position,
         isApneic: false, isParalyzed: false, isTopicalized: false,
         airwaySecured: false, airwayExamined: false, ventilationStatus: 'spontaneous',
         hasIV: false, hasALine: false, currentO2Device: 'Room Air', currentO2Flow: 0, currentFiO2: 21,
@@ -481,9 +483,35 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const currentBloodVolume = (st.patient.ebv || 5000) - (st.patient.ebl || 0) + st.intravascularVolume;
           const v1VolumeRatio = Math.max(0.4, currentBloodVolume / (st.patient.ebv || 5000));
 
+          // Calculate dynamic renal clearance multiplier
+          let renalRatio = 1.0;
+          if (st.patient.renalComorbidity) {
+              const ren = st.patient.renalComorbidity.toLowerCase();
+              if (ren.includes('stage 5') || ren.includes('dialysis')) renalRatio = 0.1;
+              else if (ren.includes('stage 4')) renalRatio = 0.25;
+              else if (ren.includes('stage 3')) renalRatio = 0.5;
+              else if (ren.includes('stage 2')) renalRatio = 0.75;
+              else if (ren.includes('aki')) renalRatio = 0.3;
+          } else if (st.patient.gfr !== undefined) {
+              renalRatio = Math.max(0.05, Math.min(1.0, st.patient.gfr / 100));
+          }
+
+          // Calculate dynamic hepatic clearance multiplier (Child-Pugh A/B/C)
+          let hepaticRatio = 1.0;
+          if (st.patient.cirrhosis || st.patient.hasCirrhosis || st.patient.liverComorbidity) {
+              const cp = (st.patient.childPugh || '').toUpperCase();
+              if (cp.includes('C')) hepaticRatio = 0.25;
+              else if (cp.includes('B')) hepaticRatio = 0.50;
+              else hepaticRatio = 0.80; // Default Child-Pugh A
+          }
+
+          const hasMG = st.patient.hasMG || st.patient.myastheniaGravis || (st.patient.neurologicComorbidity && st.patient.neurologicComorbidity.toLowerCase().includes('myasthenia'));
+
           if (st.activeMeds) {
             st.activeMeds.forEach(model => {
-              const effects = model.tick(1, coRatio, v1VolumeRatio); 
+              const isNDMR = model.classes.includes('NDMR');
+              const pdSens = (isNDMR && hasMG) ? 4.0 : 1.0;
+              const effects = model.tick(1, coRatio, v1VolumeRatio, renalRatio, pdSens, hepaticRatio); 
               totalHrDelta += effects.hrDelta || 0; 
               totalRrDelta += effects.rrDelta || 0;
               
@@ -751,6 +779,50 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let patientDriveRR = (st.patient.isApneic || st.patient.isParalyzed) ? 0 : Math.max(0, (st.targetVitals.rr || 12) + compensatoryRR + shiveringRRDrive + totalRrDelta - opioidRRDrop);
           let targetRR = patientDriveRR;
 
+          // === PENICILLIN ANAPHYLAXIS TRIGGERS ===
+          const unasynModel = st.activeMeds?.find(m => m.name === 'Ampicillin/Sulbactam');
+          const unasynCe = unasynModel ? unasynModel.Ce : 0;
+          let anaphylaxisTriggered = st.patient.anaphylaxisTriggered || false;
+          let anaphylaxisSvrMod = 1.0;
+          let anaphylaxisCompliancePenalty = 0;
+          let anaphylaxisResistancePenalty = 0;
+          let anaphylaxisHrMod = 0;
+
+          if (unasynCe > 0.05 && (st.patient.penicillinAllergy || (st.patient.allergies && st.patient.allergies.toLowerCase().includes('penicillin'))) && !anaphylaxisTriggered) {
+              anaphylaxisTriggered = true;
+              st.patient.anaphylaxisTriggered = true;
+              st.patient.anaphylaxisTime = st.time;
+              logEvent(`🚨 CRITICAL EMERGENCY: Penicillin-containing Ampicillin/Sulbactam administered to a patient with severe Penicillin Allergy! Triggered hyperacute IgE-mediated anaphylactic shock! (Profound vasoplegic hypotension, severe bronchospasm, extreme airway resistance).`);
+          }
+
+          if (st.patient.anaphylaxisTriggered) {
+              const startTime = st.patient.anaphylaxisTime || st.time;
+              const dt = st.time - startTime;
+              anaphylaxisSvrMod = 0.25 + 0.75 * Math.exp(-0.05 * dt); // decays from 1.0 to 0.25
+              anaphylaxisCompliancePenalty = Math.min(45, 45 * (1 - Math.exp(-0.08 * dt))); // compliance drops up to 45
+              anaphylaxisResistancePenalty = Math.min(45, 45 * (1 - Math.exp(-0.08 * dt))); // resistance rises up to 45
+              anaphylaxisHrMod = Math.min(40, 40 * (1 - Math.exp(-0.08 * dt))); // HR rises up to 40
+              
+              // Blunted by Epinephrine treatment
+              const epiModel = st.activeMeds?.find(m => m.name === 'Epinephrine');
+              const epiCe = epiModel ? epiModel.Ce : 0;
+              if (epiCe > 0.01) {
+                  const recovery = Math.min(1.0, epiCe * 12); // speed based on Epinephrine concentration
+                  anaphylaxisSvrMod = anaphylaxisSvrMod + (1.0 - anaphylaxisSvrMod) * recovery;
+                  anaphylaxisCompliancePenalty *= (1 - recovery);
+                  anaphylaxisResistancePenalty *= (1 - recovery);
+                  anaphylaxisHrMod *= (1 - recovery);
+                  if (recovery > 0.8 && !st.patient.anaphylaxisTreated) {
+                      logEvent(`✅ SUCCESS: Epinephrine administered! Vasomotor tone restored and bronchospasm reversed in treating anaphylactic shock.`);
+                      st.patient.anaphylaxisTreated = true;
+                  }
+              }
+              st.patient.anaphylaxisSvrMod = anaphylaxisSvrMod;
+              st.patient.anaphylaxisCompliancePenalty = anaphylaxisCompliancePenalty;
+              st.patient.anaphylaxisResistancePenalty = anaphylaxisResistancePenalty;
+              st.patient.anaphylaxisHrMod = anaphylaxisHrMod;
+          }
+
           // === GASTRIC ASPIRATION TRIGGERS ON FULL STOMACH ===
           let hasAspirated = st.patient.hasAspirated || false;
           let aspirationCompliancePenalty = 0;
@@ -781,21 +853,37 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               aspirationResistancePenalty = resPenalty;
           }
 
+          // === COPD / ASTHMA PULMONARY SEVERITY MAPPING ===
+          let pulmComplianceBonus = 0;
+          let pulmResistanceBonus = 0;
+          if (st.patient.pulmonaryComorbidity) {
+              const pulm = st.patient.pulmonaryComorbidity.toLowerCase();
+              if (pulm.includes('copd gold i')) { pulmComplianceBonus = 5; pulmResistanceBonus = 5; }
+              else if (pulm.includes('copd gold ii')) { pulmComplianceBonus = 10; pulmResistanceBonus = 10; }
+              else if (pulm.includes('copd gold iii')) { pulmComplianceBonus = 15; pulmResistanceBonus = 18; }
+              else if (pulm.includes('copd gold iv')) { pulmComplianceBonus = 20; pulmResistanceBonus = 25; }
+              else if (pulm.includes('asthma')) { pulmComplianceBonus = -12; pulmResistanceBonus = 20; }
+          } else {
+              if (st.patient.copd) { pulmComplianceBonus = 15; pulmResistanceBonus = 18; }
+          }
+
           // === DYNAMIC PULMONARY compliance & resistance loops ===
           let currentCompliance = 65; 
           if (st.patient.isObese) currentCompliance -= 25; 
           if (st.patient.isSeptic) currentCompliance -= 20; 
           if (st.patient.trauma) currentCompliance -= 15; 
           if (st.patient.chf) currentCompliance -= 20; 
-          if (st.patient.copd) currentCompliance += 15; 
+          currentCompliance += pulmComplianceBonus; 
           if (positionFRCMod < 0) currentCompliance -= 10;
           currentCompliance -= aspirationCompliancePenalty;
+          currentCompliance -= anaphylaxisCompliancePenalty;
           currentCompliance = Math.max(5, currentCompliance);
           
           let currentResistance = 5; 
           if (st.patient.isObese) currentResistance += 3;
-          if (st.patient.copd) currentResistance += 18; 
+          currentResistance += pulmResistanceBonus; 
           currentResistance += aspirationResistancePenalty;
+          currentResistance += anaphylaxisResistancePenalty;
 
           if (st.patient.airwaySecured && st.ventSettings) {
               newPeep = st.ventSettings.peep || 0;
@@ -883,27 +971,73 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               if (expectedHR < 15 && !isArrestState) {
                   isArrestState = true;
                   currentRhythm = 'asystole';
-                  logEvent('🚨 CRITICAL EMERGENCY: Neostigmine-induced unopposed muscarinic surge triggered sinus arrest / asystole!');
+                  logEvent('🚨 CRITICAL EMERGENCY: Neostigmine-induced profound vagal bradycardia led to cardiac arrest (Asystole)!');
+              }
+          }
+
+          let newStunning = st.patient.myocardialStunning || 0;
+          if ((st.patient.cad || st.patient.hasCAD) && !isArrestState) {
+              const currentSys = st.vitals.sys || 120;
+              const currentHr = st.vitals.hr || 70;
+              const doubleProduct = currentSys * currentHr;
+              const dbp = st.vitals.dia || 80;
+              if (doubleProduct > 14000 || dbp < 50) {
+                  newStunning = Math.min(60, newStunning + 0.5);
+                  if (Math.random() < 0.05) { // 5% chance per second to log
+                      logEvent(`⚠️ CORONARY ISCHEMIA: High myocardial O2 demand (Double Product ${doubleProduct}) or low coronary perfusion (DBP ${Math.round(dbp)}) in patient with CAD is causing progressive myocardial stunning!`);
+                  }
               }
           }
 
           const effectiveIntravascularVolume = st.intravascularVolume + positionPreloadMod;
-          const inotropyFinal = 1.0 - ((st.patient.myocardialStunning || 0) / 100) + (unbluntedStimulus / 500) + (drugInotropyMod - 1.0);
+          const inotropyFinal = 1.0 - (newStunning / 100) + (unbluntedStimulus / 500) + (drugInotropyMod - 1.0);
           const preloadSV = Math.max(0.1, 1.0 - (bloodLossRatio * 1.2) + (effectiveIntravascularVolume / 2500));
           
           const shiveringHRDrive = (shiveringMultiplier > 1.0) ? ((shiveringMultiplier - 1.0) * 15) : 0;
-          const targetHR = Math.max(0, (st.targetVitals.hr || 70) + totalHrDelta + autonomicHrMod + (bloodLossRatio * 150) + unbluntedStimulus + shiveringHRDrive);
           
-          const chfInotropicPenalty = st.patient.chf ? 0.5 : 1.0;
+          // AFib HR Flutter
+          let afibHRFlutter = 0;
+          if (st.patient.afib || st.patient.hasAFib || st.patient.cardiacRhythm === 'afib') {
+              afibHRFlutter = (Math.random() - 0.5) * 12;
+          }
+
+          // Beta-Blocker compensatory tachycardia blunting (85% blunted)
+          let adjustedAutonomicHrMod = autonomicHrMod;
+          let adjustedHypovolemicTachy = bloodLossRatio * 150;
+          if (st.patient.onBetaBlocker || st.patient.hasBetaBlocker || st.patient.betaBlocker) {
+              adjustedAutonomicHrMod *= 0.15;
+              adjustedHypovolemicTachy *= 0.15;
+          }
+
+          const targetHR = Math.max(0, (st.targetVitals.hr || 70) + totalHrDelta + adjustedAutonomicHrMod + adjustedHypovolemicTachy + unbluntedStimulus + shiveringHRDrive + afibHRFlutter + (anaphylaxisHrMod || 0));
+          
+          // CHF EF-scaled Inotropic Penalty
+          let chfInotropicPenalty = 1.0;
+          if (st.patient.chf) {
+              if (st.patient.ef) {
+                  chfInotropicPenalty = Math.max(0.15, st.patient.ef / 55); // EF 30% -> ~0.54 penalty
+              } else {
+                  chfInotropicPenalty = 0.5;
+              }
+          }
           const maxSV = (st.patient.patientBaseSV || 70) * (st.patient.chf ? 1.0 : 1.6);
-          let currentSV = Math.min(maxSV, (st.patient.patientBaseSV || 70) * preloadSV * Math.max(0.1, inotropyFinal) * chfInotropicPenalty);
+          
+          // AFib SV Penalty (15% reduction)
+          const afibSVModifier = (st.patient.afib || st.patient.hasAFib || st.patient.cardiacRhythm === 'afib') ? 0.85 : 1.0;
+          
+          let currentSV = Math.min(maxSV, (st.patient.patientBaseSV || 70) * preloadSV * Math.max(0.1, inotropyFinal) * chfInotropicPenalty * afibSVModifier);
           
           const baseSVR = st.patient.patientBaseSVR || 1200;
-          let targetSVR = (baseSVR * svrMod * drugSvrMod * (st.patient.isSeptic ? 0.6 : 1.0)) + (unbluntedStimulus * 8);
+          let targetSVR = (baseSVR * svrMod * drugSvrMod * (st.patient.isSeptic ? 0.6 : 1.0) * (anaphylaxisSvrMod || 1.0)) + (unbluntedStimulus * 8);
           
           if (targetSVR > 1600) currentSV *= (1600 / targetSVR); 
 
-          const targetCO = (targetHR * currentSV) / 1000; 
+          // Aortic Stenosis (AS) Cardiac Output Cap at 4.2 L/min
+          let targetCO = (targetHR * currentSV) / 1000; 
+          if (st.patient.as || st.patient.hasAorticStenosis || st.patient.aorticStenosis) {
+              targetCO = Math.min(4.2, targetCO);
+          }
+
           let targetMAP = (targetCO * targetSVR) / 80;
           targetMAP = Math.min(220, Math.max(15, targetMAP));
 
@@ -1121,7 +1255,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               return { 
                   ...prev, ebl: currentEbl, oxygenBuffer: currentBuffer, 
                   ischemicDamage: newDamage, isArrest: isArrestState, biologicalDeath: bioDeath,
-                  cardiacRhythm: currentRhythm, myocardialStunning: Math.max(0, (prev.myocardialStunning || 0) - 0.2),
+                  cardiacRhythm: currentRhythm, myocardialStunning: Math.max(0, newStunning - 0.2),
                   codeStartTime: codeTime, arrestThreshold: newThreshold, apneaStartTime: newApneaStart,
                   vec3oh: currentVec3oh, normep: currentNormep, m6g: currentM6g, cyanide: currentCyanide,
                   lacticAcid: currentLactate, hasAspirated, temp: newTemp

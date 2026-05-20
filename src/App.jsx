@@ -13,6 +13,12 @@ import { Pharmacopoeia } from './components/controls/Pharmacopoeia';
 import { AirwayPanel } from './components/controls/AirwayPanel';
 import { LogPanel } from './components/controls/LogPanel';
 import { AccessModal, PocusModal, SetupModal, TubeConfirmModal, AirwayQuizModal, ViewModal, PreopModal, MsmaidsModal, PostIntubationModal, ExtubationModal } from './components/modals/Modals';
+import { PreOpEMR } from './components/modals/PreOpEMR';
+
+// Attending Engine & Panel
+import { evaluateAttendingGuidance } from './engine/AttendingEngine';
+import AttendingPanel from './components/controls/AttendingPanel';
+
 
 const CASES = [
   {
@@ -93,7 +99,11 @@ export default function App() {
   const [isCyclingNibp, setIsCyclingNibp] = useState(false);
 
   const [preopModal, setPreopModal] = useState(false);
+  const [preOpEMR, setPreOpEMR] = useState(false);
+  const [stagedCase, setStagedCase] = useState(null);
   const [msmaidsModal, setMsmaidsModal] = useState(false);
+  const [msmaidsComplete, setMsmaidsComplete] = useState(false);
+  const [attendingMode, setAttendingMode] = useState('observing');
   const [postIntubationModal, setPostIntubationModal] = useState(false);
   const [extubationModal, setExtubationModal] = useState(false);
   
@@ -120,6 +130,19 @@ export default function App() {
     ventSettings,
     gasSettings,
     logEvent
+  });
+
+  const attendingGuidance = evaluateAttendingGuidance({
+    vitals,
+    patient,
+    activeMeds,
+    surgicalPhase,
+    time,
+    logs,
+    attendingMode,
+    msmaidsComplete,
+    ventSettings,
+    gasSettings
   });
 
   // === QoL: GLOBAL CLINICAL TIME-OUT (SPACEBAR) ===
@@ -224,18 +247,33 @@ export default function App() {
     }
   };
 
+  const openPreOpEMR = (stagedC) => {
+    setStagedCase(stagedC);
+    setPreOpEMR(true);
+  };
+
   const startCase = (selectedCase) => {
     setActiveCase(selectedCase);
+    setMsmaidsComplete(false);
     setVitals({ ...selectedCase.baseVitals, pip: 0, pplat: 0, vte: 0 });
     setTargetVitals({ ...selectedCase.baseVitals });
     setNibp({ sys: selectedCase.baseVitals.sys, dia: selectedCase.baseVitals.dia, time: 0 });
     setPatient({
       ...selectedCase.patient,
       isApneic: false, isParalyzed: false, isTopicalized: false, airwaySecured: false, airwayExamined: false,
-      ventilationStatus: 'spontaneous', hasIV: false, hasALine: false, currentO2Device: 'Room Air', currentFiO2: 21, currentO2Flow: 0, oxygenBuffer: 21, drugEffects: { sys: 0, hr: 0 }, accessLines: []
+      ventilationStatus: 'spontaneous', hasIV: false,
+      hasALine: selectedCase.patient.hasALine || false,
+      hasCVC: selectedCase.patient.hasCVC || false,
+      currentO2Device: 'Room Air', currentFiO2: 21, currentO2Flow: 0,
+      oxygenBuffer: null, // Let engine calculate from FRC
+      drugEffects: { sys: 0, hr: 0 }, accessLines: []
     });
+    if (selectedCase.preOpLabs) {
+      setLabs(selectedCase.preOpLabs);
+    } else {
+      setLabs({});
+    }
     setLogs([`00:00 - Case Started: ${selectedCase.name}. ${selectedCase.description}`]);
-    setLabs({});
     setIsCyclingNibp(false);
     setTime(0); setHistory([]); setIsRunning(true);
   };
@@ -503,69 +541,169 @@ const generateClinicalHint = () => {
   };
 
   const generateLab = (type) => {
-    logEvent(`Sent ${type} to the lab...`);
+    let delay = 3000; // default 3s for POC iSTAT
+    let label = type;
+    
+    if (type === 'ABG' || type === 'VBG' || type === 'Lactate') {
+      logEvent(`Sent blood to iSTAT cartridge for immediate ${type} analysis (ETA ~2 min)...`);
+      delay = 3000;
+    } else if (type === 'CBC' || type === 'CMP') {
+      logEvent(`Sent blood for point-of-care ${type} panel (ETA ~2 min)...`);
+      delay = 4000;
+    } else if (type === 'Coagulation') {
+      logEvent(`Sent blood for Central Lab Coagulation Panel (PT/INR/PTT) (ETA ~5 min)...`);
+      delay = 6000;
+      label = 'Coagulation';
+    } else if (type === 'LFTs' || type === 'Thyroid' || type === 'Urinalysis' || type === 'Pregnancy' || type === 'HbA1c') {
+      logEvent(`Sent specimen for ${type} analysis (ETA ~5-15 min)...`);
+      delay = 8000;
+    } else if (type === 'TEG') {
+      logEvent(`Sent blood to TEG analyzer. Cup and pin warming up (ETA ~10 min)...`);
+      delay = 12000;
+    } else if (type === 'Type & Screen' || type === 'Type & Cross') {
+      logEvent(`Sent blood bank tubes for ${type}. Crossmatching PRBCs (ETA ~45 min)...`);
+      delay = 20000;
+    }
+
     setTimeout(() => {
       let results = {};
+      const currentPh = vitals.ph || electrolytes.ph || 7.4;
+      const currentPaCO2 = vitals.paco2 || 40;
+      const currentPaO2 = vitals.pao2 || 100;
+      const baseHco3 = patient.isObese ? 32 : 24; 
+      const metabolicAcidosis = (patient.isSeptic ? 8 : 0) + ((patient.ebl || 0) > 1500 ? 6 : 0);
+      const currentHco3 = Math.max(8, baseHco3 - metabolicAcidosis - ((7.4 - currentPh) * 100));
+      const currentLactate = (patient.isSeptic ? 4.5 + Math.random() * 2 : 1.0 + ((patient.ebl || 0) / 600));
+
+      const ebv = (patient.sex === 'male' ? patient.weight * 70 : patient.weight * 65) || 5000;
+      const bloodLossRatio = (patient.ebl || 0) / ebv;
+      const startingHb = patient.startingHb || (patient.anemia ? 8.9 : 14.2);
+      const dilutionRatio = (intravascularVolume || ebv) / ebv;
+      const currentHb = Math.max(3.0, (startingHb * (1 - bloodLossRatio)) / Math.max(0.6, dilutionRatio));
+      const currentHct = currentHb * 3;
+      const currentPlt = Math.max(10, Math.round((patient.thrombocytopenia ? 75 : 245) * (1 - bloodLossRatio)));
+
       if (type === 'ABG') {
-        const baseHco3 = patient.isObese ? 32 : 24; 
-        const metabolicAcidosis = (patient.isSeptic ? 8 : 0) + ((patient.ebl || 0) > 1500 ? 6 : 0);
-        const currentHco3 = Math.max(10, baseHco3 - metabolicAcidosis);
-        
         results = {
-          'pH': { val: (vitals.ph || 7.4).toFixed(2), range: '7.35 - 7.45', alert: vitals.ph < 7.35 || vitals.ph > 7.45 },
-          'pCO2': { val: (vitals.paco2 || 40).toFixed(1), range: '35 - 45 mmHg', alert: vitals.paco2 < 35 || vitals.paco2 > 45 },
-          'pO2': { val: Math.round(vitals.pao2 || 100), range: '75 - 100 mmHg', alert: vitals.pao2 < 60 },
+          'pH': { val: currentPh.toFixed(2), range: '7.35 - 7.45', alert: currentPh < 7.35 || currentPh > 7.45 },
+          'pCO2': { val: currentPaCO2.toFixed(1), range: '35 - 45 mmHg', alert: currentPaCO2 < 35 || currentPaCO2 > 45 },
+          'pO2': { val: Math.round(currentPaO2), range: '75 - 100 mmHg', alert: currentPaO2 < 60 },
           'HCO3': { val: currentHco3.toFixed(1), range: '22 - 26 mEq/L', alert: currentHco3 < 20 || currentHco3 > 28 },
-          'Lactate': { val: (patient.isSeptic ? 6.2 : ((patient.ebl || 0) > 1500 ? 4.5 : 1.2)).toFixed(1), range: '0.5 - 2.0 mmol/L', alert: patient.isSeptic || (patient.ebl || 0) > 1500 }
+          'Lactate': { val: currentLactate.toFixed(1), range: '0.5 - 2.0 mmol/L', alert: currentLactate > 2.0 }
+        };
+      } else if (type === 'VBG') {
+        results = {
+          'pvH': { val: (currentPh - 0.04).toFixed(2), range: '7.31 - 7.41', alert: (currentPh - 0.04) < 7.31 || (currentPh - 0.04) > 7.41 },
+          'pvCO2': { val: (currentPaCO2 + 5).toFixed(1), range: '41 - 51 mmHg', alert: (currentPaCO2 + 5) > 51 },
+          'pvO2': { val: Math.max(25, Math.round(35 + (currentPaO2 - 100) * 0.08)), range: '30 - 50 mmHg', alert: false },
+          'HCO3': { val: currentHco3.toFixed(1), range: '22 - 26 mEq/L', alert: currentHco3 < 20 || currentHco3 > 28 },
+          'Lactate': { val: currentLactate.toFixed(1), range: '0.5 - 2.2 mmol/L', alert: currentLactate > 2.2 }
         };
       } else if (type === 'CBC') {
-        const ebv = patient.ebv || 5000;
-        const bloodLossRatio = (patient.ebl || 0) / ebv;
-        const baseHb = patient.trauma ? 11.2 : 14.5;
-        const dilutionFactor = intravascularVolume / ebv;
-        const currentHb = Math.max(3.0, (baseHb * (1 - bloodLossRatio)) - (dilutionFactor * 3.0));
-        const currentHct = currentHb * 3;
-        
         const wbc = patient.isSeptic ? (Math.random() * 5 + 18).toFixed(1) : (Math.random() * 2 + 6).toFixed(1);
-        const basePlt = patient.isSeptic ? 90 : 250;
-        const currentPlt = Math.round(basePlt * (1 - bloodLossRatio));
-
         results = {
-          'WBC': { val: wbc, range: '4.5 - 11.0 x10^3/µL', alert: patient.isSeptic },
+          'WBC': { val: wbc, range: '4.5 - 11.0 x10^3/µL', alert: patient.isSeptic || parseFloat(wbc) > 11.0 },
           'Hemoglobin (Hb)': { val: currentHb.toFixed(1), range: '12.0 - 17.5 g/dL', alert: currentHb < 10.0 },
           'Hematocrit (Hct)': { val: currentHct.toFixed(1), range: '36 - 50 %', alert: currentHct < 30 },
           'Platelets': { val: currentPlt, range: '150 - 450 x10^3/µL', alert: currentPlt < 150 }
         };
       } else if (type === 'CMP') {
+        const currentNa = electrolytes.na || 138;
+        const currentK = electrolytes.k || 4.1;
+        const currentCl = electrolytes.cl || 102;
+        const bunVal = patient.ckd ? 48 : (patient.isSeptic ? 28 : 12);
+        const crVal = (patient.startingCreatinine || (patient.ckd ? 2.8 : 0.85)) + (patient.isSeptic ? 0.8 : 0);
+        const glucVal = (patient.startingGlucose || (patient.diabetes ? 195 : 98)) + (patient.isSeptic ? 60 : 0);
+        
         results = {
-          Na: { val: 138, range: '135-145', alert: false },
-          K: { val: (patient.trauma ? (Math.random() * 0.5 + 5.0).toFixed(1) : 4.1), range: '3.5-5.1', alert: patient.trauma },
-          Cr: { val: (patient.isSeptic ? (Math.random() * 0.5 + 2.2).toFixed(1) : 0.9), range: '0.7-1.3', alert: patient.isSeptic },
-          Gluc: { val: (patient.isSeptic ? Math.round(Math.random() * 40 + 180) : 105), range: '70-100', alert: patient.isSeptic }
+          'Sodium (Na)': { val: Math.round(currentNa), range: '135 - 145 mEq/L', alert: currentNa < 135 || currentNa > 145 },
+          'Potassium (K)': { val: currentK.toFixed(1), range: '3.5 - 5.1 mEq/L', alert: currentK < 3.5 || currentK > 5.1 },
+          'Chloride (Cl)': { val: Math.round(currentCl), range: '96 - 106 mEq/L', alert: false },
+          'CO2 (Bicarbonate)': { val: currentHco3.toFixed(1), range: '22 - 29 mEq/L', alert: currentHco3 < 22 },
+          'BUN': { val: bunVal, range: '7 - 20 mg/dL', alert: bunVal > 20 },
+          'Creatinine (Cr)': { val: crVal.toFixed(2), range: '0.70 - 1.30 mg/dL', alert: crVal > 1.3 },
+          'Glucose': { val: Math.round(glucVal), range: '70 - 100 mg/dL', alert: glucVal > 100 }
+        };
+      } else if (type === 'Coagulation') {
+        const ptVal = 12.0 + (coags.r_offset || 0) * 1.8;
+        const inrVal = ptVal / 12.0;
+        const pttVal = 31.0 + (coags.r_offset || 0) * 3.2;
+        
+        results = {
+          'Prothrombin Time (PT)': { val: ptVal.toFixed(1) + ' s', range: '11.0 - 13.5 s', alert: ptVal > 13.5 },
+          'INR': { val: inrVal.toFixed(1), range: '0.8 - 1.2', alert: inrVal > 1.2 },
+          'Partial Thromboplastin Time (PTT)': { val: pttVal.toFixed(1) + ' s', range: '25.0 - 35.0 s', alert: pttVal > 35.0 }
         };
       } else if (type === 'TEG') {
+        const rVal = 6.0 + (coags.r_offset || 0);
+        const angleVal = 65.0 + (coags.angle_offset || 0);
+        const maVal = 60.0 + (coags.ma_offset || 0);
         results = {
-          R: { val: (patient.trauma ? (Math.random() * 2 + 11).toFixed(1) : 6), range: '5-10 min', alert: patient.trauma },
-          Angle: { val: (patient.trauma ? Math.round(Math.random() * 5 + 42) : 65), range: '53-72 deg', alert: patient.trauma },
-          MA: { val: (patient.trauma ? Math.round(Math.random() * 5 + 40) : 60), range: '50-70 mm', alert: patient.trauma }
+          'R': { val: rVal.toFixed(1) + ' min', range: '5 - 10 min', alert: rVal > 10.0 },
+          'Angle': { val: Math.round(angleVal) + ' deg', range: '53 - 72 deg', alert: angleVal < 53.0 },
+          'MA': { val: Math.round(maVal) + ' mm', range: '50 - 70 mm', alert: maVal < 50.0 }
         };
-      } else if (type === 'VBG') {
+      } else if (type === 'LFTs') {
+        const isCirrhosis = patient.cirrhosis;
+        const astVal = isCirrhosis ? 134 : 22;
+        const altVal = isCirrhosis ? 118 : 25;
+        const alkVal = isCirrhosis ? 210 : 68;
+        const biliVal = isCirrhosis ? 3.4 : 0.6;
+        const albVal = isCirrhosis ? 2.5 : 4.1;
         results = {
-          pvH: { val: ((vitals.ph || 7.4) - 0.04).toFixed(2), range: '7.31-7.41', alert: ((vitals.ph || 7.4) - 0.04) < 7.31 },
-          pvCO2: { val: ((vitals.paco2 || 40) + 5).toFixed(1), range: '41-51 mmHg', alert: ((vitals.paco2 || 40) + 5) > 51 },
-          Lactate: { val: (patient.isSeptic ? 6.2 : ((patient.ebl || 0) > 1500 ? 4.5 : 1.2)).toFixed(1), range: '0.5-2.2 mmol/L', alert: patient.isSeptic || (patient.ebl || 0) > 1500 }
+          'AST': { val: astVal + ' U/L', range: '10 - 40 U/L', alert: isCirrhosis },
+          'ALT': { val: altVal + ' U/L', range: '7 - 56 U/L', alert: isCirrhosis },
+          'Alkaline Phosphatase': { val: alkVal + ' U/L', range: '44 - 147 U/L', alert: isCirrhosis },
+          'Total Bilirubin': { val: biliVal.toFixed(1) + ' mg/dL', range: '0.2 - 1.2 mg/dL', alert: isCirrhosis },
+          'Albumin': { val: albVal.toFixed(1) + ' g/dL', range: '3.5 - 5.0 g/dL', alert: isCirrhosis }
+        };
+      } else if (type === 'Thyroid') {
+        const isHyper = patient.hyperthyroid || patient.thyroid === 'hyper';
+        const isHypo = patient.hypothryoid || patient.thyroid === 'hypo';
+        const tsh = isHyper ? 0.05 : (isHypo ? 14.5 : 1.8);
+        const t4 = isHyper ? 3.2 : (isHypo ? 0.4 : 1.2);
+        results = {
+          'TSH': { val: tsh.toFixed(2) + ' mIU/L', range: '0.40 - 4.00 mIU/L', alert: isHyper || isHypo },
+          'Free T4': { val: t4.toFixed(1) + ' ng/dL', range: '0.8 - 1.8 ng/dL', alert: isHyper || isHypo }
+        };
+      } else if (type === 'Urinalysis') {
+        results = {
+          'Appearance': { val: patient.isSeptic ? 'Cloudy' : 'Clear', range: 'Clear', alert: patient.isSeptic },
+          'Nitrite': { val: patient.isSeptic ? 'Positive' : 'Negative', range: 'Negative', alert: patient.isSeptic },
+          'Leukocyte Esterase': { val: patient.isSeptic ? 'Trace' : 'Negative', range: 'Negative', alert: patient.isSeptic },
+          'Protein': { val: 'Negative', range: 'Negative', alert: false }
+        };
+      } else if (type === 'Pregnancy') {
+        results = {
+          'Urine beta-hCG': { val: patient.isPregnant ? 'POSITIVE' : 'NEGATIVE', range: 'NEGATIVE', alert: patient.isPregnant }
+        };
+      } else if (type === 'Type & Screen') {
+        results = {
+          'ABO / Rh Type': { val: patient.sex === 'male' ? 'A Positive' : 'O Negative', range: 'N/A', alert: false },
+          'Antibody Screen': { val: 'Negative', range: 'Negative', alert: false }
+        };
+      } else if (type === 'Type & Cross') {
+        results = {
+          'Units Ordered': { val: '2 Units PRBC', range: 'N/A', alert: false },
+          'Crossmatch Status': { val: 'Compatible - In Blood Bank', range: 'Compatible', alert: false }
+        };
+      } else if (type === 'HbA1c') {
+        const a1c = patient.diabetes ? 8.4 : 5.3;
+        results = {
+          'HbA1c': { val: a1c.toFixed(1) + ' %', range: '< 5.7 %', alert: patient.diabetes }
         };
       }
+
       setLabs(prev => {
-        const existing = prev[type] || { testNames: Object.keys(results), history: [] };
+        const existing = prev[label] || { testNames: Object.keys(results), history: [] };
         return {
           ...prev,
-          [type]: { ...existing, history: [...existing.history, { time: formatTime(time), results }] }
+          [label]: { ...existing, history: [...existing.history, { time: formatTime(time), results }] }
         };
       });
       setShowLabPanel(true);
-      logEvent(`Results back for ${type}.`);
-    }, 2000);
+      logEvent(`📊 [LAB RESULTS] ${label} Panel results are back.`);
+    }, delay);
   };
 
   const processIntubation = (blade, adjunct) => {
@@ -661,7 +799,12 @@ const generateClinicalHint = () => {
         </h1>
         
         <div className="z-10 w-full flex justify-center">
-           <CaseManager onStart={startCase} />
+           <CaseManager 
+             onStart={startCase} 
+             stagedCase={stagedCase}
+             setStagedCase={setStagedCase}
+             openPreOpEMR={openPreOpEMR}
+           />
         </div>
       </div>
     );
@@ -873,6 +1016,7 @@ const generateClinicalHint = () => {
         show={msmaidsModal}
         close={() => setMsmaidsModal(false)}
         logEvent={logEvent}
+        onComplete={() => setMsmaidsComplete(true)}
       />
 
       <PostIntubationModal
@@ -889,6 +1033,32 @@ const generateClinicalHint = () => {
         logEvent={logEvent}
         performExtubation={handleExtubation}
       />
+
+      <PreOpEMR
+        show={preOpEMR}
+        close={() => setPreOpEMR(false)}
+        stagedCase={stagedCase}
+        setStagedCase={setStagedCase}
+        onStart={startCase}
+        logEvent={logEvent}
+      />
+
+      {activeCase && (
+        <AttendingPanel
+          vitals={vitals}
+          patient={patient}
+          activeMeds={activeMeds}
+          surgicalPhase={surgicalPhase}
+          time={time}
+          logs={logs}
+          attendingMode={attendingMode}
+          setAttendingMode={setAttendingMode}
+          primaryGuidance={attendingGuidance.primaryGuidance}
+          fullAudit={attendingGuidance.fullAudit}
+          activeAlertsCount={attendingGuidance.activeAlertsCount}
+          formatTime={formatTime}
+        />
+      )}
 
     </div>
   );

@@ -288,6 +288,15 @@ export const Pharmacopoeia = ({ pushFluid, processMed, patient, setPatient }) =>
               {['adenosine', 'amiodarone', 'atropine', 'bicarbonate', 'calcium', 'digoxin', 'diltiazem', 'ibutilide', 'lidocaine', 'magnesium', 'procainamide', 'sotalol', 'verapamil'].map(renderAdvancedMedButton)}
             </div>
           </details>
+
+          <details className="group">
+            <summary className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold cursor-pointer hover:text-white list-none flex justify-between">
+              Antibiotics & Topical/Respiratory <span className="group-open:rotate-180 transition-transform">▼</span>
+            </summary>
+            <div className="flex flex-col gap-1 mt-2">
+              {['unasyn', 'benzocaine', 'prilocaine', 'albuterol'].map(renderAdvancedMedButton)}
+            </div>
+          </details>
         </>
       )}
     </div>

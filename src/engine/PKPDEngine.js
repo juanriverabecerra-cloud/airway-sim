@@ -46,7 +46,7 @@ export class PKPDModel {
    * @param {number} coRatio Current CO / Baseline CO (1.0 = normal)
    * @param {number} v1VolumeRatio Current Blood Vol / Baseline EBV (Hemoconcentration modifier)
    */
-  tick(dt = 1, coRatio = 1.0, v1VolumeRatio = 1.0) {
+  tick(dt = 1, coRatio = 1.0, v1VolumeRatio = 1.0, renalRatio = 1.0, pdSensitivityCoeff = 1.0, hepaticRatio = 1.0) {
     // Internal sub-stepping for numerical stability (10 steps per tick)
     const subSteps = 10;
     const subDt = dt / subSteps;
@@ -54,7 +54,28 @@ export class PKPDModel {
     // Apply flow-dependency to elimination (k10) and distribution (k12, k13)
     const coMod = 1 + (coRatio - 1) * (this.pk.coSensitivity || 0.5);
     
-    const k10 = ((this.pk.k10 || 0) / 60) * coMod;
+    let k10Raw = this.pk.k10 || 0;
+    // Apply GFR-dependent and hepatic-dependent clearance for specific drugs
+    const lowercaseName = this.name.toLowerCase();
+    if (lowercaseName === 'sugammadex') {
+        k10Raw *= renalRatio;
+    } else if (lowercaseName === 'vecuronium') {
+        // ~60% biliary/hepatic excretion, ~40% renal
+        k10Raw *= (0.6 * hepaticRatio + 0.4 * renalRatio);
+    } else if (lowercaseName === 'rocuronium') {
+        // ~70% biliary/hepatic excretion, ~30% renal
+        k10Raw *= (0.7 * hepaticRatio + 0.3 * renalRatio);
+    } else if (lowercaseName === 'neostigmine') {
+        k10Raw *= (0.5 + 0.5 * renalRatio);
+    } else if (lowercaseName === 'pancuronium') {
+        k10Raw *= (0.4 * hepaticRatio + 0.6 * renalRatio);
+    } else if (lowercaseName === 'meperidine') {
+        k10Raw *= (0.7 * hepaticRatio + 0.3 * renalRatio);
+    } else if (lowercaseName === 'fentanyl' || lowercaseName === 'propofol' || lowercaseName === 'midazolam' || lowercaseName === 'lidocaine') {
+        k10Raw *= hepaticRatio;
+    }
+
+    const k10 = (k10Raw / 60) * coMod;
     const k12 = ((this.pk.k12 || 0) / 60) * coMod;
     const k21 = (this.pk.k21 || 0) / 60;
     const k13 = ((this.pk.k13 || 0) / 60) * coMod;
@@ -103,11 +124,11 @@ export class PKPDModel {
       this.Ce += ke0 * (Cp - this.Ce) * subDt;
     }
 
-    return this.getEffects();
+    return this.getEffects(pdSensitivityCoeff);
   }
 
   // Hill Equation for Pharmacodynamics
-  getEffects() {
+  getEffects(pdSensitivityCoeff = 1.0) {
     let effects = { 
       hrDelta: 0, 
       sysDelta: 0, 
@@ -127,7 +148,8 @@ export class PKPDModel {
     if (this.pd.c50 && this.pd.c50 > 0) {
         const gamma = this.pd.gamma || 1;
         const safeCe = Math.max(0, this.Ce); 
-        const ceGamma = Math.pow(safeCe, gamma);
+        const activeCe = safeCe * pdSensitivityCoeff;
+        const ceGamma = Math.pow(activeCe, gamma);
         const c50Gamma = Math.pow(this.pd.c50, gamma);
         fraction = ceGamma / (ceGamma + c50Gamma);
     }

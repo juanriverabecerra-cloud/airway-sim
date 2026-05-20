@@ -662,7 +662,7 @@ export const PreopModal = ({ show, close, patient, setPatient, logEvent }) => {
 };
 
 // 2. MSMAIDS PRE-INDUCTION CHECKLIST
-export const MsmaidsModal = ({ show, close, logEvent }) => {
+export const MsmaidsModal = ({ show, close, logEvent, onComplete }) => {
   if (!show) return null;
 
   const [checks, setChecks] = React.useState({
@@ -683,8 +683,10 @@ export const MsmaidsModal = ({ show, close, logEvent }) => {
 
   const handleVerify = () => {
     logEvent("🚀 MSMAIDS pre-induction checklists successfully verified! Anesthesia machine, suction, monitors, airways, IV, drugs, and safety backup confirmed READY.");
+    if (onComplete) onComplete();
     close();
   };
+
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">

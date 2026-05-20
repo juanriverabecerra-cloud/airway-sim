@@ -655,6 +655,14 @@ export const MEDICATIONS = {
     pk: { V1: 5.0, V2: 10.0, V3: 0, k10: 0.1, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.8, coSensitivity: 0.1 },
     pd: { c50: 0.02, gamma: 1.5, sysMax: 0, diaMax: -5, hrMax: 20, rrMax: 0 },
     notes: 'Cardioselective Beta-2 adrenergic agonist. Triggers bronchial smooth muscle relaxation. Side effects include reflex/sympathetic tachycardia, tremors, and mild hyperlactatemia or hypokalemia in continuous doses.'
+  },
+  unasyn: {
+    name: 'Ampicillin/Sulbactam', classes: ['Antibiotic'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Renal (Unchanged >80%)', proteinBinding: 0.20, mechanism: 'Cell Wall Inhibitor / Beta-lactamase Inhibitor', targetReceptor: 'Bacterial Cell Wall',
+    indications: { 'Surgical Prophylaxis': { dose: '3.0', unit: 'g', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 25.0, V3: 0, k10: 0.05, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 },
+    pd: { c50: 1.0, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Broad-spectrum beta-lactam antibiotic. STRICT safety warning: In patients with history of penicillin anaphylaxis, administration triggers immediate severe anaphylactic shock (bronchospasm, profound vasoplegic hypotension, extreme compensatory tachycardia).'
   }
 };;
 

@@ -295,7 +295,15 @@ export const ActionPanel = ({
             <button onClick={() => { generateLab('VBG'); setSearchTerm(''); }} className="bg-blue-900/40 hover:bg-blue-800/60 p-2 rounded text-xs text-left text-blue-200 border border-blue-800 mt-2">Order VBG</button>
             <button onClick={() => { generateLab('CBC'); setSearchTerm(''); }} className="bg-blue-900/40 hover:bg-blue-800/60 p-2 rounded text-xs text-left text-blue-200 border border-blue-800">Order CBC</button>
             <button onClick={() => { generateLab('CMP'); setSearchTerm(''); }} className="bg-blue-900/40 hover:bg-blue-800/60 p-2 rounded text-xs text-left text-blue-200 border border-blue-800">Order CMP</button>
-            <button onClick={() => { generateLab('TEG'); setSearchTerm(''); }} className="bg-blue-900/40 hover:bg-blue-800/60 p-2 rounded text-xs text-left text-blue-200 border border-blue-800 col-span-2 text-center">Order TEG / Coags</button>
+            <button onClick={() => { generateLab('Coagulation'); setSearchTerm(''); }} className="bg-blue-900/40 hover:bg-blue-800/60 p-2 rounded text-xs text-left text-blue-200 border border-blue-800">Order Coags</button>
+            <button onClick={() => { generateLab('TEG'); setSearchTerm(''); }} className="bg-blue-900/40 hover:bg-blue-800/60 p-2 rounded text-xs text-left text-blue-200 border border-blue-800">Order TEG</button>
+            <button onClick={() => { generateLab('LFTs'); setSearchTerm(''); }} className="bg-blue-900/40 hover:bg-blue-800/60 p-2 rounded text-xs text-left text-blue-200 border border-blue-800">Order LFTs</button>
+            <button onClick={() => { generateLab('Thyroid'); setSearchTerm(''); }} className="bg-blue-900/40 hover:bg-blue-800/60 p-2 rounded text-xs text-left text-blue-200 border border-blue-800">Order Thyroid</button>
+            <button onClick={() => { generateLab('Urinalysis'); setSearchTerm(''); }} className="bg-blue-900/40 hover:bg-blue-800/60 p-2 rounded text-xs text-left text-blue-200 border border-blue-800">Order UA</button>
+            <button onClick={() => { generateLab('Pregnancy'); setSearchTerm(''); }} className="bg-blue-900/40 hover:bg-blue-800/60 p-2 rounded text-xs text-left text-blue-200 border border-blue-800">Order hCG</button>
+            <button onClick={() => { generateLab('Type & Screen'); setSearchTerm(''); }} className="bg-blue-900/40 hover:bg-blue-800/60 p-2 rounded text-xs text-left text-blue-200 border border-blue-800">Order T&S</button>
+            <button onClick={() => { generateLab('Type & Cross'); setSearchTerm(''); }} className="bg-blue-900/40 hover:bg-blue-800/60 p-2 rounded text-xs text-left text-blue-200 border border-blue-800">Order T&Cross</button>
+            <button onClick={() => { generateLab('HbA1c'); setSearchTerm(''); }} className="bg-blue-900/40 hover:bg-blue-800/60 p-2 rounded text-xs text-left text-blue-200 border border-blue-800 col-span-2 text-center">Order HbA1c</button>
           </div>
         </>
       )}
