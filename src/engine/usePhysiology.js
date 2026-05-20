@@ -151,12 +151,9 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
         }
     }
 
-    const effectiveVolumeML = isUnit && !fluidName.includes('Fibrinogen') ? volume * (fluidData.defaultVol || 300) : volume;
+    const effectiveVolumeML = fluidName.includes('Fibrinogen') ? volume * 50 : (isUnit ? volume * (fluidData.defaultVol || 300) : volume);
 
     let initialUserRate = undefined;
-    if (fluidName.includes('Lactated') || fluidName.includes('Normal Saline') || fluidName.includes('Plasmalyte')) {
-        initialUserRate = 0;
-    }
 
     setPatient(prev => {
         const newLines = [...(prev.accessLines || [])];
@@ -166,7 +163,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                 ...newLines[lineIndex],
                 activeInfusions: [
                     ...(newLines[lineIndex].activeInfusions || []),
-                    { id: Date.now().toString(), name: fluidName, remainingVolume: effectiveVolumeML, userRate: initialUserRate, currentRate: 0 }
+                    { id: Date.now().toString(), name: fluidName, remainingVolume: effectiveVolumeML, startingVolume: effectiveVolumeML, userRate: initialUserRate, currentRate: 0 }
                 ]
             };
         }
@@ -191,17 +188,27 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                     logEvent(`Max flow enabled for ${infusions[infIndex].name} on ${line.name}.`);
                 } else {
                     let rate = parseFloat(newRate_ml_hr);
-                    let deltaP = 74; 
-                    const lType = line.fluidLine || 'gravity';
-                    if (lType === 'ranger') deltaP = 150;
-                    else if (lType === 'belmont') deltaP = 300;
-                    deltaP -= (10 + (line.penalty || 0));
+                    const lType = line.fluidLine || prev.fluidLine || 'gravity';
+                    let pInfusion = 74; 
+                    if (lType === 'ranger') pInfusion = 150;
+                    else if (lType === 'belmont') pInfusion = 300;
+                    
+                    const pv = line.venousPressure !== undefined ? line.venousPressure : 10;
+                    const rv = line.veinResistance !== undefined ? line.veinResistance : 500;
+                    let deltaP = pInfusion - pv;
                     if (deltaP < 0) deltaP = 0;
                     
                     const fluidData = FLUIDS[infusions[infIndex].name];
                     const eta = fluidData ? (fluidData.viscosity || 1.0) : 1.0;
                     
-                    let q_ml_min = 200 * (deltaP * Math.pow(line.radius || 0.65, 4)) / (eta * (line.length || 32));
+                    let rTubing = 400;
+                    if (lType === 'ranger') rTubing = 800;
+                    else if (lType === 'belmont') rTubing = 200;
+                    
+                    const rCath = line.length / Math.pow(line.radius || 0.475, 4);
+                    const rTotal = rTubing + rCath + rv;
+                    
+                    let q_ml_min = 1200 * deltaP / (eta * rTotal);
                     if (lType === 'belmont' && q_ml_min > 500) q_ml_min = 500;
                     
                     const max_ml_hr = q_ml_min * 60;
@@ -465,32 +472,46 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let rbcVolumeAdded = 0;
           let activeInfusionMessages = [];
           let hasActiveInfusions = false;
+          let fluidInducedTempDrop = 0;
 
           for (let lineIndex = 0; lineIndex < newLines.length; lineIndex++) {
               let line = newLines[lineIndex];
-              if (!line.activeInfusions || line.activeInfusions.length === 0) continue;
+              if (line.failed || !line.activeInfusions || line.activeInfusions.length === 0) continue;
               hasActiveInfusions = true;
               
-              // Base Delta P (mmHg)
-              let deltaP = 74; // Gravity default
-              const lType = line.fluidLine || 'gravity';
-              if (lType === 'ranger') deltaP = 150;
-              else if (lType === 'belmont') deltaP = 300;
+              const lType = line.fluidLine || st.patient.fluidLine || 'gravity';
               
-              // Subtract venous resistance penalty based on location
-              deltaP -= (10 + (line.penalty || 0));
+              // Belmont Rapid Infuser blowout on IO or narrow PIV lines (<= 20G)
+              const isNarrowIV = line.type && (line.type.includes('20G') || line.type.includes('22G') || line.type.includes('24G'));
+              if (lType === 'belmont' && (line.category.includes('IO') || isNarrowIV)) {
+                  activeInfusionMessages.push(`🚨 CLINICAL CATASTROPHE: Belmont Rapid Infuser connected to ${line.name}! High pressure (300 mmHg) caused immediate ${line.category.includes('IO') ? 'bone/vascular blowout, leading to severe extravasation and compartment syndrome' : 'vein rupture and blown line'}! Access lost!`);
+                  line.activeInfusions = [];
+                  line.failed = true;
+                  line.name += ' [BLOWN OUT]';
+                  continue;
+              }
+              
+              let pInfusion = 74; // Gravity default
+              if (lType === 'ranger') pInfusion = 150;
+              else if (lType === 'belmont') pInfusion = 300;
+              
+              const pv = line.venousPressure !== undefined ? line.venousPressure : 10;
+              const rv = line.veinResistance !== undefined ? line.veinResistance : 500;
+              let deltaP = pInfusion - pv;
               if (deltaP < 0) deltaP = 0;
               
-              // Poiseuille Flow Calculation Q = Scale * (DeltaP * r^4) / (eta * L)
-              // We'll calculate for the first active infusion to check viscosity
               let currentInfusion = line.activeInfusions[0];
               const fluidData = FLUIDS[currentInfusion.name];
               const eta = fluidData ? (fluidData.viscosity || 1.0) : 1.0;
               
-              // Scale = 200 to match clinical rates
-              let q_ml_min = 200 * (deltaP * Math.pow(line.radius || 0.65, 4)) / (eta * (line.length || 32));
+              let rTubing = 400;
+              if (lType === 'ranger') rTubing = 800;
+              else if (lType === 'belmont') rTubing = 200;
               
-              // Belmont absolute max cap is 500 mL/min
+              const rCath = line.length / Math.pow(line.radius || 0.475, 4);
+              const rTotal = rTubing + rCath + rv;
+              
+              let q_ml_min = 1200 * deltaP / (eta * rTotal);
               if (lType === 'belmont' && q_ml_min > 500) q_ml_min = 500;
               
               if (currentInfusion.userRate !== undefined) {
@@ -507,8 +528,16 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                   const volLiters = infusedThisTick / 1000;
                   totalFluidVolumeLiters += volLiters;
                   
+                  // Warmed vs Cold fluid hypothermia cooling accumulation
+                  if (lType === 'gravity') {
+                      const tempDiff = (fluidData.type === 'Blood Product' ? 4 : 22) - (st.vitals.temp || 37.0);
+                      const scaling = fluidData.type === 'Blood Product' ? 0.07 : 0.05;
+                      fluidInducedTempDrop += volLiters * tempDiff * scaling;
+                  }
+                  
                   const isUnit = fluidData.type === 'Blood Product' || fluidData.type === 'Colloid';
-                  const unitEq = isUnit ? (infusedThisTick / (fluidData.defaultVol || 300)) : volLiters;
+                  const defaultVol = fluidData.defaultVol || 300;
+                  const unitEq = isUnit ? (infusedThisTick / defaultVol) : volLiters;
                   
                   const retFactor = (st.patient.isSeptic || st.patient.trauma) ? fluidData.retentionInflamed : fluidData.retentionIntact;
                   setIntravascularVolume(prev => prev + (infusedThisTick * retFactor));
@@ -769,7 +798,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           if (currentMac > 0.5 && st.time < 1800) { // First 30 mins (Redistribution Hypothermia)
               tempDropRate = 0.0008; 
           }
-          let newTemp = (st.vitals.temp || 37.0) - tempDropRate;
+          let newTemp = (st.vitals.temp || 37.0) - tempDropRate + (fluidInducedTempDrop || 0);
           if (st.patient.cprActive) newTemp -= 0.002;
 
           let shiveringMultiplier = 1.0;

@@ -792,5 +792,9 @@ export const FLUIDS = {
   'Cryoprecipitate': { 
     type: 'Blood Product', defaultVol: 50, na: 0, cl: 0, k: 0, ca: 0, citrateLoad: 5, buffer: 0,
     retentionIntact: 1.0, retentionInflamed: 0.95, coag: { r: 0, ma: 5, angle: 15 }, viscosity: 1.8 
+  },
+  'Fibrinogen Concentrate': {
+    type: 'Blood Product', defaultVol: 50, na: 0, cl: 0, k: 0, ca: 0, citrateLoad: 0, buffer: 0,
+    retentionIntact: 1.0, retentionInflamed: 0.95, coag: { r: 0, ma: 15, angle: 10 }, viscosity: 1.8
   }
 };

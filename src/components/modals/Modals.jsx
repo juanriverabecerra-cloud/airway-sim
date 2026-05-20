@@ -66,159 +66,409 @@ export const AirwayQuizModal = ({ data, submitAirwayQuiz }) => {
 
 export const AccessModal = ({ data, close, establishAccess }) => {
   const [cvcType, setCvcType] = React.useState('Triple Lumen CVC');
-  if (!data.show) return null;
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border-2 border-green-500 rounded-xl p-4 md:p-8 max-w-4xl shadow-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl md:text-2xl font-bold text-white">Select {data.category} Access Site</h2>
-          <button onClick={close} className="text-slate-400 hover:text-white"><X size={24}/></button>
-        </div>
-        
-        {data.category === 'Peripheral IV' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-slate-800 p-4 rounded border border-slate-700">
-              <h3 className="font-bold text-green-400 mb-2">Antecubital (AC)</h3>
-              {[
-                { size: '16G', rate: '135mL/min' },
-                { size: '18G', rate: '80mL/min' },
-                { size: '20G', rate: '30mL/min' }
-              ].map(item => (
-                <div key={`ac-${item.size}`} className="flex flex-col gap-1 mb-2">
-                  <span className="text-[10px] text-slate-400">{item.size} (Max Gravity: ~{item.rate})</span>
-                  <div className="flex gap-2">
-                    <button onClick={() => establishAccess('PIV', `${item.size} PIV`, 'Right AC')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">Right</button>
-                    <button onClick={() => establishAccess('PIV', `${item.size} PIV`, 'Left AC')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">Left</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="bg-slate-800 p-4 rounded border border-slate-700">
-              <h3 className="font-bold text-green-400 mb-2">Forearm</h3>
-              {[
-                { size: '18G', rate: '80mL/min' },
-                { size: '20G', rate: '30mL/min' },
-                { size: '22G', rate: '15mL/min' }
-              ].map(item => (
-                <div key={`forearm-${item.size}`} className="flex flex-col gap-1 mb-2">
-                  <span className="text-[10px] text-slate-400">{item.size} (Max Gravity: ~{item.rate})</span>
-                  <div className="flex gap-2">
-                    <button onClick={() => establishAccess('PIV', `${item.size} PIV`, 'Right Forearm')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">Right</button>
-                    <button onClick={() => establishAccess('PIV', `${item.size} PIV`, 'Left Forearm')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">Left</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="bg-slate-800 p-4 rounded border border-slate-700">
-              <h3 className="font-bold text-green-400 mb-2">Hand</h3>
-              {[
-                { size: '20G', rate: '30mL/min' },
-                { size: '22G', rate: '15mL/min' },
-                { size: '24G', rate: '4mL/min' }
-              ].map(item => (
-                <div key={`hand-${item.size}`} className="flex flex-col gap-1 mb-2">
-                  <span className="text-[10px] text-slate-400">{item.size} (Max Gravity: ~{item.rate})</span>
-                  <div className="flex gap-2">
-                    <button onClick={() => establishAccess('PIV', `${item.size} PIV`, 'Right Hand')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">Right</button>
-                    <button onClick={() => establishAccess('PIV', `${item.size} PIV`, 'Left Hand')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">Left</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+  const [pivType, setPivType] = React.useState('18G');
+  const [ioType, setIoType] = React.useState('EZ-IO');
+  const [artType, setArtType] = React.useState('20G');
 
-        {data.category === 'Central Line' && (
-          <div className="flex flex-col gap-4">
-            <div className="bg-slate-800 p-4 rounded border border-slate-700 flex flex-col md:flex-row gap-4 items-center">
-              <label className="text-white font-bold whitespace-nowrap">Catheter Type:</label>
+  if (!data.show) return null;
+
+  // Helper to calculate gravity crystalloid flow rate using Poiseuille Series model
+  const getFlowStats = (rad, len, venousP, veinR) => {
+    const rTubing = 400; // gravity
+    const rCath = len / Math.pow(rad, 4);
+    const rTotal = rTubing + rCath + veinR;
+    const deltaP = Math.max(0, 74 - venousP);
+    const q_ml_min = (1200 * deltaP) / rTotal;
+    const q_ml_hr = q_ml_min * 60;
+    return {
+      min: q_ml_min.toFixed(1),
+      hr: Math.round(q_ml_hr),
+      rCath: Math.round(rCath),
+      rTotal: Math.round(rTotal)
+    };
+  };
+
+  const getPivParams = (type) => {
+    let rad = 0.475;
+    let len = 32;
+    if (type === '14G') { rad = 0.85; len = 45; }
+    else if (type === '16G') { rad = 0.665; len = 45; }
+    else if (type === '18G') { rad = 0.475; len = 32; }
+    else if (type === '20G') { rad = 0.405; len = 30; }
+    else if (type === '22G') { rad = 0.30; len = 25; }
+    else if (type === '24G') { rad = 0.235; len = 19; }
+    return { rad, len };
+  };
+
+  const getCvcLumens = (type) => {
+    if (type === 'Triple Lumen CVC') {
+      return [
+        { name: 'Distal Lumen (16G)', rad: 0.665, len: 200 },
+        { name: 'Medial Lumen (18G)', rad: 0.475, len: 200 },
+        { name: 'Proximal Lumen (18G)', rad: 0.475, len: 200 }
+      ];
+    } else if (type === 'Double Lumen CVC (14G, 18G)') {
+      return [
+        { name: 'Distal Lumen (14G)', rad: 0.85, len: 200 },
+        { name: 'Proximal Lumen (18G)', rad: 0.475, len: 200 }
+      ];
+    } else if (type.includes('Single Lumen CVC')) {
+      return [{ name: 'Single Lumen (14G)', rad: 0.85, len: 200 }];
+    } else if (type.includes('MAC')) {
+      return [{ name: 'MAC Introducer (9Fr)', rad: 1.25, len: 100 }];
+    } else if (type.includes('Cordis')) {
+      return [{ name: 'Trauma Cordis (8.5Fr)', rad: 1.15, len: 100 }];
+    }
+    return [];
+  };
+
+  // Ring theme colors
+  const themes = {
+    'Peripheral IV': {
+      ring: 'border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.25)]',
+      text: 'text-emerald-400',
+      btn: 'bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/30 hover:border-emerald-400 text-emerald-100 hover:text-white',
+      banner: 'bg-emerald-950/40 border border-emerald-800/40 text-emerald-200'
+    },
+    'Central Line': {
+      ring: 'border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.25)]',
+      text: 'text-purple-400',
+      btn: 'bg-purple-600/20 hover:bg-purple-600 border border-purple-500/30 hover:border-purple-400 text-purple-100 hover:text-white',
+      banner: 'bg-purple-950/40 border border-purple-800/40 text-purple-200'
+    },
+    'Intraosseous (IO)': {
+      ring: 'border-orange-500/50 shadow-[0_0_20px_rgba(249,115,22,0.25)]',
+      text: 'text-orange-400',
+      btn: 'bg-orange-600/20 hover:bg-orange-600 border border-orange-500/30 hover:border-orange-400 text-orange-100 hover:text-white',
+      banner: 'bg-orange-950/40 border border-orange-800/40 text-orange-200'
+    },
+    'Arterial Line': {
+      ring: 'border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.25)]',
+      text: 'text-rose-400',
+      btn: 'bg-rose-600/20 hover:bg-rose-600 border border-rose-500/30 hover:border-rose-400 text-rose-100 hover:text-white',
+      banner: 'bg-rose-950/40 border border-rose-800/40 text-rose-200'
+    }
+  };
+
+  const currentTheme = themes[data.category] || themes['Peripheral IV'];
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+      <div className={`backdrop-blur-lg bg-slate-950/90 border-2 rounded-2xl p-6 md:p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl transition-all ${currentTheme.ring}`}>
+        
+        {/* Header */}
+        <div className="flex justify-between items-center mb-6 border-b border-slate-800/60 pb-4">
+          <div>
+            <h2 className="text-xl md:text-2xl font-black text-white tracking-wide uppercase">
+              Establish {data.category} Access
+            </h2>
+            <p className="text-xs text-slate-400 mt-1 font-mono">Physiologic Flow Model: Poiseuille-Series Resus V2</p>
+          </div>
+          <button onClick={close} className="text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800 p-2 rounded-lg border border-slate-800 transition-colors">
+            <X size={20}/>
+          </button>
+        </div>
+
+        {/* --- PERIPHERAL IV --- */}
+        {data.category === 'Peripheral IV' && (() => {
+          const { rad, len } = getPivParams(pivType);
+          const acStats = getFlowStats(rad, len, 8, 200);
+          const armStats = getFlowStats(rad, len, 12, 800);
+          const handStats = getFlowStats(rad, len, 18, 2200);
+          
+          return (
+            <div className="flex flex-col gap-6">
+              {/* Dropdown Selection */}
+              <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div>
+                  <label className="text-slate-300 font-bold block mb-1 text-sm font-mono">Select Catheter Gauge</label>
+                  <p className="text-xs text-slate-500">Larger gauges have smaller diameter and higher resistance.</p>
+                </div>
+                <select 
+                  value={pivType} 
+                  onChange={e => setPivType(e.target.value)}
+                  className="w-full md:w-80 bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 font-bold focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
+                >
+                  <option value="14G">14G (1.70mm OD, 45mm L)</option>
+                  <option value="16G">16G (1.33mm OD, 45mm L)</option>
+                  <option value="18G">18G (0.95mm OD, 32mm L)</option>
+                  <option value="20G">20G (0.81mm OD, 30mm L)</option>
+                  <option value="22G">22G (0.60mm OD, 25mm L)</option>
+                  <option value="24G">24G (0.47mm OD, 19mm L)</option>
+                </select>
+              </div>
+
+              {/* Physical specs display */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center font-mono">
+                <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800/80">
+                  <span className="text-[10px] text-slate-500 uppercase block">Inner Radius (r)</span>
+                  <span className="text-lg font-extrabold text-white">{rad} mm</span>
+                </div>
+                <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800/80">
+                  <span className="text-[10px] text-slate-500 uppercase block">Length (L)</span>
+                  <span className="text-lg font-extrabold text-white">{len} mm</span>
+                </div>
+                <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800/80">
+                  <span className="text-[10px] text-slate-500 uppercase block">R_catheter (L / r⁴)</span>
+                  <span className="text-lg font-extrabold text-emerald-400">{Math.round(len / Math.pow(rad, 4))}</span>
+                </div>
+                <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800/80">
+                  <span className="text-[10px] text-slate-500 uppercase block">R_tubing (Gravity)</span>
+                  <span className="text-lg font-extrabold text-emerald-400">400</span>
+                </div>
+              </div>
+
+              {/* Anatomy Flow Rate Estimation Dashboard */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* AC */}
+                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-extrabold text-emerald-400 mb-2 border-b border-slate-800 pb-1 text-sm font-mono text-center">Antecubital Vein (AC)</h3>
+                    <div className="text-xs font-mono space-y-1 text-slate-400 mb-4">
+                      <div className="flex justify-between"><span>Vein Resistance:</span><span className="text-white">200</span></div>
+                      <div className="flex justify-between"><span>Venous Pressure:</span><span className="text-white">8 mmHg</span></div>
+                      <div className="flex justify-between border-t border-slate-800/80 pt-1 mt-1 font-bold">
+                        <span>Max Flow (Crystalloid):</span>
+                        <span className="text-emerald-400">{acStats.hr} mL/hr ({acStats.min} mL/min)</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => establishAccess('PIV', `${pivType} PIV`, 'Right AC')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Right AC</button>
+                    <button onClick={() => establishAccess('PIV', `${pivType} PIV`, 'Left AC')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Left AC</button>
+                  </div>
+                </div>
+
+                {/* Forearm */}
+                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-extrabold text-emerald-400 mb-2 border-b border-slate-800 pb-1 text-sm font-mono text-center">Forearm Vein</h3>
+                    <div className="text-xs font-mono space-y-1 text-slate-400 mb-4">
+                      <div className="flex justify-between"><span>Vein Resistance:</span><span className="text-white">800</span></div>
+                      <div className="flex justify-between"><span>Venous Pressure:</span><span className="text-white">12 mmHg</span></div>
+                      <div className="flex justify-between border-t border-slate-800/80 pt-1 mt-1 font-bold">
+                        <span>Max Flow (Crystalloid):</span>
+                        <span className="text-emerald-400">{armStats.hr} mL/hr ({armStats.min} mL/min)</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => establishAccess('PIV', `${pivType} PIV`, 'Right Forearm')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Right Arm</button>
+                    <button onClick={() => establishAccess('PIV', `${pivType} PIV`, 'Left Forearm')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Left Arm</button>
+                  </div>
+                </div>
+
+                {/* Hand */}
+                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-extrabold text-emerald-400 mb-2 border-b border-slate-800 pb-1 text-sm font-mono text-center">Hand Dorsal Plexus</h3>
+                    <div className="text-xs font-mono space-y-1 text-slate-400 mb-4">
+                      <div className="flex justify-between"><span>Vein Resistance:</span><span className="text-white">2200</span></div>
+                      <div className="flex justify-between"><span>Venous Pressure:</span><span className="text-white">18 mmHg</span></div>
+                      <div className="flex justify-between border-t border-slate-800/80 pt-1 mt-1 font-bold text-[11px]">
+                        <span>Max Flow (Crystalloid):</span>
+                        <span className="text-rose-400">{handStats.hr} mL/hr ({handStats.min} mL/min)</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => establishAccess('PIV', `${pivType} PIV`, 'Right Hand')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Right Hand</button>
+                    <button onClick={() => establishAccess('PIV', `${pivType} PIV`, 'Left Hand')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Left Hand</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* --- CENTRAL VENOUS ACCESS --- */}
+        {data.category === 'Central Line' && (() => {
+          const lumens = getCvcLumens(cvcType);
+          
+          return (
+            <div className="flex flex-col gap-6">
+              {/* Dropdown Selection */}
+              <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div>
+                  <label className="text-slate-300 font-bold block mb-1 text-sm font-mono">Select Central Catheter Type</label>
+                  <p className="text-xs text-slate-500">CVC lumens act in parallel. Long length increases resistance.</p>
+                </div>
+                <select 
+                  value={cvcType} 
+                  onChange={e => setCvcType(e.target.value)}
+                  className="w-full md:w-96 bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 font-bold focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 font-mono"
+                >
+                  <option value="Single Lumen CVC (14G)">Single Lumen CVC (14G)</option>
+                  <option value="Double Lumen CVC (14G, 18G)">Double Lumen CVC (14G, 18G)</option>
+                  <option value="Triple Lumen CVC">Triple Lumen CVC (16G, 18G, 18G)</option>
+                  <option value="MAC Introducer (9Fr)">MAC Introducer (9Fr / 3.0mm OD)</option>
+                  <option value="Trauma Cordis">Trauma Cordis (8.5Fr / 2.8mm OD)</option>
+                </select>
+              </div>
+
+              {/* Lumen Flow Breakdown Dashboard */}
+              <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800/80">
+                <h4 className="font-bold text-slate-300 text-xs font-mono uppercase tracking-wide mb-3">Lumen Poiseuille Flow Estimates (Gravity, CVP = 5, R_vein = 0)</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 font-mono">
+                  {lumens.map((l, i) => {
+                    const stats = getFlowStats(l.rad, l.len, 5, 0);
+                    return (
+                      <div key={i} className="bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs">
+                        <span className="font-extrabold text-purple-400 block mb-1.5">{l.name}</span>
+                        <div className="space-y-0.5 text-slate-400 text-[11px]">
+                          <div>Radius: <span className="text-white">{l.rad} mm</span></div>
+                          <div>Length: <span className="text-white">{l.len} mm</span></div>
+                          <div>Resistance (L/r⁴): <span className="text-white">{stats.rCath}</span></div>
+                          <div className="text-emerald-400 font-extrabold border-t border-slate-900 mt-1 pt-1">
+                            Flow: {stats.hr} mL/hr ({stats.min} mL/min)
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Anatomical Placements */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80">
+                  <h3 className="font-extrabold text-purple-400 mb-3 text-center border-b border-slate-800 pb-2 text-sm font-mono">Internal Jugular (IJ)</h3>
+                  <div className="flex gap-2">
+                    <button onClick={() => establishAccess('CVC', cvcType, 'Right IJ')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Right IJ</button>
+                    <button onClick={() => establishAccess('CVC', cvcType, 'Left IJ')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Left IJ</button>
+                  </div>
+                </div>
+                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80">
+                  <h3 className="font-extrabold text-purple-400 mb-3 text-center border-b border-slate-800 pb-2 text-sm font-mono">Subclavian Vein</h3>
+                  <div className="flex gap-2">
+                    <button onClick={() => establishAccess('CVC', cvcType, 'Right Subclavian')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Right SC</button>
+                    <button onClick={() => establishAccess('CVC', cvcType, 'Left Subclavian')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Left SC</button>
+                  </div>
+                </div>
+                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80">
+                  <h3 className="font-extrabold text-purple-400 mb-3 text-center border-b border-slate-800 pb-2 text-sm font-mono">Femoral Vein</h3>
+                  <div className="flex gap-2">
+                    <button onClick={() => establishAccess('CVC', cvcType, 'Right Femoral')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Right Fem</button>
+                    <button onClick={() => establishAccess('CVC', cvcType, 'Left Femoral')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Left Fem</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* --- INTRAOSSEOUS ACCESS --- */}
+        {data.category === 'Intraosseous (IO)' && (() => {
+          const tibiaStats = getFlowStats(0.45, 25, 18, 2500);
+          const humeralStats = getFlowStats(0.45, 25, 15, 1500);
+          
+          return (
+            <div className="flex flex-col gap-6">
+              {/* Dropdown Selection */}
+              <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div>
+                  <label className="text-slate-300 font-bold block mb-1 text-sm font-mono">Select IO System</label>
+                  <p className="text-xs text-slate-500">Rigid bones constrain bone marrow venous sinusoids.</p>
+                </div>
+                <select 
+                  value={ioType} 
+                  onChange={e => setIoType(e.target.value)}
+                  className="w-full md:w-80 bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 font-bold focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 font-mono"
+                >
+                  <option value="EZ-IO">EZ-IO (15G Needle / 1.1mm ID)</option>
+                </select>
+              </div>
+
+              {/* Placements and estimated flows */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-extrabold text-orange-400 mb-2 border-b border-slate-800 pb-1 text-sm font-mono text-center">Proximal Tibia</h3>
+                    <div className="text-xs font-mono space-y-1 text-slate-400 mb-4">
+                      <div className="flex justify-between"><span>Catheter (15G):</span><span className="text-white">r: 0.45mm, L: 25mm</span></div>
+                      <div className="flex justify-between"><span>Bony Sinusoid Resistance:</span><span className="text-white">2500</span></div>
+                      <div className="flex justify-between"><span>Intramedullary Pressure:</span><span className="text-white">18 mmHg</span></div>
+                      <div className="flex justify-between border-t border-slate-800/80 pt-1 mt-1 font-bold text-[11px]">
+                        <span>Gravity Crystalloid Flow:</span>
+                        <span className="text-orange-400">{tibiaStats.hr} mL/hr ({tibiaStats.min} mL/min)</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => establishAccess('IO', ioType, 'Right Proximal Tibia')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Right Tibia</button>
+                    <button onClick={() => establishAccess('IO', ioType, 'Left Proximal Tibia')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Left Tibia</button>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-extrabold text-orange-400 mb-2 border-b border-slate-800 pb-1 text-sm font-mono text-center">Humeral Head</h3>
+                    <div className="text-xs font-mono space-y-1 text-slate-400 mb-4">
+                      <div className="flex justify-between"><span>Catheter (15G):</span><span className="text-white">r: 0.45mm, L: 25mm</span></div>
+                      <div className="flex justify-between"><span>Humeral Sinusoid Resistance:</span><span className="text-white">1500</span></div>
+                      <div className="flex justify-between"><span>Intramedullary Pressure:</span><span className="text-white">15 mmHg</span></div>
+                      <div className="flex justify-between border-t border-slate-800/80 pt-1 mt-1 font-bold text-[11px]">
+                        <span>Gravity Crystalloid Flow:</span>
+                        <span className="text-orange-400">{humeralStats.hr} mL/hr ({humeralStats.min} mL/min)</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => establishAccess('IO', ioType, 'Right Humeral Head')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Right Humerus</button>
+                    <button onClick={() => establishAccess('IO', ioType, 'Left Humeral Head')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Left Humerus</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* --- ARTERIAL LINE ACCESS --- */}
+        {data.category === 'Arterial Line' && (
+          <div className="flex flex-col gap-6">
+            <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row gap-4 items-center justify-between">
+              <div>
+                <label className="text-slate-300 font-bold block mb-1 text-sm font-mono">Select Arterial Catheter Size</label>
+                <p className="text-xs text-slate-500">Only used for invasive BP monitoring. Fluid resuscitation contraindicated!</p>
+              </div>
               <select 
-                value={cvcType} 
-                onChange={e => setCvcType(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 text-white rounded p-2 focus:border-purple-500 focus:outline-none"
+                value={artType} 
+                onChange={e => setArtType(e.target.value)}
+                className="w-full md:w-80 bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 font-bold focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 font-mono"
               >
-                <option value="Single Lumen CVC (14G)">Single Lumen CVC (14G) - Max ~100mL/min</option>
-                <option value="Double Lumen CVC (14G, 18G)">Double Lumen CVC (14G, 18G) - Max ~100/30mL/min</option>
-                <option value="Triple Lumen CVC">Triple Lumen CVC (16G, 18G, 18G) - Max ~30mL/min per port</option>
-                <option value="MAC Introducer (9Fr)">MAC Introducer (9Fr) - Max ~300mL/min</option>
-                <option value="Trauma Cordis">Trauma Cordis (8.5Fr) - Max 500+mL/min</option>
+                <option value="20G">20G Arterial Catheter (Radial/Brachial)</option>
+                <option value="18G">18G Arterial Catheter (Femoral/Axillary)</option>
               </select>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-slate-800 p-4 rounded border border-slate-700">
-                <h3 className="font-bold text-purple-400 mb-3 text-center border-b border-slate-700 pb-2">Internal Jugular (IJ)</h3>
-                <div className="flex gap-2">
-                  <button onClick={() => establishAccess('CVC', cvcType, 'Right IJ')} className="w-1/2 p-2 bg-slate-700 hover:bg-purple-600 rounded text-white font-bold transition-colors">Right</button>
-                  <button onClick={() => establishAccess('CVC', cvcType, 'Left IJ')} className="w-1/2 p-2 bg-slate-700 hover:bg-purple-600 rounded text-white font-bold transition-colors">Left</button>
-                </div>
-              </div>
-              <div className="bg-slate-800 p-4 rounded border border-slate-700">
-                <h3 className="font-bold text-purple-400 mb-3 text-center border-b border-slate-700 pb-2">Subclavian</h3>
-                <div className="flex gap-2">
-                  <button onClick={() => establishAccess('CVC', cvcType, 'Right Subclavian')} className="w-1/2 p-2 bg-slate-700 hover:bg-purple-600 rounded text-white font-bold transition-colors">Right</button>
-                  <button onClick={() => establishAccess('CVC', cvcType, 'Left Subclavian')} className="w-1/2 p-2 bg-slate-700 hover:bg-purple-600 rounded text-white font-bold transition-colors">Left</button>
-                </div>
-              </div>
-              <div className="bg-slate-800 p-4 rounded border border-slate-700">
-                <h3 className="font-bold text-purple-400 mb-3 text-center border-b border-slate-700 pb-2">Femoral</h3>
-                <div className="flex gap-2">
-                  <button onClick={() => establishAccess('CVC', cvcType, 'Right Femoral')} className="w-1/2 p-2 bg-slate-700 hover:bg-purple-600 rounded text-white font-bold transition-colors">Right</button>
-                  <button onClick={() => establishAccess('CVC', cvcType, 'Left Femoral')} className="w-1/2 p-2 bg-slate-700 hover:bg-purple-600 rounded text-white font-bold transition-colors">Left</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
-        {data.category === 'Intraosseous (IO)' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="bg-slate-800 p-4 rounded border border-slate-700">
-              <h3 className="font-bold text-orange-400 mb-2">Proximal Tibia</h3>
-              <span className="text-[10px] text-slate-400 mb-2 block">EZ-IO (Pressure Flow: ~60mL/min)</span>
-              <div className="flex gap-2">
-                <button onClick={() => establishAccess('IO', 'EZ-IO', 'Right Proximal Tibia')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Right Tibia</button>
-                <button onClick={() => establishAccess('IO', 'EZ-IO', 'Left Proximal Tibia')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Left Tibia</button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-mono text-center">
+              <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80">
+                <h3 className="font-extrabold text-rose-400 mb-3 border-b border-slate-800 pb-2 text-xs">Radial Artery</h3>
+                <div className="flex flex-col gap-2">
+                  <button onClick={() => establishAccess('Arterial', `${artType} Arterial Line`, 'Right Radial')} className={`p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Right Radial</button>
+                  <button onClick={() => establishAccess('Arterial', `${artType} Arterial Line`, 'Left Radial')} className={`p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Left Radial</button>
+                </div>
               </div>
-            </div>
-            <div className="bg-slate-800 p-4 rounded border border-slate-700">
-              <h3 className="font-bold text-orange-400 mb-2">Humeral Head</h3>
-              <span className="text-[10px] text-slate-400 mb-2 block">EZ-IO (Pressure Flow: ~150mL/min)</span>
-              <div className="flex gap-2">
-                <button onClick={() => establishAccess('IO', 'EZ-IO', 'Right Humeral Head')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Right Humerus</button>
-                <button onClick={() => establishAccess('IO', 'EZ-IO', 'Left Humeral Head')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Left Humerus</button>
+              <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80">
+                <h3 className="font-extrabold text-rose-400 mb-3 border-b border-slate-800 pb-2 text-xs">Brachial Artery</h3>
+                <div className="flex flex-col gap-2">
+                  <button onClick={() => establishAccess('Arterial', `${artType} Arterial Line`, 'Right Brachial')} className={`p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Right Brachial</button>
+                  <button onClick={() => establishAccess('Arterial', `${artType} Arterial Line`, 'Left Brachial')} className={`p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Left Brachial</button>
+                </div>
               </div>
-            </div>
-          </div>
-        )}
-
-        {data.category === 'Arterial Line' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-slate-800 p-4 rounded border border-slate-700">
-              <h3 className="font-bold text-red-400 mb-2">Radial (20G)</h3>
-              <div className="flex sm:flex-col gap-2 sm:gap-1">
-                <button onClick={() => establishAccess('Arterial', '20G Arterial Line', 'Right Radial')} className="w-1/2 sm:w-full text-center sm:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Right</button>
-                <button onClick={() => establishAccess('Arterial', '20G Arterial Line', 'Left Radial')} className="w-1/2 sm:w-full text-center sm:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Left</button>
+              <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80">
+                <h3 className="font-extrabold text-rose-400 mb-3 border-b border-slate-800 pb-2 text-xs">Axillary Artery</h3>
+                <div className="flex flex-col gap-2">
+                  <button onClick={() => establishAccess('Arterial', `${artType} Arterial Line`, 'Right Axillary')} className={`p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Right Axillary</button>
+                  <button onClick={() => establishAccess('Arterial', `${artType} Arterial Line`, 'Left Axillary')} className={`p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Left Axillary</button>
+                </div>
               </div>
-            </div>
-            <div className="bg-slate-800 p-4 rounded border border-slate-700">
-              <h3 className="font-bold text-red-400 mb-2">Brachial (20G)</h3>
-              <div className="flex sm:flex-col gap-2 sm:gap-1">
-                <button onClick={() => establishAccess('Arterial', '20G Arterial Line', 'Right Brachial')} className="w-1/2 sm:w-full text-center sm:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Right</button>
-                <button onClick={() => establishAccess('Arterial', '20G Arterial Line', 'Left Brachial')} className="w-1/2 sm:w-full text-center sm:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Left</button>
-              </div>
-            </div>
-            <div className="bg-slate-800 p-4 rounded border border-slate-700">
-              <h3 className="font-bold text-red-400 mb-2">Axillary (18G)</h3>
-              <div className="flex sm:flex-col gap-2 sm:gap-1">
-                <button onClick={() => establishAccess('Arterial', '18G Arterial Line', 'Right Axillary')} className="w-1/2 sm:w-full text-center sm:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Right</button>
-                <button onClick={() => establishAccess('Arterial', '18G Arterial Line', 'Left Axillary')} className="w-1/2 sm:w-full text-center sm:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Left</button>
-              </div>
-            </div>
-            <div className="bg-slate-800 p-4 rounded border border-slate-700">
-              <h3 className="font-bold text-red-400 mb-2">Femoral (18G)</h3>
-              <div className="flex sm:flex-col gap-2 sm:gap-1">
-                <button onClick={() => establishAccess('Arterial', '18G Arterial Line', 'Right Femoral')} className="w-1/2 sm:w-full text-center sm:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Right</button>
-                <button onClick={() => establishAccess('Arterial', '18G Arterial Line', 'Left Femoral')} className="w-1/2 sm:w-full text-center sm:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-red-500">Left</button>
+              <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80">
+                <h3 className="font-extrabold text-rose-400 mb-3 border-b border-slate-800 pb-2 text-xs">Femoral Artery</h3>
+                <div className="flex flex-col gap-2">
+                  <button onClick={() => establishAccess('Arterial', `${artType} Arterial Line`, 'Right Femoral')} className={`p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Right Femoral</button>
+                  <button onClick={() => establishAccess('Arterial', `${artType} Arterial Line`, 'Left Femoral')} className={`p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Left Femoral</button>
+                </div>
               </div>
             </div>
           </div>

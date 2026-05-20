@@ -29,37 +29,106 @@ export const Pharmacopoeia = ({ pushFluid, processMed, patient, setPatient }) =>
   };
 
   const handleFluidSubmit = (fluidId) => {
+    const selectedLineId = fluidInput.lineId || patient.accessLines?.[0]?.id;
+    const selectedLine = patient.accessLines?.find(l => l.id === selectedLineId);
+    if (selectedLine?.category === 'Arterial Line') {
+      return;
+    }
     if (fluidInput.dose) {
-      pushFluid(fluidId, fluidInput.dose, fluidInput.lineId || patient.accessLines?.[0]?.id);
+      pushFluid(fluidId, fluidInput.dose, selectedLineId);
       setFluidInput({ fluid: null, dose: '', lineId: '' });
       setSearchTerm('');
     }
   };
 
+  const getFluidUnitLabel = (fluidId) => {
+    if (fluidId.includes('Fibrinogen')) return 'g';
+    const type = FLUIDS[fluidId]?.type;
+    if (type === 'Blood Product' || type === 'Colloid') return 'Units';
+    return 'mL';
+  };
+
+  const getFluidVolumePreview = (fluidId, doseStr) => {
+    const dose = parseFloat(doseStr);
+    if (isNaN(dose) || dose <= 0) return '';
+    const fluid = FLUIDS[fluidId];
+    if (!fluid) return '';
+    if (fluidId.includes('Fibrinogen')) {
+      const vol = dose * 50;
+      return `≈ ${vol} mL (${dose} g)`;
+    }
+    if (fluid.type === 'Blood Product' || fluid.type === 'Colloid') {
+      const vol = dose * (fluid.defaultVol || 300);
+      return `≈ ${vol} mL (${dose} Units)`;
+    }
+    return '';
+  };
+
   const renderFluidButton = (fluidId, label, hint, colorClass) => {
     const isActive = fluidInput.fluid === fluidId;
+    const selectedLineId = fluidInput.lineId || patient.accessLines?.[0]?.id;
+    const selectedLine = patient.accessLines?.find(l => l.id === selectedLineId);
+    const isArterial = selectedLine?.category === 'Arterial Line';
+
     return (
       <div className="flex flex-col gap-1 mb-1" key={fluidId}>
-        <button onClick={() => setFluidInput(isActive ? { fluid: null } : { fluid: fluidId, dose: '' })} className={`p-2 rounded text-xs text-left border transition-all ${colorClass} ${isActive ? 'ring-2 ring-white border-white' : 'hover:border-slate-400'}`}>
+        <button 
+          onClick={() => setFluidInput(isActive ? { fluid: null } : { fluid: fluidId, dose: '', lineId: selectedLineId })} 
+          className={`p-2 rounded text-xs text-left border transition-all ${colorClass} ${isActive ? 'ring-2 ring-white border-white' : 'hover:border-slate-400'}`}
+        >
           <span className="font-bold text-white">{label}</span> <span className="text-slate-400 text-[10px] float-right">{hint}</span>
         </button>
         {isActive && (
-          <div className="flex flex-col p-2 bg-slate-950 border border-slate-700 rounded animate-in slide-in-from-top-1 duration-200">
-            <select value={fluidInput.lineId || patient.accessLines?.[0]?.id || ''} onChange={(e) => setFluidInput({...fluidInput, lineId: e.target.value})} className="w-full bg-slate-950 text-xs text-slate-300 border border-slate-700 rounded p-1 mb-2">
-              {patient.accessLines?.length > 0 ? patient.accessLines.map(l => <option key={l.id} value={l.id}>{l.name}</option>) : <option value="">No Lines Available</option>}
+          <div className="flex flex-col p-2.5 bg-slate-950/90 backdrop-blur-md border border-slate-800 rounded-lg animate-in slide-in-from-top-1 duration-200">
+            <label className="text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider">Select Access Line</label>
+            <select 
+              value={selectedLineId || ''} 
+              onChange={(e) => setFluidInput({...fluidInput, lineId: e.target.value})} 
+              className="w-full bg-slate-900 text-xs text-slate-300 border border-slate-700 rounded-lg p-1.5 mb-2.5 focus:border-blue-500 focus:outline-none"
+            >
+              {patient.accessLines?.length > 0 ? patient.accessLines.map(l => (
+                <option key={l.id} value={l.id}>
+                  {l.name}{l.failed ? ' (FAILED)' : ''}
+                </option>
+              )) : <option value="">No Lines Available</option>}
             </select>
 
+            {isArterial && (
+              <div className="bg-rose-950/60 border border-rose-900 rounded-lg p-2.5 mb-2.5 text-[11px] text-rose-300 leading-normal animate-pulse font-mono">
+                <span className="font-extrabold text-rose-400 block mb-0.5">⚠️ CLINICAL WARNING: ARTERIAL RESUSCITATION CONTRAINDICATED</span>
+                Infusing fluids retrogradely into an artery is contraindicated due to immediate risks of cerebral/distal embolization, mechanical arterial blowout, and limb ischemia. Resuscitation disabled on this line.
+              </div>
+            )}
+
             <div className="flex gap-2">
-              <input 
-              autoFocus 
-              type="number" 
-              placeholder={`Vol (${FLUIDS[fluidId]?.type === 'Blood Product' || FLUIDS[fluidId]?.type === 'Colloid' ? 'Units' : 'mL'})`} 
-              className="w-1/2 bg-slate-900 border border-slate-600 rounded px-2 py-1 text-xs text-white outline-none focus:border-blue-500" 
-              value={fluidInput.dose} 
-              onChange={(e) => setFluidInput({...fluidInput, dose: e.target.value})} 
-              onKeyDown={(e) => { if (e.key === 'Enter') handleFluidSubmit(fluidId); }}
-            />
-            <button onClick={() => handleFluidSubmit(fluidId)} className="w-1/2 bg-blue-700 hover:bg-blue-600 rounded text-xs font-bold text-white">PUSH</button>
+              <div className="w-1/2 flex flex-col">
+                <input 
+                  autoFocus 
+                  type="number" 
+                  disabled={isArterial}
+                  placeholder={`Dose (${getFluidUnitLabel(fluidId)})`} 
+                  className={`w-full bg-slate-900 border border-slate-600 rounded-lg px-2.5 py-1.5 text-xs text-white outline-none focus:border-blue-500 ${isArterial ? 'opacity-40 cursor-not-allowed' : ''}`} 
+                  value={fluidInput.dose} 
+                  onChange={(e) => setFluidInput({...fluidInput, dose: e.target.value})} 
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !isArterial) handleFluidSubmit(fluidId); }}
+                />
+                {fluidInput.dose && getFluidVolumePreview(fluidId, fluidInput.dose) && (
+                  <div className="text-[10px] text-emerald-400 font-semibold font-mono mt-1 pl-1">
+                    {getFluidVolumePreview(fluidId, fluidInput.dose)}
+                  </div>
+                )}
+              </div>
+              <button 
+                onClick={() => handleFluidSubmit(fluidId)} 
+                disabled={isArterial}
+                className={`w-1/2 rounded-lg text-xs font-bold text-white transition-all ${
+                  isArterial 
+                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700' 
+                    : 'bg-blue-700 hover:bg-blue-600 active:scale-95 shadow-[0_0_10px_rgba(29,78,216,0.3)]'
+                }`}
+              >
+                PUSH
+              </button>
             </div>
           </div>
         )}

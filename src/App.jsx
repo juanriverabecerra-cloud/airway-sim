@@ -341,9 +341,9 @@ export default function App() {
     const fullName = `${type} (${location})`;
 
     if (type.includes('Triple Lumen CVC')) {
-       const newLine1 = { id: Date.now().toString() + '1', name: `Distal Lumen (16G) - ${location}`, category, type: '16G CVC', location, radius: 0.8, length: 200, penalty: 0, fluidLine: 'gravity', activeInfusions: [] };
-       const newLine2 = { id: Date.now().toString() + '2', name: `Medial Lumen (18G) - ${location}`, category, type: '18G CVC', location, radius: 0.65, length: 200, penalty: 0, fluidLine: 'gravity', activeInfusions: [] };
-       const newLine3 = { id: Date.now().toString() + '3', name: `Proximal Lumen (18G) - ${location}`, category, type: '18G CVC', location, radius: 0.65, length: 200, penalty: 0, fluidLine: 'gravity', activeInfusions: [] };
+       const newLine1 = { id: Date.now().toString() + '1', name: `Distal Lumen (16G) - ${location}`, category, type: '16G CVC', location, radius: 0.665, length: 200, venousPressure: 5, veinResistance: 0, activeInfusions: [] };
+       const newLine2 = { id: Date.now().toString() + '2', name: `Medial Lumen (18G) - ${location}`, category, type: '18G CVC', location, radius: 0.475, length: 200, venousPressure: 5, veinResistance: 0, activeInfusions: [] };
+       const newLine3 = { id: Date.now().toString() + '3', name: `Proximal Lumen (18G) - ${location}`, category, type: '18G CVC', location, radius: 0.475, length: 200, venousPressure: 5, veinResistance: 0, activeInfusions: [] };
        
        logEvent(`Placed Triple Lumen CVC (${location}). 3 ports available.`);
        setPatient(p => ({ ...p, hasIV: true, hasCVC: true, accessLines: [...(p.accessLines || []).filter(l => typeof l !== 'string'), newLine1, newLine2, newLine3] }));
@@ -351,8 +351,8 @@ export default function App() {
        return;
     }
     if (type.includes('Double Lumen CVC')) {
-       const newLine1 = { id: Date.now().toString() + '1', name: `Distal Lumen (14G) - ${location}`, category, type: '14G CVC', location, radius: 1.05, length: 200, penalty: 0, fluidLine: 'gravity', activeInfusions: [] };
-       const newLine2 = { id: Date.now().toString() + '2', name: `Proximal Lumen (18G) - ${location}`, category, type: '18G CVC', location, radius: 0.65, length: 200, penalty: 0, fluidLine: 'gravity', activeInfusions: [] };
+       const newLine1 = { id: Date.now().toString() + '1', name: `Distal Lumen (14G) - ${location}`, category, type: '14G CVC', location, radius: 0.85, length: 200, venousPressure: 5, veinResistance: 0, activeInfusions: [] };
+       const newLine2 = { id: Date.now().toString() + '2', name: `Proximal Lumen (18G) - ${location}`, category, type: '18G CVC', location, radius: 0.475, length: 200, venousPressure: 5, veinResistance: 0, activeInfusions: [] };
        
        logEvent(`Placed Double Lumen CVC (${location}). 2 ports available.`);
        setPatient(p => ({ ...p, hasIV: true, hasCVC: true, accessLines: [...(p.accessLines || []).filter(l => typeof l !== 'string'), newLine1, newLine2] }));
@@ -362,21 +362,51 @@ export default function App() {
     
     let radius = 0.5; // mm default
     let length = 30; // mm default
-    let penalty = 0; // mmHg default
+    let venousPressure = 10; // mmHg default
+    let veinResistance = 500; // arbitrary total series default
     
-    if (type.includes('14G') && !type.includes('CVC')) { radius = 1.05; length = 45; }
-    else if (type.includes('16G') && !type.includes('CVC')) { radius = 0.8; length = 45; }
-    else if (type.includes('18G') && !type.includes('CVC')) { radius = 0.65; length = 32; }
-    else if (type.includes('20G') && !type.includes('CVC')) { radius = 0.5; length = 30; }
-    else if (type.includes('22G') && !type.includes('CVC')) { radius = 0.4; length = 25; }
-    else if (type.includes('24G') && !type.includes('CVC')) { radius = 0.28; length = 19; }
-    else if (type.includes('Single Lumen CVC')) { radius = 1.05; length = 200; }
-    else if (type.includes('CVC')) { radius = 0.8; length = 200; }
-    else if (type.includes('Cordis') || type.includes('MAC')) { radius = 1.4; length = 100; }
-    else if (category.includes('IO')) { radius = 0.9; length = 25; penalty = 10; }
+    if (type.includes('14G') && !type.includes('CVC')) { radius = 0.85; length = 45; }
+    else if (type.includes('16G') && !type.includes('CVC')) { radius = 0.665; length = 45; }
+    else if (type.includes('18G') && !type.includes('CVC')) { radius = 0.475; length = 32; }
+    else if (type.includes('20G') && !type.includes('CVC')) { radius = 0.405; length = 30; }
+    else if (type.includes('22G') && !type.includes('CVC')) { radius = 0.30; length = 25; }
+    else if (type.includes('24G') && !type.includes('CVC')) { radius = 0.235; length = 19; }
+    else if (type.includes('Single Lumen CVC')) { radius = 0.85; length = 200; venousPressure = 5; veinResistance = 0; }
+    else if (type.includes('CVC')) { radius = 0.475; length = 200; venousPressure = 5; veinResistance = 0; }
+    else if (type.includes('Trauma Cordis')) { radius = 1.15; length = 100; venousPressure = 5; veinResistance = 0; }
+    else if (type.includes('MAC') || type.includes('Cordis')) { radius = 1.25; length = 100; venousPressure = 5; veinResistance = 0; }
+    else if (category.includes('IO')) { 
+      radius = 0.45; 
+      length = 25; 
+      if (location.includes('Humeral')) {
+        venousPressure = 15;
+        veinResistance = 1500;
+      } else {
+        venousPressure = 18;
+        veinResistance = 2500;
+      }
+    }
     
-    if (location.includes('Hand')) penalty += 20;
-    else if (location.includes('Forearm')) penalty += 10;
+    // Assign peripheral parameters based on location
+    if (category.includes('PIV')) {
+      if (location.includes('Hand')) {
+        venousPressure = 18;
+        veinResistance = 2200;
+      } else if (location.includes('Forearm')) {
+        venousPressure = 12;
+        veinResistance = 800;
+      } else if (location.includes('AC')) {
+        venousPressure = 8;
+        veinResistance = 200;
+      }
+    }
+
+    if (category.includes('Arterial')) {
+      radius = 0.405;
+      length = 30;
+      venousPressure = 0;
+      veinResistance = 99999; // block venous flow
+    }
     
     const newLine = { 
       id: Date.now().toString() + Math.random().toString(36).substr(2, 5), 
@@ -386,12 +416,12 @@ export default function App() {
       location, 
       radius, 
       length, 
-      penalty,
-      fluidLine: 'gravity',
+      venousPressure,
+      veinResistance,
       activeInfusions: []
     };
 
-    logEvent(`Placed ${fullName}. Physical dimensions initialized (r: ${radius}mm, L: ${length}mm).`);
+    logEvent(`Placed ${fullName}. Physical dimensions initialized (r: ${radius}mm, L: ${length}mm, Pv: ${venousPressure}mmHg, Rv: ${veinResistance}).`);
     setPatient(p => ({ 
        ...p, 
        hasIV: p.hasIV || !category.includes('Arterial'), 
@@ -649,9 +679,10 @@ const generateClinicalHint = () => {
           'Glucose': { val: Math.round(glucVal), range: '70 - 100 mg/dL', alert: glucVal > 100 }
         };
       } else if (type === 'Coagulation') {
-        const ptVal = 12.0 + (coags.r_offset || 0) * 1.8;
+        const tempFactor = vitals.temp < 36.0 ? Math.pow(1.15, 36.0 - vitals.temp) : 1.0;
+        const ptVal = (12.0 + (coags.r_offset || 0) * 1.8) * tempFactor;
         const inrVal = ptVal / 12.0;
-        const pttVal = 31.0 + (coags.r_offset || 0) * 3.2;
+        const pttVal = (31.0 + (coags.r_offset || 0) * 3.2) * tempFactor;
         
         results = {
           'Prothrombin Time (PT)': { val: ptVal.toFixed(1) + ' s', range: '11.0 - 13.5 s', alert: ptVal > 13.5 },
@@ -659,9 +690,11 @@ const generateClinicalHint = () => {
           'Partial Thromboplastin Time (PTT)': { val: pttVal.toFixed(1) + ' s', range: '25.0 - 35.0 s', alert: pttVal > 35.0 }
         };
       } else if (type === 'TEG') {
-        const rVal = 6.0 + (coags.r_offset || 0);
-        const angleVal = 65.0 + (coags.angle_offset || 0);
-        const maVal = 60.0 + (coags.ma_offset || 0);
+        const tempDiff = vitals.temp < 36.0 ? 36.0 - vitals.temp : 0;
+        const rTempFactor = 1.0 + tempDiff * 0.20;
+        const rVal = (6.0 + (coags.r_offset || 0)) * rTempFactor;
+        const angleVal = Math.max(10, 65.0 + (coags.angle_offset || 0) - tempDiff * 5);
+        const maVal = Math.max(5, 60.0 + (coags.ma_offset || 0) - tempDiff * 6);
         results = {
           'R': { val: rVal.toFixed(1) + ' min', range: '5 - 10 min', alert: rVal > 10.0 },
           'Angle': { val: Math.round(angleVal) + ' deg', range: '53 - 72 deg', alert: angleVal < 53.0 },
