@@ -3,7 +3,7 @@ import { MEDICATIONS, FLUIDS, INHALATIONAL_AGENTS, calculateIBW, calculateLBW, c
 import { PKPDModel } from './PKPDEngine.js';
 import { GasKineticsModel } from './GasKineticsEngine.js';
 
-export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, gasSettings, logEvent }) {
+export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, gasSettings, logEvent, msmaidsComplete }) {
   const [time, setTime] = useState(0);
   const [vitals, setVitals] = useState({});
   const [targetVitals, setTargetVitals] = useState({});
@@ -20,10 +20,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
   // CRITICAL FIX: The Physics Engine State Bridge. 
   // Prevents stale closures without forcing the interval to reset.
-  const stateRef = useRef({ time, vitals, targetVitals, patient, activeMeds, gasModels, intravascularVolume, electrolytes, ventSettings, gasSettings, surgicalPhase });
+  const stateRef = useRef({ time, vitals, targetVitals, patient, activeMeds, gasModels, intravascularVolume, electrolytes, ventSettings, gasSettings, surgicalPhase, msmaidsComplete });
 
   useEffect(() => {
-    stateRef.current = { time, vitals, targetVitals, patient, activeMeds, gasModels, intravascularVolume, electrolytes, ventSettings, gasSettings, surgicalPhase };
+    stateRef.current = { time, vitals, targetVitals, patient, activeMeds, gasModels, intravascularVolume, electrolytes, ventSettings, gasSettings, surgicalPhase, msmaidsComplete };
   });
 
   if (activeCase && activeCase.id !== prevCaseId) {
@@ -452,8 +452,12 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
       // === SURGICAL TIMELINE AUTO-PROGRESSION (PRE-OP -> INDUCTION) ===
       if (stateRef.current.surgicalPhase === 'Pre-Op' && (medData.classes.includes('Sedative') || medData.classes.includes('Hypnotic') || medData.classes.includes('Dissociative'))) {
-        setSurgicalPhase('Induction');
-        logEvent(`➡️ Surgical Timeline Auto-Advanced: INDUCTION phase initiated.`);
+        if (stateRef.current.msmaidsComplete || stateRef.current.patient.emergentRSI) {
+          setSurgicalPhase('Induction');
+          logEvent(`➡️ Surgical Timeline Auto-Advanced: INDUCTION phase initiated.`);
+        } else {
+          logEvent(`⚠️ CLINICAL INTERLOCK BLOCKED: Auto-progression to Induction locked. Complete MSMAIDS checklist first.`);
+        }
       }
 
     } else if (type === 'Infusion') {

@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { Undo2, FileText, X } from 'lucide-react';
 
-export const PatientHeader = ({ activeCase, patient, vitals, setActiveCase, handleUndo, history, showLabPanel, setShowLabPanel, isRunning, setIsRunning }) => {
-  const [showPreOp, setShowPreOp] = useState(false);
-
+export const PatientHeader = ({ activeCase, patient, vitals, setActiveCase, handleUndo, history, showLabPanel, setShowLabPanel, isRunning, setIsRunning, showPreOp, setShowPreOp }) => {
   return (
     <>
       <header className="flex flex-col bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-lg gap-4 relative z-10">
+        {/* Bottom Bar handles other overlay/history/state resets */}
         {/* Top Row: Demographics & Controls */}
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center w-full gap-4">
           <div className="flex flex-col gap-1 w-full lg:w-auto">
@@ -30,7 +29,7 @@ export const PatientHeader = ({ activeCase, patient, vitals, setActiveCase, hand
             {/* EMR BRIEFING ACCESS BUTTON */}
             {activeCase?.preOpBriefing && (
               <button onClick={() => setShowPreOp(true)} className="px-4 py-2 bg-blue-900/50 hover:bg-blue-800 text-blue-200 border border-blue-700 rounded text-xs md:text-sm font-bold flex items-center justify-center transition flex-1 lg:flex-none shadow-[0_0_10px_rgba(37,99,235,0.2)]">
-                <FileText size={16} className="mr-1" /> Pre-Op EMR
+                <FileText size={16} className="mr-1" /> Review Chart
               </button>
             )}
 

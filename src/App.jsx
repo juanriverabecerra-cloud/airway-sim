@@ -18,6 +18,7 @@ import { PreOpEMR } from './components/modals/PreOpEMR';
 // Attending Engine & Panel
 import { evaluateAttendingGuidance } from './engine/AttendingEngine';
 import AttendingPanel from './components/controls/AttendingPanel';
+import { CLINICAL_ACTIONS } from './engine/ClinicalActions';
 
 
 const CASES = [
@@ -100,6 +101,7 @@ export default function App() {
 
   const [preopModal, setPreopModal] = useState(false);
   const [preOpEMR, setPreOpEMR] = useState(false);
+  const [showPreOp, setShowPreOp] = useState(false);
   const [stagedCase, setStagedCase] = useState(null);
   const [msmaidsModal, setMsmaidsModal] = useState(false);
   const [msmaidsComplete, setMsmaidsComplete] = useState(false);
@@ -129,7 +131,8 @@ export default function App() {
     isPaused: viewModal.show || setupModal || pocusModal.show || airwayQuizModal.show || accessModal.show || tubeConfirmModal.show || preopModal || msmaidsModal || postIntubationModal || extubationModal,
     ventSettings,
     gasSettings,
-    logEvent
+    logEvent,
+    msmaidsComplete
   });
 
   const attendingGuidance = evaluateAttendingGuidance({
@@ -202,7 +205,15 @@ export default function App() {
   const handleOptimizeAirway = (...args) => { saveState(); optimizeAirway(...args); };
   const handleSetVentSettings = (update) => { saveState(); setVentSettings(update); };
   const handleSetGasSettings = (update) => { saveState(); setGasSettings(update); };
-  const handleSetSurgicalPhase = (val) => { saveState(); setSurgicalPhase(val); };
+  const handleSetSurgicalPhase = (val) => {
+    if (val === 'Induction' && !msmaidsComplete && !patient.emergentRSI) {
+      logEvent("⚠️ CLINICAL INTERLOCK BLOCKED: Induction phase locked. Complete MSMAIDS pre-induction checklist first.");
+      setMsmaidsModal(true);
+      return;
+    }
+    saveState();
+    setSurgicalPhase(val);
+  };
   const handleSetDefibSettings = (val) => { saveState(); setDefibSettings(val); };
   const handleToggleBis = () => { saveState(); setPatient(p => ({...p, hasBisMonitor: !p.hasBisMonitor})); logEvent(patient.hasBisMonitor ? "Removed BIS Monitor." : "Attached BIS Monitor."); };
   const handleToggleTof = () => { saveState(); setPatient(p => ({...p, hasTofMonitor: !p.hasTofMonitor})); logEvent(patient.hasTofMonitor ? "Removed TOF Monitor." : "Attached TOF Monitor."); };
@@ -226,6 +237,33 @@ export default function App() {
         currentFiO2: 21, 
         currentO2Flow: 0
     }));
+  };
+
+  const handleExecuteClinicalAction = (actionKey) => {
+    const action = CLINICAL_ACTIONS[actionKey.toLowerCase()];
+    if (!action) return;
+
+    if (action.type === 'medication') {
+      handleProcessMed(action.drug, action.dose, action.route, action.drugType, action.unit);
+    } else if (action.type === 'procedure') {
+      if (action.action === 'suction') {
+        handleSuction();
+      } else if (action.action === 'larson') {
+        performLarsonManeuver();
+      } else if (action.action === 'laryngoscopy') {
+        setSetupModal(true);
+      } else if (action.action === 'npo') {
+        examineNpoHistory();
+      } else if (action.action === 'airway_exam') {
+        examineAirway();
+      }
+    } else if (action.type === 'ui') {
+      if (action.action === 'review_chart') {
+        setShowPreOp(true);
+      } else if (action.action === 'live_labs') {
+        setShowLabPanel(true);
+      }
+    }
   };
 
   const adjustTube = (action) => {
@@ -930,6 +968,8 @@ const generateClinicalHint = () => {
         setShowLabPanel={setShowLabPanel} 
         isRunning={isRunning} 
         setIsRunning={setIsRunning} 
+        showPreOp={showPreOp}
+        setShowPreOp={setShowPreOp}
       />
 
       <PrimaryMonitor 
@@ -987,6 +1027,7 @@ const generateClinicalHint = () => {
            formatTime={formatTime}
            setPreopModal={setPreopModal}
            setMsmaidsModal={setMsmaidsModal}
+           msmaidsComplete={msmaidsComplete}
            setPostIntubationModal={setPostIntubationModal}
            setExtubationModal={setExtubationModal}
            performLarsonManeuver={performLarsonManeuver}
@@ -1021,8 +1062,8 @@ const generateClinicalHint = () => {
         
         <LogPanel 
            logs={logs} 
-           generateClinicalHint={generateClinicalHint} 
            formatTime={formatTime} 
+           onActionClick={handleExecuteClinicalAction}
         />
       </div>
 
@@ -1116,6 +1157,8 @@ const generateClinicalHint = () => {
           fullAudit={attendingGuidance.fullAudit}
           activeAlertsCount={attendingGuidance.activeAlertsCount}
           formatTime={formatTime}
+          generateClinicalHint={generateClinicalHint}
+          onActionClick={handleExecuteClinicalAction}
         />
       )}
 

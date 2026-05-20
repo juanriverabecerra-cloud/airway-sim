@@ -23,6 +23,7 @@ export const ActionPanel = ({
   formatTime,
   setPreopModal,
   setMsmaidsModal,
+  msmaidsComplete,
   setPostIntubationModal,
   setExtubationModal,
   performLarsonManeuver,
@@ -195,11 +196,39 @@ export const ActionPanel = ({
         <>
           <h3 className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold mt-2 flex items-center gap-2"><Zap size={14}/> Surgical Timeline</h3>
           <div className="flex flex-wrap justify-center gap-1.5 mt-1">
-            {['Pre-Op', 'Induction', 'Incision', 'Maintenance', 'Emergence'].map(phase => (
-              <button key={phase} onClick={() => { setSurgicalPhase(phase); setSearchTerm(''); }} className={`flex-1 min-w-[30%] px-1 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-all ${surgicalPhase === phase ? 'bg-cyan-700 text-white ring-1 ring-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.3)]' : 'bg-slate-800 border border-slate-700 text-slate-400 hover:bg-slate-700'}`}>
-                 {phase}
-              </button>
-            ))}
+            {['Pre-Op', 'Induction', 'Incision', 'Maintenance', 'Emergence'].map(phase => {
+              const isLockedInduction = phase === 'Induction' && !msmaidsComplete && !patient.emergentRSI;
+              let btnClass = '';
+              if (surgicalPhase === phase) {
+                btnClass = 'bg-cyan-700 text-white ring-1 ring-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.3)]';
+              } else if (isLockedInduction) {
+                btnClass = 'bg-slate-900 border border-dashed border-red-900/60 text-red-400/80 hover:bg-red-950/20 hover:border-red-700/60 transition-colors duration-200 cursor-help';
+              } else {
+                btnClass = 'bg-slate-800 border border-slate-700 text-slate-400 hover:bg-slate-700';
+              }
+
+              const handlePhaseClick = () => {
+                if (isLockedInduction) {
+                  logEvent("⚠️ CLINICAL INTERLOCK BLOCKED: Induction phase locked. Complete MSMAIDS pre-induction checklist first.");
+                  setMsmaidsModal(true);
+                  setSearchTerm('');
+                  return;
+                }
+                setSurgicalPhase(phase);
+                setSearchTerm('');
+              };
+
+              return (
+                <button
+                  key={phase}
+                  onClick={handlePhaseClick}
+                  className={`flex-1 min-w-[30%] px-1 py-1.5 rounded text-[10px] font-bold uppercase tracking-wider transition-all ${btnClass}`}
+                  title={isLockedInduction ? "Induction Locked: Complete MSMAIDS setup checklist first" : ""}
+                >
+                  {isLockedInduction ? '🔒 Induction' : phase}
+                </button>
+              );
+            })}
           </div>
         </>
       )}

@@ -16,7 +16,8 @@ const PRESETS = [
     ebl: 'Low', duration: 45, penicillinAllergy: false,
     npoSolids: 8, npoLiquids: 4, ef: 60, gfr: 100,
     betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false
+    burns: false, immobility: false, cp: 'none', htn: false, as: false,
+    emergentRSI: false
   },
   {
     id: 'trauma',
@@ -31,7 +32,8 @@ const PRESETS = [
     ebl: 'High', duration: 120, penicillinAllergy: false,
     npoSolids: 1, npoLiquids: 1, ef: 65, gfr: 90,
     betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false
+    burns: false, immobility: false, cp: 'none', htn: false, as: false,
+    emergentRSI: true
   },
   {
     id: 'neuro',
@@ -106,7 +108,8 @@ const PRESETS = [
     ebl: 'High', duration: 75, penicillinAllergy: false,
     npoSolids: 2, npoLiquids: 2, ef: 65, gfr: 120,
     betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false
+    burns: false, immobility: false, cp: 'none', htn: false, as: false,
+    emergentRSI: true
   },
   {
     id: 'ortho',
@@ -203,7 +206,8 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
     ebl: 'Low', duration: 90, penicillinAllergy: false,
     npoSolids: 8, npoLiquids: 4, ef: 60, gfr: 100,
     betaBlocker: false, cad: false, afib: false, as: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false
+    burns: false, immobility: false, cp: 'none', htn: false,
+    emergentRSI: false
   });
 
   const [activePresetId, setActivePresetId] = useState('general');
@@ -341,7 +345,7 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
     const stagedRenal = data.gfr < 90 ? `stage ${data.gfr < 15 ? '5' : data.gfr < 30 ? '4' : '3'}` : null;
 
     const newCase = {
-      id: 'case-' + Date.now(),
+      id: data.id || 'case-' + Date.now(),
       name: nameOverride || data.name,
       difficulty: finalLevel,
       description: briefing.hpi,
@@ -371,7 +375,8 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
         npoSolids: data.npoSolids || 8,
         npoLiquids: data.npoLiquids || 4,
         allergies: data.penicillinAllergy ? 'Penicillin' : 'NKDA',
-        pmhx: briefing.pmhx
+        pmhx: briefing.pmhx,
+        emergentRSI: !!data.emergentRSI
       }
     };
     setStagedCase(newCase);
@@ -727,6 +732,14 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
                      Induction alerts: Anaphylactic shock active for penicillin-derived beta-lactams.
                    </span>
                  )}
+               </div>
+
+               {/* CLINICAL TIMEOUT & INTERLOCK EXCEPTION */}
+               <div className="flex flex-col gap-1 border-b border-slate-850 pb-2">
+                 <span className="text-[10px] text-yellow-400 font-bold uppercase tracking-wider">Clinical Context / RSI</span>
+                 <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-orange-400 font-bold" title="Flag as emergent Rapid Sequence Intubation case to bypass the pre-induction checklist lock.">
+                   <input type="checkbox" checked={customForm.emergentRSI} onChange={e => setCustomForm({...customForm, emergentRSI: e.target.checked})} className="accent-orange-500" /> Emergent RSI Case ⚠️
+                 </label>
                </div>
 
                {/* NPO TIMES */}
