@@ -337,7 +337,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     logEvent(`Stopped and removed fluid infusion.`);
   };
 
-  const processMed = (medId, doseInput, route, type, unit) => {
+    const processMed = (medId, doseInput, route, type, unit, lineId = null) => {
     const hasCVC = patient.accessLines?.some(l => l.category?.includes('CVC') || l.type?.includes('CVC') || l.type?.includes('Cordis') || l.type?.includes('Introducer'));
     const hasPIV = patient.accessLines?.some(l => l.category?.includes('PIV') || l.name?.includes('PIV'));
     const hasIO = patient.accessLines?.some(l => l.category?.includes('IO') || l.name?.includes('IO'));
@@ -465,10 +465,59 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
       existingModel.displayDose = doseInput;
       existingModel.displayUnit = unit;
       existingModel.medId = medId; 
+
+      // Fallback: If no lineId is provided, find the first available non-arterial line to assign this infusion to
+      const targetLineId = lineId || (patient.accessLines || []).find(l => !l.category?.includes('Arterial'))?.id;
+
+      if (targetLineId) {
+        setPatient(prev => {
+          const updatedLines = (prev.accessLines || []).map(l => {
+            if (l.id !== targetLineId) return l;
+            const meds = [...(l.activeMedInfusions || [])];
+            const idx = meds.findIndex(m => m.medId === medId);
+            if (idx >= 0) {
+              meds[idx] = { ...meds[idx], rate: parseFloat(doseInput), unit };
+            } else {
+              meds.push({ medId, rate: parseFloat(doseInput), unit });
+            }
+            return { ...l, activeMedInfusions: meds };
+          });
+          return { ...prev, accessLines: updatedLines };
+        });
+      }
+      logEvent(`🔁 Started/Updated ${medData.name} infusion at ${doseInput} ${unit}.`);
+    } else if (type === 'Stop Infusion') {
+      
+      // Rigorously update the physical access line record if a line context is present
+      if (lineId) {
+        setPatient(prev => {
+          const updatedLines = (prev.accessLines || []).map(l => {
+            if (l.id !== lineId) return l;
+            const meds = [...(l.activeMedInfusions || [])];
+            const idx = meds.findIndex(m => m.medId === medId);
+            if (idx >= 0) {
+              meds[idx] = { ...meds[idx], rate: parseFloat(doseInput), unit };
+            } else {
+              meds.push({ medId, rate: parseFloat(doseInput), unit });
+            }
+            return { ...l, activeMedInfusions: meds };
+          });
+          return { ...prev, accessLines: updatedLines };
+        });
+      }
       logEvent(`🔁 Started/Updated ${medData.name} infusion at ${doseInput} ${unit}.`);
     } else if (type === 'Stop Infusion') {
       existingModel.setInfusion(0);
       existingModel.displayDose = 0;
+      
+      // Strip medication entry from all physical routing pathways
+      setPatient(prev => {
+        const updatedLines = (prev.accessLines || []).map(l => ({
+          ...l,
+          activeMedInfusions: (l.activeMedInfusions || []).filter(m => m.medId !== medId)
+        }));
+        return { ...prev, accessLines: updatedLines };
+      });
       logEvent(`⏹ Stopped ${medData.name} infusion.`);
     }
   };
@@ -566,9 +615,13 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const coRatio = currentCOForPK / 5.0;
           
           
-          // === POISEUILLE FLUID RESUSCITATION DRAINAGE (MULTI-LINE) ===
+            // === POISEUILLE FLUID RESUSCITATION DRAINAGE (MULTI-LINE) ===
           let totalFluidVolumeLiters = 0;
-          let newLines = (st.patient.accessLines || []).map(l => ({ ...l, activeInfusions: [...(l.activeInfusions || [])] }));
+          let newLines = (st.patient.accessLines || []).map(l => ({ 
+              ...l, 
+              activeInfusions: [...(l.activeInfusions || [])],
+              activeMedInfusions: [...(l.activeMedInfusions || [])] 
+          }));
           let updatedElectrolytes = { ...st.electrolytes };
           let tbwDelta = 0;
           let coagDelta = { r: 0, ma: 0, angle: 0 };
@@ -577,9 +630,23 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let hasActiveInfusions = false;
           let fluidInducedTempDrop = 0;
 
+          // Object to aggregate active continuous infusion rates across all functioning physical pathways
+          const lineMedicationRates = {};
+
           for (let lineIndex = 0; lineIndex < newLines.length; lineIndex++) {
               let line = newLines[lineIndex];
-              if (line.failed || !line.activeInfusions || line.activeInfusions.length === 0) continue;
+              if (line.failed) continue;
+
+              // Aggregate medication rates running on this specific, non-failed vascular access line
+              if (line.activeMedInfusions) {
+                  line.activeMedInfusions.forEach(medInf => {
+                      if (medInf.rate > 0) {
+                          lineMedicationRates[medInf.medId] = (lineMedicationRates[medInf.medId] || 0) + parseFloat(medInf.rate);
+                      }
+                  });
+              }
+
+              if (!line.activeInfusions || line.activeInfusions.length === 0) continue;
               hasActiveInfusions = true;
               
               const lType = line.fluidLine || st.patient.fluidLine || 'gravity';
@@ -589,6 +656,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               if (lType === 'belmont' && (line.category.includes('IO') || isNarrowIV)) {
                   activeInfusionMessages.push(`🚨 CLINICAL CATASTROPHE: Belmont Rapid Infuser connected to ${line.name}! High pressure (300 mmHg) caused immediate ${line.category.includes('IO') ? 'bone/vascular blowout, leading to severe extravasation and compartment syndrome' : 'vein rupture and blown line'}! Access lost!`);
                   line.activeInfusions = [];
+                  line.activeMedInfusions = [];
                   line.failed = true;
                   line.name += ' [BLOWN OUT]';
                   continue;
@@ -678,15 +746,17 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               }));
           }
           
-          if (activeInfusionMessages.length > 0) {
+          if (activeInfusionMessages.length > 0 || (st.patient.accessLines && st.patient.accessLines.length > 0)) {
               setPatient(prev => {
-                  activeInfusionMessages.forEach(msg => {
-                    prev.events = [...(prev.events || []), { time: Date.now(), msg, type: 'info' }];
-                  });
+                  if (activeInfusionMessages.length > 0) {
+                      activeInfusionMessages.forEach(msg => {
+                        prev.events = [...(prev.events || []), { time: Date.now(), msg, type: 'info' }];
+                      });
+                  }
                   return { ...prev, accessLines: newLines };
               });
           } else if (tbwDelta > 0 || hasActiveInfusions) {
-              setPatient(prev => ({ ...prev, accessLines: newLines })); // Sync line state silently
+              setPatient(prev => ({ ...prev, accessLines: newLines }));
           }
           // === END POISEUILLE DRAINAGE ===
 
@@ -764,12 +834,18 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
           const hasMG = st.patient.hasMG || st.patient.myastheniaGravis || (st.patient.neurologicComorbidity && st.patient.neurologicComorbidity.toLowerCase().includes('myasthenia'));
 
-          if (st.activeMeds) {
+        if (st.activeMeds) {
             st.activeMeds.forEach(model => {
+              // Dynamically inject line-driven medication rates directly into the model rate properties
+              const matchingId = Object.keys(MEDICATIONS).find(key => MEDICATIONS[key].name === model.name);
+              if (matchingId && lineMedicationRates[matchingId] !== undefined) {
+                  model.currentInfusionRate = lineMedicationRates[matchingId];
+              }
+
               const isNDMR = model.classes.includes('NDMR');
               const pdSens = (isNDMR && hasMG) ? 4.0 : 1.0;
               const effects = model.tick(1, coRatio, v1VolumeRatio, renalRatio, pdSens, hepaticRatio); 
-              totalHrDelta += effects.hrDelta || 0; 
+              totalHrDelta += effects.hrDelta || 0;
               totalRrDelta += effects.rrDelta || 0;
               
               if (effects.diaDelta) drugSvrMod += (effects.diaDelta / 80); 

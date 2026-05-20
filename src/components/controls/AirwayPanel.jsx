@@ -17,12 +17,36 @@ export const AirwayPanel = ({ patient, setPatient, handleSuction, optimizeAirway
     });
   });
 
-  const handleUpdateInfusion = (medId, newDose, originalUnit) => {
-    if (newDose) processMed(medId, newDose, 'IV', 'Infusion', originalUnit);
+  const handleUpdateInfusion = (medId, newDose, originalUnit, lineId) => {
+    if (!newDose || !lineId) return;
+    
+    setPatient(prev => {
+      const newLines = (prev.accessLines || []).map(l => {
+        if (l.id !== lineId) return l;
+        const currentMeds = [...(l.activeMedInfusions || [])];
+        const existingIdx = currentMeds.findIndex(m => m.medId === medId);
+        
+        if (parseFloat(newDose) <= 0) {
+          return { ...l, activeMedInfusions: currentMeds.filter(m => m.medId !== medId) };
+        }
+
+        if (existingIdx >= 0) {
+          currentMeds[existingIdx] = { ...currentMeds[existingIdx], rate: parseFloat(newDose) };
+        } else {
+          currentMeds.push({ medId, rate: parseFloat(newDose), unit: originalUnit });
+        }
+        return { ...l, activeMedInfusions: currentMeds };
+      });
+      return { ...prev, accessLines: newLines };
+    });
+
+    processMed(medId, newDose, 'IV', 'Infusion', originalUnit);
+    logEvent(`Set ${medId} infusion rate to ${newDose} ${originalUnit} on selected line.`);
   };
 
-  const handlePushFromInfusion = (medId, doseToPush, originalUnit) => {
-    if (doseToPush) processMed(medId, doseToPush, 'IV', 'Bolus', originalUnit.replace('/hr', '').replace('/min', ''));
+  const handlePushFromInfusion = (medId, doseToPush, originalUnit, lineId) => {
+    if (!doseToPush || !lineId) return;
+    processMed(medId, doseToPush, 'IV', 'Bolus', originalUnit.replace('/hr', '').replace('/min', ''));
   };
 
   const handlePlaceAirway = (id, size) => {
@@ -52,35 +76,47 @@ export const AirwayPanel = ({ patient, setPatient, handleSuction, optimizeAirway
     }
   };
 
-  const renderActiveInfusions = (isSecured) => {
+    const renderActiveInfusions = (isSecured) => {
     const lines = patient.accessLines || [];
-    // Resuscitation lines are lines with category !== 'Arterial Line'
     const resusLines = lines.filter(l => l.category !== 'Arterial Line');
     
+    // Calculate total continuous medication infusions currently active across all channels
+    let totalMedInfusionsCount = 0;
+    resusLines.forEach(l => {
+      if (!l.failed && l.activeMedInfusions) {
+        totalMedInfusionsCount += l.activeMedInfusions.filter(m => parseFloat(m.rate) > 0).length;
+      }
+    });
+
     return (
-      <div className={`flex flex-col gap-3 w-full shrink min-h-0 ${isSecured ? 'flex-1' : ''}`}>
-         {/* Resuscitation Section Header */}
+      <div className="flex flex-col gap-3 w-full shrink min-h-0 flex-1 overflow-y-auto custom-scrollbar">
+         {/* Consolidated Line Management Section Header */}
          <h3 className="text-slate-400 text-xs border-b border-slate-800 pb-1 uppercase font-black flex items-center justify-between shrink-0 font-mono tracking-wider">
-           Resuscitation Access & Fluids
-           <span className="bg-teal-950 text-teal-300 px-2 py-0.5 rounded text-[10px] border border-teal-800 font-bold font-mono">
-             {resusLines.length} Placed
-           </span>
+           Vascular Line Management
+           <div className="flex gap-1.5">
+             <span className="bg-teal-950 text-teal-300 px-2 py-0.5 rounded text-[10px] border border-teal-800 font-bold font-mono">
+               {resusLines.length} Lines Placed
+             </span>
+             <span className="bg-green-950 text-green-300 px-2 py-0.5 rounded text-[10px] border border-green-800 font-bold font-mono">
+               {totalMedInfusionsCount} Med Infusions
+             </span>
+           </div>
          </h3>
 
          {/* Access Line Cards */}
-         <div className={`flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-1 shrink-0 ${isSecured ? 'max-h-[300px]' : 'max-h-[220px]'}`}>
+         <div className="flex flex-col gap-3 overflow-y-auto custom-scrollbar pr-1 flex-1">
            {resusLines.length === 0 ? (
              <div className="text-slate-600 text-xs text-center py-4 italic border border-dashed border-slate-800 rounded-xl bg-slate-900/30 font-mono">
                No resuscitation lines placed.
              </div>
            ) : (
              resusLines.map((line, idx) => {
-               const hasInfusion = line.activeInfusions && line.activeInfusions.length > 0;
+               const hasFluidInfusion = line.activeInfusions && line.activeInfusions.length > 0;
+               const hasMedInfusion = line.activeMedInfusions && line.activeMedInfusions.some(m => parseFloat(m.rate) > 0);
                const isBlown = line.failed;
                
                const currentLineEq = line.fluidLine || patient.fluidLine || 'gravity';
                
-               // Warning conditions
                const isBelmontOnIOOrSmallIV = currentLineEq === 'belmont' && !isBlown && (
                  line.category.includes('IO') || 
                  line.type.includes('20G') || 
@@ -101,7 +137,7 @@ export const AirwayPanel = ({ patient, setPatient, handleSuction, optimizeAirway
                    className={`bg-slate-950/80 border rounded-xl p-3 flex flex-col gap-2.5 transition-all duration-300 relative shadow-lg backdrop-blur-md ${
                      isBlown 
                        ? 'border-red-950 opacity-60 bg-red-950/10' 
-                       : hasInfusion 
+                       : (hasFluidInfusion || hasMedInfusion)
                          ? 'border-teal-900/80 hover:border-teal-700/80 shadow-teal-950/20' 
                          : 'border-slate-800 hover:border-slate-700'
                    }`}
@@ -110,7 +146,6 @@ export const AirwayPanel = ({ patient, setPatient, handleSuction, optimizeAirway
                    <div className="flex justify-between items-start">
                      <div className="flex flex-col">
                        <div className="flex items-center gap-1.5">
-                         {/* Equipment Indicator Dot */}
                          {!isBlown && (
                            <span className={`w-2 h-2 rounded-full inline-block ${
                              currentLineEq === 'belmont' 
@@ -141,18 +176,18 @@ export const AirwayPanel = ({ patient, setPatient, handleSuction, optimizeAirway
                              ? 'bg-amber-950/50 border border-amber-900/60 text-amber-300' 
                              : 'bg-teal-950/50 border border-teal-900/60 text-teal-300'
                        }`}>
-                         {currentLineEq === 'belmont' ? 'Belmont' : currentLineEq === 'ranger' ? 'Ranger' : 'Gravity'}
+                         {currentLineEq === 'belmont' ? 'Belmont (10x)' : currentLineEq === 'ranger' ? 'Ranger (3x)' : 'Gravity (1x)'}
                        </span>
                      )}
                    </div>
 
                    {/* Delivery Equipment Toggle Selector (Segments) */}
                    {!isBlown && (
-                     <div className="grid grid-cols-3 gap-1 bg-slate-900/80 border border-slate-800 p-0.5 rounded-lg">
+                     <div className="grid grid-cols-3 gap-1 bg-slate-900/80 border border-slate-800 p-0.5 rounded-lg shrink-0">
                        {[
-                         { id: 'gravity', label: 'GRAVITY' },
-                         { id: 'ranger', label: 'RANGER' },
-                         { id: 'belmont', label: 'BELMONT' }
+                         { id: 'gravity', label: 'GRAVITY (1x)' },
+                         { id: 'ranger', label: 'RANGER (3x)' },
+                         { id: 'belmont', label: 'BELMONT (10x)' }
                        ].map(eq => {
                          const isEqActive = currentLineEq === eq.id;
                          return (
@@ -168,7 +203,7 @@ export const AirwayPanel = ({ patient, setPatient, handleSuction, optimizeAirway
                                });
                                logEvent(`Swapped delivery equipment to ${eq.label} on ${line.name}. Flow dynamics updated.`);
                              }}
-                             className={`py-1 text-[8px] font-bold rounded-md font-mono tracking-wider transition-all ${
+                             className={`py-1 text-[8px] font-black rounded-md font-mono tracking-tighter transition-all ${
                                isEqActive
                                  ? eq.id === 'belmont'
                                    ? 'bg-rose-900 text-rose-100 shadow-[0_0_8px_rgba(244,63,94,0.3)]'
@@ -185,175 +220,116 @@ export const AirwayPanel = ({ patient, setPatient, handleSuction, optimizeAirway
                      </div>
                    )}
 
-                   {/* Belmont IO / Narrow Cannula Blowout Alert */}
                    {isBelmontOnIOOrSmallIV && (
                      <div className="bg-rose-950/60 border border-rose-900/60 rounded-lg p-2 text-[9px] text-rose-300 leading-normal animate-pulse font-mono flex items-start gap-1.5">
                        <AlertTriangle size={12} className="text-rose-400 shrink-0 mt-0.5" />
                        <span>
-                         <span className="font-extrabold text-rose-400">⚠️ BLOWOUT DANGER:</span> Belmont pump driving pressure (300 mmHg) on {line.category.includes('IO') ? 'IO marrow sinusoids' : 'narrow IV'} causes high resistance pressure loads. High risk of immediate {line.category.includes('IO') ? 'marrow blowout / compartment syndrome' : 'catheter vein blowout'}!
+                         <span className="font-extrabold text-rose-400">⚠️ BLOWOUT DANGER:</span> Belmont pump driving pressure (300 mmHg) on {line.category.includes('IO') ? 'IO marrow sinusoids' : 'narrow IV'} causes high resistance pressure loads. High risk of immediate blowout!
                        </span>
                      </div>
                    )}
 
-                   {/* Sluggish Viscosity Alert */}
                    {hasPRBCInSmallIV && (
                      <div className="bg-amber-950/60 border border-amber-900/60 rounded-lg p-2 text-[9px] text-amber-300 leading-normal animate-pulse font-mono flex items-start gap-1.5">
                        <AlertTriangle size={12} className="text-amber-400 shrink-0 mt-0.5" />
                        <span>
-                         <span className="font-extrabold text-amber-400">⚠️ VISCOSITY IMPEDANCE:</span> Viscous PRBCs (η = 3.5) passing through a narrow {line.type} cannula will experience massive resistance. Flow rates will be severely sluggish.
+                         <span className="font-extrabold text-amber-400">⚠️ VISCOSITY IMPEDANCE:</span> Viscous PRBCs passing through a narrow cannula will experience massive resistance.
                        </span>
                      </div>
                    )}
 
-                   {/* Infusions list on this line */}
+                   {/* Sub-Section: Line-Assigned Resuscitation Fluids */}
                    {line.activeInfusions && line.activeInfusions.map((fluid, fIdx) => {
                      const startVol = fluid.startingVolume || Math.max(fluid.remainingVolume, 300);
                      const pct = Math.max(0, Math.min(100, (fluid.remainingVolume / startVol) * 100));
-                     
-                     // Get viscosity class name
-                     const viscosity = fluid.name.includes('PRBC') ? 3.5 : (fluid.name.includes('Albumin') ? 1.5 : (fluid.name.includes('FFP') || fluid.name.includes('Platelets') || fluid.name.includes('Cryo') || fluid.name.includes('Fibrinogen') ? 1.8 : 1.0));
+                     const viscosity = fluid.name.includes('PRBC') ? 3.5 : (fluid.name.includes('Albumin') ? 1.5 : 1.0);
 
                      return (
-                       <div key={fluid.id} className="bg-slate-900/90 border border-slate-800/85 rounded-lg p-2.5 flex flex-col gap-2 font-mono">
+                       <div key={fluid.id} className="bg-slate-900/90 border border-slate-800/85 rounded-lg p-2 flex flex-col gap-1.5 font-mono">
                          <div className="flex justify-between items-center text-[10px]">
-                           <div className="flex flex-col">
-                             <span className="font-extrabold text-slate-100 text-[11px] tracking-wide">{fluid.name}</span>
-                             <span className="text-[8px] text-slate-500 mt-0.5">Viscosity η = {viscosity}</span>
-                           </div>
-                           <div className="flex flex-col items-end">
-                             <span className="text-teal-400 font-bold text-xs bg-teal-950 border border-teal-900 px-2 py-0.5 rounded">
-                               {Math.round(fluid.remainingVolume)} mL left
-                             </span>
-                           </div>
+                           <span className="font-extrabold text-slate-100 text-[11px] tracking-wide">{fluid.name}</span>
+                           <span className="text-teal-400 font-bold text-xs bg-teal-950 border border-teal-900 px-2 py-0.5 rounded">
+                             {Math.round(fluid.remainingVolume)} mL left
+                           </span>
                          </div>
-
-                         {/* High Tech Glowing Progress Bar */}
-                         <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden relative shadow-inner">
-                           <div 
-                             className={`h-full bg-gradient-to-r from-teal-500 to-emerald-400 rounded-full shadow-[0_0_6px_rgba(20,184,166,0.5)] transition-all duration-300 ${fluid.currentRate > 0 ? 'animate-pulse' : ''}`}
-                             style={{ width: `${pct}%` }}
-                           />
+                         <div className="w-full h-1 bg-slate-950 rounded-full overflow-hidden">
+                           <div className="h-full bg-gradient-to-r from-teal-500 to-emerald-400 rounded-full" style={{ width: `${pct}%` }} />
                          </div>
-
                          <div className="flex justify-between items-center text-[9px] text-slate-400">
-                           <span>Flow: <span className="text-emerald-400 font-extrabold">{fluid.currentRate ? Math.round(fluid.currentRate) : 0} mL/hr</span> {fluid.userRate !== undefined ? '(LIMIT)' : '(MAX)'}</span>
+                           <span>Flow: <span className="text-emerald-400 font-extrabold">{fluid.currentRate ? Math.round(fluid.currentRate) : 0} mL/hr</span></span>
                            <span>{Math.round(pct)}% remaining</span>
                          </div>
-
-                         {/* Resuscitation Controls Row */}
-                         <div className="flex gap-1.5 mt-1">
+                         <div className="flex gap-1.5 mt-0.5">
                            <input 
                              type="number" 
                              disabled={isBlown}
                              placeholder="mL/hr" 
-                             className={`w-[30%] bg-slate-950 border border-slate-700 focus:border-teal-500 rounded px-1.5 py-1 text-[9px] text-white outline-none text-center transition-colors ${isBlown ? 'opacity-40' : ''}`} 
+                             className="w-[30%] bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-[9px] text-white text-center" 
                              value={editInfusionDose[fluid.id] !== undefined ? editInfusionDose[fluid.id] : ''} 
                              onChange={(e) => setEditInfusionDose({...editInfusionDose, [fluid.id]: e.target.value})} 
                            />
-                           <button 
-                             onClick={() => { updateFluidRate(line.id, fluid.id, editInfusionDose[fluid.id]); setEditInfusionDose({...editInfusionDose, [fluid.id]: ''}); }} 
-                             disabled={isBlown}
-                             className={`flex-1 bg-teal-950 hover:bg-teal-900/60 border border-teal-800 text-teal-300 text-[8px] font-bold rounded uppercase tracking-wider transition-all py-1 ${isBlown ? 'opacity-40 cursor-not-allowed' : ''}`}
-                           >
-                             SET
-                           </button>
-                           <button 
-                             onClick={() => updateFluidRate(line.id, fluid.id, '')} 
-                             disabled={isBlown}
-                             className={`flex-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-[8px] font-bold rounded uppercase tracking-wider transition-all py-1 ${isBlown ? 'opacity-40 cursor-not-allowed' : ''}`}
-                           >
-                             MAX
-                           </button>
-                           <button 
-                             onClick={() => removeFluid(line.id, fluid.id)} 
-                             className="flex-1 bg-red-950/60 hover:bg-red-900/60 border border-red-900/50 text-red-300 text-[8px] font-bold rounded uppercase tracking-wider transition-all py-1"
-                           >
-                             STOP
-                           </button>
+                           <button onClick={() => updateFluidRate(line.id, fluid.id, editInfusionDose[fluid.id])} disabled={isBlown} className="flex-1 bg-teal-950 text-teal-300 text-[8px] font-bold rounded py-0.5">SET</button>
+                           <button onClick={() => updateFluidRate(line.id, fluid.id, '')} disabled={isBlown} className="flex-1 bg-slate-900 text-slate-300 text-[8px] font-bold rounded py-0.5">MAX</button>
+                           <button onClick={() => removeFluid(line.id, fluid.id)} className="flex-1 bg-red-950/60 text-red-300 text-[8px] font-bold rounded py-0.5">STOP</button>
                          </div>
                        </div>
                      );
                    })}
-                 </div>
-               );
-             })
-           )}
-         </div>
 
-         {/* Vasoactive & Sedative Infusions Header */}
-         <h3 className="text-slate-400 text-xs border-b border-slate-800 pb-1 uppercase font-black flex items-center justify-between shrink-0 font-mono tracking-wider mt-2">
-           Vasoactive & Sedative Infusions
-           <span className="bg-green-950 text-green-300 px-2 py-0.5 rounded text-[10px] border border-green-800 font-bold font-mono">
-             {activeInfusions.length} Running
-           </span>
-         </h3>
+                    {/* Sub-Section: Line-Assigned Vasoactive & Sedative Infusions */}
+                   {(() => {
+                     // Read ONLY medications explicitly bound to this specific line route to prevent cross-line doubling
+                     const combinedList = line.activeMedInfusions || [];
 
-         {/* Vasoactive/Medication Infusions List */}
-         <div className={`flex flex-col gap-2 overflow-y-auto custom-scrollbar pr-1 mb-2 ${isSecured ? 'max-h-[220px]' : 'max-h-[150px]'}`}>
-           {activeInfusions.length === 0 ? (
-             <div className="text-slate-600 text-xs text-center py-4 italic border border-dashed border-slate-800 rounded-xl bg-slate-900/30 font-mono">
-               No medication infusions active.
-             </div>
-           ) : (
-             activeInfusions.map((med, idx) => {
-               const medData = MEDICATIONS[med.medId];
-               const baseUnit = med.displayUnit ? med.displayUnit.replace('/hr', '').replace('/min', '') : 'mg';
-               
-               let hint = '';
-               if (medData && medData.indications) {
-                 const infInd = Object.values(medData.indications).find(i => i.type === 'Infusion');
-                 if (infInd) hint = `${infInd.dose} ${infInd.unit}`;
-               }
+                     return combinedList.map((medInf) => {
+                       if (!medInf.medId || parseFloat(medInf.rate) <= 0) return null;
 
-               return (
-                 <div key={idx} className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-col gap-2.5 transition-colors hover:border-slate-700 shadow-md">
-                   <div className="flex justify-between items-start font-mono">
-                     <div className="flex flex-col">
-                       <span className="font-extrabold text-slate-200 text-xs tracking-wide">{med.name}</span>
-                       {hint && <span className="text-[8px] text-slate-500 tracking-tighter mt-0.5">Rec: {hint}</span>}
-                     </div>
-                     <span className="text-emerald-400 font-bold text-xs bg-emerald-950/50 border border-emerald-900/60 px-2 py-0.5 rounded">
-                       {med.displayDose} {med.displayUnit}
-                     </span>
-                   </div>
-                   
-                   <div className="flex gap-1.5">
-                     <input 
-                       type="number" 
-                       placeholder="New Rate" 
-                       className="w-1/3 bg-slate-950 border border-slate-700 focus:border-blue-500 rounded-lg px-2 py-1 text-[9px] text-white outline-none text-center transition-colors font-mono" 
-                       value={editInfusionDose[med.medId] || ''} 
-                       onChange={(e) => setEditInfusionDose({...editInfusionDose, [med.medId]: e.target.value})} 
-                     />
-                     <button 
-                       onClick={() => { handleUpdateInfusion(med.medId, editInfusionDose[med.medId], med.displayUnit); setEditInfusionDose({...editInfusionDose, [med.medId]: ''}); }} 
-                       className="w-1/3 bg-blue-950 hover:bg-blue-900 border border-blue-800 text-blue-300 text-[8px] font-bold rounded-lg uppercase tracking-wider transition-all font-mono py-1"
-                     >
-                       UPDATE
-                     </button>
-                     <button 
-                       onClick={() => processMed(med.medId, 0, 'IV', 'Stop Infusion', '')} 
-                       className="w-1/3 bg-red-950 hover:bg-red-900 border border-red-800 text-red-300 text-[8px] font-bold rounded-lg uppercase tracking-wider transition-all font-mono py-1"
-                     >
-                       STOP
-                     </button>
-                   </div>
-                   
-                   <div className="flex gap-1.5 border-t border-slate-800/40 pt-2">
-                     <input 
-                       type="number" 
-                       placeholder={`Push (${baseUnit})`} 
-                       className="w-1/2 bg-slate-950 border border-slate-700 focus:border-purple-500 rounded-lg px-2 py-1 text-[9px] text-white outline-none text-center transition-colors font-mono" 
-                       value={bolusInfusionDose[med.medId] || ''} 
-                       onChange={(e) => setBolusInfusionDose({...bolusInfusionDose, [med.medId]: e.target.value})} 
-                     />
-                     <button 
-                       onClick={() => { handlePushFromInfusion(med.medId, bolusInfusionDose[med.medId], med.displayUnit); setBolusInfusionDose({...bolusInfusionDose, [med.medId]: ''}); }} 
-                       className="w-1/2 bg-purple-950 hover:bg-purple-900 border border-purple-800 text-purple-300 text-[8px] font-bold rounded-lg uppercase tracking-wider transition-all font-mono py-1"
-                     >
-                       GIVE PUSH
-                     </button>
-                   </div>
+                       const medData = MEDICATIONS[medInf.medId] || Object.values(MEDICATIONS).find(m => m.name.toLowerCase() === medInf.medId.toLowerCase());
+                       const resolvedId = medData ? Object.keys(MEDICATIONS).find(k => MEDICATIONS[k].name === medData.name) : medInf.medId;
+                       const baseUnit = medInf.unit ? medInf.unit.replace('/hr', '').replace('/min', '') : 'mg';
+
+                       return (
+                         <div key={resolvedId} className="bg-slate-900/90 border border-purple-950 rounded-lg p-2 flex flex-col gap-1.5 font-mono mt-1">
+                           <div className="flex justify-between items-center text-[10px]">
+                             <span className="font-extrabold text-purple-200 text-[11px] tracking-wide">{medData?.name || medInf.medId}</span>
+                             <span className="text-emerald-400 font-bold text-xs bg-emerald-950/50 border border-emerald-900/60 px-2 py-0.5 rounded">
+                               {medInf.rate} {medInf.unit || 'mcg/kg/min'}
+                             </span>
+                           </div>
+                           
+                           {/* Infusion Rate Modification Row */}
+                           <div className="flex gap-1.5">
+                             <input 
+                               type="number" 
+                               placeholder="New Rate" 
+                               className="w-1/3 bg-slate-950 border border-slate-700 focus:border-blue-500 rounded px-1.5 py-0.5 text-[9px] text-white text-center outline-none transition-colors" 
+                               value={editInfusionDose[resolvedId] || ''} 
+                               onChange={(e) => setEditInfusionDose({...editInfusionDose, [resolvedId]: e.target.value})} 
+                             />
+                             <button onClick={() => { if (editInfusionDose[resolvedId]) { handleUpdateInfusion(resolvedId, editInfusionDose[resolvedId], medInf.unit, line.id); setEditInfusionDose({...editInfusionDose, [resolvedId]: ''}); } }} className="w-1/3 bg-blue-950 text-blue-300 text-[8px] font-bold rounded py-0.5">UPDATE</button>
+                             <button onClick={() => { handleUpdateInfusion(resolvedId, 0, medInf.unit, line.id); }} className="w-1/3 bg-red-950 text-red-300 text-[8px] font-bold rounded py-0.5">STOP</button>
+                           </div>
+
+                           {/* Integrated Line-Specific Bolus Push Row */}
+                           <div className="flex gap-1.5 border-t border-slate-800/60 pt-1.5 mt-0.5">
+                             <input 
+                               type="number" 
+                               placeholder={`Push (${baseUnit})`} 
+                               className="w-1/2 bg-slate-950 border border-slate-700 focus:border-purple-500 rounded px-1.5 py-0.5 text-[9px] text-white text-center outline-none transition-colors" 
+                               value={bolusInfusionDose[resolvedId] || ''} 
+                               onChange={(e) => setBolusInfusionDose({...bolusInfusionDose, [resolvedId]: e.target.value})} 
+                             />
+                             <button 
+                               onClick={() => { if (bolusInfusionDose[resolvedId]) { handlePushFromInfusion(resolvedId, bolusInfusionDose[resolvedId], medInf.unit, line.id); setBolusInfusionDose({...bolusInfusionDose, [resolvedId]: ''}); } }} 
+                               className="w-1/2 bg-purple-950 hover:bg-purple-900 border border-purple-800 text-purple-300 text-[8px] font-bold rounded uppercase tracking-wider transition-all py-0.5"
+                             >
+                               GIVE PUSH
+                             </button>
+                           </div>
+                         </div>
+                       );
+                     });
+                   })()}
                  </div>
                );
              })

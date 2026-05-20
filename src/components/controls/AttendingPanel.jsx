@@ -22,7 +22,7 @@ export default function AttendingPanel({
   generateClinicalHint,
   onActionClick
 }) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
   const [messageHistory, setMessageHistory] = useState([]);
   const [showAuditModal, setShowAuditModal] = useState(false);
   const lastMessageRef = useRef(null);
@@ -170,7 +170,7 @@ export default function AttendingPanel({
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed right-4 bottom-24 z-40 bg-gradient-to-r from-purple-900 to-indigo-900 border border-purple-500/50 text-white p-3 rounded-full shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:scale-105 hover:from-purple-800 hover:to-indigo-800 transition-all flex items-center gap-2 group"
+          className="fixed right-4 bottom-6 z-40 bg-gradient-to-r from-purple-900 to-indigo-900 border border-purple-500/50 text-white p-3 rounded-full shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:scale-105 hover:from-purple-800 hover:to-indigo-800 transition-all flex items-center gap-2 group"
         >
           <MessageSquare size={20} className="text-purple-300 group-hover:text-purple-200" />
           <span className="text-xs font-bold font-mono uppercase tracking-wider">Attending Consult</span>

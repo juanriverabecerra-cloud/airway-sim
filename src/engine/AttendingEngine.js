@@ -230,11 +230,54 @@ export function evaluateAttendingGuidance({
     };
   }
 
-  // 4. COMBINE AND RETURN ACCORDING TO ATTENDING MODE
+  // 4. SMART ALERTS REMEDIATION FILTERING INTERLOCK
+  // Compiles log search helpers to check if a specific action has been executed since the alert state triggered
+  const lowercaseLogs = logs.map(l => l.toLowerCase());
+  const logHasAny = (keywords) => keywords.some(kw => lowercaseLogs.some(log => log.includes(kw)));
+
+  const resolvedAlertIds = new Set();
+
+  // Evaluate dynamic clinical resolution criteria for each active alert type
+  alerts.forEach(alert => {
+    if (alert.id === 'anaphylaxis_active' && patient.anaphylaxisTreated) {
+      resolvedAlertIds.add(alert.id);
+    }
+    if (alert.id === 'unopposed_muscarinic' && !patient.bradycardiaTriggered) {
+      resolvedAlertIds.add(alert.id);
+    }
+    if (alert.id === 'coronary_ischemia' && (vitals.hr < 80 && map >= 65 || logHasAny(['esmolol', 'phenylephrine', 'deepen']))) {
+      resolvedAlertIds.add(alert.id);
+    }
+    if (alert.id === 'hypoxemia' && vitals.spo2 >= 92) {
+      resolvedAlertIds.add(alert.id);
+    }
+    if (alert.id === 'severe_hypotension' && vitals.map >= 65) {
+      resolvedAlertIds.add(alert.id);
+    }
+    if (alert.id === 'light_anesthesia_incision' && (vitals.mac >= 0.8 || logHasAny(['dial', 'vaporizer', 'sevoflurane', 'isoflurane']))) {
+      resolvedAlertIds.add(alert.id);
+    }
+    if (alert.id === 'airway_pressure_high' && (vitals.pip <= 30 || logHasAny(['albuterol', 'vecuronium', 'suction']))) {
+      resolvedAlertIds.add(alert.id);
+    }
+    if (alert.id === 'hyperkalemia_alarm' && logHasAny(['calcium', 'albuterol', 'insulin', 'bicarbonate', 'hyperventilate'])) {
+      resolvedAlertIds.add(alert.id);
+    }
+  });
+
+  // Filter out any alert that has been clinically addressed by your actions
+  const activeFilteredAlerts = alerts.filter(a => !resolvedAlertIds.has(a.id));
+  const activeFilteredSuggestions = suggestions.filter(s => {
+    if (s.id === 'hypercapnia' && vitals.paco2 <= 45) return false;
+    if (s.id === 'hypocapnia' && vitals.paco2 >= 35) return false;
+    return true;
+  });
+
+  // 5. COMBINE AND RETURN ACCORDING TO ATTENDING MODE
   let primaryGuidance = null;
-  const criticalAlert = alerts.find(a => a.priority === 'CRITICAL');
-  const warningAlert = alerts.find(a => a.priority === 'WARNING');
-  const highestSuggestion = suggestions.find(s => s.priority === 'SUGGESTION');
+  const criticalAlert = activeFilteredAlerts.find(a => a.priority === 'CRITICAL');
+  const warningAlert = activeFilteredAlerts.find(a => a.priority === 'WARNING');
+  const highestSuggestion = activeFilteredSuggestions.find(s => s.priority === 'SUGGESTION');
 
   if (attendingMode === 'teaching') {
     // Teaching mode prioritizes the procedural step, but prefixes it with any active critical safety alerts!
@@ -278,12 +321,12 @@ export function evaluateAttendingGuidance({
     primaryGuidance = null;
   }
 
-  // Always return the complete physiological evaluation (used when user calls "Call Attending" explicitly)
+  // Always return the complete active physiological evaluation
   const fullAudit = [];
   if (criticalAlert) fullAudit.push(criticalAlert);
   if (warningAlert) fullAudit.push(warningAlert);
-  fullAudit.push(...alerts.filter(a => a.id !== criticalAlert?.id && a.id !== warningAlert?.id));
-  fullAudit.push(...suggestions);
+  fullAudit.push(...activeFilteredAlerts.filter(a => a.id !== criticalAlert?.id && a.id !== warningAlert?.id));
+  fullAudit.push(...activeFilteredSuggestions);
   
   // Add procedural step as the baseline fallback in the audit
   fullAudit.push({
@@ -296,6 +339,6 @@ export function evaluateAttendingGuidance({
   return {
     primaryGuidance,
     fullAudit,
-    activeAlertsCount: alerts.length
-  };
+    activeAlertsCount: activeFilteredAlerts.length
+};
 }
