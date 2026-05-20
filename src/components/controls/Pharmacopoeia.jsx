@@ -4,8 +4,8 @@ import { Search, X } from 'lucide-react';
 
 export const Pharmacopoeia = ({ pushFluid, processMed, patient, setPatient }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [medInput, setMedInput] = useState({ drug: null, dose: '', indication: '', route: 'IV', type: 'Bolus', unit: '' });
-  const [fluidInput, setFluidInput] = useState({ fluid: null, dose: '' });
+  const [medInput, setMedInput] = useState({ drug: null, dose: '', indication: '', route: 'IV', type: 'Bolus', unit: '', lineId: '' });
+  const [fluidInput, setFluidInput] = useState({ fluid: null, dose: '', lineId: '' });
   const searchRef = useRef(null);
 
   // QoL: Global Keyboard Shortcut
@@ -22,16 +22,16 @@ export const Pharmacopoeia = ({ pushFluid, processMed, patient, setPatient }) =>
 
   const handleMedSubmit = (medId) => {
     if (medInput.dose) {
-      processMed(medId, medInput.dose, medInput.route, medInput.type, medInput.unit);
-      setMedInput({ drug: null, dose: '', indication: '', route: 'IV', type: 'Bolus', unit: '' });
+      processMed(medId, medInput.dose, medInput.route, medInput.type, medInput.unit, medInput.lineId || patient.accessLines?.[0]?.id);
+      setMedInput({ drug: null, dose: '', indication: '', route: 'IV', type: 'Bolus', unit: '', lineId: '' });
       setSearchTerm(''); // Auto-reset UI for next emergency
     }
   };
 
   const handleFluidSubmit = (fluidId) => {
     if (fluidInput.dose) {
-      pushFluid(fluidId, fluidInput.dose);
-      setFluidInput({ fluid: null, dose: '' });
+      pushFluid(fluidId, fluidInput.dose, fluidInput.lineId || patient.accessLines?.[0]?.id);
+      setFluidInput({ fluid: null, dose: '', lineId: '' });
       setSearchTerm('');
     }
   };
@@ -44,8 +44,17 @@ export const Pharmacopoeia = ({ pushFluid, processMed, patient, setPatient }) =>
           <span className="font-bold text-white">{label}</span> <span className="text-slate-400 text-[10px] float-right">{hint}</span>
         </button>
         {isActive && (
-          <div className="flex gap-2 p-2 bg-slate-950 border border-slate-700 rounded animate-in slide-in-from-top-1 duration-200">
-            <input 
+          <div className="flex flex-col p-2 bg-slate-950 border border-slate-700 rounded animate-in slide-in-from-top-1 duration-200">
+            <select value={fluidInput.lineId || patient.accessLines?.[0]?.id || ''} onChange={(e) => setFluidInput({...fluidInput, lineId: e.target.value})} className="w-full bg-slate-950 text-xs text-slate-300 border border-slate-700 rounded p-1 mb-2">
+              {patient.accessLines?.length > 0 ? patient.accessLines.map(l => <option key={l.id} value={l.id}>{l.name}</option>) : <option value="">No Lines Available</option>}
+            </select>
+            {medInput.route === 'IV' && (
+              <select value={medInput.lineId || patient.accessLines?.[0]?.id || ''} onChange={(e) => setMedInput({...medInput, lineId: e.target.value})} className="bg-slate-950 text-xs text-slate-300 border border-slate-700 rounded p-1">
+                {patient.accessLines?.length > 0 ? patient.accessLines.map(l => <option key={l.id} value={l.id}>{l.name}</option>) : <option value="">No Venous Lines</option>}
+              </select>
+            )}
+            <div className="flex gap-2">
+              <input 
               autoFocus 
               type="number" 
               placeholder="Vol" 
@@ -55,6 +64,7 @@ export const Pharmacopoeia = ({ pushFluid, processMed, patient, setPatient }) =>
               onKeyDown={(e) => { if (e.key === 'Enter') handleFluidSubmit(fluidId); }}
             />
             <button onClick={() => handleFluidSubmit(fluidId)} className="w-1/2 bg-blue-700 hover:bg-blue-600 rounded text-xs font-bold text-white">PUSH</button>
+            </div>
           </div>
         )}
       </div>
@@ -87,6 +97,11 @@ export const Pharmacopoeia = ({ pushFluid, processMed, patient, setPatient }) =>
             <select value={medInput.indication} onChange={handleIndicationChange} className="bg-slate-950 text-xs text-slate-300 border border-slate-700 rounded p-1">
               {indicationKeys.map(ind => <option key={ind} value={ind}>{ind} (Rec: {med.indications[ind].dose} {med.indications[ind].unit})</option>)}
             </select>
+            {medInput.route === 'IV' && (
+              <select value={medInput.lineId || patient.accessLines?.[0]?.id || ''} onChange={(e) => setMedInput({...medInput, lineId: e.target.value})} className="bg-slate-950 text-xs text-slate-300 border border-slate-700 rounded p-1">
+                {patient.accessLines?.length > 0 ? patient.accessLines.map(l => <option key={l.id} value={l.id}>{l.name}</option>) : <option value="">No Venous Lines</option>}
+              </select>
+            )}
             <div className="flex gap-2">
               <select value={medInput.route} onChange={(e)=>setMedInput({...medInput, route: e.target.value})} className="bg-slate-950 text-xs text-white border border-slate-700 rounded p-1 w-1/3">
                 {med.routes.map(r => <option key={r} value={r}>{r}</option>)}

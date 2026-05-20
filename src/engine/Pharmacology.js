@@ -67,7 +67,7 @@ export const MEDICATIONS = {
   dexmedetomidine: { 
     name: 'Dexmedetomidine', classes: ['Alpha-2 Agonist'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
     metabolism: 'Hepatic (CYP2E6)', proteinBinding: 0.94, synergyGroup: 'Sedative', pkModel: 'Hannivoort-Colin',
-    targetReceptor: 'Alpha-2 Agonist (Central)',
+    targetReceptor: 'Alpha-2', intracellularCascade: 'a2 (Gi-coupled) -> inhibits adenylate cyclase -> decreases cAMP in locus coeruleus',
     indications: { 'Sedation': { dose: '0.2-1.5', unit: 'mcg/kg/hr', type: 'Infusion' }, 'Loading Dose': { dose: '1.0', unit: 'mcg/kg', type: 'Bolus' } },
     pk: { V1: 8.0, V2: 25.0, V3: 40, k10: 0.06, k12: 0.08, k21: 0.04, k13: 0.02, k31: 0.01, ke0: 0.5, coSensitivity: 0.2 },
     pd: { c50: 1.2, gamma: 1.5, sysMax: -20, diaMax: -20, hrMax: -30, rrMax: -2, inducesApneaAtCe: 999 },
@@ -76,7 +76,7 @@ export const MEDICATIONS = {
   etomidate: { 
     name: 'Etomidate', classes: ['Sedative', 'Hypnotic'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
     metabolism: 'Plasma Esterase / Hepatic', proteinBinding: 0.77, synergyGroup: 'Sedative', pkModel: 'Standard Compartmental',
-    targetReceptor: 'GABA-A',
+    targetReceptor: 'GABA-A', intracellularCascade: 'Enhances GABA binding -> increases Chloride (Cl-) influx -> cellular hyperpolarization',
     indications: { 'Induction (Cardio-stable)': { dose: '0.2-0.3', unit: 'mg/kg', type: 'Bolus' } },
     pk: { V1: 15.0, V2: 40.0, V3: 120, k10: 0.1, k12: 0.15, k21: 0.08, k13: 0.05, k31: 0.01, ke0: 1.8, coSensitivity: 0.1 },
     pd: { c50: 0.3, gamma: 3, sysMax: -5, diaMax: -5, hrMax: 0, rrMax: -12, inducesApneaAtCe: 0.4 },
@@ -85,7 +85,7 @@ export const MEDICATIONS = {
   ketamine: { 
     name: 'Ketamine', classes: ['Dissociative', 'Analgesic'], routes: ['IV', 'IM'], types: ['Bolus', 'Infusion'], dosingWeight: 'IBW',
     metabolism: 'Hepatic (CYP3A4/2C9) to active Norketamine', proteinBinding: 0.12, synergyGroup: 'Dissociative', pkModel: 'Domino/Clements250',
-    targetReceptor: 'NMDA Antagonist',
+    targetReceptor: 'NMDA Antagonist', intracellularCascade: 'Non-competitive NMDA receptor antagonist -> blocks Glutamate/Ca2+ influx',
     indications: { 'Induction': { dose: '1.0-2.0', unit: 'mg/kg', type: 'Bolus' }, 'Pain/Agitation': { dose: '0.1-0.3', unit: 'mg/kg', type: 'Bolus' } },
     pk: { V1: 20.0, V2: 45.0, V3: 150, k10: 0.15, k12: 0.2, k21: 0.1, k13: 0.05, k31: 0.02, ke0: 1.5, coSensitivity: 0.4 },
     pd: { c50: 1.0, gamma: 2, sysMax: 30, diaMax: 20, hrMax: 20, rrMax: -2, inducesApneaAtCe: 5.0 },
@@ -94,7 +94,7 @@ export const MEDICATIONS = {
   midazolam: { 
     name: 'Midazolam', classes: ['Benzodiazepine'], routes: ['IV', 'IM'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
     metabolism: 'Hepatic (CYP3A4) to active 1-hydroxymidazolam', proteinBinding: 0.94, synergyGroup: 'Sedative', pkModel: 'Greenblatt',
-    targetReceptor: 'GABA-A',
+    targetReceptor: 'GABA-A', intracellularCascade: 'Allosteric GABA-A modulator -> increases frequency of Chloride (Cl-) channel opening',
     indications: { 'Pre-op Anxiolysis': { dose: '0.02-0.04', unit: 'mg/kg', type: 'Bolus' }, 'Sedation': { dose: '1-5', unit: 'mg', type: 'Bolus' } },
     pk: { V1: 12.0, V2: 30.0, V3: 80, k10: 0.12, k12: 0.1, k21: 0.05, k13: 0.03, k31: 0.01, ke0: 0.8, coSensitivity: 0.2 },
     pd: { c50: 0.05, gamma: 1.5, sysMax: -10, diaMax: -10, hrMax: 0, rrMax: -6, inducesApneaAtCe: 0.2 },
@@ -103,7 +103,7 @@ export const MEDICATIONS = {
   propofol: { 
     name: 'Propofol', classes: ['Sedative', 'Hypnotic'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'LBW',
     metabolism: 'Hepatic and Extrahepatic (conjugation)', proteinBinding: 0.97, synergyGroup: 'Sedative', pkModel: 'Schnider',
-    targetReceptor: 'GABA-A',
+    targetReceptor: 'GABA-A', intracellularCascade: 'Enhances GABA binding -> increases Chloride (Cl-) influx -> cellular hyperpolarization',
     indications: { 'Induction': { dose: '1.5-2.5', unit: 'mg/kg', type: 'Bolus' }, 'Maintenance (TIVA)': { dose: '100-200', unit: 'mcg/kg/min', type: 'Infusion' }, 'Sedation': { dose: '25-50', unit: 'mcg/kg/min', type: 'Infusion' } },
     pk: { V1: 4.27, V2: 18.9, V3: 238, k10: 0.443, k12: 0.303, k21: 0.055, k13: 0.196, k31: 0.0033, ke0: 1.2, coSensitivity: 0.6 },
     pd: { c50: 2.5, gamma: 2, sysMax: -40, diaMax: -30, hrMax: -15, rrMax: -14, inducesApneaAtCe: 2.5 },
@@ -114,7 +114,7 @@ export const MEDICATIONS = {
   fentanyl: { 
     name: 'Fentanyl', classes: ['Opioid'], routes: ['IV', 'IM'], types: ['Bolus', 'Infusion'], dosingWeight: 'IBW',
     metabolism: 'Hepatic (CYP3A4) to inactive norfentanyl', proteinBinding: 0.84, synergyGroup: 'Opioid',
-    targetReceptor: 'Mu-Opioid (u1/u2)',
+    targetReceptor: 'Mu-Opioid (u1/u2)', intracellularCascade: 'Mu (Gi-coupled) -> inhibits adenylate cyclase (decreased cAMP) -> closes VGCCs, opens K+ channels (hyperpolarization)',
     indications: { 'Analgesia': { dose: '25-100', unit: 'mcg', type: 'Bolus' }, 'Induction': { dose: '1-3', unit: 'mcg/kg', type: 'Bolus' } },
     pk: { V1: 13.0, V2: 30.0, V3: 250, k10: 0.05, k12: 0.1, k21: 0.05, k13: 0.05, k31: 0.01, ke0: 0.15, coSensitivity: 0.8 },
     pd: { c50: 0.002, gamma: 1.5, sysMax: -10, diaMax: -10, hrMax: -20, rrMax: -12, inducesApneaAtCe: 0.003 },
@@ -123,7 +123,7 @@ export const MEDICATIONS = {
   hydromorphone: { 
     name: 'Hydromorphone', classes: ['Opioid'], routes: ['IV', 'IM'], types: ['Bolus', 'Infusion'], dosingWeight: 'IBW',
     metabolism: 'Hepatic (glucuronidation) to inactive H3G', proteinBinding: 0.19, synergyGroup: 'Opioid',
-    targetReceptor: 'Mu-Opioid (u1/u2)',
+    targetReceptor: 'Mu-Opioid (u1/u2)', intracellularCascade: 'Mu (Gi-coupled) -> inhibits adenylate cyclase (decreased cAMP) -> closes VGCCs, opens K+ channels (hyperpolarization)',
     indications: { 'Analgesia': { dose: '0.2-1.0', unit: 'mg', type: 'Bolus' } },
     pk: { V1: 25.0, V2: 40.0, V3: 150, k10: 0.03, k12: 0.05, k21: 0.02, k13: 0.02, k31: 0.01, ke0: 0.1, coSensitivity: 0.5 },
     pd: { c50: 0.015, gamma: 1.5, sysMax: -5, diaMax: -5, hrMax: -10, rrMax: -14, inducesApneaAtCe: 0.02 },
@@ -132,7 +132,7 @@ export const MEDICATIONS = {
   morphine: { 
     name: 'Morphine', classes: ['Opioid'], routes: ['IV', 'IM'], types: ['Bolus', 'Infusion'], dosingWeight: 'IBW',
     metabolism: 'Hepatic (Glucuronidation) to active metabolites', proteinBinding: 0.35, synergyGroup: 'Opioid',
-    targetReceptor: 'Mu-Opioid (u1/u2)',
+    targetReceptor: 'Mu-Opioid (u1/u2)', intracellularCascade: 'Mu (Gi-coupled) -> inhibits adenylate cyclase (decreased cAMP) -> closes VGCCs, opens K+ channels (hyperpolarization)',
     activeMetabolites: ['Morphine-6-glucuronide', 'Morphine-3-glucuronide'],
     indications: { 'Analgesia': { dose: '2.0-4.0', unit: 'mg', type: 'Bolus' } },
     pk: { V1: 30.0, V2: 50.0, V3: 200, k10: 0.02, k12: 0.04, k21: 0.02, k13: 0.01, k31: 0.005, ke0: 0.05, coSensitivity: 0.5 },
@@ -142,7 +142,7 @@ export const MEDICATIONS = {
   remifentanil: { 
     name: 'Remifentanil', classes: ['Opioid (Ultra-short)'], routes: ['IV'], types: ['Infusion', 'Bolus'], dosingWeight: 'IBW',
     metabolism: 'Nonspecific Blood & Tissue Esterases', proteinBinding: 0.70, synergyGroup: 'Opioid',
-    targetReceptor: 'Mu-Opioid (u1/u2)',
+    targetReceptor: 'Mu-Opioid (u1/u2)', intracellularCascade: 'Mu (Gi-coupled) -> inhibits adenylate cyclase (decreased cAMP) -> closes VGCCs, opens K+ channels (hyperpolarization)',
     indications: { 'Maintenance': { dose: '0.1-0.5', unit: 'mcg/kg/min', type: 'Infusion' }, 'Intubation Spike': { dose: '1.0', unit: 'mcg/kg', type: 'Bolus' } },
     pk: { V1: 5.0, V2: 10.0, V3: 15.0, k10: 1.5, k12: 0.8, k21: 0.5, k13: 0.2, k31: 0.1, ke0: 2.5, coSensitivity: 0.1 },
     pd: { c50: 0.001, gamma: 2.5, sysMax: -20, diaMax: -15, hrMax: -30, rrMax: -14, inducesApneaAtCe: 0.0015 },
@@ -151,7 +151,7 @@ export const MEDICATIONS = {
   sufentanil: { 
     name: 'Sufentanil', classes: ['Opioid'], routes: ['IV', 'IM'], types: ['Bolus', 'Infusion'], dosingWeight: 'IBW',
     metabolism: 'Hepatic', proteinBinding: 0.92, synergyGroup: 'Opioid',
-    targetReceptor: 'Mu-Opioid (u1/u2)',
+    targetReceptor: 'Mu-Opioid (u1/u2)', intracellularCascade: 'Mu (Gi-coupled) -> inhibits adenylate cyclase (decreased cAMP) -> closes VGCCs, opens K+ channels (hyperpolarization)',
     indications: { 'Analgesia': { dose: '5-10', unit: 'mcg', type: 'Bolus' }, 'Induction': { dose: '0.1-0.3', unit: 'mcg/kg', type: 'Bolus' } },
     pk: { V1: 10.0, V2: 25.0, V3: 150, k10: 0.04, k12: 0.08, k21: 0.04, k13: 0.04, k31: 0.01, ke0: 0.12, coSensitivity: 0.8 },
     pd: { c50: 0.0003, gamma: 1.5, sysMax: -15, diaMax: -15, hrMax: -25, rrMax: -15, inducesApneaAtCe: 0.0005 },
@@ -161,7 +161,7 @@ export const MEDICATIONS = {
   // === PARALYTICS & REVERSALS ===
   cisatracurium: { 
     name: 'Cisatracurium', classes: ['NDMR'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'IBW',
-    metabolism: 'Hoffmann Elimination', proteinBinding: 0.82, mechanism: 'Antagonist', targetReceptor: 'nAChR',
+    metabolism: 'Hoffmann Elimination', proteinBinding: 0.82, mechanism: 'Antagonist', targetReceptor: 'nAChR (Antagonist)', intracellularCascade: 'Competitive antagonist -> blocks ACh binding -> prevents Na+ influx/depolarization',
     indications: { 'Intubation': { dose: '0.15-0.2', unit: 'mg/kg', type: 'Bolus' }, 'Infusion': { dose: '1-3', unit: 'mcg/kg/min', type: 'Infusion' } },
     pk: { V1: 10.0, V2: 20.0, V3: 0, k10: 0.1, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.0 }, 
     pd: { c50: 0.3, gamma: 4, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: -20, inducesParalysisAtCe: 0.2, inducesApneaAtCe: 0.2, receptorAffinity: 0.85 },
@@ -169,7 +169,7 @@ export const MEDICATIONS = {
   },
   glycopyrrolate: { 
     name: 'Glycopyrrolate', classes: ['Anticholinergic'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
-    metabolism: 'Renal (Unchanged)', proteinBinding: 0.0, mechanism: 'Antagonist', targetReceptor: 'Muscarinic',
+    metabolism: 'Renal (Unchanged)', proteinBinding: 0.0, mechanism: 'Antagonist', targetReceptor: 'Muscarinic (M2/M3)', intracellularCascade: 'Antagonizes M2 (Gi-coupled) at SA/AV node -> prevents cAMP decrease -> increases HR',
     indications: { 'Reversal Adjunct': { dose: '0.2', unit: 'mg', type: 'Bolus' }, 'Bradycardia': { dose: '0.2-0.4', unit: 'mg', type: 'Bolus' } },
     pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.05, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 }, 
     pd: { c50: 0.01, gamma: 2, sysMax: 0, diaMax: 0, hrMax: 35, rrMax: 0, receptorAffinity: 0.90 },
@@ -177,7 +177,7 @@ export const MEDICATIONS = {
   },
   neostigmine: { 
     name: 'Neostigmine', classes: ['AChE Inhibitor'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic and Renal (50%)', proteinBinding: 0.20, mechanism: 'Inhibitor', targetReceptor: 'Acetylcholinesterase',
+    metabolism: 'Hepatic and Renal (50%)', proteinBinding: 0.20, mechanism: 'Inhibitor', targetReceptor: 'Acetylcholinesterase', intracellularCascade: 'Inhibits AChE -> ACh accumulates -> massive M2 (Gi) activation -> severe bradycardia if unopposed',
     indications: { 'Reversal': { dose: '0.04-0.05', unit: 'mg/kg', type: 'Bolus' } },
     pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.04, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.2, coSensitivity: 0.1 }, 
     pd: { c50: 0.02, gamma: 2, sysMax: 0, diaMax: 0, hrMax: -40, rrMax: 0, achDisplacementPower: 1.5 },
@@ -185,7 +185,7 @@ export const MEDICATIONS = {
   },
   rocuronium: { 
     name: 'Rocuronium', classes: ['NDMR'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'IBW',
-    metabolism: 'Hepatic (excreted unchanged in bile >70%, renal 10-20%)', proteinBinding: 0.30, mechanism: 'Antagonist', targetReceptor: 'nAChR',
+    metabolism: 'Hepatic (excreted unchanged in bile >70%, renal 10-20%)', proteinBinding: 0.30, mechanism: 'Antagonist', targetReceptor: 'nAChR (Antagonist)', intracellularCascade: 'Competitive antagonist -> blocks ACh binding -> prevents Na+ influx/depolarization',
     indications: { 'Intubation': { dose: '0.6', unit: 'mg/kg', type: 'Bolus' }, 'RSI': { dose: '1.2', unit: 'mg/kg', type: 'Bolus' } },
     pk: { V1: 16.0, V2: 30.0, V3: 0, k10: 0.08, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.3 },
     pd: { c50: 1.5, gamma: 4, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: -20, inducesParalysisAtCe: 1.0, inducesApneaAtCe: 1.0, receptorAffinity: 0.70 },
@@ -193,7 +193,7 @@ export const MEDICATIONS = {
   },
   succinylcholine: { 
     name: 'Succinylcholine', classes: ['Depolarizing NMBA'], routes: ['IV', 'IM'], types: ['Bolus'], dosingWeight: 'TBW',
-    metabolism: 'Pseudocholinesterase (butyrylcholinesterase) to succinylmonocholine', mechanism: 'Agonist', targetReceptor: 'nAChR',
+    metabolism: 'Pseudocholinesterase (butyrylcholinesterase) to succinylmonocholine', mechanism: 'Agonist', targetReceptor: 'nAChR (Agonist)', intracellularCascade: 'Depolarizing agonist -> opens Na+/K+ channels -> fasciculations -> desensitization phase',
     indications: { 'RSI': { dose: '1.0-1.5', unit: 'mg/kg', type: 'Bolus' } },
     pk: { V1: 5.0, V2: 0, V3: 0, k10: 1.8, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 2.0, coSensitivity: 0.1 },
     pd: { c50: 0.5, gamma: 4, sysMax: 0, diaMax: 0, hrMax: 15, rrMax: -20, inducesParalysisAtCe: 0.3, inducesApneaAtCe: 0.3, receptorAffinity: 1.2 },
@@ -209,7 +209,7 @@ export const MEDICATIONS = {
   },
   vecuronium: { 
     name: 'Vecuronium', classes: ['NDMR'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'IBW',
-    metabolism: 'Hepatic (deacetylation 30-40%) to active metabolites, renal 20-30%', proteinBinding: 0.70, mechanism: 'Antagonist', targetReceptor: 'nAChR',
+    metabolism: 'Hepatic (deacetylation 30-40%) to active metabolites, renal 20-30%', proteinBinding: 0.70, mechanism: 'Antagonist', targetReceptor: 'nAChR (Antagonist)', intracellularCascade: 'Competitive antagonist -> blocks ACh binding -> prevents Na+ influx/depolarization',
     activeMetabolite: '3-desacetylvecuronium',
     indications: { 'Intubation': { dose: '0.1', unit: 'mg/kg', type: 'Bolus' } },
     pk: { V1: 18.0, V2: 25.0, V3: 0, k10: 0.05, k12: 0.04, k21: 0.04, k13: 0, k31: 0, ke0: 0.08, coSensitivity: 0.2 }, 
@@ -220,7 +220,7 @@ export const MEDICATIONS = {
   // === INOTROPES & VASOPRESSORS ===
   dobutamine: { 
     name: 'Dobutamine', classes: ['Inotrope'], routes: ['IV'], types: ['Infusion'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic (COMT/conjugation)', mechanism: 'Agonist', targetReceptor: 'Beta-1 > Beta-2',
+    metabolism: 'Hepatic (COMT/conjugation)', mechanism: 'Agonist', targetReceptor: 'Beta-1 > Beta-2', intracellularCascade: 'Low Dose: B1 (Gs -> cAMP), High Dose: B1/B2 (Gs -> cAMP) + a1 (Gq -> IP3/DAG/Ca2+)',
     indications: { 'Low CO': { dose: '2.5-10', unit: 'mcg/kg/min', type: 'Infusion' } },
     pk: { V1: 10.0, V2: 0, V3: 0, k10: 0.5, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.5, coSensitivity: 0.1 }, 
     pd: { c50: 0.005, gamma: 1.5, sysMax: 20, diaMax: -15, hrMax: 30, rrMax: 0 },
@@ -228,7 +228,7 @@ export const MEDICATIONS = {
   },
   dopamine: { 
     name: 'Dopamine', classes: ['Inotrope/Pressor'], routes: ['IV'], types: ['Infusion'], dosingWeight: 'TBW',
-    metabolism: 'MAO/COMT', mechanism: 'Agonist', targetReceptor: 'D1, Beta-1, Alpha-1',
+    metabolism: 'MAO/COMT', mechanism: 'Agonist', targetReceptor: 'D1, Beta-1, Alpha-1', intracellularCascade: 'Low: D1 (Gs -> cAMP). Med: B1 (Gs -> cAMP). High: a1 (Gq -> IP3/DAG/Ca2+)',
     indications: { 'Support': { dose: '5-15', unit: 'mcg/kg/min', type: 'Infusion' } },
     pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.4, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.2, coSensitivity: 0.1 }, 
     pd: { c50: 0.01, gamma: 1.5, sysMax: 30, diaMax: 20, hrMax: 40, rrMax: 0 },
@@ -236,7 +236,7 @@ export const MEDICATIONS = {
   },
   ephedrine: { 
     name: 'Ephedrine', classes: ['Mixed Agonist'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic (minimal), mostly excreted unchanged', mechanism: 'Direct/Indirect Agonist', targetReceptor: 'Alpha & Beta',
+    metabolism: 'Hepatic (minimal), mostly excreted unchanged', mechanism: 'Direct/Indirect Agonist', targetReceptor: 'Alpha-1, Beta-1, Beta-2 (Direct & Indirect)', intracellularCascade: 'Indirect NE release + Direct: a1 (Gq->Ca2+), B1/B2 (Gs->cAMP)',
     indications: { 'Hypotension': { dose: '5-10', unit: 'mg', type: 'Bolus' } },
     pk: { V1: 25.0, V2: 0, V3: 0, k10: 0.05, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.2 }, 
     pd: { c50: 0.5, gamma: 1.5, sysMax: 40, diaMax: 25, hrMax: 30, rrMax: 0, receptors: { Alpha1: 2, Beta1: 3, Beta2: 2 } },
@@ -244,7 +244,7 @@ export const MEDICATIONS = {
   },
   epinephrine: { 
     name: 'Epinephrine', classes: ['Vasopressor', 'Inotrope'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
-    metabolism: 'MAO/COMT', mechanism: 'Agonist', targetReceptor: 'Alpha-Beta',
+    metabolism: 'MAO/COMT', mechanism: 'Agonist', targetReceptor: 'Alpha-1, Beta-1, Beta-2', intracellularCascade: 'a1 (Gq -> IP3/DAG/Ca2+), B1/B2 (Gs -> adenylate cyclase -> cAMP)',
     indications: { 'Push Dose': { dose: '10-20', unit: 'mcg', type: 'Bolus' }, 'Code': { dose: '1.0', unit: 'mg', type: 'Bolus' }, 'Infusion': { dose: '0.01-0.1', unit: 'mcg/kg/min', type: 'Infusion' } },
     pk: { V1: 5.0, V2: 0, V3: 0, k10: 0.8, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 2.0, coSensitivity: 0.1 }, 
     pd: { c50: 0.002, gamma: 1.5, sysMax: 60, diaMax: 30, hrMax: 50, rrMax: 0, receptors: { Alpha1: 3, Beta1: 3, Beta2: 2 } },
@@ -252,7 +252,7 @@ export const MEDICATIONS = {
   },
   milrinone: { 
     name: 'Milrinone', classes: ['PDE3 Inhibitor'], routes: ['IV'], types: ['Infusion', 'Bolus'], dosingWeight: 'TBW',
-    metabolism: 'Renal (80% unchanged)', mechanism: 'Inhibitor', targetReceptor: 'PDE3',
+    metabolism: 'Renal (80% unchanged)', mechanism: 'Inhibitor', targetReceptor: 'PDE3', intracellularCascade: 'Inhibits PDE3 -> Prevents cAMP degradation -> increased intracellular Ca2+ (inotropy) & smooth muscle relaxation',
     indications: { 'Inotropy': { dose: '0.375-0.75', unit: 'mcg/kg/min', type: 'Infusion' } },
     pk: { V1: 30.0, V2: 0, V3: 0, k10: 0.02, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.1 }, 
     pd: { c50: 0.1, gamma: 1.5, sysMax: 10, diaMax: -20, hrMax: 10, rrMax: 0 },
@@ -260,7 +260,7 @@ export const MEDICATIONS = {
   },
   norepinephrine: { 
     name: 'Norepinephrine', classes: ['Vasopressor'], routes: ['IV'], types: ['Infusion', 'Bolus'], dosingWeight: 'TBW',
-    metabolism: 'MAO/COMT', mechanism: 'Agonist', targetReceptor: 'Alpha-1 > Beta-1',
+    metabolism: 'MAO/COMT', mechanism: 'Agonist', targetReceptor: 'Alpha-1 > Beta-1', intracellularCascade: 'a1 (Gq -> IP3/DAG -> intracellular Ca2+) >> B1 (Gs -> cAMP)', intracellularCascade: 'a1 (Gq -> IP3/DAG/Ca2+), B1/B2 (Gs -> adenylate cyclase -> cAMP)',
     indications: { 'Shock / Vasoplegia': { dose: '0.01-0.3', unit: 'mcg/kg/min', type: 'Infusion' } },
     pk: { V1: 8.0, V2: 0, V3: 0, k10: 0.6, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.5, coSensitivity: 0.1 }, 
     pd: { c50: 0.005, gamma: 1.5, sysMax: 40, diaMax: 50, hrMax: 10, rrMax: 0, receptors: { Alpha1: 3, Beta1: 2, Beta2: 0 } },
@@ -268,7 +268,7 @@ export const MEDICATIONS = {
   },
   phenylephrine: { 
     name: 'Phenylephrine', classes: ['Alpha-1 Agonist'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic (MAO)', mechanism: 'Agonist', targetReceptor: 'Alpha-1',
+    metabolism: 'Hepatic (MAO)', mechanism: 'Agonist', targetReceptor: 'Alpha-1', intracellularCascade: 'Selective a1 (Gq-coupled -> Phospholipase C -> IP3/DAG -> intracellular Ca2+ release)',
     indications: { 'Push Dose': { dose: '50-100', unit: 'mcg', type: 'Bolus' }, 'Infusion': { dose: '0.1-0.5', unit: 'mcg/kg/min', type: 'Infusion' } },
     pk: { V1: 10.0, V2: 0, V3: 0, k10: 0.5, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.5, coSensitivity: 0.2 }, 
     pd: { c50: 0.02, gamma: 1, sysMax: 30, diaMax: 45, hrMax: -15, rrMax: 0, receptors: { Alpha1: 3, Beta1: 0, Beta2: 0 } },
@@ -276,7 +276,7 @@ export const MEDICATIONS = {
   },
   vasopressin: { 
     name: 'Vasopressin', classes: ['V1 Agonist'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
-    metabolism: 'Tissue Peptidases', mechanism: 'Agonist', targetReceptor: 'V1 Receptors',
+    metabolism: 'Tissue Peptidases', mechanism: 'Agonist', targetReceptor: 'V1 Receptors', intracellularCascade: 'V1 (Gq-coupled -> Phospholipase C -> IP3/DAG -> intracellular Ca2+ release in vascular smooth muscle)',
     indications: { 'Push Dose': { dose: '1-2', unit: 'Unit', type: 'Bolus' }, 'Infusion': { dose: '0.04', unit: 'Unit/min', type: 'Infusion' } },
     pk: { V1: 12.0, V2: 0, V3: 0, k10: 0.1, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.8, coSensitivity: 0.1 }, 
     pd: { c50: 0.05, gamma: 2, sysMax: 20, diaMax: 35, hrMax: -5, rrMax: 0, receptors: { V1: 3 } },
@@ -286,7 +286,7 @@ export const MEDICATIONS = {
   // === ANTIHYPERTENSIVES ===
   clevidipine: { 
     name: 'Clevidipine', classes: ['CCB'], routes: ['IV'], types: ['Infusion'], dosingWeight: 'TBW',
-    metabolism: 'Plasma Esterases (hydrolysis)', mechanism: 'Blocker', targetReceptor: 'L-type Calcium',
+    metabolism: 'Plasma Esterases (hydrolysis)', mechanism: 'Blocker', targetReceptor: 'L-type Calcium', intracellularCascade: 'Dihydropyridine CCB -> blocks L-type VGCCs in vascular smooth muscle -> prevents Ca2+ influx',
     indications: { 'HTN': { dose: '2-4', unit: 'mg/hr', type: 'Infusion' } },
     pk: { V1: 4.0, V2: 0, V3: 0, k10: 0.3, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.2, coSensitivity: 0.1 }, 
     pd: { c50: 0.02, gamma: 2.0, sysMax: -30, diaMax: -40, hrMax: 15, rrMax: 0 },
@@ -294,7 +294,7 @@ export const MEDICATIONS = {
   },
   clonidine: { 
     name: 'Clonidine', classes: ['Alpha-2 Agonist'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic / Renal', mechanism: 'Agonist', targetReceptor: 'Central Alpha-2',
+    metabolism: 'Hepatic / Renal', mechanism: 'Agonist', targetReceptor: 'Alpha-2', intracellularCascade: 'a2 (Gi-coupled) -> inhibits adenylate cyclase -> decreases cAMP',
     indications: { 'HTN / Sympatholysis': { dose: '150-300', unit: 'mcg', type: 'Bolus' } },
     pk: { V1: 15.0, V2: 40.0, V3: 0, k10: 0.03, k12: 0.05, k21: 0.04, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.2 }, 
     pd: { c50: 2.0, gamma: 1.5, sysMax: -25, diaMax: -15, hrMax: -20, rrMax: -2 },
@@ -310,7 +310,7 @@ export const MEDICATIONS = {
   },
   esmolol: { 
     name: 'Esmolol', classes: ['Beta-1 Blocker'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
-    metabolism: 'RBC Esterases', mechanism: 'Antagonist', targetReceptor: 'Beta-1',
+    metabolism: 'RBC Esterases', mechanism: 'Antagonist', targetReceptor: 'Beta-1', intracellularCascade: 'B1 antagonist -> blocks Gs-coupled activation -> decreases cAMP in myocardium',
     indications: { 'Tachycardia': { dose: '10-20', unit: 'mg', type: 'Bolus' }, 'Infusion': { dose: '50-100', unit: 'mcg/kg/min', type: 'Infusion' } },
     pk: { V1: 3.3, V2: 0, V3: 0, k10: 0.4, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.5, coSensitivity: 0.1 }, 
     pd: { c50: 1.0, gamma: 1.5, sysMax: -15, diaMax: -10, hrMax: -30, rrMax: 0 },
@@ -326,7 +326,7 @@ export const MEDICATIONS = {
   },
   labetalol: { 
     name: 'Labetalol', classes: ['Mixed Alpha/Beta'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic', mechanism: 'Antagonist', targetReceptor: 'Alpha-1, Beta-1/2',
+    metabolism: 'Hepatic', mechanism: 'Antagonist', targetReceptor: 'Alpha-1, Beta-1/2', intracellularCascade: 'Mixed antagonist -> blocks a1 (Gq), B1/B2 (Gs) -> prevents Ca2+ release and cAMP production',
     indications: { 'HTN': { dose: '10-20', unit: 'mg', type: 'Bolus' } },
     pk: { V1: 60.0, V2: 0, V3: 0, k10: 0.03, k12: 0.05, k21: 0.03, k13: 0, k31: 0, ke0: 0.8, coSensitivity: 0.2 }, 
     pd: { c50: 0.5, gamma: 2.0, sysMax: -40, diaMax: -35, hrMax: -20, rrMax: 0 },
@@ -334,7 +334,7 @@ export const MEDICATIONS = {
   },
   metoprolol: { 
     name: 'Metoprolol', classes: ['Beta-1 Blocker'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic (CYP2D6)', proteinBinding: 0.12, mechanism: 'Antagonist', targetReceptor: 'Beta-1',
+    metabolism: 'Hepatic (CYP2D6)', proteinBinding: 0.12, mechanism: 'Antagonist', targetReceptor: 'Beta-1', intracellularCascade: 'B1 antagonist -> blocks Gs-coupled activation -> decreases cAMP in myocardium',
     indications: { 'Tachycardia': { dose: '2.5-5.0', unit: 'mg', type: 'Bolus' } },
     pk: { V1: 40.0, V2: 0, V3: 0, k10: 0.02, k12: 0.04, k21: 0.02, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 }, 
     pd: { c50: 0.1, gamma: 1.5, sysMax: -20, diaMax: -15, hrMax: -35, rrMax: 0 },
@@ -342,7 +342,7 @@ export const MEDICATIONS = {
   },
   nicardipine: { 
     name: 'Nicardipine', classes: ['CCB'], routes: ['IV'], types: ['Infusion'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic', mechanism: 'Blocker', targetReceptor: 'Calcium Channels',
+    metabolism: 'Hepatic', mechanism: 'Blocker', targetReceptor: 'L-type Calcium', intracellularCascade: 'Dihydropyridine CCB -> blocks L-type VGCCs in vascular smooth muscle -> prevents Ca2+ influx',
     indications: { 'HTN': { dose: '5-15', unit: 'mg/hr', type: 'Infusion' } },
     pk: { V1: 25.0, V2: 0, V3: 0, k10: 0.05, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 }, 
     pd: { c50: 0.1, gamma: 2.0, sysMax: -25, diaMax: -35, hrMax: 10, rrMax: 0 },
@@ -410,7 +410,7 @@ export const MEDICATIONS = {
   // === ANTIARRHYTHMICS & ELECTROLYTES ===
   adenosine: { 
     name: 'Adenosine', classes: ['Purinergic'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
-    metabolism: 'RBC and Endothelial cell uptake (rapid deamination)', mechanism: 'Agonist', targetReceptor: 'A1 Receptors (AV Node)',
+    metabolism: 'RBC and Endothelial cell uptake (rapid deamination)', mechanism: 'Agonist', targetReceptor: 'A1 Receptors', intracellularCascade: 'A1 (Gi-coupled) -> inhibits adenylate cyclase (decreased cAMP) -> activates K-ACh channels -> hyperpolarization',
     indications: { 'SVT': { dose: '6-12', unit: 'mg', type: 'Bolus' } },
     pk: { V1: 5.0, V2: 0, V3: 0, k10: 5.0, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 5.0, coSensitivity: 0.1 }, 
     pd: { c50: 0.2, gamma: 4.0, sysMax: -40, diaMax: -20, hrMax: -150, rrMax: 0 },
@@ -426,7 +426,7 @@ export const MEDICATIONS = {
   },
   atropine: { 
     name: 'Atropine', classes: ['Anticholinergic'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic (50%), renal unchanged (50%)', mechanism: 'Antagonist', targetReceptor: 'Muscarinic',
+    metabolism: 'Hepatic (50%), renal unchanged (50%)', mechanism: 'Antagonist', targetReceptor: 'Muscarinic (M2/M3)', intracellularCascade: 'Antagonizes M2 (Gi-coupled) at SA/AV node -> prevents cAMP decrease -> increases HR',
     indications: { 'Bradycardia': { dose: '0.5-1.0', unit: 'mg', type: 'Bolus' } },
     pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.08, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 }, 
     pd: { c50: 0.02, gamma: 2.0, sysMax: 5, diaMax: 5, hrMax: 55, rrMax: 0 },
@@ -458,7 +458,7 @@ export const MEDICATIONS = {
   },
   diltiazem: { 
     name: 'Diltiazem', classes: ['Class IV CCB'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic (CYP3A4) to active deacetyldiltiazem', mechanism: 'Blocker', targetReceptor: 'L-type Calcium',
+    metabolism: 'Hepatic (CYP3A4) to active deacetyldiltiazem', mechanism: 'Blocker', targetReceptor: 'L-type Calcium', intracellularCascade: 'Non-DHP CCB -> blocks L-type VGCCs in myocardium/AV node -> prevents Ca2+ influx',
     indications: { 'Afib / Rate Control': { dose: '10-20', unit: 'mg', type: 'Bolus' }, 'Infusion': { dose: '5-15', unit: 'mg/hr', type: 'Infusion' } },
     pk: { V1: 30.0, V2: 60.0, V3: 0, k10: 0.1, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0.2 }, 
     pd: { c50: 0.5, gamma: 2.0, sysMax: -20, diaMax: -20, hrMax: -25, rrMax: 0 },
@@ -522,7 +522,7 @@ export const MEDICATIONS = {
   },
   verapamil: { 
     name: 'Verapamil', classes: ['Class IV CCB'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic', mechanism: 'Blocker', targetReceptor: 'L-type Calcium',
+    metabolism: 'Hepatic', mechanism: 'Blocker', targetReceptor: 'L-type Calcium', intracellularCascade: 'Non-DHP CCB -> blocks L-type VGCCs in myocardium/AV node -> prevents Ca2+ influx',
     indications: { 'SVT / Rate Control': { dose: '2.5-5.0', unit: 'mg', type: 'Bolus' } },
     pk: { V1: 40.0, V2: 80.0, V3: 0, k10: 0.08, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.2, coSensitivity: 0.2 }, 
     pd: { c50: 0.3, gamma: 2.0, sysMax: -25, diaMax: -25, hrMax: -35, rrMax: 0 },
@@ -658,38 +658,131 @@ export const MEDICATIONS = {
   }
 };;
 
+/**
+ * Calculate predicted lung volumes using ECCS/ERS 1993 reference equations
+ * with obesity correction (Pelosi et al.) and positional modifiers (Rehder et al.)
+ * 
+ * References:
+ *   - Quanjer PH et al. "Lung volumes and forced ventilatory flows." Eur Respir J. 1993;6 Suppl 16:5-40.
+ *   - Pelosi P et al. "Respiratory system mechanics in sedated, paralyzed, morbidly obese patients."
+ *     J Appl Physiol. 1998;84(3):811-816.
+ *   - Rehder K et al. "Ventilation-perfusion relationships in health and disease." Am Rev Respir Dis. 1977.
+ *   - Radford EP. "Ventilation standards for use in artificial respiration." J Appl Physiol. 1955;7(4):451-460.
+ *
+ * @param {number} heightCm - Patient height in cm
+ * @param {number} age - Patient age in years  
+ * @param {string} sex - 'male' or 'female'
+ * @param {number} bmi - Body mass index
+ * @param {string} position - Patient position (default 'Supine')
+ * @returns {object} { frc_mL, tlc_mL, rv_mL, vc_mL, erv_mL, irv_mL, fvc_mL, fev1_mL, vd_mL, frc_L, tlc_L, obesityFactor, positionFactor }
+ */
+export function calculateLungVolumes(heightCm, age, sex, bmi, position = 'Supine') {
+    const H = heightCm / 100; // Convert to meters
+    const isMale = sex.toLowerCase() === 'male';
+    
+    // ECCS/ERS 1993 Reference Equations (Quanjer et al.)
+    let fvc, fev1, tlc, rv, frc;
+    if (isMale) {
+        fvc  = 5.76 * H - 0.026 * age - 4.34;  // Liters
+        fev1 = 4.30 * H - 0.029 * age - 2.49;
+        tlc  = 7.99 * H - 7.08;
+        rv   = 1.31 * H + 0.022 * age - 1.23;
+        frc  = 2.34 * H + 0.009 * age - 1.09;
+    } else {
+        fvc  = 4.43 * H - 0.026 * age - 2.89;
+        fev1 = 3.95 * H - 0.025 * age - 2.60;
+        tlc  = 6.60 * H - 5.79;
+        rv   = 1.81 * H + 0.016 * age - 2.00;
+        frc  = 2.24 * H + 0.001 * age - 1.00;
+    }
+    
+    // Obesity correction — Pelosi et al. 1998
+    // FRC decreases exponentially as BMI increases above 25
+    const obesityFactor = bmi > 25 ? Math.exp(-0.02 * (bmi - 25)) : 1.0;
+    frc *= obesityFactor;
+    
+    // Positional FRC correction — Rehder et al. 1977
+    const positionFactors = {
+        'Sitting': 1.00,        // Reference upright position
+        'Ramped': 0.90,         // Semi-upright
+        'Rev Trendelenburg': 0.90,
+        'Supine': 0.80,         // -20% from upright
+        'Sniffing': 0.80,
+        'Prone': 0.85,          // Better than supine (weight off diaphragm)
+        'Lateral': 0.82,
+        'Lithotomy': 0.72,      // Legs up compress diaphragm
+        'Trendelenburg': 0.70   // Worst — abdominal contents push cephalad
+    };
+    const posFactor = positionFactors[position] || 0.80;
+    frc *= posFactor;
+    
+    // Ensure all values are physiologically plausible minimums
+    frc  = Math.max(0.5, frc);
+    tlc  = Math.max(2.0, tlc);
+    rv   = Math.max(0.5, rv);
+    fvc  = Math.max(1.0, fvc);
+    fev1 = Math.max(0.5, fev1);
+    
+    // Derived volumes
+    const vc  = Math.max(0.5, tlc - rv);
+    const erv = Math.max(0, frc - rv);
+    // VT = 7 mL/kg IBW (Devine formula inline)
+    const ibwKg = isMale ? (50 + 2.3 * ((heightCm / 2.54) - 60)) : (45.5 + 2.3 * ((heightCm / 2.54) - 60));
+    const vt_L = 0.007 * ibwKg;
+    const irv = Math.max(0, vc - vt_L - erv);
+    
+    // Anatomic dead space — Radford nomogram approximation (~2.2 mL/kg IBW)
+    const vd = ibwKg * 2.2 / 1000; // Liters
+    
+    return {
+        frc_mL:  Math.round(frc * 1000),
+        tlc_mL:  Math.round(tlc * 1000),
+        rv_mL:   Math.round(rv * 1000),
+        vc_mL:   Math.round(vc * 1000),
+        erv_mL:  Math.round(erv * 1000),
+        irv_mL:  Math.round(irv * 1000),
+        fvc_mL:  Math.round(fvc * 1000),
+        fev1_mL: Math.round(fev1 * 1000),
+        vd_mL:   Math.round(vd * 1000),
+        frc_L:   parseFloat(frc.toFixed(2)),
+        tlc_L:   parseFloat(tlc.toFixed(2)),
+        obesityFactor: parseFloat(obesityFactor.toFixed(3)),
+        positionFactor: posFactor
+    };
+}
+
 export const FLUIDS = {
   'Normal Saline (0.9% NS)': { 
     type: 'Crystalloid', defaultVol: 1000, na: 154, cl: 154, k: 0, ca: 0, citrateLoad: 0, buffer: 0,
     retentionIntact: 0.75, retentionInflamed: 0.20, osm: 308, tonicity: 'Isotonic', coag: { r: 0, ma: -2, angle: 0 },
-    acidosisRisk: true 
+    acidosisRisk: true, viscosity: 1.0 
   },
   'Lactated Ringers (LR)': { 
     type: 'Crystalloid', defaultVol: 1000, na: 130, cl: 109, k: 4, ca: 3.0, citrateLoad: 0, buffer: 28,
-    retentionIntact: 0.80, retentionInflamed: 0.25, osm: 273, tonicity: 'Hypotonic', coag: { r: 0, ma: -1, angle: 0 } 
+    retentionIntact: 0.80, retentionInflamed: 0.25, osm: 273, tonicity: 'Hypotonic', coag: { r: 0, ma: -1, angle: 0 }, viscosity: 1.0 
   },
   'Plasmalyte': { 
     type: 'Crystalloid', defaultVol: 1000, na: 140, cl: 98, k: 5, ca: 0, citrateLoad: 0, buffer: 27,
-    retentionIntact: 0.80, retentionInflamed: 0.25, osm: 294, tonicity: 'Isotonic', coag: { r: 0, ma: -1, angle: 0 } 
+    retentionIntact: 0.80, retentionInflamed: 0.25, osm: 294, tonicity: 'Isotonic', coag: { r: 0, ma: -1, angle: 0 }, viscosity: 1.0 
   },
   'Albumin 5%': { 
     type: 'Colloid', defaultVol: 500, na: 140, cl: 150, k: 0, ca: 0, citrateLoad: 0, buffer: 0,
-    retentionIntact: 1.0, retentionInflamed: 0.75, osm: 290, tonicity: 'Isotonic', coag: { r: 0, ma: -2, angle: -2 } 
+    retentionIntact: 1.0, retentionInflamed: 0.75, osm: 290, tonicity: 'Isotonic', coag: { r: 0, ma: -2, angle: -2 }, viscosity: 1.5 
   },
   'Packed Red Blood Cells (PRBC)': { 
     type: 'Blood Product', defaultVol: 300, na: 0, cl: 0, k: 15, ca: 0, citrateLoad: 15, buffer: 0,
-    retentionIntact: 1.0, retentionInflamed: 0.90, hct: 0.70, coag: { r: 0, ma: 0, angle: 0 } 
+    retentionIntact: 1.0, retentionInflamed: 0.90, hct: 0.70, coag: { r: 0, ma: 0, angle: 0 }, viscosity: 3.5 
   }, 
   'Fresh Frozen Plasma (FFP)': { 
     type: 'Blood Product', defaultVol: 250, na: 0, cl: 0, k: 4, ca: 0, citrateLoad: 10, buffer: 0,
-    retentionIntact: 1.0, retentionInflamed: 0.90, coag: { r: -4, ma: 0, angle: 5 } 
+    retentionIntact: 1.0, retentionInflamed: 0.90, coag: { r: -4, ma: 0, angle: 5 }, viscosity: 1.8 
   },
   'Platelets': { 
     type: 'Blood Product', defaultVol: 250, na: 0, cl: 0, k: 4, ca: 0, citrateLoad: 5, buffer: 0,
-    retentionIntact: 1.0, retentionInflamed: 0.90, coag: { r: -1, ma: 15, angle: 10 } 
+    retentionIntact: 1.0, retentionInflamed: 0.90, coag: { r: -1, ma: 15, angle: 10 }, viscosity: 2.0 
   },
   'Cryoprecipitate': { 
     type: 'Blood Product', defaultVol: 50, na: 0, cl: 0, k: 0, ca: 0, citrateLoad: 5, buffer: 0,
-    retentionIntact: 1.0, retentionInflamed: 0.95, coag: { r: 0, ma: 5, angle: 15 } 
+    retentionIntact: 1.0, retentionInflamed: 0.95, coag: { r: 0, ma: 5, angle: 15 }, viscosity: 1.8 
   }
 };

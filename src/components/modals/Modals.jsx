@@ -21,16 +21,40 @@ export const PocusModal = ({ data, close }) => {
 };
 
 export const AirwayQuizModal = ({ data, submitAirwayQuiz }) => {
+  const [error, setError] = React.useState('');
+  
+  React.useEffect(() => { if (data.show) setError(''); }, [data.show]);
+
   if (!data.show) return null;
+
+  const handleSelect = (grade) => {
+      if (grade !== data.trueMallampati) {
+          setError(`Incorrect. Look closely at the description: "${data.description}". ` + 
+                   (data.trueMallampati === 1 ? "In Class I, you can see the soft palate, fauces, uvula, and pillars." :
+                    data.trueMallampati === 2 ? "In Class II, you can see the soft palate, fauces, and uvula (not pillars)." :
+                    data.trueMallampati === 3 ? "In Class III, you can only see the soft palate and base of uvula." :
+                    "In Class IV, the soft palate is NOT visible at all, only hard palate."));
+      } else {
+          submitAirwayQuiz(grade);
+      }
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div className="bg-slate-900 border-2 border-cyan-500 rounded-xl p-6 md:p-8 max-h-[85vh] overflow-y-auto custom-scrollbar w-11/12 max-w-2xl shadow-2xl">
         <h2 className="text-xl md:text-2xl font-bold text-white mb-4 flex items-center gap-2"><Eye size={24}/> Pre-Intubation Airway Assessment</h2>
-        <p className="text-sm md:text-lg text-slate-300 mb-6 italic border-l-4 border-cyan-500 pl-4 py-2 bg-slate-800/50 whitespace-pre-wrap">{data.description}</p>
+        <p className="text-sm md:text-lg text-slate-300 mb-4 italic border-l-4 border-cyan-500 pl-4 py-2 bg-slate-800/50 whitespace-pre-wrap">{data.description}</p>
+        
+        {error && (
+            <div className="mb-4 bg-red-950/80 border border-red-500 text-red-200 p-3 rounded font-bold text-sm animate-pulse">
+                ⚠️ {error}
+            </div>
+        )}
+
         <h3 className="text-yellow-400 font-bold mb-4 text-sm md:text-base">Based on your visualization, select the correct Mallampati Score:</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2, 3, 4].map(grade => (
-            <button key={grade} onClick={() => submitAirwayQuiz(grade)} className="bg-slate-800 hover:bg-cyan-900 p-4 rounded text-left border border-slate-700 hover:border-cyan-400 transition">
+            <button key={grade} onClick={() => handleSelect(grade)} className="bg-slate-800 hover:bg-cyan-900 p-4 rounded text-left border border-slate-700 hover:border-cyan-400 transition">
               <span className="font-bold text-white block">Mallampati Class {['I', 'II', 'III', 'IV'][grade-1]}</span>
             </button>
           ))}
@@ -293,7 +317,7 @@ export const ViewModal = ({ data, submitGrade }) => {
 };
 
 // 1. PRE-OPERATIVE RISK ASSESSMENT & FLOWCHART MODAL
-export const PreopModal = ({ show, close, patient, logEvent }) => {
+export const PreopModal = ({ show, close, patient, setPatient, logEvent }) => {
   if (!show) return null;
 
   const [rcri, setRcri] = React.useState({
@@ -307,6 +331,14 @@ export const PreopModal = ({ show, close, patient, logEvent }) => {
 
   const [mets, setMets] = React.useState(null); // 'poor', 'moderate', 'excellent'
   const [cleared, setCleared] = React.useState(false);
+  
+  const [preopOrders, setPreopOrders] = React.useState({
+      cbc: false,
+      bmp: false,
+      coags: false,
+      typeAndScreen: false,
+      typeAndCross: false
+  });
 
   const calculateRcriScore = () => {
     return Object.values(rcri).filter(Boolean).length;
@@ -317,6 +349,13 @@ export const PreopModal = ({ show, close, patient, logEvent }) => {
 
   const handleClearance = () => {
     logEvent(`📋 Pre-Op Evaluation Complete: RCRI Score = ${rcriScore} (${rcriClass}), Functional capacity = ${mets ? mets.toUpperCase() : 'UNKNOWN'}. Patient cleared with precautions.`);
+    if (setPatient) {
+        setPatient(prev => ({ 
+            ...prev, 
+            bloodPreOrdered: preopOrders.typeAndCross,
+            bloodAvailable: preopOrders.typeAndCross 
+        }));
+    }
     setCleared(true);
     close();
   };
@@ -339,7 +378,7 @@ export const PreopModal = ({ show, close, patient, logEvent }) => {
             <div className="grid grid-cols-2 gap-3 text-xs md:text-sm">
               <div><span className="text-slate-400">Patient:</span> <span className="text-white font-bold">{patient.name || 'John Doe'}</span></div>
               <div><span className="text-slate-400">Age / Weight:</span> <span className="text-white font-bold">{patient.age || 65}yo / {patient.weight || 75} kg</span></div>
-              <div><span className="text-slate-400">Height / BMI:</span> <span className="text-white font-bold">{patient.height || 175} cm / {patient.bmi || 24.5} ({patient.isObese ? 'Obese' : 'Normal'})</span></div>
+              <div><span className="text-slate-400">Height / BMI:</span> <span className="text-white font-bold">{patient.height || 175} cm / {patient.bmi ? parseFloat(patient.bmi.toFixed(1)) : 24.5} ({patient.isObese ? 'Obese' : 'Normal'})</span></div>
               <div><span className="text-slate-400">Airway Exam:</span> <span className="text-white font-bold">Mallampati {patient.airwayExamined ? patient.mallampatiScore || 'N/A' : 'UNEXAMINED'}</span></div>
             </div>
             
@@ -440,22 +479,170 @@ export const PreopModal = ({ show, close, patient, logEvent }) => {
                 </div>
               </div>
 
-              {/* Dynamic recommendation card */}
+              {/* Dynamic recommendation card — 2024 ACC/AHA Preoperative Cardiac Algorithm
+                 Decision matrix: RCRI score × Functional Capacity (METs)
+                 References:
+                   - Lee TH et al. Circulation 1999;100:1043-1049 (RCRI derivation)
+                   - Fleisher LA et al. Circulation 2014;130:e278-e333 (ACC/AHA perioperative guidelines)
+                   - 2024 ACC/AHA Focused Update on Perioperative Cardiovascular Evaluation
+                 Risk classes (30-day MACE per Lee et al.):
+                   Class I  (RCRI 0): 0.4%
+                   Class II (RCRI 1): 0.9%
+                   Class III(RCRI 2): 6.6%
+                   Class IV (RCRI 3+): 11%+
+              */}
               <div className="bg-slate-950 border border-slate-800 p-3 rounded mt-4">
                 <span className="text-[10px] text-slate-400 uppercase tracking-widest block mb-1">ACC/AHA CLINICAL PATHWAY:</span>
-                {mets === 'poor' && rcriScore >= 2 ? (
-                  <span className="text-xs text-red-400 font-bold">
-                    ⚠️ ELEVATED CARDIOVASCULAR RISK: Obtain pre-op ECG. Consider cardiology consult for pharmacological stress test.
-                  </span>
-                ) : mets ? (
-                  <span className="text-xs text-green-400 font-bold">
-                    ✅ ACCEPTABLE RISK: Patient is functionally fit. Proceed to surgery with standard hemodynamic precautions.
-                  </span>
-                ) : (
-                  <span className="text-xs text-slate-500 italic">Select functional capacity (METs) to view algorithm recommendations...</span>
-                )}
+                {(() => {
+                  // METs not yet selected — prompt the user
+                  if (!mets) {
+                    return (
+                      <span className="text-xs text-slate-500 italic">
+                        Select functional capacity (METs) to view algorithm recommendations...
+                      </span>
+                    );
+                  }
+
+                  // Functional capacity categorisation
+                  // METs ≥ 4 corresponds to 'moderate' or 'excellent'; METs < 4 or unknown = 'poor'
+                  const adequateMets = mets === 'moderate' || mets === 'excellent';
+
+                  // ── RCRI ≥ 3 — HIGH RISK regardless of METs (Class IV, ≥11% 30-day MACE) ──
+                  // Per 2024 ACC/AHA: cardiology consult always; delay / cath if poor METs
+                  if (rcriScore >= 3) {
+                    return (
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-xs text-red-300 font-black tracking-wide">
+                          🚨 HIGH CARDIOVASCULAR RISK — {rcriClass}
+                        </span>
+                        {adequateMets ? (
+                          <span className="text-xs text-red-400 font-bold">
+                            ⚠️ RCRI ≥ 3 with adequate METs: Mandatory cardiology consult regardless of functional capacity.
+                            Obtain pre-op 12-lead ECG + troponin. Consider postponing elective surgery pending cardiac workup.
+                          </span>
+                        ) : (
+                          <span className="text-xs text-red-400 font-bold">
+                            🛑 RCRI ≥ 3 with poor/unknown METs: DELAY SURGERY. Obtain urgent cardiology consult.
+                            Pharmacologic stress test (dobutamine echo or nuclear perfusion) recommended.
+                            Consider coronary catheterisation if ischaemia demonstrated.
+                          </span>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // ── RCRI = 2 — ELEVATED RISK (Class III, ~6.6% 30-day MACE) ──
+                  if (rcriScore === 2) {
+                    return (
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-xs text-orange-300 font-black tracking-wide">
+                          ⚠️ ELEVATED CARDIOVASCULAR RISK — {rcriClass}
+                        </span>
+                        {adequateMets ? (
+                          <span className="text-xs text-yellow-400 font-bold">
+                            Adequate METs (≥ 4): Proceed with enhanced haemodynamic monitoring (arterial line recommended).
+                            Pre-op 12-lead ECG required. Consider BNP/NT-proBNP. Optimise beta-blocker if already prescribed.
+                          </span>
+                        ) : (
+                          <span className="text-xs text-orange-400 font-bold">
+                            Poor/unknown METs with RCRI 2: Pharmacologic stress test recommended before proceeding.
+                            Obtain pre-op ECG + troponin + BNP. Cardiology consult recommended for risk stratification.
+                          </span>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // ── RCRI = 1 — LOW-INTERMEDIATE RISK (Class II, ~0.9% 30-day MACE) ──
+                  if (rcriScore === 1) {
+                    return (
+                      <div className="flex flex-col gap-1.5">
+                        <span className="text-xs text-yellow-300 font-black tracking-wide">
+                          ⚡ LOW-INTERMEDIATE CARDIOVASCULAR RISK — {rcriClass}
+                        </span>
+                        {adequateMets ? (
+                          <span className="text-xs text-green-400 font-bold">
+                            ✅ Adequate METs (≥ 4): Proceed to surgery with standard hemodynamic precautions.
+                            No additional cardiac testing required.
+                          </span>
+                        ) : (
+                          <span className="text-xs text-yellow-400 font-bold">
+                            Poor/unknown METs with single RCRI factor: Pre-op 12-lead ECG recommended.
+                            Consider exercise or pharmacologic stress test if results will change management.
+                          </span>
+                        )}
+                      </div>
+                    );
+                  }
+
+                  // ── RCRI = 0 — LOW RISK (Class I, ~0.4% 30-day MACE) ──
+                  return (
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-xs text-green-300 font-black tracking-wide">
+                        ✅ LOW CARDIOVASCULAR RISK — {rcriClass}
+                      </span>
+                      <span className="text-xs text-green-400 font-bold">
+                        Proceed to surgery. No additional cardiac testing indicated.
+                        {!adequateMets
+                          ? ' Note: poor METs at RCRI 0 does not mandate further workup per ACC/AHA.'
+                          : ' Patient is functionally fit with no cardiac risk factors.'}
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
+          </div>
+        </div>
+
+
+        {/* Section 3: Pre-Operative Labs & Logistics */}
+        <div className="bg-slate-800/50 p-5 rounded-lg border border-slate-700 mb-6">
+          <h3 className="text-indigo-300 font-bold text-sm uppercase mb-4">Pre-Operative Orders & Blood Bank Logistics</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="flex flex-col gap-2">
+                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Standard Labs</span>
+                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer hover:text-white">
+                  <input type="checkbox" checked={preopOrders.cbc} onChange={(e) => setPreopOrders({...preopOrders, cbc: e.target.checked})} className="rounded bg-slate-950 border-slate-700 text-indigo-600 focus:ring-0" />
+                  <span>CBC (Complete Blood Count)</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer hover:text-white">
+                  <input type="checkbox" checked={preopOrders.bmp} onChange={(e) => setPreopOrders({...preopOrders, bmp: e.target.checked})} className="rounded bg-slate-950 border-slate-700 text-indigo-600 focus:ring-0" />
+                  <span>BMP (Basic Metabolic Panel)</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer hover:text-white">
+                  <input type="checkbox" checked={preopOrders.coags} onChange={(e) => setPreopOrders({...preopOrders, coags: e.target.checked})} className="rounded bg-slate-950 border-slate-700 text-indigo-600 focus:ring-0" />
+                  <span>Coags (PT/INR/PTT)</span>
+                </label>
+              </div>
+              <div className="flex flex-col gap-2">
+                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Blood Bank Logistics</span>
+                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer hover:text-white">
+                  <input type="checkbox" checked={preopOrders.typeAndScreen} onChange={(e) => {
+                      if (e.target.checked) setPreopOrders({...preopOrders, typeAndScreen: true, typeAndCross: false});
+                      else setPreopOrders({...preopOrders, typeAndScreen: false});
+                  }} className="rounded bg-slate-950 border-slate-700 text-indigo-600 focus:ring-0" />
+                  <span>Type & Screen</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer hover:text-white">
+                  <input type="checkbox" checked={preopOrders.typeAndCross} onChange={(e) => {
+                      if (e.target.checked) setPreopOrders({...preopOrders, typeAndCross: true, typeAndScreen: false});
+                      else setPreopOrders({...preopOrders, typeAndCross: false});
+                  }} className="rounded bg-slate-950 border-slate-700 text-indigo-600 focus:ring-0" />
+                  <span>Type & Cross (Immediate PRBC Availability in OR)</span>
+                </label>
+                
+                {preopOrders.typeAndCross && (
+                    <div className="mt-2 p-2 bg-green-950/40 border border-green-900 rounded text-green-400 text-[10px] font-bold">
+                        ✅ Blood bank notified. PRBC cooler will be waiting in the OR upon arrival.
+                    </div>
+                )}
+                {!preopOrders.typeAndCross && (
+                    <div className="mt-2 p-2 bg-red-950/40 border border-red-900 rounded text-red-400 text-[10px] font-bold">
+                        ⚠️ WARNING: Blood products ordered intra-operatively without a Type & Cross will incur a strict 10-minute logistical delay.
+                    </div>
+                )}
+              </div>
           </div>
         </div>
 

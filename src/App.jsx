@@ -78,6 +78,7 @@ export default function App() {
   const [activeCase, setActiveCase] = useState(null);
   const [isRunning, setIsRunning] = useState(false);
   const [nibp, setNibp] = useState({ sys: 0, dia: 0, time: 0 });
+  const [nibpIntervalMs, setNibpIntervalMs] = useState(0);
   const [logs, setLogs] = useState([]);
   const [history, setHistory] = useState([]);
   const [labs, setLabs] = useState({});
@@ -292,18 +293,49 @@ export default function App() {
   const submitAirwayQuiz = (selectedClass) => {
     const isCorrect = selectedClass === airwayQuizModal.trueMallampati;
     logEvent(`Airway Assessment: Identified as Mallampati Class ${selectedClass}. (${isCorrect ? 'Correct' : 'Incorrect'})`);
-    setPatient(p => ({ ...p, airwayExamined: true }));
+    setPatient(p => ({ ...p, airwayExamined: true, mallampatiScore: selectedClass }));
     setAirwayQuizModal({ show: false, description: '', trueMallampati: 1 });
   };
 
   const establishAccess = (category, type, location) => {
     const fullName = `${type} (${location})`;
-    logEvent(`Placed ${fullName}.`);
+    
+    let radius = 0.5; // mm default
+    let length = 30; // mm default
+    let penalty = 0; // mmHg default
+    
+    if (type.includes('14G')) { radius = 1.05; length = 45; }
+    else if (type.includes('16G')) { radius = 0.8; length = 45; }
+    else if (type.includes('18G')) { radius = 0.65; length = 32; }
+    else if (type.includes('20G')) { radius = 0.5; length = 30; }
+    else if (type.includes('22G')) { radius = 0.4; length = 25; }
+    else if (type.includes('24G')) { radius = 0.28; length = 19; }
+    else if (type.includes('CVC')) { radius = 0.8; length = 200; }
+    else if (type.includes('Cordis') || type.includes('MAC')) { radius = 1.4; length = 100; }
+    else if (category.includes('IO')) { radius = 0.9; length = 25; penalty = 10; }
+    
+    if (location.includes('Hand')) penalty += 20;
+    else if (location.includes('Forearm')) penalty += 10;
+    
+    const newLine = { 
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 5), 
+      name: fullName, 
+      category, 
+      type, 
+      location, 
+      radius, 
+      length, 
+      penalty,
+      fluidLine: 'gravity',
+      activeInfusions: []
+    };
+
+    logEvent(`Placed ${fullName}. Physical dimensions initialized (r: ${radius}mm, L: ${length}mm).`);
     setPatient(p => ({ 
        ...p, 
        hasIV: p.hasIV || !category.includes('Arterial'), 
        hasALine: p.hasALine || category.includes('Arterial'),
-      accessLines: [...(p.accessLines || []), fullName]
+       accessLines: [...(p.accessLines || []).filter(l => typeof l !== 'string'), newLine] // Clear legacy string lines
     }));
     setAccessModal({ show: false, category: '' });
   };
@@ -412,9 +444,13 @@ const generateClinicalHint = () => {
     } else if (vitals.spo2 < 90 && !patient.airwaySecured) {
       currentStatus = "🟠 HYPOXEMIA: Oxygen Saturation (SpO2) is critically low.";
       forecast = "If apneic, hypoxic brain injury is imminent. Secure airway immediately or initiate 100% O2 BMV.";
-    } else if (patient.isApneic && patient.oxygenBuffer < 30 && !patient.airwaySecured) {
-      currentStatus = "🟠 CRITICAL APNEA: FRC oxygen buffer is severely depleted.";
-      forecast = "Desaturation cliff approaching. Denitrogenate using BMV to buy time before intubation.";
+    } else if (patient.isApneic && !patient.airwaySecured) {
+      // Volume-based: check if O2 buffer < 30% of FRC capacity
+      const hintFrcL = (patient.lungVolumes && patient.lungVolumes.frc_L) || 2.5;
+      if ((patient.oxygenBuffer || 0) < (hintFrcL * 0.30)) {
+        currentStatus = "🟠 CRITICAL APNEA: FRC oxygen buffer is severely depleted.";
+        forecast = "Desaturation cliff approaching. Denitrogenate using BMV to buy time before intubation.";
+      }
     } else if (vitals.sys < 90) {
       if (vitals.hr > 100) currentStatus = "🔴 HYPOTENSION W/ TACHYCARDIA: Compensatory or vasodilatory shock detected.";
       else currentStatus = "🔴 HYPOTENSION W/ BRADYCARDIA: Profound shock state with loss of compensatory chronotropy.";
@@ -431,13 +467,16 @@ const generateClinicalHint = () => {
     const hasHypnotic = activeMeds.some(m => m.classes.includes('Sedative') || m.classes.includes('Hypnotic'));
     const hasParalytic = activeMeds.some(m => m.classes.includes('NDMR') || m.classes.includes('Depolarizing NMBA'));
     
+    // Volume-based FRC O2 capacity for forecasting thresholds
+    const forecastFrcL = (patient.lungVolumes && patient.lungVolumes.frc_L) || 2.5;
+
     if (forecast === "") {
         if (!patient.airwaySecured) {
             if (hasHypnotic && !patient.isApneic) {
                 forecast = "Induction agents circulating. Anticipate imminent apnea, loss of airway reflexes, and dose-dependent vasodilation. Prepare to mask ventilate and push pressors.";
             } else if (hasHypnotic && patient.isApneic) {
                 forecast = "Patient is apneic from induction. Monitor FRC buffer. Prepare to intubate once neuromuscular blockade is optimal.";
-            } else if (patient.oxygenBuffer > 85) {
+            } else if ((patient.oxygenBuffer || 0) > (forecastFrcL * 0.85)) {
                 forecast = "Excellent denitrogenation achieved. Safe to proceed with induction and paralysis. Expect 3-5 minutes of safe apnea time.";
             } else if (patient.position === 'Trendelenburg' || patient.position === 'Lithotomy') {
                 forecast = "Gravitational visceral shift is actively crushing FRC. Expect highly accelerated desaturation if patient becomes apneic. Consider ramping patient.";
@@ -697,7 +736,9 @@ const generateClinicalHint = () => {
         patient={patient} 
         vitals={vitals} 
         nibp={nibp} 
-        cycleNibp={cycleNibp} 
+        cycleNibp={cycleNibp}
+        nibpIntervalMs={nibpIntervalMs}
+        setNibpIntervalMs={setNibpIntervalMs} 
         isCyclingNibp={isCyclingNibp}
         hrSpeed={hrSpeed} 
         rrSpeed={rrSpeed} 
@@ -824,6 +865,7 @@ const generateClinicalHint = () => {
         show={preopModal}
         close={() => setPreopModal(false)}
         patient={patient}
+        setPatient={setPatient}
         logEvent={logEvent}
       />
 

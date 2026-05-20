@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MEDICATIONS, FLUIDS, INHALATIONAL_AGENTS, calculateIBW, calculateLBW, calculateAgeAdjustedMAC } from './Pharmacology.js';
+import { MEDICATIONS, FLUIDS, INHALATIONAL_AGENTS, calculateIBW, calculateLBW, calculateAgeAdjustedMAC, calculateLungVolumes } from './Pharmacology.js';
 import { PKPDModel } from './PKPDEngine.js';
 import { GasKineticsModel } from './GasKineticsEngine.js';
 
@@ -20,10 +20,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
   // CRITICAL FIX: The Physics Engine State Bridge. 
   // Prevents stale closures without forcing the interval to reset.
-  const stateRef = useRef({ time, vitals, targetVitals, patient, activeMeds, gasModels, intravascularVolume, ventSettings, gasSettings, surgicalPhase });
+  const stateRef = useRef({ time, vitals, targetVitals, patient, activeMeds, gasModels, intravascularVolume, electrolytes, ventSettings, gasSettings, surgicalPhase });
 
   useEffect(() => {
-    stateRef.current = { time, vitals, targetVitals, patient, activeMeds, gasModels, intravascularVolume, ventSettings, gasSettings, surgicalPhase };
+    stateRef.current = { time, vitals, targetVitals, patient, activeMeds, gasModels, intravascularVolume, electrolytes, ventSettings, gasSettings, surgicalPhase };
   });
 
   if (activeCase && activeCase.id !== prevCaseId) {
@@ -51,12 +51,18 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
       const ebv = weightKg * (sex.toLowerCase() === 'male' ? 75 : 65);
       const baseBleedRate = activeCase.id === 'trauma' ? 1.5 : 0.05; 
 
+      const age = activeCase.patient.age || 40;
+      const bmi = activeCase.patient.bmi || (weightKg / Math.pow(heightCm / 100, 2));
+      const lungVols = calculateLungVolumes(heightCm, age, sex, bmi);
+
       setPatient({
         ...activeCase.patient, height: heightCm, weight: weightKg, sex, ebv, ebl: 0, bleedRate: baseBleedRate,
         ibw: calculateIBW(heightCm, sex), lbw: calculateLBW(heightCm, weightKg, sex),
+        lungVolumes: lungVols,
         isApneic: false, isParalyzed: false, isTopicalized: false,
         airwaySecured: false, airwayExamined: false, ventilationStatus: 'spontaneous',
-        hasIV: false, hasALine: false, currentO2Device: 'Room Air', currentO2Flow: 0, currentFiO2: 21, oxygenBuffer: 21,
+        hasIV: false, hasALine: false, currentO2Device: 'Room Air', currentO2Flow: 0, currentFiO2: 21,
+        oxygenBuffer: lungVols.frc_L * 0.21, // Initial FRC O2 content in liters (room air = 21% of FRC)
         hasBisMonitor: false, hasTofMonitor: false,
         isArrest: false, cardiacRhythm: 'normal', cprActive: false, ischemicDamage: 0, biologicalDeath: false, myocardialStunning: 0,
         arrestThreshold: 1200, codeStartTime: null, apneaStartTime: null,
@@ -95,35 +101,59 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
       setCoags({ r_offset: activeCase.patient.trauma ? 6 : 0, ma_offset: activeCase.patient.trauma ? -15 : 0, angle_offset: activeCase.patient.trauma ? -15 : 0 });
   }
 
-  const pushFluid = (fluidName, volumeStr) => {
+    const pushFluid = (fluidName, volumeStr, lineId) => {
     const volume = parseFloat(volumeStr);
-    const hasCVC = patient.accessLines?.some(l => l.includes('CVC') || l.includes('Cordis') || l.includes('Introducer'));
-    const hasPIV = patient.accessLines?.some(l => l.includes('PIV'));
-    const hasIO = patient.accessLines?.some(l => l.includes('IO'));
-    const hasArt = patient.accessLines?.some(l => l.includes('Arterial'));
+    const targetLine = patient.accessLines?.find(l => l.id === lineId);
     
-    if (!hasCVC && !hasPIV && !hasIO) {
-        if (hasArt) {
-            logEvent(`🚨 CRITICAL ERROR: Attempted fluid resuscitation via Arterial Line! Arteries cannot accommodate high volume infusion. Retrograde flow risks cerebral embolization and severe limb ischemia!`);
-        } else {
-            logEvent(`❌ FAILED: Cannot administer ${fluidName}. No venous access!`);
-        }
+    if (!targetLine) {
+        logEvent(`❌ FAILED: Cannot administer ${fluidName}. No valid venous access line selected!`);
+        return false;
+    }
+    
+    if (targetLine.category.includes('Arterial')) {
+        logEvent(`🚨 CRITICAL ERROR: Attempted fluid resuscitation via Arterial Line! Arteries cannot accommodate high volume infusion. Retrograde flow risks cerebral embolization and severe limb ischemia!`);
         return false;
     }
 
     const fluidData = FLUIDS[fluidName]; if (!fluidData) return false;
-    const isUnit = fluidData.type === 'Blood Product' || fluidData.type === 'Colloid';
+    const isBlood = fluidData.type === 'Blood Product';
+    
+    if (isBlood && !patient.bloodPreOrdered && !patient.bloodAvailable) {
+        if (!patient.bloodOrderTime) {
+            logEvent(`🚨 Blood Bank: Order placed for ${fluidName}. It will take exactly 10 minutes (real-time) for the cooler to arrive in the OR!`);
+            setPatient(prev => ({ ...prev, bloodOrderTime: Date.now() }));
+            return false;
+        } else {
+            const elapsed = (Date.now() - patient.bloodOrderTime) / 1000;
+            if (elapsed < 600) {
+                logEvent(`❌ FAILED: Blood products have not arrived yet! (${Math.ceil((600 - elapsed)/60)} minutes remaining).`);
+                return false;
+            } else {
+                setPatient(prev => ({ ...prev, bloodAvailable: true }));
+                logEvent(`✅ Blood Bank: Cooler has arrived in the OR! Continuing administration.`);
+            }
+        }
+    }
+
+    const isUnit = isBlood || fluidData.type === 'Colloid';
     const effectiveVolumeML = isUnit && !fluidName.includes('Fibrinogen') ? volume * (fluidData.defaultVol || 300) : volume;
 
-    setPatient(prev => ({
-      ...prev,
-      fluidReservoir: [
-        ...(prev.fluidReservoir || []),
-        { name: fluidName, remainingVolume: effectiveVolumeML }
-      ]
-    }));
+    setPatient(prev => {
+        const newLines = [...(prev.accessLines || [])];
+        const lineIndex = newLines.findIndex(l => l.id === lineId);
+        if (lineIndex >= 0) {
+            newLines[lineIndex] = {
+                ...newLines[lineIndex],
+                activeInfusions: [
+                    ...(newLines[lineIndex].activeInfusions || []),
+                    { id: Date.now().toString(), name: fluidName, remainingVolume: effectiveVolumeML }
+                ]
+            };
+        }
+        return { ...prev, accessLines: newLines };
+    });
 
-    logEvent(`💧 Resuscitation Queued: ${volume} ${isUnit ? 'Units' : (fluidName.includes('Fibrinogen') ? 'g' : 'mL')} of ${fluidName} loaded into the infusion reservoir.`);
+    logEvent(`💧 Attached: ${volume} ${isUnit ? 'Units' : (fluidName.includes('Fibrinogen') ? 'g' : 'mL')} of ${fluidName} to ${targetLine.name}.`);
     return true;
   };
 
@@ -292,7 +322,9 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
             const epiBonus = activeMeds.find(m => m.name === 'Epinephrine') ? 0.10 : 0;
             
             const bloodLossRatio = (p.ebl || 0) / (p.ebv || 5000);
-            const hypoxiaPenalty = p.oxygenBuffer < 40 ? 0.6 : 0; 
+            // Volume-based hypoxia penalty: depleted if O2 in FRC < 40% of capacity
+            const patLungVols = calculateLungVolumes(p.height || 170, p.age || 40, p.sex || 'male', p.bmi || 25, p.position || 'Supine');
+            const hypoxiaPenalty = (p.oxygenBuffer || 0) < (patLungVols.frc_L * 0.40) ? 0.6 : 0; 
             const hypovolemiaPenalty = bloodLossRatio > 0.3 ? 0.6 : 0;
             
             const totalBonus = Math.min(0.4, amioBonus + lidoBonus + epiBonus);
@@ -349,75 +381,101 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const currentCOForPK = st.vitals.co || 5.0;
           const coRatio = currentCOForPK / 5.0;
           
-          // === POISEUILLE FLUID RESUSCITATION DRAINAGE ===
-          let activeFluidName = null;
-          let fluidInfusedThisTick = 0;
-          let newReservoir = [...(st.patient.fluidReservoir || [])];
-          if (newReservoir.length > 0) {
-              const activeFluid = newReservoir[0];
-              activeFluidName = activeFluid.name;
+          
+          // === POISEUILLE FLUID RESUSCITATION DRAINAGE (MULTI-LINE) ===
+          let totalFluidVolumeLiters = 0;
+          let newLines = [...(st.patient.accessLines || [])];
+          let updatedElectrolytes = { ...st.electrolytes };
+          let tbwDelta = 0;
+          let coagDelta = { r: 0, ma: 0, angle: 0 };
+          let rbcVolumeAdded = 0;
+          let activeInfusionMessages = [];
+
+          for (let lineIndex = 0; lineIndex < newLines.length; lineIndex++) {
+              let line = newLines[lineIndex];
+              if (!line.activeInfusions || line.activeInfusions.length === 0) continue;
               
-              let baseFlow = 100; // 18G default
-              const gauge = st.patient.ivGauge || '18G';
-              if (gauge === '14G') baseFlow = 275;
-              else if (gauge === '16G') baseFlow = 190;
-              else if (gauge === '18G') baseFlow = 100;
-              else if (gauge === '20G') baseFlow = 60;
-              else if (gauge === '22G') baseFlow = 45;
+              // Base Delta P (mmHg)
+              let deltaP = 74; // Gravity default
+              const lType = line.fluidLine || 'gravity';
+              if (lType === 'ranger') deltaP = 150;
+              else if (lType === 'belmont') deltaP = 300;
               
-              const hasCVC = st.patient.accessLines?.some(l => l.includes('CVC') || l.includes('Cordis') || l.includes('Introducer'));
-              if (hasCVC) baseFlow = 300;
+              // Subtract venous resistance penalty based on location
+              deltaP -= (10 + (line.penalty || 0));
+              if (deltaP < 0) deltaP = 0;
               
-              let lineMult = 1.0;
-              const lineType = st.patient.fluidLine || 'gravity';
-              if (lineType === 'belmont') lineMult = 4.0;
-              else if (lineType === 'ranger') lineMult = 1.5;
-              else if (lineType === 'gravity') lineMult = 1.0;
+              // Poiseuille Flow Calculation Q = Scale * (DeltaP * r^4) / (eta * L)
+              // We'll calculate for the first active infusion to check viscosity
+              let currentInfusion = line.activeInfusions[0];
+              const fluidData = FLUIDS[currentInfusion.name];
+              const eta = fluidData ? (fluidData.viscosity || 1.0) : 1.0;
               
-              const flowPerTick = (baseFlow * lineMult) / 60; // mL/sec
-              fluidInfusedThisTick = Math.min(activeFluid.remainingVolume, flowPerTick);
+              // Scale = 200 to match clinical rates
+              let q_ml_min = 200 * (deltaP * Math.pow(line.radius || 0.65, 4)) / (eta * (line.length || 32));
               
-              activeFluid.remainingVolume -= fluidInfusedThisTick;
-              if (activeFluid.remainingVolume <= 0) {
-                  newReservoir.shift();
-              } else {
-                  newReservoir[0] = activeFluid;
+              // Belmont absolute max cap is 500 mL/min
+              if (lType === 'belmont' && q_ml_min > 500) q_ml_min = 500;
+              
+              const q_ml_sec = q_ml_min / 60;
+              let infusedThisTick = Math.min(currentInfusion.remainingVolume, q_ml_sec);
+              
+              if (infusedThisTick > 0 && fluidData) {
+                  currentInfusion.remainingVolume -= infusedThisTick;
+                  const volLiters = infusedThisTick / 1000;
+                  totalFluidVolumeLiters += volLiters;
+                  
+                  const isUnit = fluidData.type === 'Blood Product' || fluidData.type === 'Colloid';
+                  const unitEq = isUnit ? (infusedThisTick / (fluidData.defaultVol || 300)) : volLiters;
+                  
+                  const retFactor = (st.patient.isSeptic || st.patient.trauma) ? fluidData.retentionInflamed : fluidData.retentionIntact;
+                  setIntravascularVolume(prev => prev + (infusedThisTick * retFactor));
+                  
+                  tbwDelta += volLiters;
+                  const prevTBW = st.patient.weight * 0.6 + tbwDelta;
+                  const newTBW = prevTBW + volLiters;
+                  
+                  updatedElectrolytes.k = updatedElectrolytes.k + (((updatedElectrolytes.k * prevTBW) + (fluidData.k * volLiters)) / newTBW - updatedElectrolytes.k);
+                  updatedElectrolytes.na = ((updatedElectrolytes.na * prevTBW) + (fluidData.na * volLiters)) / newTBW;
+                  updatedElectrolytes.cl = ((updatedElectrolytes.cl * prevTBW) + (fluidData.cl * volLiters)) / newTBW;
+                  updatedElectrolytes.ca = Math.max(1.0, updatedElectrolytes.ca + (fluidData.ca * (isUnit ? unitEq : volLiters)) - (fluidData.citrateLoad * unitEq * 0.02));
+                  updatedElectrolytes.ph = updatedElectrolytes.ph - (fluidData.cl > 110 ? 0.05 * volLiters : 0);
+                  
+                  coagDelta.r += (fluidData.coag.r * unitEq);
+                  coagDelta.ma += (fluidData.coag.ma * unitEq);
+                  coagDelta.angle += (fluidData.coag.angle * unitEq);
+                  
+                  if (fluidData.type === 'Blood Product') rbcVolumeAdded += infusedThisTick;
               }
               
-              const fluidData = FLUIDS[activeFluidName];
-              if (fluidData) {
-                  const volumeLiters = fluidInfusedThisTick / 1000;
-                  const isUnit = fluidData.type === 'Blood Product' || fluidData.type === 'Colloid';
-                  const unitEquivalent = isUnit ? (fluidInfusedThisTick / (fluidData.defaultVol || 300)) : volumeLiters;
-                  
-                  const retentionFactor = (st.patient.isSeptic || st.patient.trauma) ? fluidData.retentionInflamed : fluidData.retentionIntact;
-                  
-                  setIntravascularVolume(prev => prev + (fluidInfusedThisTick * retentionFactor));
-                  
-                  setTotalBodyWaterLiters(prevTBW => {
-                      const newTBW = prevTBW + volumeLiters;
-                      setElectrolytes(prev => {
-                          const baseKChange = ((prev.k * prevTBW) + (fluidData.k * volumeLiters)) / newTBW - prev.k;
-                          const caDrop = (fluidData.ca * (isUnit ? unitEquivalent : volumeLiters)) - (fluidData.citrateLoad * unitEquivalent * 0.02);
-                          const phDrop = (fluidData.cl > 110 ? 0.05 * volumeLiters : 0);
-                          return {
-                              na: ((prev.na * prevTBW) + (fluidData.na * volumeLiters)) / newTBW,
-                              k: prev.k + baseKChange,
-                              cl: ((prev.cl * prevTBW) + (fluidData.cl * volumeLiters)) / newTBW,
-                              ca: Math.max(1.0, prev.ca + caDrop),
-                              ph: prev.ph - phDrop
-                          };
-                      });
-                      return newTBW;
-                  });
-                  
-                  setCoags(prev => ({
-                      r_offset: prev.r_offset + (fluidData.coag.r * unitEquivalent),
-                      ma_offset: prev.ma_offset + (fluidData.coag.ma * unitEquivalent),
-                      angle_offset: prev.angle_offset + (fluidData.coag.angle * unitEquivalent)
-                  }));
+              if (currentInfusion.remainingVolume <= 0) {
+                  activeInfusionMessages.push(`✅ Infusion Complete: ${currentInfusion.name} via ${line.name}`);
+                  line.activeInfusions.shift();
               }
           }
+          
+          if (tbwDelta > 0) {
+              setTotalBodyWaterLiters(prev => prev + tbwDelta);
+              setElectrolytes(updatedElectrolytes);
+              setCoags(prev => ({
+                  r_offset: prev.r_offset + coagDelta.r,
+                  ma_offset: prev.ma_offset + coagDelta.ma,
+                  angle_offset: prev.angle_offset + coagDelta.angle
+              }));
+          }
+          
+          if (activeInfusionMessages.length > 0) {
+              setPatient(prev => {
+                  activeInfusionMessages.forEach(msg => {
+                    prev.events = [...(prev.events || []), { time: Date.now(), msg, type: 'info' }];
+                  });
+                  return { ...prev, accessLines: newLines };
+              });
+          } else if (tbwDelta > 0) {
+              setPatient(prev => ({ ...prev, accessLines: newLines })); // Sync line state silently
+          }
+          // === END POISEUILLE DRAINAGE ===
+
 
           // Calculate dynamic V1 modifier based on active fluid/blood volume state
           const currentBloodVolume = (st.patient.ebv || 5000) - (st.patient.ebl || 0) + st.intravascularVolume;
@@ -649,19 +707,42 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               positionFRCMod = -0.1;
           }
 
-          const FRC_Liters = Math.max(0.5, (st.patient.height * 0.02) - (st.patient.isObese ? 0.8 : 0) + ((st.ventSettings?.peep || 0) * 0.05) + positionFRCMod);
-          let buffer = st.patient.oxygenBuffer || 21;
+          // === VOLUME-BASED FRC O2 RESERVOIR (replaces percentage surrogate) ===
+          // Uses calculateLungVolumes for position & obesity-adjusted FRC
+          const currentLungVols = calculateLungVolumes(
+              st.patient.height || 170,
+              st.patient.age || 40,
+              st.patient.sex || 'male',
+              st.patient.bmi || 25,
+              st.patient.position || 'Supine'
+          );
+          const currentFRC_L = currentLungVols.frc_L; // Position & obesity-adjusted FRC in liters
+
+          let buffer = st.patient.oxygenBuffer || (currentFRC_L * 0.21); // Liters of O2 in FRC
 
           if ((st.patient.isApneic || st.patient.isParalyzed) && !st.patient.airwaySecured) {
-            buffer -= (VO2_sec / FRC_Liters) * 100; 
+              // Apneic: O2 consumed from FRC reservoir at VO2 rate
+              buffer -= VO2_sec; // VO2_sec is already in L/sec (~0.00417 L/s at baseline 250mL/min)
           } else {
-            const replenishmentFiO2 = st.patient.airwaySecured ? deliveredFiO2 : (st.patient.currentFiO2 || 21);
-            let flowLitersPerSec = st.patient.currentO2Flow !== undefined ? (st.patient.currentO2Flow / 60) : 0.25;
-            if (!st.patient.airwaySecured && flowLitersPerSec < 0.1) flowLitersPerSec = ((st.targetVitals.rr || 12) * 0.5) / 60;
-            
-            buffer += (flowLitersPerSec / FRC_Liters) * (replenishmentFiO2 - buffer); 
+              // Breathing: Nitrogen washout / O2 equilibration
+              const replenishmentFiO2 = st.patient.airwaySecured ? deliveredFiO2 : (st.patient.currentFiO2 || 21);
+              const targetO2_L = currentFRC_L * (replenishmentFiO2 / 100); // Target O2 content at current FiO2
+
+              // Washout rate constant k = MV / FRC (Eger & Severinghaus 1963)
+              let effectiveMV_L_min;
+              if (st.patient.airwaySecured) {
+                  effectiveMV_L_min = st.vitals.mv || 6.0;
+              } else {
+                  effectiveMV_L_min = ((st.targetVitals.rr || 12) * 0.5); // Spontaneous ~6 L/min
+                  if (st.patient.currentO2Flow > 0) effectiveMV_L_min = Math.max(effectiveMV_L_min, st.patient.currentO2Flow);
+              }
+              const k = effectiveMV_L_min / 60 / currentFRC_L; // per-second rate constant
+
+              // Exponential approach to target: buffer += k * (target - current)
+              buffer += k * (targetO2_L - buffer);
           }
-          const currentBuffer = Math.min(100, Math.max(0, buffer));
+          buffer = Math.max(0, Math.min(currentFRC_L, buffer)); // Clamp: 0 to FRC
+          const currentBuffer = buffer; // This is now in liters of O2
 
           let newPip = 0; let newVte = 0; let newPplat = 0; let newPmean = 0; let newMv = 0; let newPeep = 0;
           const opioidRRDrop = (opioidEff * 10) + m6gRrDelta;
@@ -853,7 +934,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let newPh = 6.1 + Math.log10(hco3 / (0.03 * newPaCO2));
 
           // === CA-1 ADVANCED OXYGENATION CALCULUS (FICK PRINCIPLE & RILEY SHUNT) ===
-          const PAO2 = (713 * (currentBuffer / 100)) - (newPaCO2 / 0.8);
+          // Alveolar Gas Equation with volume-based FRC O2 fraction
+          // currentBuffer is in liters of O2, currentFRC_L is total FRC volume
+          const alveolarFiO2 = Math.min(100, (currentBuffer / currentFRC_L) * 100); // Convert liters back to % for gas equation
+          const PAO2 = (713 * (alveolarFiO2 / 100)) - (newPaCO2 / 0.8);
           const baseAaGradient = (st.patient.age / 4) + 4; 
           const AaGradient = baseAaGradient + (st.patient.isObese ? 12 : 0) + (st.patient.isSeptic ? 15 : 0) + (hasAspirated ? 25 : 0);
           const capillaryPO2 = Math.max(10, PAO2 - AaGradient);
@@ -908,7 +992,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           if (Math.abs(targetEtco2 - (st.vitals.etco2 || 40)) < 1.5) newEtco2 = targetEtco2;
 
           // === POTASSIUM HYPERKALEMIA ECG Rhythm & Cardiac arrest progression ===
-          let kLevel = electrolytes.k || 4.0;
+          let kLevel = (st.electrolytes || electrolytes).k || 4.0;
           const isCalciumStabilized = st.patient.calciumStabilized && (st.time - st.patient.calciumStabilizedTime < 300);
           
           if (!isCalciumStabilized) {
@@ -966,7 +1050,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let spontaneousRosc = false;
           if (isArrestState && (currentRhythm === 'pea' || currentRhythm === 'asystole') && st.patient.cprActive) {
               const hasEpi = st.activeMeds.some(m => m.name === 'Epinephrine' && m.A1 > 0.1);
-              if (currentBuffer > 50 && bloodLossRatioForArrest < 0.2 && hasEpi && Math.random() < 0.04) {
+              // Volume-based ROSC threshold: O2 buffer must be > 50% of current FRC capacity
+              if (currentBuffer > (currentFRC_L * 0.50) && bloodLossRatioForArrest < 0.2 && hasEpi && Math.random() < 0.04) {
                   spontaneousRosc = true;
               }
           }
@@ -1023,7 +1108,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
           setPatient(prev => {
               let codeTime = prev.codeStartTime;
-              if (isArrestState && !prev.isArrest) codeTime = time; 
+              if (isArrestState && !prev.isArrest) codeTime = st.time; 
               if (!isArrestState) codeTime = null;
               
               let newThreshold = prev.arrestThreshold || 1200;
@@ -1038,7 +1123,6 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                   ischemicDamage: newDamage, isArrest: isArrestState, biologicalDeath: bioDeath,
                   cardiacRhythm: currentRhythm, myocardialStunning: Math.max(0, (prev.myocardialStunning || 0) - 0.2),
                   codeStartTime: codeTime, arrestThreshold: newThreshold, apneaStartTime: newApneaStart,
-                  fluidReservoir: newReservoir, fluidInfusing: activeFluidName,
                   vec3oh: currentVec3oh, normep: currentNormep, m6g: currentM6g, cyanide: currentCyanide,
                   lacticAcid: currentLactate, hasAspirated, temp: newTemp
               };
@@ -1054,7 +1138,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               peep: newPeep, pmean: Math.round(newPmean), mv: newMv,
               mac: currentMac, etAgent: currentEtAgent, etN2O: currentEtN2O, pao2: targetPaO2, paco2: newPaCO2, ph: newPh,
               compl: Math.round(currentCompliance), res: Math.round(currentResistance),
-              cao2: arterialO2Content, cvo2: venousO2Content, p50: p50, r_ratio: R_ratio,
+              cao2: arterialO2Content, cvo2: venousO2Content, p50: st.vitals.p50 || 26.6, r_ratio: R_ratio,
               metHb: st.patient.metHb, coHb: st.patient.coHb
           }));
         } catch (error) {

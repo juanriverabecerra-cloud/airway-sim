@@ -43,34 +43,42 @@ export const PatientHeader = ({ activeCase, patient, vitals, setActiveCase, hand
         <div className="flex flex-col md:flex-row items-start md:items-center gap-3 bg-slate-950 p-3 rounded-lg border border-slate-800 w-full shadow-inner">
           <p className="text-slate-400 text-xs font-bold uppercase tracking-widest min-w-max">Pre-Ox FRC</p>
           
-          {/* Clinical FRC Visualizer */}
-          <div className="h-6 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-700 relative shadow-inner">
-             <div className="absolute top-0 bottom-0 left-0 w-[21%] bg-red-950/40"></div>
-             <div className="absolute top-0 bottom-0 left-[21%] border-l-2 border-red-500/50 z-10"></div>
-             <span className="absolute top-[3px] left-[22%] text-[9px] font-bold text-red-400/80 z-10 leading-none">RA (21%)</span>
-             
-             <div className="absolute top-0 bottom-0 left-[90%] border-l-2 border-green-500/50 z-10"></div>
-             <span className="absolute top-[3px] left-[91%] text-[9px] font-bold text-green-400/80 z-10 leading-none">TARGET</span>
-             <div className="absolute top-0 bottom-0 left-[90%] right-0 bg-green-950/20"></div>
+          {/* Clinical FRC Visualizer — converts volume-based oxygenBuffer (L O2) to FRC O2 saturation % */}
+          {(() => {
+            const frcL = (patient.lungVolumes && patient.lungVolumes.frc_L) || 2.5;
+            const bufferPct = Math.min(100, Math.max(0, ((patient.oxygenBuffer || 0) / frcL) * 100));
+            return (
+              <>
+                <div className="h-6 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-700 relative shadow-inner">
+                   <div className="absolute top-0 bottom-0 left-0 w-[21%] bg-red-950/40"></div>
+                   <div className="absolute top-0 bottom-0 left-[21%] border-l-2 border-red-500/50 z-10"></div>
+                   <span className="absolute top-[3px] left-[22%] text-[9px] font-bold text-red-400/80 z-10 leading-none">RA (21%)</span>
+                   
+                   <div className="absolute top-0 bottom-0 left-[90%] border-l-2 border-green-500/50 z-10"></div>
+                   <span className="absolute top-[3px] left-[91%] text-[9px] font-bold text-green-400/80 z-10 leading-none">TARGET</span>
+                   <div className="absolute top-0 bottom-0 left-[90%] right-0 bg-green-950/20"></div>
 
-             <div 
-               className={`h-full transition-all duration-1000 ease-linear relative ${
-                 patient.oxygenBuffer < 21 ? 'bg-red-500' : (patient.oxygenBuffer > 88 ? 'bg-green-500' : 'bg-blue-500')
-               }`} 
-               style={{width: `${Math.min(100, Math.max(0, patient.oxygenBuffer))}%`}}
-             >
-                <div className="absolute top-0 left-0 right-0 h-1/2 bg-white/20"></div> {/* 3D Shine */}
-             </div>
-          </div>
+                   <div 
+                     className={`h-full transition-all duration-1000 ease-linear relative ${
+                       bufferPct < 21 ? 'bg-red-500' : (bufferPct > 88 ? 'bg-green-500' : 'bg-blue-500')
+                     }`} 
+                     style={{width: `${bufferPct}%`}}
+                   >
+                      <div className="absolute top-0 left-0 right-0 h-1/2 bg-white/20"></div> {/* 3D Shine */}
+                   </div>
+                </div>
 
-          <div className="flex items-center justify-between w-full md:w-auto gap-4 min-w-max">
-             <span className={`font-black text-lg w-12 text-right ${patient.oxygenBuffer < 21 ? 'text-red-500' : (patient.oxygenBuffer > 88 ? 'text-green-400' : 'text-blue-400')}`}>
-               {Math.round(patient.oxygenBuffer)}%
-             </span>
-             <div className="text-slate-500 text-[10px] leading-tight border-l border-slate-700 pl-3">
-               Device:<br/><span className="text-slate-300 font-bold text-xs">{patient.currentO2Device}</span>
-             </div>
-          </div>
+                <div className="flex items-center justify-between w-full md:w-auto gap-4 min-w-max">
+                   <span className={`font-black text-lg w-12 text-right ${bufferPct < 21 ? 'text-red-500' : (bufferPct > 88 ? 'text-green-400' : 'text-blue-400')}`}>
+                     {Math.round(bufferPct)}%
+                   </span>
+                   <div className="text-slate-500 text-[10px] leading-tight border-l border-slate-700 pl-3">
+                     Device:<br/><span className="text-slate-300 font-bold text-xs">{patient.currentO2Device}</span>
+                   </div>
+                </div>
+              </>
+            );
+          })()}
         </div>
       </header>
 

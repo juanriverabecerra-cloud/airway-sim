@@ -2,7 +2,7 @@ import React from 'react';
 import { Activity, Heart, Wind, RefreshCw, Thermometer } from 'lucide-react';
 import { CanvasWaveform } from '../CanvasWaveform';
 
-export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp, hrSpeed, rrSpeed, gasSettings, ventSettings }) => {
+export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp, hrSpeed, rrSpeed, gasSettings, ventSettings, nibpIntervalMs, setNibpIntervalMs }) => {
   const showBottomRow = patient.hasBisMonitor || patient.hasTofMonitor || (patient.airwaySecured && vitals.mac > 0);
 
   return (
@@ -69,11 +69,11 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
             <div className={`text-4xl lg:text-5xl font-black leading-none ${vitals.spo2 < 88 ? 'text-cyan-600 animate-pulse' : 'text-cyan-400'}`}>{vitals.spo2}%</div>
           </div>
           <div className="grid grid-cols-2 gap-x-1 gap-y-0.5 mt-1 text-[9px] text-cyan-600 font-bold border-t border-slate-900 pt-1">
-            <div>MetHb: <span className="text-cyan-400">{(vitals.metHb ?? 0).toFixed(1)}%</span></div>
-            <div>COHb: <span className="text-cyan-400">{(vitals.coHb ?? 0).toFixed(1)}%</span></div>
+            <div><abbr title="Methemoglobin">MetHb</abbr>: <span className="text-cyan-400">{(vitals.metHb ?? 0).toFixed(1)}%</span></div>
+            <div><abbr title="Carboxyhemoglobin">COHb</abbr>: <span className="text-cyan-400">{(vitals.coHb ?? 0).toFixed(1)}%</span></div>
             <div>R-Ratio: <span className="text-cyan-400">{(vitals.r_ratio ?? 0.85).toFixed(2)}</span></div>
-            <div>CaO2: <span className="text-cyan-400">{(vitals.cao2 ?? 20).toFixed(1)} <span className="text-[7px]">mL/dL</span></span></div>
-            <div className="col-span-2">CvO2: <span className="text-cyan-400">{(vitals.cvo2 ?? 15).toFixed(1)} <span className="text-[7px]">mL/dL</span></span></div>
+            <div><abbr title="Arterial Oxygen Content">CaO2</abbr>: <span className="text-cyan-400">{(vitals.cao2 ?? 20).toFixed(1)} <span className="text-[7px]">mL/dL</span></span></div>
+            <div className="col-span-2"><abbr title="Venous Oxygen Content">CvO2</abbr>: <span className="text-cyan-400">{(vitals.cvo2 ?? 15).toFixed(1)} <span className="text-[7px]">mL/dL</span></span></div>
           </div>
         </div>
 
@@ -85,13 +85,30 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
         
         <div className="flex flex-col w-full my-1 pt-2 border-t border-slate-800">
           <div className="text-red-500 font-bold flex justify-between items-end w-full mb-1">
-            <span className="flex items-center gap-1 text-xs"><Activity size={14} className="inline"/> {patient.hasALine ? 'ART' : 'NIBP'}</span>
-            {!patient.hasALine && <button onClick={cycleNibp} disabled={isCyclingNibp} className={`text-slate-400 hover:text-white bg-slate-800 p-1 rounded transition ${isCyclingNibp ? 'animate-spin text-cyan-400' : ''}`}><RefreshCw size={10}/></button>}
+            <span className="flex items-center gap-1 text-xs"><Activity size={14} className="inline"/> {patient.hasALine ? <abbr title="Arterial Line (Invasive Blood Pressure)">ART</abbr> : <abbr title="Non-Invasive Blood Pressure">NIBP</abbr>}</span>
+            {!patient.hasALine && (
+              <div className="flex items-center gap-1">
+                  <select 
+                      value={nibpIntervalMs} 
+                      onChange={(e) => setNibpIntervalMs(Number(e.target.value))}
+                      className="bg-slate-900 border border-slate-700 text-[10px] text-slate-300 rounded p-0.5 outline-none cursor-pointer"
+                  >
+                      <option value={0}>Manual</option>
+                      <option value={15000}>15s</option>
+                      <option value={30000}>30s</option>
+                      <option value={60000}>1m</option>
+                      <option value={120000}>2m</option>
+                      <option value={180000}>3m</option>
+                      <option value={300000}>5m</option>
+                  </select>
+                  <button onClick={cycleNibp} disabled={isCyclingNibp} className={`text-slate-400 hover:text-white bg-slate-800 p-1 rounded transition ${isCyclingNibp ? 'animate-spin text-cyan-400' : ''}`}><RefreshCw size={10}/></button>
+              </div>
+            )}
           </div>
           <div className="flex justify-between items-start w-full">
             {/* PPV Column */}
             <div className="flex flex-col items-start w-[35%]">
-              <span className="text-[10px] text-red-500/70 font-bold tracking-widest uppercase">PPV</span>
+              <span className="text-[10px] text-red-500/70 font-bold tracking-widest uppercase"><abbr title="Pulse Pressure Variation">PPV</abbr></span>
               {(() => {
                 const hasSinus = patient.cardiacRhythm === 'normal';
                 const isMechVent = patient.ventilationStatus === 'mechanical' || (ventSettings?.mode && ventSettings?.mode !== 'spontaneous');
@@ -125,12 +142,12 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
               </div>
               <div className="text-lg lg:text-xl font-black text-red-500/90 mt-1 flex flex-col items-end gap-0.5">
                 <div className="flex items-center gap-1">
-                  <span className="text-[10px] text-red-500/70 font-bold tracking-widest uppercase">MAP</span>
+                  <span className="text-[10px] text-red-500/70 font-bold tracking-widest uppercase"><abbr title="Mean Arterial Pressure">MAP</abbr></span>
                   <span>({Math.round(vitals.map || ((patient.hasALine ? vitals.dia : nibp.dia) + ((patient.hasALine ? vitals.sys : nibp.sys) - (patient.hasALine ? vitals.dia : nibp.dia)) / 3))})</span>
                 </div>
                 {patient.position && patient.position !== 'Supine' && (
                   <div className="flex items-center gap-1 text-orange-400">
-                    <span className="text-[9px] font-bold tracking-widest uppercase opacity-85">cMAP</span>
+                    <span className="text-[9px] font-bold tracking-widest uppercase opacity-85"><abbr title="Calculated Mean Arterial Pressure at base of skull">cMAP</abbr></span>
                     <span>({Math.round(vitals.cmap || 0)})</span>
                   </div>
                 )}
