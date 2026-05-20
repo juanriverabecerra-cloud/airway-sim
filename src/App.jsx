@@ -964,8 +964,8 @@ const generateClinicalHint = () => {
         patient={patient} 
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 flex-1 min-h-[400px]">
-        <ActionPanel 
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-280px)] min-h-[550px] items-start">
+        <ActionPanel
            patient={patient} 
            setPatient={setPatient} 
            defibSettings={defibSettings} 

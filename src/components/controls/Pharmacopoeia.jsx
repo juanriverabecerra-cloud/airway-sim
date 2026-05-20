@@ -195,7 +195,7 @@ export const Pharmacopoeia = ({ pushFluid, processMed, patient, setPatient }) =>
   const filteredMeds = Object.keys(MEDICATIONS).filter(id => MEDICATIONS[id].name.toLowerCase().includes(term) || MEDICATIONS[id].classes.some(c => c.toLowerCase().includes(term)));
 
   return (
-    <div className="col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-4 overflow-y-auto custom-scrollbar h-full max-h-[800px] relative">
+    <div className="col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-4 overflow-y-auto overflow-x-hidden custom-scrollbar h-full max-h-full min-h-full relative shadow-inner">
       
       {/* Omni-Search Header */}
       <div className="sticky top-0 z-50 bg-slate-900 pb-2 border-b border-slate-800">
@@ -221,9 +221,6 @@ export const Pharmacopoeia = ({ pushFluid, processMed, patient, setPatient }) =>
 
       {searchTerm ? (
         <div className="flex flex-col gap-1 mt-2">
-          {filteredFluids.length > 0 && <span className="text-teal-400 text-[10px] font-bold uppercase tracking-widest border-b border-teal-900 pb-1 mt-2 mb-1">Fluids & Blood</span>}
-          {filteredFluids.map(f => renderFluidButton(f, f, '', FLUIDS[f].type === 'Blood Product' ? 'bg-red-900/40 border-red-800' : 'bg-blue-900/20 border-blue-800'))}
-          
           {filteredMeds.length > 0 && <span className="text-cyan-400 text-[10px] font-bold uppercase tracking-widest border-b border-cyan-900 pb-1 mt-2 mb-1">Medications</span>}
           {filteredMeds.map(m => renderAdvancedMedButton(m))}
           
@@ -233,6 +230,9 @@ export const Pharmacopoeia = ({ pushFluid, processMed, patient, setPatient }) =>
         </div>
       ) : (
         <>
+          <div className="text-cyan-400 text-xs font-bold uppercase tracking-wider mb-2 pb-1 border-b border-cyan-900/50">
+            Medications & Resuscitation
+          </div>
           {/* Fluid Resuscitation Line Selector */}
           {(!searchTerm || ['gravity', 'ranger', 'belmont', 'infusion', 'equipment', 'line', 'resuscitation', 'fluid line'].some(k => k.includes(searchTerm.toLowerCase()))) && (
             <div className="bg-slate-950/60 border border-teal-950 p-3 rounded-lg mb-2 flex flex-col gap-2">
