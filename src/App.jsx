@@ -121,7 +121,7 @@ export default function App() {
  
   const {
     time, setTime, vitals, setVitals, targetVitals, setTargetVitals, patient, setPatient,
-    processMed, pushMed, pushFluid, activeMeds, intravascularVolume, electrolytes, coags,
+    processMed, pushMed, pushFluid, updateFluidRate, activeMeds, intravascularVolume, electrolytes, coags,
     deliverShock, toggleCPR, surgicalPhase, setSurgicalPhase, createSnapshot, restoreSnapshot
   } = usePhysiology({
     activeCase,
@@ -958,6 +958,7 @@ const generateClinicalHint = () => {
            handleExtubation={handleExtubation}
            activeMeds={activeMeds}
            processMed={handleProcessMed}
+           updateFluidRate={updateFluidRate}
         />
         
         <LogPanel 

@@ -48,11 +48,7 @@ export const Pharmacopoeia = ({ pushFluid, processMed, patient, setPatient }) =>
             <select value={fluidInput.lineId || patient.accessLines?.[0]?.id || ''} onChange={(e) => setFluidInput({...fluidInput, lineId: e.target.value})} className="w-full bg-slate-950 text-xs text-slate-300 border border-slate-700 rounded p-1 mb-2">
               {patient.accessLines?.length > 0 ? patient.accessLines.map(l => <option key={l.id} value={l.id}>{l.name}</option>) : <option value="">No Lines Available</option>}
             </select>
-            {medInput.route === 'IV' && (
-              <select value={medInput.lineId || patient.accessLines?.[0]?.id || ''} onChange={(e) => setMedInput({...medInput, lineId: e.target.value})} className="bg-slate-950 text-xs text-slate-300 border border-slate-700 rounded p-1">
-                {patient.accessLines?.length > 0 ? patient.accessLines.map(l => <option key={l.id} value={l.id}>{l.name}</option>) : <option value="">No Venous Lines</option>}
-              </select>
-            )}
+
             <div className="flex gap-2">
               <input 
               autoFocus 

@@ -143,7 +143,7 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
               <div className="text-lg lg:text-xl font-black text-red-500/90 mt-1 flex flex-col items-end gap-0.5">
                 <div className="flex items-center gap-1">
                   <span className="text-[10px] text-red-500/70 font-bold tracking-widest uppercase"><abbr title="Mean Arterial Pressure">MAP</abbr></span>
-                  <span>({Math.round(vitals.map || ((patient.hasALine ? vitals.dia : nibp.dia) + ((patient.hasALine ? vitals.sys : nibp.sys) - (patient.hasALine ? vitals.dia : nibp.dia)) / 3))})</span>
+                  <span>({Math.round(patient.hasALine ? vitals.map : (nibp.dia + (nibp.sys - nibp.dia) / 3))})</span>
                 </div>
                 {patient.position && patient.position !== 'Supine' && (
                   <div className="flex items-center gap-1 text-orange-400">

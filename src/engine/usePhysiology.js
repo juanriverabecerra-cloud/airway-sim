@@ -159,6 +159,26 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     return true;
   };
 
+  const updateFluidRate = (lineId, infusionId, newRate_ml_hr) => {
+    setPatient(prev => {
+        const newLines = [...(prev.accessLines || [])];
+        const lineIndex = newLines.findIndex(l => l.id === lineId);
+        if (lineIndex >= 0) {
+            const infusions = [...(newLines[lineIndex].activeInfusions || [])];
+            const infIndex = infusions.findIndex(i => i.id === infusionId);
+            if (infIndex >= 0) {
+                if (newRate_ml_hr === '' || newRate_ml_hr === null || isNaN(parseFloat(newRate_ml_hr))) {
+                    delete infusions[infIndex].userRate;
+                } else {
+                    infusions[infIndex] = { ...infusions[infIndex], userRate: parseFloat(newRate_ml_hr) };
+                }
+                newLines[lineIndex] = { ...newLines[lineIndex], activeInfusions: infusions };
+            }
+        }
+        return { ...prev, accessLines: newLines };
+    });
+  };
+
   const processMed = (medId, doseInput, route, type, unit) => {
     const hasCVC = patient.accessLines?.some(l => l.includes('CVC') || l.includes('Cordis') || l.includes('Introducer'));
     const hasPIV = patient.accessLines?.some(l => l.includes('PIV'));
@@ -418,6 +438,11 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               
               // Belmont absolute max cap is 500 mL/min
               if (lType === 'belmont' && q_ml_min > 500) q_ml_min = 500;
+              
+              if (currentInfusion.userRate !== undefined) {
+                  const user_ml_min = currentInfusion.userRate / 60;
+                  q_ml_min = Math.min(q_ml_min, user_ml_min);
+              }
               
               const q_ml_sec = q_ml_min / 60;
               let infusedThisTick = Math.min(currentInfusion.remainingVolume, q_ml_sec);
@@ -1334,5 +1359,5 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     };
   };
 
-  return { time, setTime, vitals, setVitals, targetVitals, setTargetVitals, patient, setPatient, processMed, pushMed, pushFluid, activeMeds, intravascularVolume, electrolytes, coags, deliverShock, toggleCPR, surgicalPhase, setSurgicalPhase, createSnapshot, restoreSnapshot };
+  return { time, setTime, vitals, setVitals, targetVitals, setTargetVitals, patient, setPatient, processMed, pushMed, pushFluid, updateFluidRate, activeMeds, intravascularVolume, electrolytes, coags, deliverShock, toggleCPR, surgicalPhase, setSurgicalPhase, createSnapshot, restoreSnapshot };
 }

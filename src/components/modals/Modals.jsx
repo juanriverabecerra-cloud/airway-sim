@@ -78,28 +78,49 @@ export const AccessModal = ({ data, close, establishAccess }) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-slate-800 p-4 rounded border border-slate-700">
               <h3 className="font-bold text-green-400 mb-2">Antecubital (AC)</h3>
-              {['16G', '18G', '20G'].map(size => (
-                <div key={`ac-${size}`} className="flex gap-2 mb-1">
-                  <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Right AC')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Right</button>
-                  <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Left AC')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Left</button>
+              {[
+                { size: '16G', rate: '135mL/min' },
+                { size: '18G', rate: '80mL/min' },
+                { size: '20G', rate: '30mL/min' }
+              ].map(item => (
+                <div key={`ac-${item.size}`} className="flex flex-col gap-1 mb-2">
+                  <span className="text-[10px] text-slate-400">{item.size} (Max Gravity: ~{item.rate})</span>
+                  <div className="flex gap-2">
+                    <button onClick={() => establishAccess('PIV', `${item.size} PIV`, 'Right AC')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">Right</button>
+                    <button onClick={() => establishAccess('PIV', `${item.size} PIV`, 'Left AC')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">Left</button>
+                  </div>
                 </div>
               ))}
             </div>
             <div className="bg-slate-800 p-4 rounded border border-slate-700">
               <h3 className="font-bold text-green-400 mb-2">Forearm</h3>
-              {['18G', '20G', '22G'].map(size => (
-                <div key={`forearm-${size}`} className="flex gap-2 mb-1">
-                  <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Right Forearm')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Right</button>
-                  <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Left Forearm')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Left</button>
+              {[
+                { size: '18G', rate: '80mL/min' },
+                { size: '20G', rate: '30mL/min' },
+                { size: '22G', rate: '15mL/min' }
+              ].map(item => (
+                <div key={`forearm-${item.size}`} className="flex flex-col gap-1 mb-2">
+                  <span className="text-[10px] text-slate-400">{item.size} (Max Gravity: ~{item.rate})</span>
+                  <div className="flex gap-2">
+                    <button onClick={() => establishAccess('PIV', `${item.size} PIV`, 'Right Forearm')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">Right</button>
+                    <button onClick={() => establishAccess('PIV', `${item.size} PIV`, 'Left Forearm')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">Left</button>
+                  </div>
                 </div>
               ))}
             </div>
             <div className="bg-slate-800 p-4 rounded border border-slate-700">
               <h3 className="font-bold text-green-400 mb-2">Hand</h3>
-              {['20G', '22G', '24G'].map(size => (
-                <div key={`hand-${size}`} className="flex gap-2 mb-1">
-                  <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Right Hand')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Right</button>
-                  <button onClick={() => establishAccess('PIV', `${size} PIV`, 'Left Hand')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">{size} Left</button>
+              {[
+                { size: '20G', rate: '30mL/min' },
+                { size: '22G', rate: '15mL/min' },
+                { size: '24G', rate: '4mL/min' }
+              ].map(item => (
+                <div key={`hand-${item.size}`} className="flex flex-col gap-1 mb-2">
+                  <span className="text-[10px] text-slate-400">{item.size} (Max Gravity: ~{item.rate})</span>
+                  <div className="flex gap-2">
+                    <button onClick={() => establishAccess('PIV', `${item.size} PIV`, 'Right Hand')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">Right</button>
+                    <button onClick={() => establishAccess('PIV', `${item.size} PIV`, 'Left Hand')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-green-500">Left</button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -110,36 +131,45 @@ export const AccessModal = ({ data, close, establishAccess }) => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-slate-800 p-4 rounded border border-slate-700">
               <h3 className="font-bold text-purple-400 mb-2">Internal Jugular (IJ)</h3>
-              {['Triple Lumen CVC', 'MAC Introducer'].map(type => (
-                <div key={`ij-${type}`} className="flex flex-col gap-1 mb-3">
-                  <span className="text-[10px] text-slate-400">{type}</span>
+              {[
+                { type: 'Triple Lumen CVC', rate: '30mL/min (each)' },
+                { type: 'MAC Introducer', rate: '500+mL/min' }
+              ].map(item => (
+                <div key={`ij-${item.type}`} className="flex flex-col gap-1 mb-3">
+                  <span className="text-[10px] text-slate-400">{item.type} (Max: ~{item.rate})</span>
                   <div className="flex gap-2">
-                    <button onClick={() => establishAccess('CVC', type, 'Right IJ')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Right</button>
-                    <button onClick={() => establishAccess('CVC', type, 'Left IJ')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Left</button>
+                    <button onClick={() => establishAccess('CVC', item.type, 'Right IJ')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Right</button>
+                    <button onClick={() => establishAccess('CVC', item.type, 'Left IJ')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Left</button>
                   </div>
                 </div>
               ))}
             </div>
             <div className="bg-slate-800 p-4 rounded border border-slate-700">
               <h3 className="font-bold text-purple-400 mb-2">Subclavian</h3>
-              {['Triple Lumen CVC', 'Trauma Cordis'].map(type => (
-                <div key={`sub-${type}`} className="flex flex-col gap-1 mb-3">
-                  <span className="text-[10px] text-slate-400">{type}</span>
+              {[
+                { type: 'Triple Lumen CVC', rate: '30mL/min (each)' },
+                { type: 'Trauma Cordis', rate: '500+mL/min' }
+              ].map(item => (
+                <div key={`sub-${item.type}`} className="flex flex-col gap-1 mb-3">
+                  <span className="text-[10px] text-slate-400">{item.type} (Max: ~{item.rate})</span>
                   <div className="flex gap-2">
-                    <button onClick={() => establishAccess('CVC', type, 'Right Subclavian')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Right</button>
-                    <button onClick={() => establishAccess('CVC', type, 'Left Subclavian')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Left</button>
+                    <button onClick={() => establishAccess('CVC', item.type, 'Right Subclavian')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Right</button>
+                    <button onClick={() => establishAccess('CVC', item.type, 'Left Subclavian')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Left</button>
                   </div>
                 </div>
               ))}
             </div>
             <div className="bg-slate-800 p-4 rounded border border-slate-700">
               <h3 className="font-bold text-purple-400 mb-2">Femoral</h3>
-              {['Triple Lumen CVC', 'Trauma Cordis'].map(type => (
-                <div key={`fem-${type}`} className="flex flex-col gap-1 mb-3">
-                  <span className="text-[10px] text-slate-400">{type}</span>
+              {[
+                { type: 'Triple Lumen CVC', rate: '30mL/min (each)' },
+                { type: 'Trauma Cordis', rate: '500+mL/min' }
+              ].map(item => (
+                <div key={`fem-${item.type}`} className="flex flex-col gap-1 mb-3">
+                  <span className="text-[10px] text-slate-400">{item.type} (Max: ~{item.rate})</span>
                   <div className="flex gap-2">
-                    <button onClick={() => establishAccess('CVC', type, 'Right Femoral')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Right</button>
-                    <button onClick={() => establishAccess('CVC', type, 'Left Femoral')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Left</button>
+                    <button onClick={() => establishAccess('CVC', item.type, 'Right Femoral')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Right</button>
+                    <button onClick={() => establishAccess('CVC', item.type, 'Left Femoral')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-xs border border-transparent hover:border-purple-500">Left</button>
                   </div>
                 </div>
               ))}
@@ -151,6 +181,7 @@ export const AccessModal = ({ data, close, establishAccess }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-slate-800 p-4 rounded border border-slate-700">
               <h3 className="font-bold text-orange-400 mb-2">Proximal Tibia</h3>
+              <span className="text-[10px] text-slate-400 mb-2 block">EZ-IO (Pressure Flow: ~60mL/min)</span>
               <div className="flex gap-2">
                 <button onClick={() => establishAccess('IO', 'EZ-IO', 'Right Proximal Tibia')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Right Tibia</button>
                 <button onClick={() => establishAccess('IO', 'EZ-IO', 'Left Proximal Tibia')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Left Tibia</button>
@@ -158,6 +189,7 @@ export const AccessModal = ({ data, close, establishAccess }) => {
             </div>
             <div className="bg-slate-800 p-4 rounded border border-slate-700">
               <h3 className="font-bold text-orange-400 mb-2">Humeral Head</h3>
+              <span className="text-[10px] text-slate-400 mb-2 block">EZ-IO (Pressure Flow: ~150mL/min)</span>
               <div className="flex gap-2">
                 <button onClick={() => establishAccess('IO', 'EZ-IO', 'Right Humeral Head')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Right Humerus</button>
                 <button onClick={() => establishAccess('IO', 'EZ-IO', 'Left Humeral Head')} className="w-1/2 text-center md:text-left p-2 hover:bg-slate-700 rounded text-sm border border-transparent hover:border-orange-500">Left Humerus</button>

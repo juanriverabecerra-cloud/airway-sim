@@ -2,13 +2,20 @@ import React, { useState } from 'react';
 import { Droplet, Wind, Stethoscope, AlertTriangle } from 'lucide-react';
 import { MEDICATIONS } from '../../engine/Pharmacology';
 
-export const AirwayPanel = ({ patient, setPatient, handleSuction, optimizeAirway, pushMed, setViewModal, setSetupModal, setTubeConfirmModal, logEvent, handleSurgicalCric, handleExtubation, activeMeds, processMed }) => {
+export const AirwayPanel = ({ patient, setPatient, handleSuction, optimizeAirway, pushMed, setViewModal, setSetupModal, setTubeConfirmModal, logEvent, handleSurgicalCric, handleExtubation, activeMeds, processMed, updateFluidRate }) => {
   const [airwayToolInput, setAirwayToolInput] = useState({ tool: null, size: '' });
   const [editInfusionDose, setEditInfusionDose] = useState({});
   const [bolusInfusionDose, setBolusInfusionDose] = useState({});
   const [extubateConfirm, setExtubateConfirm] = useState(false);
 
   const activeInfusions = activeMeds ? activeMeds.filter(m => m.currentInfusionRate > 0) : [];
+  
+  const activeFluids = [];
+  (patient.accessLines || []).forEach(line => {
+    (line.activeInfusions || []).forEach(inf => {
+       activeFluids.push({ ...inf, lineId: line.id, lineName: line.name });
+    });
+  });
 
   const handleUpdateInfusion = (medId, newDose, originalUnit) => {
     if (newDose) processMed(medId, newDose, 'IV', 'Infusion', originalUnit);
@@ -47,14 +54,41 @@ export const AirwayPanel = ({ patient, setPatient, handleSuction, optimizeAirway
 
   const renderActiveInfusions = (isSecured) => (
      <div className={`flex flex-col gap-2 w-full shrink min-h-0 ${isSecured ? 'flex-1' : ''}`}>
-        <h3 className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold flex items-center justify-between shrink-0">
+         <h3 className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold flex items-center justify-between shrink-0">
           Active Infusions
-          <span className="bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded text-[10px] border border-blue-800">{activeInfusions.length}</span>
+          <span className="bg-blue-900/40 text-blue-300 px-2 py-0.5 rounded text-[10px] border border-blue-800">{activeInfusions.length + activeFluids.length}</span>
         </h3>
-        {activeInfusions.length === 0 ? (
+        {activeInfusions.length === 0 && activeFluids.length === 0 ? (
            <div className="text-slate-600 text-xs text-center mt-2 mb-2 italic border border-dashed border-slate-800 rounded p-4 bg-slate-900/30 shrink-0">No active infusions.</div>
         ) : (
            <div className={`flex flex-col gap-2 overflow-y-auto custom-scrollbar pr-1 mb-2 ${isSecured ? 'h-full max-h-none' : 'max-h-[350px]'}`}>
+              {activeFluids.map((fluid, idx) => (
+                   <div key={`fluid-${idx}`} className="bg-slate-900/80 border border-teal-800/50 rounded p-2 flex flex-col gap-2 shadow-sm transition-colors hover:border-teal-500/50 shrink-0">
+                      <div className="flex justify-between items-start">
+                         <div className="flex flex-col">
+                           <span className="font-bold text-white text-xs">{fluid.name}</span>
+                           <span className="text-[9px] text-teal-500/70 font-mono tracking-tighter">via {fluid.lineName}</span>
+                         </div>
+                         <div className="flex flex-col items-end">
+                             <span className="text-teal-400 font-mono text-xs bg-teal-900/20 px-1.5 py-0.5 rounded border border-teal-900/50">
+                                {Math.round(fluid.remainingVolume)} mL left
+                             </span>
+                             {fluid.userRate !== undefined && (
+                                <span className="text-[9px] text-teal-500 mt-0.5 font-bold">Rate: {fluid.userRate} mL/hr</span>
+                             )}
+                         </div>
+                      </div>
+                      
+                      <div className="flex gap-1.5 mt-1">
+                         <input type="number" placeholder="Rate (mL/hr) or empty for Max" className="w-1/2 bg-slate-950 border border-slate-600 focus:border-teal-500 rounded px-1 py-1 text-[10px] text-white outline-none text-center transition-colors" 
+                                value={editInfusionDose[fluid.id] !== undefined ? editInfusionDose[fluid.id] : ''} onChange={(e) => setEditInfusionDose({...editInfusionDose, [fluid.id]: e.target.value})} />
+                         <button onClick={() => { updateFluidRate(fluid.lineId, fluid.id, editInfusionDose[fluid.id]); setEditInfusionDose({...editInfusionDose, [fluid.id]: ''}); }} 
+                                 className="w-1/4 bg-teal-900/40 hover:bg-teal-800/60 border border-teal-800 text-teal-200 text-[9px] font-bold rounded uppercase tracking-wider transition-colors">Set Rate</button>
+                         <button onClick={() => updateFluidRate(fluid.lineId, fluid.id, '')} 
+                                 className="w-1/4 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 text-[9px] font-bold rounded uppercase tracking-wider transition-colors">Max Flow</button>
+                      </div>
+                   </div>
+              ))}
               {activeInfusions.map((med, idx) => {
                  const medData = MEDICATIONS[med.medId];
                  const baseUnit = med.displayUnit ? med.displayUnit.replace('/hr', '').replace('/min', '') : 'mg';
