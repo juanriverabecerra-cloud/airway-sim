@@ -39,7 +39,9 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
         pao2: activeCase.patient.isObese ? 75 : 100, 
         paco2: activeCase.patient.isObese ? 52 : 40, 
         ph: activeCase.patient.isSeptic ? 7.22 : (activeCase.patient.isObese ? 7.36 : 7.4), 
-        co: initialCO, svr: calculatedBaseSVR, cmap: initialMap // Baseline Cerebral MAP
+        co: initialCO, svr: calculatedBaseSVR, cmap: initialMap, // Baseline Cerebral MAP
+        metHb: 0.8, coHb: activeCase.id === 'trauma' ? 12.0 : 1.0, cyanide: 0.0, lacticAcid: activeCase.patient.isSeptic ? 4.5 : 1.0,
+        cao2: 20.0, cvo2: 15.0, p50: 26.6, r_ratio: 0.90
       });
       setTargetVitals({ ...activeCase.baseVitals });
       
@@ -60,7 +62,21 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
         arrestThreshold: 1200, codeStartTime: null, apneaStartTime: null,
         shuntFraction: activeCase.id === 'trauma' ? 0.20 : (activeCase.patient.isObese ? 0.12 : 0.05),
         patientBaseSVR: calculatedBaseSVR,
-        patientBaseSV: assumedBaseSV
+        patientBaseSV: assumedBaseSV,
+        
+        // Dynamic clinical states
+        metHb: 0.8,
+        coHb: activeCase.id === 'trauma' ? 12.0 : 1.0,
+        cyanide: 0.0,
+        lacticAcid: activeCase.patient.isSeptic ? 4.5 : 1.0,
+        glp1Held: activeCase.id === 'obese' ? false : true,
+        nAChR_state: activeCase.id === 'trauma' ? 'upregulated' : 'normal',
+        ivGauge: '18G',
+        fluidLine: 'gravity',
+        stomach: activeCase.id === 'obese' ? 'full' : (activeCase.id === 'trauma' ? 'full' : 'empty'),
+        fluidInfusing: null,
+        suxPotassiumLeaked: false,
+        isSeizure: false
       });
       
      setTime(0); setActiveMeds([]); setIntravascularVolume(0); setSurgicalPhase('Pre-Op');
@@ -98,29 +114,16 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     const fluidData = FLUIDS[fluidName]; if (!fluidData) return false;
     const isUnit = fluidData.type === 'Blood Product' || fluidData.type === 'Colloid';
     const effectiveVolumeML = isUnit && !fluidName.includes('Fibrinogen') ? volume * (fluidData.defaultVol || 300) : volume;
-    const volumeLiters = effectiveVolumeML / 1000;
-    
-    logEvent(`💧 Administered ${volume} ${isUnit ? 'Units' : (fluidName.includes('Fibrinogen') ? 'g' : 'mL')} of ${fluidName}.`);
-    
-    // Glycocalyx Integrity Check: Sepsis/Trauma sheds the EGL, dropping retention drastically
-    const retentionFactor = (patient.isSeptic || patient.trauma) ? fluidData.retentionInflamed : fluidData.retentionIntact;
-    
-    setIntravascularVolume(prev => prev + (effectiveVolumeML * retentionFactor));
-    if (fluidName.includes('PRBC')) setPatient(prev => ({ ...prev, ebl: Math.max(0, prev.ebl - effectiveVolumeML) }));
 
-    setTotalBodyWaterLiters(prevTBW => {
-      const newTBW = prevTBW + volumeLiters;
-      setElectrolytes(prev => ({
-        na: ((prev.na * prevTBW) + (fluidData.na * volumeLiters)) / newTBW,
-        k: ((prev.k * prevTBW) + (fluidData.k * volumeLiters)) / newTBW,
-        cl: ((prev.cl * prevTBW) + (fluidData.cl * volumeLiters)) / newTBW,
-        // Citrate toxicity mathematically drops ionized calcium
-        ca: prev.ca + (fluidData.ca * (isUnit ? volume : volumeLiters)) - (fluidData.citrateLoad * volume * 0.02),
-        ph: prev.ph - (fluidData.cl > 110 ? 0.05 * volumeLiters : 0)
-      }));
-      return newTBW;
-    });
-    setCoags(prev => ({ r_offset: prev.r_offset + (fluidData.coag.r * volume), ma_offset: prev.ma_offset + (fluidData.coag.ma * volume), angle_offset: prev.angle_offset + (fluidData.coag.angle * volume) }));
+    setPatient(prev => ({
+      ...prev,
+      fluidReservoir: [
+        ...(prev.fluidReservoir || []),
+        { name: fluidName, remainingVolume: effectiveVolumeML }
+      ]
+    }));
+
+    logEvent(`💧 Resuscitation Queued: ${volume} ${isUnit ? 'Units' : (fluidName.includes('Fibrinogen') ? 'g' : 'mL')} of ${fluidName} loaded into the infusion reservoir.`);
     return true;
   };
 
@@ -170,7 +173,71 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
       
       if (medId === 'sugammadex') {
         const roc = activeMeds.find(m => m.name === 'Rocuronium');
-        if (roc) { roc.chelate(Math.min(1.0, (doseInMg / (patient.weight * 16)))); logEvent("⚡ Sugammadex encapsulated Rocuronium."); }
+        const vec = activeMeds.find(m => m.name === 'Vecuronium');
+        const doseMgPerKg = doseInMg / patient.weight;
+        let chelateFraction = 1.0;
+        if (doseMgPerKg >= 16) chelateFraction = 1.0;
+        else if (doseMgPerKg >= 4) chelateFraction = 0.95;
+        else if (doseMgPerKg >= 2) chelateFraction = 0.8;
+        else chelateFraction = doseMgPerKg / 2.0 * 0.8;
+        
+        chelateFraction = Math.min(1.0, chelateFraction);
+        
+        if (roc) {
+          roc.chelate(chelateFraction);
+          logEvent(`⚡ Sugammadex encapsulated Rocuronium (chelated ${Math.round(chelateFraction * 100)}%).`);
+        }
+        if (vec) {
+          vec.chelate(chelateFraction);
+          setPatient(prev => ({
+            ...prev,
+            vec3oh: Math.max(0, (prev.vec3oh || 0) * (1 - chelateFraction))
+          }));
+          logEvent(`⚡ Sugammadex encapsulated Vecuronium and its active 3-OH metabolite (chelated ${Math.round(chelateFraction * 100)}%).`);
+        }
+      }
+
+      if (medId === 'succinylcholine') {
+        let leak = 0.5; // normal transient leak
+        if (patient.nAChR_state === 'upregulated') {
+          leak = 5.2; // massive lethal leak
+          logEvent(`🚨 CRITICAL CLINICAL EMERGENCY: Succinylcholine given to patient with nAChR upregulation! Extrajunctional receptors opened, triggering massive potassium leak (+5.2 mEq/L)!`);
+        } else {
+          logEvent(`⚡ Succinylcholine administered. Normal transient potassium release (+0.5 mEq/L) observed.`);
+        }
+        setElectrolytes(prev => ({ ...prev, k: prev.k + leak }));
+        setPatient(prev => ({ ...prev, suxPotassiumLeaked: true }));
+      }
+
+      if (medId === 'neostigmine') {
+        const glyco = activeMeds.find(m => m.name === 'Glycopyrrolate');
+        const glycoCe = glyco ? glyco.Ce : 0;
+        if (glycoCe < 0.05) {
+          setPatient(prev => ({
+            ...prev,
+            bradycardiaTriggered: true,
+            bradycardiaTime: stateRef.current.time || 0
+          }));
+          logEvent(`🚨 CRITICAL CLINICAL EMERGENCY: Neostigmine administered without Glycopyrrolate! Unopposed muscarinic activation is causing profound vagal bradycardia and salivation!`);
+        } else {
+          logEvent(`⚡ Neostigmine and Glycopyrrolate administered. Safe reversal of neuromuscular blockade initiated.`);
+        }
+      }
+
+      if (medId === 'glycopyrrolate') {
+        if (patient.bradycardiaTriggered) {
+          setPatient(prev => ({ ...prev, bradycardiaTriggered: false }));
+          logEvent(`✅ Glycopyrrolate administered. Muscarinic bradycardia successfully resolved. Heart rate recovering.`);
+        }
+      }
+
+      if (medId === 'calcium') {
+        setPatient(prev => ({
+          ...prev,
+          calciumStabilized: true,
+          calciumStabilizedTime: stateRef.current.time || 0
+        }));
+        logEvent(`⚡ Calcium Chloride administered. Myocardial membranes stabilized. Hyperkalemic cardiac arrest risk mitigated.`);
       }
 
       // === SURGICAL TIMELINE AUTO-PROGRESSION (PRE-OP -> INDUCTION) ===
@@ -192,7 +259,12 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     }
   };
 
-  const pushMed = (medName) => { if (medName.includes('Topical')) { logEvent(`Administered Topical Lidocaine.`); setPatient(prev => ({...prev, isTopicalized: true})); } };
+  const pushMed = (medName) => { 
+    if (medName.includes('Topical')) { 
+      logEvent(`Administered Topical Lidocaine.`); 
+      setPatient(prev => ({...prev, isTopicalized: true})); 
+    } 
+  };
 
   const toggleCPR = () => {
     setPatient(p => {
@@ -277,6 +349,76 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const currentCOForPK = st.vitals.co || 5.0;
           const coRatio = currentCOForPK / 5.0;
           
+          // === POISEUILLE FLUID RESUSCITATION DRAINAGE ===
+          let activeFluidName = null;
+          let fluidInfusedThisTick = 0;
+          let newReservoir = [...(st.patient.fluidReservoir || [])];
+          if (newReservoir.length > 0) {
+              const activeFluid = newReservoir[0];
+              activeFluidName = activeFluid.name;
+              
+              let baseFlow = 100; // 18G default
+              const gauge = st.patient.ivGauge || '18G';
+              if (gauge === '14G') baseFlow = 275;
+              else if (gauge === '16G') baseFlow = 190;
+              else if (gauge === '18G') baseFlow = 100;
+              else if (gauge === '20G') baseFlow = 60;
+              else if (gauge === '22G') baseFlow = 45;
+              
+              const hasCVC = st.patient.accessLines?.some(l => l.includes('CVC') || l.includes('Cordis') || l.includes('Introducer'));
+              if (hasCVC) baseFlow = 300;
+              
+              let lineMult = 1.0;
+              const lineType = st.patient.fluidLine || 'gravity';
+              if (lineType === 'belmont') lineMult = 4.0;
+              else if (lineType === 'ranger') lineMult = 1.5;
+              else if (lineType === 'gravity') lineMult = 1.0;
+              
+              const flowPerTick = (baseFlow * lineMult) / 60; // mL/sec
+              fluidInfusedThisTick = Math.min(activeFluid.remainingVolume, flowPerTick);
+              
+              activeFluid.remainingVolume -= fluidInfusedThisTick;
+              if (activeFluid.remainingVolume <= 0) {
+                  newReservoir.shift();
+              } else {
+                  newReservoir[0] = activeFluid;
+              }
+              
+              const fluidData = FLUIDS[activeFluidName];
+              if (fluidData) {
+                  const volumeLiters = fluidInfusedThisTick / 1000;
+                  const isUnit = fluidData.type === 'Blood Product' || fluidData.type === 'Colloid';
+                  const unitEquivalent = isUnit ? (fluidInfusedThisTick / (fluidData.defaultVol || 300)) : volumeLiters;
+                  
+                  const retentionFactor = (st.patient.isSeptic || st.patient.trauma) ? fluidData.retentionInflamed : fluidData.retentionIntact;
+                  
+                  setIntravascularVolume(prev => prev + (fluidInfusedThisTick * retentionFactor));
+                  
+                  setTotalBodyWaterLiters(prevTBW => {
+                      const newTBW = prevTBW + volumeLiters;
+                      setElectrolytes(prev => {
+                          const baseKChange = ((prev.k * prevTBW) + (fluidData.k * volumeLiters)) / newTBW - prev.k;
+                          const caDrop = (fluidData.ca * (isUnit ? unitEquivalent : volumeLiters)) - (fluidData.citrateLoad * unitEquivalent * 0.02);
+                          const phDrop = (fluidData.cl > 110 ? 0.05 * volumeLiters : 0);
+                          return {
+                              na: ((prev.na * prevTBW) + (fluidData.na * volumeLiters)) / newTBW,
+                              k: prev.k + baseKChange,
+                              cl: ((prev.cl * prevTBW) + (fluidData.cl * volumeLiters)) / newTBW,
+                              ca: Math.max(1.0, prev.ca + caDrop),
+                              ph: prev.ph - phDrop
+                          };
+                      });
+                      return newTBW;
+                  });
+                  
+                  setCoags(prev => ({
+                      r_offset: prev.r_offset + (fluidData.coag.r * unitEquivalent),
+                      ma_offset: prev.ma_offset + (fluidData.coag.ma * unitEquivalent),
+                      angle_offset: prev.angle_offset + (fluidData.coag.angle * unitEquivalent)
+                  }));
+              }
+          }
+
           // Calculate dynamic V1 modifier based on active fluid/blood volume state
           const currentBloodVolume = (st.patient.ebv || 5000) - (st.patient.ebl || 0) + st.intravascularVolume;
           const v1VolumeRatio = Math.max(0.4, currentBloodVolume / (st.patient.ebv || 5000));
@@ -295,8 +437,91 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               
               if (effects.group === 'Sedative') sedativeEff = 1 - (1 - sedativeEff) * (1 - effects.hypnoticEffect);
               if (effects.group === 'Opioid') opioidEff = 1 - (1 - opioidEff) * (1 - effects.hypnoticEffect);
-              if (effects.receptorOccupancy > maxNMJOccupancy) maxNMJOccupancy = effects.receptorOccupancy;
+              
+              // nAChR state shifts (Myasthenia Gravis vs Upregulation sensitivity overrides)
+              let occupancy = effects.receptorOccupancy;
+              if (model.classes.includes('NDMR')) {
+                  if (st.patient.nAChR_state === 'downregulated') {
+                      occupancy = Math.min(1.0, occupancy * 2.0); // Sensitive to NDMRs
+                  } else if (st.patient.nAChR_state === 'upregulated') {
+                      occupancy = occupancy * 0.5; // Resistant to NDMRs
+                  }
+              } else if (model.classes.includes('Depolarizing NMBA')) {
+                  if (st.patient.nAChR_state === 'downregulated') {
+                      occupancy = occupancy * 0.5; // Resistant to Succinylcholine
+                  } else if (st.patient.nAChR_state === 'upregulated') {
+                      occupancy = Math.min(1.0, occupancy * 1.5); // Sensitive to Succinylcholine
+                  }
+              }
+              if (occupancy > maxNMJOccupancy) maxNMJOccupancy = occupancy;
             });
+          }
+
+          // === ACTIVE METABOLITES ACCUMULATION ===
+          const renalMult = (st.patient.isRenal || st.patient.renalFailure) ? 0.1 : 1.0;
+          
+          const vecModel = st.activeMeds?.find(m => m.name === 'Vecuronium');
+          const vecCe = vecModel ? vecModel.Ce : 0;
+          
+          const morModel = st.activeMeds?.find(m => m.name === 'Morphine');
+          const morCe = morModel ? morModel.Ce : 0;
+          
+          const mepModel = st.activeMeds?.find(m => m.name === 'Meperidine');
+          const mepCe = mepModel ? mepModel.Ce : 0;
+          
+          let currentVec3oh = st.patient.vec3oh || 0;
+          let currentNormep = st.patient.normep || 0;
+          let currentM6g = st.patient.m6g || 0;
+          
+          if (vecCe > 0.01) {
+              currentVec3oh = Math.max(0, currentVec3oh + vecCe * 0.01 - 0.002 * renalMult);
+          } else {
+              currentVec3oh = Math.max(0, currentVec3oh - 0.002 * renalMult);
+          }
+          
+          if (mepCe > 0.01) {
+              currentNormep = Math.max(0, currentNormep + mepCe * 0.01 - 0.002 * renalMult);
+          } else {
+              currentNormep = Math.max(0, currentNormep - 0.002 * renalMult);
+          }
+          
+          if (morCe > 0.01) {
+              currentM6g = Math.max(0, currentM6g + morCe * 0.01 - 0.002 * renalMult);
+          } else {
+              currentM6g = Math.max(0, currentM6g - 0.002 * renalMult);
+          }
+          
+          // Cumulative Vecuronium 3-OH metabolite NMJ blocking potency (80% potency of parent)
+          if (currentVec3oh > 0) {
+              maxNMJOccupancy = Math.min(1.0, maxNMJOccupancy + (currentVec3oh * 0.8));
+          }
+
+          // Active metabolite clinical implications
+          let isSeizure = false;
+          let seizureMetabolicMultiplier = 1.0;
+          if (currentNormep > 1.2) {
+              isSeizure = true;
+              seizureMetabolicMultiplier = 8.0; // 8x metabolic demand
+          }
+          
+          let m6gRrDelta = 0;
+          if (currentM6g > 0.8) {
+              m6gRrDelta = -10; // Severe respiratory depression
+          }
+
+          // === NITROPRUSSIDE CYANIDE TOXICITY ACCUMULATION ===
+          const nipModel = st.activeMeds?.find(m => m.name === 'Nitroprusside');
+          const nipCe = nipModel ? nipModel.Ce : 0;
+          let currentCyanide = st.patient.cyanide || 0;
+          if (nipCe > 1.5) {
+              currentCyanide = Math.min(1.0, currentCyanide + nipCe * 0.002);
+          } else {
+              currentCyanide = Math.max(0, currentCyanide - 0.005);
+          }
+          
+          let cyanideVO2Mod = 1.0;
+          if (currentCyanide > 0.01) {
+              cyanideVO2Mod = Math.max(0.1, 1 - currentCyanide * 2.0); // Cellular respiration drop
           }
 
           let currentMac = 0; let currentEtAgent = 0; let currentEtN2O = 0; 
@@ -382,34 +607,38 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           if (st.patient.cprActive) newTemp -= 0.002;
 
           let shiveringMultiplier = 1.0;
-          // Trigger shivering if hypothermic during emergence (interthreshold range narrows)
           if (newTemp < 35.5 && currentMac < 0.2 && maxNMJOccupancy < 0.5 && st.surgicalPhase === 'Emergence') {
-              // Shivering increases O2 consumption and CO2 production by up to 500%
               shiveringMultiplier = Math.min(5.0, 1.0 + ((35.5 - newTemp) * 2.5)); 
           }
           
-          const VO2_sec = (0.250 * shiveringMultiplier) / 60; // Base 250ml/min -> scales up to 1250ml/min
-          const VCO2_sec = (0.200 * shiveringMultiplier) / 60; // Base 200ml/min -> scales up to 1000ml/min
+          // Libby Zion Serotonin Syndrome hyperpyrexia trigger
+          if (st.patient.serotoninSyndromeTriggered) {
+              totalHrDelta += 60;
+              newTemp += 0.05; // rapid temperature spike
+          }
+
+          const totalMetabolicMultiplier = shiveringMultiplier * seizureMetabolicMultiplier;
+          const VO2_sec = (0.250 * totalMetabolicMultiplier * cyanideVO2Mod) / 60; 
+          const VCO2_sec = (0.200 * totalMetabolicMultiplier) / 60; 
 
           // === POSITIONAL PHYSIOLOGY MODIFIERS ===
           let positionFRCMod = 0;
           let positionPreloadMod = 0;
-          let positionHydrostaticMod = 0; // MAP difference at the circle of Willis
+          let positionHydrostaticMod = 0; 
           const pos = st.patient.position || 'Supine';
 
-          // CA-1 Hydrostatic Rule: 7.4 mmHg per 10cm gradient between cuff and brain
           if (pos === 'Ramped' || pos === 'Rev Trendelenburg') {
               positionFRCMod = 0.3;
               positionPreloadMod = -200; 
-              positionHydrostaticMod = -14.8; // ~20cm elevation
+              positionHydrostaticMod = -14.8; 
           } else if (pos === 'Sitting') {
               positionFRCMod = 0.5;
               positionPreloadMod = -400; 
-              positionHydrostaticMod = -29.6; // ~40cm elevation (Beach chair)
+              positionHydrostaticMod = -29.6; // Beach chair MAP positional shift
           } else if (pos === 'Trendelenburg') {
               positionFRCMod = -0.5; 
               positionPreloadMod = 300; 
-              positionHydrostaticMod = +14.8; // Brain is dependent
+              positionHydrostaticMod = +14.8; 
           } else if (pos === 'Lithotomy') {
               positionFRCMod = -0.4;
               positionPreloadMod = 400; 
@@ -435,25 +664,57 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const currentBuffer = Math.min(100, Math.max(0, buffer));
 
           let newPip = 0; let newVte = 0; let newPplat = 0; let newPmean = 0; let newMv = 0; let newPeep = 0;
-          const opioidRRDrop = opioidEff * 10;
+          const opioidRRDrop = (opioidEff * 10) + m6gRrDelta;
           
-          // Shivering heavily overrides opioid respiratory depression
           const shiveringRRDrive = (shiveringMultiplier > 1.5) ? (shiveringMultiplier * 4) : 0;
           let patientDriveRR = (st.patient.isApneic || st.patient.isParalyzed) ? 0 : Math.max(0, (st.targetVitals.rr || 12) + compensatoryRR + shiveringRRDrive + totalRrDelta - opioidRRDrop);
           let targetRR = patientDriveRR;
 
-          // === DYNAMIC PULMONARY MECHANICS ===
+          // === GASTRIC ASPIRATION TRIGGERS ON FULL STOMACH ===
+          let hasAspirated = st.patient.hasAspirated || false;
+          let aspirationCompliancePenalty = 0;
+          let aspirationResistancePenalty = 0;
+          
+          if (!st.patient.airwaySecured && st.patient.stomach === 'full') {
+              // Gastric Aspiration during Positive Pressure Ventilation
+              const isVentilatingPPV = st.patient.ventilationStatus === 'mechanical' || (st.ventSettings && st.ventSettings.mode !== 'spontaneous') || newPip > 15;
+              if (isVentilatingPPV && !hasAspirated) {
+                  hasAspirated = true;
+                  logEvent(`🚨 CRITICAL EMERGENCY: Positive Pressure Ventilation delivered on a full stomach without a secured airway! Mass aspiration of acidic gastric contents occurred, causing chemical pneumonitis and severe bronchospasm!`);
+              }
+          }
+          
+          if (hasAspirated) {
+              let complPenalty = 30;
+              let resPenalty = 25;
+              
+              if (st.patient.isSuctioned && pos === 'Trendelenburg') {
+                  complPenalty = 10; // cleared some aspirate
+                  resPenalty = 8;
+                  if (!st.patient.aspirationMitigated) {
+                      logEvent(`✅ SUCCESS: Airway suctioned in Trendelenburg position! Acidic aspirate cleared, reducing bronchospastic and compliance penalties.`);
+                      st.patient.aspirationMitigated = true;
+                  }
+              }
+              aspirationCompliancePenalty = complPenalty;
+              aspirationResistancePenalty = resPenalty;
+          }
+
+          // === DYNAMIC PULMONARY compliance & resistance loops ===
           let currentCompliance = 65; 
           if (st.patient.isObese) currentCompliance -= 25; 
           if (st.patient.isSeptic) currentCompliance -= 20; 
           if (st.patient.trauma) currentCompliance -= 15; 
-          if (st.patient.chf) currentCompliance -= 20; // Pulmonary Edema
-          if (st.patient.copd) currentCompliance += 15; // Emphysema hyper-compliance
-          if (positionFRCMod < 0) currentCompliance -= 10; // Positional restriction
+          if (st.patient.chf) currentCompliance -= 20; 
+          if (st.patient.copd) currentCompliance += 15; 
+          if (positionFRCMod < 0) currentCompliance -= 10;
+          currentCompliance -= aspirationCompliancePenalty;
+          currentCompliance = Math.max(5, currentCompliance);
           
           let currentResistance = 5; 
           if (st.patient.isObese) currentResistance += 3;
-          if (st.patient.copd) currentResistance += 18; // Massive bronchospasm/airway resistance
+          if (st.patient.copd) currentResistance += 18; 
+          currentResistance += aspirationResistancePenalty;
 
           if (st.patient.airwaySecured && st.ventSettings) {
               newPeep = st.ventSettings.peep || 0;
@@ -473,7 +734,6 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                       newVte = st.ventSettings.vt || 500; 
                       newPplat = newPeep + (newVte / currentCompliance); 
                       
-                      // True Resistive Drop (P = F * R)
                       const ieRatio = st.ventSettings.ieRatio || 2;
                       const inspTimeSec = (60 / targetRR) * (1 / (1 + ieRatio));
                       const flow_L_s = (newVte / 1000) / inspTimeSec;
@@ -513,11 +773,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               const currentApneaDuration = st.patient.apneaStartTime ? (st.time - st.patient.apneaStartTime) : 0;
               const co2RiseRate_sec = (currentApneaDuration < 60) ? (6/60) : (3/60);
               
-              // Shivering (high VCO2) multiplies this rise linearly
-              targetPaCO2 = safePaCO2 + (co2RiseRate_sec * shiveringMultiplier);
+              targetPaCO2 = safePaCO2 + (co2RiseRate_sec * totalMetabolicMultiplier);
               targetEtco2 = 0;
           } else {
-              targetPaCO2 = baselinePaCO2 * ((baseAlvVent_L_min * shiveringMultiplier) / Math.max(0.1, currentAlvVent_L_min));
+              targetPaCO2 = baselinePaCO2 * ((baseAlvVent_L_min * totalMetabolicMultiplier) / Math.max(0.1, currentAlvVent_L_min));
               targetPaCO2 = Math.max(15, Math.min(120, targetPaCO2)); 
               let co2Gradient = st.patient.isObese ? 7 : (st.patient.copd ? 10 : 4);
               if (safeSys < 80) co2Gradient += (80 - safeSys) * 0.5; 
@@ -526,22 +785,34 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let newPaCO2 = safePaCO2 + (targetPaCO2 - safePaCO2) * 0.05;
 
           // === HEMODYNAMIC COUPLING ===
-          // Autonomic baroreflex to drug-induced SVR changes (Reflex bradycardia/tachycardia)
           let autonomicHrMod = 0;
-          if (drugSvrMod > 1.5 && currentMac < 0.5) autonomicHrMod = -20; // Reflex bradycardia to pure alpha agonists if un-anesthetized
-          else if (drugSvrMod < 0.7 && currentMac < 0.5) autonomicHrMod = 25; // Reflex tachycardia to vasodilators
+          if (drugSvrMod > 1.5 && currentMac < 0.5) autonomicHrMod = -20; // Reflex bradycardia
+          else if (drugSvrMod < 0.7 && currentMac < 0.5) autonomicHrMod = 25; // Reflex tachycardia
 
-          // Gravitational shift mathematically modifies circulating volume equivalent
-          const effectiveIntravascularVolume = st.intravascularVolume + positionPreloadMod;
+          // Neostigmine un-antagonized muscarinic severe vagal bradycardia
+          let isArrestState = st.patient.isArrest;
+          let currentRhythm = st.patient.cardiacRhythm;
           
+          if (st.patient.bradycardiaTriggered) {
+              const bradycardiaDuration = st.time - st.patient.bradycardiaTime;
+              const bradycardiaHrDrop = Math.min(60, bradycardiaDuration * 2.5); // rapid drop
+              totalHrDelta -= bradycardiaHrDrop;
+              
+              const expectedHR = (st.targetVitals.hr || 70) + totalHrDelta;
+              if (expectedHR < 15 && !isArrestState) {
+                  isArrestState = true;
+                  currentRhythm = 'asystole';
+                  logEvent('🚨 CRITICAL EMERGENCY: Neostigmine-induced unopposed muscarinic surge triggered sinus arrest / asystole!');
+              }
+          }
+
+          const effectiveIntravascularVolume = st.intravascularVolume + positionPreloadMod;
           const inotropyFinal = 1.0 - ((st.patient.myocardialStunning || 0) / 100) + (unbluntedStimulus / 500) + (drugInotropyMod - 1.0);
           const preloadSV = Math.max(0.1, 1.0 - (bloodLossRatio * 1.2) + (effectiveIntravascularVolume / 2500));
           
-          // Shivering acts as massive sympathetic stimulus
           const shiveringHRDrive = (shiveringMultiplier > 1.0) ? ((shiveringMultiplier - 1.0) * 15) : 0;
           const targetHR = Math.max(0, (st.targetVitals.hr || 70) + totalHrDelta + autonomicHrMod + (bloodLossRatio * 150) + unbluntedStimulus + shiveringHRDrive);
           
-          // CHF cripples max stroke volume capacity
           const chfInotropicPenalty = st.patient.chf ? 0.5 : 1.0;
           const maxSV = (st.patient.patientBaseSV || 70) * (st.patient.chf ? 1.0 : 1.6);
           let currentSV = Math.min(maxSV, (st.patient.patientBaseSV || 70) * preloadSV * Math.max(0.1, inotropyFinal) * chfInotropicPenalty);
@@ -561,31 +832,33 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let targetSys = targetMAP + (targetMAP * 0.3 * pulsePressureRatio) + sysPressorEffect - (st.patient.isSeptic ? 20 : 0);
           let targetDia = targetMAP - (targetMAP * 0.2 * pulsePressureRatio) + (sysPressorEffect / 2) - (st.patient.isSeptic ? 40 : 0);
 
-          const hrNoise = st.patient.isArrest ? 0 : (Math.random() * 2 - 1);
-          const sysNoise = st.patient.isArrest ? 0 : (Math.random() * 4 - 2);
-          const diaNoise = st.patient.isArrest ? 0 : (Math.random() * 2 - 1);
+          const hrNoise = isArrestState ? 0 : (Math.random() * 2 - 1);
+          const sysNoise = isArrestState ? 0 : (Math.random() * 4 - 2);
+          const diaNoise = isArrestState ? 0 : (Math.random() * 2 - 1);
 
           let newHr = (st.vitals.hr || 70) + (targetHR - (st.vitals.hr || 70)) * 0.1 + hrNoise;
           let newSys = safeSys + (targetSys - safeSys) * 0.1 + sysNoise;
           let newDia = safeDia + (targetDia - safeDia) * 0.1 + diaNoise;
           
-          // CA-1 Hydrostatic Perfusion Calculation
           const newMap = Math.round((newSys + 2*newDia)/3);
-          const newCmap = Math.max(0, newMap + positionHydrostaticMod);
+          const newCmap = Math.max(0, newMap + positionHydrostaticMod); // Cerebral MAP Positional Hydrostatic Shift
           
-          // === ACID-BASE CALCULUS ===
-          const baseDeficit = (st.patient.isSeptic ? 8 : 0) + (bloodLossRatio * 20);
+          // === ACID-BASE CALCULUS & LACTATE ===
+          let currentLactate = st.patient.lacticAcid || 1.0;
+          if (currentCyanide > 0.05) {
+              currentLactate += currentCyanide * 0.08; // cellular respiration block spikes lactic acid
+          }
+          const baseDeficit = (st.patient.isSeptic ? 8 : 0) + (bloodLossRatio * 20) + (currentLactate - 1.0);
           const hco3 = Math.max(8, 24 - baseDeficit);
           let newPh = 6.1 + Math.log10(hco3 / (0.03 * newPaCO2));
 
           // === CA-1 ADVANCED OXYGENATION CALCULUS (FICK PRINCIPLE & RILEY SHUNT) ===
           const PAO2 = (713 * (currentBuffer / 100)) - (newPaCO2 / 0.8);
-          // Standard Age-adjusted A-a gradient formula + pathological modifiers
           const baseAaGradient = (st.patient.age / 4) + 4; 
-          const AaGradient = baseAaGradient + (st.patient.isObese ? 12 : 0) + (st.patient.isSeptic ? 15 : 0);
+          const AaGradient = baseAaGradient + (st.patient.isObese ? 12 : 0) + (st.patient.isSeptic ? 15 : 0) + (hasAspirated ? 25 : 0);
           const capillaryPO2 = Math.max(10, PAO2 - AaGradient);
 
-          // Advanced Bohr Shift (Includes Volatiles & massive transfusion 2,3-DPG depletion)
+          // Advanced Bohr Shift (Includes Volatiles, transfusion 2,3-DPG depletion, CO-Hb & MetHb shifts)
           const dpgDepletionShift = Math.min(0.15, (st.intravascularVolume / 5000) * 0.1); 
           const volatileRightShift = currentMac * 0.05; 
           const bohrShift = Math.pow(10, 0.48 * (newPh - 7.4) - 0.024 * ((st.vitals.temp || 37.0) - 37.0) - volatileRightShift + dpgDepletionShift);
@@ -604,35 +877,77 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
           let targetSpo2 = Math.min(100, (arterialO2Content / (currentHb * 1.34)) * 100);
           let targetPaO2 = capillaryPO2 * (1 - (actualShunt * 1.5)); 
+
+          // === OPTICAL PHYSICS PULSE OXIMETRY (SpO2) ===
+          const SaO2 = targetSpo2;
+          const SM = (st.patient.metHb || 0.8) / 100;
+          const SC = (st.patient.coHb || 1.0) / 100;
+          const SO = (SaO2 / 100) * (1 - SM - SC);
+          const SD = ((100 - SaO2) / 100) * (1 - SM - SC);
+          const A660 = 0.1 * SO + 1.0 * SD + 1.0 * SM + 0.1 * SC;
+          const A940 = 1.0 * SO + 0.1 * SD + 1.0 * SM + 1.0 * SC;
+          const R_ratio = A660 / A940;
           
-          let newSpo2 = (st.vitals.spo2 || 100) + (targetSpo2 - (st.vitals.spo2 || 100)) * 0.05;
+          let measuredSpo2 = 110 - 25 * R_ratio;
+          measuredSpo2 = Math.min(100, Math.max(0, measuredSpo2));
+          
+          // Cyanide toxicity makes SpO2 falsely 100% despite severe cellular hypoxia
+          if (currentCyanide > 0.3) {
+              measuredSpo2 = 100;
+          }
+
+          let newSpo2 = (st.vitals.spo2 || 100) + (measuredSpo2 - (st.vitals.spo2 || 100)) * 0.05;
           let newRr = (st.vitals.rr || 12) + (targetRR - (st.vitals.rr || 12)) * 0.2;
           let newEtco2 = targetRR === 0 ? 0 : (st.vitals.etco2 || 40) + (targetEtco2 - (st.vitals.etco2 || 40)) * 0.2;
 
           if (Math.abs(targetHR - (st.vitals.hr || 70)) < 1.5 && hrNoise === 0) newHr = targetHR;
           if (Math.abs(targetSys - safeSys) < 1.5 && sysNoise === 0) newSys = targetSys;
           if (Math.abs(targetDia - safeDia) < 1.5 && diaNoise === 0) newDia = targetDia;
-          if (Math.abs(targetSpo2 - (st.vitals.spo2 || 100)) < 1.5) newSpo2 = targetSpo2;
+          if (Math.abs(measuredSpo2 - (st.vitals.spo2 || 100)) < 1.5) newSpo2 = measuredSpo2;
           if (Math.abs(targetRR - (st.vitals.rr || 12)) < 1.5) newRr = targetRR;
           if (Math.abs(targetEtco2 - (st.vitals.etco2 || 40)) < 1.5) newEtco2 = targetEtco2;
 
+          // === POTASSIUM HYPERKALEMIA ECG Rhythm & Cardiac arrest progression ===
+          let kLevel = electrolytes.k || 4.0;
+          const isCalciumStabilized = st.patient.calciumStabilized && (st.time - st.patient.calciumStabilizedTime < 300);
+          
+          if (!isCalciumStabilized) {
+              if (kLevel > 10.0) {
+                  if (!isArrestState) {
+                      isArrestState = true;
+                      currentRhythm = 'asystole';
+                      logEvent(`🚨 CRITICAL EMERGENCY: Hyperkalemia (K+ = ${kLevel.toFixed(1)} mEq/L) induced myocardial arrest!`);
+                  }
+              } else if (kLevel > 8.5) {
+                  currentRhythm = 'sine wave';
+              } else if (kLevel > 7.0) {
+                  currentRhythm = 'widened QRS';
+              } else if (kLevel > 5.5) {
+                  currentRhythm = 'peaked T-waves';
+              }
+          } else {
+              // Stabilized by Calcium: keeps myocardium working but maintains EKG shifts
+              if (kLevel > 9.0) {
+                  currentRhythm = 'widened QRS';
+              } else if (kLevel > 7.0) {
+                  currentRhythm = 'peaked T-waves';
+              }
+          }
+
           let hypoxiaSeverity = Math.max(0, 90 - newSpo2);
-          // Brain uses cmap for ischemic thresholds
           let hypoPerfusionSeverity = Math.max(0, 55 - newCmap); 
           
           let newDamage = (st.patient.ischemicDamage || 0) + (hypoxiaSeverity * 0.4) + (hypoPerfusionSeverity * 0.7);
           if (st.patient.cprActive) newDamage = Math.max(0, newDamage - 1.5); 
           
-          let currentIsArrest = st.patient.isArrest;
-          let activeRhythm = st.patient.cardiacRhythm;
           const bloodLossRatioForArrest = currentEbl / (st.patient.ebv || 5000);
           
-          if (!currentIsArrest && !st.patient.biologicalDeath && newDamage > (st.patient.arrestThreshold || 1200)) {
-              currentIsArrest = true;
-              if (newSpo2 < 60) activeRhythm = 'asystole';
-              else if (bloodLossRatioForArrest > 0.35) activeRhythm = 'pea';
-              else activeRhythm = Math.random() > 0.5 ? 'vfib' : 'asystole';
-              logEvent(`🚨 CARDIAC ARREST! Rhythm: ${activeRhythm.toUpperCase()}`);
+          if (!isArrestState && !st.patient.biologicalDeath && newDamage > (st.patient.arrestThreshold || 1200)) {
+              isArrestState = true;
+              if (newSpo2 < 60) currentRhythm = 'asystole';
+              else if (bloodLossRatioForArrest > 0.35) currentRhythm = 'pea';
+              else currentRhythm = Math.random() > 0.5 ? 'vfib' : 'asystole';
+              logEvent(`🚨 CARDIAC ARREST! Rhythm: ${currentRhythm.toUpperCase()}`);
           }
           
           let bioDeath = st.patient.biologicalDeath;
@@ -641,8 +956,15 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               bioDeath = true;
           }
 
+          // Serotonin Syndrome extreme hyperpyrexia cardiac arrest
+          if (st.patient.serotoninSyndromeTriggered && newTemp > 42.0 && !isArrestState) {
+              isArrestState = true;
+              currentRhythm = 'asystole';
+              logEvent(`🚨 CRITICAL FATALITY: Extreme hyperpyrexia (Temp = ${newTemp.toFixed(1)}°C) from Serotonin Syndrome triggered cardiac arrest!`);
+          }
+
           let spontaneousRosc = false;
-          if (currentIsArrest && (activeRhythm === 'pea' || activeRhythm === 'asystole') && st.patient.cprActive) {
+          if (isArrestState && (currentRhythm === 'pea' || currentRhythm === 'asystole') && st.patient.cprActive) {
               const hasEpi = st.activeMeds.some(m => m.name === 'Epinephrine' && m.A1 > 0.1);
               if (currentBuffer > 50 && bloodLossRatioForArrest < 0.2 && hasEpi && Math.random() < 0.04) {
                   spontaneousRosc = true;
@@ -650,17 +972,17 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           }
 
           if (spontaneousRosc) {
-              currentIsArrest = false;
-              activeRhythm = 'normal';
-              logEvent(`✅ SPONTANEOUS ROSC ACHIEVED from ${activeRhythm.toUpperCase()}! Underlying causes treated.`);
+              isArrestState = false;
+              currentRhythm = 'normal';
+              logEvent(`✅ SPONTANEOUS ROSC ACHIEVED from PEA/Asystole! Underlying causes treated.`);
           }
 
-          if (currentIsArrest) {
+          if (isArrestState) {
               newSys = st.patient.cprActive ? 80 + (Math.random() * 15) : 0;
               newDia = st.patient.cprActive ? 25 + (Math.random() * 10) : 0;
               newSpo2 = st.patient.cprActive ? 85 : 0;
               newEtco2 = (st.patient.cprActive && st.patient.airwaySecured) ? 15 + (Math.random() * 5) : 0;
-              if (!st.patient.cprActive || activeRhythm === 'vfib' || activeRhythm === 'asystole') newHr = 0;
+              if (!st.patient.cprActive || currentRhythm === 'vfib' || currentRhythm === 'asystole') newHr = 0;
           } else if (st.patient.myocardialStunning > 0) {
               newSys -= st.patient.myocardialStunning;
               newDia -= (st.patient.myocardialStunning * 0.6);
@@ -677,7 +999,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               targetBis -= ischemicSlowing;
           }
           let finalBis = Math.max(0, Math.min(98, targetBis + (unbluntedStimulus * 0.2)));
-          if (currentIsArrest) finalBis = bioDeath ? 0 : Math.max(0, (st.vitals.bis || 98) - 5);
+          if (isArrestState) finalBis = bioDeath ? 0 : Math.max(0, (st.vitals.bis || 98) - 5);
 
           let t1 = 1.0; let t4 = 1.0;
           if (maxNMJOccupancy > 0.70) {
@@ -701,22 +1023,24 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
           setPatient(prev => {
               let codeTime = prev.codeStartTime;
-              if (currentIsArrest && !prev.isArrest) codeTime = time; 
-              if (!currentIsArrest) codeTime = null;
+              if (isArrestState && !prev.isArrest) codeTime = time; 
+              if (!isArrestState) codeTime = null;
               
               let newThreshold = prev.arrestThreshold || 1200;
               if (spontaneousRosc) newThreshold = newDamage + 1500;
               
-              // Apnea Tracker logic
               let newApneaStart = prev.apneaStartTime;
               if ((targetRR === 0 || currentAlvVent_L_min <= 0.1) && !prev.apneaStartTime) newApneaStart = time;
               else if (targetRR > 0 && currentAlvVent_L_min > 0.1) newApneaStart = null;
 
               return { 
                   ...prev, ebl: currentEbl, oxygenBuffer: currentBuffer, 
-                  ischemicDamage: newDamage, isArrest: currentIsArrest, biologicalDeath: bioDeath,
-                  cardiacRhythm: activeRhythm, myocardialStunning: Math.max(0, (prev.myocardialStunning || 0) - 0.2),
-                  codeStartTime: codeTime, arrestThreshold: newThreshold, apneaStartTime: newApneaStart
+                  ischemicDamage: newDamage, isArrest: isArrestState, biologicalDeath: bioDeath,
+                  cardiacRhythm: currentRhythm, myocardialStunning: Math.max(0, (prev.myocardialStunning || 0) - 0.2),
+                  codeStartTime: codeTime, arrestThreshold: newThreshold, apneaStartTime: newApneaStart,
+                  fluidReservoir: newReservoir, fluidInfusing: activeFluidName,
+                  vec3oh: currentVec3oh, normep: currentNormep, m6g: currentM6g, cyanide: currentCyanide,
+                  lacticAcid: currentLactate, hasAspirated, temp: newTemp
               };
           });
 
@@ -729,7 +1053,9 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               vte: Math.round(newVte), pip: Math.round(newPip), pplat: Math.round(newPplat), 
               peep: newPeep, pmean: Math.round(newPmean), mv: newMv,
               mac: currentMac, etAgent: currentEtAgent, etN2O: currentEtN2O, pao2: targetPaO2, paco2: newPaCO2, ph: newPh,
-              compl: Math.round(currentCompliance), res: Math.round(currentResistance)
+              compl: Math.round(currentCompliance), res: Math.round(currentResistance),
+              cao2: arterialO2Content, cvo2: venousO2Content, p50: p50, r_ratio: R_ratio,
+              metHb: st.patient.metHb, coHb: st.patient.coHb
           }));
         } catch (error) {
           console.error("Physics Engine Tick Failed: ", error);

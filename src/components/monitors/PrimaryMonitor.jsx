@@ -63,9 +63,18 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
           <div className="text-5xl lg:text-6xl font-black text-green-400 leading-none">{vitals.hr}</div>
         </div>
         
-        <div className="flex justify-between items-center w-full mt-1">
-          <div className="text-cyan-500 font-bold flex flex-col"><span className="text-xs"><Wind size={14} className="inline mr-1"/>SpO2</span></div>
-          <div className={`text-4xl lg:text-5xl font-black leading-none ${vitals.spo2 < 88 ? 'text-cyan-600 animate-pulse' : 'text-cyan-400'}`}>{vitals.spo2}</div>
+        <div className="flex flex-col w-full mt-1 pt-1 border-t border-slate-900">
+          <div className="flex justify-between items-center w-full">
+            <div className="text-cyan-500 font-bold flex flex-col"><span className="text-xs"><Wind size={14} className="inline mr-1"/>SpO2</span></div>
+            <div className={`text-4xl lg:text-5xl font-black leading-none ${vitals.spo2 < 88 ? 'text-cyan-600 animate-pulse' : 'text-cyan-400'}`}>{vitals.spo2}%</div>
+          </div>
+          <div className="grid grid-cols-2 gap-x-1 gap-y-0.5 mt-1 text-[9px] text-cyan-600 font-bold border-t border-slate-900 pt-1">
+            <div>MetHb: <span className="text-cyan-400">{(vitals.metHb ?? 0).toFixed(1)}%</span></div>
+            <div>COHb: <span className="text-cyan-400">{(vitals.coHb ?? 0).toFixed(1)}%</span></div>
+            <div>R-Ratio: <span className="text-cyan-400">{(vitals.r_ratio ?? 0.85).toFixed(2)}</span></div>
+            <div>CaO2: <span className="text-cyan-400">{(vitals.cao2 ?? 20).toFixed(1)} <span className="text-[7px]">mL/dL</span></span></div>
+            <div className="col-span-2">CvO2: <span className="text-cyan-400">{(vitals.cvo2 ?? 15).toFixed(1)} <span className="text-[7px]">mL/dL</span></span></div>
+          </div>
         </div>
 
         {/* Core Temperature Addition */}
@@ -79,13 +88,53 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
             <span className="flex items-center gap-1 text-xs"><Activity size={14} className="inline"/> {patient.hasALine ? 'ART' : 'NIBP'}</span>
             {!patient.hasALine && <button onClick={cycleNibp} disabled={isCyclingNibp} className={`text-slate-400 hover:text-white bg-slate-800 p-1 rounded transition ${isCyclingNibp ? 'animate-spin text-cyan-400' : ''}`}><RefreshCw size={10}/></button>}
           </div>
-          <div className="flex flex-col items-end w-full">
-            <div className="text-3xl lg:text-4xl font-black text-red-400 leading-none tracking-tighter">
-              {patient.hasALine ? `${vitals.sys}/${vitals.dia}` : `${nibp.sys}/${nibp.dia}`}
+          <div className="flex justify-between items-start w-full">
+            {/* PPV Column */}
+            <div className="flex flex-col items-start w-[35%]">
+              <span className="text-[10px] text-red-500/70 font-bold tracking-widest uppercase">PPV</span>
+              {(() => {
+                const hasSinus = patient.cardiacRhythm === 'normal';
+                const isMechVent = patient.ventilationStatus === 'mechanical' || (ventSettings?.mode && ventSettings?.mode !== 'spontaneous');
+                const tvPerKg = (vitals.vte || 0) / (patient.weight || 70);
+                const hasSufficientTv = tvPerKg >= 7.0;
+                const hasHrRrRatio = (vitals.hr || 70) / (vitals.rr || 12) >= 4.0;
+                const isPpvValid = hasSinus && isMechVent && hasSufficientTv && hasHrRrRatio;
+
+                const eblRatio = (patient.ebl || 0) / (patient.ebv || 5000);
+                const calculatedPpvVal = Math.max(3, Math.min(45, Math.round(8 + eblRatio * 50)));
+
+                if (isPpvValid) {
+                  return <span className="text-xl font-black text-red-400 leading-none">{calculatedPpvVal}%</span>;
+                } else {
+                  return (
+                    <span 
+                      className="text-[8px] font-bold text-slate-500 bg-slate-900 border border-slate-800 px-1 py-0.5 rounded cursor-help hover:text-red-300 transition-colors whitespace-nowrap"
+                      title="PPV INVALID (Spontaneous breaths, open abdomen, low TV, or rhythm)"
+                    >
+                      INVALID
+                    </span>
+                  );
+                }
+              })()}
             </div>
-            <div className="text-lg lg:text-xl font-black text-red-500/90 mt-1 flex items-center gap-1">
-              <span className="text-[10px] text-red-500/70 font-bold tracking-widest uppercase">MAP</span>
-              ({Math.round((patient.hasALine ? vitals.dia : nibp.dia) + ((patient.hasALine ? vitals.sys : nibp.sys) - (patient.hasALine ? vitals.dia : nibp.dia)) / 3)})
+            
+            {/* Blood Pressure & MAP Column */}
+            <div className="flex flex-col items-end w-[65%]">
+              <div className="text-3xl lg:text-4xl font-black text-red-400 leading-none tracking-tighter">
+                {patient.hasALine ? `${vitals.sys}/${vitals.dia}` : `${nibp.sys}/${nibp.dia}`}
+              </div>
+              <div className="text-lg lg:text-xl font-black text-red-500/90 mt-1 flex flex-col items-end gap-0.5">
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] text-red-500/70 font-bold tracking-widest uppercase">MAP</span>
+                  <span>({Math.round(vitals.map || ((patient.hasALine ? vitals.dia : nibp.dia) + ((patient.hasALine ? vitals.sys : nibp.sys) - (patient.hasALine ? vitals.dia : nibp.dia)) / 3))})</span>
+                </div>
+                {patient.position && patient.position !== 'Supine' && (
+                  <div className="flex items-center gap-1 text-orange-400">
+                    <span className="text-[9px] font-bold tracking-widest uppercase opacity-85">cMAP</span>
+                    <span>({Math.round(vitals.cmap || 0)})</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

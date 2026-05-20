@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MEDICATIONS, FLUIDS } from '../../engine/Pharmacology';
 import { Search, X } from 'lucide-react';
 
-export const Pharmacopoeia = ({ pushFluid, processMed, patient }) => {
+export const Pharmacopoeia = ({ pushFluid, processMed, patient, setPatient }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [medInput, setMedInput] = useState({ drug: null, dose: '', indication: '', route: 'IV', type: 'Bolus', unit: '' });
   const [fluidInput, setFluidInput] = useState({ fluid: null, dose: '' });
@@ -153,6 +153,40 @@ export const Pharmacopoeia = ({ pushFluid, processMed, patient }) => {
         </div>
       ) : (
         <>
+          {/* Fluid Resuscitation Line Selector */}
+          {(!searchTerm || ['gravity', 'ranger', 'belmont', 'infusion', 'equipment', 'line', 'resuscitation', 'fluid line'].some(k => k.includes(searchTerm.toLowerCase()))) && (
+            <div className="bg-slate-950/60 border border-teal-950 p-3 rounded-lg mb-2 flex flex-col gap-2">
+              <div className="text-[10px] text-teal-400 font-bold uppercase tracking-wider">
+                Fluid Infusion Equipment
+              </div>
+              <div className="grid grid-cols-3 gap-1">
+                {[
+                  { id: 'gravity', label: 'Gravity Drip', multiplier: '1.0x' },
+                  { id: 'ranger', label: 'Ranger Warmer', multiplier: '1.5x' },
+                  { id: 'belmont', label: 'Belmont Rapid', multiplier: '4.0x' }
+                ].map(item => {
+                  const isActive = (patient.fluidLine || 'gravity') === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setPatient(p => ({ ...p, fluidLine: item.id }))}
+                      className={`flex flex-col items-center justify-center p-1.5 rounded text-[10px] border font-bold transition-all ${
+                        isActive 
+                          ? 'bg-teal-950/45 border-teal-500 text-teal-200 shadow-[0_0_8px_rgba(20,184,166,0.2)] border-t border-t-teal-400' 
+                          : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-slate-300'
+                      }`}
+                    >
+                      <span>{item.label}</span>
+                      <span className={`text-[8px] mt-0.5 ${isActive ? 'text-teal-400' : 'text-slate-500'}`}>
+                        {item.multiplier} Flow
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <details className="group">
             <summary className="text-teal-400 text-sm border-b border-teal-900 pb-1 uppercase font-bold cursor-pointer hover:text-teal-300 list-none flex justify-between">
               Crystalloids & Colloids <span className="group-open:rotate-180 transition-transform">▼</span>

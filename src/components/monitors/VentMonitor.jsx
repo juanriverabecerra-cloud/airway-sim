@@ -60,14 +60,18 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
         <div className="col-span-1 flex flex-col bg-[#050505] p-3 rounded z-30 gap-4 border border-slate-800 justify-between">
           <div className="flex flex-col gap-1 border-b border-slate-800 pb-2">
             <div className="flex justify-between items-end">
-              <span className="text-yellow-600 text-xs font-bold uppercase tracking-widest">Ppeak</span>
-              <span className="text-yellow-700 text-[10px] font-bold uppercase tracking-widest">Pmean</span>
+              <span className="text-yellow-600 text-[10px] font-bold uppercase tracking-widest">Ppeak / Pplat</span>
+              <span className="text-yellow-700 text-[10px] font-bold uppercase tracking-widest">Pmean / PEEP</span>
             </div>
             <div className="flex justify-between items-end">
-              <span className="text-5xl font-black text-white leading-none">{Math.round(vitals.pip || 0)}</span>
+              <div className="flex flex-col">
+                <span className="text-4xl font-black text-white leading-none">{Math.round(vitals.pip || 0)}</span>
+                <span className="text-yellow-500 text-[9px] font-bold uppercase tracking-widest mt-1">Pplat</span>
+                <span className="text-2xl font-black text-slate-300 leading-none">{Math.round(vitals.pplat || 0)}</span>
+              </div>
               <div className="flex flex-col items-end">
-                <span className="text-3xl font-black text-white leading-none">{Math.round(vitals.pmean || 0)}</span>
-                <span className="text-yellow-600 text-[10px] font-bold uppercase tracking-widest mt-1">PEEP</span>
+                <span className="text-2xl font-black text-slate-300 leading-none">{Math.round(vitals.pmean || 0)}</span>
+                <span className="text-yellow-600 text-[9px] font-bold uppercase tracking-widest mt-1">PEEP</span>
                 <span className="text-2xl font-black text-white leading-none">{Math.round(vitals.peep || 0)}</span>
               </div>
             </div>

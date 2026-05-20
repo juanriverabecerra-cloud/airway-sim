@@ -12,7 +12,7 @@ import { ActionPanel } from './components/controls/ActionPanel';
 import { Pharmacopoeia } from './components/controls/Pharmacopoeia';
 import { AirwayPanel } from './components/controls/AirwayPanel';
 import { LogPanel } from './components/controls/LogPanel';
-import { AccessModal, PocusModal, SetupModal, TubeConfirmModal, AirwayQuizModal, ViewModal } from './components/modals/Modals';
+import { AccessModal, PocusModal, SetupModal, TubeConfirmModal, AirwayQuizModal, ViewModal, PreopModal, MsmaidsModal, PostIntubationModal, ExtubationModal } from './components/modals/Modals';
 
 const CASES = [
   {
@@ -90,6 +90,11 @@ export default function App() {
   const [setupModal, setSetupModal] = useState(false);
   const [pocusModal, setPocusModal] = useState({ show: false, title: '', finding: '' });
   const [isCyclingNibp, setIsCyclingNibp] = useState(false);
+
+  const [preopModal, setPreopModal] = useState(false);
+  const [msmaidsModal, setMsmaidsModal] = useState(false);
+  const [postIntubationModal, setPostIntubationModal] = useState(false);
+  const [extubationModal, setExtubationModal] = useState(false);
   
   const [ventSettings, setVentSettings] = useState({ mode: 'PCV-VG', vt: 500, rr: 12, peep: 5, fio2: 50, pinsp: 20, ieRatio: 2, pmax: 40, ps: 10, air: 0.4, o2: 0.6 });
   const [gasSettings, setGasSettings] = useState({ agent: 'sevoflurane', dial: 0, airFlow: 0.0, o2Flow: 2.0, n2oFlow: 0.0 });
@@ -110,7 +115,7 @@ export default function App() {
   } = usePhysiology({
     activeCase,
     isRunning,
-    isPaused: viewModal.show || setupModal || pocusModal.show || airwayQuizModal.show || accessModal.show || tubeConfirmModal.show,
+    isPaused: viewModal.show || setupModal || pocusModal.show || airwayQuizModal.show || accessModal.show || tubeConfirmModal.show || preopModal || msmaidsModal || postIntubationModal || extubationModal,
     ventSettings,
     gasSettings,
     logEvent
@@ -245,6 +250,21 @@ export default function App() {
     }, 15000); 
   };
 
+  const performLarsonManeuver = () => {
+    saveState();
+    logEvent("✊ Larson's Point jaw-thrust maneuver performed at the styloid process behind the lobule of the pinna. Severe bilateral airway obstruction and laryngospasm resolved!");
+    setPatient(p => ({ ...p, airwayObstruction: false, laryngospasm: false }));
+  };
+
+  const checkCuffLeak = () => {
+    saveState();
+    logEvent("💨 Cuff Leak Test performed: ETT cuff deflated. Audible high-volume leak heard around the tube, confirming minimal to no airway/laryngeal edema. Extubation is highly favored.");
+  };
+
+  const examineNpoHistory = () => {
+    logEvent(`📋 Clinical History & Fasting Assessment:\n- Name: ${patient.name || 'Elective Patient'}\n- Age/Weight: ${patient.age || 45}yo / ${patient.weight || 60}kg\n- NPO Solids: ${patient.npoDuration || 8} hours\n- GLP-1 Receptor Agonists: ${patient.glp1Active ? 'ACTIVE (Delayed Gastric Emptying Risk)' : 'NO'}\n- Primary Comorbidities: ${[patient.cad ? 'CAD' : '', patient.chf ? 'CHF' : '', patient.diabetes ? 'Diabetes' : '', patient.mg ? 'Myasthenia Gravis' : ''].filter(Boolean).join(', ') || 'None'}`);
+  };
+
   const examineAirway = () => {
     const mallampati = patient.mallampati || 1;
     const thyromental = patient.isObese ? "< 6cm (Short / Anterior Airway Risk)" : "> 6cm (Normal)";
@@ -360,7 +380,7 @@ export default function App() {
 
   const handleSuction = () => {
     saveState("Performed rigid Yankauer suction. Cleared airway of blood and secretions.");
-    setPatient(p => ({ ...p, airwayBlood: false }));
+    setPatient(p => ({ ...p, airwayBlood: false, isSuctioned: true }));
   };
 
   const handlePocus = (type) => {
@@ -582,6 +602,7 @@ const generateClinicalHint = () => {
       if (tubePos === 'right_mainstem' || tubePos === 'left_mainstem') logEvent(`⚠️ Note: Tube depth may be excessive for patient's height.`);
 
       setPatient(p => ({ ...p, airwaySecured: true, ventilationStatus: 'successful', tubePosition: tubePos, currentO2Device: 'Mechanical Ventilator (100% FiO2)', currentO2Flow: 15, currentFiO2: 100 }));
+      setPostIntubationModal(true);
     } else {
       logEvent(`❌ Intubation FAILED. ${failReason}`);
       setPatient(p => ({ ...p, ventilationStatus: 'failed', tubePosition: 'esophagus' }));
@@ -723,12 +744,20 @@ const generateClinicalHint = () => {
            checkRhythm={handleCheckRhythm}
            time={time}
            formatTime={formatTime}
+           setPreopModal={setPreopModal}
+           setMsmaidsModal={setMsmaidsModal}
+           setPostIntubationModal={setPostIntubationModal}
+           setExtubationModal={setExtubationModal}
+           performLarsonManeuver={performLarsonManeuver}
+           checkCuffLeak={checkCuffLeak}
+           examineNpoHistory={examineNpoHistory}
         />
         
         <Pharmacopoeia
            pushFluid={handlePushFluid} 
            processMed={handleProcessMed} 
            patient={patient} 
+           setPatient={setPatient}
         />
         
         <AirwayPanel 
@@ -789,6 +818,34 @@ const generateClinicalHint = () => {
       <ViewModal 
         data={viewModal} 
         submitGrade={submitGrade} 
+      />
+
+      <PreopModal
+        show={preopModal}
+        close={() => setPreopModal(false)}
+        patient={patient}
+        logEvent={logEvent}
+      />
+
+      <MsmaidsModal
+        show={msmaidsModal}
+        close={() => setMsmaidsModal(false)}
+        logEvent={logEvent}
+      />
+
+      <PostIntubationModal
+        show={postIntubationModal}
+        close={() => setPostIntubationModal(false)}
+        logEvent={logEvent}
+      />
+
+      <ExtubationModal
+        show={extubationModal}
+        close={() => setExtubationModal(false)}
+        vitals={vitals}
+        patient={patient}
+        logEvent={logEvent}
+        performExtubation={handleExtubation}
       />
 
     </div>

@@ -1,7 +1,34 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Zap, Eye, Syringe, Search, Wind, Activity, ArrowUpRight, X } from 'lucide-react';
 
-export const ActionPanel = ({ patient, setPatient, defibSettings, setDefibSettings, toggleCPR, deliverShock, examineAirway, handlePocus, setAccessModal, generateLab, handleSetO2, logEvent, surgicalPhase, setSurgicalPhase, toggleBis, toggleTof, checkRhythm, time, formatTime }) => {
+export const ActionPanel = ({ 
+  patient, 
+  setPatient, 
+  defibSettings, 
+  setDefibSettings, 
+  toggleCPR, 
+  deliverShock, 
+  examineAirway, 
+  handlePocus, 
+  setAccessModal, 
+  generateLab, 
+  handleSetO2, 
+  logEvent, 
+  surgicalPhase, 
+  setSurgicalPhase, 
+  toggleBis, 
+  toggleTof, 
+  checkRhythm, 
+  time, 
+  formatTime,
+  setPreopModal,
+  setMsmaidsModal,
+  setPostIntubationModal,
+  setExtubationModal,
+  performLarsonManeuver,
+  checkCuffLeak,
+  examineNpoHistory
+}) => {
   
   const [o2Input, setO2Input] = useState({ device: null, flow: '', fio2: '', ipap: '', epap: '', rate: '' });
   const [searchTerm, setSearchTerm] = useState('');
@@ -79,6 +106,7 @@ export const ActionPanel = ({ patient, setPatient, defibSettings, setDefibSettin
   const showCPR = !term || ['defib', 'cpr', 'shock', 'rhythm', 'joules', 'sync', 'compressions', 'code', 'arrest'].some(k => k.includes(term));
   const showPos = !term || ['position', 'supine', 'sniffing', 'ramped', 'trendelenburg', 'rev trend', 'lithotomy', 'lateral', 'prone', 'sitting'].some(k => k.includes(term));
   const showSurg = !term || ['surgical', 'timeline', 'pre-op', 'induction', 'incision', 'maintenance', 'emergence'].some(k => k.includes(term));
+  const showChecklists = !term || ['checklist', 'maneuver', 'pre-op', 'msmaids', 'larson', 'cuff', 'npo', 'history', 'intubation', 'extubation'].some(k => k.includes(term));
   const showDiag = !term || ['diagnostic', 'pocus', 'exam', 'tte', 'lung', 'gastric', 'airway'].some(k => k.includes(term));
   const showNeuro = !term || ['neuro', 'bis', 'tof', 'nmb', 'twitch'].some(k => k.includes(term));
   const showLabs = !term || ['access', 'lab', 'piv', 'iv', 'central line', 'io', 'arterial', 'abg', 'vbg', 'cbc', 'cmp', 'teg', 'coag'].some(k => k.includes(term));
@@ -172,6 +200,59 @@ export const ActionPanel = ({ patient, setPatient, defibSettings, setDefibSettin
                  {phase}
               </button>
             ))}
+          </div>
+        </>
+      )}
+
+      {showChecklists && (
+        <>
+          <h3 className="text-slate-400 text-sm border-b border-slate-700 pb-1 uppercase font-bold mt-2 flex items-center gap-2"><Activity size={14}/> Checklists & Maneuvers</h3>
+          <div className="grid grid-cols-2 gap-2 mt-1">
+            <button 
+              onClick={() => { setPreopModal(true); setSearchTerm(''); }} 
+              className="bg-indigo-900/40 hover:bg-indigo-800/60 p-2 rounded text-xs text-left text-indigo-200 border border-indigo-800 font-bold"
+            >
+              📋 Pre-Op Assessment
+            </button>
+            <button 
+              onClick={() => { setMsmaidsModal(true); setSearchTerm(''); }} 
+              className="bg-emerald-900/40 hover:bg-emerald-800/60 p-2 rounded text-xs text-left text-emerald-200 border border-emerald-800 font-bold"
+            >
+              🛠️ MSMAIDS Check
+            </button>
+            <button 
+              onClick={() => { setPostIntubationModal(true); setSearchTerm(''); }} 
+              disabled={!patient.airwaySecured}
+              className="bg-cyan-900/40 hover:bg-cyan-800/60 disabled:opacity-50 p-2 rounded text-xs text-left text-cyan-200 border border-cyan-800 font-bold"
+            >
+              🔄 Post-Intubation "A's"
+            </button>
+            <button 
+              onClick={() => { setExtubationModal(true); setSearchTerm(''); }} 
+              disabled={!patient.airwaySecured}
+              className="bg-rose-900/40 hover:bg-rose-800/60 disabled:opacity-50 p-2 rounded text-xs text-left text-rose-200 border border-rose-800 font-bold"
+            >
+              💨 Awake Extubation Check
+            </button>
+            <button 
+              onClick={() => { performLarsonManeuver(); setSearchTerm(''); }} 
+              className="bg-purple-900/40 hover:bg-purple-800/60 p-2 rounded text-xs text-left text-purple-200 border border-purple-800 font-bold"
+            >
+              ✊ Perform Larson's
+            </button>
+            <button 
+              onClick={() => { checkCuffLeak(); setSearchTerm(''); }} 
+              disabled={!patient.airwaySecured}
+              className="bg-amber-900/40 hover:bg-amber-800/60 disabled:opacity-50 p-2 rounded text-xs text-left text-amber-200 border border-amber-800 font-bold"
+            >
+              💨 Cuff Leak Test
+            </button>
+            <button 
+              onClick={() => { examineNpoHistory(); setSearchTerm(''); }} 
+              className="bg-slate-800 hover:bg-slate-700 p-2 rounded text-xs text-center border border-slate-600 text-slate-300 font-bold col-span-2"
+            >
+              📋 Examine NPO & History
+            </button>
           </div>
         </>
       )}
