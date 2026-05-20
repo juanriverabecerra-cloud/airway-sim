@@ -239,10 +239,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
   };
 
   const processMed = (medId, doseInput, route, type, unit) => {
-    const hasCVC = patient.accessLines?.some(l => l.includes('CVC') || l.includes('Cordis') || l.includes('Introducer'));
-    const hasPIV = patient.accessLines?.some(l => l.includes('PIV'));
-    const hasIO = patient.accessLines?.some(l => l.includes('IO'));
-    const hasArt = patient.accessLines?.some(l => l.includes('Arterial'));
+    const hasCVC = patient.accessLines?.some(l => l.category?.includes('CVC') || l.type?.includes('CVC') || l.type?.includes('Cordis') || l.type?.includes('Introducer'));
+    const hasPIV = patient.accessLines?.some(l => l.category?.includes('PIV') || l.name?.includes('PIV'));
+    const hasIO = patient.accessLines?.some(l => l.category?.includes('IO') || l.name?.includes('IO'));
+    const hasArt = patient.accessLines?.some(l => l.category?.includes('Arterial') || l.name?.includes('Arterial'));
 
     if (route === 'IV' && !hasCVC && !hasPIV && !hasIO) {
         if (hasArt) {
