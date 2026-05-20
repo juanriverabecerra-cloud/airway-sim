@@ -650,8 +650,9 @@ export const PreopModal = ({ show, close, patient, setPatient, logEvent }) => {
     if (setPatient) {
         setPatient(prev => ({ 
             ...prev, 
-            bloodPreOrdered: preopOrders.typeAndCross,
-            bloodAvailable: preopOrders.typeAndCross 
+            bloodBank: preopOrders.typeAndCross
+                ? { status: 'available', unitsInOR: 2, deliveryCountdown: 0, totalDeliveryTime: 0, preOpWorkup: 'crossmatch' }
+                : { status: 'none', unitsInOR: 0, deliveryCountdown: 0, totalDeliveryTime: 0, preOpWorkup: preopOrders.typeAndScreen ? 'screen' : 'none' }
         }));
     }
     setCleared(true);

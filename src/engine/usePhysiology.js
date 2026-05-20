@@ -120,28 +120,118 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     const fluidData = FLUIDS[fluidName]; if (!fluidData) return false;
     const isBlood = fluidData.type === 'Blood Product';
     
-    if (isBlood && !patient.bloodAvailable) {
-        const hasTypeAndScreen = patient.preOpOrders?.labs?.typeAndScreen;
-        const hasTypeAndCross = patient.preOpOrders?.labs?.typeAndCross;
-        
-        if (hasTypeAndCross) {
-            setPatient(prev => ({ ...prev, bloodAvailable: true }));
-        } else {
-            const delaySeconds = hasTypeAndScreen ? 300 : 600;
-            if (!patient.bloodOrderTime) {
-                logEvent(`🚨 Blood Bank: Order placed for ${fluidName}. Because ${hasTypeAndScreen ? 'Type & Screen was ordered pre-operatively, cooler delivery will take only 5 minutes (300s)' : 'no pre-operative blood workup was ordered, cooler delivery will take 10 minutes (600s)'} to arrive in the OR!`);
-                setPatient(prev => ({ ...prev, bloodOrderTime: Date.now() }));
+    /**
+     * BLOOD BANK STATE MACHINE (Simulation-Time Based)
+     * ─────────────────────────────────────────────────────────────────────
+     * Three-tier blood availability model based on pre-operative workup:
+     *
+     * Tier 1 — Type & Crossmatch ordered pre-op:
+     *   • Blood is immediately available in the OR pool (0 delay)
+     *   • unitsInOR initialized to 2 (standard crossmatched cooler)
+     *   • Each unit consumed decrements the pool; reorder triggers 300s delivery
+     *
+     * Tier 2 — Type & Screen ordered pre-op (no crossmatch):
+     *   • Blood is NOT immediately available
+     *   • First request triggers emergency crossmatch
+     *   • Delivery countdown = 300 seconds (5 minutes) — 50% of baseline
+     *   • Rationale: ABO/Rh and antibody screen already known; only
+     *     electronic/immediate-spin crossmatch required (AABB Guidelines)
+     *
+     * Tier 3 — No pre-operative blood workup:
+     *   • Blood is NOT immediately available
+     *   • First request triggers FULL emergency protocol
+     *   • Delivery countdown = 600 seconds (10 minutes) — baseline maximum
+     *   • Rationale: ABO typing, Rh determination, antibody screen, AND
+     *     crossmatch all required de novo, or resort to O-negative uncrossmatched
+     *     emergency release with transfusion reaction risk
+     *
+     * State: patient.bloodBank = {
+     *   status: 'none' | 'ordered' | 'available',
+     *   unitsInOR: number,           // units physically present
+     *   deliveryCountdown: number,   // simulation seconds remaining (ticked in engine)
+     *   totalDeliveryTime: number,   // original delivery time for log formatting
+     *   preOpWorkup: 'crossmatch' | 'screen' | 'none'
+     * }
+     */
+    if (isBlood) {
+        const bb = patient.bloodBank || { status: 'none', unitsInOR: 0, deliveryCountdown: 0, totalDeliveryTime: 0, preOpWorkup: 'none' };
+
+        if (bb.status === 'available' && bb.unitsInOR > 0) {
+            // Blood is in the OR and units remain — allow administration
+            // Decrement available units for discrete blood products (PRBC, FFP, Platelets, Cryo, Fibrinogen)
+            const requestedUnits = parseFloat(volumeStr) || 1;
+            if (requestedUnits > bb.unitsInOR) {
+                logEvent(`❌ FAILED: Requested ${requestedUnits} unit(s) of ${fluidName}, but only ${bb.unitsInOR} unit(s) remain in the OR cooler. Order more from Blood Bank.`);
                 return false;
-            } else {
-                const elapsed = (Date.now() - patient.bloodOrderTime) / 1000;
-                if (elapsed < delaySeconds) {
-                    const remaining = Math.ceil(delaySeconds - elapsed);
-                    logEvent(`❌ FAILED: Blood products have not arrived yet! (${remaining} seconds remaining).`);
-                    return false;
-                } else {
-                    setPatient(prev => ({ ...prev, bloodAvailable: true }));
-                    logEvent(`✅ Blood Bank: Cooler has arrived in the OR! Continuing administration.`);
+            }
+            setPatient(prev => ({
+                ...prev,
+                bloodBank: {
+                    ...prev.bloodBank,
+                    unitsInOR: prev.bloodBank.unitsInOR - requestedUnits
                 }
+            }));
+            if (bb.unitsInOR - requestedUnits <= 0) {
+                logEvent(`⚠️ Blood Bank: Last unit(s) from OR cooler being administered. Order additional units if hemorrhage continues.`);
+            }
+            // Fall through to fluid push logic below
+        } else if (bb.status === 'ordered') {
+            // Blood has been ordered but hasn't arrived yet
+            const remaining = Math.ceil(bb.deliveryCountdown);
+            const mins = Math.floor(remaining / 60);
+            const secs = remaining % 60;
+            logEvent(`❌ FAILED: Blood products have not arrived yet! Cooler ETA: ${mins}m ${secs}s remaining (${remaining}s). Blood Bank is processing.`);
+            return false;
+        } else {
+            // status === 'none' OR status === 'available' but unitsInOR === 0
+            // Need to order (or reorder) from blood bank
+            const hasTypeAndScreen = patient.preOpOrders?.labs?.typeAndScreen || false;
+            const hasTypeAndCross = patient.preOpOrders?.labs?.typeAndCross || false;
+
+            if (hasTypeAndCross && bb.status === 'none') {
+                // TIER 1: Type & Crossmatch was ordered pre-operatively.
+                // Blood is IMMEDIATELY available — 2 crossmatched units in OR cooler.
+                logEvent(`✅ Blood Bank: Type & Crossmatch was completed pre-operatively. 2 crossmatched units of PRBCs are in the OR cooler. Proceeding with transfusion.`);
+                const requestedUnits = parseFloat(volumeStr) || 1;
+                setPatient(prev => ({
+                    ...prev,
+                    bloodBank: {
+                        status: 'available',
+                        unitsInOR: Math.max(0, 2 - requestedUnits),
+                        deliveryCountdown: 0,
+                        totalDeliveryTime: 0,
+                        preOpWorkup: 'crossmatch'
+                    }
+                }));
+                // Fall through to fluid push logic below
+            } else {
+                // TIER 2 or TIER 3: Must order emergency delivery
+                // Tier 2 (T&S done): 300s — electronic crossmatch only
+                // Tier 3 (nothing):  600s — full ABO/Rh + antibody screen + crossmatch
+                const baselineDelay = 600; // seconds — AABB standard turnaround for full workup
+                const delaySeconds = hasTypeAndScreen ? (baselineDelay * 0.50) : baselineDelay;
+                const deliveryUnits = 4; // Emergency cooler: 4 units (MTP-adjacent quantity)
+
+                const rationale = hasTypeAndCross
+                    ? `Previous crossmatch on file. Reorder delivery: ${Math.round(delaySeconds)}s. Blood Bank pulling ${deliveryUnits} additional units.`
+                    : hasTypeAndScreen
+                        ? `Type & Screen on file — ABO/Rh and antibody screen already completed. Electronic crossmatch in progress. Delivery: ${Math.round(delaySeconds)}s (${Math.round(delaySeconds/60)} min). ${deliveryUnits} units being prepared.`
+                        : `NO pre-operative blood workup on file! Emergency uncrossmatched O-Negative release protocol initiated. Full ABO/Rh typing and antibody screen running concurrently. Delivery: ${Math.round(delaySeconds)}s (${Math.round(delaySeconds/60)} min). ${deliveryUnits} uncrossmatched units being dispatched.`;
+
+                logEvent(`🚨 Blood Bank: Emergency order placed for ${fluidName}. ${rationale}`);
+
+                setPatient(prev => ({
+                    ...prev,
+                    bloodBank: {
+                        status: 'ordered',
+                        unitsInOR: 0,
+                        deliveryCountdown: delaySeconds,
+                        totalDeliveryTime: delaySeconds,
+                        pendingUnits: deliveryUnits,
+                        preOpWorkup: hasTypeAndCross ? 'crossmatch' : (hasTypeAndScreen ? 'screen' : 'none')
+                    }
+                }));
+                return false;
             }
         }
     }
@@ -595,6 +685,51 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               setPatient(prev => ({ ...prev, accessLines: newLines })); // Sync line state silently
           }
           // === END POISEUILLE DRAINAGE ===
+
+
+          // === BLOOD BANK DELIVERY COUNTDOWN (Simulation-Time) ===
+          // Decrements each tick (1 second). Pausing the simulation pauses the countdown.
+          // Undo/restore via snapshot automatically reverts the countdown state.
+          const bbState = st.patient.bloodBank;
+          if (bbState && bbState.status === 'ordered' && bbState.deliveryCountdown > 0) {
+              const newCountdown = bbState.deliveryCountdown - 1;
+
+              if (newCountdown <= 0) {
+                  // Cooler has arrived — transition to available
+                  const arrivedUnits = bbState.pendingUnits || 4;
+                  const isUncrossmatched = bbState.preOpWorkup === 'none';
+                  setPatient(prev => ({
+                      ...prev,
+                      bloodBank: {
+                          ...prev.bloodBank,
+                          status: 'available',
+                          unitsInOR: (prev.bloodBank.unitsInOR || 0) + arrivedUnits,
+                          deliveryCountdown: 0,
+                          pendingUnits: 0
+                      }
+                  }));
+                  logEvent(`✅ Blood Bank: Cooler has arrived in the OR! ${arrivedUnits} unit(s) of ${isUncrossmatched ? 'UNCROSSMATCHED O-Negative' : 'crossmatched'} blood are now available. ${isUncrossmatched ? '⚠️ Transfusion reaction risk elevated — administer cautiously and monitor closely.' : 'Products verified and compatible.'}`);
+              } else {
+                  // Countdown still running — silent decrement with milestone notifications
+                  setPatient(prev => ({
+                      ...prev,
+                      bloodBank: {
+                          ...prev.bloodBank,
+                          deliveryCountdown: newCountdown
+                      }
+                  }));
+
+                  // Milestone notifications at halfway and at 60 seconds remaining
+                  const totalTime = bbState.totalDeliveryTime || 600;
+                  const halfwayMark = Math.round(totalTime / 2);
+                  if (newCountdown === halfwayMark) {
+                      logEvent(`🔔 Blood Bank Update: Cooler is halfway to the OR. ETA: ${Math.ceil(newCountdown / 60)} min (${newCountdown}s).`);
+                  } else if (newCountdown === 60) {
+                      logEvent(`🔔 Blood Bank Update: Cooler arriving in 60 seconds. Prepare IV line and blood warmer.`);
+                  }
+              }
+          }
+          // === END BLOOD BANK COUNTDOWN ===
 
 
           // Calculate dynamic V1 modifier based on active fluid/blood volume state

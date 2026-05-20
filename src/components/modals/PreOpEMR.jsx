@@ -99,78 +99,48 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     const id = stagedCase.id;
     if (id === 'normal') {
       return {
-        rcriHighRisk: false,
-        rcriIhd: false,
-        rcriChf: false,
-        rcriCva: false,
-        rcriInsulin: false,
-        rcriCr: false,
-        mets: 'excellent',
-        asa: 'ASA I',
-        mallampati: 'Class I',
-        neckMobility: 'Normal',
-        npoStatus: 'Compliant',
-        vignette: "Patient is a 45-year-old female scheduled for elective laparoscopic cholecystectomy. She reports running 3 miles every morning without chest pain or shortness of breath. She has no past medical history and takes no medications. She ate her last solid meal 12 hours ago. On physical exam, full opening of the mouth reveals completely visible soft palate, fauces, uvula, and pillars with a normal cervical spine range of motion."
+        rcriHighRisk: false, rcriIhd: false, rcriChf: false, rcriCva: false, rcriInsulin: false, rcriCr: false,
+        mets: 'excellent', asa: 'ASA I', mallampati: 'Class I', neckMobility: 'Normal', npoStatus: 'Compliant',
+        medicalHistory: "You are interviewing a 45-year-old female in the pre-operative holding area. She is scheduled for an elective laparoscopic cholecystectomy. When asked about her exercise tolerance, she tells you she jogs 3 miles every morning without any chest pain, shortness of breath, or dizziness. She has never been hospitalized. She takes no daily medications. She denies any history of heart problems, stroke, lung disease, diabetes, or kidney problems. Her last basic metabolic panel was entirely normal.",
+        globalHistory: "The patient is a 45-year-old otherwise healthy female. She has no past medical or surgical history. She takes no medications. She exercises vigorously daily. She is presenting for an elective laparoscopic cholecystectomy for symptomatic cholelithiasis. She has no functional limitations.",
+        airwayExam: "You ask the patient to sit upright, open her mouth as wide as possible, and protrude her tongue without phonating. She opens widely with full mandibular excursion. You observe the entire soft palate, the fauces (palatoglossal and palatopharyngeal arches), the full uvula from tip to base, and both tonsillar pillars are clearly visible. You then ask her to extend her neck \u2014 she achieves full atlanto-occipital extension without limitation or pain. Her thyromental distance measures approximately 7 cm. Her upper lip bite test is Class I \u2014 lower incisors easily bite above the vermillion border of the upper lip.",
+        npoHistory: "You ask the patient about her last oral intake. She reports eating a light dinner (grilled chicken and salad) at 7 PM last evening, approximately 12 hours ago. She drank a glass of water at 6 AM this morning, approximately 6 hours ago. She does not take any GLP-1 receptor agonists (Ozempic, Wegovy, Mounjaro) or prokinetic agents. She denies any nausea, vomiting, or acid reflux symptoms."
       };
     } else if (id === 'trauma') {
       return {
-        rcriHighRisk: true,
-        rcriIhd: false,
-        rcriChf: false,
-        rcriCva: false,
-        rcriInsulin: false,
-        rcriCr: false,
-        mets: 'poor',
-        asa: 'ASA IV',
-        mallampati: 'Class IV',
-        neckMobility: 'Reduced',
-        npoStatus: 'Aspiration Risk',
-        vignette: "Patient is a 54-year-old male unrestrained passenger in a high-speed motor vehicle collision, brought in via EMS with a rigid cervical collar and a Glasgow Coma Scale of 7. There is active, profuse oropharyngeal bleeding from nasal and facial fractures, with thick pooling blood completely obscuring all soft tissue structures of the oral cavity. His spouse reports he ate a large burger and fries 2 hours before the crash."
+        rcriHighRisk: true, rcriIhd: false, rcriChf: false, rcriCva: false, rcriInsulin: false, rcriCr: false,
+        mets: 'poor', asa: 'ASA IV', mallampati: 'Class IV', neckMobility: 'Reduced', npoStatus: 'Aspiration Risk',
+        medicalHistory: "EMS brings in a 54-year-old male, unrestrained passenger from a high-speed motor vehicle collision. He is obtunded with a Glasgow Coma Scale of 7 (E2V1M4), intubation is being requested emergently by the trauma surgery team. He is tachycardic at 115 bpm with a blood pressure of 105/65 mmHg. His wife, who arrived separately, reports that he has no prior cardiac history, no diabetes, no kidney disease, and no prior strokes. He was not on any medications. She describes him as someone who \u2018sits on the couch all day\u2019 and cannot recall him exercising in years \u2014 but this is a baseline lifestyle description, not an acute limitation. Given his current GCS of 7, he cannot participate in any physical activity assessment.",
+        globalHistory: "A 54-year-old male with no significant past medical history is brought to the trauma bay as an unrestrained passenger from a high-speed MVC. GCS is 7. He has active facial and nasal fractures with profuse oropharyngeal hemorrhage. He is hemodynamically unstable with tachycardia (HR 115) and borderline hypotension (BP 105/65). A rigid cervical collar is in place for suspected C-spine injury. The trauma team is requesting emergent surgical exploration for suspected intra-abdominal hemorrhage.",
+        airwayExam: "The patient is obtunded (GCS 7) and cannot follow commands. A rigid cervical collar is in place, preventing any neck extension. You attempt to open his mouth for airway assessment \u2014 you observe massive, active oropharyngeal hemorrhage from bilateral nasal fractures and a comminuted maxillary fracture. Thick, dark red blood is pooling in the posterior pharynx and actively flowing over the tongue. You cannot visualize any soft tissue structures \u2014 the soft palate, uvula, and tonsillar pillars are completely obscured by blood. Suctioning with a Yankauer partially clears the view but bleeding immediately re-accumulates. The mandible appears intact with adequate mouth opening (approximately 3 finger-breadths), but visualization is zero due to hemorrhage.",
+        npoHistory: "The patient's wife reports that he ate a large cheeseburger, french fries, and drank a 20-ounce Coca-Cola approximately 2 hours before the motor vehicle collision. He had not vomited since the accident. The trauma occurred approximately 45 minutes ago. There is no nasogastric tube in place. The patient is obtunded and cannot provide his own history."
       };
     } else if (id === 'septic') {
       return {
-        rcriHighRisk: true,
-        rcriIhd: true,
-        rcriChf: false,
-        rcriCva: false,
-        rcriInsulin: false,
-        rcriCr: true,
-        mets: 'poor',
-        asa: 'ASA IV',
-        mallampati: 'Class II',
-        neckMobility: 'Normal',
-        npoStatus: 'Aspiration Risk',
-        vignette: "Patient is a 68-year-old male from a nursing home with high fever and altered mental status. Blood pressure is 85/40 mmHg on a continuous norepinephrine infusion, with blood cultures positive for Gram-negative rods (urosepsis). EMR indicates a history of coronary artery disease (stented anterior MI 2 years ago) and chronic kidney disease stage III (baseline creatinine is 2.2 mg/dL). He was placed on NPO status 6 hours ago after a light breakfast, but has active shock-induced gastroparesis."
+        rcriHighRisk: true, rcriIhd: true, rcriChf: false, rcriCva: false, rcriInsulin: false, rcriCr: true,
+        mets: 'poor', asa: 'ASA IV', mallampati: 'Class II', neckMobility: 'Normal', npoStatus: 'Aspiration Risk',
+        medicalHistory: "You are called to the ICU to evaluate a 68-year-old male for emergent source control surgery (percutaneous nephrostomy for obstructing ureteral stone with pyonephrosis). The patient is febrile (39.2\u00b0C), confused, and on a norepinephrine infusion at 12 mcg/min to maintain a MAP above 65 mmHg. Blood cultures have grown Gram-negative rods (E. coli). You review his EMR and find: (1) Cardiology notes from 2 years ago documenting a stented anterior myocardial infarction with drug-eluting stent to the LAD \u2014 he remains on dual antiplatelet therapy (aspirin + clopidogrel). (2) Nephrology notes documenting chronic kidney disease stage III with a baseline creatinine of 2.2 mg/dL and GFR of 38 mL/min. His nurse reports he has been bedbound in the nursing home for the past 3 months and cannot ambulate to the bathroom independently.",
+        globalHistory: "A 68-year-old male nursing home resident with a history of coronary artery disease (prior anterior STEMI with LAD stent 2 years ago), chronic kidney disease stage III (Cr 2.2), and recent functional decline (bedbound) is presenting with urosepsis secondary to an obstructing ureteral stone with pyonephrosis. He is currently in the ICU, hemodynamically unstable on high-dose vasopressors (norepinephrine 12 mcg/min). He has a temperature of 39.2\u00b0C, HR 135, BP 85/40, with blood cultures positive for E. coli. The urology team is requesting emergent percutaneous nephrostomy for source control.",
+        airwayExam: "The patient is febrile and confused but follows simple commands intermittently. You ask him to open his mouth and protrude his tongue. He opens his mouth with adequate mandibular excursion. You observe the soft palate, the fauces, and the uvula, but the tonsillar pillars are partially hidden behind the soft palate and tongue base. There is no blood or excessive secretions in the oropharynx. You assess his neck \u2014 he has a thin habitus with a normal-length neck. He extends his neck fully at the atlanto-occipital joint without any restriction or pain. Thyromental distance is approximately 7.5 cm. There is no prior history of difficult intubation.",
+        npoHistory: "You ask the ICU nurse about the patient's oral intake. He was admitted from the nursing home at 6 AM this morning. The nurse reports that the nursing home staff gave him a light breakfast (oatmeal and orange juice) at approximately 5:30 AM \u2014 roughly 6 hours ago. He has been NPO since admission. However, you note that he is in distributive (septic) shock on high-dose vasopressors, which causes profound splanchnic hypoperfusion and functional gastroparesis. Additionally, the acute illness and opioid analgesics he received for flank pain further delay gastric emptying. He has not vomited. No nasogastric tube is in place."
       };
     } else if (id === 'obese') {
       return {
-        rcriHighRisk: false,
-        rcriIhd: false,
-        rcriChf: true,
-        rcriCva: false,
-        rcriInsulin: true,
-        rcriCr: false,
-        mets: 'poor',
-        asa: 'ASA III',
-        mallampati: 'Class III',
-        neckMobility: 'Reduced',
-        npoStatus: 'Aspiration Risk',
-        vignette: "Patient is a 50-year-old male with a BMI of 45 scheduled for an elective umbilical hernia repair. He reports he can walk only about 1 block before getting severely short of breath. He has severe obstructive sleep apnea (uses CPAP). He has type 2 diabetes managed with daily insulin, and a history of heart failure (EF 35% on carvedilol). He fasted for 8 hours, but takes daily Semaglutide (Ozempic) which was NOT held pre-operatively. Exam shows a thick, short neck with restricted extension due to a prominent posterior fat pad, and mouth opening reveals only the base of the uvula."
+        rcriHighRisk: false, rcriIhd: false, rcriChf: true, rcriCva: false, rcriInsulin: true, rcriCr: false,
+        mets: 'poor', asa: 'ASA III', mallampati: 'Class III', neckMobility: 'Reduced', npoStatus: 'Aspiration Risk',
+        medicalHistory: "You are interviewing a 50-year-old male in the pre-operative holding area. He is scheduled for an elective umbilical hernia repair. He weighs 142 kg at 178 cm (BMI 44.8). When asked about exercise tolerance, he states he can only walk about one block on flat ground before becoming severely short of breath and needing to stop and rest. He cannot climb a flight of stairs. His medication list includes: carvedilol 25 mg BID (for heart failure), furosemide 40 mg daily, lisinopril 10 mg daily, insulin glargine 40 units at bedtime, insulin lispro sliding scale with meals, and metformin 1000 mg BID. His medical history includes: congestive heart failure with a reduced ejection fraction of 35% (diagnosed 3 years ago), severe obstructive sleep apnea requiring nightly CPAP at 12 cmH\u2082O, and type 2 diabetes mellitus managed with insulin. He denies any history of coronary artery disease (no prior MI, no angina, no stents, no CABG), stroke, TIA, or kidney problems. His last creatinine was 0.9 mg/dL.",
+        globalHistory: "A 50-year-old male with BMI 44.8, severe obstructive sleep apnea on CPAP, congestive heart failure with reduced EF (35%) on carvedilol and furosemide, and insulin-dependent type 2 diabetes is presenting for an elective umbilical hernia repair. He has severely limited functional capacity (cannot walk more than 1 block). He has no history of coronary artery disease, stroke, or renal disease.",
+        airwayExam: "You ask the patient to sit upright and open his mouth as wide as possible. He opens his mouth and protrudes his tongue. You observe the soft palate and can see the very base of the uvula, but the upper portion of the uvula, the fauces, and the tonsillar pillars are completely obscured by the large tongue base. There is no blood or secretions. You then assess his neck \u2014 he has a very thick, short neck with a large posterior cervical fat pad (buffalo hump). When you ask him to extend his neck, he achieves only limited atlanto-occipital extension \u2014 approximately 20\u00b0 instead of the normal 35\u00b0 \u2014 due to the redundant submental and posterior cervical adipose tissue mechanically restricting motion. His thyromental distance is approximately 5 cm (short). His upper lip bite test is Class II \u2014 lower incisors can bite the upper lip, but only at the level of the vermillion border.",
+        npoHistory: "You ask the patient about his last oral intake. He reports eating a bowl of cereal with milk at approximately 3:30 AM \u2014 roughly 8 hours ago. He had nothing to drink since then except sips of water with his morning medications at 5 AM. When you review his medication list, you notice he is currently taking Semaglutide (Ozempic) 1 mg weekly for weight management, with his last injection 3 days ago. He reports that he did NOT stop the Semaglutide before surgery as no one told him to hold it. He denies nausea or vomiting, but notes he often feels \u2018full\u2019 for hours after small meals since starting Ozempic."
       };
     }
     return {
-      rcriHighRisk: false,
-      rcriIhd: false,
-      rcriChf: false,
-      rcriCva: false,
-      rcriInsulin: false,
-      rcriCr: false,
-      mets: 'excellent',
-      asa: 'ASA II',
-      mallampati: 'Class I',
-      neckMobility: 'Normal',
-      npoStatus: 'Compliant',
-      vignette: "Pre-operative evaluation vignette."
+      rcriHighRisk: false, rcriIhd: false, rcriChf: false, rcriCva: false, rcriInsulin: false, rcriCr: false,
+      mets: 'excellent', asa: 'ASA II', mallampati: 'Class I', neckMobility: 'Normal', npoStatus: 'Compliant',
+      medicalHistory: "Pre-operative medical history interview.",
+      globalHistory: "Pre-operative global assessment.",
+      airwayExam: "Pre-operative airway examination.",
+      npoHistory: "Pre-operative NPO assessment."
     };
   };
 
@@ -573,23 +543,10 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
 
   const results = generatePreOpResults();
 
-  // RCRI Cardiovascular Risk Score Matrix (2024 Guidelines)
-  const [rcriScore, setRcriScore] = useState(0);
-  const [rcriMets, setRcriMets] = useState(patient.mets || 'moderate'); // 'poor' | 'moderate' | 'excellent'
+  // RCRI Score derived from user's assessment selections (NOT auto-computed from patient data)
+  const rcriScore = (assessment.rcriHighRisk ? 1 : 0) + (assessment.rcriIhd ? 1 : 0) + (assessment.rcriChf ? 1 : 0) + (assessment.rcriCva ? 1 : 0) + (assessment.rcriInsulin ? 1 : 0) + (assessment.rcriCr ? 1 : 0);
 
-  // Calculate RCRI score based on comorbidities
-  useEffect(() => {
-    let score = 0;
-    if (patient.isHighRiskSurgery || stagedCase.name?.toLowerCase().includes('trauma') || stagedCase.name?.toLowerCase().includes('sepsis') || patient.trauma || patient.isSeptic) score += 1;
-    if (patient.cad || patient.pciMonthsAgo) score += 1;
-    if (patient.chf) score += 1;
-    if (patient.cva || patient.stroke) score += 1;
-    if (patient.diabetes && patient.insulinDependent) score += 1;
-    if (patient.ckd && patient.creatinine > 2.0) score += 1;
-    setRcriScore(score);
-  }, [patient]);
-
-  // Derived Risk Class and ACC/AHA Action Recommendation
+  // Derived Risk Class and ACC/AHA Action Recommendation based on user selections
   let riskClass = '';
   let riskPercent = '';
   let accAction = '';
@@ -603,7 +560,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
   } else if (rcriScore === 1) {
     riskClass = 'Class II';
     riskPercent = '0.9%';
-    if (rcriMets === 'poor') {
+    if (assessment.mets === 'poor') {
       accAction = 'LOW-INTERMEDIATE RISK: 12-Lead ECG recommended pre-operatively. Proceed with routine precautions.';
       borderClass = 'border-yellow-500 bg-yellow-950/20 text-yellow-400';
     } else {
@@ -613,7 +570,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
   } else if (rcriScore === 2) {
     riskClass = 'Class III';
     riskPercent = '6.6%';
-    if (rcriMets === 'poor') {
+    if (assessment.mets === 'poor') {
       accAction = 'ELEVATED RISK: Pharmacologic Stress Test strongly recommended. Titrate beta-blockers and optimize cardiovascular therapies.';
       borderClass = 'border-orange-500 bg-orange-950/20 text-orange-400';
     } else {
@@ -627,12 +584,31 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     borderClass = 'border-red-500 bg-red-950/20 text-red-400 animate-pulse';
   }
 
-  // Anesthesia Plan State
+  // Accessor for ground truth vignettes (computed once, cached per render)
+  const groundTruth = getGroundTruth();
+
+  // Anesthesia Plan State — Multi-Modal
   const [anesthesiaPlan, setAnesthesiaPlan] = useState({
-    type: 'GA', // 'GA' | 'Regional' | 'MAC'
-    airway: 'DL', // 'DL' | 'VL' | 'AwakeFiberoptic'
-    monitoring: 'standard', // 'standard' | 'aline' | 'cvc' | 'tee'
-    bloodConfirm: false
+    // Multi-modal anesthesia: multiple techniques can be active simultaneously
+    types: {
+      GA: false,             // General Anesthesia (endotracheal, LMA)
+      regional: false,       // Peripheral Nerve Block (adductor canal, TAP, etc.)
+      neuraxial: false,      // Spinal or Epidural (central neuraxial blockade)
+      mac: false             // Monitored Anesthesia Care / IV Sedation
+    },
+    // Airway plan (only relevant if GA is selected)
+    airway: 'DL',            // 'DL' | 'VL' | 'AwakeFiberoptic'
+    // Comprehensive monitoring: any combination of modalities
+    monitors: {
+      standard: true,        // Standard ASA monitors (SpO2, ECG, NIBP, EtCO2, Temp) — always on
+      aline: false,          // Arterial Line (continuous invasive BP)
+      cvc: false,            // Central Venous Catheter (CVP monitoring, vasopressor infusion)
+      tee: false,            // Transesophageal Echocardiography
+      bispectral: false,     // BIS / Depth of Anesthesia Monitor
+      nervStim: false        // Peripheral Nerve Stimulator (twitch monitoring for NMB)
+    },
+    bloodConfirm: false,
+    advisoryDismissed: false  // User has acknowledged and overridden clinical advisories
   });
 
   // Load saved plan if exists
@@ -645,11 +621,12 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
   const handlePlanChange = (field, value) => {
     const updated = {
       ...anesthesiaPlan,
-      [field]: value
+      [field]: value,
+      // Reset advisory dismissal on any plan change so new advisories are shown
+      advisoryDismissed: false
     };
     setAnesthesiaPlan(updated);
 
-    // Save to stagedCase state
     if (setStagedCase) {
       setStagedCase(prev => ({
         ...prev,
@@ -658,15 +635,178 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     }
   };
 
+  const handleTypeToggle = (typeKey) => {
+    const updated = {
+      ...anesthesiaPlan,
+      types: { ...anesthesiaPlan.types, [typeKey]: !anesthesiaPlan.types[typeKey] },
+      advisoryDismissed: false
+    };
+    setAnesthesiaPlan(updated);
+    if (setStagedCase) setStagedCase(prev => ({ ...prev, preOpPlan: updated }));
+  };
+
+  const handleMonitorToggle = (monKey) => {
+    // Standard ASA monitors cannot be deselected
+    if (monKey === 'standard') return;
+    const updated = {
+      ...anesthesiaPlan,
+      monitors: { ...anesthesiaPlan.monitors, [monKey]: !anesthesiaPlan.monitors[monKey] },
+      advisoryDismissed: false
+    };
+    setAnesthesiaPlan(updated);
+    if (setStagedCase) setStagedCase(prev => ({ ...prev, preOpPlan: updated }));
+  };
+
+  // ── Clinical Advisory Rules Engine ──
+  // Evaluates the current multi-modal anesthesia/monitoring selections against
+  // evidence-based guidelines for the specific patient and surgical context.
+  // Returns an array of { severity: 'warning'|'caution'|'info', message: string }
+  const getAnesthesiaAdvisories = () => {
+    const advisories = [];
+    const { types, monitors, airway } = anesthesiaPlan;
+    const id = stagedCase.id;
+    const isEmergent = id === 'trauma' || id === 'septic';
+    const isSeptic = id === 'septic';
+    const isTrauma = id === 'trauma';
+    const isElective = id === 'normal';
+    const hasGA = types.GA;
+    const hasRegional = types.regional;
+    const hasNeuraxial = types.neuraxial;
+    const hasMAC = types.mac;
+    const anyTypeSelected = hasGA || hasRegional || hasNeuraxial || hasMAC;
+    const verifiedRisk = stagedCase.patient?.verifiedRisk || {};
+
+    // ── No technique selected ──
+    if (!anyTypeSelected) {
+      advisories.push({
+        severity: 'caution',
+        message: 'No anesthetic technique selected. At least one modality is required to proceed.'
+      });
+    }
+
+    // ── GA + MAC redundancy ──
+    if (hasGA && hasMAC) {
+      advisories.push({
+        severity: 'warning',
+        message: 'MAC (Monitored Anesthesia Care) is inherently a subset of General Anesthesia. Selecting both is clinically redundant — MAC is only appropriate when GA is NOT being administered. Consider deselecting MAC if you intend to use GA, or deselect GA if you intend sedation-only.'
+      });
+    }
+
+    // ── MAC-only for emergency/major surgery ──
+    if (hasMAC && !hasGA && !hasNeuraxial && isEmergent) {
+      advisories.push({
+        severity: 'caution',
+        message: 'MAC alone is contraindicated for emergent intra-abdominal or trauma surgery. These cases require either GA (with secured airway) or neuraxial anesthesia for surgical relaxation, hemodynamic control, and airway protection in hemodynamically unstable or obtunded patients.'
+      });
+    }
+
+    // ── Neuraxial in coagulopathic/septic patients ──
+    if (hasNeuraxial && isSeptic) {
+      advisories.push({
+        severity: 'caution',
+        message: 'Neuraxial blockade in septic patients is relatively contraindicated due to: (1) Coagulopathy risk — DIC and thrombocytopenia are common in sepsis (ASRA Guidelines: platelet count must be ≥80,000 for epidural, ≥50,000 for spinal). (2) Hemodynamic instability — sympathectomy from neuraxial block will exacerbate vasoplegic shock. (3) Bacteremia — risk of epidural abscess or meningitis is elevated during active bacteremia. Consider GA with vasopressor support instead.'
+      });
+    }
+
+    // ── Neuraxial in trauma with spinal injury risk ──
+    if (hasNeuraxial && isTrauma) {
+      advisories.push({
+        severity: 'caution',
+        message: 'Neuraxial blockade in acute trauma is contraindicated when: (1) Spinal injury has not been cleared (cervical collar in place implies uncleared C-spine). (2) Coagulopathy from hemorrhagic shock increases epidural hematoma risk. (3) Hemodynamic instability — sympathectomy-induced hypotension in hypovolemic trauma patients can be catastrophic. Consider GA with RSI for definitive airway protection.'
+      });
+    }
+
+    // ── GA + Regional (optimal multi-modal) ──
+    if (hasGA && hasRegional && isElective) {
+      advisories.push({
+        severity: 'info',
+        message: 'Excellent multi-modal strategy: GA + Peripheral Nerve Block provides optimal surgical anesthesia with superior post-operative analgesia. This combination reduces opioid requirements by 40-60% (PROSPECT Guidelines), accelerates PACU discharge, and improves patient satisfaction. Consider TAP block or local infiltration for laparoscopic cholecystectomy.'
+      });
+    }
+
+    // ── GA + Neuraxial (combined general-epidural) ──
+    if (hasGA && hasNeuraxial && isElective) {
+      advisories.push({
+        severity: 'warning',
+        message: 'Combined GA + Epidural is typically reserved for major open abdominal, thoracic, or vascular surgery — not laparoscopic cholecystectomy. The risk-benefit ratio of epidural catheter placement (epidural hematoma 1:150,000, abscess, dural puncture headache) does not justify the modest analgesic benefit for a minimally invasive procedure expected to last <90 minutes. Consider GA + TAP block or simple multimodal IV analgesia instead.'
+      });
+    }
+
+    // ── Regional-only without GA for cases requiring airway protection ──
+    if (hasRegional && !hasGA && !hasNeuraxial && !hasMAC) {
+      advisories.push({
+        severity: 'warning',
+        message: 'A peripheral nerve block alone does not provide surgical anesthesia for intra-abdominal or intrathoracic procedures. Peripheral blocks provide analgesia for somatic pain only (abdominal wall, dermatome-specific). You must combine this with GA (for airway control and visceral anesthesia) or neuraxial blockade (for segmental visceral and somatic blockade).'
+      });
+    }
+
+    // ── Airway mismatch: DL with anticipated difficult airway ──
+    if (hasGA && airway === 'DL' && (verifiedRisk.mallampati === 'Class III' || verifiedRisk.mallampati === 'Class IV' || verifiedRisk.neckMobility === 'Reduced')) {
+      advisories.push({
+        severity: 'caution',
+        message: `Direct Laryngoscopy (DL) is a suboptimal first-line approach given the patient's airway assessment: ${verifiedRisk.mallampati || 'Unknown'} Mallampati, ${verifiedRisk.neckMobility || 'Unknown'} neck mobility. ASA Difficult Airway Algorithm recommends Video Laryngoscopy (VL) as first attempt in anticipated difficulty, or Awake Fiberoptic Intubation (AFOI) if multiple predictors are present. DL first-pass success rate drops from ~95% (Class I) to ~60% (Class III-IV) in limited neck extension scenarios.`
+      });
+    }
+
+    // ── Monitoring advisories ──
+    // Missing A-line in high-risk cardiac patients
+    if (!monitors.aline && verifiedRisk.rcriScore >= 2) {
+      advisories.push({
+        severity: 'warning',
+        message: `RCRI Score ≥ 2 (Class III–IV) indicates elevated cardiac risk. An arterial line provides continuous beat-to-beat blood pressure monitoring essential for detecting and treating hemodynamic perturbations. ACC/AHA guidelines recommend invasive arterial monitoring for patients with RCRI ≥ 2 undergoing intermediate-to-high risk surgery.`
+      });
+    }
+
+    // Missing A-line in septic/trauma
+    if (!monitors.aline && isEmergent) {
+      advisories.push({
+        severity: 'warning',
+        message: 'Emergent trauma or septic cases with hemodynamic instability require arterial line monitoring for: (1) Continuous invasive BP for vasopressor titration, (2) Frequent intra-operative ABG sampling (lactate trending, acid-base status, serial hemoglobin), (3) Pulse pressure variation for fluid responsiveness assessment.'
+      });
+    }
+
+    // CVC without clear indication in elective
+    if (monitors.cvc && isElective && !monitors.aline) {
+      advisories.push({
+        severity: 'info',
+        message: 'Central venous access is not routinely indicated for elective laparoscopic cholecystectomy. CVC placement carries risks: pneumothorax (1-3%), arterial puncture, catheter-related bloodstream infection. Reserve for patients requiring: (1) Vasopressor infusions, (2) Large-bore central access for massive transfusion, (3) CVP monitoring in heart failure patients, or (4) Inadequate peripheral IV access.'
+      });
+    }
+
+    // TEE without cardiac indication
+    if (monitors.tee && isElective && verifiedRisk.rcriScore < 2) {
+      advisories.push({
+        severity: 'info',
+        message: 'TEE is not routinely indicated for low-cardiac-risk elective surgery. ACC/AHA Practice Advisory recommends intraoperative TEE for: (1) Cardiac surgery, (2) Major vascular surgery with anticipated large fluid shifts, (3) Unexplained persistent hemodynamic instability during surgery, or (4) Patients with known severe valvular disease or ventricular dysfunction. TEE is an invasive esophageal procedure with risks of dental injury and esophageal perforation.'
+      });
+    }
+
+    // BIS recommended for TIVA or high-risk awareness
+    if (hasGA && !monitors.bispectral && (verifiedRisk.asa === 'ASA IV' || isTrauma)) {
+      advisories.push({
+        severity: 'info',
+        message: 'Consider BIS (Bispectral Index) depth-of-anesthesia monitoring. Patients undergoing emergent surgery, hemodynamically unstable patients requiring reduced anesthetic doses, and trauma patients with altered consciousness are at elevated risk of intraoperative awareness (incidence: 0.1-0.2% general population, up to 1-2% in trauma/cardiac). NAP5 recommends processed EEG monitoring in at-risk populations.'
+      });
+    }
+
+    // Nerve stimulator recommended when NMB planned
+    if (hasGA && !monitors.nervStim) {
+      advisories.push({
+        severity: 'info',
+        message: 'Quantitative neuromuscular monitoring (e.g., TOF-Watch, TwitchView) is strongly recommended whenever neuromuscular blocking agents are administered. ASA 2023 and APSF guidelines recommend quantitative monitoring over qualitative (subjective) assessment to prevent residual paralysis, which occurs in 20-40% of patients when qualitative monitoring alone is used. Ensures TOF ratio ≥ 0.9 before extubation.'
+      });
+    }
+
+    return advisories;
+  };
+
   const handleProceed = () => {
-    // Log the event
-    logEvent(`📋 Pre-Op EMR Evaluation Complete. Plan locked: ${anesthesiaPlan.type} with ${anesthesiaPlan.airway} airway plan, ${anesthesiaPlan.monitoring} monitoring. Proceeding to OR.`);
+    // Build descriptive log entry from multi-modal selections
+    const activeTypes = Object.entries(anesthesiaPlan.types).filter(([,v]) => v).map(([k]) => k);
+    const activeMonitors = Object.entries(anesthesiaPlan.monitors).filter(([,v]) => v).map(([k]) => k);
+    logEvent(`📋 Pre-Op EMR Evaluation Complete. Plan locked: [${activeTypes.join(' + ')}] with ${anesthesiaPlan.airway} airway plan, monitoring: [${activeMonitors.join(', ')}]. Proceeding to OR.`);
     
     // Inject pre-op lab results into the stagedCase so they are carried forward
-    // Map ALL ordered pre-op labs into the intra-op EMR history format.
-    // Each panel is keyed by its canonical intra-op title so that subsequent
-    // intra-op draws of the same panel append to the same history[] array,
-    // enabling temporal trending (e.g., Pre-Op Hb vs. intra-op Hb after hemorrhage).
     const preOpLabRecords = {};
 
     const labKeyToTitleMap = {
@@ -703,6 +843,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     });
 
     // Merge everything into the patient object that will be started
+    const verifiedRisk = stagedCase.patient?.verifiedRisk || {};
     const updatedCase = {
       ...stagedCase,
       preOpLabs: preOpLabRecords,
@@ -710,17 +851,32 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
         ...stagedCase.patient,
         preOpOrders: orders,
         preOpPlan: anesthesiaPlan,
-        bloodAvailable: anesthesiaPlan.bloodConfirm || orders.labs.typeAndCross,
-        bloodPreOrdered: orders.labs.typeAndCross,
-        hasALine: anesthesiaPlan.monitoring === 'aline' || anesthesiaPlan.monitoring === 'tee',
-        hasCVC: anesthesiaPlan.monitoring === 'cvc',
-        airwayPlan: anesthesiaPlan.airway,
-        anesthesiaType: anesthesiaPlan.type,
+        // Blood Bank state initialization based on pre-operative workup tier
+        bloodBank: orders.labs.typeAndCross
+          ? { status: 'available', unitsInOR: 2, deliveryCountdown: 0, totalDeliveryTime: 0, preOpWorkup: 'crossmatch' }
+          : { status: 'none', unitsInOR: 0, deliveryCountdown: 0, totalDeliveryTime: 0, preOpWorkup: orders.labs.typeAndScreen ? 'screen' : 'none' },
+        // ── Multi-Modal Anesthesia/Monitoring State Handoff ──
+        hasALine: anesthesiaPlan.monitors.aline || anesthesiaPlan.monitors.tee,
+        hasCVC: anesthesiaPlan.monitors.cvc,
+        hasTEE: anesthesiaPlan.monitors.tee,
+        hasBIS: anesthesiaPlan.monitors.bispectral,
+        hasNervStim: anesthesiaPlan.monitors.nervStim,
+        airwayPlan: anesthesiaPlan.types.GA ? anesthesiaPlan.airway : 'none',
+        anesthesiaType: anesthesiaPlan.types,  // Full multi-modal types object
+        hasRegional: anesthesiaPlan.types.regional,
+        hasNeuraxial: anesthesiaPlan.types.neuraxial,
         // Establish starting hemodynamic parameters based on pre-op findings
         startingHb: orders.labs.cbc ? parseFloat(results.labs.cbc.values.find(v => v.name.includes('Hemoglobin')).val) : 14.2,
         startingGlucose: orders.labs.bmp ? parseFloat(results.labs.bmp.values.find(v => v.name.includes('Glucose')).val) : 98,
         startingPotassium: orders.labs.bmp ? parseFloat(results.labs.bmp.values.find(v => v.name === 'Potassium (K)').val) : 4.1,
         startingCreatinine: orders.labs.bmp ? parseFloat(results.labs.bmp.values.find(v => v.name.includes('Creatinine')).val) : 0.85,
+        // ── Verified Risk Assessment State Handoff ──
+        stomach: verifiedRisk.npoStatus === 'Aspiration Risk' ? 'full' : 'empty',
+        mallampati: parseInt((verifiedRisk.mallampati || '').replace('Class ', '')) || 1,
+        neckMobility: (verifiedRisk.neckMobility || 'Normal').toLowerCase(),
+        asaClass: verifiedRisk.asa || 'ASA II',
+        rcriScore: verifiedRisk.rcriScore || 0,
+        mets: verifiedRisk.mets || 'excellent',
       }
     };
 
@@ -753,19 +909,24 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
             { id: 'orders', label: 'Order Entry', icon: <CheckSquare size={16}/> },
             { id: 'results', label: 'Workup Results', icon: <Activity size={16}/> },
             { id: 'risk', label: 'Risk Assessment', icon: <ShieldAlert size={16}/> },
-            { id: 'plan', label: 'Anesthesia Plan', icon: <Award size={16}/> }
+            { id: 'plan', label: 'Anesthesia Plan', icon: <Award size={16}/>, gated: !assessmentVerified }
           ].map(tab => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => { if (!tab.gated) setActiveTab(tab.id); }}
+              disabled={tab.gated}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition ${
-                activeTab === tab.id
-                  ? 'bg-indigo-600 text-white shadow-md'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                tab.gated
+                  ? 'text-slate-600 cursor-not-allowed opacity-50'
+                  : activeTab === tab.id
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-900'
               }`}
+              title={tab.gated ? 'Complete and verify Risk Assessment to unlock' : ''}
             >
               {tab.icon}
               {tab.label}
+              {tab.gated && <span className="text-[8px] ml-1 text-yellow-500">🔒</span>}
             </button>
           ))}
         </div>
@@ -1210,141 +1371,451 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
             </div>
           )}
 
-          {/* TAB 4: RISK ASSESSMENT */}
+          {/* TAB 4: INTERACTIVE RISK ASSESSMENT GATEWAY */}
           {activeTab === 'risk' && (
             <div className="space-y-6">
-              
-              {/* Cardiac Risk Calculator Details */}
-              <div className="bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 rounded-xl p-5 md:p-6 shadow-lg">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b border-slate-800">
-                  <div>
-                    <h3 className="text-base font-extrabold text-white">2024 ACC/AHA Risk Evaluation Matrix</h3>
-                    <p className="text-xs text-indigo-400 mt-1">Revised Cardiac Risk Index (RCRI) + Functional Capacity Staging</p>
-                  </div>
-                  <div className="flex items-center gap-4 bg-slate-900 px-4 py-2 rounded-lg border border-slate-800">
+
+              {/* ─── SECTION 1: CARDIAC RISK — RCRI + METs ─── */}
+              <div className="bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden">
+                <div className="bg-gradient-to-r from-indigo-950/60 to-purple-950/40 px-5 py-4 border-b border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center text-indigo-300 font-black text-sm">1</div>
                     <div>
-                      <span className="text-[9px] text-slate-500 block uppercase font-bold">Functional METs</span>
-                      <select
-                        value={rcriMets}
-                        onChange={(e) => setRcriMets(e.target.value)}
-                        className="bg-transparent text-white font-bold text-xs outline-none cursor-pointer border-none p-0 focus:ring-0"
-                      >
-                        <option value="excellent" className="bg-slate-950 text-white">Excellent (METs ≥ 4)</option>
-                        <option value="poor" className="bg-slate-950 text-white">Poor (METs &lt; 4 or Unknown)</option>
-                      </select>
+                      <h3 className="text-base font-extrabold text-white">Cardiac Risk Evaluation — RCRI & Functional Capacity</h3>
+                      <p className="text-[10px] text-indigo-400 mt-0.5">Read the patient history below. Identify the applicable RCRI risk factors and functional METs capacity.</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  
-                  {/* Comorbidities Checklist (Read-Only review of risk predictors) */}
-                  <div className="lg:col-span-2 space-y-3">
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Active RCRI Risk Factors</h4>
-                    {[
-                      { checked: stagedCase.name?.toLowerCase().includes('trauma') || stagedCase.name?.toLowerCase().includes('sepsis') || patient.trauma || patient.isSeptic, label: 'High-risk surgical procedure (Intrathoracic, Vascular, Sepsis, Trauma)' },
-                      { checked: patient.cad || patient.pciMonthsAgo, label: 'History of Ischemic Heart Disease (CAD, Prior MI or Angina)' },
-                      { checked: patient.chf, label: 'History of Congestive Heart Failure' },
-                      { checked: patient.cva || patient.stroke, label: 'History of Cerebrovascular Disease (Stroke, TIA)' },
-                      { checked: patient.diabetes && patient.insulinDependent, label: 'Preoperative treatment with Insulin for Diabetes' },
-                      { checked: patient.ckd && patient.creatinine > 2.0, label: 'Preoperative Creatinine > 2.0 mg/dL' }
-                    ].map((factor, idx) => (
-                      <div key={idx} className="flex items-center gap-3 text-xs">
-                        <span className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${factor.checked ? 'border-red-500 text-red-500 bg-red-950/20' : 'border-slate-800 text-slate-700 bg-slate-950'}`}>
-                          {factor.checked ? '✓' : '✗'}
-                        </span>
-                        <span className={factor.checked ? 'text-slate-200 font-bold' : 'text-slate-500'}>{factor.label}</span>
+                {/* Vignette */}
+                <div className="px-5 pt-4 pb-3">
+                  <div className="bg-slate-950/80 border border-slate-800/80 rounded-lg p-4">
+                    <span className="text-[9px] text-indigo-500 uppercase font-bold tracking-widest block mb-2">💬 Patient History Interview</span>
+                    <p className="text-xs text-slate-300 leading-relaxed italic">
+                      "{groundTruth.medicalHistory}"
+                    </p>
+                  </div>
+                </div>
+
+                <div className="px-5 pb-5">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                    {/* RCRI Checkboxes */}
+                    <div className="lg:col-span-2 space-y-2">
+                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Select All Applicable RCRI Risk Factors</h4>
+                      {[
+                        { key: 'rcriHighRisk', label: 'High-risk surgical procedure (Intraperitoneal, Intrathoracic, Vascular, or Suprainguinal)' },
+                        { key: 'rcriIhd', label: 'History of Ischemic Heart Disease (CAD, Prior MI, Positive Stress Test, Angina, Q-waves)' },
+                        { key: 'rcriChf', label: 'History of Congestive Heart Failure (Reduced EF, Pulmonary Edema, S3, BNP elevation)' },
+                        { key: 'rcriCva', label: 'History of Cerebrovascular Disease (Prior Stroke or Transient Ischemic Attack)' },
+                        { key: 'rcriInsulin', label: 'Preoperative Treatment with Insulin for Diabetes Mellitus' },
+                        { key: 'rcriCr', label: 'Preoperative Serum Creatinine > 2.0 mg/dL' }
+                      ].map((factor) => (
+                        <div key={factor.key}>
+                          <label className={`flex items-start gap-3 text-xs cursor-pointer group py-1.5 px-2 rounded-lg transition ${
+                            assessmentChecked && assessmentErrors[factor.key] ? 'bg-red-950/30 ring-1 ring-red-500/50' : 'hover:bg-slate-800/40'
+                          }`}>
+                            <input
+                              type="checkbox"
+                              checked={assessment[factor.key]}
+                              onChange={(e) => { setAssessment(prev => ({ ...prev, [factor.key]: e.target.checked })); setAssessmentChecked(false); setAssessmentVerified(false); }}
+                              className="rounded bg-slate-950 border-slate-700 text-indigo-500 focus:ring-indigo-500/30 focus:ring-offset-0 w-4 h-4 mt-0.5 shrink-0 cursor-pointer"
+                            />
+                            <span className={`${assessment[factor.key] ? 'text-white font-bold' : 'text-slate-400 group-hover:text-slate-300'} transition`}>{factor.label}</span>
+                          </label>
+                          {assessmentChecked && assessmentErrors[factor.key] && (
+                            <div className="ml-9 mt-1 mb-1 px-3 py-1.5 bg-red-950/50 border border-red-800/60 rounded text-[10px] text-red-300 font-bold leading-relaxed">
+                              ✗ {assessmentErrors[factor.key]}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+
+                      {/* METs Selection */}
+                      <div className="mt-4 pt-3 border-t border-slate-800">
+                        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Functional Capacity (METs)</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {[
+                            { value: 'excellent', label: 'Excellent (≥ 4 METs)', desc: 'Can climb 2 flights, jog, or do heavy housework' },
+                            { value: 'moderate', label: 'Moderate (1–4 METs)', desc: 'Can walk 1–2 blocks on level ground or climb 1 flight slowly' },
+                            { value: 'poor', label: 'Poor (< 4 METs / Unknown)', desc: 'Cannot perform basic ADLs, comatose, or unable to assess' }
+                          ].map(opt => (
+                            <button
+                              key={opt.value}
+                              onClick={() => { setAssessment(prev => ({ ...prev, mets: opt.value })); setAssessmentChecked(false); setAssessmentVerified(false); }}
+                              className={`flex-1 min-w-[140px] px-3 py-2.5 rounded-lg border text-left transition-all duration-200 ${
+                                assessment.mets === opt.value
+                                  ? (assessmentChecked && assessmentErrors.mets ? 'border-red-500 bg-red-950/30 text-white shadow-md shadow-red-500/10' : 'border-indigo-500 bg-indigo-950/40 text-white shadow-md shadow-indigo-500/10')
+                                  : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700 hover:text-slate-300'
+                              }`}
+                            >
+                              <span className="text-xs font-bold block">{opt.label}</span>
+                              <span className="text-[9px] text-slate-500 block mt-0.5">{opt.desc}</span>
+                            </button>
+                          ))}
+                        </div>
+                        {assessmentChecked && assessmentErrors.mets && (
+                          <div className="mt-2 px-3 py-1.5 bg-red-950/50 border border-red-800/60 rounded text-[10px] text-red-300 font-bold leading-relaxed">
+                            ✗ {assessmentErrors.mets}
+                          </div>
+                        )}
                       </div>
+                    </div>
+
+                    {/* Live RCRI Staging Output */}
+                    <div className={`p-5 rounded-xl border flex flex-col justify-between ${borderClass} transition-all duration-300`}>
+                      <div>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Your Score</span>
+                          <span className="text-lg font-black text-white">{rcriScore} Points</span>
+                        </div>
+                        <h4 className="text-xl font-black mb-1">{rcriScore > 0 ? riskClass : <span className="text-slate-600">Select factors…</span>}</h4>
+                        {rcriScore > 0 && <p className="text-[10px] font-bold uppercase tracking-wider mb-4">CV Event Risk: {riskPercent}</p>}
+                      </div>
+                      {rcriScore > 0 && (
+                        <div className="border-t border-current/20 pt-4 mt-2">
+                          <span className="text-[9px] uppercase font-bold tracking-widest text-slate-500 block mb-1">ACC/AHA Clinical Action</span>
+                          <p className="text-xs font-bold leading-relaxed">{accAction}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+
+              {/* ─── SECTION 2: ASA PHYSICAL STATUS ─── */}
+              <div className="bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden">
+                <div className="bg-gradient-to-r from-emerald-950/40 to-teal-950/30 px-5 py-4 border-b border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-600/30 border border-emerald-500/50 flex items-center justify-center text-emerald-300 font-black text-sm">2</div>
+                    <div>
+                      <h3 className="text-base font-extrabold text-white">ASA Physical Status Classification</h3>
+                      <p className="text-[10px] text-emerald-400 mt-0.5">Based on the patient's global clinical picture, select the correct ASA Physical Status class.</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Vignette */}
+                <div className="px-5 pt-4 pb-3">
+                  <div className="bg-slate-950/80 border border-slate-800/80 rounded-lg p-4">
+                    <span className="text-[9px] text-emerald-500 uppercase font-bold tracking-widest block mb-2">📋 Global Patient Summary</span>
+                    <p className="text-xs text-slate-300 leading-relaxed italic">
+                      "{groundTruth.globalHistory}"
+                    </p>
+                  </div>
+                </div>
+
+                <div className="px-5 pb-5">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
+                    {[
+                      { value: 'ASA I', label: 'ASA I', desc: 'Healthy patient. No organic, physiologic, or psychiatric disturbance.' },
+                      { value: 'ASA II', label: 'ASA II', desc: 'Mild systemic disease. No functional limitations. Well-controlled.' },
+                      { value: 'ASA III', label: 'ASA III', desc: 'Severe systemic disease. Substantive functional limitation.' },
+                      { value: 'ASA IV', label: 'ASA IV', desc: 'Severe systemic disease that is a constant threat to life.' },
+                      { value: 'ASA V', label: 'ASA V', desc: 'Moribund. Not expected to survive without surgery.' },
+                      { value: 'ASA VI', label: 'ASA VI', desc: 'Declared brain-dead. Organ donor.' }
+                    ].map(opt => (
+                      <button
+                        key={opt.value}
+                        onClick={() => { setAssessment(prev => ({ ...prev, asa: opt.value })); setAssessmentChecked(false); setAssessmentVerified(false); }}
+                        className={`px-3 py-3 rounded-lg border text-center transition-all duration-200 ${
+                          assessment.asa === opt.value
+                            ? (assessmentChecked && assessmentErrors.asa ? 'border-red-500 bg-red-950/30 text-white shadow-md shadow-red-500/10' : 'border-emerald-500 bg-emerald-950/40 text-white shadow-md shadow-emerald-500/10')
+                            : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700 hover:text-slate-300'
+                        }`}
+                      >
+                        <span className="text-sm font-black block">{opt.label}</span>
+                        <span className="text-[8px] text-slate-500 block mt-1 leading-snug">{opt.desc}</span>
+                      </button>
                     ))}
                   </div>
+                  {assessmentChecked && assessmentErrors.asa && (
+                    <div className="mt-3 px-3 py-1.5 bg-red-950/50 border border-red-800/60 rounded text-[10px] text-red-300 font-bold leading-relaxed">
+                      ✗ {assessmentErrors.asa}
+                    </div>
+                  )}
+                </div>
+              </div>
 
-                  {/* Staging Decision Output Box */}
-                  <div className={`p-5 rounded-xl border flex flex-col justify-between ${borderClass} transition-all duration-300`}>
+
+              {/* ─── SECTION 3: AIRWAY EXAMINATION ─── */}
+              <div className="bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden">
+                <div className="bg-gradient-to-r from-amber-950/40 to-yellow-950/30 px-5 py-4 border-b border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-amber-600/30 border border-amber-500/50 flex items-center justify-center text-amber-300 font-black text-sm">3</div>
                     <div>
-                      <div className="flex justify-between items-center mb-1">
-                        <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Score & Class</span>
-                        <span className="text-lg font-black text-white">{rcriScore} Points</span>
-                      </div>
-                      <h4 className="text-xl font-black mb-1">{riskClass}</h4>
-                      <p className="text-[10px] font-bold uppercase tracking-wider mb-4">CV Event Risk: {riskPercent}</p>
-                    </div>
-                    <div className="border-t border-current/20 pt-4 mt-2">
-                      <span className="text-[9px] uppercase font-bold tracking-widest text-slate-500 block mb-1">ACC/AHA Clinical Action</span>
-                      <p className="text-xs font-bold leading-relaxed">{accAction}</p>
+                      <h3 className="text-base font-extrabold text-white">Airway Examination — Mallampati & Neck Mobility</h3>
+                      <p className="text-[10px] text-amber-400 mt-0.5">Read the airway examination findings. Select the correct Mallampati classification and neck mobility status.</p>
                     </div>
                   </div>
-
                 </div>
-              </div>
 
-              {/* General Pre-Op Staging (ASA, Mallampati, NPO) */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                
-                {/* ASA Staging */}
-                <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-5">
-                  <h4 className="text-indigo-400 font-bold text-xs uppercase tracking-wider mb-3 border-b border-slate-800 pb-1">
-                    Suggested ASA Physical Status
-                  </h4>
-                  <div className="space-y-2">
-                    <span className="text-3xl font-black text-indigo-300 block">
-                      ASA {patient.isSeptic || patient.isTrauma ? 'IV' : (patient.cad || patient.chf || patient.copd ? 'III' : 'II')}
-                    </span>
-                    <p className="text-[10px] text-slate-400 leading-relaxed">
-                      Suggested automatically based on systemic comorbidities. Severe systemic pathologies (Sepsis, acute Trauma/Bleed) are classified as ASA IV (threat to life). Chronic stable cardiovascular or pulmonary illnesses are classified as ASA III.
+                {/* Vignette */}
+                <div className="px-5 pt-4 pb-3">
+                  <div className="bg-slate-950/80 border border-slate-800/80 rounded-lg p-4">
+                    <span className="text-[9px] text-amber-500 uppercase font-bold tracking-widest block mb-2">👁️ Airway Physical Examination</span>
+                    <p className="text-xs text-slate-300 leading-relaxed italic">
+                      "{groundTruth.airwayExam}"
                     </p>
                   </div>
                 </div>
 
-                {/* Airway Staging */}
-                <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-5">
-                  <h4 className="text-indigo-400 font-bold text-xs uppercase tracking-wider mb-3 border-b border-slate-800 pb-1">
-                    Airway Staging
-                  </h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-slate-400">Mallampati Score:</span>
-                      <span className="text-sm font-black text-yellow-400">Class {patient.mallampati || 1}</span>
+                <div className="px-5 pb-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    {/* Mallampati Selection */}
+                    <div>
+                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Mallampati Classification</h4>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { value: 'Class I', desc: 'Soft palate, fauces, uvula, tonsillar pillars fully visible' },
+                          { value: 'Class II', desc: 'Soft palate, fauces, uvula visible; pillars partially hidden' },
+                          { value: 'Class III', desc: 'Soft palate and base of uvula only visible' },
+                          { value: 'Class IV', desc: 'Only hard palate visible; soft palate completely obscured' }
+                        ].map(opt => (
+                          <button
+                            key={opt.value}
+                            onClick={() => { setAssessment(prev => ({ ...prev, mallampati: opt.value })); setAssessmentChecked(false); setAssessmentVerified(false); }}
+                            className={`px-3 py-2.5 rounded-lg border text-left transition-all duration-200 ${
+                              assessment.mallampati === opt.value
+                                ? (assessmentChecked && assessmentErrors.mallampati ? 'border-red-500 bg-red-950/30 text-white shadow-md shadow-red-500/10' : 'border-amber-500 bg-amber-950/40 text-white shadow-md shadow-amber-500/10')
+                                : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700 hover:text-slate-300'
+                            }`}
+                          >
+                            <span className="text-xs font-bold block">{opt.value}</span>
+                            <span className="text-[8px] text-slate-500 block mt-0.5 leading-snug">{opt.desc}</span>
+                          </button>
+                        ))}
+                      </div>
+                      {assessmentChecked && assessmentErrors.mallampati && (
+                        <div className="mt-2 px-3 py-1.5 bg-red-950/50 border border-red-800/60 rounded text-[10px] text-red-300 font-bold leading-relaxed">
+                          ✗ {assessmentErrors.mallampati}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-slate-400">Neck Mobility:</span>
-                      <span className="text-sm font-bold text-white capitalize">{patient.neckMobility || 'Normal'}</span>
+
+                    {/* Neck Mobility Selection */}
+                    <div>
+                      <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Neck Mobility (Atlanto-Occipital Extension)</h4>
+                      <div className="grid grid-cols-1 gap-2">
+                        {[
+                          { value: 'Normal', desc: 'Full atlanto-occipital extension (≥35°). No anatomical restriction. Adequate alignment of oral, pharyngeal, and laryngeal axes achievable.' },
+                          { value: 'Reduced', desc: 'Limited atlanto-occipital extension (<35°). Cervical collar, cervical fusion, severe arthritis, large posterior fat pad, or radiotherapy restricts motion.' }
+                        ].map(opt => (
+                          <button
+                            key={opt.value}
+                            onClick={() => { setAssessment(prev => ({ ...prev, neckMobility: opt.value })); setAssessmentChecked(false); setAssessmentVerified(false); }}
+                            className={`px-3 py-3 rounded-lg border text-left transition-all duration-200 ${
+                              assessment.neckMobility === opt.value
+                                ? (assessmentChecked && assessmentErrors.neckMobility ? 'border-red-500 bg-red-950/30 text-white shadow-md shadow-red-500/10' : 'border-amber-500 bg-amber-950/40 text-white shadow-md shadow-amber-500/10')
+                                : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700 hover:text-slate-300'
+                            }`}
+                          >
+                            <span className="text-xs font-bold block">{opt.value}</span>
+                            <span className="text-[9px] text-slate-500 block mt-0.5 leading-snug">{opt.desc}</span>
+                          </button>
+                        ))}
+                      </div>
+                      {assessmentChecked && assessmentErrors.neckMobility && (
+                        <div className="mt-2 px-3 py-1.5 bg-red-950/50 border border-red-800/60 rounded text-[10px] text-red-300 font-bold leading-relaxed">
+                          ✗ {assessmentErrors.neckMobility}
+                        </div>
+                      )}
+
+                      {/* Difficulty Anticipation Display */}
+                      {(assessment.mallampati || assessment.neckMobility) && (
+                        <div className={`mt-3 p-3 rounded-lg border text-[10px] font-bold leading-relaxed ${
+                          (assessment.mallampati === 'Class III' || assessment.mallampati === 'Class IV' || assessment.neckMobility === 'Reduced')
+                            ? 'bg-red-950/30 border-red-900/60 text-red-300'
+                            : 'bg-green-950/30 border-green-900/60 text-green-300'
+                        }`}>
+                          {(assessment.mallampati === 'Class III' || assessment.mallampati === 'Class IV' || assessment.neckMobility === 'Reduced')
+                            ? '⚠️ Your selections indicate: ANTICIPATED DIFFICULT AIRWAY. Consider video laryngoscopy, fiberoptic intubation, or awake technique.'
+                            : '✅ Your selections indicate: Standard direct laryngoscopy anticipated.'}
+                        </div>
+                      )}
                     </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs text-slate-400">Oropharyngeal Blood:</span>
-                      <span className={`text-sm font-bold ${patient.airwayBlood ? 'text-red-400 animate-pulse' : 'text-slate-400'}`}>
-                        {patient.airwayBlood ? 'Present (Hemorrhage)' : 'None'}
-                      </span>
+                  </div>
+                </div>
+              </div>
+
+
+              {/* ─── SECTION 4: NPO & ASPIRATION RISK ─── */}
+              <div className="bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden">
+                <div className="bg-gradient-to-r from-rose-950/40 to-pink-950/30 px-5 py-4 border-b border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-rose-600/30 border border-rose-500/50 flex items-center justify-center text-rose-300 font-black text-sm">4</div>
+                    <div>
+                      <h3 className="text-base font-extrabold text-white">NPO Assessment & Aspiration Risk Staging</h3>
+                      <p className="text-[10px] text-rose-400 mt-0.5">Review the patient's oral intake history and clinical context. Determine the gastric status.</p>
                     </div>
-                    <p className="text-[10px] text-slate-500 leading-relaxed border-t border-slate-800/80 pt-2">
-                      Anatomy indicates: {patient.mallampati >= 3 || patient.neckMobility === 'reduced' || patient.airwayBlood ? '⚠️ ANTICIPATED DIFFICULT AIRWAY. Prepare video laryngoscope or fiberoptic.' : 'Straightforward direct laryngoscopy anticipated.'}
+                  </div>
+                </div>
+
+                {/* Vignette */}
+                <div className="px-5 pt-4 pb-3">
+                  <div className="bg-slate-950/80 border border-slate-800/80 rounded-lg p-4">
+                    <span className="text-[9px] text-rose-500 uppercase font-bold tracking-widest block mb-2">🍽️ Oral Intake & Gastric History</span>
+                    <p className="text-xs text-slate-300 leading-relaxed italic">
+                      "{groundTruth.npoHistory}"
                     </p>
                   </div>
                 </div>
 
-                {/* NPO Staging */}
-                <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-5">
-                  <h4 className="text-indigo-400 font-bold text-xs uppercase tracking-wider mb-3 border-b border-slate-800 pb-1">
-                    NPO & Gastric Staging
-                  </h4>
-                  <div className="space-y-2 text-xs">
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Solid Food NPO:</span>
-                      <span className="font-bold text-white">{patient.npoDuration || 8} Hours</span>
-                    </div>
-                    {patient.glp1Active && (
-                      <div className="bg-red-950/40 border border-red-900/60 p-2 rounded text-[10px] text-red-300 font-bold mt-1">
-                        ⚠️ GLP-1 AGONIST THERAPY ACTIVE: Gastric motility delayed! Model as FULL STOMACH regardless of NPO duration. Indicated for Rapid Sequence Induction (RSI).
-                      </div>
-                    )}
-                    {patient.isTrauma && (
-                      <div className="bg-red-950/40 border border-red-900/60 p-2 rounded text-[10px] text-red-300 font-bold mt-1">
-                        ⚠️ EMERGENCY SURGERY / TRAUMA: Full stomach physiological assumption! RSI indicated.
-                      </div>
-                    )}
+                <div className="px-5 pb-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {[
+                      {
+                        value: 'Compliant',
+                        label: 'NPO Compliant',
+                        desc: 'Patient has fasted appropriately per ASA Guidelines (≥2h clear liquids, ≥6h light meal, ≥8h full meal). No pharmacologic or pathophysiologic gastric emptying delay is present.',
+                        color: 'emerald'
+                      },
+                      {
+                        value: 'Aspiration Risk',
+                        label: 'Aspiration Risk — Full Stomach',
+                        desc: 'Patient has a physiologically full stomach due to: recent oral intake within fasting thresholds, active GLP-1 agonist therapy (delayed gastric emptying), sepsis/shock-induced gastroparesis, opioid-induced ileus, bowel obstruction, pregnancy, or trauma with unknown NPO status. RSI indicated.',
+                        color: 'red'
+                      }
+                    ].map(opt => (
+                      <button
+                        key={opt.value}
+                        onClick={() => { setAssessment(prev => ({ ...prev, npoStatus: opt.value })); setAssessmentChecked(false); setAssessmentVerified(false); }}
+                        className={`px-4 py-4 rounded-lg border text-left transition-all duration-200 ${
+                          assessment.npoStatus === opt.value
+                            ? (assessmentChecked && assessmentErrors.npoStatus
+                                ? 'border-red-500 bg-red-950/30 text-white shadow-md shadow-red-500/10'
+                                : '')
+                            : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700 hover:text-slate-300'
+                        }`}
+                        style={assessment.npoStatus === opt.value ? (
+                          assessmentChecked && assessmentErrors.npoStatus
+                            ? { borderColor: '#ef4444', backgroundColor: 'rgba(127,29,29,0.3)', color: 'white', boxShadow: '0 4px 6px rgba(239,68,68,0.1)' }
+                            : { borderColor: opt.color === 'emerald' ? '#10b981' : '#ef4444', backgroundColor: opt.color === 'emerald' ? 'rgba(6,78,59,0.4)' : 'rgba(127,29,29,0.4)', color: 'white', boxShadow: opt.color === 'emerald' ? '0 4px 6px rgba(16,185,129,0.1)' : '0 4px 6px rgba(239,68,68,0.1)' }
+                        ) : {}}
+                      >
+                        <span className="text-sm font-black block">{opt.label}</span>
+                        <span className="text-[9px] text-slate-500 block mt-1.5 leading-snug">{opt.desc}</span>
+                      </button>
+                    ))}
                   </div>
+                  {assessmentChecked && assessmentErrors.npoStatus && (
+                    <div className="mt-3 px-3 py-1.5 bg-red-950/50 border border-red-800/60 rounded text-[10px] text-red-300 font-bold leading-relaxed">
+                      ✗ {assessmentErrors.npoStatus}
+                    </div>
+                  )}
                 </div>
-
               </div>
+
+
+              {/* ─── VERIFICATION PANEL ─── */}
+              {(() => {
+                const filled = {
+                  rcri: true,
+                  mets: !!assessment.mets,
+                  asa: !!assessment.asa,
+                  mallampati: !!assessment.mallampati,
+                  neckMobility: !!assessment.neckMobility,
+                  npoStatus: !!assessment.npoStatus
+                };
+                const totalFilled = Object.values(filled).filter(Boolean).length;
+                const allFilled = totalFilled === Object.keys(filled).length;
+                const errorCount = Object.keys(assessmentErrors).length;
+
+                // ── STATE 3: VERIFIED ──
+                if (assessmentVerified) {
+                  return (
+                    <div className="p-5 rounded-xl border-2 border-green-500 bg-gradient-to-r from-green-950/40 to-emerald-950/30 transition-all duration-500">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-green-600/30 border-2 border-green-500 flex items-center justify-center">
+                            <span className="text-green-400 text-lg">🔒</span>
+                          </div>
+                          <div>
+                            <span className="text-sm font-black text-green-400 block">RISK ASSESSMENT VERIFIED</span>
+                            <span className="text-[10px] text-green-600 block mt-0.5">All clinical classifications confirmed correct. Verified data will transfer to the simulation automatically.</span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <div className="flex gap-1">
+                            {['RCRI','METs','ASA','Airway','Neck','NPO'].map(l => (
+                              <span key={l} className="text-[7px] px-1.5 py-0.5 rounded bg-green-950/60 text-green-400 border border-green-800/50 font-bold">{l} ✓</span>
+                            ))}
+                          </div>
+                          <button
+                            onClick={() => setActiveTab('plan')}
+                            className="mt-1 px-4 py-1.5 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg text-[10px] flex items-center gap-1.5 transition shadow-md shadow-green-500/20"
+                          >
+                            Proceed to Anesthesia Plan →
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // ── STATE 2: CHECKED WITH ERRORS ──
+                if (assessmentChecked && errorCount > 0) {
+                  return (
+                    <div className="p-5 rounded-xl border-2 border-red-500/70 bg-gradient-to-r from-red-950/30 to-rose-950/20 transition-all duration-300">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-red-600/20 border-2 border-red-500/60 flex items-center justify-center">
+                            <span className="text-red-400 text-lg font-black">{errorCount}</span>
+                          </div>
+                          <div>
+                            <span className="text-sm font-black text-red-400 block">ASSESSMENT VERIFICATION FAILED</span>
+                            <span className="text-[10px] text-red-500/80 block mt-0.5">
+                              {errorCount} incorrect classification{errorCount > 1 ? 's' : ''} detected. Review the clinical guidance above (marked in red) and correct your selections.
+                            </span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={verifyAssessment}
+                          className="px-5 py-2 bg-red-600 hover:bg-red-500 text-white font-black rounded-lg text-xs flex items-center gap-2 transition shadow-md shadow-red-500/20 animate-pulse"
+                        >
+                          Re-Verify Assessment
+                        </button>
+                      </div>
+                    </div>
+                  );
+                }
+
+                // ── STATE 1: IN PROGRESS ──
+                return (
+                  <div className={`p-5 rounded-xl border transition-all duration-300 ${
+                    allFilled ? 'border-cyan-500/50 bg-cyan-950/10' : 'border-slate-800 bg-slate-950/40'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full ${allFilled ? 'bg-cyan-500 animate-pulse' : 'bg-slate-700'}`} />
+                        <span className={`text-xs font-bold ${allFilled ? 'text-cyan-400' : 'text-slate-500'}`}>
+                          {allFilled ? 'All fields selected — submit your assessment for verification.' : `Assessment in progress — ${6 - totalFilled} field(s) remaining.`}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="flex gap-1">
+                          {Object.entries({ METs: filled.mets, ASA: filled.asa, Mallampati: filled.mallampati, Neck: filled.neckMobility, NPO: filled.npoStatus }).map(([label, done]) => (
+                            <span key={label} className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${
+                              done ? 'bg-green-950/50 text-green-400 border border-green-800/50' : 'bg-slate-900 text-slate-600 border border-slate-800'
+                            }`}>{label}</span>
+                          ))}
+                        </div>
+                        <button
+                          onClick={verifyAssessment}
+                          disabled={!allFilled}
+                          className={`px-5 py-2 font-black rounded-lg text-xs flex items-center gap-2 transition ${
+                            allFilled
+                              ? 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-md shadow-cyan-500/20'
+                              : 'bg-slate-800 text-slate-600 cursor-not-allowed'
+                          }`}
+                        >
+                          Verify Assessment
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
 
             </div>
           )}
@@ -1353,90 +1824,253 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
           {activeTab === 'plan' && (
             <div className="space-y-6">
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                
-                {/* Mode of Anesthesia */}
-                <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-5">
-                  <h3 className="text-indigo-400 font-extrabold text-sm uppercase tracking-wider mb-4 border-b border-slate-800 pb-2">
-                    I. Anesthetic Modality
-                  </h3>
-                  <div className="space-y-3">
+              {/* ─── SECTION I: MULTI-MODAL ANESTHETIC TECHNIQUE ─── */}
+              <div className="bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden">
+                <div className="bg-gradient-to-r from-indigo-950/40 to-violet-950/30 px-5 py-4 border-b border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-indigo-600/30 border border-indigo-500/50 flex items-center justify-center text-indigo-300 font-black text-sm">I</div>
+                    <div>
+                      <h3 className="text-base font-extrabold text-white">Multi-Modal Anesthetic Technique</h3>
+                      <p className="text-[10px] text-indigo-400 mt-0.5">Select one or more anesthetic modalities. Multi-modal strategies (e.g., GA + Regional) are evidence-based for optimal outcomes.</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="px-5 py-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {[
-                      { id: 'GA', label: 'General Anesthesia (GA)' },
-                      { id: 'Regional', label: 'Regional (Spinal / Epidural / Nerve Block)' },
-                      { id: 'MAC', label: 'Monitored Anesthesia Care (MAC / Sedation)' }
+                      { key: 'GA', label: 'General Anesthesia (GA)', desc: 'Endotracheal intubation or LMA. Loss of consciousness, controlled ventilation, neuromuscular blockade.', icon: '🫁' },
+                      { key: 'regional', label: 'Peripheral Nerve Block', desc: 'Ultrasound-guided peripheral block (TAP, adductor canal, interscalene, etc.) for somatic pain coverage.', icon: '💉' },
+                      { key: 'neuraxial', label: 'Neuraxial (Spinal / Epidural)', desc: 'Central neuraxial blockade via subarachnoid or epidural space. Provides visceral and somatic anesthesia/analgesia.', icon: '🦴' },
+                      { key: 'mac', label: 'Monitored Anesthesia Care (MAC)', desc: 'IV sedation with maintained spontaneous ventilation. Patient remains arousable. Local anesthesia supplemented.', icon: '💤' }
                     ].map(type => (
-                      <label key={type.id} className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer hover:text-white transition">
+                      <label
+                        key={type.key}
+                        className={`flex items-start gap-3 px-4 py-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                          anesthesiaPlan.types[type.key]
+                            ? 'border-indigo-500 bg-indigo-950/40 shadow-md shadow-indigo-500/10'
+                            : 'border-slate-800 bg-slate-950/50 hover:border-slate-700'
+                        }`}
+                      >
                         <input
-                          type="radio"
-                          name="anesthesiaType"
-                          checked={anesthesiaPlan.type === type.id}
-                          onChange={() => handlePlanChange('type', type.id)}
-                          className="rounded-full bg-slate-950 border-slate-800 text-indigo-600 focus:ring-0 focus:ring-offset-0 w-4 h-4"
+                          type="checkbox"
+                          checked={anesthesiaPlan.types[type.key]}
+                          onChange={() => handleTypeToggle(type.key)}
+                          className="rounded bg-slate-950 border-slate-700 text-indigo-500 focus:ring-indigo-500/30 focus:ring-offset-0 w-4 h-4 mt-1 shrink-0 cursor-pointer"
                         />
-                        <span>{type.label}</span>
+                        <div>
+                          <span className={`text-xs font-bold block ${anesthesiaPlan.types[type.key] ? 'text-white' : 'text-slate-400'}`}>{type.icon} {type.label}</span>
+                          <span className="text-[9px] text-slate-500 block mt-0.5 leading-snug">{type.desc}</span>
+                        </div>
                       </label>
                     ))}
                   </div>
+                  {/* Active technique summary */}
+                  {(() => {
+                    const active = Object.entries(anesthesiaPlan.types).filter(([,v]) => v).map(([k]) => k);
+                    if (active.length === 0) return null;
+                    const labels = { GA: 'General', regional: 'Regional Block', neuraxial: 'Neuraxial', mac: 'MAC' };
+                    return (
+                      <div className="mt-3 flex items-center gap-2 flex-wrap">
+                        <span className="text-[9px] text-slate-500 uppercase font-bold tracking-widest">Active Plan:</span>
+                        {active.map(k => (
+                          <span key={k} className="text-[9px] px-2 py-0.5 rounded bg-indigo-950/60 text-indigo-400 border border-indigo-800/50 font-bold">{labels[k]}</span>
+                        ))}
+                        {active.length > 1 && (
+                          <span className="text-[8px] px-2 py-0.5 rounded bg-violet-950/40 text-violet-400 border border-violet-800/50 font-bold">MULTI-MODAL</span>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
-
-                {/* Airway Management */}
-                <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-5">
-                  <h3 className="text-indigo-400 font-extrabold text-sm uppercase tracking-wider mb-4 border-b border-slate-800 pb-2">
-                    II. Airway Plan
-                  </h3>
-                  <div className="space-y-3">
-                    {[
-                      { id: 'DL', label: 'Direct Laryngoscopy (DL)' },
-                      { id: 'VL', label: 'Video Laryngoscopy (VL - GlideScope)' },
-                      { id: 'AwakeFiberoptic', label: 'Awake Fiberoptic Intubation (AFOI)' }
-                    ].map(airway => (
-                      <label key={airway.id} className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer hover:text-white transition">
-                        <input
-                          type="radio"
-                          name="airwayPlan"
-                          checked={anesthesiaPlan.airway === airway.id}
-                          onChange={() => handlePlanChange('airway', airway.id)}
-                          className="rounded-full bg-slate-950 border-slate-800 text-indigo-600 focus:ring-0 focus:ring-offset-0 w-4 h-4"
-                        />
-                        <span>{airway.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Hemodynamic Monitoring */}
-                <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-5">
-                  <h3 className="text-indigo-400 font-extrabold text-sm uppercase tracking-wider mb-4 border-b border-slate-800 pb-2">
-                    III. Monitoring Plan
-                  </h3>
-                  <div className="space-y-3">
-                    {[
-                      { id: 'standard', label: 'Standard ASA Monitors Only' },
-                      { id: 'aline', label: 'Arterial Line (Continuous BP)' },
-                      { id: 'cvc', label: 'Central Venous Catheter (CVC)' },
-                      { id: 'tee', label: 'Transesophageal Echo (TEE) + A-Line' }
-                    ].map(mon => (
-                      <label key={mon.id} className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer hover:text-white transition">
-                        <input
-                          type="radio"
-                          name="monitoringPlan"
-                          checked={anesthesiaPlan.monitoring === mon.id}
-                          onChange={() => handlePlanChange('monitoring', mon.id)}
-                          className="rounded-full bg-slate-950 border-slate-800 text-indigo-600 focus:ring-0 focus:ring-offset-0 w-4 h-4"
-                        />
-                        <span>{mon.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
               </div>
 
-              {/* Safety & Verification Checklist */}
+              {/* ─── SECTION II: AIRWAY PLAN (only if GA selected) ─── */}
+              {anesthesiaPlan.types.GA && (
+                <div className="bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden">
+                  <div className="bg-gradient-to-r from-cyan-950/40 to-teal-950/30 px-5 py-4 border-b border-slate-800">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-cyan-600/30 border border-cyan-500/50 flex items-center justify-center text-cyan-300 font-black text-sm">II</div>
+                      <div>
+                        <h3 className="text-base font-extrabold text-white">Airway Management Plan</h3>
+                        <p className="text-[10px] text-cyan-400 mt-0.5">Select primary intubation technique. Consider the patient's Mallampati class and neck mobility from Risk Assessment.</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="px-5 py-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      {[
+                        { id: 'DL', label: 'Direct Laryngoscopy (DL)', desc: 'Standard Macintosh/Miller blade. First-line for Class I-II airways with normal neck extension.' },
+                        { id: 'VL', label: 'Video Laryngoscopy (VL)', desc: 'GlideScope / C-MAC. Improved glottic view in Class III+ or limited extension. First-pass success >95%.' },
+                        { id: 'AwakeFiberoptic', label: 'Awake Fiberoptic (AFOI)', desc: 'Gold standard for anticipated difficult airway. Maintains spontaneous ventilation throughout. Required for known impossible mask ventilation.' }
+                      ].map(airway => (
+                        <label
+                          key={airway.id}
+                          className={`flex items-start gap-3 px-4 py-3 rounded-lg border cursor-pointer transition-all duration-200 ${
+                            anesthesiaPlan.airway === airway.id
+                              ? 'border-cyan-500 bg-cyan-950/40 shadow-md shadow-cyan-500/10'
+                              : 'border-slate-800 bg-slate-950/50 hover:border-slate-700'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="airwayPlan"
+                            checked={anesthesiaPlan.airway === airway.id}
+                            onChange={() => handlePlanChange('airway', airway.id)}
+                            className="rounded-full bg-slate-950 border-slate-700 text-cyan-500 focus:ring-cyan-500/30 focus:ring-offset-0 w-4 h-4 mt-1 shrink-0"
+                          />
+                          <div>
+                            <span className={`text-xs font-bold block ${anesthesiaPlan.airway === airway.id ? 'text-white' : 'text-slate-400'}`}>{airway.label}</span>
+                            <span className="text-[9px] text-slate-500 block mt-0.5 leading-snug">{airway.desc}</span>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ─── SECTION III: COMPREHENSIVE MONITORING ─── */}
+              <div className="bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden">
+                <div className="bg-gradient-to-r from-emerald-950/40 to-green-950/30 px-5 py-4 border-b border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-emerald-600/30 border border-emerald-500/50 flex items-center justify-center text-emerald-300 font-black text-sm">III</div>
+                    <div>
+                      <h3 className="text-base font-extrabold text-white">Comprehensive Monitoring Plan</h3>
+                      <p className="text-[10px] text-emerald-400 mt-0.5">Select all monitoring modalities to deploy concurrently. Standard ASA monitors are always active. Invasive monitors are additive.</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="px-5 py-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {[
+                      { key: 'standard', label: 'Standard ASA Monitors', desc: 'SpO₂ (pulse oximetry), ECG (5-lead), NIBP (non-invasive BP), EtCO₂ (capnography), Temperature. Mandatory per ASA Standards for Basic Anesthetic Monitoring.', locked: true, icon: '📊' },
+                      { key: 'aline', label: 'Arterial Line (A-Line)', desc: 'Continuous invasive BP monitoring via radial/femoral artery catheterization. Enables real-time ABG sampling, PPV/SVV for fluid responsiveness.', locked: false, icon: '🔴' },
+                      { key: 'cvc', label: 'Central Venous Catheter', desc: 'Internal jugular or subclavian central line. CVP monitoring, large-bore access for vasopressors/TPN, PA catheter port if needed.', locked: false, icon: '🔵' },
+                      { key: 'tee', label: 'Transesophageal Echo (TEE)', desc: 'Real-time cardiac imaging for ventricular function, valvular assessment, volume status. Implies concurrent arterial line.', locked: false, icon: '💜' },
+                      { key: 'bispectral', label: 'BIS / Depth of Anesthesia', desc: 'Processed EEG monitoring (BIS, Entropy, SedLine). Targets BIS 40-60 for GA. Reduces intraoperative awareness risk.', locked: false, icon: '🧠' },
+                      { key: 'nervStim', label: 'Nerve Stimulator (TOF)', desc: 'Quantitative Train-of-Four monitoring for neuromuscular blockade. Ensures TOF ratio ≥ 0.9 before extubation. Required with NMB agents.', locked: false, icon: '⚡' }
+                    ].map(mon => (
+                      <label
+                        key={mon.key}
+                        className={`flex items-start gap-3 px-4 py-3 rounded-lg border transition-all duration-200 ${
+                          mon.locked ? 'cursor-default' : 'cursor-pointer'
+                        } ${
+                          anesthesiaPlan.monitors[mon.key]
+                            ? (mon.locked ? 'border-emerald-700/50 bg-emerald-950/20' : 'border-emerald-500 bg-emerald-950/40 shadow-md shadow-emerald-500/10')
+                            : 'border-slate-800 bg-slate-950/50 hover:border-slate-700'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={anesthesiaPlan.monitors[mon.key]}
+                          onChange={() => handleMonitorToggle(mon.key)}
+                          disabled={mon.locked}
+                          className={`rounded bg-slate-950 border-slate-700 focus:ring-emerald-500/30 focus:ring-offset-0 w-4 h-4 mt-1 shrink-0 ${
+                            mon.locked ? 'text-emerald-700 cursor-default opacity-60' : 'text-emerald-500 cursor-pointer'
+                          }`}
+                        />
+                        <div>
+                          <span className={`text-xs font-bold block ${anesthesiaPlan.monitors[mon.key] ? 'text-white' : 'text-slate-400'}`}>
+                            {mon.icon} {mon.label}
+                            {mon.locked && <span className="text-[8px] text-emerald-600 ml-2 font-bold">(ALWAYS ON)</span>}
+                          </span>
+                          <span className="text-[9px] text-slate-500 block mt-0.5 leading-snug">{mon.desc}</span>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                  {/* Active monitors summary */}
+                  {(() => {
+                    const active = Object.entries(anesthesiaPlan.monitors).filter(([,v]) => v).map(([k]) => k);
+                    const labels = { standard: 'ASA Std', aline: 'A-Line', cvc: 'CVC', tee: 'TEE', bispectral: 'BIS', nervStim: 'TOF' };
+                    return (
+                      <div className="mt-3 flex items-center gap-2 flex-wrap">
+                        <span className="text-[9px] text-slate-500 uppercase font-bold tracking-widest">Active Monitors:</span>
+                        {active.map(k => (
+                          <span key={k} className="text-[9px] px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/50 font-bold">{labels[k]}</span>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+
+              {/* ─── SECTION IV: CLINICAL ADVISORY PANEL ─── */}
+              {(() => {
+                const advisories = getAnesthesiaAdvisories();
+                if (advisories.length === 0) return null;
+                const hasCaution = advisories.some(a => a.severity === 'caution');
+                const hasWarning = advisories.some(a => a.severity === 'warning');
+                const severeCount = advisories.filter(a => a.severity === 'caution' || a.severity === 'warning').length;
+
+                const severityConfig = {
+                  caution: { bg: 'bg-red-950/30', border: 'border-red-800/60', text: 'text-red-300', badge: 'bg-red-900 text-red-300 border-red-700', icon: '🚨' },
+                  warning: { bg: 'bg-amber-950/30', border: 'border-amber-800/60', text: 'text-amber-300', badge: 'bg-amber-900 text-amber-300 border-amber-700', icon: '⚠️' },
+                  info: { bg: 'bg-blue-950/20', border: 'border-blue-800/40', text: 'text-blue-300', badge: 'bg-blue-900 text-blue-300 border-blue-700', icon: 'ℹ️' }
+                };
+
+                return (
+                  <div className={`bg-gradient-to-br from-slate-950 to-slate-900 rounded-xl shadow-lg overflow-hidden border-2 ${
+                    hasCaution ? 'border-red-500/50' : hasWarning ? 'border-amber-500/50' : 'border-blue-500/30'
+                  }`}>
+                    <div className={`px-5 py-3 border-b border-slate-800 flex items-center justify-between ${
+                      hasCaution ? 'bg-red-950/20' : hasWarning ? 'bg-amber-950/20' : 'bg-blue-950/10'
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-sm ${
+                          hasCaution ? 'bg-red-600/30 border border-red-500/50 text-red-300' : hasWarning ? 'bg-amber-600/30 border border-amber-500/50 text-amber-300' : 'bg-blue-600/30 border border-blue-500/50 text-blue-300'
+                        }`}>IV</div>
+                        <div>
+                          <h3 className="text-base font-extrabold text-white">Clinical Advisory — Optimization Review</h3>
+                          <p className={`text-[10px] mt-0.5 ${hasCaution ? 'text-red-400' : hasWarning ? 'text-amber-400' : 'text-blue-400'}`}>
+                            {severeCount > 0
+                              ? `${severeCount} concern${severeCount > 1 ? 's' : ''} requiring clinical review. You may override after reading.`
+                              : 'Informational recommendations based on current evidence-based guidelines.'}
+                          </p>
+                        </div>
+                      </div>
+                      {/* Override toggle */}
+                      {severeCount > 0 && (
+                        <div className="flex items-center gap-2">
+                          {anesthesiaPlan.advisoryDismissed ? (
+                            <span className="text-[9px] px-3 py-1 rounded bg-amber-950/50 text-amber-400 border border-amber-800 font-bold">
+                              ⚠ ADVISORIES OVERRIDDEN
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handlePlanChange('advisoryDismissed', true)}
+                              className="text-[9px] px-3 py-1.5 rounded bg-amber-600/20 hover:bg-amber-600/40 text-amber-400 border border-amber-700/50 font-bold transition cursor-pointer"
+                            >
+                              I have reviewed — Override & Proceed
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div className="px-5 py-4 space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
+                      {advisories.map((adv, i) => {
+                        const cfg = severityConfig[adv.severity];
+                        return (
+                          <div key={i} className={`px-4 py-3 rounded-lg border ${cfg.bg} ${cfg.border}`}>
+                            <div className="flex items-start gap-2">
+                              <span className="text-sm shrink-0">{cfg.icon}</span>
+                              <div>
+                                <span className={`text-[8px] px-1.5 py-0.5 rounded ${cfg.badge} border font-bold uppercase mr-2`}>{adv.severity}</span>
+                                <span className={`text-[10px] ${cfg.text} font-bold leading-relaxed`}>{adv.message}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* ─── SECTION V: PATIENT SAFETY VERIFICATION ─── */}
               <div className="bg-slate-950 border border-slate-800 rounded-xl p-5">
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-800 pb-1">
-                  IV. Patient Safety Verification
+                  V. Patient Safety Verification
                 </h3>
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                   <label className="flex items-center gap-3 text-xs text-slate-300 cursor-pointer hover:text-white transition">
@@ -1484,11 +2118,20 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                   if (activeTab === 'chart') setActiveTab('orders');
                   else if (activeTab === 'orders') setActiveTab('results');
                   else if (activeTab === 'results') setActiveTab('risk');
-                  else if (activeTab === 'risk') setActiveTab('plan');
+                  else if (activeTab === 'risk' && assessmentVerified) setActiveTab('plan');
                 }}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-xs flex items-center gap-2 transition"
+                disabled={activeTab === 'risk' && !assessmentVerified}
+                className={`px-4 py-2 font-bold rounded-lg text-xs flex items-center gap-2 transition ${
+                  activeTab === 'risk' && !assessmentVerified
+                    ? 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                    : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                }`}
               >
-                Next Tab <ArrowRight size={16}/>
+                {activeTab === 'risk' && !assessmentVerified ? (
+                  <>🔒 Verify Assessment First</>
+                ) : (
+                  <>Next Tab <ArrowRight size={16}/></>
+                )}
               </button>
             ) : (
               <button
