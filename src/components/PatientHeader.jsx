@@ -1,7 +1,22 @@
 import React, { useState } from 'react';
 import { Undo2, FileText, X } from 'lucide-react';
 
-export const PatientHeader = ({ activeCase, patient, vitals, setActiveCase, handleUndo, history, showLabPanel, setShowLabPanel, isRunning, setIsRunning, showPreOp, setShowPreOp }) => {
+export const PatientHeader = ({ 
+  activeCase, 
+  patient, 
+  vitals, 
+  setActiveCase, 
+  handleUndo, 
+  history, 
+  showLabPanel, 
+  setShowLabPanel, 
+  isRunning, 
+  setIsRunning, 
+  showPreOp, 
+  setShowPreOp,
+  showFidelityPanel,
+  setShowFidelityPanel
+}) => {
   return (
     <>
       <header className="flex flex-col glass-panel glass-cyan p-4 gap-4 relative z-10">
@@ -29,6 +44,17 @@ export const PatientHeader = ({ activeCase, patient, vitals, setActiveCase, hand
                 <FileText size={14} className="mr-1 shrink-0" /> Pre-Op EMR
               </button>
             )}
+
+            <button 
+              onClick={() => setShowFidelityPanel(!showFidelityPanel)} 
+              className={`px-4 py-2 text-xs md:text-sm font-bold flex items-center justify-center flex-1 xl:flex-none whitespace-nowrap rounded-lg shadow-md transition duration-200 active:scale-95 border ${
+                showFidelityPanel 
+                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.35)] font-black' 
+                  : 'glass-button hover:bg-slate-800/40 text-slate-300 border-slate-700'
+              }`}
+            >
+              🔬 FIDELITY AUDIT
+            </button>
 
             <button onClick={() => setShowLabPanel(!showLabPanel)} className="px-4 py-2 glass-button glass-button-purple text-xs md:text-sm font-bold flex items-center justify-center flex-1 xl:flex-none whitespace-nowrap">Live Labs</button>
             

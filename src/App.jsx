@@ -19,6 +19,7 @@ import { PreOpEMR } from './components/modals/PreOpEMR';
 // Attending Engine & Panel
 import { evaluateAttendingGuidance } from './engine/AttendingEngine';
 import AttendingPanel from './components/controls/AttendingPanel';
+import FidelityPanel from './components/controls/FidelityPanel';
 import { CLINICAL_ACTIONS } from './engine/ClinicalActions';
 
 
@@ -91,6 +92,7 @@ export default function App() {
   const [history, setHistory] = useState([]);
   const [labs, setLabs] = useState({});
   const [showLabPanel, setShowLabPanel] = useState(false);
+  const [showFidelityPanel, setShowFidelityPanel] = useState(false);
   
   const [airwayQuizModal, setAirwayQuizModal] = useState({ show: false, description: '', trueMallampati: 1 });
   const [accessModal, setAccessModal] = useState({ show: false, category: '' });
@@ -963,6 +965,8 @@ export default function App() {
         setIsRunning={setIsRunning} 
         showPreOp={preOpEMR}
         setShowPreOp={setPreOpEMR}
+        showFidelityPanel={showFidelityPanel}
+        setShowFidelityPanel={setShowFidelityPanel}
       />
 
       <PrimaryMonitor 
@@ -1150,6 +1154,28 @@ export default function App() {
           onStart={activeCase ? () => {} : startCase}
           logEvent={logEvent}
           intraop={!!activeCase}
+        />
+      )}
+
+      {activeCase && (
+        <FidelityPanel
+          isOpen={showFidelityPanel}
+          setIsOpen={setShowFidelityPanel}
+          vitals={vitals}
+          patient={patient}
+          activeMeds={activeMeds}
+          gasSettings={gasSettings}
+          ventSettings={ventSettings}
+          surgicalPhase={surgicalPhase}
+          electrolytes={electrolytes}
+          coags={coags}
+          time={time}
+          setPatient={setPatient}
+          handleProcessMed={handleProcessMed}
+          handlePushMed={handlePushMed}
+          handlePushFluid={handlePushFluid}
+          handleSetVentSettings={handleSetVentSettings}
+          logEvent={logEvent}
         />
       )}
 
