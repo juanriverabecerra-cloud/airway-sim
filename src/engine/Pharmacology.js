@@ -106,7 +106,7 @@ export const MEDICATIONS = {
     targetReceptor: 'GABA-A', intracellularCascade: 'Enhances GABA binding -> increases Chloride (Cl-) influx -> cellular hyperpolarization',
     indications: { 'Induction': { dose: '1.5-2.5', unit: 'mg/kg', type: 'Bolus' }, 'Maintenance (TIVA)': { dose: '100-200', unit: 'mcg/kg/min', type: 'Infusion' }, 'Sedation': { dose: '25-50', unit: 'mcg/kg/min', type: 'Infusion' } },
     pk: { V1: 4.27, V2: 18.9, V3: 238, k10: 0.443, k12: 0.303, k21: 0.055, k13: 0.196, k31: 0.0033, ke0: 1.2, coSensitivity: 0.6 },
-    pd: { c50: 2.5, gamma: 2, sysMax: -40, diaMax: -30, hrMax: -15, rrMax: -14, inducesApneaAtCe: 2.5 },
+    pd: { c50: 2.5, gamma: 2, sysMax: -24, diaMax: -18, hrMax: -2, rrMax: -14, inducesApneaAtCe: 2.5 },
     notes: 'Decreases CMRO2, CBF, and ICP. Anticonvulsant. Potent venodilator and direct myocardial depressant. Antiemetic at sub-hypnotic doses. Prolonged high dose (>67 mcg/kg/min or 4 mg/kg/hr for >48h) risks Propofol Infusion Syndrome (PRIS: acidosis, rhabdo, bradycardia, lipemic plasma).'
   },
 

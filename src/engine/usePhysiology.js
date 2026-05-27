@@ -833,9 +833,16 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               }
               if (effects.sysDelta) {
                   const pulsePressureDelta = effects.sysDelta - (effects.diaDelta || 0);
-                  if (pulsePressureDelta < 0) {
-                      drugInotropyMod *= (1.0 + (pulsePressureDelta / 100)); 
-                  }
+                  // Allow both positive inotropy (support) and negative inotropy (depression)
+                  drugInotropyMod *= (1.0 + (pulsePressureDelta / 100)); 
+              }
+              
+              // Integrate receptor-based SVR and inotropy multipliers (e.g. Epi, Norepi, Phenylephrine, Vasopressin, Ephedrine)
+              if (effects.svrMultiplier !== undefined) {
+                  drugSvrMod *= effects.svrMultiplier;
+              }
+              if (effects.coMultiplier !== undefined) {
+                  drugInotropyMod *= effects.coMultiplier;
               }
               
               if (effects.group === 'Sedative') sedativeEff = 1 - (1 - sedativeEff) * (1 - effects.hypnoticEffect);
