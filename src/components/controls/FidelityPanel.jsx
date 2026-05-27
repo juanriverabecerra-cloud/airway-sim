@@ -33,6 +33,16 @@ export default function FidelityPanel({
   const [fuzzHistory, setFuzzHistory] = useState([]);
   const [activeTab, setActiveTab] = useState('live'); // 'live' or 'fuzzer'
 
+  // Web3Forms Bug Report Submission States
+  const [testerName, setTesterName] = useState('');
+  const [testerNotes, setTesterNotes] = useState('');
+  const [submitStatus, setSubmitStatus] = useState('idle'); // 'idle' | 'sending' | 'success' | 'error'
+  const [submitError, setSubmitError] = useState('');
+  const [accessKey, setAccessKey] = useState(() => {
+    return localStorage.getItem('web3forms_key') || 'e2175b71-5996-4f82-b55f-cf76fcca8255';
+  });
+  const [showSettings, setShowSettings] = useState(false);
+
   // Ref to hold the current active state variables so the fuzzer can read them dynamically
   const currentStateRef = useRef();
   useEffect(() => {
@@ -46,6 +56,67 @@ export default function FidelityPanel({
     const state = currentStateRef.current;
     const result = evaluateFidelity(state);
     setAuditResult(result);
+    // Reset submission state on new audit
+    setSubmitStatus('idle');
+    setSubmitError('');
+  };
+
+  const handleSaveSettings = (newKey) => {
+    setAccessKey(newKey);
+    localStorage.setItem('web3forms_key', newKey);
+    setShowSettings(false);
+  };
+
+  const handleSubmitReport = async () => {
+    if (submitStatus === 'sending') return;
+    if (!testerName.trim()) {
+      setSubmitStatus('error');
+      setSubmitError('Please enter your name or title first.');
+      return;
+    }
+
+    setSubmitStatus('sending');
+    setSubmitError('');
+
+    try {
+      const isLive = activeTab === 'live';
+      const anomalies = isLive ? (auditResult?.anomalies || []) : fuzzAnomalies;
+      const history = isLive ? [] : fuzzHistory;
+      
+      const reportMd = generateFidelityReport(anomalies, history, patient);
+
+      // Append beta tester comments and name to the report text
+      let fullMessage = `### Beta Tester Feedback Details\n`;
+      fullMessage += `- **Beta Tester**: ${testerName}\n`;
+      fullMessage += `- **Tester Notes**: ${testerNotes || 'No notes provided'}\n\n`;
+      fullMessage += reportMd;
+
+      const response = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          access_key: accessKey === 'YOUR_ACCESS_KEY_HERE' ? '4638d21b-db22-48f8-8bb0-0fb7a149b1ff' : accessKey,
+          subject: `🔬 Airway Sim Anomaly: ${anomalies[0]?.rule || 'Fidelity Anomaly'} (${patient.name || 'Standard Patient'})`,
+          from_name: `${testerName} (Airway Beta Tester)`,
+          message: fullMessage
+        })
+      });
+
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setSubmitStatus('success');
+        setTesterNotes('');
+        logEvent(`🔬 clinical fidelity report uploaded to developer successfully.`);
+      } else {
+        throw new Error(data.message || 'API submission rejected by Web3Forms.');
+      }
+    } catch (err) {
+      setSubmitStatus('error');
+      setSubmitError(err.message || 'Network error occurred during submission.');
+    }
   };
 
   // Run the Automated State-Space Fuzzer (50 accelerated ticks in sequence)
@@ -149,6 +220,80 @@ export default function FidelityPanel({
       : 'bg-red-500/20 text-red-400 border border-red-500/35 animate-pulse';
   };
 
+  const renderSubmissionForm = () => {
+    const isLive = activeTab === 'live';
+    const anomalies = isLive ? (auditResult?.anomalies || []) : fuzzAnomalies;
+    if (anomalies.length === 0) return null;
+
+    return (
+      <div className="p-4 bg-slate-900/40 rounded-2xl border border-slate-800/80 mt-4 flex flex-col gap-3 shrink-0 animate-in fade-in slide-in-from-bottom-2 duration-300 font-mono">
+        <h4 className="text-[11px] font-black uppercase tracking-wider text-slate-300 flex items-center gap-2">
+          📬 Submit Report to Developer
+        </h4>
+        <p className="text-[9px] text-slate-400 leading-normal">
+          Directly upload this clinical verification report to the developer. It will land straight in their email inbox.
+        </p>
+
+        <div className="flex flex-col gap-2 mt-1">
+          <label className="text-[8px] font-black uppercase text-slate-500 tracking-wider">Your Name / Title</label>
+          <input
+            type="text"
+            placeholder="e.g. Dr. Jane Smith"
+            value={testerName}
+            onChange={(e) => setTesterName(e.target.value)}
+            disabled={submitStatus === 'sending'}
+            className="w-full px-3 py-2 bg-slate-950/70 border border-slate-800 rounded-lg text-[10.5px] font-mono text-cyan-200 placeholder-slate-650 focus:outline-none focus:border-cyan-500/55 transition"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="text-[8px] font-black uppercase text-slate-500 tracking-wider">Notes / What went wrong?</label>
+          <textarea
+            placeholder="e.g. Propofol did not dilate SVR, or Succinylcholine potassium spike was missing."
+            value={testerNotes}
+            onChange={(e) => setTesterNotes(e.target.value)}
+            disabled={submitStatus === 'sending'}
+            rows={2}
+            className="w-full px-3 py-2 bg-slate-950/70 border border-slate-800 rounded-lg text-[10.5px] font-mono text-cyan-200 placeholder-slate-650 focus:outline-none focus:border-cyan-500/55 transition resize-none leading-relaxed"
+          />
+        </div>
+
+        {submitStatus === 'success' && (
+          <div className="bg-green-500/10 border border-green-500/30 text-green-400 p-2.5 rounded-lg text-[9px] leading-relaxed font-bold">
+            ✅ Fidelity report successfully delivered to the developer! Thank you for your review.
+          </div>
+        )}
+
+        {submitStatus === 'error' && (
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-2.5 rounded-lg text-[9px] leading-normal font-bold">
+            ❌ Delivery failed: {submitError || 'Please check your connection.'}
+          </div>
+        )}
+
+        <button
+          onClick={handleSubmitReport}
+          disabled={submitStatus === 'sending'}
+          className={`w-full py-2.5 text-[10px] font-black uppercase rounded-lg shadow-md transition active:scale-97 flex items-center justify-center gap-1.5 border ${
+            submitStatus === 'sending'
+              ? 'bg-slate-900 border-slate-850 text-slate-500 cursor-not-allowed font-mono'
+              : 'bg-gradient-to-r from-indigo-900 to-cyan-900 hover:from-indigo-800 hover:to-cyan-850 text-indigo-300 hover:text-white border-indigo-500/40 cursor-pointer font-mono font-bold'
+          }`}
+        >
+          {submitStatus === 'sending' ? (
+            <>
+              <span className="w-2.5 h-2.5 border-2 border-slate-500 border-t-transparent rounded-full animate-spin"></span>
+              Uploading Bug Report...
+            </>
+          ) : (
+            <>
+              📬 Submit Bug Report to Developer
+            </>
+          )}
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div 
       className={`fixed top-0 left-0 h-full z-[150] w-full max-w-md md:w-[480px] bg-slate-950/95 border-r border-slate-800 text-white font-mono flex flex-col transition-all duration-350 shadow-2xl backdrop-blur-md ${
@@ -163,15 +308,28 @@ export default function FidelityPanel({
             <h3 className="text-sm font-black tracking-wider uppercase text-slate-100 font-mono">
               Clinical Fidelity Auditor
             </h3>
-            <p className="text-[9px] text-cyan-400 mt-0.5 uppercase tracking-widest font-mono">Physiological Bound Verification</p>
+            <p className="text-[9px] text-cyan-400 mt-0.5 uppercase tracking-widest font-mono font-bold">Physiological Bound Verification</p>
           </div>
         </div>
-        <button 
-          onClick={() => setIsOpen(false)}
-          className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
-        >
-          <X size={20} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className={`p-1.5 rounded-lg border transition ${
+              showSettings 
+                ? 'bg-purple-500/20 text-purple-400 border-purple-500/30 font-black' 
+                : 'text-slate-400 hover:text-white border-slate-800 hover:bg-slate-900/50'
+            }`}
+            title="Developer Settings"
+          >
+            <Settings size={16} />
+          </button>
+          <button 
+            onClick={() => setIsOpen(false)}
+            className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition"
+          >
+            <X size={20} />
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -199,8 +357,44 @@ export default function FidelityPanel({
       </div>
 
       <div className="flex-1 overflow-y-auto p-5 flex flex-col gap-5 custom-scrollbar min-h-0">
-        
-        {activeTab === 'live' ? (
+        {showSettings ? (
+          /* DEVELOPER SETTINGS CARD */
+          <div className="flex flex-col gap-4 p-4 bg-slate-900/40 rounded-2xl border border-slate-800 animate-in fade-in slide-in-from-bottom-2 duration-300 font-mono">
+            <h4 className="text-[11px] font-black uppercase tracking-wider text-purple-400 flex items-center gap-2">
+              ⚙️ Web3Forms Developer Settings
+            </h4>
+            <p className="text-[10px] text-slate-400 leading-relaxed font-mono">
+              Configure your Web3Forms Access Key to direct beta tester feedback to your primary email address.
+            </p>
+            <div className="flex flex-col gap-2 mt-2 font-mono">
+              <label className="text-[8px] font-black uppercase text-slate-500 tracking-wider">Web3Forms Access Key</label>
+              <input
+                type="text"
+                value={accessKey}
+                onChange={(e) => setAccessKey(e.target.value)}
+                placeholder="YOUR_ACCESS_KEY_HERE"
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-[10px] text-purple-300 placeholder-slate-700 font-mono focus:outline-none focus:border-purple-500/50"
+              />
+              <span className="text-[8.5px] text-slate-500 leading-normal mt-1">
+                Don't have a key? Enter your email at <a href="https://web3forms.com" target="_blank" rel="noopener noreferrer" className="text-cyan-400 underline">web3forms.com</a> to receive a free key instantly.
+              </span>
+            </div>
+            <div className="flex gap-2 mt-3 font-mono">
+              <button
+                onClick={() => handleSaveSettings(accessKey)}
+                className="flex-1 py-2 bg-purple-950 border border-purple-500/30 text-purple-300 text-[10px] font-black uppercase rounded-lg hover:bg-purple-900 hover:text-white transition active:scale-95"
+              >
+                Save Configuration
+              </button>
+              <button
+                onClick={() => setShowSettings(false)}
+                className="px-4 py-2 bg-slate-900 border border-slate-800 text-slate-400 text-[10px] font-black uppercase rounded-lg hover:bg-slate-800 hover:text-white transition active:scale-95"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : activeTab === 'live' ? (
           /* LIVE PHYSIOLOGY AUDIT TAB */
           <>
             <div className="p-4 bg-slate-900/50 rounded-2xl border border-slate-800/80 flex flex-col gap-3 shrink-0">
@@ -278,12 +472,15 @@ export default function FidelityPanel({
 
                 {/* Export Options */}
                 {auditResult.anomalies.length > 0 && (
-                  <button
-                    onClick={exportBugReport}
-                    className="w-full py-3 bg-gradient-to-r from-purple-900 to-indigo-900 hover:from-purple-800 hover:to-indigo-800 active:scale-97 text-white text-[10px] font-black uppercase rounded-lg border border-purple-500/40 shadow-lg transition flex items-center justify-center gap-1.5 mt-2 font-mono"
-                  >
-                    <FileCode size={14} /> Export Fidelity Bug Report (.md)
-                  </button>
+                  <>
+                    <button
+                      onClick={exportBugReport}
+                      className="w-full py-3 bg-gradient-to-r from-purple-900 to-indigo-900 hover:from-purple-800 hover:to-indigo-800 active:scale-97 text-white text-[10px] font-black uppercase rounded-lg border border-purple-500/40 shadow-lg transition flex items-center justify-center gap-1.5 mt-2 font-mono"
+                    >
+                      <FileCode size={14} /> Export Fidelity Bug Report (.md)
+                    </button>
+                    {renderSubmissionForm()}
+                  </>
                 )}
               </div>
             ) : (
@@ -331,12 +528,15 @@ export default function FidelityPanel({
               <div className="flex-1 flex flex-col gap-4 min-h-0 animate-in fade-in duration-300">
                 {/* Export Options */}
                 {!isFuzzing && fuzzAnomalies.length > 0 && (
-                  <button
-                    onClick={exportBugReport}
-                    className="w-full py-3 bg-gradient-to-r from-purple-900 to-indigo-900 hover:from-purple-800 hover:to-indigo-800 active:scale-97 text-white text-[10px] font-black uppercase rounded-lg border border-purple-500/40 shadow-lg transition flex items-center justify-center gap-1.5 shrink-0 font-mono"
-                  >
-                    <FileCode size={14} /> Export Fuzz Bug Report (.md)
-                  </button>
+                  <>
+                    <button
+                      onClick={exportBugReport}
+                      className="w-full py-3 bg-gradient-to-r from-purple-900 to-indigo-900 hover:from-purple-800 hover:to-indigo-800 active:scale-97 text-white text-[10px] font-black uppercase rounded-lg border border-purple-500/40 shadow-lg transition flex items-center justify-center gap-1.5 shrink-0 font-mono"
+                    >
+                      <FileCode size={14} /> Export Fuzz Bug Report (.md)
+                    </button>
+                    {renderSubmissionForm()}
+                  </>
                 )}
 
                 {/* Fuzz Logs Terminal Console */}
