@@ -14,7 +14,7 @@ export const LinesResusPanel = ({
   const [bolusInfusionDose, setBolusInfusionDose] = useState({});
 
   const handleUpdateInfusion = (medId, newDose, originalUnit, lineId) => {
-    if (!newDose || !lineId) return;
+    if ((newDose === undefined || newDose === null || newDose === '') || !lineId) return;
     
     setPatient(prev => {
       const newLines = (prev.accessLines || []).map(l => {

@@ -20,7 +20,8 @@ export default function AttendingPanel({
   activeAlertsCount,
   formatTime,
   generateClinicalHint,
-  onActionClick
+  onActionClick,
+  nearFutureForecast // Recieved from App.jsx
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [messageHistory, setMessageHistory] = useState([]);
@@ -222,12 +223,12 @@ export default function AttendingPanel({
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        {/* Header */}
+        {/* Unified Sidebar Header */}
         <div className="flex justify-between items-center px-4 py-3 border-b border-slate-800/80 bg-slate-950/40 shrink-0">
           <div className="flex items-center gap-2">
             <Award className="text-cyan-400" size={18} />
-            <h3 className="text-sm font-black tracking-wider uppercase text-slate-100 flex items-center gap-1.5">
-              Clinical Attending
+            <h3 className="text-sm font-black tracking-wider uppercase text-slate-100 flex items-center gap-1.5 font-mono">
+              Attending Consult
               {activeAlertsCount > 0 && (
                 <span className="bg-red-500/20 text-red-400 border border-red-500/40 text-[9px] px-1.5 py-0.5 rounded font-extrabold animate-pulse">
                   {activeAlertsCount} ALERTS
@@ -296,7 +297,7 @@ export default function AttendingPanel({
               </p>
             </div>
 
-                        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar">
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar">
               {primaryGuidance ? (
                 <div className={`p-4 rounded-xl border flex flex-col gap-3 transition-all animate-in fade-in duration-300 ${getPriorityColor(primaryGuidance.priority).bg}`}>
                   <div className="flex justify-between items-center border-b border-slate-800/30 pb-2">
@@ -308,11 +309,11 @@ export default function AttendingPanel({
                     </span>
                   </div>
                   
-                  <h4 className="font-extrabold text-xs text-white leading-tight uppercase">
+                  <h4 className="font-extrabold text-xs text-white leading-tight uppercase font-mono">
                     {primaryGuidance.title}
                   </h4>
                   
-                  <p className="text-[11px] leading-relaxed text-slate-200 bg-slate-950/30 p-3 rounded border border-slate-900/40 font-medium">
+                  <p className="text-[11px] leading-relaxed text-slate-200 bg-slate-950/30 p-3 rounded border border-slate-900/40 font-mono font-medium">
                     {parseAndRenderText(primaryGuidance.text, handleActionClick)}
                   </p>
  
@@ -326,50 +327,80 @@ export default function AttendingPanel({
                   )}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-12 text-center px-4 border border-dashed border-slate-800 rounded-xl bg-slate-950/20">
+                <div className="flex flex-col items-center justify-center py-12 text-center px-4 border border-dashed border-slate-800 rounded-xl bg-slate-950/20 animate-in fade-in duration-300">
                   <Shield size={36} className="text-slate-600 mb-2.5 animate-pulse" />
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Physiology Stable</span>
-                  <span className="text-[10px] text-slate-500 mt-1 max-w-[200px] leading-normal">
+                  <span className="text-[10px] text-slate-500 mt-1 max-w-[200px] leading-normal font-mono">
                     {attendingMode === 'silent' 
                       ? "Attending is in Silent mode. Click 'Call Attending' for advice." 
                       : "No active warnings. Attending is observing patient vital trends."}
                   </span>
                 </div>
               )}
+
+              {/* Premium Attending Foresight (Near-Future Predictive Forecasting Card) */}
+              {attendingMode !== 'silent' && nearFutureForecast && (
+                <div className="glass-panel glass-purple p-4 border border-purple-500/35 rounded-xl bg-purple-950/20 shadow-md flex flex-col gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <span className="text-[10px] font-extrabold uppercase text-purple-400 tracking-wider flex items-center gap-1.5 font-mono">
+                    🔮 Attending Foresight
+                  </span>
+                  <p className="text-[10.5px] leading-relaxed text-purple-100 font-mono italic font-medium bg-slate-950/45 p-3 rounded-lg border border-purple-900/40">
+                    {parseAndRenderText(nearFutureForecast, handleActionClick)}
+                  </p>
+                </div>
+              )}
  
               {/* Call Attending Call-to-Action Button */}
               <button
                 onClick={handleCallAttending}
-                className="w-full py-3 bg-gradient-to-r from-purple-850 to-indigo-850 hover:from-purple-755 hover:to-indigo-755 active:scale-98 text-white text-xs font-black rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 border border-purple-600/40 shrink-0"
+                className="w-full py-3 bg-gradient-to-r from-purple-850 to-indigo-850 hover:from-purple-755 hover:to-indigo-755 active:scale-98 text-white text-xs font-black rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 border border-purple-600/40 shrink-0 font-mono"
               >
                 <HelpCircle size={15} />
                 CALL ATTENDING CONSULT
               </button>
             </div>
  
-            {/* Message Log History Panel */}
-            <div className="border-t border-slate-800 bg-slate-950/60 h-44 flex flex-col shrink-0">
-              <div className="px-4 py-2 border-b border-slate-800 bg-slate-950/90 flex justify-between items-center shrink-0">
-                <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Clinical Guidance Log</span>
-                <span className="text-[9px] text-slate-500 font-semibold">{messageHistory.length} messages</span>
+            {/* Message Log History Panel - Hides in Silent Mode, Enlarged and Conditional for Observe & Teach */}
+            {(attendingMode === 'observing' || attendingMode === 'teaching') && (
+              <div className="border-t border-slate-800 bg-slate-950/60 h-52 flex flex-col shrink-0 transition-all duration-300">
+                <div className="px-4 py-2.5 border-b border-slate-800 bg-slate-950/90 flex justify-between items-center shrink-0">
+                  <span className="text-[10px] font-black uppercase text-cyan-400 tracking-wider flex items-center gap-1.5 font-mono">
+                    <BookOpen size={12} className="text-cyan-500" />
+                    Attending Guidance Log
+                  </span>
+                  <span className="text-[9px] text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded font-bold border border-slate-700/50">{messageHistory.length} ENTRIES</span>
+                </div>
+   
+                <div className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-3 custom-scrollbar text-[11px] font-mono">
+                  {messageHistory.length === 0 ? (
+                    <div className="text-center py-8 text-slate-500 italic font-medium">No historical log entries. Attending is monitoring...</div>
+                  ) : (
+                    messageHistory.slice().reverse().map((msg) => {
+                      const priorityStyles = getPriorityColor(msg.priority);
+                      return (
+                        <div key={msg.id} className="border-b border-slate-850/70 pb-3 flex flex-col gap-1.5 last:border-b-0 animate-in fade-in slide-in-from-bottom-2 duration-250">
+                          <div className="flex justify-between items-center text-[10px] mb-0.5 font-bold">
+                            <span className={`uppercase tracking-wide px-1 rounded border text-[9px] ${priorityStyles.badge}`}>
+                              {priorityStyles.icon} {msg.priority}
+                            </span>
+                            <span className="text-slate-500 flex items-center gap-1 text-[9px]"><Clock size={9} /> {msg.timestamp}</span>
+                          </div>
+                          <p className="text-slate-200 leading-relaxed font-medium bg-slate-950/20 p-2.5 rounded border border-slate-900/60">
+                            {parseAndRenderText(msg.text, handleActionClick)}
+                          </p>
+                          {msg.suggestion && (
+                            <div className="text-[10px] text-cyan-300 font-bold pl-1 flex items-center gap-1.5">
+                              <ArrowRight size={10} className="text-cyan-400" />
+                              <span>{parseAndRenderText(msg.suggestion, handleActionClick)}</span>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
- 
-              <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2 custom-scrollbar text-[10px]">
-                {messageHistory.length === 0 ? (
-                  <div className="text-center py-6 text-slate-600 italic">No historical log entries.</div>
-                ) : (
-                  messageHistory.slice().reverse().map((msg) => (
-                    <div key={msg.id} className="border-b border-slate-900/60 pb-2">
-                      <div className="flex justify-between items-center text-[9px] text-slate-500 mb-0.5">
-                        <span className="font-extrabold uppercase text-cyan-400">{msg.stepName || 'ALERT'}</span>
-                        <span>{msg.timestamp}</span>
-                      </div>
-                      <p className="text-slate-300 leading-normal">{parseAndRenderText(msg.text, handleActionClick)}</p>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
+            )}
           </>
         ) : (
           /* Direct Chat View */
@@ -401,7 +432,7 @@ export default function AttendingPanel({
               
               {isTyping && (
                 <div className="flex flex-col items-start">
-                  <span className="text-[9px] text-slate-500 font-extrabold uppercase mb-1">
+                  <span className="text-[9px] text-slate-500 font-extrabold uppercase mb-1 font-mono">
                     Attending • Thinking
                   </span>
                   <div className="bg-slate-900/60 border border-slate-800/40 rounded-2xl rounded-tl-none px-3.5 py-2.5 shadow-sm text-[10px] text-slate-400 italic">
@@ -425,7 +456,7 @@ export default function AttendingPanel({
               <button
                 type="submit"
                 disabled={isTyping || !userInput.trim()}
-                className="px-3 py-2 bg-gradient-to-r from-purple-800 to-indigo-850 hover:from-purple-700 hover:to-indigo-755 disabled:opacity-50 text-white rounded-lg transition-all flex items-center justify-center border border-purple-600/30 active:scale-95 shadow-lg shadow-purple-950/20"
+                className="px-3 py-2 bg-gradient-to-r from-purple-850 to-indigo-850 hover:from-purple-755 hover:to-indigo-755 disabled:opacity-50 text-white rounded-lg transition-all flex items-center justify-center border border-purple-600/30 active:scale-95 shadow-lg shadow-purple-950/20"
               >
                 <ChevronRight size={16} />
               </button>
@@ -442,8 +473,8 @@ export default function AttendingPanel({
               <div className="flex items-center gap-2.5">
                 <Award className="text-cyan-400" size={24} />
                 <div>
-                  <h2 className="text-lg font-black tracking-wide text-slate-100 uppercase">Attending Staff Consultation</h2>
-                  <p className="text-[10px] text-cyan-400 mt-0.5">Physiological diagnostic audit & pharmacological review</p>
+                  <h2 className="text-lg font-black tracking-wide text-slate-100 uppercase font-mono">Attending Consult Audit</h2>
+                  <p className="text-[10px] text-cyan-400 mt-0.5 font-mono">Physiological diagnostic audit & pharmacological review</p>
                 </div>
               </div>
               <button 

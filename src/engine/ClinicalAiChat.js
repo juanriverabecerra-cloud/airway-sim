@@ -58,6 +58,9 @@ export function getAttendingResponse(query, {
   const fentanylCe = activeMeds.find(m => m.name === 'Fentanyl')?.Ce || 0;
   const rocuroniumCe = activeMeds.find(m => m.name === 'Rocuronium')?.Ce || 0;
   const succinylcholineCe = activeMeds.find(m => m.name === 'Succinylcholine')?.Ce || 0;
+  const vecuroniumCe = activeMeds.find(m => m.name === 'Vecuronium')?.Ce || 0;
+
+  const pos = patient.position || 'Supine';
 
   // 2. DEFINE INTENT DETECTORS & GENERATE CLINICAL ANSWERS
 
@@ -146,7 +149,7 @@ export function getAttendingResponse(query, {
         msg += `🔴 **DIAGNOSTIC STATUS: CONFIRMED SEVERE HYPERKALEMIA**\n`;
         msg += `The potassium level is dangerously elevated at ${fmt(potassium, 1)} mEq/L. This has caused severe electrical membrane instability and cardiac arrest.\n\n`;
         msg += `**Immediate Treatment Protocol**:\n`;
-        msg += `1. **Stabilize Membrane**: Administer **[calcium chloride]** (1000 mg IV) immediately. This protects the myocardium from VFib/Asystole!\n`;
+        msg += `1. **Stabilize Membrane**: Administer **[calcium chloride]** (1000 mg IV) immediately. This protects the myocardium from VFib/Asystole by restoring the membrane electrical gradient!\n`;
         msg += `2. **Shift Potassium Intracellularly**: Administer **[albuterol]** via ETT, hyperventilate (wash out CO2), or give insulin/dextrose.\n`;
         msg += `3. Ensure continuous high-quality chest compressions and epinephrine support.`;
       } else {
@@ -246,7 +249,7 @@ export function getAttendingResponse(query, {
     let msg = `### 🚨 ATTENDING CONSULT: CRITICAL CARDIAC ARREST!\n\n`;
     msg += `We have a **CARDIAC ARREST** in the OR! Rhythm is **${rhythm.toUpperCase()}**. SBP: **${fmt(sys)} mmHg**, MAP: **${fmt(map)} mmHg**.\n\n`;
     msg += `**Immediate Clinical Directive**:\n`;
-    msg += `1. **Compressions**: Ensure continuous high-quality chest compressions (**🩺 Initiated Chest Compressions**).\n`;
+    msg += `1. **Compressions**: Ensure continuous high-quality chest compressions (**🩺 Initiated CPR Compressions**).\n`;
     msg += `2. **Epinephrine**: Administer **[epinephrine]** (50 mcg IV) or vasopressors immediately to restore coronary and cerebral perfusion pressures.\n`;
     msg += `3. **Oxygenation**: Ensure 100% oxygenation (FiO2 100% on fresh gas) and ventilate.\n\n`;
     
@@ -273,26 +276,32 @@ export function getAttendingResponse(query, {
   // B. Allergy / Anaphylaxis
   if (isAnaphylaxis || q.includes('anaphylaxis') || q.includes('allergy') || q.includes('allergic') || q.includes('reaction') || q.includes('penicillin')) {
     if (isAnaphylaxis && !isAnaphylaxisTreated) {
-      return `ALERT: This patient is in severe vasoplegic anaphylactic shock triggered by the administration of penicillin!
-- **Hemodynamics**: SBP is ${fmt(sys)} mmHg, MAP is ${fmt(map)} mmHg. Profound vasodilation has occurred.
-- **Pulmonary Mechanics**: Airway compliance is dangerously low at ${fmt(compliance)} mL/cmH2O and resistance is extremely elevated at ${fmt(resistance)} cmH2O/L/s due to hyperacute bronchospasm.
+      return `### 🚨 LIFE-THREATENING PENICILLIN ANAPHYLAXIS!
+The patient is in profound, vasodilatory anaphylactic shock triggered by the administration of Penicillin antibiotics. 
+- **Hemodynamics**: SBP is ${fmt(sys)} mmHg, MAP is ${fmt(map)} mmHg. Mast cell degranulation has released massive histamine, causing complete vascular smooth muscle relaxation (SVR collapse) and severe vasodilatory shock.
+- **Pulmonary Mechanics**: Airway compliance is dangerously low at ${fmt(compliance)} mL/cmH2O and resistance is extremely elevated at ${fmt(resistance)} cmH2O/L/s due to hyperacute bronchospasm and sub-glottic airway swelling.
 
-**Attending's Advice**: Do not delay! Immediately administer epinephrine (50 mcg IV bolus) to restore vasomotor tone and reverse life-threatening bronchoconstriction. You should also administer albuterol (2.5 mg ETT) to directly alleviate airway resistance and support ventilation.`;
+**Clinical Rationale**: Epinephrine is the primary gold-standard treatment. Its alpha-1 agonist activity induces powerful vasoconstriction to restore SVR and MAP, while its beta-2 agonist activity provides strong bronchodilation and stabilizes mast cell membranes to stop further degranulation.
+
+**Attending's Directive**: Do not delay! Immediately administer **[epinephrine]** (50 mcg IV bolus) to restore vasomotor tone and reverse life-threatening bronchoconstriction. You should also administer **[albuterol]** (2.5 mg ETT) to directly alleviate bronchial resistance.`;
     } else if (isAnaphylaxis && isAnaphylaxisTreated) {
       return `The anaphylactic shock has been successfully treated with epinephrine. Current parameters are stabilizing: SBP is ${fmt(sys)} mmHg (MAP: ${fmt(map)} mmHg), and airway compliance has improved to ${fmt(compliance)} mL/cmH2O. We must continue to monitor the patient closely for biphasic reactions and ensure adequate volatile depth (MAC is currently ${fmt(mac, 2)}).`;
     } else {
-      return `The patient's chart lists a severe allergy to Penicillin. Always review chart and perform a pre-op emr assessment before administering any antibiotics. Inadvertent administration will trigger profound anaphylaxis, causing airway resistance to skyrocket and blood pressure to collapse, which requires immediate epinephrine rescue.`;
+      return `The patient's chart lists a severe allergy to Penicillin. Always perform a thorough [EMR] assessment before administering antibiotics. Inadvertent administration in this patient will trigger profound IgE-mediated anaphylaxis, causing complete SVR collapse (shock) and hyperacute bronchospasm (compliance crash), requiring immediate [epinephrine] rescue and [albuterol] bronchodilation.`;
     }
   }
 
   // C. Unopposed Muscarinic / Neostigmine Bradycardia
   if (bradycardiaTriggered || q.includes('bradycardia') || q.includes('slow heart') || q.includes('neostigmine') || q.includes('muscarinic')) {
     if (bradycardiaTriggered) {
-      return `We are witnessing severe, progressive bradycardia (HR: ${fmt(hr)} bpm) due to unopposed muscarinic stimulation! This occurred because Neostigmine was administered without co-administration of an anticholinergic. Copious secretions and vagal hyper-stimulation will lead to asystole.
+      return `### 🚨 SEVERE UNOPPOSED MUSCARINIC SURGE!
+We are witnessing severe, progressive bradycardia (HR: ${fmt(hr)} bpm) due to unopposed muscarinic stimulation! This occurred because Neostigmine was administered without co-administration of an anticholinergic.
 
-**Clinical Directive**: Administer glycopyrrolate (0.2 mg IV) or atropine (0.5 mg IV) immediately to block peripheral muscarinic receptors and restore normal heart rate!`;
+**Clinical Rationale**: Neostigmine blocks acetylcholinesterase, leading to a massive surge of acetylcholine (ACh) at both nicotinic and muscarinic synapses. At the neuromuscular junction, nicotinic receptor ACh restores muscle twitches. However, at peripheral muscarinic receptors (heart and glands), ACh triggers intense vagal stimulation, causing severe bradycardia, salivary hyper-secretion, and risk of asystolic cardiac arrest.
+
+**Attending's Directive**: Administer **[glycopyrrolate]** (0.2 mg IV per 1 mg of Neostigmine given) or **[atropine]** (0.5 mg IV) immediately! These drugs are competitive muscarinic antagonists that will block peripheral ACh receptors, rapidly restoring heart rate and drying up secretions.`;
     } else {
-      return `Current heart rate is ${fmt(hr)} bpm. If you plan to reverse neuromuscular blockade using neostigmine, always co-administer an anticholinergic like glycopyrrolate or atropine to prevent severe, life-threatening bradycardia.`;
+      return `Current heart rate is ${fmt(hr)} bpm. If you plan to reverse neuromuscular blockade using neostigmine, always co-administer an anticholinergic like **[glycopyrrolate]** or **[atropine]** to prevent severe, life-threatening bradycardia.`;
     }
   }
 
@@ -309,9 +318,15 @@ export function getAttendingResponse(query, {
     msg += `- **Calculated Gastric Volume**: ${fmt(gastricVol)} mL\n\n`;
 
     if (hasFullStomach) {
-      msg += `**Clinical Evaluation**: The patient has a high risk of aspiration (full stomach / insufficient fasting window). We must treat this as a **Rapid Sequence Induction (RSI)** case. Avoid positive pressure ventilation prior to intubation to prevent gastric insufflation. Ensure suction airway is fully functional and ready at the bedside. Perform laryngoscopy with cricoid pressure, and consider pre-treating with a rapid neuromuscular blocker like succinylcholine or high-dose rocuronium. Always execute a thorough airway exam first.`;
+      msg += `**Clinical Evaluation**: The patient has a high risk of aspiration (full stomach / insufficient fasting window). We must treat this as a **Rapid Sequence Induction (RSI)** case. 
+      
+**Attending's Advice**:
+1. **Avoid BMV**: Avoid positive pressure mask ventilation prior to intubation to prevent gastric insufflation, which worsens regurgitation.
+2. **Suction Ready**: Ensure rigid Yankauer **[suction]** is fully functional and ready in-hand at the bedside.
+3. **Paralysis**: Administer high-dose neuromuscular blocker: **[succinylcholine]** (1.5 mg/kg IV) or high-dose **[rocuronium]** (1.2 mg/kg IV) to achieve rapid paralysis in under 60 seconds.
+4. **Cricoid Pressure**: Apply cricoid pressure during laryngoscopy to mechanically occlude the esophagus until the airway is secured.`;
     } else {
-      msg += `**Clinical Evaluation**: The patient is NPO-compliant (solids > 8h, liquids > 2h). Gastric volume is low (${fmt(gastricVol)} mL). Standard induction and ventilation strategy is appropriate. Always check npo fasting history before transferring the patient.`;
+      msg += `**Clinical Evaluation**: The patient is NPO-compliant (solids > 8h, liquids > 2h). Gastric volume is low (${fmt(gastricVol)} mL). Standard induction and ventilation strategy is appropriate. Always check [npo history] before transferring the patient.`;
     }
     return msg;
   }
@@ -335,11 +350,11 @@ export function getAttendingResponse(query, {
       msg += `- **Lung Compliance**: ${fmt(compliance)} mL/cmH2O\n\n`;
 
       if (patient.tubePosition !== 'trachea') {
-        msg += `**WARNING**: The tube is malpositioned! If in the esophagus, immediately pull back or perform laryngoscopy again. If mainstemmed, adjust tube position to prevent unilateral collapse and hyperinflation barotrauma.\n\n`;
+        msg += `**WARNING**: The tube is malpositioned! If in the esophagus, immediately pull back or perform [laryngoscopy] again. If mainstemmed, adjust tube position (pull back 2cm) to prevent unilateral lung collapse and hyperinflation barotrauma.\n\n`;
       }
       
       if (pip > 35) {
-        msg += `**ALERT**: Peak pressure is high (${fmt(pip)} cmH2O). If this is bronchospasm, consider administering albuterol or deepening anesthesia with sevoflurane. If the patient is biting, consider suction airway or deep neuromuscular blockade with rocuronium.`;
+        msg += `**ALERT**: Peak pressure is high (${fmt(pip)} cmH2O). If this is bronchospasm, consider administering **[albuterol]** or deepening anesthesia. If the patient is biting/coughing, consider **[suction]** or deep neuromuscular blockade with **[rocuronium]**.`;
       } else {
         msg += `The airway is currently stable. Keep volatile MAC at 0.8-1.0 and maintain mechanical ventilation.`;
       }
@@ -348,7 +363,11 @@ export function getAttendingResponse(query, {
       msg += `- **Pre-oxygenation status (FRC O2)**: ${fmt(frcO2Percent)}% (Goal: >85%)\n`;
       msg += `- **FRC lung volume**: ${fmt(frc_L, 2)} L\n\n`;
 
-      msg += `**Clinical Strategy**: We must achieve adequate pre-oxygenation to wash out alveolar nitrogen and expand the FRC oxygen buffer. Once pre-oxygenation is optimal (FRC O2 > 85%), administer propofol (150 mg IV) and fentanyl (100 mcg IV). Follow with a muscle relaxant like rocuronium (50 mg) or succinylcholine (100 mg). When paralysis is complete (TOF count 0/4), perform laryngoscopy and place the endotracheal tube. Don't forget to perform a thorough airway exam beforehand.`;
+      if (patient.airwayBlood) {
+        msg += `⚠️ **CRITICAL SECRETON ALERT**: The pharynx is obscured by massive blood and secretions. You MUST perform rigid Yankauer **[suction]** immediately before attempting mask ventilation or intubation. Otherwise, you will force secretions directly into the trachea, triggering aspiration pneumonitis and intense bronchospasm.\n\n`;
+      }
+
+      msg += `**Clinical Strategy**: We must achieve adequate pre-oxygenation to wash out alveolar nitrogen and expand the FRC oxygen buffer. Once pre-oxygenation is optimal (FRC O2 > 85%), administer propofol (150 mg IV) and fentanyl (100 mcg IV). Follow with a muscle relaxant like **[rocuronium]** (50 mg) or **[succinylcholine]** (100 mg). When paralysis is complete (TOF count 0/4), perform **[laryngoscopy]** and place the endotracheal tube. Don't forget to perform a thorough **[airway exam]** beforehand.`;
     }
     return msg;
   }
@@ -365,13 +384,13 @@ export function getAttendingResponse(query, {
       msg += `**CRITICAL**: The patient is in cardiac arrest! Immediately begin chest compressions and push epinephrine.`;
     } else if (map < 65) {
       msg += `**Clinical Evaluation**: Significant hypotension detected (MAP: ${fmt(map)} mmHg, SBP: ${fmt(sys)} mmHg). Perfusion to organs is compromised.
-- If this is vasoplegia due to anesthetic induction, administer phenylephrine (100 mcg IV bolus) to increase SVR.
-- If concurrent bradycardia is present (HR: ${fmt(hr)} bpm), consider glycopyrrolate or ephedrine.
-- If stunning is present (${fmt(stunning, 1)}%), maintain high coronary perfusion pressure (MAP > 65) and avoid tachycardia (Double-Product: ${fmt(hr * sys)}). Deepen anesthesia if light or administer phenylephrine. Check labs to evaluate hemoglobin.`;
+- If this is vasoplegia due to anesthetic induction, administer **[phenylephrine]** (100 mcg IV bolus) to increase SVR.
+- If concurrent bradycardia is present (HR: ${fmt(hr)} bpm), consider **[atropine]** or **[glycopyrrolate]**.
+- If stunning is present (${fmt(stunning, 1)}%), maintain high coronary perfusion pressure (MAP > 65) and avoid tachycardia (Double-Product: ${fmt(hr * sys)}). Deepen anesthesia if light or administer **[phenylephrine]**. Check [labs] to evaluate hemoglobin.`;
     } else if (sys > 140 || hr > 100) {
       msg += `**Clinical Evaluation**: Hypertension or tachycardia present (SBP: ${fmt(sys)} mmHg, HR: ${fmt(hr)} bpm). Double-product is ${fmt(hr * sys)}, risking myocardial ischemia in patients with CAD.
-- Check anesthetic depth: BIS is ${fmt(bis)} (Goal 40-60). Consider increasing vaporizer dial or administering fentanyl (100 mcg IV) to manage noxious surgical stimulation.
-- If heart rate remains elevated, consider esmolol (20 mg IV) to protect the myocardium.`;
+- Check anesthetic depth: BIS is ${fmt(bis)} (Goal 40-60). Consider increasing vaporizer dial or administering **[fentanyl]** (100 mcg IV) to manage noxious surgical stimulation.
+- If heart rate remains elevated, consider **[esmolol]** (20 mg IV) to protect the myocardium.`;
     } else {
       msg += `**Clinical Evaluation**: Cardiovascular system is stable. Perfusion pressures are within normal physiological bounds (MAP: ${fmt(map)} mmHg, HR: ${fmt(hr)} bpm).`;
     }
@@ -394,9 +413,9 @@ export function getAttendingResponse(query, {
 2. Increase FiO2 to 100% and fresh gas flows.
 3. Check ventilator circuit connections.
 4. Bag manually to assess lung compliance.
-5. If bronchospasm is active (resistance ${fmt(resistance)}), administer albuterol (2.5 mg ETT).`;
+5. If bronchospasm is active (resistance ${fmt(resistance)}), administer **[albuterol]** (2.5 mg ETT).`;
     } else if (pip > 35) {
-      msg += `**WARNING**: Elevated peak pressures! Resistance is high (${fmt(resistance)}). Rule out patient coughing/bucking (check TOF count or BIS), mainstem intubation, secretions (requires suction airway), or bronchospasm. Deepen volatile anesthesia or push rocuronium if paralyzed is inadequate.`;
+      msg += `**WARNING**: Elevated peak pressures! Resistance is high (${fmt(resistance)}). Rule out patient coughing/bucking (check TOF count or BIS), mainstem intubation, secretions (requires **[suction]**), or bronchospasm. Deepen volatile anesthesia or push **[rocuronium]** if paralyzed is inadequate.`;
     } else if (paco2 > 45) {
       msg += `**Evaluation**: Mild hypercapnia (PaCO2: ${fmt(paco2)} mmHg). Consider adjusting ventilator setting to increase minute ventilation: increase RR or VT slightly to increase carbon dioxide washout.`;
     } else if (paco2 < 30) {
@@ -418,7 +437,7 @@ export function getAttendingResponse(query, {
     if (bis > 60 && surgicalPhase !== 'Pre-Op') {
       msg += `**WARNING**: Anesthesia is too light (BIS: ${fmt(bis)}). The patient risks intraoperative awareness or sympathetic discharge (tachycardia/hypertension).
 - Increase vaporizer dial setting (Sevoflurane) to at least 1.5 - 2.5%.
-- Consider administering a propofol (150 mg IV bolus) to rapidly deepen anesthetic depth, or fentanyl (100 mcg IV) for surgical analgesia.`;
+- Consider administering a **[propofol]** (150 mg IV bolus) to rapidly deepen anesthetic depth, or **[fentanyl]** (100 mcg IV) for surgical analgesia.`;
     } else if (bis < 30) {
       msg += `**Evaluation**: Deep anesthetic state (BIS: ${fmt(bis)}). Consider decreasing vaporizer settings to prevent profound myocardial depression and hypotension.`;
     } else {
@@ -435,9 +454,9 @@ export function getAttendingResponse(query, {
 
     if (tofCount === 4) {
       msg += `**Clinical Evaluation**: Patient is not paralyzed (TOF: 4/4). No significant neuromuscular blockade is active.
-- To facilitate laryngoscopy or assist abdominal muscle relaxation, administer rocuronium (50 mg IV) or succinylcholine (100 mg IV). Ensure the patient is adequately sedated (BIS < 60) before administering paralytics!`;
+- To facilitate laryngoscopy or assist abdominal muscle relaxation, administer **[rocuronium]** (50 mg IV) or **[succinylcholine]** (100 mg IV). Ensure the patient is adequately sedated (BIS < 60) before administering paralytics!`;
     } else if (tofCount > 0) {
-      msg += `**Clinical Evaluation**: Partial neuromuscular blockade (TOF: ${tofCount}/4). Muscle tone is recovering. Administer an additional bolus of rocuronium if deep paralysis is required by the surgical team.`;
+      msg += `**Clinical Evaluation**: Partial neuromuscular blockade (TOF: ${tofCount}/4). Muscle tone is recovering. Administer an additional bolus of **[vecuronium]** or **[rocuronium]** if deep paralysis is required by the surgical team.`;
     } else {
       msg += `**Clinical Evaluation**: Deep, complete neuromuscular blockade (TOF: 0/4). Optimal for endotracheal intubation and mechanical ventilation. Do not reverse unless surgical phase is 'Extubation' or surgery is complete.`;
     }
@@ -455,50 +474,85 @@ export function getAttendingResponse(query, {
     if (potassium > 5.5) {
       msg += `**CRITICAL**: Severe Hyperkalemia detected (${fmt(potassium, 1)} mEq/L)! This triggers myocardial membrane instability, peaking T waves, QRS widening, and asystole.
 **Immediate Treatment Protocol**:
-1. Administer calcium chloride (1000 mg IV) or Calcium Gluconate immediately to stabilize cardiac cell membranes.
-2. Direct potassium intracellularly: give albuterol (2.5 mg ETT), hyperventilate the patient (increase minute ventilation via vent), or administer insulin/dextrose.`;
+1. Administer **[calcium chloride]** (1000 mg IV) immediately to stabilize cardiac cell membranes.
+2. Direct potassium intracellularly: give **[albuterol]** (2.5 mg ETT), hyperventilate the patient (increase minute ventilation via vent), or administer insulin/dextrose.`;
     } else {
-      msg += `**Clinical Evaluation**: Potassium is within normal limits (${fmt(potassium, 1)} mEq/L). Standard anesthetic course is safe. Check labs to evaluate other electrolytes.`;
+      msg += `**Clinical Evaluation**: Potassium is within normal limits (${fmt(potassium, 1)} mEq/L). Standard anesthetic course is safe. Check [labs] to evaluate other electrolytes.`;
     }
     return msg;
   }
 
-  // K. Help / Next Step Directives
+  // K. Patient Positioning Physiology
+  if (q.includes('position') || q.includes('sitting') || q.includes('beach chair') || q.includes('trendelenburg') || q.includes('lithotomy') || q.includes('prone') || q.includes('lateral') || q.includes('ramped') || q.includes('sniffing')) {
+    let msg = `### 📐 Anesthetic Positioning Physiology & Telemetry Audit\n`;
+    msg += `- **Current Position**: ${pos.toUpperCase()}\n`;
+    msg += `- **FRC Lung Capacity**: ${frc_L.toFixed(2)} L (Oxygen fraction: ${Math.round(frcO2Percent)}%)\n`;
+    msg += `- **Compliance / Resistance**: ${fmt(compliance)} mL/cmH2O / ${fmt(resistance)} cmH2O/L/s\n\n`;
+
+    if (pos === 'Sitting' || pos === 'Beach Chair') {
+      msg += `⚠️ **Beach Chair / Sitting Positioning Warning**:\n`;
+      msg += `1. **Cerebral Hydrostatic Gradient**: Gravity-induced pressure drops mean cerebral arterial pressure is approximately ~29.6 mmHg lower than measured by the arm cuff! With a systemic MAP of ${fmt(map)} mmHg, the actual pressure at the circle of Willis is only ~${fmt(map - 29.6)} mmHg. Target an arm cuff MAP > 85 mmHg to protect the brain from watershed ischemia.\n`;
+      msg += `2. **Venous Pooling**: Blood pools in the lower extremities, severely reducing venous return and cardiac output. Ensure aggressive crystalloid hydration, consider compression stockings, and have vasopressors active.\n`;
+    } else if (pos === 'Trendelenburg' || pos === 'Lithotomy') {
+      msg += `⚠️ **Trendelenburg / Lithotomy Diaphragmatic Compression**:\n`;
+      msg += `Cephalad visceral shift pushes the abdominal contents against the diaphragm, shifting it upward. This directly compresses the lungs, reducing FRC and chest wall compliance, which spikes Peak Inspiratory Pressures (PIP: ${fmt(pip)} cmH2O) and increases barotrauma risk under mechanical ventilation. Maintain moderate tidal volumes, check PIP frequently, and ensure deep neuromuscular blockade ([vecuronium] or [rocuronium]) to relax abdominal resistance.\n`;
+    } else if (pos === 'Prone') {
+      msg += `⚠️ **Prone Positioning Safety Interlocks**:\n`;
+      msg += `1. **Airway Security**: Accidental extubation in a prone patient is a high-mortality clinical emergency. Ensure the ETT is rigidly secured prior to turning. Autonomic movements can easily dislodge the tube.\n`;
+      msg += `2. **Chest Excursion**: Place chest rolls to elevate the thorax and keep the abdomen free of pressure; compressed viscera will crush compliance and raise airway pressure.\n`;
+      msg += `3. **Pressure Points**: Pad facial structures, eyes, ears, and peripheral nerves (ulnar/brachial plexus) to prevent ischemia and postoperative neuropathies.\n`;
+    } else if (pos === 'Lateral') {
+      msg += `⚠️ **Lateral Decubitus V/Q Mismatch**:\n`;
+      msg += `Gravity dictates blood flow to the dependent lung, while mechanical ventilation preferentially expands the non-dependent lung. This severe V/Q mismatch will depress oxygen saturation (SpO2: ${fmt(spo2)}%). Increase FiO2, apply PEEP, and monitor gas kinetics closely.\n`;
+    } else if (pos === 'Ramped' || pos === 'Sniffing') {
+      msg += `🟢 **Optimized Clinical Positioning**:\n`;
+      msg += `1. **Ramped**: Unloads chest wall weight and shifts the panniculus downward, significantly improving FRC. Essential for obese patients during pre-oxygenation to expand the oxygen buffer and delay apnea-induced desaturation.\n`;
+      msg += `2. **Sniffing**: Aligns the oral, pharyngeal, and laryngeal axes. This aligns the visual sight line, maximizing the Cormack-Lehane Grade during direct [laryngoscopy].\n`;
+    }
+    return msg;
+  }
+
+  // L. Help / Next Step Directives
   if (q.includes('help') || q.includes('what should i do') || q.includes('next') || q.includes('advice') || q.includes('guidance') || q.includes('treat')) {
     let msg = `### Attending Clinical Consultation\n`;
     msg += `Looking at the current state, here is my immediate guidance:\n\n`;
 
     // High priority clinical warnings
     if (isArrest) {
-      msg += `🚨 **CARDIAC ARREST ACTIVE**: SBP is ${fmt(sys)} mmHg. Focus on ACLS: push epinephrine (50 mcg IV) and start chest compressions.\n\n`;
+      msg += `🚨 **CARDIAC ARREST ACTIVE**: SBP is ${fmt(sys)} mmHg. Focus on ACLS: push **[epinephrine]** (50 mcg IV) and start chest compressions.\n\n`;
     } else if (isAnaphylaxis && !isAnaphylaxisTreated) {
-      msg += `🚨 **ANAPHYLACTIC SHOCK ACTIVE**: Compliance has crashed to ${fmt(compliance)} and SBP is ${fmt(sys)}. Push epinephrine (50 mcg IV) immediately! Also consider albuterol.\n\n`;
+      msg += `🚨 **ANAPHYLACTIC SHOCK ACTIVE**: Compliance has crashed to ${fmt(compliance)} and SBP is ${fmt(sys)}. Push **[epinephrine]** (50 mcg IV) immediately! Also consider **[albuterol]**.\n\n`;
     } else if (bradycardiaTriggered) {
-      msg += `🚨 **UNOPPOSED MUSCARINIC SURGE**: Profound bradycardia (HR: ${fmt(hr)} bpm). Immediately push glycopyrrolate (0.2 mg) or atropine.\n\n`;
+      msg += `🚨 **UNOPPOSED MUSCARINIC SURGE**: Profound bradycardia (HR: ${fmt(hr)} bpm). Immediately push **[glycopyrrolate]** (0.2 mg) or **[atropine]**.\n\n`;
     } else if (spo2 < 90) {
       msg += `🚨 **ACUTE DESATURATION**: SpO2 is ${fmt(spo2)}%. Check tube position, check circuit connections, increase fresh gas flows, and bag manually with 100% O2.\n\n`;
     } else if (map < 65) {
-      msg += `⚠️ **HYPOTENSION**: MAP is ${fmt(map)} mmHg. Administer phenylephrine (100 mcg IV) and assess anesthetic depth (MAC is ${fmt(mac, 2)}). You may need to review chart.\n\n`;
+      msg += `⚠️ **HYPOTENSION**: MAP is ${fmt(map)} mmHg. Administer **[phenylephrine]** (100 mcg IV) and assess anesthetic depth (MAC is ${fmt(mac, 2)}). You may need to review [labs].\n\n`;
     } else if (pip > 35) {
-      msg += `⚠️ **ELEVATED AIRWAY PRESSURE**: PIP is ${fmt(pip)} cmH2O. Check for bronchospasm (administer albuterol) or patient coughing (suction airway or deepen paralysis).\n\n`;
+      msg += `⚠️ **ELEVATED AIRWAY PRESSURE**: PIP is ${fmt(pip)} cmH2O. Check for bronchospasm (administer **[albuterol]**) or patient coughing (**[suction]** or deepen paralysis).\n\n`;
     } else if (bis > 60 && surgicalPhase !== 'Pre-Op') {
-      msg += `⚠️ **LIGHT ANESTHESIA**: BIS is ${fmt(bis)} during active phase. Increase Sevoflurane vaporizer dial or administer propofol (150 mg IV).\n\n`;
+      msg += `⚠️ **LIGHT ANESTHESIA**: BIS is ${fmt(bis)} during active phase. Increase Sevoflurane vaporizer dial or administer **[propofol]** (150 mg IV).\n\n`;
     } else if (!airwaySecured) {
-      msg += `📋 **AIRWAY ASSIGNMENT**: Perform pre-oxygenation to >85% FRC O2 (current: ${fmt(frcO2Percent)}%). Then push propofol (150 mg IV), fentanyl (100 mcg IV), and a paralytic. Once paralyzed, perform laryngoscopy to secure the airway.\n\n`;
+      if (patient.airwayBlood) {
+        msg += `📋 **AIRWAY ASSIGNMENT**: Perform rigid Yankauer **[suction]** immediately to clear massive blood/secretions. Then pre-oxygenate to >85% FRC O2. Follow with **[propofol]**, **[fentanyl]**, and a paralytic before **[laryngoscopy]**.\n\n`;
+      } else {
+        msg += `📋 **AIRWAY ASSIGNMENT**: Perform pre-oxygenation to >85% FRC O2 (current: ${fmt(frcO2Percent)}%). Then push **[propofol]** (150 mg IV), **[fentanyl]** (100 mcg IV), and a paralytic. Once paralyzed, perform **[laryngoscopy]** to secure the airway.\n\n`;
+      }
     } else {
-      msg += `✅ **PHYSIOLOGY STABLE**: Current patient vitals are stable. Maintain volatile MAC at 0.8-1.0 and ventilate to keep PaCO2 at 35-45 mmHg. Review labs if needed.\n\n`;
+      msg += `✅ **PHYSIOLOGY STABLE**: Current patient vitals are stable. Maintain volatile MAC at 0.8-1.0 and ventilate to keep PaCO2 at 35-45 mmHg. Review [labs] if needed.\n\n`;
     }
 
-    msg += `Feel free to ask me about any specific organ system (e.g. *hemodynamics*, *airway*, *ventilation*, *anesthesia depth*, *NPO status*, or *potassium level*).`;
+    msg += `Feel free to ask me about any specific organ system (e.g. *hemodynamics*, *airway*, *ventilation*, *anesthesia depth*, *positioning*, *NPO status*, or *potassium level*).`;
     return msg;
   }
 
-  // L. Fallback Attending Clinical Reasoning
+  // M. Fallback Attending Clinical Reasoning
   let fallback = `### Senior Attending Briefing\n`;
   fallback += `Hello. As the attending anesthesiologist, I am reviewing the live simulation telemetry for ${patient.name || 'our patient'} (ASA ${patient.asaStatus || 'I'}).\n\n`;
   fallback += `- **Vitals Snapshot**: HR: ${fmt(hr)} bpm, BP: ${fmt(sys)}/${fmt(dia)} mmHg (MAP: ${fmt(map)} mmHg), SpO2: ${fmt(spo2)}%, EtCO2: ${fmt(etco2)} mmHg.\n`;
   fallback += `- **Anesthetic Depth**: BIS: ${fmt(bis)}, MAC: ${fmt(mac, 2)}.\n`;
-  fallback += `- **Surgical Phase**: ${surgicalPhase}.\n\n`;
-  fallback += `Please ask me specific physiological or pharmacological questions regarding the patient's state, active medications, NPO guidelines, or procedural actions (e.g., *laryngoscopy*, *muscle relaxation*, *ventilation pressures*, or *hyperkalemia*). I will provide high-fidelity clinical reasoning and outline next steps. You can also review chart or check labs.`;
+  fallback += `- **Surgical Phase**: ${surgicalPhase}.\n`;
+  fallback += `- **Patient Position**: ${pos}.\n\n`;
+  fallback += `Please ask me specific physiological or pharmacological questions regarding the patient's state, active medications, NPO guidelines, [positioning], or procedural actions (e.g., [laryngoscopy], [suction], [muscle relaxation], [ventilation], or [hyperkalemia]). I will provide high-fidelity clinical reasoning and outline next steps. You can also [review chart] or check [labs].`;
   return fallback;
 }

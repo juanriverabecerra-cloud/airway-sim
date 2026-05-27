@@ -580,77 +580,35 @@ export default function App() {
     logEvent(`Performed ${type} Ultrasound.`);
   };
 
-const generateClinicalHint = () => {
+  const generateClinicalHint = () => {
     if (!activeCase) return;
     
     let currentStatus = "";
     let forecast = "";
 
-    // --- 1. CURRENT STATE ASSESSMENT ---
-    if (!patient.hasIV && !patient.hasALine) {
-      currentStatus = "🔴 VASCULAR ACCESS REQUIRED: Patient has no IV access. Cannot administer systemic medications.";
-    } else if (patient.airwayBlood && !patient.airwaySecured) {
-      currentStatus = "🔴 AIRWAY COMPROMISED: Active bleeding/secretions detected. BMV or intubation will force aspirate into the lungs.";
-      forecast = "IMMEDIATE ACTION: Use Yankauer Suction before attempting airway maneuvers.";
-    } else if (patient.ventilationStatus === 'failed') {
-      currentStatus = "🔴 FAILED AIRWAY: Direct Laryngoscopy failed. Patient cannot be ventilated.";
-      forecast = "Anticipate rapid hypoxic arrest. Call for help. Prepare rescue LMA or Surgical Cricothyroidotomy.";
-    } else if (vitals.spo2 < 90 && !patient.airwaySecured) {
-      currentStatus = "🟠 HYPOXEMIA: Oxygen Saturation (SpO2) is critically low.";
-      forecast = "If apneic, hypoxic brain injury is imminent. Secure airway immediately or initiate 100% O2 BMV.";
-    } else if (patient.isApneic && !patient.airwaySecured) {
-      // Volume-based: check if O2 buffer < 30% of FRC capacity
-      const hintFrcL = (patient.lungVolumes && patient.lungVolumes.frc_L) || 2.5;
-      if ((patient.oxygenBuffer || 0) < (hintFrcL * 0.30)) {
-        currentStatus = "🟠 CRITICAL APNEA: FRC oxygen buffer is severely depleted.";
-        forecast = "Desaturation cliff approaching. Denitrogenate using BMV to buy time before intubation.";
-      }
-    } else if (vitals.sys < 90) {
-      if (vitals.hr > 100) currentStatus = "🔴 HYPOTENSION W/ TACHYCARDIA: Compensatory or vasodilatory shock detected.";
-      else currentStatus = "🔴 HYPOTENSION W/ BRADYCARDIA: Profound shock state with loss of compensatory chronotropy.";
-    } else if (vitals.sys > 160) {
-      if (vitals.hr > 100) currentStatus = "🟠 HYPERTENSION W/ TACHYCARDIA: Sympathetic overdrive (likely pain, light anesthesia, or hypoxemia).";
-      else currentStatus = "🟠 ISOLATED HYPERTENSION: Elevated SVR or light anesthesia.";
-    } else if (vitals.hr < 45) {
-      currentStatus = "🔴 SEVERE BRADYCARDIA: Critically low chronotropy risking cardiac output.";
-    } else {
-      currentStatus = "🟢 HEMODYNAMICALLY STABLE: Core vitals are currently within acceptable parameters.";
-    }
-
-    // --- 2. PREDICTIVE FORECASTING & PREP ---
-    const hasHypnotic = activeMeds.some(m => m.classes.includes('Sedative') || m.classes.includes('Hypnotic'));
-    const hasParalytic = activeMeds.some(m => m.classes.includes('NDMR') || m.classes.includes('Depolarizing NMBA'));
+    // Pull from high-fidelity, unified AttendingEngine findings
+    const guidance = attendingGuidance?.primaryGuidance;
+    const audit = attendingGuidance?.fullAudit;
     
-    // Volume-based FRC O2 capacity for forecasting thresholds
-    const forecastFrcL = (patient.lungVolumes && patient.lungVolumes.frc_L) || 2.5;
-
-    if (forecast === "") {
-        if (!patient.airwaySecured) {
-            if (hasHypnotic && !patient.isApneic) {
-                forecast = "Induction agents circulating. Anticipate imminent apnea, loss of airway reflexes, and dose-dependent vasodilation. Prepare to mask ventilate and push pressors.";
-            } else if (hasHypnotic && patient.isApneic) {
-                forecast = "Patient is apneic from induction. Monitor FRC buffer. Prepare to intubate once neuromuscular blockade is optimal.";
-            } else if ((patient.oxygenBuffer || 0) > (forecastFrcL * 0.85)) {
-                forecast = "Excellent denitrogenation achieved. Safe to proceed with induction and paralysis. Expect 3-5 minutes of safe apnea time.";
-            } else if (patient.position === 'Trendelenburg' || patient.position === 'Lithotomy') {
-                forecast = "Gravitational visceral shift is actively crushing FRC. Expect highly accelerated desaturation if patient becomes apneic. Consider ramping patient.";
-            } else {
-                forecast = "Pre-oxygenate to wash out nitrogen and build FRC buffer prior to induction.";
-            }
+    if (guidance) {
+      currentStatus = `${guidance.title.replace(/🚨|⚠️|📚|💡|👀/g, '').trim()}: ${guidance.text}`;
+      forecast = guidance.suggestion || "Monitor vitals and maintain stable anesthetic depth.";
+    } else {
+      // Find the first warning or suggestion from the audit, or default to stable
+      const firstWarning = audit?.find(item => item.priority === 'CRITICAL' || item.priority === 'WARNING');
+      if (firstWarning) {
+        currentStatus = `${firstWarning.id.replace(/_/g, ' ').toUpperCase()}: ${firstWarning.message}`;
+        forecast = firstWarning.action || "Evaluate patient physiology and take corrective measures.";
+      } else {
+        const firstSuggestion = audit?.find(item => item.priority === 'SUGGESTION' || item.priority === 'TEACHING');
+        if (firstSuggestion) {
+          currentStatus = firstSuggestion.message;
+          forecast = firstSuggestion.action || "Monitor vitals and ensure clinical safety.";
         } else {
-            // Airway Secured Forecasting
-            if (hasParalytic && vitals.tofCount > 0) {
-                forecast = "Neuromuscular blockade is wearing off (TOF recovering). Anticipate return of spontaneous ventilation or patient bucking the ventilator. Consider redosing or reversal.";
-            } else if (vitals.mac > 1.2 && vitals.sys < 100) {
-                forecast = "High volatile anesthetic concentration. Anticipate progressive myocardial depression and worsening vasoplegia. Consider titrating down MAC or starting pressor infusion.";
-            } else if ((patient.ebl || 0) > 1000) {
-                forecast = `Massive hemorrhage detected (${patient.ebl} mL). Venous return is dropping. Anticipate hemorrhagic shock. Prepare MTP (PRBCs/FFP/Plt) and TXA.`;
-            } else if (patient.position === 'Sitting') {
-                forecast = "Beach Chair/Sitting position causing massive venous pooling in lower extremities. Anticipate sudden, profound hypotensive drops. Keep vasopressors in line.";
-            } else {
-                forecast = "Maintain anesthetic depth. Monitor surgical stimulation phases to titrate analgesia proactively.";
-            }
+          currentStatus = "🟢 Physiology is currently stable and all parameters are within normal physiological bounds.";
+          forecast = "No active clinical hazards. Maintain current anesthetic depth and ventilation settings.";
         }
+      }
     }
 
     logEvent(`💡 ATTENDING CONSULT:\n[STATUS] ${currentStatus}\n[FORECAST] ${forecast}`);
@@ -1211,6 +1169,7 @@ const generateClinicalHint = () => {
           formatTime={formatTime}
           generateClinicalHint={generateClinicalHint}
           onActionClick={handleExecuteClinicalAction}
+          nearFutureForecast={attendingGuidance.nearFutureForecast}
         />
       )}
 
