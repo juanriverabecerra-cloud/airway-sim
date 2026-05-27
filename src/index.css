@@ -52,3 +52,159 @@ body {
   background-repeat: repeat-x;
   animation: sweep 4s linear infinite;
 }
+
+/* Glassmorphism Design System Utility Classes */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.65) !important;
+  backdrop-filter: blur(12px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(180%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+  border-radius: 1rem;
+}
+
+.glass-cyan {
+  border-color: rgba(6, 182, 212, 0.25) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35), 0 0 15px rgba(6, 182, 212, 0.12) !important;
+}
+
+.glass-emerald {
+  border-color: rgba(16, 185, 129, 0.25) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35), 0 0 15px rgba(16, 185, 129, 0.12) !important;
+}
+
+.glass-purple {
+  border-color: rgba(168, 85, 247, 0.25) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35), 0 0 15px rgba(168, 85, 247, 0.12) !important;
+}
+
+.glass-rose {
+  border-color: rgba(244, 63, 94, 0.25) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35), 0 0 15px rgba(244, 63, 94, 0.12) !important;
+}
+
+.glass-amber {
+  border-color: rgba(245, 158, 11, 0.25) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35), 0 0 15px rgba(245, 158, 11, 0.12) !important;
+}
+
+.glass-blue {
+  border-color: rgba(59, 130, 246, 0.25) !important;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35), 0 0 15px rgba(59, 130, 246, 0.12) !important;
+}
+
+.glass-input {
+  background: rgba(15, 23, 42, 0.6) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: white !important;
+  transition: all 0.2s ease-in-out !important;
+}
+
+.glass-input:focus {
+  border-color: rgb(6, 182, 212) !important;
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.25) !important;
+  outline: none !important;
+}
+
+.glass-button {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  font-weight: 700 !important;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.glass-button:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.18) !important;
+  color: white !important;
+}
+
+.glass-button:active {
+  transform: scale(0.97) !important;
+}
+
+.glass-button-cyan {
+  background: rgba(6, 182, 212, 0.08) !important;
+  border-color: rgba(6, 182, 212, 0.15) !important;
+  color: rgb(165, 243, 252) !important;
+}
+
+.glass-button-cyan:hover {
+  background: rgba(6, 182, 212, 0.18) !important;
+  border-color: rgb(34, 211, 238) !important;
+  color: white !important;
+  box-shadow: 0 0 12px rgba(6, 182, 212, 0.25) !important;
+}
+
+.glass-button-emerald {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border-color: rgba(16, 185, 129, 0.15) !important;
+  color: rgb(167, 243, 208) !important;
+}
+
+.glass-button-emerald:hover {
+  background: rgba(16, 185, 129, 0.18) !important;
+  border-color: rgb(52, 211, 153) !important;
+  color: white !important;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.25) !important;
+}
+
+.glass-button-rose {
+  background: rgba(244, 63, 94, 0.08) !important;
+  border-color: rgba(244, 63, 94, 0.15) !important;
+  color: rgb(254, 205, 211) !important;
+}
+
+.glass-button-rose:hover {
+  background: rgba(244, 63, 94, 0.18) !important;
+  border-color: rgb(251, 113, 133) !important;
+  color: white !important;
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.25) !important;
+}
+
+.glass-button-amber {
+  background: rgba(245, 158, 11, 0.08) !important;
+  border-color: rgba(245, 158, 11, 0.15) !important;
+  color: rgb(254, 243, 199) !important;
+}
+
+.glass-button-amber:hover {
+  background: rgba(245, 158, 11, 0.18) !important;
+  border-color: rgb(251, 191, 36) !important;
+  color: white !important;
+  box-shadow: 0 0 12px rgba(245, 158, 11, 0.25) !important;
+}
+
+.glass-button-purple {
+  background: rgba(168, 85, 247, 0.08) !important;
+  border-color: rgba(168, 85, 247, 0.15) !important;
+  color: rgb(243, 232, 255) !important;
+}
+
+.glass-button-purple:hover {
+  background: rgba(168, 85, 247, 0.18) !important;
+  border-color: rgb(192, 132, 252) !important;
+  color: white !important;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.25) !important;
+}
+
+.glass-button-blue {
+  background: rgba(59, 130, 246, 0.08) !important;
+  border-color: rgba(59, 130, 246, 0.15) !important;
+  color: rgb(219, 234, 254) !important;
+}
+
+.glass-button-blue:hover {
+  background: rgba(59, 130, 246, 0.18) !important;
+  border-color: rgb(96, 165, 250) !important;
+  color: white !important;
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.25) !important;
+}
+

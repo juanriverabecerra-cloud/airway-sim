@@ -2,20 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { X, Activity, FileText, ClipboardList, CheckSquare, ShieldAlert, Award, Play, ArrowLeft, ArrowRight } from 'lucide-react';
 import { calculateLungVolumes, calculateIBW, calculateLBW } from '../../engine/Pharmacology';
 
-export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logEvent }) => {
-  if (!show || !stagedCase) return null;
-
+export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logEvent, intraop = false }) => {
   const [activeTab, setActiveTab] = useState('chart'); // 'chart' | 'orders' | 'results' | 'risk' | 'plan'
   
-  // Extract patient/case details
-  const patient = stagedCase.patient;
+  // Extract patient/case details safely
+  const patient = stagedCase?.patient || {};
   const heightCm = patient.height || 170;
   const weightKg = patient.weight || 70;
   const age = patient.age || 40;
   const sex = patient.sex || 'male';
   const bmi = weightKg / Math.pow(heightCm / 100, 2);
   const ibw = calculateIBW(heightCm, sex);
-  const lbw = calculateLBW(weightKg, heightCm, sex);
+  const lbw = calculateLBW(heightCm, weightKg, sex);
   const bsa = Math.sqrt((heightCm * weightKg) / 3600); // Mosteller formula
   const ebv = sex === 'male' ? weightKg * 70 : weightKg * 65;
 
@@ -53,12 +51,36 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
 
   // Load saved orders if they already exist in stagedCase
   useEffect(() => {
-    if (stagedCase.preOpOrders) {
-      setOrders(stagedCase.preOpOrders);
+    const savedOrders = stagedCase.preOpOrders || stagedCase.patient?.preOpOrders;
+    if (savedOrders) {
+      setOrders(savedOrders);
+    }
+  }, [stagedCase]);
+
+  // Load verified risk assessment if exists
+  useEffect(() => {
+    const verified = stagedCase.patient?.verifiedRisk;
+    if (verified && verified.verified) {
+      setAssessment({
+        rcriHighRisk: verified.rcriHighRisk || false,
+        rcriIhd: verified.rcriIhd || false,
+        rcriChf: verified.rcriChf || false,
+        rcriCva: verified.rcriCva || false,
+        rcriInsulin: verified.rcriInsulin || false,
+        rcriCr: verified.rcriCr || false,
+        mets: verified.mets || '',
+        asa: verified.asa || '',
+        mallampati: verified.mallampati || '',
+        neckMobility: verified.neckMobility || '',
+        npoStatus: verified.npoStatus || ''
+      });
+      setAssessmentVerified(true);
+      setAssessmentChecked(true);
     }
   }, [stagedCase]);
 
   const handleOrderChange = (category, test, value) => {
+    if (intraop) return; // Prevent order edits when in surgery
     const updated = {
       ...orders,
       [category]: {
@@ -76,6 +98,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
       }));
     }
   };
+
 
   // Interactive Clinical Assessment Wizard States & Ground Truths
   const [assessment, setAssessment] = useState({
@@ -97,50 +120,108 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
 
   const getGroundTruth = () => {
     const id = stagedCase.id;
-    if (id === 'normal') {
-      return {
-        rcriHighRisk: false, rcriIhd: false, rcriChf: false, rcriCva: false, rcriInsulin: false, rcriCr: false,
-        mets: 'excellent', asa: 'ASA I', mallampati: 'Class I', neckMobility: 'Normal', npoStatus: 'Compliant',
-        medicalHistory: "You are interviewing a 45-year-old female in the pre-operative holding area. She is scheduled for an elective laparoscopic cholecystectomy. When asked about her exercise tolerance, she tells you she jogs 3 miles every morning without any chest pain, shortness of breath, or dizziness. She has never been hospitalized. She takes no daily medications. She denies any history of heart problems, stroke, lung disease, diabetes, or kidney problems. Her last basic metabolic panel was entirely normal.",
-        globalHistory: "The patient is a 45-year-old otherwise healthy female. She has no past medical or surgical history. She takes no medications. She exercises vigorously daily. She is presenting for an elective laparoscopic cholecystectomy for symptomatic cholelithiasis. She has no functional limitations.",
-        airwayExam: "You ask the patient to sit upright, open her mouth as wide as possible, and protrude her tongue without phonating. She opens widely with full mandibular excursion. You observe the entire soft palate, the fauces (palatoglossal and palatopharyngeal arches), the full uvula from tip to base, and both tonsillar pillars are clearly visible. You then ask her to extend her neck \u2014 she achieves full atlanto-occipital extension without limitation or pain. Her thyromental distance measures approximately 7 cm. Her upper lip bite test is Class I \u2014 lower incisors easily bite above the vermillion border of the upper lip.",
-        npoHistory: "You ask the patient about her last oral intake. She reports eating a light dinner (grilled chicken and salad) at 7 PM last evening, approximately 12 hours ago. She drank a glass of water at 6 AM this morning, approximately 6 hours ago. She does not take any GLP-1 receptor agonists (Ozempic, Wegovy, Mounjaro) or prokinetic agents. She denies any nausea, vomiting, or acid reflux symptoms."
-      };
-    } else if (id === 'trauma') {
-      return {
-        rcriHighRisk: true, rcriIhd: false, rcriChf: false, rcriCva: false, rcriInsulin: false, rcriCr: false,
-        mets: 'poor', asa: 'ASA IV', mallampati: 'Class IV', neckMobility: 'Reduced', npoStatus: 'Aspiration Risk',
-        medicalHistory: "EMS brings in a 54-year-old male, unrestrained passenger from a high-speed motor vehicle collision. He is obtunded with a Glasgow Coma Scale of 7 (E2V1M4), intubation is being requested emergently by the trauma surgery team. He is tachycardic at 115 bpm with a blood pressure of 105/65 mmHg. His wife, who arrived separately, reports that he has no prior cardiac history, no diabetes, no kidney disease, and no prior strokes. He was not on any medications. She describes him as someone who \u2018sits on the couch all day\u2019 and cannot recall him exercising in years \u2014 but this is a baseline lifestyle description, not an acute limitation. Given his current GCS of 7, he cannot participate in any physical activity assessment.",
-        globalHistory: "A 54-year-old male with no significant past medical history is brought to the trauma bay as an unrestrained passenger from a high-speed MVC. GCS is 7. He has active facial and nasal fractures with profuse oropharyngeal hemorrhage. He is hemodynamically unstable with tachycardia (HR 115) and borderline hypotension (BP 105/65). A rigid cervical collar is in place for suspected C-spine injury. The trauma team is requesting emergent surgical exploration for suspected intra-abdominal hemorrhage.",
-        airwayExam: "The patient is obtunded (GCS 7) and cannot follow commands. A rigid cervical collar is in place, preventing any neck extension. You attempt to open his mouth for airway assessment \u2014 you observe massive, active oropharyngeal hemorrhage from bilateral nasal fractures and a comminuted maxillary fracture. Thick, dark red blood is pooling in the posterior pharynx and actively flowing over the tongue. You cannot visualize any soft tissue structures \u2014 the soft palate, uvula, and tonsillar pillars are completely obscured by blood. Suctioning with a Yankauer partially clears the view but bleeding immediately re-accumulates. The mandible appears intact with adequate mouth opening (approximately 3 finger-breadths), but visualization is zero due to hemorrhage.",
-        npoHistory: "The patient's wife reports that he ate a large cheeseburger, french fries, and drank a 20-ounce Coca-Cola approximately 2 hours before the motor vehicle collision. He had not vomited since the accident. The trauma occurred approximately 45 minutes ago. There is no nasogastric tube in place. The patient is obtunded and cannot provide his own history."
-      };
-    } else if (id === 'septic') {
-      return {
-        rcriHighRisk: true, rcriIhd: true, rcriChf: false, rcriCva: false, rcriInsulin: false, rcriCr: true,
-        mets: 'poor', asa: 'ASA IV', mallampati: 'Class II', neckMobility: 'Normal', npoStatus: 'Aspiration Risk',
-        medicalHistory: "You are called to the ICU to evaluate a 68-year-old male for emergent source control surgery (percutaneous nephrostomy for obstructing ureteral stone with pyonephrosis). The patient is febrile (39.2\u00b0C), confused, and on a norepinephrine infusion at 12 mcg/min to maintain a MAP above 65 mmHg. Blood cultures have grown Gram-negative rods (E. coli). You review his EMR and find: (1) Cardiology notes from 2 years ago documenting a stented anterior myocardial infarction with drug-eluting stent to the LAD \u2014 he remains on dual antiplatelet therapy (aspirin + clopidogrel). (2) Nephrology notes documenting chronic kidney disease stage III with a baseline creatinine of 2.2 mg/dL and GFR of 38 mL/min. His nurse reports he has been bedbound in the nursing home for the past 3 months and cannot ambulate to the bathroom independently.",
-        globalHistory: "A 68-year-old male nursing home resident with a history of coronary artery disease (prior anterior STEMI with LAD stent 2 years ago), chronic kidney disease stage III (Cr 2.2), and recent functional decline (bedbound) is presenting with urosepsis secondary to an obstructing ureteral stone with pyonephrosis. He is currently in the ICU, hemodynamically unstable on high-dose vasopressors (norepinephrine 12 mcg/min). He has a temperature of 39.2\u00b0C, HR 135, BP 85/40, with blood cultures positive for E. coli. The urology team is requesting emergent percutaneous nephrostomy for source control.",
-        airwayExam: "The patient is febrile and confused but follows simple commands intermittently. You ask him to open his mouth and protrude his tongue. He opens his mouth with adequate mandibular excursion. You observe the soft palate, the fauces, and the uvula, but the tonsillar pillars are partially hidden behind the soft palate and tongue base. There is no blood or excessive secretions in the oropharynx. You assess his neck \u2014 he has a thin habitus with a normal-length neck. He extends his neck fully at the atlanto-occipital joint without any restriction or pain. Thyromental distance is approximately 7.5 cm. There is no prior history of difficult intubation.",
-        npoHistory: "You ask the ICU nurse about the patient's oral intake. He was admitted from the nursing home at 6 AM this morning. The nurse reports that the nursing home staff gave him a light breakfast (oatmeal and orange juice) at approximately 5:30 AM \u2014 roughly 6 hours ago. He has been NPO since admission. However, you note that he is in distributive (septic) shock on high-dose vasopressors, which causes profound splanchnic hypoperfusion and functional gastroparesis. Additionally, the acute illness and opioid analgesics he received for flank pain further delay gastric emptying. He has not vomited. No nasogastric tube is in place."
-      };
-    } else if (id === 'obese') {
-      return {
-        rcriHighRisk: false, rcriIhd: false, rcriChf: true, rcriCva: false, rcriInsulin: true, rcriCr: false,
-        mets: 'poor', asa: 'ASA III', mallampati: 'Class III', neckMobility: 'Reduced', npoStatus: 'Aspiration Risk',
-        medicalHistory: "You are interviewing a 50-year-old male in the pre-operative holding area. He is scheduled for an elective umbilical hernia repair. He weighs 142 kg at 178 cm (BMI 44.8). When asked about exercise tolerance, he states he can only walk about one block on flat ground before becoming severely short of breath and needing to stop and rest. He cannot climb a flight of stairs. His medication list includes: carvedilol 25 mg BID (for heart failure), furosemide 40 mg daily, lisinopril 10 mg daily, insulin glargine 40 units at bedtime, insulin lispro sliding scale with meals, and metformin 1000 mg BID. His medical history includes: congestive heart failure with a reduced ejection fraction of 35% (diagnosed 3 years ago), severe obstructive sleep apnea requiring nightly CPAP at 12 cmH\u2082O, and type 2 diabetes mellitus managed with insulin. He denies any history of coronary artery disease (no prior MI, no angina, no stents, no CABG), stroke, TIA, or kidney problems. His last creatinine was 0.9 mg/dL.",
-        globalHistory: "A 50-year-old male with BMI 44.8, severe obstructive sleep apnea on CPAP, congestive heart failure with reduced EF (35%) on carvedilol and furosemide, and insulin-dependent type 2 diabetes is presenting for an elective umbilical hernia repair. He has severely limited functional capacity (cannot walk more than 1 block). He has no history of coronary artery disease, stroke, or renal disease.",
-        airwayExam: "You ask the patient to sit upright and open his mouth as wide as possible. He opens his mouth and protrudes his tongue. You observe the soft palate and can see the very base of the uvula, but the upper portion of the uvula, the fauces, and the tonsillar pillars are completely obscured by the large tongue base. There is no blood or secretions. You then assess his neck \u2014 he has a very thick, short neck with a large posterior cervical fat pad (buffalo hump). When you ask him to extend his neck, he achieves only limited atlanto-occipital extension \u2014 approximately 20\u00b0 instead of the normal 35\u00b0 \u2014 due to the redundant submental and posterior cervical adipose tissue mechanically restricting motion. His thyromental distance is approximately 5 cm (short). His upper lip bite test is Class II \u2014 lower incisors can bite the upper lip, but only at the level of the vermillion border.",
-        npoHistory: "You ask the patient about his last oral intake. He reports eating a bowl of cereal with milk at approximately 3:30 AM \u2014 roughly 8 hours ago. He had nothing to drink since then except sips of water with his morning medications at 5 AM. When you review his medication list, you notice he is currently taking Semaglutide (Ozempic) 1 mg weekly for weight management, with his last injection 3 days ago. He reports that he did NOT stop the Semaglutide before surgery as no one told him to hold it. He denies nausea or vomiting, but notes he often feels \u2018full\u2019 for hours after small meals since starting Ozempic."
-      };
+    const patient = stagedCase.patient || {};
+    
+    // 1. Calculate BMI
+    const heightCm = patient.height || 170;
+    const weightKg = patient.weight || 70;
+    const bmi = weightKg / Math.pow(heightCm / 100, 2);
+    
+    // 2. RCRI factors
+    // High-risk surgical procedure (intraperitoneal, intrathoracic, or suprainguinal vascular)
+    const rcriHighRisk = !!(patient.trauma || patient.isSeptic || ['cardiac', 'thoracic', 'neuro', 'vascular', 'urology', 'transplant', 'obgyn'].includes(id) || ['CABG', 'Craniotomy', 'Laparotomy', 'Thoracotomy', 'AAA Repair', 'Nephrectomy', 'Liver Transplant', 'C-Section'].some(p => (patient.procedure || '').includes(p)));
+    
+    const rcriIhd = !!(patient.cad || (patient.pmhx || '').toLowerCase().includes('cad') || (patient.pmhx || '').toLowerCase().includes('coronary') || (patient.pmhx || '').toLowerCase().includes('ischemic') || (patient.pmhx || '').toLowerCase().includes('angina') || id === 'cardiac');
+    
+    const rcriChf = !!(patient.chf || (patient.pmhx || '').toLowerCase().includes('heart failure') || (patient.pmhx || '').toLowerCase().includes('chf') || (patient.ef && patient.ef < 40) || id === 'cardiac' || id === 'bariatric');
+    
+    const rcriCva = !!(patient.cva || (patient.pmhx || '').toLowerCase().includes('stroke') || (patient.pmhx || '').toLowerCase().includes('cva') || (patient.pmhx || '').toLowerCase().includes('tia'));
+    
+    const rcriInsulin = !!(patient.insulin || (patient.pmhx || '').toLowerCase().includes('insulin') || id === 'bariatric');
+    
+    const rcriCr = !!(patient.gfr < 40 || patient.creatinine > 2.0 || (patient.renalComorbidity && !patient.renalComorbidity.includes('stage 1') && !patient.renalComorbidity.includes('stage 2')) || id === 'urology');
+
+    // 3. METs Functional capacity
+    let mets = 'excellent';
+    if (patient.trauma || patient.isSeptic || patient.chf || patient.cad || patient.copd || patient.cirrhosis || patient.age > 75 || id === 'cardiac' || id === 'transplant' || id === 'urology' || id === 'vascular' || id === 'bariatric' || id === 'thoracic') {
+      mets = 'poor';
+    } else if (patient.age > 50 || patient.htn || id === 'neuro' || id === 'ortho' || id === 'obgyn' || id === 'ent') {
+      mets = 'moderate';
     }
+
+    // 4. ASA Classification
+    let asa = 'ASA II';
+    if (patient.trauma || patient.isSeptic || (patient.ef && patient.ef < 40) || patient.childPugh === 'C' || id === 'cardiac' || id === 'transplant') {
+      asa = 'ASA IV';
+    } else if (patient.chf || patient.cad || patient.copd || patient.gfr < 60 || patient.cirrhosis || bmi >= 35 || id === 'bariatric' || id === 'urology' || id === 'vascular') {
+      asa = 'ASA III';
+    } else if (id === 'general' || id === 'normal' || (bmi < 30 && patient.age < 40 && !patient.htn && !patient.penicillinAllergy && !patient.chf && !patient.cad && !patient.copd)) {
+      asa = 'ASA I';
+    }
+
+    // 5. Mallampati
+    let mallampati = 'Class I';
+    if (patient.mallampati === 2) mallampati = 'Class II';
+    else if (patient.mallampati === 3) mallampati = 'Class III';
+    else if (patient.mallampati === 4) mallampati = 'Class IV';
+
+    // 6. Neck mobility
+    const neckMobility = (patient.neckMobility === 'reduced' || patient.neckMobility === 'limited' || (patient.neckMobility || '').toLowerCase().includes('reduced') || (patient.neckMobility || '').toLowerCase().includes('limited')) ? 'Reduced' : 'Normal';
+
+    // 7. NPO status
+    const npoStatus = (patient.emergentRSI || patient.npoSolids < 6 || patient.npoLiquids < 2 || bmi > 40 || patient.trauma || patient.isSeptic || id === 'bariatric') ? 'Aspiration Risk' : 'Compliant';
+
+    // 8. Texts
+    const pronounSubject = patient.sex === 'female' ? 'She' : 'He';
+    const pronounPossessive = patient.sex === 'female' ? 'Her' : 'His';
+    const pronounObject = patient.sex === 'female' ? 'her' : 'him';
+    const nameGender = patient.sex === 'female' ? 'female' : 'male';
+
+    let medicalHistory = '';
+    if (id === 'normal' || id === 'general') {
+      medicalHistory = `You are interviewing a ${patient.age}-year-old ${nameGender} in the pre-operative holding area. ${pronounSubject} is scheduled for an elective ${patient.procedure || 'laparoscopic cholecystectomy'}. When asked about exercise tolerance, ${pronounSubject.toLowerCase()} tells you ${pronounSubject.toLowerCase()} jogs daily without any chest pain, shortness of breath, or dizziness. ${pronounSubject} has never been hospitalized, takes no daily medications, and denies any history of chronic diseases.`;
+    } else if (id === 'trauma') {
+      medicalHistory = `EMS brings in a ${patient.age}-year-old ${nameGender}, unrestrained passenger from a high-speed motor vehicle collision. ${pronounSubject} is obtunded with a Glasgow Coma Scale of 7, and emergent intubation is requested by the trauma surgery team. ${pronounSubject} is hemodynamically unstable. ${pronounPossessive} family reports that ${pronounSubject.toLowerCase()} has no prior cardiac history, no diabetes, no kidney disease, and was not on any daily medications.`;
+    } else if (id === 'urology' && patient.isSeptic) {
+      medicalHistory = `You are called to the ICU to evaluate a ${patient.age}-year-old ${nameGender} for emergent source control surgery. The patient is febrile, confused, and on a norepinephrine infusion to maintain blood pressure. Blood cultures have grown Gram-negative rods. ${pronounSubject} has a history of coronary artery disease (prior myocardial infarction) and chronic kidney disease stage III.`;
+    } else {
+      medicalHistory = `You are evaluating a ${patient.age}-year-old ${nameGender} scheduled for a ${patient.procedure || 'surgery'} in the ${patient.position || 'Supine'} position. ${pronounSubject} has a chronic medical history of ${patient.pmhx || 'no significant chronic diseases'}. ${pronounPossessive} daily medications include ${patient.onBetaBlocker ? 'beta-blockers' : 'standard regimens'}. ${pronounSubject} describes ${pronounPossessive} exercise capacity as ${mets === 'excellent' ? 'excellent' : mets === 'moderate' ? 'moderate (able to walk a few blocks or climb stairs)' : 'poor (severely limited by dyspnea or pain)'}.`;
+    }
+
+    let globalHistory = `A ${patient.age}-year-old ${patient.sex || 'patient'} presenting for ${patient.procedure || 'surgery'}. Relevant baseline parameters include a BMI of ${bmi.toFixed(1)} (${bmi > 30 ? 'obese' : 'normal weight'}), and the following documented comorbidities: ${patient.pmhx || 'none'}. The clinical concern for anesthesia is the combination of the patient's physiological state and the ${rcriHighRisk ? 'high-risk surgical stress' : 'intermediate-risk procedure'}.`;
+
+    let airwayExam = '';
+    if (id === 'normal' || id === 'general') {
+      airwayExam = `You ask the patient to sit upright and open ${pronounPossessive.toLowerCase()} mouth wide. ${pronounSubject} opens widely with full mandibular excursion. You observe the entire soft palate, the fauces, the full uvula from tip to base, and tonsillar pillars (Class I). ${pronounSubject} achieves full atlanto-occipital extension without limitation or pain. Thyromental distance measures approximately 7 cm.`;
+    } else if (id === 'trauma') {
+      airwayExam = `The patient is obtunded (GCS 7) and cannot follow commands. A rigid cervical collar is in place, preventing neck extension. You attempt to open the mouth and observe massive, active oropharyngeal hemorrhage. Thick blood is pooling in the posterior pharynx, completely obscuring all soft tissue structures (Class IV). Neck extension is mechanically zero due to the C-collar.`;
+    } else {
+      airwayExam = `Airway evaluation reveals: Mouth opening is ${patient.mallampati <= 2 ? 'adequate (3+ fingerbreadths)' : 'moderately restricted'}. Mallampati classification is assessed as ${mallampati}. Neck extension and atlanto-occipital mobility is ${neckMobility === 'Reduced' ? 'mechanically restricted or limited' : 'normal and full'}. TMD is approximately ${patient.mallampati >= 3 ? '5-6 cm' : '7-8 cm'}.`;
+    }
+
+    let npoHistory = `The patient's NPO status is reviewed. Last solid food intake was ${patient.npoSolids || 8} hours ago, and last clear liquid intake was ${patient.npoLiquids || 4} hours ago. `;
+    if (npoStatus === 'Aspiration Risk') {
+      npoHistory += `This patient is classified as a HIGH ASPIRATION RISK due to ${patient.emergentRSI ? 'emergent surgical status' : patient.npoSolids < 6 ? 'inadequate fasting time for solids' : bmi > 40 ? 'severe obesity (BMI > 40) delaying gastric emptying' : 'delayed gastric motility secondary to acute illness'}. Rapid Sequence Induction (RSI) is highly indicated.`;
+    } else {
+      npoHistory += `NPO status is fully compliant with standard ASA guidelines (>= 6 hours for solids, >= 2 hours for clear liquids). Aspiration risk is low.`;
+    }
+
     return {
-      rcriHighRisk: false, rcriIhd: false, rcriChf: false, rcriCva: false, rcriInsulin: false, rcriCr: false,
-      mets: 'excellent', asa: 'ASA II', mallampati: 'Class I', neckMobility: 'Normal', npoStatus: 'Compliant',
-      medicalHistory: "Pre-operative medical history interview.",
-      globalHistory: "Pre-operative global assessment.",
-      airwayExam: "Pre-operative airway examination.",
-      npoHistory: "Pre-operative NPO assessment."
+      rcriHighRisk,
+      rcriIhd,
+      rcriChf,
+      rcriCva,
+      rcriInsulin,
+      rcriCr,
+      mets,
+      asa,
+      mallampati,
+      neckMobility,
+      npoStatus,
+      medicalHistory,
+      globalHistory,
+      airwayExam,
+      npoHistory
     };
   };
 
@@ -613,12 +694,14 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
 
   // Load saved plan if exists
   useEffect(() => {
-    if (stagedCase.preOpPlan) {
-      setAnesthesiaPlan(stagedCase.preOpPlan);
+    const savedPlan = stagedCase.preOpPlan || stagedCase.patient?.preOpPlan;
+    if (savedPlan) {
+      setAnesthesiaPlan(savedPlan);
     }
   }, [stagedCase]);
 
   const handlePlanChange = (field, value) => {
+    if (intraop) return; // Prevent edits when in surgery
     const updated = {
       ...anesthesiaPlan,
       [field]: value,
@@ -636,6 +719,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
   };
 
   const handleTypeToggle = (typeKey) => {
+    if (intraop) return; // Prevent edits when in surgery
     const updated = {
       ...anesthesiaPlan,
       types: { ...anesthesiaPlan.types, [typeKey]: !anesthesiaPlan.types[typeKey] },
@@ -646,6 +730,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
   };
 
   const handleMonitorToggle = (monKey) => {
+    if (intraop) return; // Prevent edits when in surgery
     // Standard ASA monitors cannot be deselected
     if (monKey === 'standard') return;
     const updated = {
@@ -885,6 +970,8 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     onStart(updatedCase);
   };
 
+  if (!show || !stagedCase) return null;
+
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div className="bg-slate-900 border-2 border-indigo-500 rounded-xl max-w-6xl w-full h-[90vh] flex flex-col shadow-2xl overflow-hidden font-mono text-white animate-in zoom-in-95 duration-200">
@@ -909,13 +996,13 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
             { id: 'orders', label: 'Order Entry', icon: <CheckSquare size={16}/> },
             { id: 'results', label: 'Workup Results', icon: <Activity size={16}/> },
             { id: 'risk', label: 'Risk Assessment', icon: <ShieldAlert size={16}/> },
-            { id: 'plan', label: 'Anesthesia Plan', icon: <Award size={16}/>, gated: !assessmentVerified }
+            { id: 'plan', label: 'Anesthesia Plan', icon: <Award size={16}/>, gated: !intraop && !assessmentVerified }
           ].map(tab => (
             <button
               key={tab.id}
               onClick={() => { if (!tab.gated) setActiveTab(tab.id); }}
               disabled={tab.gated}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg font-bold text-xs uppercase tracking-wider transition whitespace-nowrap ${
                 tab.gated
                   ? 'text-slate-600 cursor-not-allowed opacity-50'
                   : activeTab === tab.id
@@ -2134,12 +2221,21 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                 )}
               </button>
             ) : (
-              <button
-                onClick={handleProceed}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-500 font-black text-white rounded-lg text-xs flex items-center gap-2 transition shadow-[0_0_15px_rgba(37,99,235,0.4)]"
-              >
-                Lock Plan & Proceed to OR <Play size={16}/>
-              </button>
+              intraop ? (
+                <button
+                  onClick={close}
+                  className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 font-black text-white rounded-lg text-xs flex items-center gap-2 transition shadow-[0_0_15px_rgba(16,185,129,0.4)]"
+                >
+                  Return to Operating Room &rarr;
+                </button>
+              ) : (
+                <button
+                  onClick={handleProceed}
+                  className="px-6 py-2 bg-blue-600 hover:bg-blue-500 font-black text-white rounded-lg text-xs flex items-center gap-2 transition shadow-[0_0_15px_rgba(37,99,235,0.4)]"
+                >
+                  Lock Plan & Proceed to OR <Play size={16}/>
+                </button>
+              )
             )}
           </div>
         </div>

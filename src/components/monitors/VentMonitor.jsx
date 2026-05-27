@@ -9,11 +9,11 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
   const ventMorphology = ventSettings?.mode === 'VCV' ? 'vcv' : 'pcv';
 
   return (
-    <div className="bg-slate-900 border-2 border-slate-700 rounded-xl p-2 md:p-3 flex flex-col gap-2 mt-4 shadow-2xl">
-      <div className="flex flex-col lg:grid lg:grid-cols-4 gap-2 min-h-[300px] lg:h-[320px]">
+    <div className="glass-panel glass-emerald p-2 md:p-3 flex flex-col gap-2 mt-4">
+      <div className="flex flex-col md:grid md:grid-cols-4 gap-2 min-h-[300px] md:min-h-0 md:h-[280px] lg:h-[320px]">
         
         {/* Waveforms */}
-        <div className="col-span-1 lg:col-span-3 flex flex-col justify-between relative z-10 w-full h-[300px] lg:h-full gap-1">
+        <div className="col-span-1 md:col-span-3 flex flex-col justify-between relative z-10 w-full h-[220px] md:h-full gap-1">
           <div className="flex-1 flex items-center w-full border border-slate-800 bg-black relative overflow-hidden rounded">
             <div className="absolute text-yellow-600/80 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">Paw cmH2O</div>
             <CanvasWaveform 
@@ -57,7 +57,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
         </div>
 
         {/* Vent Numericals */}
-        <div className="col-span-1 flex flex-col bg-[#050505] p-3 rounded z-30 gap-4 border border-slate-800 justify-between">
+        <div className="col-span-1 flex flex-col bg-black/45 backdrop-blur-md p-2 md:p-3 rounded z-30 gap-2 md:gap-3 lg:gap-4 border border-slate-800/60 justify-between">
           <div className="flex flex-col gap-1 border-b border-slate-800 pb-2">
             <div className="flex justify-between items-end">
               <span className="text-yellow-600 text-[10px] font-bold uppercase tracking-widest">Ppeak / Pplat</span>
@@ -105,7 +105,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
                        <select 
                          value={ventSettings?.ieRatio || 2}
                          onChange={(e) => setVentSettings({...ventSettings, ieRatio: parseFloat(e.target.value)})}
-                         className="bg-slate-800 text-slate-300 text-[10px] font-bold rounded border border-slate-600 outline-none px-1 py-0.5 cursor-pointer hover:border-slate-400 transition-colors"
+                         className="glass-input text-slate-300 text-[10px] font-bold rounded px-1 py-0.5 cursor-pointer"
                        >
                          <option value={1}>1</option>
                          <option value={1.5}>1.5</option>

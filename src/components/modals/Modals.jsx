@@ -574,7 +574,7 @@ export const ViewModal = ({ data, submitGrade }) => {
   if (!data.show || !data.description) return null;
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border-2 border-cyan-500 rounded-xl p-8 max-w-2xl shadow-2xl w-full">
+      <div className="bg-slate-900 border-2 border-cyan-500 rounded-xl p-6 md:p-8 max-w-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
         <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2"><Eye size={24}/> Direct Visualization: {data.blade}</h2>
         <p className="text-lg text-slate-300 mb-8 italic border-l-4 border-cyan-500 pl-4 py-2 bg-slate-800/50 whitespace-pre-wrap">"{data.description}"</p>
         <h3 className="text-yellow-400 font-bold mb-4">Select the Cormack-Lehane Grade:</h3>

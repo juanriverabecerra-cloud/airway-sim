@@ -170,14 +170,8 @@ export function evaluateAttendingGuidance({
 
   // 3. STEP-BY-STEP TEACHING / TUTORIAL FLOW (Active in Teaching Mode)
   let teachingGuide = null;
-
-  if (surgicalPhase === 'Pre-Op') {
-    teachingGuide = {
-      step: 'Pre-Op EMR Assessment',
-      message: "Welcome to the OR. Before we start, click 'Review Chart' to open the Pre-Op EMR. Carefully review the patient's demographics, past medical history, and risk profile. Order appropriate screening labs and diagnostics (such as a 12-Lead ECG or Echo) based on their comorbidities. Once you have formulated your plan, click 'Proceed to OR' to transfer the patient.",
-      suggestion: "Action: Click 'Review Chart' in the top corner."
-    };
-  } else if (!msmaidsComplete) {
+  
+  if (!msmaidsComplete) {
     teachingGuide = {
       step: 'MSMAIDS Pre-Induction Setup',
       message: "The patient has been transferred to the OR table. Prior to general anesthesia induction, it is mandatory to perform a standardized MSMAIDS checklist. Click the 'MSMAIDS Checklist' button to verify your Machine, Suction, Monitors, Airway gear, IV access, Drugs, and Safety backup. Confirm everything is fully functional.",

@@ -62,9 +62,211 @@ export function getAttendingResponse(query, {
   // 2. DEFINE INTENT DETECTORS & GENERATE CLINICAL ANSWERS
 
   // A. ACLS / Cardiac Arrest
-  if (isArrest || q.includes('arrest') || q.includes('acls') || q.includes('asystole') || q.includes('v-fib') || q.includes('cpr') || q.includes('cardiac arrest')) {
-    let msg = `We are dealing with a critical intraoperative cardiac arrest! The current cardiac rhythm is ${rhythm.toUpperCase()}. SBP is ${fmt(sys)} mmHg and MAP is ${fmt(map)} mmHg. Myocardial Stunning stands at ${fmt(stunning, 1)}%.\n\n`;
-    msg += `**Clinical Directive**: Initiate high-quality chest compressions immediately and ensure ventilatory support with 100% oxygen. If the patient has severe hyperkalemia or anaphylaxis, prioritize treating the root cause. You must administer epinephrine (50 mcg IV) or vasopressors to sustain coronary and cerebral perfusion pressures. If hyperkalemia is present, administer calcium chloride (1000 mg IV) immediately.`;
+  if (isArrest || q.includes('arrest') || q.includes('acls') || q.includes('asystole') || q.includes('v-fib') || q.includes('cpr') || q.includes('cardiac arrest') || q.includes('audit ')) {
+    const temp = vitals.temp !== undefined ? vitals.temp : 37.0;
+
+    if (q.includes('hypovolemia')) {
+      let msg = `### 🔍 H's & T's Audit: HYPOVOLEMIA\n\n`;
+      msg += `Hypovolemia is a leading cause of intraoperative cardiac arrest. Let's audit the volume status:\n\n`;
+      msg += `- **Estimated Blood Loss (EBL)**: ${fmt(ebl)} mL\n`;
+      msg += `- **Estimated Blood Volume (EBV)**: ${fmt(ebv)} mL\n`;
+      msg += `- **Blood Loss Ratio**: ${(ebl / ebv * 100).toFixed(1)}%\n`;
+      msg += `- **Intravascular Fluid Volume**: ${fmt(patient.intravascularVolume || 5000)} mL\n\n`;
+      
+      const bloodLossRatio = ebl / ebv;
+      if (bloodLossRatio > 0.25 || (patient.intravascularVolume && patient.intravascularVolume < 4200)) {
+        msg += `🔴 **DIAGNOSTIC STATUS: CONFIRMED HYPOVOLEMIA**\n`;
+        msg += `The patient has lost a significant fraction of blood volume (${(bloodLossRatio * 100).toFixed(1)}% of total volume), causing severe venous return depletion and circulatory collapse. This is driving the cardiac arrest.\n\n`;
+        msg += `**Immediate Treatment Protocol**:\n`;
+        msg += `1. **Fluids**: Administer large-volume fluid resuscitation (Normal Saline or Lactated Ringer's IV).\n`;
+        msg += `2. **Blood**: Initiate blood transfusion immediately if blood is crossed/available.\n`;
+        msg += `3. Click [labs] to evaluate hemoglobin.`;
+      } else {
+        msg += `🟢 **DIAGNOSTIC STATUS: HYPOVOLEMIA UNLIKELY**\n`;
+        msg += `Intravascular volume is relatively well maintained (${fmt(patient.intravascularVolume || 5000)} mL) and blood loss is minimal. Hypovolemia is not the primary driver of this arrest.\n\n`;
+        msg += `Keep searching the other H's and T's: click [audit hypoxia], [audit acidosis], [audit hyperkalemia], or [audit toxins].`;
+      }
+      return msg;
+    }
+    
+    if (q.includes('hypoxia')) {
+      let msg = `### 🔍 H's & T's Audit: HYPOXIA\n\n`;
+      msg += `Hypoxia prevents myocardial oxidative phosphorylation, leading to rapid brady-asystolic cardiac arrest.\n\n`;
+      msg += `- **Oxygen Saturation (SpO2)**: ${fmt(spo2)}%\n`;
+      msg += `- **Alveolar O2 Buffer (FRC O2)**: ${frcO2Percent.toFixed(1)}%\n`;
+      msg += `- **Airway Secured**: ${airwaySecured ? 'YES' : 'NO'}\n`;
+      msg += `- **Tube Position**: ${patient.tubePosition?.toUpperCase() || 'N/A'}\n\n`;
+      
+      if (spo2 < 75 || frcO2Percent < 45 || patient.tubePosition === 'esophagus') {
+        msg += `🔴 **DIAGNOSTIC STATUS: CONFIRMED SEVERE HYPOXIA**\n`;
+        msg += `Severe arterial and tissue hypoxia is present. Myocardial oxygenation has collapsed, rendering the heart unable to sustain pacemaker activity.\n\n`;
+        msg += `**Immediate Treatment Protocol**:\n`;
+        msg += `1. Ensure **FiO2 100%** on the ventilator and increase fresh gas flow.\n`;
+        msg += `2. If not intubated, perform [laryngoscopy] immediately to secure the airway.\n`;
+        msg += `3. If intubated, verify tube position (rule out esophagus or mainstem).\n`;
+        msg += `4. If severe bronchospasm is active, administer [albuterol] via ETT.`;
+      } else {
+        msg += `🟢 **DIAGNOSTIC STATUS: HYPOXIA UNLIKELY**\n`;
+        msg += `The patient is well-oxygenated (SpO2: ${fmt(spo2)}%, FRC O2: ${frcO2Percent.toFixed(1)}%). Hypoxia is not the cause of this cardiac arrest.\n\n`;
+        msg += `Keep searching the other H's and T's: click [audit hypovolemia], [audit acidosis], [audit hyperkalemia], or [audit toxins].`;
+      }
+      return msg;
+    }
+    
+    if (q.includes('acidosis')) {
+      const currentPh = vitals.ph || electrolytes?.ph || 7.4;
+      let msg = `### 🔍 H's & T's Audit: HYDROGEN ION (ACIDOSIS)\n\n`;
+      msg += `Acidosis depresses myocardial contractility and blunts the effectiveness of endogenous and exogenous catecholamines.\n\n`;
+      msg += `- **Arterial pH**: ${fmt(currentPh, 2)} (Normal: 7.35 - 7.45)\n`;
+      msg += `- **PaCO2 / EtCO2**: ${fmt(paco2)} / ${fmt(etco2)} mmHg\n`;
+      msg += `- **Lactic Acid**: ${fmt(patient.lacticAcid || 1.0, 1)} mmol/L\n\n`;
+      
+      if (currentPh < 7.15) {
+        msg += `🔴 **DIAGNOSTIC STATUS: CONFIRMED SEVERE ACIDOSIS**\n`;
+        msg += `Severe acidosis is present (pH: ${fmt(currentPh, 2)}). This is likely a mixed respiratory acidosis (from hypoventilation/apnea) and metabolic lactic acidosis (from low tissue perfusion).\n\n`;
+        msg += `**Immediate Treatment Protocol**:\n`;
+        msg += `1. Optimize ventilation: increase RR and Vt to wash out CO2.\n`;
+        msg += `2. Administer sodium bicarbonate IV if metabolic acidosis is severe and refractory.\n`;
+        msg += `3. Ensure high-quality chest compressions to improve tissue perfusion and oxygenation.`;
+      } else {
+        msg += `🟢 **DIAGNOSTIC STATUS: ACIDOSIS UNLIKELY**\n`;
+        msg += `The patient's pH is stable at ${fmt(currentPh, 2)}. Severe acidosis is not the primary driver of this arrest.\n\n`;
+        msg += `Keep searching the other H's and T's: click [audit hypovolemia], [audit hypoxia], [audit hyperkalemia], or [audit toxins].`;
+      }
+      return msg;
+    }
+    
+    if (q.includes('hyperkalemia') || q.includes('potassium') || q.includes('hypokalemia')) {
+      let msg = `### 🔍 H's & T's Audit: POTASSIUM / HYPERKALEMIA\n\n`;
+      msg += `Hyperkalemia alters the cardiac action potential, causing peaked T waves, widened QRS, and brady-asystolic cardiac arrest.\n\n`;
+      msg += `- **Serum Potassium (K+)**: ${fmt(potassium, 1)} mEq/L (Normal: 3.5 - 5.0 mEq/L)\n`;
+      msg += `- **Calcium Administered**: ${patient.calciumAdministered ? 'YES' : 'NO'}\n\n`;
+      
+      if (potassium > 5.5) {
+        msg += `🔴 **DIAGNOSTIC STATUS: CONFIRMED SEVERE HYPERKALEMIA**\n`;
+        msg += `The potassium level is dangerously elevated at ${fmt(potassium, 1)} mEq/L. This has caused severe electrical membrane instability and cardiac arrest.\n\n`;
+        msg += `**Immediate Treatment Protocol**:\n`;
+        msg += `1. **Stabilize Membrane**: Administer **[calcium chloride]** (1000 mg IV) immediately. This protects the myocardium from VFib/Asystole!\n`;
+        msg += `2. **Shift Potassium Intracellularly**: Administer **[albuterol]** via ETT, hyperventilate (wash out CO2), or give insulin/dextrose.\n`;
+        msg += `3. Ensure continuous high-quality chest compressions and epinephrine support.`;
+      } else {
+        msg += `🟢 **DIAGNOSTIC STATUS: POTASSIUM DERANGEMENT UNLIKELY**\n`;
+        msg += `Potassium level is within normal bounds (${fmt(potassium, 1)} mEq/L). Hyperkalemia is not the cause of this arrest.\n\n`;
+        msg += `Keep searching the other H's and T's: click [audit hypovolemia], [audit hypoxia], [audit acidosis], or [audit toxins].`;
+      }
+      return msg;
+    }
+    
+    if (q.includes('hypothermia')) {
+      let msg = `### 🔍 H's & T's Audit: HYPOTHERMIA\n\n`;
+      msg += `Severe hypothermia slows cardiac conduction and induces highly irritable, refractory ventricular fibrillation.\n\n`;
+      msg += `- **Core Temperature**: ${fmt(temp, 1)}°C\n\n`;
+      
+      if (temp < 32.0) {
+        msg += `🔴 **DIAGNOSTIC STATUS: CONFIRMED HYPOTHERMIA**\n`;
+        msg += `The core temperature has fallen to ${fmt(temp, 1)}°C. At this temperature, the heart is extremely irritable and prone to refractory VFib.\n\n`;
+        msg += `**Immediate Treatment Protocol**:\n`;
+        msg += `1. Initiate active external warming (forced-air warming blankets).\n`;
+        msg += `2. Administer warm intravenous fluids.\n`;
+        msg += `3. Continue high-quality CPR; note that drug metabolism is delayed in hypothermia.`;
+      } else {
+        msg += `🟢 **DIAGNOSTIC STATUS: HYPOTHERMIA UNLIKELY**\n`;
+        msg += `The patient's temperature is safe at ${fmt(temp, 1)}°C. Hypothermia is not the cause of this arrest.\n\n`;
+        msg += `Keep searching the other H's and T's: click [audit hypovolemia], [audit hypoxia], [audit acidosis], or [audit toxins].`;
+      }
+      return msg;
+    }
+    
+    if (q.includes('toxin')) {
+      let msg = `### 🔍 H's & T's Audit: TOXINS\n\n`;
+      msg += `Anesthetic induction agents, antibiotics (anaphylaxis), or local anesthetics (LAST) can act as severe cardiovascular toxins.\n\n`;
+      msg += `- **Anaphylaxis Triggered**: ${isAnaphylaxis ? 'YES (Penicillin administered)' : 'NO'}\n`;
+      msg += `- **Anaphylaxis Treated**: ${isAnaphylaxisTreated ? 'YES' : 'NO'}\n`;
+      msg += `- **Succinylcholine Administered**: ${patient.suxPotassiumLeaked ? 'YES (Potassium leaked!)' : 'NO'}\n`;
+      msg += `- **Volatile MAC**: ${fmt(mac, 2)}\n\n`;
+      
+      if (isAnaphylaxis && !isAnaphylaxisTreated) {
+        msg += `🔴 **DIAGNOSTIC STATUS: CONFIRMED ANAPHYLACTIC SHOCK**\n`;
+        msg += `The patient is suffering from severe penicillin-induced anaphylaxis, causing complete vascular smooth muscle paralysis and bronchospasm.\n\n`;
+        msg += `**Immediate Treatment Protocol**:\n`;
+        msg += `1. Administer **[epinephrine]** (50 mcg IV bolus) immediately to restore SVR and bronchodilate.\n`;
+        msg += `2. Give **[albuterol]** via ETT for bronchospasm.\n`;
+        msg += `3. Click [audit hyperkalemia] if Succinylcholine was also administered.`;
+      } else if (patient.suxPotassiumLeaked) {
+        msg += `🔴 **DIAGNOSTIC STATUS: SUCCINYLCHOLINE-INDUCED POTASSIUM LEAK**\n`;
+        msg += `Administering Succinylcholine in this patient's upregulated receptor state caused a massive release of intracellular potassium, inducing hyperkalemia-associated arrest.\n\n`;
+        msg += `**Immediate Treatment Protocol**:\n`;
+        msg += `1. Administer **[calcium chloride]** (1000 mg IV) immediately to stabilize the myocardium.\n`;
+        msg += `2. Click [audit hyperkalemia] to view the full potassium protocol.`;
+      } else {
+        msg += `🟢 **DIAGNOSTIC STATUS: DIRECT TOXIN EFFECTS UNLIKELY**\n`;
+        msg += `No active toxic exposures or untreated anaphylactic triggers are present. Direct toxin effect is not driving the arrest.\n\n`;
+        msg += `Keep searching the other H's and T's: click [audit hypovolemia], [audit hypoxia], [audit acidosis], or [audit tension pneumothorax].`;
+      }
+      return msg;
+    }
+    
+    if (q.includes('tension') || q.includes('pneumothorax')) {
+      let msg = `### 🔍 H's & T's Audit: TENSION PNEUMOTHORAX\n\n`;
+      msg += `Tension pneumothorax causes massive intrathoracic pressure, collapsing the vena cava and preventing venous return to the heart.\n\n`;
+      msg += `- **Peak Airway Pressure (PIP)**: ${fmt(pip)} cmH2O\n`;
+      msg += `- **Tracheal Deviation**: None detected\n`;
+      msg += `- **Bilateral Breath Sounds**: Equal bilateral chest rise\n\n`;
+      
+      msg += `🟢 **DIAGNOSTIC STATUS: TENSION PNEUMOTHORAX UNLIKELY**\n`;
+      msg += `Lung compliance is stable, PIP is acceptable, and there is no evidence of unilateral chest collapse. Tension pneumothorax is not present.\n\n`;
+      msg += `Keep searching the other H's and T's: click [audit hypovolemia], [audit hypoxia], [audit acidosis], or [audit toxins].`;
+      return msg;
+    }
+    
+    if (q.includes('tamponade')) {
+      let msg = `### 🔍 H's & T's Audit: CARDIAC TAMPONADE\n\n`;
+      msg += `Fluid accumulation in the pericardial sac restricts ventricular filling, collapsing cardiac output.\n\n`;
+      msg += `- **Beck's Triad Check**: Hypotension (present), JVD (not assessable), Muffled Heart Sounds (not assessable)\n`;
+      msg += `- **POCUS/TTE Assessment**: No pericardial effusion seen on ultrasound\n\n`;
+      
+      msg += `🟢 **DIAGNOSTIC STATUS: CARDIAC TAMPONADE UNLIKELY**\n`;
+      msg += `Focus on other reversible causes: click [audit hypovolemia], [audit hypoxia], [audit acidosis], or [audit toxins].`;
+      return msg;
+    }
+    
+    if (q.includes('thrombosis') || q.includes('pulmonary') || q.includes('coronary') || q.includes('mi') || q.includes('pe')) {
+      let msg = `### 🔍 H's & T's Audit: THROMBOSIS (PULMONARY / CORONARY)\n\n`;
+      msg += `Massive pulmonary embolism (PE) or acute myocardial infarction (MI) leads to sudden mechanical obstruction or pump failure.\n\n`;
+      msg += `- **Coronary Risk (CAD History)**: ${patient.cad ? 'YES (History of Coronary Artery Disease)' : 'NO'}\n`;
+      msg += `- **PE Risk**: No active hypercoagulability triggers\n\n`;
+      
+      msg += `🟡 **DIAGNOSTIC STATUS: SUSPICION LOW TO MODERATE**\n`;
+      msg += `If the patient has a history of CAD, myocardial stunning is at ${fmt(stunning, 1)}%. Maintain coronary perfusion pressure (MAP > 65) using vasopressors and high-quality CPR to support myocardial recovery.\n\n`;
+      msg += `Keep searching other H's and T's: click [audit hypovolemia], [audit hypoxia], [audit acidosis], or [audit toxins].`;
+      return msg;
+    }
+
+    // General Cardiac Arrest Prompt
+    let msg = `### 🚨 ATTENDING CONSULT: CRITICAL CARDIAC ARREST!\n\n`;
+    msg += `We have a **CARDIAC ARREST** in the OR! Rhythm is **${rhythm.toUpperCase()}**. SBP: **${fmt(sys)} mmHg**, MAP: **${fmt(map)} mmHg**.\n\n`;
+    msg += `**Immediate Clinical Directive**:\n`;
+    msg += `1. **Compressions**: Ensure continuous high-quality chest compressions (**🩺 Initiated Chest Compressions**).\n`;
+    msg += `2. **Epinephrine**: Administer **[epinephrine]** (50 mcg IV) or vasopressors immediately to restore coronary and cerebral perfusion pressures.\n`;
+    msg += `3. **Oxygenation**: Ensure 100% oxygenation (FiO2 100% on fresh gas) and ventilate.\n\n`;
+    
+    msg += `**ACLS H's & T's Diagnostic Audit**:\n`;
+    msg += `To get this patient out of cardiac arrest, we must systematically audit and treat the underlying causes. Click any of the active audits below to investigate thoroughly:\n\n`;
+    
+    msg += `- **The 5 H's**:\n`;
+    msg += `  - 💧 **Hypovolemia**: Click [audit hypovolemia]\n`;
+    msg += `  - 💨 **Hypoxia**: Click [audit hypoxia]\n`;
+    msg += `  - 🧪 **Hydrogen Ion (Acidosis)**: Click [audit acidosis]\n`;
+    msg += `  - 🍌 **Hypo/Hyperkalemia**: Click [audit hyperkalemia]\n`;
+    msg += `  - ❄️ **Hypothermia**: Click [audit hypothermia]\n\n`;
+    
+    msg += `- **The 5 T's**:\n`;
+    msg += `  - 🔋 **Toxins (Anaphylaxis/Drugs)**: Click [audit toxins]\n`;
+    msg += `  - 🌬️ **Tension Pneumothorax**: Click [audit tension pneumothorax]\n`;
+    msg += `  - 🫀 **Tamponade (Cardiac)**: Click [audit cardiac tamponade]\n`;
+    msg += `  - 🫁 **Thrombosis (Pulmonary/PE)**: Click [audit pulmonary thrombosis]\n`;
+    msg += `  - 🩸 **Thrombosis (Coronary/MI)**: Click [audit coronary thrombosis]\n`;
+    
     return msg;
   }
 

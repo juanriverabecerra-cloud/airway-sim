@@ -4,7 +4,7 @@ import { parseAndRenderText } from '../../engine/ClinicalActions';
 
 export const LogPanel = ({ logs, onActionClick }) => {
   return (
-    <div className="col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col h-full max-h-[800px] shadow-2xl">
+    <div className="col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col h-[500px] xl:h-full xl:max-h-[800px] shadow-2xl">
       <div className="flex justify-between items-center mb-3 border-b border-slate-700 pb-2">
         <h3 className="text-yellow-400 font-bold flex items-center gap-2 uppercase tracking-widest text-sm"><Zap size={16}/> Clinical Log</h3>
       </div>

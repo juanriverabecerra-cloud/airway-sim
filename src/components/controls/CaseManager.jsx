@@ -191,6 +191,7 @@ const PRESETS = [
 
 export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase: propSetStagedCase, openPreOpEMR }) => {
   const [activeTab, setActiveTab] = useState('presets'); 
+  const [selectedPresetId, setSelectedPresetId] = useState(PRESETS[0].id);
   const [localStagedCase, localSetStagedCase] = useState(null);
   const stagedCase = propStagedCase !== undefined ? propStagedCase : localStagedCase;
   const setStagedCase = propSetStagedCase !== undefined ? propSetStagedCase : localSetStagedCase;
@@ -382,6 +383,18 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
     setStagedCase(newCase);
   };
 
+  const stageRandomByDifficulty = (level) => {
+    const filtered = PRESETS.filter(p => {
+      const diff = calculateDifficulty(p);
+      return diff.level.toLowerCase() === level.toLowerCase();
+    });
+    if (filtered.length > 0) {
+      const randPreset = filtered[Math.floor(Math.random() * filtered.length)];
+      applyPresetToForm(randPreset);
+      handleStageCase(randPreset, null, level);
+    }
+  };
+
   const currDiff = calculateDifficulty(customForm);
 
   if (stagedCase) {
@@ -424,11 +437,8 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
             <ArrowLeft size={16}/> Back
           </button>
           <div className="flex gap-3">
-            <button onClick={() => openPreOpEMR(stagedCase)} className="px-6 py-2 rounded font-bold text-white bg-indigo-600 hover:bg-indigo-500 transition flex items-center gap-2 shadow-[0_0_10px_rgba(79,70,229,0.3)]">
-              <FileText size={16}/> Review EMR Chart
-            </button>
-            <button onClick={() => onStart(stagedCase)} className="px-8 py-2 rounded font-black text-white bg-blue-600 hover:bg-blue-500 transition shadow-[0_0_15px_rgba(37,99,235,0.4)] flex items-center gap-2">
-              Proceed to OR <Play size={16}/>
+            <button onClick={() => openPreOpEMR(stagedCase)} className="px-8 py-2 rounded font-black text-white bg-indigo-600 hover:bg-indigo-500 transition flex items-center gap-2 shadow-[0_0_15px_rgba(79,70,229,0.4)]">
+              <FileText size={16}/> Perform Pre-Op EMR Assessment
             </button>
           </div>
         </div>
@@ -450,48 +460,101 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
         <div className="flex flex-col gap-6">
           <p className="text-slate-300 text-sm mb-2 max-w-3xl">Select an approved surgical specialty preset. These presets represent distinct pathophysiological configurations (e.g. fixed stroke volume in AS, upregulated ACh receptors in burns, severe vasoplegia in sepsis) designed to test critical anesthesia reasoning.</p>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full">
-            {PRESETS.map((preset) => (
-              <button 
-                key={preset.id} 
-                onClick={() => {
-                  applyPresetToForm(preset);
-                  setActiveTab('custom');
-                }} 
-                className={`bg-slate-950/60 border border-slate-800 p-4 rounded-xl flex flex-col justify-between items-start gap-3 transition-all hover:scale-102 hover:border-cyan-500 hover:shadow-lg text-left`}
+          {/* Simplistic and Modern Dropdown Selection Selector */}
+          <div className="flex flex-col md:flex-row gap-4 items-center bg-slate-950 p-4 border border-slate-800 rounded-xl">
+            <div className="flex-1 w-full flex flex-col gap-1">
+              <label className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider block">Select Clinical Case Preset</label>
+              <select 
+                value={selectedPresetId} 
+                onChange={(e) => setSelectedPresetId(e.target.value)}
+                className="bg-slate-900 border border-slate-700 text-white rounded-lg p-2.5 outline-none text-xs font-bold w-full cursor-pointer hover:border-cyan-500 focus:border-cyan-500 transition font-mono"
               >
-                <div className="w-full">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="text-[10px] text-cyan-400 font-extrabold uppercase bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-850">{preset.specialty}</span>
-                    <Heart size={14} className={preset.chf || preset.cad || preset.as ? "text-red-500" : "text-slate-600"} />
-                  </div>
-                  <h4 className="font-bold text-sm text-slate-100 line-clamp-1">{preset.name.split(' - ')[1]}</h4>
-                  <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">{preset.description}</p>
-                </div>
-                <div className="flex justify-between items-center w-full border-t border-slate-800/80 pt-2 text-[10px] text-slate-500 font-semibold">
-                  <span>{preset.age}yo {preset.sex === 'male' ? 'M' : 'F'}</span>
-                  <span>{preset.position}</span>
-                  <span className="text-cyan-500 hover:text-cyan-400 font-bold flex items-center gap-0.5">Customize &rarr;</span>
-                </div>
-              </button>
-            ))}
+                {PRESETS.map(preset => (
+                  <option key={preset.id} value={preset.id}>
+                    [{preset.specialty.toUpperCase()}] {preset.name.split(' - ')[1] || preset.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button 
+              onClick={() => {
+                const currentPreset = PRESETS.find(p => p.id === selectedPresetId) || PRESETS[0];
+                applyPresetToForm(currentPreset);
+                handleStageCase(currentPreset);
+              }}
+              className="w-full md:w-auto px-8 py-3 bg-cyan-700 hover:bg-cyan-600 rounded-lg text-xs font-black uppercase tracking-wider text-white shadow-md transition-all shrink-0 self-end animate-pulse"
+            >
+              Stage Selected Case &rarr;
+            </button>
           </div>
 
-          <div className="flex justify-between items-center bg-slate-950 p-4 border border-slate-800 rounded-lg mt-4">
+          {/* Focused details card for the active selection */}
+          {(() => {
+            const currentPreset = PRESETS.find(p => p.id === selectedPresetId) || PRESETS[0];
+            const difficultyInfo = calculateDifficulty(currentPreset);
+            return (
+              <div className="bg-slate-950/60 border border-slate-800 p-6 rounded-xl flex flex-col gap-4 animate-in fade-in duration-200 shadow-inner">
+                <div className="flex justify-between items-center border-b border-slate-850/60 pb-3">
+                  <div>
+                    <span className="text-[10px] text-cyan-400 font-extrabold uppercase bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-850">{currentPreset.specialty}</span>
+                    <h3 className="font-extrabold text-lg text-slate-100 mt-1.5">{currentPreset.name}</h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-0.5 rounded border font-bold text-[10px] ${
+                      difficultyInfo.level === 'Easy' ? 'bg-green-950/40 border-green-800 text-green-400' :
+                      difficultyInfo.level === 'Medium' ? 'bg-yellow-950/40 border-yellow-800 text-yellow-400' :
+                      'bg-red-950/40 border-red-800 text-red-400'
+                    }`}>
+                      {difficultyInfo.level} Case
+                    </span>
+                    <Heart size={16} className={currentPreset.chf || currentPreset.cad || currentPreset.as ? "text-red-500 animate-pulse" : "text-slate-600"} />
+                  </div>
+                </div>
+                
+                <p className="text-slate-300 text-xs leading-relaxed">{currentPreset.description}</p>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-[11px] text-slate-400 font-mono mt-2 bg-slate-950/80 p-3 rounded-lg border border-slate-900">
+                  <div>
+                    <span className="block text-[9px] text-slate-500 uppercase font-bold">Age & Sex</span>
+                    <span className="font-bold text-slate-200 text-xs">{currentPreset.age}yo / {currentPreset.sex.toUpperCase()}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[9px] text-slate-500 uppercase font-bold">Weight & Height</span>
+                    <span className="font-bold text-slate-200 text-xs">{currentPreset.weight} kg / {currentPreset.height} cm</span>
+                  </div>
+                  <div>
+                    <span className="block text-[9px] text-slate-500 uppercase font-bold">Starting Vitals</span>
+                    <span className="font-bold text-cyan-400 text-xs">{currentPreset.hr} bpm | {currentPreset.sys}/{currentPreset.dia} mmHg</span>
+                  </div>
+                  <div>
+                    <span className="block text-[9px] text-slate-500 uppercase font-bold">Airway & Position</span>
+                    <span className="font-bold text-yellow-300 text-xs">Mallampati {currentPreset.mallampati} | {currentPreset.position}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Random case selection with Easy, Medium, Hard selectors */}
+          <div className="flex flex-col md:flex-row justify-between items-center bg-slate-950 p-4 border border-slate-800 rounded-lg mt-4 gap-4 shadow-lg">
              <div className="flex items-center gap-3">
                <Dices size={28} className="text-slate-500 animate-pulse" />
                <div>
                   <span className="text-slate-400 text-xs font-bold block uppercase tracking-wider">Quick Clinical Scenario Staging</span>
-                  <span className="text-[11px] text-slate-500">Pick any preset above to load its full organ-system demographics, then stage or fine-tune.</span>
+                  <span className="text-[11px] text-slate-500">Instantly stage a random case filtered by difficulty level.</span>
                </div>
              </div>
-             <button onClick={() => {
-               const randPreset = PRESETS[Math.floor(Math.random() * PRESETS.length)];
-               applyPresetToForm(randPreset);
-               handleStageCase(randPreset);
-             }} className="px-6 py-2.5 rounded-lg font-bold text-xs bg-cyan-700 hover:bg-cyan-600 transition flex items-center gap-1.5 shadow-md">
-               <Dices size={14} /> STAGE RANDOM SPECIALTY
-             </button>
+             <div className="flex flex-wrap gap-2 w-full md:w-auto justify-end">
+               <button onClick={() => stageRandomByDifficulty('Easy')} className="flex-1 md:flex-none px-4 py-2.5 rounded-lg font-bold text-xs bg-green-950 border border-green-800/80 text-green-400 hover:bg-green-900/40 transition flex items-center justify-center gap-1.5 shadow-sm">
+                 <Dices size={12} /> STAGE RANDOM EASY
+               </button>
+               <button onClick={() => stageRandomByDifficulty('Medium')} className="flex-1 md:flex-none px-4 py-2.5 rounded-lg font-bold text-xs bg-yellow-950 border border-yellow-800/80 text-yellow-400 hover:bg-yellow-900/40 transition flex items-center justify-center gap-1.5 shadow-sm">
+                 <Dices size={12} /> STAGE RANDOM MEDIUM
+               </button>
+               <button onClick={() => stageRandomByDifficulty('Hard')} className="flex-1 md:flex-none px-4 py-2.5 rounded-lg font-bold text-xs bg-red-950 border border-red-800/80 text-red-400 hover:bg-red-900/40 transition flex items-center justify-center gap-1.5 shadow-sm">
+                 <Dices size={12} /> STAGE RANDOM HARD
+               </button>
+             </div>
           </div>
         </div>
       ) : (

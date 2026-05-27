@@ -52,6 +52,40 @@ export default function AttendingPanel({
     }
   }, [chatMessages, isTyping]);
 
+  const handleActionClick = (actionKey) => {
+    if (actionKey.startsWith('audit ')) {
+      setActiveTab('chat');
+      const userMessage = {
+        id: `user-${Date.now()}`,
+        sender: 'user',
+        text: actionKey.toUpperCase(),
+        timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m`
+      };
+      setChatMessages(prev => [...prev, userMessage]);
+      setIsTyping(true);
+      setTimeout(() => {
+        const attendingReply = getAttendingResponse(actionKey, {
+          vitals,
+          patient,
+          activeMeds,
+          surgicalPhase,
+          time,
+          logs
+        });
+        const responseMessage = {
+          id: `attending-${Date.now()}`,
+          sender: 'attending',
+          text: attendingReply,
+          timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m`
+        };
+        setChatMessages(prev => [...prev, responseMessage]);
+        setIsTyping(false);
+      }, 600);
+    } else {
+      if (onActionClick) onActionClick(actionKey);
+    }
+  };
+
   const handleSendMessage = (e) => {
     if (e) e.preventDefault();
     if (!userInput.trim()) return;
@@ -184,7 +218,7 @@ export default function AttendingPanel({
 
       {/* Sidebar Panel */}
       <div 
-        className={`fixed top-16 right-0 h-[calc(100vh-4rem)] z-40 w-96 bg-slate-900/90 border-l border-slate-800 text-white font-mono flex flex-col transition-all duration-350 shadow-2xl backdrop-blur-md ${
+        className={`fixed top-16 right-0 h-[calc(100vh-4rem)] z-40 w-full max-w-sm md:w-96 bg-slate-900/90 border-l border-slate-800 text-white font-mono flex flex-col transition-all duration-350 shadow-2xl backdrop-blur-md ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -262,13 +296,12 @@ export default function AttendingPanel({
               </p>
             </div>
 
-            {/* Active Consultation Message Card */}
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar">
+                        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar">
               {primaryGuidance ? (
                 <div className={`p-4 rounded-xl border flex flex-col gap-3 transition-all animate-in fade-in duration-300 ${getPriorityColor(primaryGuidance.priority).bg}`}>
                   <div className="flex justify-between items-center border-b border-slate-800/30 pb-2">
                     <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded border ${getPriorityColor(primaryGuidance.priority).badge}`}>
-                      {getPriorityColor(primaryGuidance.priority).icon} {primaryGuidance.priority}
+                       {getPriorityColor(primaryGuidance.priority).icon} {primaryGuidance.priority}
                     </span>
                     <span className="text-[9px] text-slate-500 font-semibold flex items-center gap-1">
                       <Clock size={10} /> {formatTime ? formatTime(time) : `${Math.floor(time / 60)}m`}
@@ -280,14 +313,14 @@ export default function AttendingPanel({
                   </h4>
                   
                   <p className="text-[11px] leading-relaxed text-slate-200 bg-slate-950/30 p-3 rounded border border-slate-900/40 font-medium">
-                    {parseAndRenderText(primaryGuidance.text, onActionClick)}
+                    {parseAndRenderText(primaryGuidance.text, handleActionClick)}
                   </p>
-
+ 
                   {primaryGuidance.suggestion && (
                     <div className="flex items-start gap-2 bg-slate-950/60 p-2.5 rounded border border-slate-900/80 mt-1">
                       <ArrowRight size={14} className="text-cyan-400 shrink-0 mt-0.5" />
                       <span className="text-[10px] font-bold text-cyan-300 leading-snug">
-                        {parseAndRenderText(primaryGuidance.suggestion, onActionClick)}
+                        {parseAndRenderText(primaryGuidance.suggestion, handleActionClick)}
                       </span>
                     </div>
                   )}
@@ -303,7 +336,7 @@ export default function AttendingPanel({
                   </span>
                 </div>
               )}
-
+ 
               {/* Call Attending Call-to-Action Button */}
               <button
                 onClick={handleCallAttending}
@@ -313,14 +346,14 @@ export default function AttendingPanel({
                 CALL ATTENDING CONSULT
               </button>
             </div>
-
+ 
             {/* Message Log History Panel */}
             <div className="border-t border-slate-800 bg-slate-950/60 h-44 flex flex-col shrink-0">
               <div className="px-4 py-2 border-b border-slate-800 bg-slate-950/90 flex justify-between items-center shrink-0">
                 <span className="text-[9px] font-extrabold uppercase text-slate-400 tracking-wider">Clinical Guidance Log</span>
                 <span className="text-[9px] text-slate-500 font-semibold">{messageHistory.length} messages</span>
               </div>
-
+ 
               <div className="flex-1 overflow-y-auto p-3 flex flex-col gap-2 custom-scrollbar text-[10px]">
                 {messageHistory.length === 0 ? (
                   <div className="text-center py-6 text-slate-600 italic">No historical log entries.</div>
@@ -331,7 +364,7 @@ export default function AttendingPanel({
                         <span className="font-extrabold uppercase text-cyan-400">{msg.stepName || 'ALERT'}</span>
                         <span>{msg.timestamp}</span>
                       </div>
-                      <p className="text-slate-300 leading-normal">{parseAndRenderText(msg.text, onActionClick)}</p>
+                      <p className="text-slate-300 leading-normal">{parseAndRenderText(msg.text, handleActionClick)}</p>
                     </div>
                   ))
                 )}
@@ -360,7 +393,7 @@ export default function AttendingPanel({
                   >
                     {msg.sender === 'user' 
                       ? msg.text 
-                      : parseAndRenderText(msg.text, onActionClick)
+                      : parseAndRenderText(msg.text, handleActionClick)
                     }
                   </div>
                 </div>
@@ -378,7 +411,7 @@ export default function AttendingPanel({
               )}
               <div ref={chatEndRef} />
             </div>
-
+ 
             {/* Input Form */}
             <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-850 bg-slate-950/60 flex gap-2 shrink-0">
               <input
@@ -392,7 +425,7 @@ export default function AttendingPanel({
               <button
                 type="submit"
                 disabled={isTyping || !userInput.trim()}
-                className="px-3 py-2 bg-gradient-to-r from-purple-800 to-indigo-850 hover:from-purple-700 hover:to-indigo-750 disabled:opacity-50 text-white rounded-lg transition-all flex items-center justify-center border border-purple-600/30 active:scale-95 shadow-lg shadow-purple-950/20"
+                className="px-3 py-2 bg-gradient-to-r from-purple-800 to-indigo-850 hover:from-purple-700 hover:to-indigo-755 disabled:opacity-50 text-white rounded-lg transition-all flex items-center justify-center border border-purple-600/30 active:scale-95 shadow-lg shadow-purple-950/20"
               >
                 <ChevronRight size={16} />
               </button>
@@ -400,7 +433,7 @@ export default function AttendingPanel({
           </div>
         )}
       </div>
-
+ 
       {/* Comprehensive Audit Consult Modal */}
       {showAuditModal && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 font-mono">
@@ -420,7 +453,7 @@ export default function AttendingPanel({
                 <X size={20} />
               </button>
             </div>
-
+ 
             {/* Quick Patient Snapshot */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 bg-slate-950 p-3.5 rounded-xl border border-slate-800/80 text-[10px] text-slate-400">
               <div>
@@ -440,7 +473,7 @@ export default function AttendingPanel({
                 <span className="font-bold text-yellow-500 text-xs">{Math.round(patient.ischemicDamage || 0)} / {patient.arrestThreshold || 1200}</span>
               </div>
             </div>
-
+ 
             {/* Detailed Clinical Findings */}
             <div className="flex flex-col gap-3 my-2">
               <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 border-b border-slate-800 pb-1 flex items-center gap-1.5">
@@ -472,11 +505,11 @@ export default function AttendingPanel({
                         {item.priority}
                       </span>
                     </div>
-                    <p>{parseAndRenderText(item.message, onActionClick)}</p>
+                    <p>{parseAndRenderText(item.message, handleActionClick)}</p>
                     {item.action && (
                       <div className="flex items-center gap-1.5 mt-1 border-t border-slate-800/40 pt-1.5 text-cyan-300 font-bold text-[10px]">
                         <ArrowRight size={12} />
-                        <span>Recommended Action: {parseAndRenderText(item.action, onActionClick)}</span>
+                        <span>Recommended Action: {parseAndRenderText(item.action, handleActionClick)}</span>
                       </div>
                     )}
                   </div>

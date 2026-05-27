@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { usePhysiology } from './engine/usePhysiology';
 import { Search, Activity } from 'lucide-react';
 import { CaseManager } from './components/controls/CaseManager';
@@ -12,6 +12,7 @@ import { ActionPanel } from './components/controls/ActionPanel';
 import { Pharmacopoeia } from './components/controls/Pharmacopoeia';
 import { AirwayPanel } from './components/controls/AirwayPanel';
 import { LogPanel } from './components/controls/LogPanel';
+import { LinesResusPanel } from './components/controls/LinesResusPanel';
 import { AccessModal, PocusModal, SetupModal, TubeConfirmModal, AirwayQuizModal, ViewModal, PreopModal, MsmaidsModal, PostIntubationModal, ExtubationModal } from './components/modals/Modals';
 import { PreOpEMR } from './components/modals/PreOpEMR';
 
@@ -98,6 +99,7 @@ export default function App() {
   const [setupModal, setSetupModal] = useState(false);
   const [pocusModal, setPocusModal] = useState({ show: false, title: '', finding: '' });
   const [isCyclingNibp, setIsCyclingNibp] = useState(false);
+  const [isAirwayCollapsed, setIsAirwayCollapsed] = useState(false);
 
   const [preopModal, setPreopModal] = useState(false);
   const [preOpEMR, setPreOpEMR] = useState(false);
@@ -134,6 +136,26 @@ export default function App() {
     logEvent,
     msmaidsComplete
   });
+
+  const vitalsRef = useRef(vitals);
+  const timeRef = useRef(time);
+  useEffect(() => {
+    vitalsRef.current = vitals;
+  }, [vitals]);
+  useEffect(() => {
+    timeRef.current = time;
+  }, [time]);
+
+  // Periodic NIBP cycle evaluation
+  useEffect(() => {
+    const isPaused = viewModal.show || setupModal || pocusModal.show || airwayQuizModal.show || accessModal.show || tubeConfirmModal.show || preopModal || msmaidsModal || postIntubationModal || extubationModal;
+    if (isRunning && !isPaused && nibpIntervalMs > 0 && !patient?.hasALine) {
+      const intervalSec = nibpIntervalMs / 1000;
+      if (time > 0 && time % intervalSec === 0 && !isCyclingNibp) {
+        cycleNibp();
+      }
+    }
+  }, [time, isRunning, nibpIntervalMs, isCyclingNibp, patient?.hasALine, viewModal.show, setupModal, pocusModal.show, airwayQuizModal.show, accessModal.show, tubeConfirmModal.show, preopModal, msmaidsModal, postIntubationModal, extubationModal]);
 
   const attendingGuidance = evaluateAttendingGuidance({
     vitals,
@@ -323,8 +345,10 @@ export default function App() {
     setIsCyclingNibp(true);
     logEvent(`Started NIBP measurement cycle (15s)...`);
     setTimeout(() => {
-      setNibp({ sys: vitals.sys, dia: vitals.dia, time: time }); 
-      logEvent(`NIBP Result: ${Math.round(vitals.sys)}/${Math.round(vitals.dia)} mmHg`); 
+      const currentVitals = vitalsRef.current;
+      const currentTime = timeRef.current;
+      setNibp({ sys: currentVitals.sys, dia: currentVitals.dia, time: currentTime }); 
+      logEvent(`NIBP Result: ${Math.round(currentVitals.sys)}/${Math.round(currentVitals.dia)} mmHg`); 
       setIsCyclingNibp(false);
     }, 15000); 
   };
@@ -889,7 +913,7 @@ const generateClinicalHint = () => {
         <div className="absolute top-[-10%] left-[-10%] w-96 h-96 bg-cyan-900/20 rounded-full blur-[100px] pointer-events-none"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-blue-900/20 rounded-full blur-[100px] pointer-events-none"></div>
         
-        <h1 className="text-5xl font-black text-cyan-400 mb-8 flex items-center gap-4 z-10 drop-shadow-[0_0_15px_rgba(34,211,238,0.4)]">
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-cyan-400 mb-8 flex items-center gap-4 z-10 drop-shadow-[0_0_15px_rgba(34,211,238,0.4)]">
            <Activity size={48} className="animate-pulse"/> AirwaySim OS
         </h1>
         
@@ -901,6 +925,17 @@ const generateClinicalHint = () => {
              openPreOpEMR={openPreOpEMR}
            />
         </div>
+
+        {preOpEMR && stagedCase && (
+          <PreOpEMR
+            show={preOpEMR}
+            close={() => setPreOpEMR(false)}
+            stagedCase={stagedCase}
+            setStagedCase={setStagedCase}
+            onStart={startCase}
+            logEvent={logEvent}
+          />
+        )}
       </div>
     );
   }
@@ -968,8 +1003,8 @@ const generateClinicalHint = () => {
         setShowLabPanel={setShowLabPanel} 
         isRunning={isRunning} 
         setIsRunning={setIsRunning} 
-        showPreOp={showPreOp}
-        setShowPreOp={setShowPreOp}
+        showPreOp={preOpEMR}
+        setShowPreOp={setPreOpEMR}
       />
 
       <PrimaryMonitor 
@@ -1004,7 +1039,7 @@ const generateClinicalHint = () => {
         patient={patient} 
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-[calc(100vh-280px)] min-h-[550px] items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 h-auto xl:h-[calc(100vh-320px)] xl:min-h-[550px] items-start">
         <ActionPanel
            patient={patient} 
            setPatient={setPatient} 
@@ -1040,25 +1075,39 @@ const generateClinicalHint = () => {
            processMed={handleProcessMed} 
            patient={patient} 
            setPatient={setPatient}
+           updateFluidRate={handleUpdateFluidRate}
+           removeFluid={handleRemoveFluid}
+           logEvent={logEvent}
         />
         
-        <AirwayPanel 
-           patient={patient} 
-           setPatient={setPatient} 
-           handleSuction={handleSuction} 
-           optimizeAirway={handleOptimizeAirway} 
-           pushMed={handlePushMed} 
-           setViewModal={setViewModal} 
-           setSetupModal={setSetupModal} 
-           setTubeConfirmModal={setTubeConfirmModal} 
-           logEvent={logEvent} 
-           handleSurgicalCric={handleSurgicalCric}
-           handleExtubation={handleExtubation}
-           activeMeds={activeMeds}
-           processMed={handleProcessMed}
-           updateFluidRate={updateFluidRate}
-           removeFluid={handleRemoveFluid}
-        />
+        <div className="col-span-1 flex flex-col gap-4 h-[500px] xl:h-full xl:max-h-full">
+          <LinesResusPanel
+             patient={patient}
+             setPatient={setPatient}
+             updateFluidRate={handleUpdateFluidRate}
+             removeFluid={handleRemoveFluid}
+             logEvent={logEvent}
+             processMed={handleProcessMed}
+          />
+          <AirwayPanel 
+             patient={patient} 
+             setPatient={setPatient} 
+             handleSuction={handleSuction} 
+             optimizeAirway={handleOptimizeAirway} 
+             pushMed={handlePushMed} 
+             setViewModal={setViewModal} 
+             setSetupModal={setSetupModal} 
+             setTubeConfirmModal={setTubeConfirmModal} 
+             logEvent={logEvent} 
+             handleSurgicalCric={handleSurgicalCric}
+             handleExtubation={handleExtubation}
+             setExtubationModal={setExtubationModal}
+             setPostIntubationModal={setPostIntubationModal}
+             checkCuffLeak={checkCuffLeak}
+             isCollapsed={isAirwayCollapsed}
+             setIsCollapsed={setIsAirwayCollapsed}
+          />
+        </div>
         
         <LogPanel 
            logs={logs} 
@@ -1134,14 +1183,17 @@ const generateClinicalHint = () => {
         performExtubation={handleExtubation}
       />
 
-      <PreOpEMR
-        show={preOpEMR}
-        close={() => setPreOpEMR(false)}
-        stagedCase={stagedCase}
-        setStagedCase={setStagedCase}
-        onStart={startCase}
-        logEvent={logEvent}
-      />
+      {preOpEMR && (activeCase || stagedCase) && (
+        <PreOpEMR
+          show={preOpEMR}
+          close={() => setPreOpEMR(false)}
+          stagedCase={activeCase || stagedCase}
+          setStagedCase={activeCase ? () => {} : setStagedCase}
+          onStart={activeCase ? () => {} : startCase}
+          logEvent={logEvent}
+          intraop={!!activeCase}
+        />
+      )}
 
       {activeCase && (
         <AttendingPanel

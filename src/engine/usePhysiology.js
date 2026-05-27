@@ -487,26 +487,6 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
       }
       logEvent(`🔁 Started/Updated ${medData.name} infusion at ${doseInput} ${unit}.`);
     } else if (type === 'Stop Infusion') {
-      
-      // Rigorously update the physical access line record if a line context is present
-      if (lineId) {
-        setPatient(prev => {
-          const updatedLines = (prev.accessLines || []).map(l => {
-            if (l.id !== lineId) return l;
-            const meds = [...(l.activeMedInfusions || [])];
-            const idx = meds.findIndex(m => m.medId === medId);
-            if (idx >= 0) {
-              meds[idx] = { ...meds[idx], rate: parseFloat(doseInput), unit };
-            } else {
-              meds.push({ medId, rate: parseFloat(doseInput), unit });
-            }
-            return { ...l, activeMedInfusions: meds };
-          });
-          return { ...prev, accessLines: updatedLines };
-        });
-      }
-      logEvent(`🔁 Started/Updated ${medData.name} infusion at ${doseInput} ${unit}.`);
-    } else if (type === 'Stop Infusion') {
       existingModel.setInfusion(0);
       existingModel.displayDose = 0;
       
@@ -848,10 +828,14 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               totalHrDelta += effects.hrDelta || 0;
               totalRrDelta += effects.rrDelta || 0;
               
-              if (effects.diaDelta) drugSvrMod += (effects.diaDelta / 80); 
+              if (effects.diaDelta) {
+                  drugSvrMod *= (1.0 + (effects.diaDelta / 120)); 
+              }
               if (effects.sysDelta) {
-                 const pulsePressureDelta = effects.sysDelta - (effects.diaDelta || 0);
-                 drugInotropyMod += (pulsePressureDelta / 60); 
+                  const pulsePressureDelta = effects.sysDelta - (effects.diaDelta || 0);
+                  if (pulsePressureDelta < 0) {
+                      drugInotropyMod *= (1.0 + (pulsePressureDelta / 100)); 
+                  }
               }
               
               if (effects.group === 'Sedative') sedativeEff = 1 - (1 - sedativeEff) * (1 - effects.hypnoticEffect);
@@ -874,7 +858,11 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               }
               if (occupancy > maxNMJOccupancy) maxNMJOccupancy = occupancy;
             });
-          }
+            
+            // Enforce clinical safety floors to prevent complete circulatory arrest from sedatives alone
+            drugSvrMod = Math.max(0.55, drugSvrMod);
+            drugInotropyMod = Math.max(0.50, drugInotropyMod);
+        }
 
           // === ACTIVE METABOLITES ACCUMULATION ===
           const renalMult = (st.patient.isRenal || st.patient.renalFailure) ? 0.1 : 1.0;
@@ -946,10 +934,17 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let currentMac = 0; let currentEtAgent = 0; let currentEtN2O = 0; 
           let deliveredFiO2 = 21; let n2oPercent = 0;
           
-          const baseHb = st.patient.trauma ? 11.2 : 14.5;
-          const currentEbl = (st.patient.ebl || 0) + (st.patient.bleedRate || 0);
-          const bloodLossRatio = currentEbl / (st.patient.ebv || 5000);
-          const currentHb = Math.max(3.0, (baseHb * (1 - bloodLossRatio)) - ((st.intravascularVolume / (st.patient.ebv || 5000)) * 3.0));
+           const baseHb = st.patient.trauma ? 11.2 : 14.5;
+           // Bleeding is only active during Incision or Maintenance phases, unless it's a trauma case with pre-existing bleeding
+           let activeBleedRate = 0;
+           if (st.patient.trauma) {
+               activeBleedRate = st.patient.bleedRate !== undefined ? st.patient.bleedRate : 1.5;
+           } else if (st.surgicalPhase === 'Incision' || st.surgicalPhase === 'Maintenance') {
+               activeBleedRate = st.patient.bleedRate !== undefined ? st.patient.bleedRate : 0.05;
+           }
+           const currentEbl = (st.patient.ebl || 0) + activeBleedRate;
+           const bloodLossRatio = currentEbl / (st.patient.ebv || 5000);
+           const currentHb = Math.max(3.0, (baseHb * (1 - bloodLossRatio)) - ((st.intravascularVolume / (st.patient.ebv || 5000)) * 3.0));
 
           if (st.gasSettings && st.patient.airwaySecured) {
             const o2F = st.gasSettings.o2Flow || 0; 
@@ -1004,18 +999,67 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           }
 
           const aggregateHypnosis = sedativeEff + opioidEff - (sedativeEff * opioidEff); 
-          const macBAR_Multiplier = Math.max(0.1, 1.5 - (opioidEff * 1.5)); 
-          const autonomicBlunting = Math.min(1.0, currentMac / macBAR_Multiplier);
-          const totalAnalgesia = Math.min(1.0, (opioidEff * 0.8) + (autonomicBlunting * 0.6)); 
+          
+          // === HIGH-FIDELITY CLINICAL SYMPATHOLYSIS MODEL ===
+          // Central Sympatholysis: Central blunting of the sympathetic surge outflow
+          const opioidAnalgesia = opioidEff * 0.85;
+          const macAnalgesia = Math.min(0.90, (currentMac / 1.5) * 0.75); // MAC-BAR is typically 1.5 - 2.0 MAC
+          const sedativeBlunting = sedativeEff * 0.40;
+          
+          const dexmedModel = st.activeMeds?.find(m => m.name === 'Dexmedetomidine');
+          const dexmedCe = dexmedModel ? dexmedModel.Ce : 0;
+          const dexmedEff = dexmedModel ? (dexmedCe / (dexmedCe + (dexmedModel.pd?.c50 || 1.2))) : 0;
+          const dexmedBlunting = dexmedEff * 0.80; // Central alpha-2 sympatholysis is highly effective
+          
+          const lidoModel = st.activeMeds?.find(m => m.name === 'Lidocaine');
+          const lidoCe = lidoModel ? lidoModel.Ce : 0;
+          const lidoEff = lidoModel ? (lidoCe / (lidoCe + (lidoModel.pd?.c50 || 3.0))) : 0;
+          const lidoBlunting = Math.min(0.40, lidoEff + (st.patient.isTopicalized ? 0.30 : 0.0));
+          
+          // Synergistic central sympatholysis (probability-like saturation formula)
+          const centralSympatholysis = 1.0 - (1.0 - opioidAnalgesia) * (1.0 - macAnalgesia) * (1.0 - sedativeBlunting) * (1.0 - dexmedBlunting) * (1.0 - lidoBlunting);
           
           let stimulus = 0;
-          if (st.surgicalPhase === 'Induction') stimulus = 30;
-          if (st.surgicalPhase === 'Incision') stimulus = 120;
-          if (st.surgicalPhase === 'Maintenance') stimulus = 40;
-          if (st.surgicalPhase === 'Emergence') stimulus = 20;
+          if (st.surgicalPhase === 'Induction') stimulus = 20;    // Mild autonomic stimulus during intubation/airway manipulation
+          if (st.surgicalPhase === 'Incision') stimulus = 45;     // Incision stimulus (clinically realistic max)
+          if (st.surgicalPhase === 'Maintenance') stimulus = 15;  // Ongoing surgical stimulus during maintenance
+          if (st.surgicalPhase === 'Emergence') stimulus = 10;    // Emergence sympathetic drive
           
-          if (safePaCO2 > 55) stimulus += (safePaCO2 - 55) * 2;
-          const unbluntedStimulus = Math.max(0, stimulus * (1 - totalAnalgesia));
+          if (safePaCO2 > 55) {
+              stimulus += Math.min(25, (safePaCO2 - 55) * 1.5); // Hypercapnia-induced sympathetic drive
+          }
+          
+          // Unblunted sympathetic outflow (0.0 to stimulus value)
+          const unbluntedSympatheticDrive = Math.max(0, stimulus * (1.0 - Math.min(1.0, centralSympatholysis)));
+          
+          // Backwards compatibility placeholder for any other systems expecting unbluntedStimulus
+          const unbluntedStimulus = unbluntedSympatheticDrive;
+          
+          // Peripheral Beta-1 Receptor Blockade (directly blocks chronotropy and inotropy spikes)
+          const esmololModel = st.activeMeds?.find(m => m.name === 'Esmolol');
+          const labetalolModel = st.activeMeds?.find(m => m.name === 'Labetalol');
+          const metoprololModel = st.activeMeds?.find(m => m.name === 'Metoprolol');
+          
+          const esmololCe = esmololModel ? esmololModel.Ce : 0;
+          const esmololEff = esmololModel ? (esmololCe / (esmololCe + (esmololModel.pd?.c50 || 1.0))) : 0;
+          
+          const labetalolCe = labetalolModel ? labetalolModel.Ce : 0;
+          const labetalolEff = labetalolModel ? (labetalolCe / (labetalolCe + (labetalolModel.pd?.c50 || 0.5))) : 0;
+          
+          const metoprololCe = metoprololModel ? metoprololModel.Ce : 0;
+          const metoprololEff = metoprololModel ? (metoprololCe / (metoprololCe + (metoprololModel.pd?.c50 || 0.1))) : 0;
+          
+          // Combined Beta-1 blockade fraction (0.0 to 0.95 maximum)
+          const betaBlockade = Math.min(0.95, (esmololEff * 0.90) + (labetalolEff * 0.75) + (metoprololEff * 0.85));
+          
+          // Heart rate (chronotropy) sympathetic spike
+          const hrSympatheticSpike = unbluntedSympatheticDrive * 0.85 * (1.0 - betaBlockade);
+          
+          // Contractility (inotropy) sympathetic spike
+          const contractilitySympatheticSpike = (unbluntedSympatheticDrive / 300) * (1.0 - betaBlockade);
+          
+          // SVR sympathetic vasoconstriction spike (directly blunted by active vascular dilation)
+          const svrSympatheticSpike = unbluntedSympatheticDrive * 7.5 * Math.max(0.3, drugSvrMod);
 
           // === CA-1 PHASE 1 THERMOREGULATION & SHIVERING METABOLISM ===
           let tempDropRate = 0.0001;
@@ -1096,13 +1140,15 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               if (st.patient.airwaySecured) {
                   effectiveMV_L_min = st.vitals.mv || 6.0;
               } else {
-                  effectiveMV_L_min = ((st.targetVitals.rr || 12) * 0.5); // Spontaneous ~6 L/min
+                  const currentRR = st.vitals.rr !== undefined ? st.vitals.rr : 12;
+                  effectiveMV_L_min = (currentRR * 0.5); // Spontaneous MV based on actual RR
                   if (st.patient.currentO2Flow > 0) effectiveMV_L_min = Math.max(effectiveMV_L_min, st.patient.currentO2Flow);
               }
               const k = effectiveMV_L_min / 60 / currentFRC_L; // per-second rate constant
 
               // Exponential approach to target: buffer += k * (target - current)
-              buffer += k * (targetO2_L - buffer);
+              // Oxygen is consumed continuously, even while breathing!
+              buffer += k * (targetO2_L - buffer) - VO2_sec;
           }
           buffer = Math.max(0, Math.min(currentFRC_L, buffer)); // Clamp: 0 to FRC
           const currentBuffer = buffer; // This is now in liters of O2
@@ -1325,7 +1371,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           }
 
           const effectiveIntravascularVolume = st.intravascularVolume + positionPreloadMod;
-          const inotropyFinal = 1.0 - (newStunning / 100) + (unbluntedStimulus / 500) + (drugInotropyMod - 1.0);
+          const inotropyFinal = 1.0 - (newStunning / 100) + contractilitySympatheticSpike + (drugInotropyMod - 1.0);
           const preloadSV = Math.max(0.1, 1.0 - (bloodLossRatio * 1.2) + (effectiveIntravascularVolume / 2500));
           
           const shiveringHRDrive = (shiveringMultiplier > 1.0) ? ((shiveringMultiplier - 1.0) * 15) : 0;
@@ -1344,7 +1390,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               adjustedHypovolemicTachy *= 0.15;
           }
 
-          const targetHR = Math.max(0, (st.targetVitals.hr || 70) + totalHrDelta + adjustedAutonomicHrMod + adjustedHypovolemicTachy + unbluntedStimulus + shiveringHRDrive + afibHRFlutter + (anaphylaxisHrMod || 0));
+          const targetHR = Math.max(0, (st.targetVitals.hr || 70) + totalHrDelta + adjustedAutonomicHrMod + adjustedHypovolemicTachy + hrSympatheticSpike + shiveringHRDrive + afibHRFlutter + (anaphylaxisHrMod || 0));
           
           // CHF EF-scaled Inotropic Penalty
           let chfInotropicPenalty = 1.0;
@@ -1363,7 +1409,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let currentSV = Math.min(maxSV, (st.patient.patientBaseSV || 70) * preloadSV * Math.max(0.1, inotropyFinal) * chfInotropicPenalty * afibSVModifier);
           
           const baseSVR = st.patient.patientBaseSVR || 1200;
-          let targetSVR = (baseSVR * svrMod * drugSvrMod * (st.patient.isSeptic ? 0.6 : 1.0) * (anaphylaxisSvrMod || 1.0)) + (unbluntedStimulus * 8);
+          let targetSVR = (baseSVR * svrMod * drugSvrMod * (st.patient.isSeptic ? 0.6 : 1.0) * (anaphylaxisSvrMod || 1.0)) + svrSympatheticSpike;
           
           if (targetSVR > 1600) currentSV *= (1600 / targetSVR); 
 
@@ -1490,8 +1536,14 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let hypoxiaSeverity = Math.max(0, 90 - newSpo2);
           let hypoPerfusionSeverity = Math.max(0, 55 - newCmap); 
           
-          let newDamage = (st.patient.ischemicDamage || 0) + (hypoxiaSeverity * 0.4) + (hypoPerfusionSeverity * 0.7);
-          if (st.patient.cprActive) newDamage = Math.max(0, newDamage - 1.5); 
+          let newDamage = (st.patient.ischemicDamage || 0);
+          if (st.patient.cprActive) {
+              // High-quality CPR with good oxygenation actively reverses ischemic damage
+              const recoveryRate = newSpo2 >= 80 ? 4.5 : 1.0;
+              newDamage = Math.max(0, newDamage - recoveryRate);
+          } else {
+              newDamage += (hypoxiaSeverity * 0.4) + (hypoPerfusionSeverity * 0.7);
+          } 
           
           const bloodLossRatioForArrest = currentEbl / (st.patient.ebv || 5000);
           

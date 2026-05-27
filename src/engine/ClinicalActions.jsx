@@ -32,9 +32,22 @@ export const CLINICAL_ACTIONS = {
 
   // UI Actions
   "review chart": { type: "ui", action: "review_chart", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)]" },
+  "pre-op EMR": { type: "ui", action: "review_chart", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)]" },
   "pre-op emr": { type: "ui", action: "review_chart", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)]" },
   "live labs": { type: "ui", action: "live_labs", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)]" },
-  "labs": { type: "ui", action: "live_labs", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)]" }
+  "labs": { type: "ui", action: "live_labs", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)]" },
+
+  // H's & T's Interactive Diagnostic Audits
+  "audit hypovolemia": { type: "audit", action: "audit_hypovolemia", color: "text-amber-400 border-amber-800 bg-amber-950/40 hover:bg-amber-900/60 shadow-[0_0_8px_rgba(245,158,11,0.15)] font-mono" },
+  "audit hypoxia": { type: "audit", action: "audit_hypoxia", color: "text-amber-400 border-amber-800 bg-amber-950/40 hover:bg-amber-900/60 shadow-[0_0_8px_rgba(245,158,11,0.15)] font-mono" },
+  "audit acidosis": { type: "audit", action: "audit_acidosis", color: "text-amber-400 border-amber-800 bg-amber-950/40 hover:bg-amber-900/60 shadow-[0_0_8px_rgba(245,158,11,0.15)] font-mono" },
+  "audit hyperkalemia": { type: "audit", action: "audit_hyperkalemia", color: "text-amber-400 border-amber-800 bg-amber-950/40 hover:bg-amber-900/60 shadow-[0_0_8px_rgba(245,158,11,0.15)] font-mono" },
+  "audit hypothermia": { type: "audit", action: "audit_hypothermia", color: "text-amber-400 border-amber-800 bg-amber-950/40 hover:bg-amber-900/60 shadow-[0_0_8px_rgba(245,158,11,0.15)] font-mono" },
+  "audit toxins": { type: "audit", action: "audit_toxins", color: "text-amber-400 border-amber-800 bg-amber-950/40 hover:bg-amber-900/60 shadow-[0_0_8px_rgba(245,158,11,0.15)] font-mono" },
+  "audit tension pneumothorax": { type: "audit", action: "audit_tension", color: "text-amber-400 border-amber-800 bg-amber-950/40 hover:bg-amber-900/60 shadow-[0_0_8px_rgba(245,158,11,0.15)] font-mono" },
+  "audit cardiac tamponade": { type: "audit", action: "audit_tamponade", color: "text-amber-400 border-amber-800 bg-amber-950/40 hover:bg-amber-900/60 shadow-[0_0_8px_rgba(245,158,11,0.15)] font-mono" },
+  "audit pulmonary thrombosis": { type: "audit", action: "audit_pulmonary", color: "text-amber-400 border-amber-800 bg-amber-950/40 hover:bg-amber-900/60 shadow-[0_0_8px_rgba(245,158,11,0.15)] font-mono" },
+  "audit coronary thrombosis": { type: "audit", action: "audit_coronary", color: "text-amber-400 border-amber-800 bg-amber-950/40 hover:bg-amber-900/60 shadow-[0_0_8px_rgba(245,158,11,0.15)] font-mono" }
 };
 
 const keywords = Object.keys(CLINICAL_ACTIONS).sort((a, b) => b.length - a.length);
