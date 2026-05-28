@@ -269,6 +269,14 @@ export default function App() {
 
     if (action.type === 'medication') {
       handleProcessMed(action.drug, action.dose, action.route, action.drugType, action.unit);
+    } else if (action.type === 'fluid') {
+      // Find the first available venous access line (non-arterial, non-failed)
+      const targetLine = patient.accessLines?.find(l => l.category !== 'Arterial Line' && !l.failed);
+      if (!targetLine) {
+        logEvent(`❌ FAILED: Cannot administer ${action.fluid}. No valid venous access line exists!`);
+      } else {
+        handlePushFluid(action.fluid, action.dose, targetLine.id);
+      }
     } else if (action.type === 'procedure') {
       if (action.action === 'suction') {
         handleSuction();
@@ -280,6 +288,156 @@ export default function App() {
         examineNpoHistory();
       } else if (action.action === 'airway_exam') {
         examineAirway();
+      } else if (action.action === 'place_piv') {
+        setAccessModal({ show: true, category: 'Peripheral IV' });
+      } else if (action.action === 'place_cvc') {
+        setAccessModal({ show: true, category: 'Central Line' });
+      } else if (action.action === 'place_io') {
+        setAccessModal({ show: true, category: 'Intraosseous (IO)' });
+      } else if (action.action === 'place_art') {
+        setAccessModal({ show: true, category: 'Arterial Line' });
+      } else if (action.action === 'msmaids') {
+        setMsmaidsModal(true);
+      } else if (action.action === 'preop') {
+        setPreopModal(true);
+      } else if (action.action === 'post_intub') {
+        setPostIntubationModal(true);
+      } else if (action.action === 'extub') {
+        setExtubationModal(true);
+      } else if (action.action === 'cuff_leak') {
+        checkCuffLeak();
+      } else if (action.action === 'cpr') {
+        toggleCPR();
+      } else if (action.action === 'check_rhythm') {
+        checkRhythm();
+      } else if (action.action === 'shock') {
+        deliverShock(defibSettings.joules, defibSettings.sync);
+      } else if (action.action === 'jaw_thrust') {
+        logEvent("Applied firm Jaw Thrust and Two-Handed Mask Seal. Upper airway soft tissue obstruction temporarily relieved.");
+        setPatient(p => ({ ...p, bmvOptimized: true }));
+      } else if (action.action === 'place_opa') {
+        optimizeAirway("Oropharyngeal Airway (OPA) (Size 90mm)");
+      } else if (action.action === 'place_npa') {
+        if (patient.trauma) {
+          logEvent(`🚨 CRITICAL ERROR: Attempted NPA placement in severe facial/basilar skull trauma! The device breached the fractured cribriform plate and entered the cranial vault!`);
+        } else {
+          optimizeAirway("Nasopharyngeal Airway (NPA) (Size 30Fr)");
+        }
+      } else if (action.action === 'place_lma') {
+        optimizeAirway("Laryngeal Mask Airway (LMA) (Size 4)");
+      } else if (action.action === 'spray_lidocaine') {
+        pushMed('Topical Lidocaine Spray', 1);
+      } else if (action.action === 'surgical_cric') {
+        handleSurgicalCric();
+      } else if (action.action === 'extubate') {
+        handleExtubation();
+      } else if (action.action === 'auscultate_lungs') {
+        setTubeConfirmModal({ show: true, result: '' });
+      } else if (action.action === 'toggle_bis') {
+        handleToggleBis();
+      } else if (action.action === 'toggle_tof') {
+        handleToggleTof();
+      } else if (action.action === 'pull_back') {
+        adjustTube('pull_back');
+      } else if (action.action === 'remove_tube') {
+        adjustTube('remove');
+      } else if (action.action.startsWith('swap_')) {
+        const targetLines = patient.accessLines?.filter(l => l.category !== 'Arterial Line' && !l.failed);
+        if (!targetLines || targetLines.length === 0) {
+          logEvent(`❌ FAILED: No active venous lines to swap delivery equipment!`);
+        } else {
+          const eqId = action.action.replace('swap_', '');
+          setPatient(prev => {
+            const newLines = (prev.accessLines || []).map(l => {
+              if (l.category !== 'Arterial Line' && !l.failed) {
+                return { ...l, fluidLine: eqId };
+              }
+              return l;
+            });
+            return { ...prev, accessLines: newLines };
+          });
+          logEvent(`Swapped delivery equipment to ${eqId.toUpperCase()} on all active venous lines.`);
+        }
+      } else if (action.action.startsWith('pos_')) {
+        const rawPos = action.action.replace('pos_', '');
+        const posMap = {
+          supine: 'Supine',
+          sniffing: 'Sniffing',
+          ramped: 'Ramped',
+          trendelenburg: 'Trendelenburg',
+          rev_trendelenburg: 'Rev Trendelenburg',
+          lithotomy: 'Lithotomy',
+          lateral: 'Lateral',
+          prone: 'Prone',
+          sitting: 'Sitting'
+        };
+        const finalPos = posMap[rawPos] || 'Supine';
+        setPatient(p => ({ ...p, position: finalPos }));
+        logEvent(`Position updated to ${finalPos} via Attending recommendation.`);
+      } else if (action.action.startsWith('phase_')) {
+        const rawPhase = action.action.replace('phase_', '');
+        const phaseMap = {
+          preop: 'Pre-Op',
+          induction: 'Induction',
+          incision: 'Incision',
+          maintenance: 'Maintenance',
+          emergence: 'Emergence'
+        };
+        const targetPhase = phaseMap[rawPhase];
+        if (targetPhase === 'Induction' && !msmaidsComplete && !patient.emergentRSI) {
+          logEvent("⚠️ CLINICAL INTERLOCK BLOCKED: Induction phase locked. Complete MSMAIDS pre-induction checklist first.");
+          setMsmaidsModal(true);
+        } else {
+          setSurgicalPhase(targetPhase);
+          logEvent(`Surgical phase advanced to ${targetPhase}.`);
+        }
+      } else if (action.action.startsWith('pocus_')) {
+        const rawPocus = action.action.replace('pocus_', '');
+        const pocusMap = {
+          cardiac: 'Cardiac (TTE)',
+          lung: 'Lung',
+          gastric: 'Gastric',
+          efast: 'eFAST'
+        };
+        const finalType = pocusMap[rawPocus];
+        if (finalType) {
+          handlePocus(finalType);
+        }
+      } else if (action.action.startsWith('o2_')) {
+        const rawO2 = action.action.replace('o2_', '');
+        const o2Map = {
+          bmv: 'Bag-Mask Valve (BMV)',
+          cannula: 'Nasal Cannula',
+          mask: 'Simple Face Mask',
+          nrb: 'Non-Rebreather Mask (NRB)',
+          hfnc: 'High Flow Nasal Cannula (HFNC)',
+          cpap: 'CPAP',
+          bipap: 'BiPAP',
+          room_air: 'Room Air'
+        };
+        const finalDevice = o2Map[rawO2];
+        if (finalDevice) {
+          handleSetO2(finalDevice);
+        }
+      } else if (action.action.startsWith('order_')) {
+        const rawLab = action.action.replace('order_', '');
+        const labMap = {
+          abg: 'ABG',
+          vbg: 'VBG',
+          cbc: 'CBC',
+          cmp: 'CMP',
+          coags: 'Coagulation',
+          teg: 'TEG',
+          lfts: 'LFTs',
+          thyroid: 'Thyroid',
+          urinalysis: 'Urinalysis',
+          pregnancy: 'Pregnancy',
+          ts: 'Type & Screen',
+          tcross: 'Type & Cross',
+          hba1c: 'HbA1c'
+        };
+        const finalLab = labMap[rawLab] || 'ABG';
+        generateLab(finalLab);
       }
     } else if (action.type === 'ui') {
       if (action.action === 'review_chart') {
@@ -288,6 +446,8 @@ export default function App() {
         setShowLabPanel(true);
       }
     }
+
+    // DEVELOPER NOTE: If any new feature or action is added to the simulator in the future, make sure to add its execution handler here inside handleExecuteClinicalAction.
   };
 
   const adjustTube = (action) => {
