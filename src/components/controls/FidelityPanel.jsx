@@ -33,7 +33,9 @@ export default function FidelityPanel({
   checkCuffLeak,
   examineNpoHistory,
   generateLab,
-  logEvent
+  logEvent,
+  setSurgicalPhase,
+  handleExtubation
 }) {
   const [auditResult, setAuditResult] = useState(null);
   const [isFuzzing, setIsFuzzing] = useState(false);
@@ -262,7 +264,9 @@ export default function FidelityPanel({
             examineNpoHistory,
             generateLab,
             logEvent,
-            patient: activeState.patient
+            patient: activeState.patient,
+            setSurgicalPhase,
+            handleExtubation
           });
 
           setFuzzLogs(prev => [`Step ${step}/${totalSteps}: ${actionText}`, ...prev]);
@@ -551,6 +555,7 @@ export default function FidelityPanel({
                     className="w-full px-3 py-2 bg-slate-950/85 border border-purple-500/25 focus:border-purple-500 rounded-xl text-[10.5px] font-mono text-purple-300 focus:outline-none transition cursor-pointer"
                   >
                     <option value="guided">📋 Standard Guided Pathway</option>
+                    <option value="ultimate">🧬 Exhaustive Clinical Coverage Strategy</option>
                     <option value="polypharmacy">💊 Polypharmacy & Synergism Strategy</option>
                     <option value="malpractice">🚨 Human Error / Malpractice Strategy</option>
                     <option value="mechanical">🔧 Hardware & Mechanical Failure Strategy</option>

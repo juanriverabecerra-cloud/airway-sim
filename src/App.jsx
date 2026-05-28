@@ -1345,6 +1345,8 @@ export default function App() {
           examineNpoHistory={examineNpoHistory}
           generateLab={generateLab}
           logEvent={logEvent}
+          setSurgicalPhase={handleSetSurgicalPhase}
+          handleExtubation={handleExtubation}
         />
       )}
 

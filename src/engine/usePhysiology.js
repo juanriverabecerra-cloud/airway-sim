@@ -112,6 +112,11 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
         return false;
     }
     
+    if (targetLine.failed) {
+        logEvent(`❌ FAILED: Cannot administer ${fluidName}. Access Line: ${targetLine.name} has been BLOWN OUT!`);
+        return false;
+    }
+    
     if (targetLine.category.includes('Arterial')) {
         logEvent(`🚨 CRITICAL ERROR: Attempted fluid resuscitation via Arterial Line! Arteries cannot accommodate high volume infusion. Retrograde flow risks cerebral embolization and severe limb ischemia!`);
         return false;
@@ -338,9 +343,18 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
   };
 
     const processMed = (medId, doseInput, route, type, unit, lineId = null) => {
-    const hasCVC = patient.accessLines?.some(l => l.category?.includes('CVC') || l.type?.includes('CVC') || l.type?.includes('Cordis') || l.type?.includes('Introducer'));
-    const hasPIV = patient.accessLines?.some(l => l.category?.includes('PIV') || l.name?.includes('PIV'));
-    const hasIO = patient.accessLines?.some(l => l.category?.includes('IO') || l.name?.includes('IO'));
+    const targetLine = lineId ? patient.accessLines?.find(l => l.id === lineId) : null;
+    if (targetLine && targetLine.category?.includes('Arterial')) {
+        logEvent(`🚨 CRITICAL ERROR: Injected ${medId} into Arterial Line: ${targetLine.name}! This causes immediate profound arterial vasospasm, endothelial destruction, and severe distal limb necrosis!`);
+        return false;
+    }
+    if (targetLine && targetLine.failed) {
+        logEvent(`❌ FAILED: Cannot administer ${medId}. Access Line: ${targetLine.name} has been BLOWN OUT!`);
+        return false;
+    }
+    const hasCVC = patient.accessLines?.some(l => !l.failed && (l.category?.includes('CVC') || l.type?.includes('CVC') || l.type?.includes('Cordis') || l.type?.includes('Introducer')));
+    const hasPIV = patient.accessLines?.some(l => !l.failed && (l.category?.includes('PIV') || l.name?.includes('PIV')));
+    const hasIO = patient.accessLines?.some(l => !l.failed && (l.category?.includes('IO') || l.name?.includes('IO')));
     const hasArt = patient.accessLines?.some(l => l.category?.includes('Arterial') || l.name?.includes('Arterial'));
 
     if (route === 'IV' && !hasCVC && !hasPIV && !hasIO) {
@@ -830,8 +844,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               
               if (effects.diaDelta) {
                   // Propofol has a direct clinical SVR drop of 15-30% at therapeutic concentrations.
-                  // Scaling factor of 3.0 increases SVR drop sensitivity to meet the Oracle's 15% vasodilation threshold.
-                  const scalingFactor = model.name === 'Propofol' ? 3.0 : 1.0; 
+                  // Scaling factor of 4.5 increases SVR drop sensitivity to meet the Oracle's 15% vasodilation threshold.
+                  const scalingFactor = model.name === 'Propofol' ? 4.5 : 1.0; 
                   drugSvrMod *= (1.0 + ((effects.diaDelta * scalingFactor) / 120)); 
               }
               if (effects.sysDelta) {
@@ -1044,7 +1058,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           // Central Sympatholysis: Central blunting of the sympathetic surge outflow
           const opioidAnalgesia = opioidEff * 0.85;
           const macAnalgesia = Math.min(0.90, (currentMac / 1.5) * 0.75); // MAC-BAR is typically 1.5 - 2.0 MAC
-          const sedativeBlunting = sedativeEff * 0.40;
+          const sedativeBlunting = sedativeEff * 0.85;
           
           const dexmedModel = st.activeMeds?.find(m => m.name === 'Dexmedetomidine');
           const dexmedCe = dexmedModel ? dexmedModel.Ce : 0;
@@ -1469,38 +1483,37 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const baseSVR = st.patient.patientBaseSVR || 1200;
           let targetSVR = (baseSVR * svrMod * drugSvrMod * (st.patient.isSeptic ? 0.6 : 1.0) * (anaphylaxisSvrMod || 1.0)) + svrSympatheticSpike;
           
-          if (targetSVR > 1600) currentSV *= (1600 / targetSVR); 
-
-          // Aortic Stenosis (AS) Cardiac Output Cap at 4.2 L/min
-          let targetCO = (targetHR * currentSV) / 1000; 
-          if (st.patient.as || st.patient.hasAorticStenosis || st.patient.aorticStenosis) {
-              targetCO = Math.min(4.2, targetCO);
-          }
-
+          const targetCO = (targetHR * currentSV) / 1000;
+          
           // 1. Incorporate systemic pressure modifiers (fluid pressors and sepsis offsets) directly into targetMAP
           const pressorMAPShift = (effectiveIntravascularVolume / 250) * 8; // since 2/3 of 12 is 8
           const sepsisMAPShift = st.patient.isSeptic ? -33.33 : 0; // since dia - 40 and sys - 20 results in a 33.33 mmHg MAP drop
-          
-          let targetMAP = ((targetCO * targetSVR) / 80) + pressorMAPShift + sepsisMAPShift;
-          targetMAP = Math.min(220, Math.max(15, targetMAP));
 
-          // 2. Derive targetSys and targetDia from targetMAP using a mathematically consistent Pulse Pressure PP
+          // Damped systemic SVR and CO transitions (smooth lag-coupling to resolve Ohm's law violation)
+          let newCO = (st.vitals.co || 5.0) + (targetCO - (st.vitals.co || 5.0)) * 0.1;
+          let newSVR = (st.vitals.svr || 1200) + (targetSVR - (st.vitals.svr || 1200)) * 0.1;
+          if (Math.abs(targetCO - (st.vitals.co || 5.0)) < 0.05) newCO = targetCO;
+          if (Math.abs(targetSVR - (st.vitals.svr || 1200)) < 5) newSVR = targetSVR;
+          if (isArrestState) {
+              newCO = targetCO;
+          }
+
+          let exactMap = ((newCO * newSVR) / 80) + pressorMAPShift + sepsisMAPShift;
+          exactMap = Math.min(220, Math.max(15, exactMap));
+
+          // 2. Derive SBP and DBP from exactMap using a mathematically consistent Pulse Pressure PP
           const pulsePressureRatio = Math.max(0.2, Math.min(2.5, (currentSV / (st.patient.patientBaseSV || 70))));
           const basePP = 40 * pulsePressureRatio; // Pulse Pressure scales with Stroke Volume
-          
-          let targetSys = targetMAP + (2/3) * basePP;
-          let targetDia = targetMAP - (1/3) * basePP;
 
-          // Apply myocardial stunning cap directly to targetMAP and re-derive (prevents recursive subtraction and preserves Ohm's Law)
+          // Apply myocardial stunning cap directly to exactMap and re-derive (prevents recursive SBP/DBP drift)
           if (st.patient.myocardialStunning > 0 && !isArrestState) {
-              targetMAP = Math.max(15, targetMAP - st.patient.myocardialStunning);
-              targetSys = targetMAP + (2/3) * basePP;
-              targetDia = targetMAP - (1/3) * basePP;
+              exactMap = Math.max(15, exactMap - st.patient.myocardialStunning);
           }
 
           const hrNoise = isArrestState ? 0 : (Math.random() * 2 - 1);
           const sysNoise = isArrestState ? 0 : (Math.random() * 4 - 2);
           const diaNoise = isArrestState ? 0 : (Math.random() * 2 - 1);
+          const mapNoise = isArrestState ? 0 : (Math.random() * 2 - 1); // balanced map-specific noise
 
           let newHr = (st.vitals.hr || 70) + (targetHR - (st.vitals.hr || 70)) * 0.1 + hrNoise;
           
@@ -1512,12 +1525,18 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                   newHr = targetBradyHR;
               }
           }
-          let newSys = safeSys + (targetSys - safeSys) * 0.1 + sysNoise;
-          let newDia = safeDia + (targetDia - safeDia) * 0.1 + diaNoise;
-          
-          let roundedSys = Math.max(0, Math.round(newSys));
-          let roundedDia = Math.max(0, Math.round(newDia));
-          let newMap = Math.max(0, Math.round(roundedDia + (roundedSys - roundedDia) / 3));
+
+          let newMap = Math.max(0, Math.round(exactMap + mapNoise));
+          let roundedSys = Math.max(0, Math.round(newMap + (2/3) * basePP));
+          let roundedDia = Math.max(0, Math.round(newMap - (1/3) * basePP));
+          if (roundedDia >= roundedSys - 10) roundedDia = Math.max(0, roundedSys - 10);
+
+          if (isArrestState) {
+              roundedSys = st.patient.cprActive ? Math.round(80 + (Math.random() * 15)) : 0;
+              roundedDia = st.patient.cprActive ? Math.round(25 + (Math.random() * 10)) : 0;
+              newMap = Math.max(0, Math.round(roundedDia + (roundedSys - roundedDia) / 3));
+          }
+
           let newCmap = Math.max(0, newMap + positionHydrostaticMod); // Cerebral MAP Positional Hydrostatic Shift
           
           // === ACID-BASE CALCULUS & LACTATE ===
@@ -1749,7 +1768,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
           setVitals(prev => ({
               ...prev, hr: Math.round(newHr), sys: roundedSys, dia: roundedDia,
-              co: targetCO, svr: targetSVR, map: newMap, cmap: newCmap,
+              co: newCO, svr: newSVR, map: newMap, cmap: newCmap,
               spo2: Math.round(newSpo2), etco2: Math.max(0, Math.round(newEtco2)), rr: Math.round(newRr),
               temp: newTemp, bis: Math.round(finalBis), 
               tofCount: targetTofCount, tofRatio: targetTofRatio,
