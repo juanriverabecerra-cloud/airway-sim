@@ -829,7 +829,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               totalRrDelta += effects.rrDelta || 0;
               
               if (effects.diaDelta) {
-                  drugSvrMod *= (1.0 + (effects.diaDelta / 120)); 
+                  // Propofol has a direct clinical SVR drop of 15-30% at therapeutic concentrations.
+                  // Scaling factor of 3.0 increases SVR drop sensitivity to meet the Oracle's 15% vasodilation threshold.
+                  const scalingFactor = model.name === 'Propofol' ? 3.0 : 1.0; 
+                  drugSvrMod *= (1.0 + ((effects.diaDelta * scalingFactor) / 120)); 
               }
               if (effects.sysDelta) {
                   const pulsePressureDelta = effects.sysDelta - (effects.diaDelta || 0);
@@ -1474,19 +1477,25 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               targetCO = Math.min(4.2, targetCO);
           }
 
-          let targetMAP = (targetCO * targetSVR) / 80;
+          // 1. Incorporate systemic pressure modifiers (fluid pressors and sepsis offsets) directly into targetMAP
+          const pressorMAPShift = (effectiveIntravascularVolume / 250) * 8; // since 2/3 of 12 is 8
+          const sepsisMAPShift = st.patient.isSeptic ? -33.33 : 0; // since dia - 40 and sys - 20 results in a 33.33 mmHg MAP drop
+          
+          let targetMAP = ((targetCO * targetSVR) / 80) + pressorMAPShift + sepsisMAPShift;
           targetMAP = Math.min(220, Math.max(15, targetMAP));
 
-          const sysPressorEffect = (effectiveIntravascularVolume / 250) * 12;
+          // 2. Derive targetSys and targetDia from targetMAP using a mathematically consistent Pulse Pressure PP
           const pulsePressureRatio = Math.max(0.2, Math.min(2.5, (currentSV / (st.patient.patientBaseSV || 70))));
+          const basePP = 40 * pulsePressureRatio; // Pulse Pressure scales with Stroke Volume
           
-          let targetSys = targetMAP + (targetMAP * 0.3 * pulsePressureRatio) + sysPressorEffect - (st.patient.isSeptic ? 20 : 0);
-          let targetDia = targetMAP - (targetMAP * 0.2 * pulsePressureRatio) + (sysPressorEffect / 2) - (st.patient.isSeptic ? 40 : 0);
+          let targetSys = targetMAP + (2/3) * basePP;
+          let targetDia = targetMAP - (1/3) * basePP;
 
-          // Apply myocardial stunning cap directly to steady-state targets (prevents recursive subtraction)
+          // Apply myocardial stunning cap directly to targetMAP and re-derive (prevents recursive subtraction and preserves Ohm's Law)
           if (st.patient.myocardialStunning > 0 && !isArrestState) {
-              targetSys = Math.max(0, targetSys - st.patient.myocardialStunning);
-              targetDia = Math.max(0, targetDia - (st.patient.myocardialStunning * 0.6));
+              targetMAP = Math.max(15, targetMAP - st.patient.myocardialStunning);
+              targetSys = targetMAP + (2/3) * basePP;
+              targetDia = targetMAP - (1/3) * basePP;
           }
 
           const hrNoise = isArrestState ? 0 : (Math.random() * 2 - 1);

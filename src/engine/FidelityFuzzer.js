@@ -162,6 +162,142 @@ export function getGuidedFuzzAction(state, fuzzerState, strategy = 'guided') {
 }
 
 /**
+ * Central clinically reactive maintenance phase action generator.
+ * Actively monitors patient status, treats hemodynamic instability (MAP, HR),
+ * manages anesthetic depth (BIS), orders labs, adjusts ventilator settings,
+ * and schedules time delays to allow PK/PD kinetics to manifest.
+ */
+function generateMaintenanceAction(state, fuzzerState, strategy) {
+  const vitals = state.vitals || {};
+  const patient = state.patient || {};
+  const activeMeds = state.activeMeds || [];
+
+  // 1. Hypotension check (MAP < 65) - Clinically react with fluids or pressors
+  if (vitals.map < 65 && !patient.isArrest) {
+    if (strategy === 'malpractice' && Math.random() < 0.20) {
+      // Malpractice: Extreme Epinephrine bolus overdose (1mg/1000mcg instead of pressor push)
+      return { name: 'Push Epinephrine 1mg (ACLS Arrest Dose)', type: 'med', drug: 'Epinephrine', dose: 1000, unit: 'mcg', medType: 'Bolus', route: 'IV' };
+    }
+    
+    const pChoice = Math.random();
+    if (pChoice < 0.3 && patient.ebl > 1500) {
+      return { name: 'Transfuse PRBC 1 Unit', type: 'fluid', nameFluid: 'Packed Red Blood Cells (PRBC)', volume: 1 };
+    } else if (pChoice < 0.6) {
+      return { name: 'Bolus LR 500mL', type: 'fluid', nameFluid: 'Lactated Ringers (LR)', volume: 500 };
+    } else {
+      const vasopressor = Math.random() > 0.5 ? 'Phenylephrine' : 'Epinephrine';
+      const dose = vasopressor === 'Phenylephrine' ? 100 : 50;
+      return { name: `Push ${vasopressor} ${dose}mcg`, type: 'med', drug: vasopressor, dose, unit: 'mcg', medType: 'Bolus', route: 'IV' };
+    }
+  }
+
+  // 2. Hypertension/Tachycardia check (MAP > 110 or HR > 110) - Treat with beta blockers
+  if ((vitals.map > 110 || vitals.hr > 110) && !patient.isArrest) {
+    if (strategy === 'malpractice' && vitals.hr < 60 && Math.random() < 0.35) {
+      // Malpractice: Pushing beta-blocker in severe bradycardia
+      return { name: 'Push Metoprolol 5mg', type: 'med', drug: 'Metoprolol', dose: 5, unit: 'mg', medType: 'Bolus', route: 'IV' };
+    }
+    return Math.random() > 0.5 
+      ? { name: 'Push Esmolol 20mg', type: 'med', drug: 'Esmolol', dose: 20, unit: 'mg', medType: 'Bolus', route: 'IV' }
+      : { name: 'Push Labetalol 20mg', type: 'med', drug: 'Labetalol', dose: 20, unit: 'mg', medType: 'Bolus', route: 'IV' };
+  }
+
+  // 3. Awareness risk / Wake-up (BIS > 65) - Deepen anesthesia
+  if (vitals.bis > 65 && !patient.isArrest) {
+    return Math.random() > 0.5 
+      ? { name: 'Push Propofol 150mg', type: 'med', drug: 'Propofol', dose: 150, unit: 'mg', medType: 'Bolus', route: 'IV' }
+      : { name: 'Push Fentanyl 100mcg', type: 'med', drug: 'Fentanyl', dose: 100, unit: 'mcg', medType: 'Bolus', route: 'IV' };
+  }
+
+  // 4. Neuromuscular recovery check (Stress NMJ chelation/reversal loops)
+  const rocuroniumCe = activeMeds.find(m => m.name === 'Rocuronium')?.Ce || 0;
+  if (rocuroniumCe > 0.1 && Math.random() < 0.20) {
+    if (strategy === 'polypharmacy') {
+      // Test complex chelation and muscarinic antagonism
+      fuzzerState.currentSequence = [
+        { name: 'Push Sugammadex 1000mg (Rescue/Deep)', type: 'med', drug: 'Sugammadex', dose: 1000, unit: 'mg', medType: 'Bolus', route: 'IV' },
+        { name: 'Push Neostigmine 5mg (Without Glyco)', type: 'med', drug: 'Neostigmine', dose: 5, unit: 'mg', medType: 'Bolus', route: 'IV' },
+        { name: 'Push Glycopyrrolate 0.2mg', type: 'med', drug: 'Glycopyrrolate', dose: 0.2, unit: 'mg', medType: 'Bolus', route: 'IV' },
+        { name: 'Observe physiology for 30 seconds', type: 'wait', duration: 30 }
+      ];
+      return fuzzerState.currentSequence.shift();
+    } else if (strategy === 'malpractice') {
+      // Trigger unopposed muscarinic bradycardia
+      return { name: 'Push Neostigmine 5mg (Without Glyco)', type: 'med', drug: 'Neostigmine', dose: 5, unit: 'mg', medType: 'Bolus', route: 'IV' };
+    } else {
+      return { name: 'Push Sugammadex 200mg (Routine)', type: 'med', drug: 'Sugammadex', dose: 200, unit: 'mg', medType: 'Bolus', route: 'IV' };
+    }
+  }
+
+  // 5. Active Cardiac Arrest Emergency ACLS
+  if (patient.isArrest) {
+    const arrestChoice = Math.random();
+    if (!patient.cprActive) {
+      return { name: 'Toggle CPR compressions', type: 'cpr' };
+    } else if (arrestChoice < 0.4) {
+      return { name: 'Push Epinephrine 1mg (ACLS Arrest Dose)', type: 'med', drug: 'Epinephrine', dose: 1000, unit: 'mcg', medType: 'Bolus', route: 'IV' };
+    } else if (arrestChoice < 0.7 && (patient.cardiacRhythm === 'vfib' || patient.cardiacRhythm === 'vtach')) {
+      return { name: 'Deliver Defib Shock 200J', type: 'shock', joules: 200, sync: false };
+    } else {
+      return { name: 'Observe physiology for 10 seconds', type: 'wait', duration: 10 };
+    }
+  }
+
+  // 6. Polypharmacy custom drug blending override
+  if (strategy === 'polypharmacy' && Math.random() < 0.15) {
+    const medsList = ['Ketamine', 'Etomidate', 'Midazolam', 'Sufentanil'];
+    const selectedMed = medsList[Math.floor(Math.random() * medsList.length)];
+    const dose = selectedMed === 'Midazolam' ? 2 : (selectedMed === 'Sufentanil' ? 10 : 50);
+    return { name: `Push ${selectedMed} ${dose}${selectedMed === 'Sufentanil' ? 'mcg' : 'mg'}`, type: 'med', drug: selectedMed, dose, unit: selectedMed === 'Sufentanil' ? 'mcg' : 'mg', medType: 'Bolus', route: 'IV' };
+  }
+
+  // 7. Mechanical failure troubleshooting / circuit leak override
+  if (strategy === 'mechanical' && Math.random() < 0.20) {
+    const mechChoice = Math.random();
+    if (mechChoice < 0.4 && patient.tubePosition !== 'esophagus') {
+      return { name: 'Set Vent PEEP 0 (Circuit Leak)', type: 'vent', field: 'peep', value: 0 };
+    } else if (mechChoice < 0.7 && patient.tubePosition === 'right_mainstem') {
+      return { name: 'Recognize Mainstem: Pull back ETT', type: 'procedure_action', actionName: 'pull_back_ett' };
+    } else {
+      return { name: 'Check ETT Cuff Leak', type: 'check', action: 'cuff' };
+    }
+  }
+
+  // 8. General Maintenance Pool (40% Observe/Wait, 20% Vent adjustments, 15% Labs, 15% Positions, 10% Procedures)
+  const activityChoice = Math.random();
+  if (activityChoice < 0.40) {
+    // Periodic wait to let drug kinetics/ventilation run (inflection timer delays)
+    const duration = Math.random() > 0.5 ? 10 : 30;
+    return { name: `Observe physiological circulation (t+${duration}s)`, type: 'wait', duration };
+  } else if (activityChoice < 0.60) {
+    // Vent settings adjustment
+    const fields = ['rr', 'peep', 'vt', 'fio2'];
+    const field = fields[Math.floor(Math.random() * fields.length)];
+    let val = 12;
+    if (field === 'rr') val = Math.random() > 0.5 ? 10 : 16;
+    else if (field === 'peep') val = Math.random() > 0.5 ? 5 : 8;
+    else if (field === 'vt') val = Math.random() > 0.5 ? 400 : 600;
+    else if (field === 'fio2') val = Math.random() > 0.5 ? 40 : 100;
+    return { name: `Set Vent ${field} to ${val}`, type: 'vent', field, value: val };
+  } else if (activityChoice < 0.75) {
+    // Lab Diagnostics
+    const labs = ['ABG', 'VBG', 'TEG', 'CBC'];
+    const labType = labs[Math.floor(Math.random() * labs.length)];
+    return { name: `Order POC ${labType} Panel`, type: 'lab', labType };
+  } else if (activityChoice < 0.90) {
+    // Positioning shifts
+    const positions = ['Supine', 'Trendelenburg', 'Sitting', 'Ramped'];
+    const p = positions[Math.floor(Math.random() * positions.length)];
+    return { name: `Position ${p}`, type: 'position', value: p };
+  } else {
+    // Pharyngeal suction / OPA / Larstons
+    return Math.random() > 0.5 
+      ? { name: 'Suction pharynx', type: 'procedure', action: 'suction' }
+      : { name: "Perform Larson's Maneuver", type: 'maneuver' };
+  }
+}
+
+/**
  * Archetype A: The "Polypharmacy & Synergism" Fuzzer
  * Goal: Blends multiple drugs, reversals, and vasoactives to check for physiological model scaling bugs.
  */
@@ -225,49 +361,7 @@ function generatePolypharmacyAction(state, fuzzerState, flags) {
 
   // Maintenance: Compound interactions, Vasoactive titrations, Fluid Hemodilution
   if (fuzzerState.phase === 'MAINTENANCE') {
-    // Expose algebraic and ceiling limits in cardiovascular equations by blending Epinephrine + Phenylephrine + Esmolol
-    const rocuroniumCe = activeMeds.find(m => m.name === 'Rocuronium')?.Ce || 0;
-    
-    // Check if we should test neuromuscular reversal dynamics
-    if (rocuroniumCe > 0.1 && Math.random() < 0.25) {
-      fuzzerState.currentSequence = [
-        // Synergistic double reversal (Sugammadex + Neostigmine & Glycopyrrolate)
-        { name: 'Push Sugammadex 1000mg', type: 'med', drug: 'Sugammadex', dose: 1000, unit: 'mg', medType: 'Bolus', route: 'IV' },
-        { name: 'Push Neostigmine 5mg (Without Glyco)', type: 'med', drug: 'Neostigmine', dose: 5, unit: 'mg', medType: 'Bolus', route: 'IV' },
-        { name: 'Push Glycopyrrolate 0.2mg', type: 'med', drug: 'Glycopyrrolate', dose: 0.2, unit: 'mg', medType: 'Bolus', route: 'IV' },
-        { name: 'Observe physiology for 30 seconds', type: 'wait', duration: 30 }
-      ];
-      return fuzzerState.currentSequence.shift();
-    }
-
-    if (vitals.map < 65) {
-      // Hypotension: Try synergistic vasoactive surge
-      fuzzerState.currentSequence = [
-        { name: 'Push Phenylephrine 100mcg', type: 'med', drug: 'Phenylephrine', dose: 100, unit: 'mcg', medType: 'Bolus', route: 'IV' },
-        { name: 'Push Epinephrine 50mcg', type: 'med', drug: 'Epinephrine', dose: 50, unit: 'mcg', medType: 'Bolus', route: 'IV' },
-        { name: 'Bolus LR 500mL', type: 'fluid', nameFluid: 'Lactated Ringers (LR)', volume: 500 },
-        { name: 'Observe physiology for 10 seconds', type: 'wait', duration: 10 }
-      ];
-      return fuzzerState.currentSequence.shift();
-    }
-
-    if (vitals.hr > 110) {
-      // Tachycardia: Try beta blockade titration
-      return { name: 'Push Esmolol 20mg', type: 'med', drug: 'Esmolol', dose: 20, unit: 'mg', medType: 'Bolus', route: 'IV' };
-    }
-
-    // Default maintenance operations: resus fluids and blood products to stress coagulopathy
-    if (patient.ebl > 1500 && Math.random() < 0.3) {
-      fuzzerState.currentSequence = [
-        { name: 'Transfuse PRBC 1 Unit', type: 'fluid', nameFluid: 'Packed Red Blood Cells (PRBC)', volume: 1 },
-        { name: 'Transfuse FFP 1 Unit', type: 'fluid', nameFluid: 'Fresh Frozen Plasma (FFP)', volume: 1 },
-        { name: 'Observe physiology for 20 seconds', type: 'wait', duration: 20 }
-      ];
-      return fuzzerState.currentSequence.shift();
-    }
-
-    // Standard time ticking to allow PK/PD elimination kinetics to step forward
-    return { name: 'Observe physiology for 30 seconds', type: 'wait', duration: 30 };
+    return generateMaintenanceAction(state, fuzzerState, 'polypharmacy');
   }
 
   return { name: 'Observe physiology for 10 seconds', type: 'wait', duration: 10 };
@@ -362,10 +456,8 @@ function generateMalpracticeAction(state, fuzzerState, flags) {
       }
     }
 
-    // Default Malpractice maintenance: Let gases drift or turn Vent RR to 0 (Apneic malpractice)
-    if (Math.random() < 0.2) {
-      return { name: 'Set Vent RR 0 (Apnea)', type: 'vent', field: 'rr', value: 0 };
-    }
+    // Default Malpractice maintenance: Let gases drift or trigger apneic/vasoplegic errors
+    return generateMaintenanceAction(state, fuzzerState, 'malpractice');
   }
 
   return { name: 'Observe physiology for 10 seconds', type: 'wait', duration: 10 };
@@ -458,7 +550,7 @@ function generateMechanicalFailureAction(state, fuzzerState, flags) {
     }
 
     // Default mechanical adjustments
-    return { name: 'Observe physiology for 30 seconds', type: 'wait', duration: 30 };
+    return generateMaintenanceAction(state, fuzzerState, 'mechanical');
   }
 
   return { name: 'Observe physiology for 10 seconds', type: 'wait', duration: 10 };
@@ -506,7 +598,7 @@ function generateStandardGuidedAction(state, fuzzerState, flags) {
   }
 
   if (fuzzerState.phase === 'MAINTENANCE') {
-    return { name: 'Observe physiology for 30 seconds', type: 'wait', duration: 30 };
+    return generateMaintenanceAction(state, fuzzerState, 'guided');
   }
 
   return { name: 'Observe physiology for 10 seconds', type: 'wait', duration: 10 };
