@@ -327,7 +327,7 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
     // 7. Functional Capacity (METs) Integration
     // ACC/AHA guidelines show that poor functional capacity (<4 METs) is a critical independent predictor of 
     // perioperative major adverse cardiovascular events (MACE).
-    let mets = 'excellent';
+    let mets = 'adequate';
     const hasCirrhosis = data.cirrhosis || (data.cp && data.cp !== 'none');
     if (
       data.trauma || 
@@ -340,18 +340,10 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
       ['cardiac', 'transplant', 'urology', 'vascular', 'bariatric', 'thoracic'].includes(id)
     ) {
       mets = 'poor';
-    } else if (
-      data.age > 50 || 
-      data.htn || 
-      ['neuro', 'ortho', 'obgyn', 'ent'].includes(id)
-    ) {
-      mets = 'moderate';
     }
 
     if (mets === 'poor') {
       score += 5; // Major risk increment; will guarantee this is NEVER an Easy case (Easy threshold is <= 4)
-    } else if (mets === 'moderate') {
-      score += 2; // Moderate risk increment
     }
 
     // Return the difficulty level based on revamped scale
@@ -433,7 +425,7 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
       patient: { 
         age: data.age, sex: data.sex, weight: Math.round(data.weight), height: data.height, ibw: ibw, bmi: bmi,
         position: data.position || 'Supine',
-        oxygenBuffer: 21, targetBuffer: 21, 
+        oxygenBuffer: null, targetBuffer: 21, 
         airwayBlood: data.airwayBlood, mallampati: data.mallampati, neckMobility: data.neckMobility,
         isObese: data.obese || bmi > 30, isSeptic: data.septic, trauma: data.trauma, 
         copd: data.copd || data.asthma, 

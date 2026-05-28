@@ -604,7 +604,7 @@ export const PreopModal = ({ show, close, patient, setPatient, logEvent }) => {
     creatinine: false
   });
 
-  const [mets, setMets] = React.useState(null); // 'poor', 'moderate', 'excellent'
+  const [mets, setMets] = React.useState(null); // 'poor', 'adequate'
   const [cleared, setCleared] = React.useState(false);
   
   const [preopOrders, setPreopOrders] = React.useState({
@@ -763,17 +763,13 @@ export const PreopModal = ({ show, close, patient, setPatient, logEvent }) => {
                 <span className="text-xs text-slate-400 font-bold uppercase tracking-wider block mb-2">Functional Capacity (METs)</span>
                 <p className="text-[11px] text-slate-400 mb-3">Evaluate patient's physical capability to handle cardiovascular stressors:</p>
                 <div className="flex flex-col gap-2">
+                  <button onClick={() => setMets('adequate')} className={`p-2 rounded text-xs text-left border font-bold transition-all ${mets === 'adequate' ? 'bg-indigo-950 border-indigo-500 text-indigo-300' : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'}`}>
+                    🚶‍♂️ Adequate Capacity (≥ 4 METs)
+                    <span className="block text-[10px] text-slate-500 font-normal">Can climb two flights of stairs, walk briskly &gt; 3 mph, or do light housework.</span>
+                  </button>
                   <button onClick={() => setMets('poor')} className={`p-2 rounded text-xs text-left border font-bold transition-all ${mets === 'poor' ? 'bg-red-950 border-red-500 text-red-300' : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'}`}>
-                    🏃‍♂️ Poor Capacity (&lt;4 METs)
-                    <span className="block text-[10px] text-slate-500 font-normal">Cannot walk up a flight of stairs, climb hill, or do heavy housework.</span>
-                  </button>
-                  <button onClick={() => setMets('moderate')} className={`p-2 rounded text-xs text-left border font-bold transition-all ${mets === 'moderate' ? 'bg-indigo-950 border-indigo-500 text-indigo-300' : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'}`}>
-                    🚶‍♂️ Moderate Capacity (4-10 METs)
-                    <span className="block text-[10px] text-slate-500 font-normal">Can climb two flights of stairs, walk fast, scrub floors, or walk at 4 mph.</span>
-                  </button>
-                  <button onClick={() => setMets('excellent')} className={`p-2 rounded text-xs text-left border font-bold transition-all ${mets === 'excellent' ? 'bg-green-950 border-green-500 text-green-300' : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'}`}>
-                    🚴‍♂️ Excellent Capacity (&gt;10 METs)
-                    <span className="block text-[10px] text-slate-500 font-normal">Can participate in strenuous sports, run, or swim vigorously.</span>
+                    🏃‍♂️ Poor Capacity (&lt; 4 METs / Unknown)
+                    <span className="block text-[10px] text-slate-500 font-normal">Cannot walk up a flight of stairs, climb a hill, or do heavy housework.</span>
                   </button>
                 </div>
               </div>
@@ -803,8 +799,8 @@ export const PreopModal = ({ show, close, patient, setPatient, logEvent }) => {
                   }
 
                   // Functional capacity categorisation
-                  // METs ≥ 4 corresponds to 'moderate' or 'excellent'; METs < 4 or unknown = 'poor'
-                  const adequateMets = mets === 'moderate' || mets === 'excellent';
+                  // METs ≥ 4 corresponds to 'adequate'; METs < 4 or unknown = 'poor'
+                  const adequateMets = mets === 'adequate';
 
                   // ── RCRI ≥ 3 — HIGH RISK regardless of METs (Class IV, ≥11% 30-day MACE) ──
                   // Per 2024 ACC/AHA: cardiology consult always; delay / cath if poor METs

@@ -142,11 +142,9 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     const rcriCr = !!(patient.gfr < 40 || patient.creatinine > 2.0 || (patient.renalComorbidity && !patient.renalComorbidity.includes('stage 1') && !patient.renalComorbidity.includes('stage 2')) || id === 'urology');
 
     // 3. METs Functional capacity
-    let mets = 'excellent';
+    let mets = 'adequate';
     if (patient.trauma || patient.isSeptic || patient.chf || patient.cad || patient.copd || patient.cirrhosis || patient.age > 75 || id === 'cardiac' || id === 'transplant' || id === 'urology' || id === 'vascular' || id === 'bariatric' || id === 'thoracic') {
       mets = 'poor';
-    } else if (patient.age > 50 || patient.htn || id === 'neuro' || id === 'ortho' || id === 'obgyn' || id === 'ent') {
-      mets = 'moderate';
     }
 
     // 4. ASA Classification
@@ -185,7 +183,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     } else if (id === 'urology' && patient.isSeptic) {
       medicalHistory = `You are called to the ICU to evaluate a ${patient.age}-year-old ${nameGender} for emergent source control surgery. The patient is febrile, confused, and on a norepinephrine infusion to maintain blood pressure. Blood cultures have grown Gram-negative rods. ${pronounSubject} has a history of coronary artery disease (prior myocardial infarction) and chronic kidney disease stage III.`;
     } else {
-      medicalHistory = `You are evaluating a ${patient.age}-year-old ${nameGender} scheduled for a ${patient.procedure || 'surgery'} in the ${patient.position || 'Supine'} position. ${pronounSubject} has a chronic medical history of ${patient.pmhx || 'no significant chronic diseases'}. ${pronounPossessive} daily medications include ${patient.onBetaBlocker ? 'beta-blockers' : 'standard regimens'}. ${pronounSubject} describes ${pronounPossessive} exercise capacity as ${mets === 'excellent' ? 'excellent' : mets === 'moderate' ? 'moderate (able to walk a few blocks or climb stairs)' : 'poor (severely limited by dyspnea or pain)'}.`;
+      medicalHistory = `You are evaluating a ${patient.age}-year-old ${nameGender} scheduled for a ${patient.procedure || 'surgery'} in the ${patient.position || 'Supine'} position. ${pronounSubject} has a chronic medical history of ${patient.pmhx || 'no significant chronic diseases'}. ${pronounPossessive} daily medications include ${patient.onBetaBlocker ? 'beta-blockers' : 'standard regimens'}. ${pronounSubject} describes ${pronounPossessive} exercise capacity as ${mets === 'adequate' ? 'adequate (able to climb stairs or walk briskly without symptoms)' : 'poor (severely limited by dyspnea or pain)'}.`;
     }
 
     let globalHistory = `A ${patient.age}-year-old ${patient.sex || 'patient'} presenting for ${patient.procedure || 'surgery'}. Relevant baseline parameters include a BMI of ${bmi.toFixed(1)} (${bmi > 30 ? 'obese' : 'normal weight'}), and the following documented comorbidities: ${patient.pmhx || 'none'}. The clinical concern for anesthesia is the combination of the patient's physiological state and the ${rcriHighRisk ? 'high-risk surgical stress' : 'intermediate-risk procedure'}.`;
@@ -268,10 +266,8 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
 
     // Check METs
     if (assessment.mets !== truth.mets) {
-      errors.mets = truth.mets === 'excellent' 
-        ? "Correct functional capacity is Excellent (> 10 METs) - patient jogs/runs daily or performs heavy exercise." 
-        : truth.mets === 'moderate'
-        ? "Correct functional capacity is Moderate (4-10 METs) - patient can walk a few blocks or climb stairs."
+      errors.mets = truth.mets === 'adequate' 
+        ? "Correct functional capacity is Adequate (≥ 4 METs) - patient can walk briskly or climb 1-2 flights of stairs without limiting symptoms." 
         : "Correct functional capacity is Poor (< 4 METs / Unknown) - walk capacity is severely limited by dyspnea/pain or patient is comatose/GCS 7.";
       hasError = true;
     }
@@ -963,7 +959,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
         neckMobility: (verifiedRisk.neckMobility || 'Normal').toLowerCase(),
         asaClass: verifiedRisk.asa || 'ASA II',
         rcriScore: verifiedRisk.rcriScore || 0,
-        mets: verifiedRisk.mets || 'excellent',
+        mets: verifiedRisk.mets || 'adequate',
       }
     };
 
@@ -1524,8 +1520,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                         <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Functional Capacity (METs)</h4>
                         <div className="flex flex-wrap gap-2">
                           {[
-                            { value: 'excellent', label: 'Excellent (> 10 METs)', desc: 'Can run, engage in vigorous sports, or do heavy exercise' },
-                            { value: 'moderate', label: 'Moderate (4–10 METs)', desc: 'Can climb 1–2 flights, walk briskly > 3 mph, or do light housework' },
+                            { value: 'adequate', label: 'Adequate (≥ 4 METs)', desc: 'Can climb 1–2 flights, walk briskly > 3 mph, or do light housework' },
                             { value: 'poor', label: 'Poor (< 4 METs / Unknown)', desc: 'Cannot walk a block, climb stairs without dyspnea, or comatose' }
                           ].map(opt => (
                             <button
@@ -1730,12 +1725,12 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
 
               {/* ─── SECTION 4: NPO & ASPIRATION RISK ─── */}
               <div className="bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden">
-                <div className="bg-gradient-to-r from-rose-950/40 to-pink-950/30 px-5 py-4 border-b border-slate-800">
+                <div className="bg-gradient-to-r from-orange-950/40 to-amber-950/30 px-5 py-4 border-b border-slate-800">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-rose-600/30 border border-rose-500/50 flex items-center justify-center text-rose-300 font-black text-sm">4</div>
+                    <div className="w-8 h-8 rounded-full bg-orange-600/30 border border-orange-500/50 flex items-center justify-center text-orange-300 font-black text-sm">4</div>
                     <div>
                       <h3 className="text-base font-extrabold text-white">NPO Assessment & Aspiration Risk Staging</h3>
-                      <p className="text-[10px] text-rose-400 mt-0.5">Review the patient's oral intake history and clinical context. Determine the gastric status.</p>
+                      <p className="text-[10px] text-orange-400 mt-0.5">Review the patient's oral intake history and clinical context. Determine the gastric status.</p>
                     </div>
                   </div>
                 </div>
@@ -1743,7 +1738,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                 {/* Vignette */}
                 <div className="px-5 pt-4 pb-3">
                   <div className="bg-slate-950/80 border border-slate-800/80 rounded-lg p-4">
-                    <span className="text-[9px] text-rose-500 uppercase font-bold tracking-widest block mb-2">🍽️ Oral Intake & Gastric History</span>
+                    <span className="text-[9px] text-orange-500 uppercase font-bold tracking-widest block mb-2">🍽️ Oral Intake & Gastric History</span>
                     <p className="text-xs text-slate-300 leading-relaxed italic">
                       "{groundTruth.npoHistory}"
                     </p>
@@ -1763,7 +1758,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                         value: 'Aspiration Risk',
                         label: 'Aspiration Risk — Full Stomach',
                         desc: 'Patient has a physiologically full stomach due to: recent oral intake within fasting thresholds, active GLP-1 agonist therapy (delayed gastric emptying), sepsis/shock-induced gastroparesis, opioid-induced ileus, bowel obstruction, pregnancy, or trauma with unknown NPO status. RSI indicated.',
-                        color: 'red'
+                        color: 'orange'
                       }
                     ].map(opt => (
                       <button
@@ -1779,7 +1774,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                         style={assessment.npoStatus === opt.value ? (
                           assessmentChecked && assessmentErrors.npoStatus
                             ? { borderColor: '#ef4444', backgroundColor: 'rgba(127,29,29,0.3)', color: 'white', boxShadow: '0 4px 6px rgba(239,68,68,0.1)' }
-                            : { borderColor: opt.color === 'emerald' ? '#10b981' : '#ef4444', backgroundColor: opt.color === 'emerald' ? 'rgba(6,78,59,0.4)' : 'rgba(127,29,29,0.4)', color: 'white', boxShadow: opt.color === 'emerald' ? '0 4px 6px rgba(16,185,129,0.1)' : '0 4px 6px rgba(239,68,68,0.1)' }
+                            : { borderColor: opt.color === 'emerald' ? '#10b981' : '#f97316', backgroundColor: opt.color === 'emerald' ? 'rgba(6,78,59,0.4)' : 'rgba(124,45,18,0.4)', color: 'white', boxShadow: opt.color === 'emerald' ? '0 4px 6px rgba(16,185,129,0.1)' : '0 4px 6px rgba(249,115,22,0.1)' }
                         ) : {}}
                       >
                         <span className="text-sm font-black block">{opt.label}</span>

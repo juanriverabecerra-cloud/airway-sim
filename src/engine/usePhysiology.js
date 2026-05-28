@@ -965,7 +965,9 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           }
           
           if (st.gasModels && Object.keys(st.gasModels).length > 0) {
-            const effectiveMv = st.patient.airwaySecured ? (st.vitals.mv || 0) : (st.patient.isApneic ? 0 : 6.0);
+            const isParalyzed = maxNMJOccupancy > 0.90;
+            const isApneic = st.patient.isApneic || (st.vitals.rr !== undefined ? st.vitals.rr < 1 : false);
+            const effectiveMv = st.patient.airwaySecured ? (st.vitals.mv || 0) : (isApneic ? 0 : 6.0);
             const currentFRC = (st.patient.height * 0.02) - (st.patient.isObese ? 0.8 : 0);
 
             Object.keys(st.gasModels).forEach(key => {
@@ -1132,31 +1134,45 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           );
           const currentFRC_L = currentLungVols.frc_L; // Position & obesity-adjusted FRC in liters
 
-          let buffer = st.patient.oxygenBuffer || (currentFRC_L * 0.21); // Liters of O2 in FRC
+          const isParalyzed = maxNMJOccupancy > 0.90;
+          const isApneic = st.patient.isApneic || (st.vitals.rr !== undefined ? st.vitals.rr < 1 : false);
+          let buffer = (st.patient.oxygenBuffer !== undefined && st.patient.oxygenBuffer !== null) ? st.patient.oxygenBuffer : (currentFRC_L * 0.21); // Liters of O2 in FRC
 
-          if ((st.patient.isApneic || st.patient.isParalyzed) && !st.patient.airwaySecured) {
-              // Apneic: O2 consumed from FRC reservoir at VO2 rate
-              buffer -= VO2_sec; // VO2_sec is already in L/sec (~0.00417 L/s at baseline 250mL/min)
-          } else {
-              // Breathing: Nitrogen washout / O2 equilibration
-              const replenishmentFiO2 = st.patient.airwaySecured ? deliveredFiO2 : (st.patient.currentFiO2 || 21);
-              const targetO2_L = currentFRC_L * (replenishmentFiO2 / 100); // Target O2 content at current FiO2
+          const isBagMaskActive = (st.patient.currentO2Device && st.patient.currentO2Device.includes('Bag-Mask')) || st.patient.ventilationStatus === 'assisted';
 
-              // Washout rate constant k = MV / FRC (Eger & Severinghaus 1963)
-              let effectiveMV_L_min;
-              if (st.patient.airwaySecured) {
-                  effectiveMV_L_min = st.vitals.mv || 6.0;
-              } else {
-                  const currentRR = st.vitals.rr !== undefined ? st.vitals.rr : 12;
-                  effectiveMV_L_min = (currentRR * 0.5); // Spontaneous MV based on actual RR
-                  if (st.patient.currentO2Flow > 0) effectiveMV_L_min = Math.max(effectiveMV_L_min, st.patient.currentO2Flow);
+          let passiveO2Influx = 0;
+          if ((isParalyzed || isApneic) && !st.patient.airwaySecured && !isBagMaskActive) {
+              // Apneic oxygenation: passive gas influx offsets O2 depletion based on flow and FiO2
+              const currentO2Flow = st.patient.currentO2Flow || 0;
+              const currentFiO2 = st.patient.currentFiO2 || 21;
+              if (currentO2Flow > 0 && currentFiO2 > 21) {
+                  const flowFraction = Math.min(1.0, currentO2Flow / 10.0);
+                  const fiO2Fraction = (currentFiO2 - 21) / (100 - 21);
+                  passiveO2Influx = VO2_sec * 0.8 * flowFraction * fiO2Fraction;
               }
-              const k = effectiveMV_L_min / 60 / currentFRC_L; // per-second rate constant
-
-              // Exponential approach to target: buffer += k * (target - current)
-              // Oxygen is consumed continuously, even while breathing!
-              buffer += k * (targetO2_L - buffer) - VO2_sec;
           }
+
+          let effectiveMV_L_min = 0;
+          if (st.patient.airwaySecured) {
+              effectiveMV_L_min = st.vitals.mv || 6.0;
+          } else if (isBagMaskActive) {
+              effectiveMV_L_min = 5.0; // Bag-Mask ventilation provides active replenishment
+          } else if (!isParalyzed && !isApneic) {
+              const currentRR = st.vitals.rr !== undefined ? st.vitals.rr : 12;
+              effectiveMV_L_min = (currentRR * 0.5); // Spontaneous minute ventilation
+          }
+
+          if (effectiveMV_L_min > 0.1) {
+              // Active ventilation: Nitrogen washout & O2 replenishment
+              const replenishmentFiO2 = st.patient.airwaySecured ? deliveredFiO2 : (st.patient.currentFiO2 || 21);
+              const targetO2_L = currentFRC_L * (replenishmentFiO2 / 100);
+              const k = effectiveMV_L_min / 60 / currentFRC_L; // Eger & Severinghaus washout rate constant
+              buffer += k * (targetO2_L - buffer) - VO2_sec;
+          } else {
+              // Apnea/Paralysis without active ventilation: depletion offset by apneic oxygenation
+              buffer -= (VO2_sec - passiveO2Influx);
+          }
+
           buffer = Math.max(0, Math.min(currentFRC_L, buffer)); // Clamp: 0 to FRC
           const currentBuffer = buffer; // This is now in liters of O2
 
@@ -1652,7 +1668,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                   cardiacRhythm: currentRhythm, myocardialStunning: Math.max(0, newStunning - 0.2),
                   codeStartTime: codeTime, arrestThreshold: newThreshold, apneaStartTime: newApneaStart,
                   vec3oh: currentVec3oh, normep: currentNormep, m6g: currentM6g, cyanide: currentCyanide,
-                  lacticAcid: currentLactate, hasAspirated, temp: newTemp
+                  lacticAcid: currentLactate, hasAspirated, temp: newTemp,
+                  isApneic: isApneic, isParalyzed: isParalyzed
               };
           });
 
