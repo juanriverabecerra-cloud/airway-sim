@@ -340,8 +340,8 @@ export function evaluateFidelity(state) {
   // F1. Beach Chair Hydrostatic Pressure Shift
   if ((position === 'Sitting' || position === 'Beach Chair') && !isArrest) {
     const cuffMap = map;
-    const cerebralMap = vitals.cmap || map;
-    const expectedCMap = cuffMap - 29.6;
+    const cerebralMap = (vitals.cmap !== undefined && vitals.cmap !== null) ? vitals.cmap : map;
+    const expectedCMap = Math.max(0, cuffMap - 29.6);
     if (Math.abs(cerebralMap - expectedCMap) > 3) {
       systemStatus.positioning = 'FAILED';
       anomalies.push({

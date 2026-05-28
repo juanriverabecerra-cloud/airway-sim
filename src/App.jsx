@@ -479,7 +479,8 @@ export default function App() {
   const startCase = (selectedCase) => {
     setActiveCase(selectedCase);
     setMsmaidsComplete(false);
-    setVitals({ ...selectedCase.baseVitals, pip: 0, pplat: 0, vte: 0 });
+    const initialMap = Math.round(selectedCase.baseVitals.dia + (selectedCase.baseVitals.sys - selectedCase.baseVitals.dia) / 3);
+    setVitals({ ...selectedCase.baseVitals, pip: 0, pplat: 0, vte: 0, map: initialMap, cmap: initialMap });
     setTargetVitals({ ...selectedCase.baseVitals });
     setNibp({ sys: selectedCase.baseVitals.sys, dia: selectedCase.baseVitals.dia, time: 0 });
     setPatient({

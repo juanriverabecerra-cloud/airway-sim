@@ -39,7 +39,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
         pao2: activeCase.patient.isObese ? 75 : 100, 
         paco2: activeCase.patient.isObese ? 52 : 40, 
         ph: activeCase.patient.isSeptic ? 7.22 : (activeCase.patient.isObese ? 7.36 : 7.4), 
-        co: initialCO, svr: calculatedBaseSVR, cmap: initialMap, // Baseline Cerebral MAP
+        co: initialCO, svr: calculatedBaseSVR, map: Math.round(initialMap), cmap: Math.round(initialMap), // Baseline MAP and Cerebral MAP
         metHb: 0.8, coHb: activeCase.id === 'trauma' ? 12.0 : 1.0, cyanide: 0.0, lacticAcid: activeCase.patient.isSeptic ? 4.5 : 1.0,
         cao2: 20.0, cvo2: 15.0, p50: 26.6, r_ratio: 0.90
       });
@@ -1459,7 +1459,9 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let newSys = safeSys + (targetSys - safeSys) * 0.1 + sysNoise;
           let newDia = safeDia + (targetDia - safeDia) * 0.1 + diaNoise;
           
-          const newMap = Math.round((newSys + 2*newDia)/3);
+          const roundedSys = Math.max(0, Math.round(newSys));
+          const roundedDia = Math.max(0, Math.round(newDia));
+          const newMap = Math.max(0, Math.round(roundedDia + (roundedSys - roundedDia) / 3));
           const newCmap = Math.max(0, newMap + positionHydrostaticMod); // Cerebral MAP Positional Hydrostatic Shift
           
           // === ACID-BASE CALCULUS & LACTATE ===
@@ -1674,7 +1676,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           });
 
           setVitals(prev => ({
-              ...prev, hr: Math.round(newHr), sys: Math.max(0, Math.round(newSys)), dia: Math.max(0, Math.round(newDia)),
+              ...prev, hr: Math.round(newHr), sys: roundedSys, dia: roundedDia,
               co: targetCO, svr: targetSVR, map: newMap, cmap: newCmap,
               spo2: Math.round(newSpo2), etco2: Math.max(0, Math.round(newEtco2)), rr: Math.round(newRr),
               temp: newTemp, bis: Math.round(finalBis), 
