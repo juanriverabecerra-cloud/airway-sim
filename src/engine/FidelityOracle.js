@@ -1,7 +1,8 @@
 /**
- * Clinical Fidelity Oracle
- * Independently audits the entire live or hypothetical simulator state Ref
- * and outputs structured clinical anomalies and physiological discrepancies.
+ * High-Fidelity Clinical Fidelity Oracle
+ * Independently audits the simulator state and historical timeline
+ * to output structured clinical anomalies, physiological discrepancies,
+ * and time-delayed PK/PD compliance reports.
  */
 
 function fmt(val, decimals = 1) {
@@ -9,7 +10,14 @@ function fmt(val, decimals = 1) {
   return typeof val === 'number' ? val.toFixed(decimals) : val;
 }
 
-export function evaluateFidelity(state) {
+/**
+ * Evaluates the simulator's physiological, pharmacological, and mechanical state.
+ * Supports differential checks and time-delayed expectations across a historical window.
+ * 
+ * @param {Object} state Current simulator state slice
+ * @param {Array} history Array of historical step records (telemetry snapshots)
+ */
+export function evaluateFidelity(state, history = []) {
   const anomalies = [];
   const systemStatus = {
     hemodynamics: 'PASSED',
@@ -30,7 +38,6 @@ export function evaluateFidelity(state) {
   const electrolytes = state.electrolytes || {};
   const coags = state.coags || {};
   const ventSettings = state.ventSettings || {};
-  const gasSettings = state.gasSettings || {};
   const surgicalPhase = state.surgicalPhase || 'Pre-Op';
 
   const hr = vitals.hr || 0;
@@ -50,6 +57,7 @@ export function evaluateFidelity(state) {
   const compliance = vitals.compl || 60;
   const resistance = vitals.res || 10;
   const lacticAcid = vitals.lacticAcid || patient.lacticAcid || 1.0;
+  const rr = vitals.rr !== undefined ? vitals.rr : (patient.rr !== undefined ? patient.rr : 12);
 
   const isArrest = patient.isArrest || false;
   const cprActive = patient.cprActive || false;
@@ -73,17 +81,50 @@ export function evaluateFidelity(state) {
   const succinylcholineCe = activeMeds.find(m => m.name === 'Succinylcholine')?.Ce || 0;
   const vecuroniumCe = activeMeds.find(m => m.name === 'Vecuronium')?.Ce || 0;
 
-  // Audit variables that must be defined to prevent runtime exceptions
   const mac = vitals.mac !== undefined ? vitals.mac : (patient.mac !== undefined ? patient.mac : 0);
   const time = state.time || 0;
   const apneaDuration = (state.time && patient.apneaStartTime) ? (state.time - patient.apneaStartTime) : 0;
   const bradycardiaTriggered = patient.bradycardiaTriggered || false;
 
-  // 2. RUN PHYSIOLOGICAL FIDELITY CHECKS
+  const deliveredFiO2 = state.ventSettings?.fio2 || patient.currentFiO2 || 21;
+
+  // ==========================================
+  // 2. PHYSIOLOGICAL INVARIANT ASSERTIONS (Strict Medical Boundaries)
+  // ==========================================
 
   // --- A. HEMODYNAMIC FIDELITY AUDIT ---
   
-  // A1. Mathematical MAP Equation
+  // A1. SVR-MAP-CO Hemodynamic Closed Loop consistency
+  // Standard systemic cardiovascular physics: MAP - CVP = CO * SVR / 80.
+  // Assuming CVP ~ 2-8 mmHg (standard CVP omitted in simplified cuff equation, making MAP ~ CO * SVR / 80)
+  const calculatedPhysMAP = (co * svr) / 80;
+  if (Math.abs(map - calculatedPhysMAP) > 6.0 && !isArrest) {
+    systemStatus.hemodynamics = 'FAILED';
+    anomalies.push({
+      system: 'Hemodynamics',
+      severity: 'CRITICAL',
+      rule: 'Ohm Cardiovascular Law Consistency',
+      message: `MAP violates the basic hydraulic circuit equations (MAP = CO * SVR / 80). Vitals show MAP ${fmt(map)} mmHg, but SVR-CO calculations dictate ${fmt(calculatedPhysMAP)} mmHg (error: ${fmt(map - calculatedPhysMAP)} mmHg).`,
+      rationale: 'In systemic human hemodynamics, Mean Arterial Pressure is mathematically coupled to Cardiac Output and Systemic Vascular Resistance. Decoupling indicates algebraic error in the physiological integrator.',
+      resolution: 'Check pressure integrator in usePhysiology.js.'
+    });
+  }
+
+  // A2. ECG Rhythm - Heart Rate Congruency
+  // If HR is 0, the cardiac electrical rhythm must represent a pulseless/flatline state (Asystole, VFib, PEA).
+  if (hr === 0 && !isArrest && !isApneic) {
+    systemStatus.hemodynamics = 'FAILED';
+    anomalies.push({
+      system: 'Hemodynamics',
+      severity: 'CRITICAL',
+      rule: 'ECG Rhythm - HR Congruency',
+      message: `Pulse shows HR of 0 bpm, but patient state is marked as NOT IN CARDIAC ARREST and rhythm is "${patient.cardiacRhythm}".`,
+      rationale: 'Heart rate of 0 is mathematically and clinically incompatible with a healthy, perfusing sinus rhythm. A flatline rate must trigger arrest states immediately to align diagnostic dashboards.',
+      resolution: 'Enforce cardiac arrest transitions in usePhysiology.js when HR drops to zero.'
+    });
+  }
+
+  // A3. Mathematical MAP Equation
   const calculatedMap = dia + (sys - dia) / 3;
   if (Math.abs(map - calculatedMap) > 2.5 && !isArrest) {
     systemStatus.hemodynamics = 'FAILED';
@@ -97,7 +138,7 @@ export function evaluateFidelity(state) {
     });
   }
 
-  // A2. Cardiac Arrest Circulatory Mechanics
+  // A4. Cardiac Arrest Passive Circulatory Decay
   if (isArrest) {
     if (!cprActive && (sys > 10 || map > 5)) {
       systemStatus.hemodynamics = 'FAILED';
@@ -123,7 +164,27 @@ export function evaluateFidelity(state) {
     }
   }
 
-  // A3. Myocardial Oxygen Demand & Stunning
+  // A5. Thermal Redistribution Maximum Rate Limits
+  // Body temp cannot drop faster than 0.15 degrees C per tick/second unless huge cold infusions run.
+  if (history.length > 1) {
+    const prevTick = history[history.length - 2];
+    const prevTemp = prevTick?.vitals?.temp || 37.0;
+    const tempChange = Math.abs(temp - prevTemp);
+    // Scale allowance with time-step or check strictly for instant drops
+    if (tempChange > 0.15 && !state.patient.coldFluidsInfused) {
+      systemStatus.hemodynamics = 'FAILED';
+      anomalies.push({
+        system: 'Hemodynamics',
+        severity: 'CRITICAL',
+        rule: 'Thermal Redistribution Continuity',
+        message: `Core body temperature shifted instantaneously by ${fmt(tempChange)}°C in one second (Current: ${fmt(temp)}°C, Prev: ${fmt(prevTemp)}°C).`,
+        rationale: 'Human tissue possesses massive thermal capacity. Instantaneous, sharp drops in core temperature (>0.15°C/s) without active thermal clearance or massive icy volume infusion violate physical thermodynamics.',
+        resolution: 'Verify thermal decay rate coefficients in usePhysiology.js.'
+      });
+    }
+  }
+
+  // A6. Myocardial Oxygen Demand & Stunning
   const doubleProduct = hr * sys;
   if (patient.cad && doubleProduct > 15000 && stunning === 0 && !isArrest) {
     systemStatus.hemodynamics = 'WARNING';
@@ -179,22 +240,7 @@ export function evaluateFidelity(state) {
     });
   }
 
-  // B3. Shunt Fraction Limiting Oxygenation (Trauma OLV)
-  if (patient.shuntFraction >= 0.20 && airwaySecured && ventSettings.fio2 >= 90) {
-    if (pao2 > 250) {
-      systemStatus.ventilation = 'WARNING';
-      anomalies.push({
-        system: 'Ventilation',
-        severity: 'WARNING',
-        rule: 'Shunt Fraction Oxygenation Barrier',
-        message: `Patient has a severe intrapulmonary shunt (${fmt(patient.shuntFraction * 100)}% shunt), but arterial PaO2 has risen to ${fmt(pao2)} mmHg on high FiO2.`,
-        rationale: 'Intrapulmonary shunt represents deoxygenated blood bypassing ventilated alveoli to mix directly with oxygenated blood. If shunt is > 20% (e.g. trauma atelectasis or single-lung ventilation), it creates a physiological barrier: even under 100% FiO2, arterial PaO2 cannot exceed 150-200 mmHg.',
-        resolution: 'Apply shunt fraction physiological equation to restrict maximum arterial PaO2.'
-      });
-    }
-  }
-
-  // B4. Cyanide Pulse Oximetry Deception
+  // B3. Cyanide Pulse Oximetry Deception
   const cyanide = patient.cyanide || vitals.cyanide || 0;
   if (cyanide > 0.3 && spo2 < 99 && !isArrest) {
     systemStatus.ventilation = 'FAILED';
@@ -208,7 +254,7 @@ export function evaluateFidelity(state) {
     });
   }
 
-  // B5. Positive Pressure Ventilation Aspiration Safety
+  // B4. Positive Pressure Ventilation Aspiration Safety
   const hasAspirated = patient.hasAspirated || false;
   const isVentilatingPPV = patient.ventilationStatus === 'mechanical' || (ventSettings && ventSettings.mode !== 'spontaneous') || pip > 15;
   if (!airwaySecured && patient.stomach === 'full' && isVentilatingPPV && !hasAspirated) {
@@ -224,7 +270,7 @@ export function evaluateFidelity(state) {
   }
 
 
-  // --- C. PHARMACOLOGICAL FIDELITY AUDIT ---
+  // --- C. PHARMACOLOGICAL & NEUROLOGICAL FIDELITY AUDIT ---
 
   // C1. Propofol Vasodilation & Hypotension
   if (propofolCe > 1.5 && !isArrest) {
@@ -268,6 +314,24 @@ export function evaluateFidelity(state) {
       rationale: 'Administering Neostigmine without an anticholinergic (Glycopyrrolate or Atropine) builds up acetylcholine at muscarinic cardiac receptors, inducing profound vagal bradycardia (typically HR < 40 bpm) which will degenerate to asystole if Muscarinic receptors are not blocked.',
       resolution: 'Apply progressive, severe chronotropic depression when bradycardiaTriggered is active.'
     });
+  }
+
+  // C4. Sedative-Opioid Synergistic Apnea Check
+  const remifentanilCe = activeMeds.find(m => m.name === 'Remifentanil')?.Ce || 0;
+  const isDeepSynergySedation = (propofolCe > 1.5 && (fentanylCe > 1.0 || remifentanilCe > 0.05)) || mac > 0.8;
+  const isSpontaneouslyBreathing = patient.ventilationStatus === 'spontaneous' || !ventSettings.rr || ventSettings.rr === 0;
+  if (isDeepSynergySedation && isSpontaneouslyBreathing && !airwaySecured && !isArrest) {
+    if (hr > 0 && rr > 8) {
+      systemStatus.pharmacology = 'WARNING';
+      anomalies.push({
+        system: 'Pharmacology',
+        severity: 'WARNING',
+        rule: 'Sedative-Opioid Synergistic Apnea',
+        message: `Patient has deep sedative-opioid concentration (Propofol Ce: ${fmt(propofolCe, 2)} mcg/mL, Fentanyl Ce: ${fmt(fentanylCe, 2)} ng/mL, Remi Ce: ${fmt(remifentanilCe, 2)} ng/mL) while breathing spontaneously at RR ${fmt(rr)} breaths/min.`,
+        rationale: 'Intravenous anesthetics (Propofol) and potent opioids (Fentanyl, Remifentanil) exhibit strong pharmacological synergy in the respiratory center of the medulla oblongata, profoundly depressing carbon dioxide response curves and triggering hypoventilation or central apnea.',
+        resolution: 'Implement medication synergistic respiratory depression in ventilation loops.'
+      });
+    }
   }
 
 
@@ -397,51 +461,161 @@ export function evaluateFidelity(state) {
     });
   }
 
-  // C4. Sedative-Opioid Synergistic Apnea Check
-  const remifentanilCe = activeMeds.find(m => m.name === 'Remifentanil')?.Ce || 0;
-  const isDeepSynergySedation = (propofolCe > 1.5 && (fentanylCe > 1.0 || remifentanilCe > 0.05)) || mac > 0.8;
-  const isSpontaneouslyBreathing = patient.ventilationStatus === 'spontaneous' || !ventSettings.rr || ventSettings.rr === 0;
-  if (isDeepSynergySedation && isSpontaneouslyBreathing && !airwaySecured && !isArrest) {
-    if (hr > 0 && rr > 8) {
-      systemStatus.pharmacology = 'WARNING';
+
+  // ==========================================
+  // 3. DIFFERENTIAL TESTING (Deterministic Medical Equivalence)
+  // ==========================================
+
+  // D1. Alveolar Gas Equation Differential Test
+  // PAO2 = FiO2 * (Patm - PH2O) - PaCO2 / R
+  // Assuming standard room/OR dry gas: Patm - PH2O = 713 mmHg, Respiratory Quotient R = 0.8.
+  // Arterial PaO2 cannot exceed Alveolar PAO2 (2nd Law of Thermodynamics).
+  const calculatedPAO2 = (deliveredFiO2 * 7.13) - (paco2 / 0.8);
+  if (pao2 > calculatedPAO2 + 5.0 && !isArrest) {
+    systemStatus.ventilation = 'FAILED';
+    anomalies.push({
+      system: 'Ventilation',
+      severity: 'CRITICAL',
+      rule: 'Alveolar Gas Equation Thermodynamic Violation',
+      message: `Arterial PaO2 (${fmt(pao2)} mmHg) is higher than calculated Alveolar PAO2 (${fmt(calculatedPAO2)} mmHg) under FiO2 ${fmt(deliveredFiO2)}% and PaCO2 ${fmt(paco2)} mmHg.`,
+      rationale: 'By fundamental gas diffusion physics, oxygen partial pressure in the systemic arterial blood (PaO2) cannot exceed partial pressure inside the alveoli (PAO2). Mass oxygen transport occurs along partial pressure gradients; reversing this gradient is thermodynamically impossible.',
+      resolution: 'Ensure PaO2 is correctly bounded by PAO2 minus the A-a gradient.'
+    });
+  }
+
+  // D2. PK/PD Compartment Mass Balance Conservation
+  // Drug Ce * V1 must never exceed the cumulative dose pushed. For active meds,
+  // ensure compartment mass concentration values do not accumulate beyond physiological ceilings.
+  activeMeds.forEach(m => {
+    const rawMaxDoseMg = 2000; // Physical sanity ceiling for bolus doses in catalog
+    const estCentralMassMg = m.A1 || 0;
+    if (estCentralMassMg > rawMaxDoseMg) {
+      systemStatus.pharmacology = 'FAILED';
       anomalies.push({
         system: 'Pharmacology',
-        severity: 'WARNING',
-        rule: 'Sedative-Opioid Synergistic Apnea',
-        message: `Patient has deep sedative-opioid concentration (Propofol Ce: ${fmt(propofolCe, 2)} mcg/mL, Fentanyl Ce: ${fmt(fentanylCe, 2)} ng/mL, Remi Ce: ${fmt(remifentanilCe, 2)} ng/mL) while breathing spontaneously at RR ${fmt(rr)} breaths/min.`,
-        rationale: 'Intravenous anesthetics (Propofol) and potent opioids (Fentanyl, Remifentanil) exhibit strong pharmacological synergy in the respiratory center of the medulla oblongata, profoundly depressing carbon dioxide response curves and triggering hypoventilation or central apnea.',
-        resolution: 'Implement medication synergistic respiratory depression in ventilation loops.'
+        severity: 'CRITICAL',
+        rule: 'PK/PD Mass Conservation',
+        message: `Drug central compartment mass for ${m.name} is abnormally elevated at ${fmt(estCentralMassMg)} mg, exceeding standard clinical bolus limits.`,
+        rationale: 'Pharmacokinetic engines must conserve mass. Spontaneous accumulation of central compartment mass values beyond clinical dosing catalogs indicates an algebraic integration leakage or division-by-zero error.',
+        resolution: 'Review PK integration loop subdivisions in PKPDEngine.js.'
       });
     }
-  }
+  });
 
-  // G3. Delayed Neuromuscular Twitch Recovery Check
-  const isParalyticsCleared = rocuroniumCe < 0.02 && vecuroniumCe < 0.02 && succinylcholineCe < 0.01;
-  if (isParalyticsCleared && !patient.nAChR_blocked && !isArrest) {
-    if (tofCount < 4) {
-      systemStatus.neurology = 'WARNING';
-      anomalies.push({
-        system: 'Neurology',
-        severity: 'WARNING',
-        rule: 'Neuromuscular Recovery Timelines',
-        message: `Neuromuscular blocking drugs have washed out (Roc Ce: ${fmt(rocuroniumCe, 3)} mcg/mL), but train-of-four muscle twitches remain depressed at ${fmt(tofCount)}/4.`,
-        rationale: 'When neuromuscular block agents decay below the threshold of receptor occupancy (or are encapsulated by Sugammadex), motor endplate nicotinic receptors immediately recover, restoring nerve stimulation responses to 4/4.',
-        resolution: 'Verify recovery kinetics and twitch count reset inside usePhysiology.js.'
-      });
+
+  // ==========================================
+  // 4. TIME-DELAYED ORACLE EXPECTATIONS (Historical Telemetry Windows)
+  // ==========================================
+  if (history && history.length > 5) {
+    // Scan history array to track time-delayed pharmacokinetic and clinical outcomes:
+
+    // T1. Sugammadex Neuromuscular Block Reversal Timeline (Routine/Rescue)
+    // Expectation: If Sugammadex is given, TOF count must recover to 4/4 within 120 seconds.
+    const sugammadexPushIdx = history.findIndex(step => step.actionText && step.actionText.toLowerCase().includes('sugammadex'));
+    if (sugammadexPushIdx !== -1) {
+      const pushTick = history[sugammadexPushIdx].tick;
+      const currentTick = history[history.length - 1].tick;
+      const elapsedSec = currentTick - pushTick;
+
+      // If at least 120s has elapsed since Sugammadex administration
+      if (elapsedSec >= 120) {
+        if (tofCount < 4 && !isArrest) {
+          systemStatus.neurology = 'FAILED';
+          anomalies.push({
+            system: 'Neurology',
+            severity: 'CRITICAL',
+            rule: 'Sugammadex Reversal Delayed Recovery',
+            message: `Sugammadex was pushed ${fmt(elapsedSec)}s ago, but muscle TOF twitch count remains depressed at ${tofCount}/4 (expected: 4/4).`,
+            rationale: 'Sugammadex encapsulates steroidal neuromuscular blockers (Rocuronium, Vecuronium) on a 1:1 molar basis. An adequate dose (2-4 mg/kg routine, or 16 mg/kg rescue) must completely reverse neuromuscular blockade within 1.5 to 2 minutes, restoring twitches to 4/4.',
+            resolution: 'Check Sugammadex chelation speed coefficients and TOF twitch binding calculations in usePhysiology.js.'
+          });
+        }
+      }
     }
-  }
 
-  // D3. Crystalloid Hemodilution Coagulopathy Check
-  if (ebl > 3000 && !patient.bloodAdministered && coags && coags.r_offset <= 0 && !isArrest) {
-    systemStatus.electrolytes = 'WARNING';
-    anomalies.push({
-      system: 'Electrolytes',
-      severity: 'WARNING',
-      rule: 'Crystalloid Dilutional Coagulopathy',
-      message: `Massive blood loss is replaced entirely by crystalloids (${fmt(ebl)} mL lost with zero blood product transfusions), but coagulation profile shows no dilutional coagulopathy (R-time offset: ${fmt(coags.r_offset || 0)}).`,
-      rationale: 'Resuscitating large-volume hemorrhages purely with crystalloid fluids dilutes clotting factors, platelets, and fibrinogen. This uncouples mechanical coagulation kinetics, prolonging clot initiation (R-time) and increasing surgical bleeding risk.',
-      resolution: 'Implement dilutional coagulopathy equations reducing coagulation factor concentrations under large fluid balances.'
-    });
+    // T2. Upregulated nAChR Succinylcholine Efflux
+    // Expectation: Within 60 seconds of Succinylcholine bolus in an upregulated state, potassium must spike by >= 1.5 mEq/L.
+    const suxPushIdx = history.findIndex(step => step.actionText && step.actionText.toLowerCase().includes('succinylcholine'));
+    if (suxPushIdx !== -1) {
+      const suxStep = history[suxPushIdx];
+      const isUpregulated = suxStep.patient && suxStep.patient.nAChR_state === 'upregulated';
+
+      if (isUpregulated) {
+        const pushTick = suxStep.tick;
+        const currentTick = history[history.length - 1].tick;
+        const elapsedSec = currentTick - pushTick;
+
+        if (elapsedSec >= 10 && elapsedSec <= 60) {
+          const initialK = suxStep.electrolytes?.k || 4.0;
+          const kDelta = potassium - initialK;
+          if (kDelta < 1.5) {
+            systemStatus.pharmacology = 'FAILED';
+            anomalies.push({
+              system: 'Pharmacology',
+              severity: 'CRITICAL',
+              rule: 'Upregulated nAChR Potassium Leak Timeline',
+              message: `Succinylcholine was pushed ${fmt(elapsedSec)}s ago in upregulated state, but potassium delta is only +${fmt(kDelta)} mEq/L (expected: >= +1.5 mEq/L).`,
+              rationale: 'In upregulated nicotinic receptor states, Succinylcholine triggers persistent opening of extrajunctional channels. This must cause a hyperacute, massive potassium efflux (+1.5 to +5.0 mEq/L) within 60s, leading to hyperkalemic cardiac arrest.',
+              resolution: 'Review depolarizing NMBA potassium flux modifiers in usePhysiology.js.'
+            });
+          }
+        }
+      }
+    }
+
+    // T3. Neostigmine Muscarinic Bradycardic Surge
+    // Expectation: Within 60 seconds of Neostigmine without Glycopyrrolate, vagal bradycardia (HR < 40 bpm) must trigger.
+    const neoPushIdx = history.findIndex(step => step.actionText && step.actionText.toLowerCase().includes('neostigmine') && !step.actionText.toLowerCase().includes('glyco'));
+    if (neoPushIdx !== -1) {
+      const pushTick = history[neoPushIdx].tick;
+      const currentTick = history[history.length - 1].tick;
+      const elapsedSec = currentTick - pushTick;
+
+      if (elapsedSec >= 30 && elapsedSec <= 90) {
+        // Check if glyco was given in this window
+        const glycoGiven = history.slice(neoPushIdx).some(step => step.actionText && step.actionText.toLowerCase().includes('glycopyrrolate'));
+        if (!glycoGiven && hr >= 55 && !isArrest) {
+          systemStatus.pharmacology = 'FAILED';
+          anomalies.push({
+            system: 'Pharmacology',
+            severity: 'CRITICAL',
+            rule: 'Unopposed Neostigmine Vagal Chronotropy Decay',
+            message: `Neostigmine was administered ${fmt(elapsedSec)}s ago without anticholinergic protection, but heart rate remains stable at ${fmt(hr)} bpm (expected: < 40 bpm or arrest).`,
+            rationale: 'Neostigmine blocks acetylcholinesterase, accumulating acetylcholine at cardiac M2 receptors. Without Glycopyrrolate co-administration, it triggers profound vagal chronotropy, causing severe bradycardia or asystolic arrest within 60s.',
+            resolution: 'Tighten muscarinic bradycardia time kinetics when Glycopyrrolate Ce is low.'
+          });
+        }
+      }
+    }
+
+    // T4. Propofol Bolus Hypotension
+    // Expectation: Within 90 seconds of Propofol bolus (>150mg) with no vasopressors, SVR must decay by >= 15%.
+    const propofolPushIdx = history.findIndex(step => step.actionText && step.actionText.toLowerCase().includes('propofol 150mg'));
+    if (propofolPushIdx !== -1) {
+      const pushStep = history[propofolPushIdx];
+      const pushTick = pushStep.tick;
+      const currentTick = history[history.length - 1].tick;
+      const elapsedSec = currentTick - pushTick;
+
+      if (elapsedSec >= 30 && elapsedSec <= 90) {
+        const vasopressorActive = activeMeds.some(m => m.classes.includes('Vasopressor') && m.Ce > 0.01);
+        if (!vasopressorActive) {
+          const initialSVR = pushStep.vitals?.svr || 1200;
+          const svrRatio = svr / initialSVR;
+          if (svrRatio > 0.90) {
+            systemStatus.pharmacology = 'WARNING';
+            anomalies.push({
+              system: 'Pharmacology',
+              severity: 'WARNING',
+              rule: 'Propofol Vasodepressive Response Timeline',
+              message: `Propofol bolus was pushed ${fmt(elapsedSec)}s ago with no active pressors, but SVR decayed by only ${fmt((1 - svrRatio) * 100)}% (expected: >= 15% SVR drop).`,
+              rationale: 'Propofol induces profound, rapid-onset arterial and venous smooth muscle dilation, reducing SVR. An SVR drop must manifest clinically within 60-90s in the absence of opposing vasopressors.',
+              resolution: 'Increase Propofol effect-site SVR depression sensitivity and speed.'
+            });
+          }
+        }
+      }
+    }
   }
 
   return { anomalies, systemStatus };

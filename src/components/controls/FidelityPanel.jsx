@@ -4,7 +4,7 @@ import {
   Play, CheckCircle2, Activity, FileCode, CheckSquare, Settings
 } from 'lucide-react';
 import { evaluateFidelity } from '../../engine/FidelityOracle';
-import { getRandomFuzzAction, executeFuzzAction, generateFidelityReport } from '../../engine/FidelityFuzzer';
+import { getRandomFuzzAction, getGuidedFuzzAction, executeFuzzAction, generateFidelityReport } from '../../engine/FidelityFuzzer';
 
 const WEB3FORMS_ACCESS_KEY = 'e2175b71-5996-4f82-b55f-cf76fcca8255';
 
@@ -43,6 +43,7 @@ export default function FidelityPanel({
   const [fuzzHistory, setFuzzHistory] = useState([]);
   const [activeTab, setActiveTab] = useState('live'); // 'live' or 'fuzzer'
   const [fuzzTicks, setFuzzTicks] = useState(50); // fuzzer depth duration
+  const [selectedStrategy, setSelectedStrategy] = useState('guided'); // 'guided', 'polypharmacy', 'malpractice', 'mechanical'
 
   // Web3Forms Bug Report Submission States
   const [testerNotes, setTesterNotes] = useState('');
@@ -57,10 +58,46 @@ export default function FidelityPanel({
     };
   }, [vitals, patient, activeMeds, gasSettings, ventSettings, surgicalPhase, electrolytes, coags, time]);
 
+  // Rolling live history ref to support time-delayed live audits
+  const liveHistoryRef = useRef([]);
+  useEffect(() => {
+    if (vitals && Object.keys(vitals).length > 0) {
+      const snap = {
+        tick: time,
+        actionText: surgicalPhase,
+        vitals: {
+          hr: vitals.hr,
+          sys: vitals.sys,
+          dia: vitals.dia,
+          map: vitals.map,
+          spo2: vitals.spo2,
+          etco2: vitals.etco2,
+          temp: vitals.temp,
+          svr: vitals.svr,
+          co: vitals.co,
+          tofCount: vitals.tofCount
+        },
+        electrolytes: {
+          ph: electrolytes?.ph,
+          k: electrolytes?.k,
+          ca: electrolytes?.ca
+        },
+        patient: {
+          nAChR_state: patient?.nAChR_state,
+          isArrest: patient?.isArrest
+        }
+      };
+      liveHistoryRef.current.push(snap);
+      if (liveHistoryRef.current.length > 300) {
+        liveHistoryRef.current.shift();
+      }
+    }
+  }, [vitals, patient, electrolytes, time, surgicalPhase]);
+
   // Execute Live Physiology Audit
   const handleLiveAudit = () => {
     const state = currentStateRef.current;
-    const result = evaluateFidelity(state);
+    const result = evaluateFidelity(state, liveHistoryRef.current);
     setAuditResult(result);
     // Reset submission state on new audit
     setSubmitStatus('idle');
@@ -116,13 +153,31 @@ export default function FidelityPanel({
   // Auxiliary function to log telemetry and capture anomalies on each simulation tick
   const recordTelemetry = (tickNum, actionText, state, audit, localHistory, localAnomalies) => {
     if (!state) return;
-    // Record step telemetry
+    // Record optimized step telemetry to prevent memory leaks during long fuzz runs
     const stepRecord = {
       tick: tickNum,
       actionText,
-      vitals: { ...state.vitals },
-      electrolytes: { ...state.electrolytes },
-      patient: { ...state.patient }
+      vitals: {
+        hr: state.vitals?.hr,
+        sys: state.vitals?.sys,
+        dia: state.vitals?.dia,
+        map: state.vitals?.map,
+        spo2: state.vitals?.spo2,
+        etco2: state.vitals?.etco2,
+        temp: state.vitals?.temp,
+        svr: state.vitals?.svr,
+        co: state.vitals?.co,
+        tofCount: state.vitals?.tofCount
+      },
+      electrolytes: {
+        ph: state.electrolytes?.ph,
+        k: state.electrolytes?.k,
+        ca: state.electrolytes?.ca
+      },
+      patient: {
+        nAChR_state: state.patient?.nAChR_state,
+        isArrest: state.patient?.isArrest
+      }
     };
     localHistory.push(stepRecord);
 
@@ -145,7 +200,7 @@ export default function FidelityPanel({
     
     setIsFuzzing(true);
     setFuzzProgress(0);
-    setFuzzLogs([`🚀 Initiating Clinical-Time State-Space Fuzzing Stress Test (${fuzzTicks} Steps)...`]);
+    setFuzzLogs([`🚀 Initiating Guided Clinical Fuzzing Stress Test [Strategy: ${selectedStrategy.toUpperCase()}] (${fuzzTicks} Steps)...`]);
     setFuzzAnomalies([]);
     
     // 1. Accelerate the simulation speed to 50ms per tick in the physics engine
@@ -156,6 +211,15 @@ export default function FidelityPanel({
     const localAnomalies = [];
     let tickCount = 0;
     const totalSteps = fuzzTicks;
+    
+    // Guided state machine tracker persistent for the fuzzer run
+    const fuzzerState = {
+      phase: 'PRE_OP',
+      currentSequence: [],
+      sequenceStep: 0,
+      attemptCount: 0,
+      drugsGiven: {}
+    };
 
     try {
       for (let step = 1; step <= totalSteps; step++) {
@@ -163,7 +227,7 @@ export default function FidelityPanel({
         setFuzzProgress(Math.round((step / totalSteps) * 100));
         
         const activeState = currentStateRef.current;
-        const action = getRandomFuzzAction();
+        const action = getGuidedFuzzAction(activeState, fuzzerState, selectedStrategy);
         
         if (action.type === 'wait') {
           const duration = action.duration;
@@ -178,7 +242,7 @@ export default function FidelityPanel({
             tickCount++;
             
             // Capture telemetry and evaluate oracle
-            const audit = evaluateFidelity(currentState);
+            const audit = evaluateFidelity(currentState, localHistory);
             recordTelemetry(tickCount, `Observe physiological circulation (t+${sec}s)`, currentState, audit, localHistory, localAnomalies);
           }
         } else {
@@ -203,14 +267,15 @@ export default function FidelityPanel({
 
           setFuzzLogs(prev => [`Step ${step}/${totalSteps}: ${actionText}`, ...prev]);
           
-          // Wait 55ms for the state change to apply and tick once
-          await new Promise(resolve => setTimeout(resolve, 55));
+          // Wait for the state change to apply and tick once (wait longer for position changes to prevent React batching lag)
+          const waitTime = action.type === 'position' ? 120 : 55;
+          await new Promise(resolve => setTimeout(resolve, waitTime));
           
           const currentState = currentStateRef.current;
           tickCount++;
           
           // Capture telemetry and evaluate oracle
-          const audit = evaluateFidelity(currentState);
+          const audit = evaluateFidelity(currentState, localHistory);
           recordTelemetry(tickCount, actionText, currentState, audit, localHistory, localAnomalies);
         }
       }
@@ -474,9 +539,25 @@ export default function FidelityPanel({
                 <Settings size={14} className="text-purple-400 animate-spin" /> Fuzzer stress-testing controls
               </h4>
               <p className="text-[10px] text-slate-400 leading-relaxed font-mono">
-                Initiates a headless fuzzer stress test that injects random clinical actions (meds, fluids, positioning, procedures, labs) to systematically uncover physiological anomalies.
+                Initiates a stateful coverage-guided clinical fuzzer that injects structured clinical actions to uncover deep physiological anomalies.
               </p>
               
+              {!isFuzzing && (
+                <div className="flex flex-col gap-1.5 mt-0.5 font-mono">
+                  <label className="text-[8px] font-black uppercase text-slate-500 tracking-wider">Guided Fuzzing Strategy</label>
+                  <select
+                    value={selectedStrategy}
+                    onChange={(e) => setSelectedStrategy(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-950/85 border border-purple-500/25 focus:border-purple-500 rounded-xl text-[10.5px] font-mono text-purple-300 focus:outline-none transition cursor-pointer"
+                  >
+                    <option value="guided">📋 Standard Guided Pathway</option>
+                    <option value="polypharmacy">💊 Polypharmacy & Synergism Strategy</option>
+                    <option value="malpractice">🚨 Human Error / Malpractice Strategy</option>
+                    <option value="mechanical">🔧 Hardware & Mechanical Failure Strategy</option>
+                  </select>
+                </div>
+              )}
+
               {!isFuzzing && (
                 <div className="flex flex-col gap-1.5 mt-0.5 font-mono">
                   <label className="text-[8px] font-black uppercase text-slate-500 tracking-wider">Fuzzing Duration / Depth</label>

@@ -910,6 +910,34 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               maxNMJOccupancy = Math.min(1.0, maxNMJOccupancy + (currentVec3oh * 0.8));
           }
 
+          // Couple active paralytic Ce directly to maxNMJOccupancy (neuromuscular junction blockade)
+          const rocuroniumModel = st.activeMeds?.find(m => m.name === 'Rocuronium');
+          const rocuroniumCe = rocuroniumModel ? rocuroniumModel.Ce : 0;
+          const vecuroniumModel = st.activeMeds?.find(m => m.name === 'Vecuronium');
+          const vecuroniumCe = vecuroniumModel ? vecuroniumModel.Ce : 0;
+          const cisatracuriumModel = st.activeMeds?.find(m => m.name === 'Cisatracurium');
+          const cisatracuriumCe = cisatracuriumModel ? cisatracuriumModel.Ce : 0;
+          const succinylcholineModel = st.activeMeds?.find(m => m.name === 'Succinylcholine');
+          const succinylcholineCe = succinylcholineModel ? succinylcholineModel.Ce : 0;
+
+          // If Rocuronium Ce > 0.15, receptor occupancy should be at least 0.80 to ensure TOF count drops below 4/4
+          if (rocuroniumCe > 0.15) {
+              const rocOccupancy = 0.80 + Math.min(0.20, (rocuroniumCe - 0.15) * 0.5);
+              if (rocOccupancy > maxNMJOccupancy) maxNMJOccupancy = rocOccupancy;
+          }
+          if (vecuroniumCe > 0.05) {
+              const vecOccupancy = 0.80 + Math.min(0.20, (vecuroniumCe - 0.05) * 1.5);
+              if (vecOccupancy > maxNMJOccupancy) maxNMJOccupancy = vecOccupancy;
+          }
+          if (cisatracuriumCe > 0.08) {
+              const cisOccupancy = 0.80 + Math.min(0.20, (cisatracuriumCe - 0.08) * 1.0);
+              if (cisOccupancy > maxNMJOccupancy) maxNMJOccupancy = cisOccupancy;
+          }
+          if (succinylcholineCe > 0.08) {
+              const suxOccupancy = 0.80 + Math.min(0.20, (succinylcholineCe - 0.08) * 1.0);
+              if (suxOccupancy > maxNMJOccupancy) maxNMJOccupancy = suxOccupancy;
+          }
+
           // Active metabolite clinical implications
           let isSeizure = false;
           let seizureMetabolicMultiplier = 1.0;
@@ -1103,7 +1131,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               positionFRCMod = 0.3;
               positionPreloadMod = -200; 
               positionHydrostaticMod = -14.8; 
-          } else if (pos === 'Sitting') {
+          } else if (pos === 'Sitting' || pos === 'Beach Chair') {
               positionFRCMod = 0.5;
               positionPreloadMod = -400; 
               positionHydrostaticMod = -29.6; // Beach chair MAP positional shift
@@ -1278,7 +1306,11 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           if (st.patient.trauma) currentCompliance -= 15; 
           if (st.patient.chf) currentCompliance -= 20; 
           currentCompliance += pulmComplianceBonus; 
-          if (positionFRCMod < 0) currentCompliance -= 10;
+          if (pos === 'Trendelenburg') {
+              currentCompliance *= 0.80; // Apply 20% compliance reduction per ASA/AAGBI clinical standards
+          } else if (positionFRCMod < 0) {
+              currentCompliance -= 10;
+          }
           currentCompliance -= aspirationCompliancePenalty;
           currentCompliance -= anaphylaxisCompliancePenalty;
           currentCompliance = Math.max(5, currentCompliance);
@@ -1451,18 +1483,33 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let targetSys = targetMAP + (targetMAP * 0.3 * pulsePressureRatio) + sysPressorEffect - (st.patient.isSeptic ? 20 : 0);
           let targetDia = targetMAP - (targetMAP * 0.2 * pulsePressureRatio) + (sysPressorEffect / 2) - (st.patient.isSeptic ? 40 : 0);
 
+          // Apply myocardial stunning cap directly to steady-state targets (prevents recursive subtraction)
+          if (st.patient.myocardialStunning > 0 && !isArrestState) {
+              targetSys = Math.max(0, targetSys - st.patient.myocardialStunning);
+              targetDia = Math.max(0, targetDia - (st.patient.myocardialStunning * 0.6));
+          }
+
           const hrNoise = isArrestState ? 0 : (Math.random() * 2 - 1);
           const sysNoise = isArrestState ? 0 : (Math.random() * 4 - 2);
           const diaNoise = isArrestState ? 0 : (Math.random() * 2 - 1);
 
           let newHr = (st.vitals.hr || 70) + (targetHR - (st.vitals.hr || 70)) * 0.1 + hrNoise;
+          
+          // Apply Neostigmine-induced profound vagal bradycardia directly to newHr (progressive decay to < 40 and eventually 0)
+          if (st.patient.bradycardiaTriggered) {
+              const bradycardiaDuration = st.time - st.patient.bradycardiaTime;
+              const targetBradyHR = Math.max(0, 70 - bradycardiaDuration * 3.5);
+              if (newHr > targetBradyHR) {
+                  newHr = targetBradyHR;
+              }
+          }
           let newSys = safeSys + (targetSys - safeSys) * 0.1 + sysNoise;
           let newDia = safeDia + (targetDia - safeDia) * 0.1 + diaNoise;
           
-          const roundedSys = Math.max(0, Math.round(newSys));
-          const roundedDia = Math.max(0, Math.round(newDia));
-          const newMap = Math.max(0, Math.round(roundedDia + (roundedSys - roundedDia) / 3));
-          const newCmap = Math.max(0, newMap + positionHydrostaticMod); // Cerebral MAP Positional Hydrostatic Shift
+          let roundedSys = Math.max(0, Math.round(newSys));
+          let roundedDia = Math.max(0, Math.round(newDia));
+          let newMap = Math.max(0, Math.round(roundedDia + (roundedSys - roundedDia) / 3));
+          let newCmap = Math.max(0, newMap + positionHydrostaticMod); // Cerebral MAP Positional Hydrostatic Shift
           
           // === ACID-BASE CALCULUS & LACTATE ===
           let currentLactate = st.patient.lacticAcid || 1.0;
@@ -1522,7 +1569,12 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
           let newSpo2 = (st.vitals.spo2 || 100) + (measuredSpo2 - (st.vitals.spo2 || 100)) * 0.05;
           let newRr = (st.vitals.rr || 12) + (targetRR - (st.vitals.rr || 12)) * 0.2;
-          let newEtco2 = targetRR === 0 ? 0 : (st.vitals.etco2 || 40) + (targetEtco2 - (st.vitals.etco2 || 40)) * 0.2;
+          // Force EtCO2 to 0 during absolute apnea without mechanical/assisted tidal exchange
+          const activeMechanicalVent = st.patient.airwaySecured && st.ventSettings && (st.ventSettings.rr > 0 || st.ventSettings.mode === 'PCV' || st.ventSettings.mode === 'VCV' || st.ventSettings.mode === 'PCV-VG');
+          const isBMVActive = st.patient.ventilationStatus === 'assisted';
+          const hasTidalExchange = activeMechanicalVent || isBMVActive || (!isApneic && targetRR > 0);
+
+          let newEtco2 = !hasTidalExchange ? 0 : (targetRR === 0 ? 0 : (st.vitals.etco2 || 40) + (targetEtco2 - (st.vitals.etco2 || 40)) * 0.2);
 
           if (Math.abs(targetHR - (st.vitals.hr || 70)) < 1.5 && hrNoise === 0) newHr = targetHR;
           if (Math.abs(targetSys - safeSys) < 1.5 && sysNoise === 0) newSys = targetSys;
@@ -1615,12 +1667,16 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               newEtco2 = (st.patient.cprActive && st.patient.airwaySecured) ? 15 + (Math.random() * 5) : 0;
               if (!st.patient.cprActive || currentRhythm === 'vfib' || currentRhythm === 'asystole') newHr = 0;
           } else if (st.patient.myocardialStunning > 0) {
-              newSys -= st.patient.myocardialStunning;
-              newDia -= (st.patient.myocardialStunning * 0.6);
               if (targetMAP < 40) newSpo2 = 0; 
           }
 
           if (newDia >= newSys - 10) newDia = Math.max(0, newSys - 10);
+
+          // Recalculate aligned integer pressures after cardiac arrest / stunning / position overrides are applied
+          roundedSys = Math.max(0, Math.round(newSys));
+          roundedDia = Math.max(0, Math.round(newDia));
+          newMap = Math.max(0, Math.round(roundedDia + (roundedSys - roundedDia) / 3));
+          newCmap = Math.max(0, newMap + positionHydrostaticMod);
 
           const corticalSuppression = aggregateHypnosis;
           const burstSuppression = Math.max(0, (currentMac - 1.5) * 40); 
@@ -1637,11 +1693,18 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               t1 = Math.max(0, 1 - Math.pow((maxNMJOccupancy - 0.70) / 0.30, 2));
               t4 = Math.max(0, 1 - Math.pow((maxNMJOccupancy - 0.60) / 0.35, 2.5));
           }
-          let targetTofCount = 0;
-          if (t1 > 0.05) targetTofCount = 1;
-          if (maxNMJOccupancy < 0.90) targetTofCount = 2;
-          if (maxNMJOccupancy < 0.80) targetTofCount = 3;
-          if (t4 > 0.05) targetTofCount = 4;
+          let targetTofCount = 4;
+          if (maxNMJOccupancy >= 0.95) {
+              targetTofCount = 0;
+          } else if (maxNMJOccupancy >= 0.90) {
+              targetTofCount = 1;
+          } else if (maxNMJOccupancy >= 0.85) {
+              targetTofCount = 2;
+          } else if (maxNMJOccupancy >= 0.75) {
+              targetTofCount = 3;
+          } else {
+              targetTofCount = 4;
+          }
           
           let targetTofRatio = (targetTofCount === 4) ? (t4 / t1) : 0.0;
           if (isNaN(targetTofRatio) || targetTofRatio < 0) targetTofRatio = 0;
