@@ -966,7 +966,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           
           if (st.gasModels && Object.keys(st.gasModels).length > 0) {
             const isParalyzed = maxNMJOccupancy > 0.90;
-            const isApneic = st.patient.isApneic || (st.vitals.rr !== undefined ? st.vitals.rr < 1 : false);
+            const isApneic = isParalyzed || (st.vitals.rr !== undefined ? st.vitals.rr < 1 : false);
             const effectiveMv = st.patient.airwaySecured ? (st.vitals.mv || 0) : (isApneic ? 0 : 6.0);
             const currentFRC = (st.patient.height * 0.02) - (st.patient.isObese ? 0.8 : 0);
 
@@ -1135,7 +1135,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const currentFRC_L = currentLungVols.frc_L; // Position & obesity-adjusted FRC in liters
 
           const isParalyzed = maxNMJOccupancy > 0.90;
-          const isApneic = st.patient.isApneic || (st.vitals.rr !== undefined ? st.vitals.rr < 1 : false);
+          const isApneic = isParalyzed || (st.vitals.rr !== undefined ? st.vitals.rr < 1 : false);
           let buffer = (st.patient.oxygenBuffer !== undefined && st.patient.oxygenBuffer !== null) ? st.patient.oxygenBuffer : (currentFRC_L * 0.21); // Liters of O2 in FRC
 
           const isBagMaskActive = (st.patient.currentO2Device && st.patient.currentO2Device.includes('Bag-Mask')) || st.patient.ventilationStatus === 'assisted';
@@ -1167,7 +1167,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               const replenishmentFiO2 = st.patient.airwaySecured ? deliveredFiO2 : (st.patient.currentFiO2 || 21);
               const targetO2_L = currentFRC_L * (replenishmentFiO2 / 100);
               const k = effectiveMV_L_min / 60 / currentFRC_L; // Eger & Severinghaus washout rate constant
-              buffer += k * (targetO2_L - buffer) - VO2_sec;
+              buffer += k * (targetO2_L - buffer);
           } else {
               // Apnea/Paralysis without active ventilation: depletion offset by apneic oxygenation
               buffer -= (VO2_sec - passiveO2Influx);
@@ -1180,7 +1180,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const opioidRRDrop = (opioidEff * 10) + m6gRrDelta;
           
           const shiveringRRDrive = (shiveringMultiplier > 1.5) ? (shiveringMultiplier * 4) : 0;
-          let patientDriveRR = (st.patient.isApneic || st.patient.isParalyzed) ? 0 : Math.max(0, (st.targetVitals.rr || 12) + compensatoryRR + shiveringRRDrive + totalRrDelta - opioidRRDrop);
+          let patientDriveRR = (isParalyzed) ? 0 : Math.max(0, (st.targetVitals.rr || 12) + compensatoryRR + shiveringRRDrive + totalRrDelta - opioidRRDrop);
           let targetRR = patientDriveRR;
 
           // === PENICILLIN ANAPHYLAXIS TRIGGERS ===
@@ -1669,7 +1669,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                   codeStartTime: codeTime, arrestThreshold: newThreshold, apneaStartTime: newApneaStart,
                   vec3oh: currentVec3oh, normep: currentNormep, m6g: currentM6g, cyanide: currentCyanide,
                   lacticAcid: currentLactate, hasAspirated, temp: newTemp,
-                  isApneic: isApneic, isParalyzed: isParalyzed
+                  isApneic: isApneic, isParalyzed: isParalyzed, lungVolumes: currentLungVols
               };
           });
 
