@@ -397,5 +397,52 @@ export function evaluateFidelity(state) {
     });
   }
 
+  // C4. Sedative-Opioid Synergistic Apnea Check
+  const remifentanilCe = activeMeds.find(m => m.name === 'Remifentanil')?.Ce || 0;
+  const isDeepSynergySedation = (propofolCe > 1.5 && (fentanylCe > 1.0 || remifentanilCe > 0.05)) || mac > 0.8;
+  const isSpontaneouslyBreathing = patient.ventilationStatus === 'spontaneous' || !ventSettings.rr || ventSettings.rr === 0;
+  if (isDeepSynergySedation && isSpontaneouslyBreathing && !airwaySecured && !isArrest) {
+    if (hr > 0 && rr > 8) {
+      systemStatus.pharmacology = 'WARNING';
+      anomalies.push({
+        system: 'Pharmacology',
+        severity: 'WARNING',
+        rule: 'Sedative-Opioid Synergistic Apnea',
+        message: `Patient has deep sedative-opioid concentration (Propofol Ce: ${fmt(propofolCe, 2)} mcg/mL, Fentanyl Ce: ${fmt(fentanylCe, 2)} ng/mL, Remi Ce: ${fmt(remifentanilCe, 2)} ng/mL) while breathing spontaneously at RR ${fmt(rr)} breaths/min.`,
+        rationale: 'Intravenous anesthetics (Propofol) and potent opioids (Fentanyl, Remifentanil) exhibit strong pharmacological synergy in the respiratory center of the medulla oblongata, profoundly depressing carbon dioxide response curves and triggering hypoventilation or central apnea.',
+        resolution: 'Implement medication synergistic respiratory depression in ventilation loops.'
+      });
+    }
+  }
+
+  // G3. Delayed Neuromuscular Twitch Recovery Check
+  const isParalyticsCleared = rocuroniumCe < 0.02 && vecuroniumCe < 0.02 && succinylcholineCe < 0.01;
+  if (isParalyticsCleared && !patient.nAChR_blocked && !isArrest) {
+    if (tofCount < 4) {
+      systemStatus.neurology = 'WARNING';
+      anomalies.push({
+        system: 'Neurology',
+        severity: 'WARNING',
+        rule: 'Neuromuscular Recovery Timelines',
+        message: `Neuromuscular blocking drugs have washed out (Roc Ce: ${fmt(rocuroniumCe, 3)} mcg/mL), but train-of-four muscle twitches remain depressed at ${fmt(tofCount)}/4.`,
+        rationale: 'When neuromuscular block agents decay below the threshold of receptor occupancy (or are encapsulated by Sugammadex), motor endplate nicotinic receptors immediately recover, restoring nerve stimulation responses to 4/4.',
+        resolution: 'Verify recovery kinetics and twitch count reset inside usePhysiology.js.'
+      });
+    }
+  }
+
+  // D3. Crystalloid Hemodilution Coagulopathy Check
+  if (ebl > 3000 && !patient.bloodAdministered && coags && coags.r_offset <= 0 && !isArrest) {
+    systemStatus.electrolytes = 'WARNING';
+    anomalies.push({
+      system: 'Electrolytes',
+      severity: 'WARNING',
+      rule: 'Crystalloid Dilutional Coagulopathy',
+      message: `Massive blood loss is replaced entirely by crystalloids (${fmt(ebl)} mL lost with zero blood product transfusions), but coagulation profile shows no dilutional coagulopathy (R-time offset: ${fmt(coags.r_offset || 0)}).`,
+      rationale: 'Resuscitating large-volume hemorrhages purely with crystalloid fluids dilutes clotting factors, platelets, and fibrinogen. This uncouples mechanical coagulation kinetics, prolonging clot initiation (R-time) and increasing surgical bleeding risk.',
+      resolution: 'Implement dilutional coagulopathy equations reducing coagulation factor concentrations under large fluid balances.'
+    });
+  }
+
   return { anomalies, systemStatus };
 }

@@ -1672,10 +1672,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
         } catch (error) {
           console.error("Physics Engine Tick Failed: ", error);
         }
-      }, 1000);
+      }, patient?.simulationSpeed || 1000);
     }
     return () => clearInterval(interval);
-  }, [isRunning, isPaused]); 
+  }, [isRunning, isPaused, patient?.simulationSpeed]); 
 
   const createSnapshot = () => {
     const clonedMeds = activeMeds.map(m => {

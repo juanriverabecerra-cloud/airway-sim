@@ -133,7 +133,12 @@ export const FUZZ_ACTIONS = [
   { name: 'Perform BMV ventilation', type: 'procedure', action: 'bmv' },
   { name: 'Toggle CPR compressions', type: 'cpr' },
   { name: 'Deliver Defib Shock 200J', type: 'shock', joules: 200, sync: false },
-  { name: 'Deliver Sync Cardioversion 100J', type: 'shock', joules: 100, sync: true }
+  { name: 'Deliver Sync Cardioversion 100J', type: 'shock', joules: 100, sync: true },
+
+  // === 16. TEMPORAL OBSERVATION ACTIONS ===
+  { name: 'Observe physiology for 10 seconds', type: 'wait', duration: 10 },
+  { name: 'Observe physiology for 20 seconds', type: 'wait', duration: 20 },
+  { name: 'Observe physiology for 30 seconds', type: 'wait', duration: 30 }
 ];
 
 export function getRandomFuzzAction() {

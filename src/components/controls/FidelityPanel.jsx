@@ -113,89 +113,125 @@ export default function FidelityPanel({
     }
   };
 
-  // Run the Automated State-Space Fuzzer (configurable duration accelerated ticks in sequence)
-  const runFuzzTest = () => {
+  // Auxiliary function to log telemetry and capture anomalies on each simulation tick
+  const recordTelemetry = (tickNum, actionText, state, audit, localHistory, localAnomalies) => {
+    if (!state) return;
+    // Record step telemetry
+    const stepRecord = {
+      tick: tickNum,
+      actionText,
+      vitals: { ...state.vitals },
+      electrolytes: { ...state.electrolytes },
+      patient: { ...state.patient }
+    };
+    localHistory.push(stepRecord);
+
+    // Collect new anomalies
+    if (audit && audit.anomalies && audit.anomalies.length > 0) {
+      audit.anomalies.forEach(anomaly => {
+        const exists = localAnomalies.some(a => a.rule === anomaly.rule);
+        if (!exists) {
+          localAnomalies.push(anomaly);
+          setFuzzAnomalies(prev => [...prev, anomaly]);
+          setFuzzLogs(prev => [`🚨 INCONSISTENCY IN "${anomaly.rule}": ${anomaly.message}`, ...prev]);
+        }
+      });
+    }
+  };
+
+  // Run the Automated State-Space Fuzzer (asynchronous accelerated temporal stress-test)
+  const runFuzzTest = async () => {
     if (isFuzzing) return;
     
     setIsFuzzing(true);
     setFuzzProgress(0);
-    setFuzzLogs([`🚀 Initiating head-free State-Space Fuzzing Stress Test (${fuzzTicks} Ticks)...`, 'Cloning baseline physiological states...']);
+    setFuzzLogs([`🚀 Initiating Clinical-Time State-Space Fuzzing Stress Test (${fuzzTicks} Steps)...`]);
     setFuzzAnomalies([]);
     
+    // 1. Accelerate the simulation speed to 50ms per tick in the physics engine
+    setPatient(p => ({ ...p, simulationSpeed: 50 }));
+    logEvent("⚡ Accelerated Simulation Clock (20x speed: 50ms/sec).");
+
     const localHistory = [];
     const localAnomalies = [];
     let tickCount = 0;
-    const totalTicks = fuzzTicks;
+    const totalSteps = fuzzTicks;
 
-    // Run action ticks rapidly in a 120ms interval loop
-    const fuzzInterval = setInterval(() => {
-      tickCount++;
-      setFuzzProgress(Math.round((tickCount / totalTicks) * 100));
-
-      const activeState = currentStateRef.current;
-      const action = getRandomFuzzAction();
-      
-      // Execute the random action in the real simulator loop
-      const actionText = executeFuzzAction(action, {
-        setPatient,
-        handleProcessMed,
-        handlePushMed,
-        handlePushFluid,
-        handleSetVentSettings,
-        handleSetO2,
-        handleToggleCPR,
-        handleDeliverShock,
-        establishAccess,
-        performLarsonManeuver,
-        checkCuffLeak,
-        examineNpoHistory,
-        generateLab,
-        logEvent,
-        patient: activeState.patient
-      });
-
-      // Allow 50ms for React state to cycle, then audit the resulting state
-      setTimeout(() => {
-        const updatedState = currentStateRef.current;
-        const audit = evaluateFidelity(updatedState);
-
-        // Record step telemetry
-        const stepRecord = {
-          tick: tickCount,
-          actionText,
-          vitals: { ...updatedState.vitals },
-          electrolytes: { ...updatedState.electrolytes },
-          patient: { ...updatedState.patient }
-        };
-        localHistory.push(stepRecord);
-
-        // Collect new anomalies
-        if (audit.anomalies.length > 0) {
-          audit.anomalies.forEach(anomaly => {
-            const exists = localAnomalies.some(a => a.rule === anomaly.rule);
-            if (!exists) {
-              localAnomalies.push(anomaly);
-              setFuzzAnomalies(prev => [...prev, anomaly]);
-              setFuzzLogs(prev => [`🚨 INCONSISTENCY IN "${anomaly.rule}": ${anomaly.message}`, ...prev]);
-            }
+    try {
+      for (let step = 1; step <= totalSteps; step++) {
+        // Break out if isFuzzing becomes false (e.g. cancelled/exited)
+        setFuzzProgress(Math.round((step / totalSteps) * 100));
+        
+        const activeState = currentStateRef.current;
+        const action = getRandomFuzzAction();
+        
+        if (action.type === 'wait') {
+          const duration = action.duration;
+          setFuzzLogs(prev => [`⏳ Observing physiology: Let drug kinetics and circulation tick for ${duration}s...`, ...prev]);
+          
+          // Step through the wait duration tick by tick
+          for (let sec = 1; sec <= duration; sec++) {
+            // Wait 50ms for the simulation interval to fire and advance React state
+            await new Promise(resolve => setTimeout(resolve, 50));
+            
+            const currentState = currentStateRef.current;
+            tickCount++;
+            
+            // Capture telemetry and evaluate oracle
+            const audit = evaluateFidelity(currentState);
+            recordTelemetry(tickCount, `Observe physiological circulation (t+${sec}s)`, currentState, audit, localHistory, localAnomalies);
+          }
+        } else {
+          // Standard clinical action injection
+          const actionText = executeFuzzAction(action, {
+            setPatient,
+            handleProcessMed,
+            handlePushMed,
+            handlePushFluid,
+            handleSetVentSettings,
+            handleSetO2,
+            handleToggleCPR,
+            handleDeliverShock,
+            establishAccess,
+            performLarsonManeuver,
+            checkCuffLeak,
+            examineNpoHistory,
+            generateLab,
+            logEvent,
+            patient: activeState.patient
           });
+
+          setFuzzLogs(prev => [`Step ${step}/${totalSteps}: ${actionText}`, ...prev]);
+          
+          // Wait 55ms for the state change to apply and tick once
+          await new Promise(resolve => setTimeout(resolve, 55));
+          
+          const currentState = currentStateRef.current;
+          tickCount++;
+          
+          // Capture telemetry and evaluate oracle
+          const audit = evaluateFidelity(currentState);
+          recordTelemetry(tickCount, actionText, currentState, audit, localHistory, localAnomalies);
         }
-
-        setFuzzLogs(prev => [`Step ${tickCount}/${totalTicks}: ${actionText}`, ...prev]);
-      }, 50);
-
-      if (tickCount >= totalTicks) {
-        clearInterval(fuzzInterval);
-        setTimeout(() => {
-          setIsFuzzing(false);
-          setFuzzHistory(localHistory);
-          setFuzzLogs(prev => [
-            `🏁 Stress test completed. Ticks run: ${totalTicks}. Unique clinical bugs logged: ${localAnomalies.length}.`,
-            ...prev
-          ]);
-        }, 150);
       }
-    }, 120);
+      
+      setFuzzLogs(prev => [
+        `🏁 Stress test completed. Steps run: ${totalSteps}. Total physiological ticks: ${tickCount}. Unique clinical bugs logged: ${localAnomalies.length}.`,
+        ...prev
+      ]);
+    } catch (err) {
+      setFuzzLogs(prev => [`❌ Fuzzer execution interrupted: ${err.message}`, ...prev]);
+    } finally {
+      // 2. Restore normal simulation clock speed
+      setPatient(p => {
+        const copy = { ...p };
+        delete copy.simulationSpeed;
+        return copy;
+      });
+      setIsFuzzing(false);
+      setFuzzHistory(localHistory);
+      logEvent("⏱ Restored normal 1-second simulation clock speed.");
+    }
   };
 
   // Download the Markdown Fidelity Bug Report via Browser Blob
