@@ -25,6 +25,14 @@ export default function FidelityPanel({
   handlePushMed,
   handlePushFluid,
   handleSetVentSettings,
+  handleSetO2,
+  handleToggleCPR,
+  handleDeliverShock,
+  establishAccess,
+  performLarsonManeuver,
+  checkCuffLeak,
+  examineNpoHistory,
+  generateLab,
   logEvent
 }) {
   const [auditResult, setAuditResult] = useState(null);
@@ -34,6 +42,7 @@ export default function FidelityPanel({
   const [fuzzAnomalies, setFuzzAnomalies] = useState([]);
   const [fuzzHistory, setFuzzHistory] = useState([]);
   const [activeTab, setActiveTab] = useState('live'); // 'live' or 'fuzzer'
+  const [fuzzTicks, setFuzzTicks] = useState(50); // fuzzer depth duration
 
   // Web3Forms Bug Report Submission States
   const [testerNotes, setTesterNotes] = useState('');
@@ -104,21 +113,21 @@ export default function FidelityPanel({
     }
   };
 
-  // Run the Automated State-Space Fuzzer (50 accelerated ticks in sequence)
+  // Run the Automated State-Space Fuzzer (configurable duration accelerated ticks in sequence)
   const runFuzzTest = () => {
     if (isFuzzing) return;
     
     setIsFuzzing(true);
     setFuzzProgress(0);
-    setFuzzLogs(['🚀 Initiating head-free State-Space Fuzzing Stress Test...', 'Cloning baseline physiological states...']);
+    setFuzzLogs([`🚀 Initiating head-free State-Space Fuzzing Stress Test (${fuzzTicks} Ticks)...`, 'Cloning baseline physiological states...']);
     setFuzzAnomalies([]);
     
     const localHistory = [];
     const localAnomalies = [];
     let tickCount = 0;
-    const totalTicks = 50;
+    const totalTicks = fuzzTicks;
 
-    // Run action ticks rapidly in a 100ms interval loop
+    // Run action ticks rapidly in a 120ms interval loop
     const fuzzInterval = setInterval(() => {
       tickCount++;
       setFuzzProgress(Math.round((tickCount / totalTicks) * 100));
@@ -133,6 +142,14 @@ export default function FidelityPanel({
         handlePushMed,
         handlePushFluid,
         handleSetVentSettings,
+        handleSetO2,
+        handleToggleCPR,
+        handleDeliverShock,
+        establishAccess,
+        performLarsonManeuver,
+        checkCuffLeak,
+        examineNpoHistory,
+        generateLab,
         logEvent,
         patient: activeState.patient
       });
@@ -421,8 +438,33 @@ export default function FidelityPanel({
                 <Settings size={14} className="text-purple-400 animate-spin" /> Fuzzer stress-testing controls
               </h4>
               <p className="text-[10px] text-slate-400 leading-relaxed font-mono">
-                Initiates a 50-tick headless fuzzer stress test that injects random cardiovascular, procedural, and positioning decisions to systematically uncover code breaks.
+                Initiates a headless fuzzer stress test that injects random clinical actions (meds, fluids, positioning, procedures, labs) to systematically uncover physiological anomalies.
               </p>
+              
+              {!isFuzzing && (
+                <div className="flex flex-col gap-1.5 mt-0.5 font-mono">
+                  <label className="text-[8px] font-black uppercase text-slate-500 tracking-wider">Fuzzing Duration / Depth</label>
+                  <div className="grid grid-cols-3 gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-900 text-[9px] font-bold text-center">
+                    {[
+                      { value: 50, label: 'Standard (50)', desc: 'Standard Fuzz' },
+                      { value: 100, label: 'Medium (100)', desc: 'Medium Fuzz' },
+                      { value: 150, label: 'Deep (150)', desc: 'Exhaustive Deep Fuzz' }
+                    ].map(opt => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setFuzzTicks(opt.value)}
+                        className={`py-1.5 rounded-lg transition-all ${
+                          fuzzTicks === opt.value
+                            ? 'bg-purple-900/40 text-purple-300 border border-purple-500/20 shadow-inner font-extrabold'
+                            : 'text-slate-500 hover:text-slate-300'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               
               {!isFuzzing ? (
                 <button

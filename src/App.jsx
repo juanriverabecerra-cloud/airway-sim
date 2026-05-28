@@ -1175,6 +1175,14 @@ export default function App() {
           handlePushMed={handlePushMed}
           handlePushFluid={handlePushFluid}
           handleSetVentSettings={handleSetVentSettings}
+          handleSetO2={handleSetO2}
+          handleToggleCPR={handleToggleCPR}
+          handleDeliverShock={handleDeliverShock}
+          establishAccess={establishAccess}
+          performLarsonManeuver={performLarsonManeuver}
+          checkCuffLeak={checkCuffLeak}
+          examineNpoHistory={examineNpoHistory}
+          generateLab={generateLab}
           logEvent={logEvent}
         />
       )}
