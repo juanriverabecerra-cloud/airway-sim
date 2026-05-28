@@ -25,25 +25,25 @@ import { CLINICAL_ACTIONS } from './engine/ClinicalActions';
 
 const CASES = [
   {
-    id: 'normal', name: 'Elective Surgery (Perfect Baseline)', difficulty: ' Easy',
+    id: 'normal', name: 'Elective Surgery (Perfect Baseline)', difficulty: 'Easy',
     description: '45yo Female, ASA 1. Fasting for 12 hours. Normal neck anatomy, Mallampati I. Perfectly stable hemodynamics.',
     baseVitals: { hr: 72, sys: 120, dia: 80, spo2: 99, etco2: 0, rr: 12 },
     patient: { age: 45, sex: 'female', weight: 60, height: 165, ibw: 56, bmi: 22.0, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: false, isObese: false, baseGrade: 1, isSeptic: false, hasCCollar: false, stomach: 'empty', limitedMouth: false, trauma: false }
   },
   {
-    id: 'trauma', name: 'Motor Vehicle Trauma (Bloody Airway)', difficulty: ' Hard',
+    id: 'trauma', name: 'Motor Vehicle Trauma (Bloody Airway)', difficulty: 'Hard',
     description: '54yo Male, GCS 7. Facial trauma, active bleeding in airway. Cervical collar in place restricting neck extension.',
     baseVitals: { hr: 115, sys: 105, dia: 65, spo2: 88, etco2: 0, rr: 24 },
     patient: { age: 54, sex: 'male', weight: 85, height: 180, ibw: 75, bmi: 26.2, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: true, isObese: false, baseGrade: 3, isSeptic: false, hasCCollar: true, stomach: 'full', limitedMouth: false, trauma: true }
   },
   {
-    id: 'septic', name: 'Septic Shock (Hemodynamic Cliff)', difficulty: ' Hard',
+    id: 'septic', name: 'Septic Shock (Hemodynamic Cliff)', difficulty: 'Hard',
     description: '68yo Male, urosepsis. Profoundly vasodilated, living on endogenous catecholamines. High risk of cardiovascular collapse.',
     baseVitals: { hr: 135, sys: 85, dia: 40, spo2: 92, etco2: 0, rr: 28 },
     patient: { age: 68, sex: 'male', weight: 70, height: 175, ibw: 70, bmi: 22.9, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: false, isObese: false, baseGrade: 2, isSeptic: true, hasCCollar: false, stomach: 'empty', limitedMouth: false, trauma: false }
   },
   {
-    id: 'obese', name: 'Morbid Obesity / OSA (Rapid Desat)', difficulty: ' Medium',
+    id: 'obese', name: 'Morbid Obesity / OSA (Rapid Desat)', difficulty: 'Hard',
     description: '50yo Male, BMI 45, severe Obstructive Sleep Apnea (OSA). Severely decreased Functional Residual Capacity (FRC).',
     baseVitals: { hr: 88, sys: 150, dia: 95, spo2: 94, etco2: 0, rr: 18 },
     patient: { age: 50, sex: 'male', weight: 142, height: 178, bmi: 44.8, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: false, isObese: true, baseGrade: 3, isSeptic: false, hasCCollar: false, stomach: 'full', limitedMouth: false, trauma: false }

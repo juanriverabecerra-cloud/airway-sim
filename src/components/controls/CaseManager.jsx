@@ -258,27 +258,105 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
 
   const calculateDifficulty = (data) => {
     let score = 0;
-    const bmi = data.weight / Math.pow(data.height / 100, 2);
-    if (bmi > 35) score += 2;
-    if (bmi > 48) score += 2;
-    if (data.age > 70) score += 1;
-    if (data.sys < 95 || data.sys > 155) score += 2;
-    if (data.spo2 < 93) score += 3;
-    if (data.mallampati > 2) score += (data.mallampati - 2) * 2.5;
-    if (data.neckMobility === 'reduced') score += 3;
-    if (data.airwayBlood) score += 5;
-    
-    if (data.septic) score += 4;
-    if (data.trauma) score += 4;
-    if (data.chf && data.ef < 40) score += 3;
-    if (data.cad) score += 2;
-    if (data.as) score += 3;
-    if (data.gfr < 30) score += 2;
-    if (data.cp !== 'none') score += 3;
-    if (data.mg) score += 3;
 
-    if (score <= 3) return { level: 'Easy', color: 'text-green-400', border: 'border-green-500' };
-    if (score <= 8) return { level: 'Medium', color: 'text-yellow-400', border: 'border-yellow-500' };
+    // 1. Calculate Body Mass Index (BMI) and apply obesity difficulty weighting
+    const bmi = data.weight / Math.pow(data.height / 100, 2);
+    if (bmi > 30) score += 1;   // Class I Obesity (moderately reduced FRC)
+    if (bmi > 35) score += 2;   // Class II Obesity (significantly reduced FRC, mechanical airway compromise)
+    if (bmi > 45) score += 2;   // Morbid Obesity (extremely rapid apnea desaturation, high aspiration risk)
+
+    // 2. Age-related physiological reserve decay
+    if (data.age > 65) score += 1;
+    if (data.age > 75) score += 1; // Elderly patients have reduced cardiac compliance and respiratory elasticity
+
+    // 3. Baseline Vitals / Hemodynamic reserve
+    if (data.sys < 100) {
+      score += 3; // Profound hypotension/shock (extreme risk of vascular collapse on induction!)
+    } else if (data.sys > 160 || data.dia > 100) {
+      score += 1.5; // Severe baseline hypertension (hyperdynamic response, high risk of myocardial ischemia)
+    }
+    if (data.spo2 < 93) {
+      score += 3; // Baseline hypoxemia (pre-depleted oxygen reserve, extremely short safe apnea time)
+    }
+
+    // 4. Airway Anatomy and Intubation difficulty (Cormack-Lehane Grade predictors)
+    if (data.mallampati > 2) {
+      score += (data.mallampati - 2) * 2.5; // Mallampati III = +2.5, Mallampati IV = +5.0 (highly predictive of poor glottic view)
+    }
+    if (data.neckMobility === 'reduced') score += 3; // Rigid neck / C-collar prevents sniffing position and atlanto-occipital extension
+    if (data.airwayBlood) score += 5; // Active bleeding or thick vomit in airway (massive occlusion, visual loss)
+    if (data.limitedMouth) score += 4; // Limited mouth opening (<3cm or Class III bite) severely restricts blade passage
+
+    // 5. Systemic Comorbidities & Pathophysiologies
+    if (data.septic) score += 5; // Severe sepsis/septic shock (profound vasoplegia, vasopressor dependency)
+    if (data.trauma) score += 5; // Polytrauma / hemorrhagic shock (critically volume depleted, high risk of cardiac arrest)
+    if (data.chf) {
+      if (data.ef < 40) score += 4; // Severe HFrEF (unstable, high susceptibility to negative inotropes like Propofol)
+      else if (data.ef < 50) score += 2; // Moderate heart failure
+    }
+    if (data.cad) score += 2; // Coronary Artery Disease (vulnerable to tachycardia/hypotension-induced myocardial infarction)
+    if (data.as) score += 4; // Severe Aortic Stenosis (fixed stroke volume; sudden drop in SVR is catastrophic!)
+    if (data.copd || data.asthma) score += 2; // Active pulmonary bronchospastic disease (severe FRC depletion, air trapping/auto-PEEP risk)
+    if (data.gfr) {
+      if (data.gfr < 30) score += 2.5; // Severe renal impairment / Stage 4/5 CKD (uremic coagulopathy, altered drug clearances)
+      else if (data.gfr < 60) score += 1; // Moderate renal impairment
+    }
+    if (data.cp && data.cp !== 'none') {
+      if (data.cp === 'C') score += 4; // Child-Pugh Class C (severe ESLD, profound baseline coagulopathy, hyperdynamic state)
+      else if (data.cp === 'B') score += 2; // Child-Pugh Class B
+      else score += 1; // Child-Pugh Class A
+    }
+    if (data.mg) score += 3; // Myasthenia Gravis (extreme sensitivity to non-depolarizing NMBAs, resistant to Succinylcholine)
+    if (data.burns || data.immobility) score += 3; // Extrajunctional nAChR upregulation (Succinylcholine is CONTRAINDICATED; lethal hyperkalemic surge!)
+
+    // 6. Surgical Procedure & Specialty-specific risk factors
+    if (data.emergentRSI) score += 2; // Emergent crash airway / full stomach aspiration risk
+    if (data.ebl === 'High') score += 2; // Expected massive blood loss (requires aggressive resuscitation and arterial monitoring)
+    if (data.position === 'Prone' || data.position === 'Lateral') score += 1.5; // High-risk surgical positioning (difficult to rescue airway if lost)
+    
+    // Procedure-specific difficulty overlays
+    const specialty = (data.specialty || '').toLowerCase();
+    const id = (data.id || '').toLowerCase();
+    if (specialty === 'transplant' || id === 'transplant') score += 5; // Multi-organ surgical trauma, severe baseline coagulopathy
+    else if (specialty === 'cardiac' || id === 'cardiac') score += 4; // Bypass stress, cardiopulmonary instability
+    else if (specialty === 'vascular' || id === 'vascular') score += 3; // Aortic cross-clamping, high hemodynamic volatility
+    else if (specialty === 'thoracic' || id === 'thoracic') score += 3; // One-lung ventilation shunt fraction, airway sharing
+    else if (specialty === 'neurosurgery' || id === 'neuro') score += 2.5; // Awake positioning, strictly controlled intracranial pressures
+    else if (specialty === 'ob/gyn' || id === 'obgyn') score += 2.5; // Physiological changes of pregnancy, high uterine bleeding risk
+
+    // 7. Functional Capacity (METs) Integration
+    // ACC/AHA guidelines show that poor functional capacity (<4 METs) is a critical independent predictor of 
+    // perioperative major adverse cardiovascular events (MACE).
+    let mets = 'excellent';
+    const hasCirrhosis = data.cirrhosis || (data.cp && data.cp !== 'none');
+    if (
+      data.trauma || 
+      data.septic || 
+      data.chf || 
+      data.cad || 
+      data.copd || 
+      hasCirrhosis || 
+      data.age > 75 || 
+      ['cardiac', 'transplant', 'urology', 'vascular', 'bariatric', 'thoracic'].includes(id)
+    ) {
+      mets = 'poor';
+    } else if (
+      data.age > 50 || 
+      data.htn || 
+      ['neuro', 'ortho', 'obgyn', 'ent'].includes(id)
+    ) {
+      mets = 'moderate';
+    }
+
+    if (mets === 'poor') {
+      score += 5; // Major risk increment; will guarantee this is NEVER an Easy case (Easy threshold is <= 4)
+    } else if (mets === 'moderate') {
+      score += 2; // Moderate risk increment
+    }
+
+    // Return the difficulty level based on revamped scale
+    if (score <= 4) return { level: 'Easy', color: 'text-green-400', border: 'border-green-500' };
+    if (score <= 10) return { level: 'Medium', color: 'text-yellow-400', border: 'border-yellow-500' };
     return { level: 'Hard', color: 'text-red-500', border: 'border-red-600' };
   };
 

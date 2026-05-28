@@ -269,8 +269,10 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     // Check METs
     if (assessment.mets !== truth.mets) {
       errors.mets = truth.mets === 'excellent' 
-        ? "Correct functional capacity is Excellent (METs ≥ 4) - patient runs 3 miles daily." 
-        : "Correct functional capacity is Poor (METs < 4) - walk capacity is severely limited or patient is comatose/GCS 7.";
+        ? "Correct functional capacity is Excellent (> 10 METs) - patient jogs/runs daily or performs heavy exercise." 
+        : truth.mets === 'moderate'
+        ? "Correct functional capacity is Moderate (4-10 METs) - patient can walk a few blocks or climb stairs."
+        : "Correct functional capacity is Poor (< 4 METs / Unknown) - walk capacity is severely limited by dyspnea/pain or patient is comatose/GCS 7.";
       hasError = true;
     }
 
@@ -1522,9 +1524,9 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                         <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Functional Capacity (METs)</h4>
                         <div className="flex flex-wrap gap-2">
                           {[
-                            { value: 'excellent', label: 'Excellent (≥ 4 METs)', desc: 'Can climb 2 flights, jog, or do heavy housework' },
-                            { value: 'moderate', label: 'Moderate (1–4 METs)', desc: 'Can walk 1–2 blocks on level ground or climb 1 flight slowly' },
-                            { value: 'poor', label: 'Poor (< 4 METs / Unknown)', desc: 'Cannot perform basic ADLs, comatose, or unable to assess' }
+                            { value: 'excellent', label: 'Excellent (> 10 METs)', desc: 'Can run, engage in vigorous sports, or do heavy exercise' },
+                            { value: 'moderate', label: 'Moderate (4–10 METs)', desc: 'Can climb 1–2 flights, walk briskly > 3 mph, or do light housework' },
+                            { value: 'poor', label: 'Poor (< 4 METs / Unknown)', desc: 'Cannot walk a block, climb stairs without dyspnea, or comatose' }
                           ].map(opt => (
                             <button
                               key={opt.value}
