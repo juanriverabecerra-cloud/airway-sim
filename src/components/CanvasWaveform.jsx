@@ -38,7 +38,7 @@ export const CanvasWaveform = React.memo(({ color, speed, rrSpeed = 0, active, t
       const w = Math.floor(rect.width);
       const h = Math.floor(rect.height);
       
-      if (w > 0 && h > 0 && (canvas.width !== w || canvas.height !== h)) {
+      if (w > 0 && h > 0 && (Math.abs(canvas.width - w) > 8 || Math.abs(canvas.height - h) > 8)) {
         canvas.width = w;
         canvas.height = h;
         drawState.current.x = 0; // Reset beam to start on resize
