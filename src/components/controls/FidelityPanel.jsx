@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { 
   X, AlertTriangle, HelpCircle, Shield, Award, Clock, ArrowRight, 
   Play, CheckCircle2, Activity, FileCode, CheckSquare, Settings
@@ -35,7 +36,8 @@ export default function FidelityPanel({
   generateLab,
   logEvent,
   setSurgicalPhase,
-  handleExtubation
+  handleExtubation,
+  setMsmaidsComplete
 }) {
   const [auditResult, setAuditResult] = useState(null);
   const [isFuzzing, setIsFuzzing] = useState(false);
@@ -53,7 +55,13 @@ export default function FidelityPanel({
   const [submitError, setSubmitError] = useState('');
 
   // Ref to hold the current active state variables so the fuzzer can read them dynamically
-  const currentStateRef = useRef();
+  const currentStateRef = useRef({ vitals, patient, activeMeds, gasSettings, ventSettings, surgicalPhase, electrolytes, coags, time });
+  
+  // Synchronously update ref during render pass to ensure fuzzer always reads the absolute latest committed state
+  currentStateRef.current = {
+    vitals, patient, activeMeds, gasSettings, ventSettings, surgicalPhase, electrolytes, coags, time
+  };
+
   useEffect(() => {
     currentStateRef.current = {
       vitals, patient, activeMeds, gasSettings, ventSettings, surgicalPhase, electrolytes, coags, time
@@ -206,7 +214,10 @@ export default function FidelityPanel({
     setFuzzAnomalies([]);
     
     // 1. Accelerate the simulation speed to 50ms per tick in the physics engine
-    setPatient(p => ({ ...p, simulationSpeed: 50 }));
+    flushSync(() => {
+      setPatient(p => ({ ...p, simulationSpeed: 50, isFuzzing: true }));
+      if (setMsmaidsComplete) setMsmaidsComplete(true);
+    });
     logEvent("⚡ Accelerated Simulation Clock (20x speed: 50ms/sec).");
 
     const localHistory = [];
@@ -231,6 +242,9 @@ export default function FidelityPanel({
         const activeState = currentStateRef.current;
         const action = getGuidedFuzzAction(activeState, fuzzerState, selectedStrategy);
         
+        if (!action) continue;
+        
+        let actionText = '';
         if (action.type === 'wait') {
           const duration = action.duration;
           setFuzzLogs(prev => [`⏳ Observing physiology: Let drug kinetics and circulation tick for ${duration}s...`, ...prev]);
@@ -247,26 +261,30 @@ export default function FidelityPanel({
             const audit = evaluateFidelity(currentState, localHistory);
             recordTelemetry(tickCount, `Observe physiological circulation (t+${sec}s)`, currentState, audit, localHistory, localAnomalies);
           }
+          actionText = `Observe physiology for ${duration}s`;
+          setFuzzLogs(prev => [`Step ${step}/${totalSteps}: ${actionText}`, ...prev]);
         } else {
           // Standard clinical action injection
-          const actionText = executeFuzzAction(action, {
-            setPatient,
-            handleProcessMed,
-            handlePushMed,
-            handlePushFluid,
-            handleSetVentSettings,
-            handleSetO2,
-            handleToggleCPR,
-            handleDeliverShock,
-            establishAccess,
-            performLarsonManeuver,
-            checkCuffLeak,
-            examineNpoHistory,
-            generateLab,
-            logEvent,
-            patient: activeState.patient,
-            setSurgicalPhase,
-            handleExtubation
+          flushSync(() => {
+            actionText = executeFuzzAction(action, {
+              setPatient,
+              handleProcessMed,
+              handlePushMed,
+              handlePushFluid,
+              handleSetVentSettings,
+              handleSetO2,
+              handleToggleCPR,
+              handleDeliverShock,
+              establishAccess,
+              performLarsonManeuver,
+              checkCuffLeak,
+              examineNpoHistory,
+              generateLab,
+              logEvent,
+              patient: currentStateRef.current.patient,
+              setSurgicalPhase,
+              handleExtubation
+            });
           });
 
           setFuzzLogs(prev => [`Step ${step}/${totalSteps}: ${actionText}`, ...prev]);
@@ -292,10 +310,13 @@ export default function FidelityPanel({
       setFuzzLogs(prev => [`❌ Fuzzer execution interrupted: ${err.message}`, ...prev]);
     } finally {
       // 2. Restore normal simulation clock speed
-      setPatient(p => {
-        const copy = { ...p };
-        delete copy.simulationSpeed;
-        return copy;
+      flushSync(() => {
+        setPatient(p => {
+          const copy = { ...p };
+          delete copy.simulationSpeed;
+          delete copy.isFuzzing;
+          return copy;
+        });
       });
       setIsFuzzing(false);
       setFuzzHistory(localHistory);

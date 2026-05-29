@@ -132,7 +132,7 @@ export default function App() {
   } = usePhysiology({
     activeCase,
     isRunning,
-    isPaused: viewModal.show || setupModal || pocusModal.show || airwayQuizModal.show || accessModal.show || tubeConfirmModal.show || preopModal || msmaidsModal || postIntubationModal || extubationModal,
+    isPaused: (viewModal.show || setupModal || pocusModal.show || airwayQuizModal.show || accessModal.show || tubeConfirmModal.show || preopModal || msmaidsModal || postIntubationModal || extubationModal) && !patient.isFuzzing,
     ventSettings,
     gasSettings,
     logEvent,
@@ -230,7 +230,7 @@ export default function App() {
   const handleSetVentSettings = (update) => { saveState(); setVentSettings(update); };
   const handleSetGasSettings = (update) => { saveState(); setGasSettings(update); };
   const handleSetSurgicalPhase = (val) => {
-    if (val === 'Induction' && !msmaidsComplete && !patient.emergentRSI) {
+    if (val === 'Induction' && !msmaidsComplete && !patient.emergentRSI && !patient.isFuzzing) {
       logEvent("⚠️ CLINICAL INTERLOCK BLOCKED: Induction phase locked. Complete MSMAIDS pre-induction checklist first.");
       setMsmaidsModal(true);
       return;
@@ -384,7 +384,7 @@ export default function App() {
           emergence: 'Emergence'
         };
         const targetPhase = phaseMap[rawPhase];
-        if (targetPhase === 'Induction' && !msmaidsComplete && !patient.emergentRSI) {
+        if (targetPhase === 'Induction' && !msmaidsComplete && !patient.emergentRSI && !patient.isFuzzing) {
           logEvent("⚠️ CLINICAL INTERLOCK BLOCKED: Induction phase locked. Complete MSMAIDS pre-induction checklist first.");
           setMsmaidsModal(true);
         } else {
@@ -533,6 +533,11 @@ export default function App() {
 
   const examineAirway = () => {
     const mallampati = patient.mallampati || 1;
+    if (patient.isFuzzing) {
+      logEvent(`Airway Assessment (Fuzzer): Automatically identified Mallampati Class ${mallampati}.`);
+      setPatient(p => ({ ...p, airwayExamined: true, mallampatiScore: mallampati }));
+      return;
+    }
     const thyromental = patient.isObese ? "< 6cm (Short / Anterior Airway Risk)" : "> 6cm (Normal)";
     const biteTest = patient.limitedMouth ? "Class III (Cannot bite upper lip)" : "Class I (Lower incisors bite above vermillion border)";
     const mobility = patient.neckMobility === 'reduced' ? "Severely Restricted (C-Collar or anatomical limitation)" : "Normal full extension/flexion";
@@ -1239,72 +1244,76 @@ export default function App() {
         />
       </div>
 
-      <PocusModal 
-        data={pocusModal} 
-        close={() => setPocusModal({show: false, title: '', finding: ''})} 
-      />
+      {!patient.isFuzzing && (
+        <>
+          <PocusModal 
+            data={pocusModal} 
+            close={() => setPocusModal({show: false, title: '', finding: ''})} 
+          />
 
-      <AirwayQuizModal 
-        data={airwayQuizModal} 
-        submitAirwayQuiz={submitAirwayQuiz} 
-      />
+          <AirwayQuizModal 
+            data={airwayQuizModal} 
+            submitAirwayQuiz={submitAirwayQuiz} 
+          />
 
-      <AccessModal 
-        data={accessModal} 
-        close={() => setAccessModal({show: false, category: ''})} 
-        establishAccess={establishAccess} 
-      />
+          <AccessModal 
+            data={accessModal} 
+            close={() => setAccessModal({show: false, category: ''})} 
+            establishAccess={establishAccess} 
+          />
 
-      <TubeConfirmModal 
-        data={tubeConfirmModal} 
-        close={() => setTubeConfirmModal({show: false, result: ''})} 
-        patient={patient} 
-        auscultateLungs={auscultateLungs} 
-        adjustTube={adjustTube} 
-      />
+          <TubeConfirmModal 
+            data={tubeConfirmModal} 
+            close={() => setTubeConfirmModal({show: false, result: ''})} 
+            patient={patient} 
+            auscultateLungs={auscultateLungs} 
+            adjustTube={adjustTube} 
+          />
 
-      <SetupModal 
-        show={setupModal} 
-        close={() => setSetupModal(false)} 
-        viewModal={viewModal} 
-        setViewModal={setViewModal} 
-        processIntubation={processIntubation} 
-      />
+          <SetupModal 
+            show={setupModal} 
+            close={() => setSetupModal(false)} 
+            viewModal={viewModal} 
+            setViewModal={setViewModal} 
+            processIntubation={processIntubation} 
+          />
 
-      <ViewModal 
-        data={viewModal} 
-        submitGrade={submitGrade} 
-      />
+          <ViewModal 
+            data={viewModal} 
+            submitGrade={submitGrade} 
+          />
 
-      <PreopModal
-        show={preopModal}
-        close={() => setPreopModal(false)}
-        patient={patient}
-        setPatient={setPatient}
-        logEvent={logEvent}
-      />
+          <PreopModal
+            show={preopModal}
+            close={() => setPreopModal(false)}
+            patient={patient}
+            setPatient={setPatient}
+            logEvent={logEvent}
+          />
 
-      <MsmaidsModal
-        show={msmaidsModal}
-        close={() => setMsmaidsModal(false)}
-        logEvent={logEvent}
-        onComplete={() => setMsmaidsComplete(true)}
-      />
+          <MsmaidsModal
+            show={msmaidsModal}
+            close={() => setMsmaidsModal(false)}
+            logEvent={logEvent}
+            onComplete={() => setMsmaidsComplete(true)}
+          />
 
-      <PostIntubationModal
-        show={postIntubationModal}
-        close={() => setPostIntubationModal(false)}
-        logEvent={logEvent}
-      />
+          <PostIntubationModal
+            show={postIntubationModal}
+            close={() => setPostIntubationModal(false)}
+            logEvent={logEvent}
+          />
 
-      <ExtubationModal
-        show={extubationModal}
-        close={() => setExtubationModal(false)}
-        vitals={vitals}
-        patient={patient}
-        logEvent={logEvent}
-        performExtubation={handleExtubation}
-      />
+          <ExtubationModal
+            show={extubationModal}
+            close={() => setExtubationModal(false)}
+            vitals={vitals}
+            patient={patient}
+            logEvent={logEvent}
+            performExtubation={handleExtubation}
+          />
+        </>
+      )}
 
       {preOpEMR && (activeCase || stagedCase) && (
         <PreOpEMR
@@ -1347,6 +1356,7 @@ export default function App() {
           logEvent={logEvent}
           setSurgicalPhase={handleSetSurgicalPhase}
           handleExtubation={handleExtubation}
+          setMsmaidsComplete={setMsmaidsComplete}
         />
       )}
 

@@ -4,26 +4,136 @@ import { PKPDModel } from './PKPDEngine.js';
 import { GasKineticsModel } from './GasKineticsEngine.js';
 
 export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, gasSettings, logEvent, msmaidsComplete }) {
-  const [time, setTime] = useState(0);
-  const [vitals, setVitals] = useState({});
-  const [targetVitals, setTargetVitals] = useState({});
-  const [patient, setPatient] = useState({});
-  const [activeMeds, setActiveMeds] = useState([]);
+  const [timeVal, setTimeState] = useState(0);
+  const [vitalsVal, setVitalsState] = useState({});
+  const [targetVitalsVal, setTargetVitalsState] = useState({});
+  const [patientVal, setPatientState] = useState({});
+  const [activeMedsVal, setActiveMedsState] = useState([]);
   const [gasModels, setGasModels] = useState({});
   
-  const [intravascularVolume, setIntravascularVolume] = useState(0); 
-  const [totalBodyWaterLiters, setTotalBodyWaterLiters] = useState(42);
-  const [electrolytes, setElectrolytes] = useState({ na: 140, k: 4.0, cl: 100, ca: 9.0, ph: 7.4 });
-  const [coags, setCoags] = useState({ r_offset: 0, ma_offset: 0, angle_offset: 0 });
-  const [surgicalPhase, setSurgicalPhase] = useState('Pre-Op');
+  const [intravascularVolumeVal, setIntravascularVolumeState] = useState(0); 
+  const [totalBodyWaterLitersVal, setTotalBodyWaterLitersState] = useState(42);
+  const [electrolytesVal, setElectrolytesState] = useState({ na: 140, k: 4.0, cl: 100, ca: 9.0, ph: 7.4 });
+  const [coagsVal, setCoagsState] = useState({ r_offset: 0, ma_offset: 0, angle_offset: 0 });
+  const [surgicalPhaseVal, setSurgicalPhaseState] = useState('Pre-Op');
   const [prevCaseId, setPrevCaseId] = useState(null);
 
-  // CRITICAL FIX: The Physics Engine State Bridge. 
-  // Prevents stale closures without forcing the interval to reset.
-  const stateRef = useRef({ time, vitals, targetVitals, patient, activeMeds, gasModels, intravascularVolume, electrolytes, ventSettings, gasSettings, surgicalPhase, msmaidsComplete });
+  // Synchronous State Setter Wrappers to synchronously bridge changes into stateRef
+  const stateRef = useRef({ time: timeVal, vitals: vitalsVal, targetVitals: targetVitalsVal, patient: patientVal, activeMeds: activeMedsVal, gasModels, intravascularVolume: intravascularVolumeVal, electrolytes: electrolytesVal, ventSettings, gasSettings, surgicalPhase: surgicalPhaseVal, msmaidsComplete });
+
+  const setTime = (update) => {
+    setTimeState(prev => {
+      const next = typeof update === 'function' ? update(prev) : update;
+      stateRef.current.time = next;
+      return next;
+    });
+  };
+
+  const setVitals = (update) => {
+    setVitalsState(prev => {
+      const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+      stateRef.current.vitals = next;
+      return next;
+    });
+  };
+
+  const setTargetVitals = (update) => {
+    setTargetVitalsState(prev => {
+      const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+      stateRef.current.targetVitals = next;
+      return next;
+    });
+  };
+
+  const setPatient = (update) => {
+    setPatientState(prev => {
+      const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+      stateRef.current.patient = next;
+      return next;
+    });
+  };
+
+  const setActiveMeds = (update) => {
+    setActiveMedsState(prev => {
+      const next = typeof update === 'function' ? update(prev) : update;
+      stateRef.current.activeMeds = next;
+      return next;
+    });
+  };
+
+  const setIntravascularVolume = (update) => {
+    setIntravascularVolumeState(prev => {
+      const next = typeof update === 'function' ? update(prev) : update;
+      stateRef.current.intravascularVolume = next;
+      return next;
+    });
+  };
+
+  const setTotalBodyWaterLiters = (update) => {
+    setTotalBodyWaterLitersState(prev => {
+      const next = typeof update === 'function' ? update(prev) : update;
+      stateRef.current.totalBodyWaterLiters = next;
+      return next;
+    });
+  };
+
+  const setElectrolytes = (update) => {
+    setElectrolytesState(prev => {
+      const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+      stateRef.current.electrolytes = next;
+      return next;
+    });
+  };
+
+  const setCoags = (update) => {
+    setCoagsState(prev => {
+      const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+      stateRef.current.coags = next;
+      return next;
+    });
+  };
+
+  const setSurgicalPhase = (update) => {
+    setSurgicalPhaseState(prev => {
+      const next = typeof update === 'function' ? update(prev) : update;
+      stateRef.current.surgicalPhase = next;
+      return next;
+    });
+  };
+
+  // Synchronously update the state bridge during the render pass to ensure 100% accurate closure variables
+  const time = stateRef.current.time !== undefined ? stateRef.current.time : timeVal;
+  const vitals = stateRef.current.vitals || vitalsVal;
+  const targetVitals = stateRef.current.targetVitals || targetVitalsVal;
+  const patient = stateRef.current.patient || patientVal;
+  const activeMeds = stateRef.current.activeMeds || activeMedsVal;
+  const intravascularVolume = stateRef.current.intravascularVolume !== undefined ? stateRef.current.intravascularVolume : intravascularVolumeVal;
+  const totalBodyWaterLiters = stateRef.current.totalBodyWaterLiters !== undefined ? stateRef.current.totalBodyWaterLiters : totalBodyWaterLitersVal;
+  const electrolytes = stateRef.current.electrolytes || electrolytesVal;
+  const coags = stateRef.current.coags || coagsVal;
+  const surgicalPhase = stateRef.current.surgicalPhase || surgicalPhaseVal;
+
+  stateRef.current = { 
+    time, 
+    vitals, 
+    targetVitals, 
+    patient, 
+    activeMeds, 
+    gasModels, 
+    intravascularVolume, 
+    totalBodyWaterLiters,
+    electrolytes, 
+    coags,
+    ventSettings, 
+    gasSettings, 
+    surgicalPhase, 
+    msmaidsComplete 
+  };
 
   useEffect(() => {
-    stateRef.current = { time, vitals, targetVitals, patient, activeMeds, gasModels, intravascularVolume, electrolytes, ventSettings, gasSettings, surgicalPhase, msmaidsComplete };
+    stateRef.current = { 
+      time, vitals, targetVitals, patient, activeMeds, gasModels, intravascularVolume, totalBodyWaterLiters, electrolytes, coags, ventSettings, gasSettings, surgicalPhase, msmaidsComplete 
+    };
   });
 
   if (activeCase && activeCase.id !== prevCaseId) {
@@ -104,8 +214,9 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
   }
 
     const pushFluid = (fluidName, volumeStr, lineId) => {
+    const currentPatient = stateRef.current.patient || patient;
     const volume = parseFloat(volumeStr);
-    const targetLine = patient.accessLines?.find(l => l.id === lineId);
+    const targetLine = currentPatient.accessLines?.find(l => l.id === lineId);
     
     if (!targetLine) {
         logEvent(`❌ FAILED: Cannot administer ${fluidName}. No valid venous access line selected!`);
@@ -159,7 +270,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
      * }
      */
     if (isBlood) {
-        const bb = patient.bloodBank || { status: 'none', unitsInOR: 0, deliveryCountdown: 0, totalDeliveryTime: 0, preOpWorkup: 'none' };
+        const bb = currentPatient.bloodBank || { status: 'none', unitsInOR: 0, deliveryCountdown: 0, totalDeliveryTime: 0, preOpWorkup: 'none' };
 
         if (bb.status === 'available' && bb.unitsInOR > 0) {
             // Blood is in the OR and units remain — allow administration
@@ -190,8 +301,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
         } else {
             // status === 'none' OR status === 'available' but unitsInOR === 0
             // Need to order (or reorder) from blood bank
-            const hasTypeAndScreen = patient.preOpOrders?.labs?.typeAndScreen || false;
-            const hasTypeAndCross = patient.preOpOrders?.labs?.typeAndCross || false;
+            const hasTypeAndScreen = currentPatient.preOpOrders?.labs?.typeAndScreen || false;
+            const hasTypeAndCross = currentPatient.preOpOrders?.labs?.typeAndCross || false;
 
             if (hasTypeAndCross && bb.status === 'none') {
                 // TIER 1: Type & Crossmatch was ordered pre-operatively.
@@ -343,7 +454,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
   };
 
     const processMed = (medId, doseInput, route, type, unit, lineId = null) => {
-    const targetLine = lineId ? patient.accessLines?.find(l => l.id === lineId) : null;
+    const currentPatient = stateRef.current.patient || patient;
+    const currentActiveMeds = stateRef.current.activeMeds || activeMeds;
+
+    const targetLine = lineId ? currentPatient.accessLines?.find(l => l.id === lineId) : null;
     if (targetLine && targetLine.category?.includes('Arterial')) {
         logEvent(`🚨 CRITICAL ERROR: Injected ${medId} into Arterial Line: ${targetLine.name}! This causes immediate profound arterial vasospasm, endothelial destruction, and severe distal limb necrosis!`);
         return false;
@@ -352,10 +466,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
         logEvent(`❌ FAILED: Cannot administer ${medId}. Access Line: ${targetLine.name} has been BLOWN OUT!`);
         return false;
     }
-    const hasCVC = patient.accessLines?.some(l => !l.failed && (l.category?.includes('CVC') || l.type?.includes('CVC') || l.type?.includes('Cordis') || l.type?.includes('Introducer')));
-    const hasPIV = patient.accessLines?.some(l => !l.failed && (l.category?.includes('PIV') || l.name?.includes('PIV')));
-    const hasIO = patient.accessLines?.some(l => !l.failed && (l.category?.includes('IO') || l.name?.includes('IO')));
-    const hasArt = patient.accessLines?.some(l => l.category?.includes('Arterial') || l.name?.includes('Arterial'));
+    const hasCVC = currentPatient.accessLines?.some(l => !l.failed && (l.category?.includes('CVC') || l.type?.includes('CVC') || l.category?.includes('Central') || l.type?.includes('Central') || l.type?.includes('Cordis') || l.type?.includes('Introducer')));
+    const hasPIV = currentPatient.accessLines?.some(l => !l.failed && (l.category?.includes('PIV') || l.name?.includes('PIV') || l.category?.includes('IV') || l.name?.includes('IV') || l.category?.includes('Peripheral')));
+    const hasIO = currentPatient.accessLines?.some(l => !l.failed && (l.category?.includes('IO') || l.name?.includes('IO') || l.type?.includes('IO') || l.type?.includes('Intraosseous')));
+    const hasArt = currentPatient.accessLines?.some(l => l.category?.includes('Arterial') || l.name?.includes('Arterial'));
 
     if (route === 'IV' && !hasCVC && !hasPIV && !hasIO) {
         if (hasArt) {
@@ -382,13 +496,13 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     }
 
     let doseInMg = parseFloat(doseInput);
-    const dosingWeight = medData.dosingWeight === 'IBW' ? patient.ibw : (medData.dosingWeight === 'LBW' ? patient.lbw : patient.weight);
+    const dosingWeight = medData.dosingWeight === 'IBW' ? currentPatient.ibw : (medData.dosingWeight === 'LBW' ? currentPatient.lbw : currentPatient.weight);
     if (unit.includes('mcg/kg/min')) doseInMg = (doseInMg * dosingWeight) / 1000;
     else if (unit.includes('mcg')) doseInMg = doseInMg / 1000;
     else if (unit.includes('mg/kg')) doseInMg = doseInMg * dosingWeight;
 
-    let existingModel = activeMeds.find(m => m.name === medData.name);
-    if (!existingModel) { existingModel = new PKPDModel(medData, patient.weight); setActiveMeds(prev => [...prev, existingModel]); }
+    let existingModel = currentActiveMeds.find(m => m.name === medData.name);
+    if (!existingModel) { existingModel = new PKPDModel(medData, currentPatient.weight); setActiveMeds(prev => [...prev, existingModel]); }
 
     if (type === 'Bolus') {
       const bio = route === 'IV' ? 1.0 : (route === 'IM' ? 0.8 : 0.5);
@@ -396,9 +510,9 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
       logEvent(`💉 Pushed ${doseInput} ${unit} of ${medData.name} via ${route}.`);
       
       if (medId === 'sugammadex') {
-        const roc = activeMeds.find(m => m.name === 'Rocuronium');
-        const vec = activeMeds.find(m => m.name === 'Vecuronium');
-        const doseMgPerKg = doseInMg / patient.weight;
+        const roc = currentActiveMeds.find(m => m.name === 'Rocuronium');
+        const vec = currentActiveMeds.find(m => m.name === 'Vecuronium');
+        const doseMgPerKg = doseInMg / currentPatient.weight;
         let chelateFraction = 1.0;
         if (doseMgPerKg >= 16) chelateFraction = 1.0;
         else if (doseMgPerKg >= 4) chelateFraction = 0.95;
@@ -420,10 +534,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           logEvent(`⚡ Sugammadex encapsulated Vecuronium and its active 3-OH metabolite (chelated ${Math.round(chelateFraction * 100)}%).`);
         }
       }
-
+ 
       if (medId === 'succinylcholine') {
         let leak = 0.5; // normal transient leak
-        if (patient.nAChR_state === 'upregulated') {
+        if (currentPatient.nAChR_state === 'upregulated') {
           leak = 5.2; // massive lethal leak
           logEvent(`🚨 CRITICAL CLINICAL EMERGENCY: Succinylcholine given to patient with nAChR upregulation! Extrajunctional receptors opened, triggering massive potassium leak (+5.2 mEq/L)!`);
         } else {
@@ -434,7 +548,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
       }
 
       if (medId === 'neostigmine') {
-        const glyco = activeMeds.find(m => m.name === 'Glycopyrrolate');
+        const glyco = currentActiveMeds.find(m => m.name === 'Glycopyrrolate');
         const glycoCe = glyco ? glyco.Ce : 0;
         if (glycoCe < 0.05) {
           setPatient(prev => ({
@@ -449,7 +563,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
       }
 
       if (medId === 'glycopyrrolate') {
-        if (patient.bradycardiaTriggered) {
+        if (currentPatient.bradycardiaTriggered) {
           setPatient(prev => ({ ...prev, bradycardiaTriggered: false }));
           logEvent(`✅ Glycopyrrolate administered. Muscarinic bradycardia successfully resolved. Heart rate recovering.`);
         }
@@ -466,7 +580,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
       // === SURGICAL TIMELINE AUTO-PROGRESSION (PRE-OP -> INDUCTION) ===
       if (stateRef.current.surgicalPhase === 'Pre-Op' && (medData.classes.includes('Sedative') || medData.classes.includes('Hypnotic') || medData.classes.includes('Dissociative'))) {
-        if (stateRef.current.msmaidsComplete || stateRef.current.patient.emergentRSI) {
+        if (stateRef.current.msmaidsComplete || stateRef.current.patient.emergentRSI || stateRef.current.patient.isFuzzing) {
           setSurgicalPhase('Induction');
           logEvent(`➡️ Surgical Timeline Auto-Advanced: INDUCTION phase initiated.`);
         } else {
@@ -481,7 +595,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
       existingModel.medId = medId; 
 
       // Fallback: If no lineId is provided, find the first available non-arterial line to assign this infusion to
-      const targetLineId = lineId || (patient.accessLines || []).find(l => !l.category?.includes('Arterial'))?.id;
+      const targetLineId = lineId || (currentPatient.accessLines || []).find(l => !l.category?.includes('Arterial'))?.id;
 
       if (targetLineId) {
         setPatient(prev => {

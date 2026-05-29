@@ -918,13 +918,13 @@ export function executeFuzzAction(action, {
       const artLine = patient.accessLines.find(l => l.category?.includes('Arterial') || l.name?.includes('Arterial'));
       if (artLine) lineId = artLine.id;
     } else if (action.useIO) {
-      const ioLine = patient.accessLines.find(l => !l.failed && (l.category?.includes('IO') || l.name?.includes('IO')));
+      const ioLine = patient.accessLines.find(l => !l.failed && (l.category?.includes('IO') || l.name?.includes('IO') || l.type?.includes('IO') || l.type?.includes('Intraosseous')));
       if (ioLine) lineId = ioLine.id;
     } else if (action.useCVC) {
-      const cvcLine = patient.accessLines.find(l => !l.failed && (l.category?.includes('CVC') || l.name?.includes('CVC') || l.type?.includes('CVC') || l.type?.includes('Cordis') || l.type?.includes('Introducer')));
+      const cvcLine = patient.accessLines.find(l => !l.failed && (l.category?.includes('CVC') || l.type?.includes('CVC') || l.category?.includes('Central') || l.type?.includes('Central') || l.type?.includes('Cordis') || l.type?.includes('Introducer')));
       if (cvcLine) lineId = cvcLine.id;
     } else if (action.usePIV) {
-      const pivLine = patient.accessLines.find(l => !l.failed && (l.category?.includes('PIV') || l.name?.includes('PIV')));
+      const pivLine = patient.accessLines.find(l => !l.failed && (l.category?.includes('PIV') || l.name?.includes('PIV') || l.category?.includes('IV') || l.name?.includes('IV') || l.category?.includes('Peripheral')));
       if (pivLine) lineId = pivLine.id;
     }
     
