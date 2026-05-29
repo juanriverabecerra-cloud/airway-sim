@@ -1092,12 +1092,12 @@ export default function App() {
   const rrSpeed = Math.round((vitals.rr || 12) / 2) * 2;
 
   return (
-    <div className="min-h-screen bg-[#060913] text-slate-100 p-4 font-sans select-none flex flex-col gap-4 relative overflow-hidden">
+    <div className="min-h-screen bg-[#060913] text-slate-100 p-4 font-sans select-none flex flex-col gap-4 relative overflow-x-hidden">
       {/* Premium Ambient Subsystem Mesh Glow Orbs */}
-      <div className="absolute top-[5%] left-[5%] w-[400px] h-[400px] bg-emerald-500/[0.03] rounded-full blur-[140px] pointer-events-none z-0"></div>
-      <div className="absolute top-[25%] right-[10%] w-[450px] h-[450px] bg-cyan-500/[0.03] rounded-full blur-[150px] pointer-events-none z-0 animate-pulse duration-[10s]"></div>
-      <div className="absolute bottom-[20%] left-[15%] w-[400px] h-[400px] bg-purple-500/[0.03] rounded-full blur-[140px] pointer-events-none z-0"></div>
-      <div className="absolute bottom-[5%] right-[5%] w-[400px] h-[400px] bg-amber-500/[0.02] rounded-full blur-[140px] pointer-events-none z-0"></div>
+      <div className="absolute top-[5%] left-[5%] w-[400px] h-[400px] bg-emerald-500/[0.03] rounded-full blur-[100px] pointer-events-none z-0"></div>
+      <div className="absolute top-[25%] right-[10%] w-[450px] h-[450px] bg-cyan-500/[0.03] rounded-full blur-[100px] pointer-events-none z-0"></div>
+      <div className="absolute bottom-[20%] left-[15%] w-[400px] h-[400px] bg-purple-500/[0.03] rounded-full blur-[100px] pointer-events-none z-0"></div>
+      <div className="absolute bottom-[5%] right-[5%] w-[400px] h-[400px] bg-amber-500/[0.02] rounded-full blur-[100px] pointer-events-none z-0"></div>
       
       {/* EMR SLIDING PANEL */}
       <div className={`fixed top-0 right-0 h-full w-full md:w-[500px] bg-slate-900 border-l border-slate-700 shadow-2xl z-[150] transform transition-transform duration-300 ease-in-out overflow-y-auto p-4 md:p-6 ${showLabPanel ? 'translate-x-0' : 'translate-x-full'}`}>
@@ -1193,7 +1193,7 @@ export default function App() {
         patient={patient} 
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 h-auto xl:h-[calc(100vh-320px)] xl:min-h-[550px] items-start">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-stretch" style={{ minHeight: '500px' }}>
         <ActionPanel
            patient={patient} 
            setPatient={setPatient} 
@@ -1234,7 +1234,7 @@ export default function App() {
            logEvent={logEvent}
         />
         
-        <div className="col-span-1 flex flex-col gap-4 h-[500px] xl:h-full xl:max-h-full">
+        <div className="col-span-1 flex flex-col gap-4 min-h-[500px]">
           <LinesResusPanel
              patient={patient}
              setPatient={setPatient}

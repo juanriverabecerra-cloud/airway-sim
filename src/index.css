@@ -60,6 +60,18 @@ body {
   background: rgba(255, 255, 255, 0.18);
 }
 
+/* Smooth scroll behavior for all scrollable panels */
+.custom-scrollbar {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Content visibility optimization for off-screen panels */
+.content-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 500px;
+}
+
 /* ICU Waveforms background repeats */
 .bg-ecg {
   background-image: url("data:image/svg+xml,%3Csvg width='200' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='0,50 10,50 15,30 20,70 25,20 35,90 40,50 50,50 60,40 70,50 200,50' fill='none' stroke='%2310b981' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E");
@@ -81,16 +93,16 @@ body {
 
 /* Premium Frosted Glassmorphism Panels */
 .glass-panel {
-  background: rgba(10, 15, 30, 0.86) !important; /* Premium opacity layer for ultimate performance & legibility */
-  backdrop-filter: blur(10px) saturate(180%) !important; /* Optimized blur that maintains rich style but scrolls fluidly */
-  -webkit-backdrop-filter: blur(10px) saturate(180%) !important;
+  background: rgba(10, 15, 30, 0.88) !important;
+  backdrop-filter: blur(6px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(6px) saturate(160%) !important;
   border: 1px solid rgba(255, 255, 255, 0.05) !important;
   box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.4) !important;
   border-radius: 1.25rem;
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: box-shadow 0.3s ease, border-color 0.3s ease !important;
   transform: translate3d(0, 0, 0); /* Promote to hardware accelerated GPU compositor layer */
   backface-visibility: hidden;
-  will-change: transform;
+  contain: layout style;
 }
 
 /* Subsystem Interactive Glow Alignments */

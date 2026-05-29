@@ -366,7 +366,7 @@ export const Pharmacopoeia = ({
   });
 
   return (
-    <div className="col-span-1 glass-panel glass-purple p-4 flex flex-col gap-4 overflow-y-auto overflow-x-hidden custom-scrollbar h-[500px] xl:h-full xl:max-h-full">
+    <div className="col-span-1 glass-panel glass-purple p-4 flex flex-col gap-4 overflow-y-auto overflow-x-hidden custom-scrollbar min-h-[500px] max-h-[800px]">
       
       {/* Omni-Search */}
       <div className="relative shrink-0 font-mono">

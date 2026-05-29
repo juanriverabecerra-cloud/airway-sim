@@ -116,7 +116,7 @@ export const ActionPanel = ({
   const showO2 = !term || ['oxygen', 'bmv', 'bag', 'cannula', 'mask', 'nrb', 'hfnc', 'cpap', 'bipap', 'room air'].some(k => k.includes(term));
 
   return (
-    <div className="col-span-1 glass-panel glass-blue p-4 flex flex-col gap-4 overflow-y-auto overflow-x-hidden custom-scrollbar h-[500px] xl:h-full xl:max-h-full">
+    <div className="col-span-1 glass-panel glass-blue p-4 flex flex-col gap-4 overflow-y-auto overflow-x-hidden custom-scrollbar min-h-[500px] max-h-[800px]">
       
       {/* Omni-Search Header */}
       <div className="relative shrink-0">
