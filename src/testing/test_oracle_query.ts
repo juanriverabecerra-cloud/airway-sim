@@ -1,6 +1,6 @@
 import type { ParsedDocument } from '../knowledge/types/index.ts';
 import { TokenOptimizer } from '../knowledge/utils/token_optimizer.ts';
-import { getAnatomicalTruth, closeQueryBridge } from './oracle_query.ts';
+import { getAnatomicalTruth, getAnatomicalParameter, extractTextbookRules, closeQueryBridge } from './oracle_query.ts';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -177,7 +177,124 @@ async function runTest() {
     }
   }
 
-  // 5. Clean up connection
+  // 5. Test getAnatomicalParameter
+  console.log('\n[TEST] 4. Testing getAnatomicalParameter parsing...');
+  const testParam1 = getAnatomicalParameter('propofol concentration', 0);
+  console.log(`  Query: "propofol concentration" (extracted value: ${testParam1})`);
+  
+  // Note: 'Propofol concentration' matches FIG_09_01, where y_value_or_change is '50%'
+  if (testParam1 !== 50) {
+    console.error(`  ✗ Assert Failed: Expected extracted parameter value 50, got ${testParam1}`);
+    process.exit(1);
+  }
+  
+  const testParam2 = getAnatomicalParameter('nonexistent', 40);
+  console.log(`  Query: "nonexistent" (extracted fallback: ${testParam2})`);
+  if (testParam2 !== 40) {
+    console.error(`  ✗ Assert Failed: Expected fallback parameter value 40, got ${testParam2}`);
+    process.exit(1);
+  }
+  console.log('  ✓ getAnatomicalParameter asserts passed successfully.');
+
+  // 5. Test extractTextbookRules NLP parser
+  console.log('\n[TEST] 5. Testing extractTextbookRules NLP parser...');
+  
+  // First, test against existing snapshot data (may or may not parse rules depending on content)
+  const existingRules = extractTextbookRules();
+  console.log(`  Rules parsed from existing snapshot: ${existingRules.length}`);
+  existingRules.forEach((rule, idx) => {
+    console.log(`    [Rule ${idx + 1}] condition="${rule.condition}" target="${rule.targetVital}" op="${rule.operator}" value=${rule.value}`);
+  });
+  console.log('  ✓ extractTextbookRules ran successfully on existing data.');
+
+  // Now, inject a mock clinical sentence into the snapshot and re-test
+  // We do this by temporarily importing the snapshot and pushing a test record
+  const { textbookProse } = await import('../knowledge/medical_truth_snapshot.ts');
+  const originalLength = textbookProse.length;
+  
+  // Mock clinical rules as textbook sentences
+  const mockClinicalSentences = [
+    {
+      id: 'TEST_RULE_001',
+      chapter_title: 'Test Chapter',
+      section_heading: 'Clinical Pharmacology',
+      body_text: 'Amiodarone infusion reduces heart rate by 15 bpm.'
+    },
+    {
+      id: 'TEST_RULE_002',
+      chapter_title: 'Test Chapter',
+      section_heading: 'Positioning Effects',
+      body_text: 'Trendelenburg position decreases lung compliance by 20%.'
+    },
+    {
+      id: 'TEST_RULE_003',
+      chapter_title: 'Test Chapter',
+      section_heading: 'Sepsis Pathophysiology',
+      body_text: 'Sepsis increases respiratory rate by 8 breaths per minute.'
+    },
+    {
+      id: 'TEST_RULE_004',
+      chapter_title: 'Test Chapter',
+      section_heading: 'Burn Electrolyte Shifts',
+      body_text: 'Burns increases potassium by 2.5 mEq/L due to cellular membrane disruption.'
+    }
+  ];
+  
+  // Push mock sentences
+  mockClinicalSentences.forEach(s => textbookProse.push(s));
+  
+  const mockRules = extractTextbookRules();
+  console.log(`\n  Rules parsed after injecting mock clinical sentences: ${mockRules.length}`);
+  mockRules.forEach((rule, idx) => {
+    console.log(`    [Rule ${idx + 1}] condition="${rule.condition}" target="${rule.targetVital}" op="${rule.operator}" value=${rule.value}`);
+  });
+
+  // Validate specific mock rules
+  const amioRule = mockRules.find(r => r.condition === 'amiodarone' && r.targetVital === 'hr');
+  if (!amioRule) {
+    console.error('  ✗ Assert Failed: Expected a rule for "amiodarone" targeting "hr"');
+    process.exit(1);
+  }
+  if (amioRule.operator !== '-' || amioRule.value !== 15) {
+    console.error(`  ✗ Assert Failed: Expected amiodarone rule { op: "-", value: 15 }, got { op: "${amioRule.operator}", value: ${amioRule.value} }`);
+    process.exit(1);
+  }
+  console.log('  ✓ Amiodarone HR rule correctly parsed: { condition: "amiodarone", target: "hr", op: "-", value: 15 }');
+
+  const trendRule = mockRules.find(r => r.condition === 'trendelenburg' && r.targetVital === 'compl');
+  if (!trendRule) {
+    console.error('  ✗ Assert Failed: Expected a rule for "trendelenburg" targeting "compl"');
+    process.exit(1);
+  }
+  if (trendRule.operator !== 'scale') {
+    console.error(`  ✗ Assert Failed: Expected trendelenburg compliance rule op "scale", got "${trendRule.operator}"`);
+    process.exit(1);
+  }
+  console.log(`  ✓ Trendelenburg compliance rule correctly parsed: { op: "scale", value: ${trendRule.value} }`);
+
+  const sepsisRule = mockRules.find(r => r.condition === 'sepsis' && r.targetVital === 'rr');
+  if (!sepsisRule) {
+    console.error('  ✗ Assert Failed: Expected a rule for "sepsis" targeting "rr"');
+    process.exit(1);
+  }
+  if (sepsisRule.operator !== '+' || sepsisRule.value !== 8) {
+    console.error(`  ✗ Assert Failed: Expected sepsis RR rule { op: "+", value: 8 }, got { op: "${sepsisRule.operator}", value: ${sepsisRule.value} }`);
+    process.exit(1);
+  }
+  console.log('  ✓ Sepsis RR rule correctly parsed: { condition: "sepsis", target: "rr", op: "+", value: 8 }');
+
+  const burnRule = mockRules.find(r => r.condition === 'burn' && r.targetVital === 'k');
+  if (!burnRule) {
+    console.error('  ✗ Assert Failed: Expected a rule for "burn" targeting "k"');
+    process.exit(1);
+  }
+  console.log(`  ✓ Burn potassium rule correctly parsed: { condition: "${burnRule.condition}", target: "k", op: "${burnRule.operator}", value: ${burnRule.value} }`);
+
+  // Clean up: restore original snapshot
+  textbookProse.length = originalLength;
+  console.log('  ✓ All extractTextbookRules assertions passed successfully.');
+
+  // 6. Clean up connection
   closeQueryBridge();
   console.log('\n' + '='.repeat(70));
   console.log('  ALL TESTS PASSED SUCCESSFULLY! INTEGRATION VERIFIED.');

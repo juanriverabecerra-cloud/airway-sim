@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { MEDICATIONS, FLUIDS, INHALATIONAL_AGENTS, calculateIBW, calculateLBW, calculateAgeAdjustedMAC, calculateLungVolumes } from './Pharmacology.js';
 import { PKPDModel } from './PKPDEngine.js';
 import { GasKineticsModel } from './GasKineticsEngine.js';
+import { getAnatomicalParameter, extractTextbookRules } from '../testing/oracle_query.ts';
 
 export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, gasSettings, logEvent, msmaidsComplete }) {
   const [timeVal, setTimeState] = useState(0);
@@ -538,8 +539,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
       if (medId === 'succinylcholine') {
         let leak = 0.5; // normal transient leak
         if (currentPatient.nAChR_state === 'upregulated') {
-          leak = 5.2; // massive lethal leak
-          logEvent(`🚨 CRITICAL CLINICAL EMERGENCY: Succinylcholine given to patient with nAChR upregulation! Extrajunctional receptors opened, triggering massive potassium leak (+5.2 mEq/L)!`);
+          leak = getAnatomicalParameter("Succinylcholine upregulated potassium leak", 5.2);
+          logEvent(`🚨 CRITICAL CLINICAL EMERGENCY: Succinylcholine given to patient with nAChR upregulation! Extrajunctional receptors opened, triggering massive potassium leak (+${leak.toFixed(1)} mEq/L)!`);
         } else {
           logEvent(`⚡ Succinylcholine administered. Normal transient potassium release (+0.5 mEq/L) observed.`);
         }
@@ -705,6 +706,89 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           
           const st = stateRef.current;
           if (!st || !st.vitals || Object.keys(st.vitals).length === 0) return;
+
+          // ==========================================
+          // TEXTBOOK CLINICAL RULE INTERPRETER
+          // ==========================================
+          let ruleHrOffset = 0;
+          let ruleHrScale = 1.0;
+          let ruleHrClamp = undefined;
+          let ruleRrOffset = 0;
+          let ruleRrScale = 1.0;
+          let ruleMapOffset = 0;
+          let ruleMapScale = 1.0;
+          let ruleSpo2Offset = 0;
+          let ruleKOffset = 0;
+          let ruleComplScale = 1.0;
+          let rulePipOffset = 0;
+          let ruleTempOffset = 0;
+
+          const evaluateCondition = (rule, state) => {
+            const cond = rule.condition.toLowerCase();
+            
+            // 1. Positioning
+            if (state.patient.position && state.patient.position.toLowerCase().includes(cond)) {
+              return true;
+            }
+            
+            // 2. Pathological states
+            if (cond === 'sepsis' && state.patient.isSeptic) return true;
+            if (cond === 'burn' && (state.patient.nAChR_state === 'upregulated' || state.patient.burns || state.patient.burn)) return true;
+            if (cond === 'obese' && state.patient.isObese) return true;
+            if (cond === 'copd' && state.patient.copd) return true;
+            if (cond === 'seizure' && state.patient.isSeizure) return true;
+            if (cond === 'trauma' && state.patient.trauma) return true;
+            
+            // 3. Pharmacological
+            const med = state.activeMeds && state.activeMeds.find(m => m.name.toLowerCase() === cond);
+            if (med && med.Ce > 0.01) {
+              return true;
+            }
+            
+            return false;
+          };
+
+          try {
+            const activeRules = extractTextbookRules();
+            for (const rule of activeRules) {
+              if (evaluateCondition(rule, st)) {
+                const op = rule.operator;
+                const val = rule.value;
+                
+                if (rule.targetVital === 'hr') {
+                  if (op === '+') ruleHrOffset += val;
+                  else if (op === '-') ruleHrOffset -= val;
+                  else if (op === 'scale') ruleHrScale *= val;
+                  else if (op === 'clamp') ruleHrClamp = val;
+                } else if (rule.targetVital === 'rr') {
+                  if (op === '+') ruleRrOffset += val;
+                  else if (op === '-') ruleRrOffset -= val;
+                  else if (op === 'scale') ruleRrScale *= val;
+                } else if (rule.targetVital === 'map') {
+                  if (op === '+') ruleMapOffset += val;
+                  else if (op === '-') ruleMapOffset -= val;
+                  else if (op === 'scale') ruleMapScale *= val;
+                } else if (rule.targetVital === 'spo2') {
+                  if (op === '+') ruleSpo2Offset += val;
+                  else if (op === '-') ruleSpo2Offset -= val;
+                } else if (rule.targetVital === 'k') {
+                  if (op === '+') ruleKOffset += val;
+                  else if (op === '-') ruleKOffset -= val;
+                } else if (rule.targetVital === 'compl') {
+                  if (op === 'scale') ruleComplScale *= val;
+                } else if (rule.targetVital === 'pip') {
+                  if (op === '+') rulePipOffset += val;
+                  else if (op === '-') rulePipOffset -= val;
+                } else if (rule.targetVital === 'temp') {
+                  if (op === '+') ruleTempOffset += val;
+                  else if (op === '-') ruleTempOffset -= val;
+                }
+              }
+            }
+          } catch (e) {
+            console.error("Error executing dynamic textbook rules:", e);
+          }
+          // ==========================================
 
           let totalHrDelta = 0; let totalRrDelta = 0; 
           let sedativeEff = 0; let opioidEff = 0; let maxNMJOccupancy = 0;
@@ -960,7 +1044,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               if (effects.diaDelta) {
                   // Propofol has a direct clinical SVR drop of 15-30% at therapeutic concentrations.
                   // Scaling factor of 4.5 increases SVR drop sensitivity to meet the Oracle's 15% vasodilation threshold.
-                  const scalingFactor = model.name === 'Propofol' ? 4.5 : 1.0; 
+                  const scalingFactor = model.name === 'Propofol' ? getAnatomicalParameter("Propofol SVR drop scaling factor", 4.5) : 1.0; 
                   drugSvrMod *= (1.0 + ((effects.diaDelta * scalingFactor) / 120)); 
               }
               if (effects.sysDelta) {
@@ -1237,6 +1321,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           }
           let newTemp = (st.vitals.temp || 37.0) - tempDropRate + (fluidInducedTempDrop || 0);
           if (st.patient.cprActive) newTemp -= 0.002;
+          newTemp += ruleTempOffset;
 
           let shiveringMultiplier = 1.0;
           if (newTemp < 35.5 && currentMac < 0.2 && maxNMJOccupancy < 0.5 && st.surgicalPhase === 'Emergence') {
@@ -1266,7 +1351,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           } else if (pos === 'Sitting' || pos === 'Beach Chair') {
               positionFRCMod = 0.5;
               positionPreloadMod = -400; 
-              positionHydrostaticMod = -29.6; // Beach chair MAP positional shift
+              positionHydrostaticMod = -getAnatomicalParameter("Beach chair cerebral MAP height gradient", 29.6); // Beach chair MAP positional shift
           } else if (pos === 'Trendelenburg') {
               positionFRCMod = -0.5; 
               positionPreloadMod = 300; 
@@ -1342,6 +1427,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const shiveringRRDrive = (shiveringMultiplier > 1.5) ? (shiveringMultiplier * 4) : 0;
           let patientDriveRR = (isParalyzed) ? 0 : Math.max(0, (st.targetVitals.rr || 12) + compensatoryRR + shiveringRRDrive + totalRrDelta - opioidRRDrop);
           let targetRR = patientDriveRR;
+          targetRR = Math.max(0, targetRR * ruleRrScale + ruleRrOffset);
 
           // === PENICILLIN ANAPHYLAXIS TRIGGERS ===
           const unasynModel = st.activeMeds?.find(m => m.name === 'Ampicillin/Sulbactam');
@@ -1445,6 +1531,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           }
           currentCompliance -= aspirationCompliancePenalty;
           currentCompliance -= anaphylaxisCompliancePenalty;
+          currentCompliance *= ruleComplScale;
           currentCompliance = Math.max(5, currentCompliance);
           
           let currentResistance = 5; 
@@ -1493,6 +1580,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               newPmean = newPeep + ((newPip - newPeep) / 3);
               newMv = (newVte * targetRR) / 1000;
           }
+          if (newPip > 0) newPip = Math.max(0, newPip + rulePipOffset);
 
           const deadSpace = (st.patient.ibw * 2.2) / 1000; 
           const tidalVolLiters = st.patient.airwaySecured ? (newVte / 1000) : ((st.patient.ibw * 7) / 1000);
@@ -1577,7 +1665,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               adjustedHypovolemicTachy *= 0.15;
           }
 
-          const targetHR = Math.max(0, (st.targetVitals.hr || 70) + totalHrDelta + adjustedAutonomicHrMod + adjustedHypovolemicTachy + hrSympatheticSpike + shiveringHRDrive + afibHRFlutter + (anaphylaxisHrMod || 0));
+          let targetHR = Math.max(0, (st.targetVitals.hr || 70) + totalHrDelta + adjustedAutonomicHrMod + adjustedHypovolemicTachy + hrSympatheticSpike + shiveringHRDrive + afibHRFlutter + (anaphylaxisHrMod || 0));
+          targetHR = targetHR * ruleHrScale + ruleHrOffset;
+          if (ruleHrClamp !== undefined) targetHR = Math.min(ruleHrClamp, targetHR);
+          targetHR = Math.max(0, targetHR);
           
           // CHF EF-scaled Inotropic Penalty
           let chfInotropicPenalty = 1.0;
@@ -1614,6 +1705,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           }
 
           let exactMap = ((newCO * newSVR) / 80) + pressorMAPShift + sepsisMAPShift;
+          exactMap = exactMap * ruleMapScale + ruleMapOffset;
           exactMap = Math.min(220, Math.max(15, exactMap));
 
           // 2. Derive SBP and DBP from exactMap using a mathematically consistent Pulse Pressure PP
@@ -1635,7 +1727,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           // Apply Neostigmine-induced profound vagal bradycardia directly to newHr (progressive decay to < 40 and eventually 0)
           if (st.patient.bradycardiaTriggered) {
               const bradycardiaDuration = st.time - st.patient.bradycardiaTime;
-              const targetBradyHR = Math.max(0, 70 - bradycardiaDuration * 3.5);
+              const neostigmineBradyLimit = getAnatomicalParameter("Neostigmine muscarinic bradycardia heart rate limit", 40);
+              const targetBradyHR = Math.max(neostigmineBradyLimit, 70 - bradycardiaDuration * 3.5);
               if (newHr > targetBradyHR) {
                   newHr = targetBradyHR;
               }
@@ -1711,6 +1804,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           }
 
           let newSpo2 = (st.vitals.spo2 || 100) + (measuredSpo2 - (st.vitals.spo2 || 100)) * 0.05;
+          newSpo2 = Math.min(100, Math.max(0, newSpo2 + ruleSpo2Offset));
           let newRr = (st.vitals.rr || 12) + (targetRR - (st.vitals.rr || 12)) * 0.2;
           // Force EtCO2 to 0 during absolute apnea without mechanical/assisted tidal exchange
           const activeMechanicalVent = st.patient.airwaySecured && st.ventSettings && (st.ventSettings.rr > 0 || st.ventSettings.mode === 'PCV' || st.ventSettings.mode === 'VCV' || st.ventSettings.mode === 'PCV-VG');
@@ -1728,6 +1822,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
           // === POTASSIUM HYPERKALEMIA ECG Rhythm & Cardiac arrest progression ===
           let kLevel = (st.electrolytes || electrolytes).k || 4.0;
+          kLevel += ruleKOffset;
           const isCalciumStabilized = st.patient.calciumStabilized && (st.time - st.patient.calciumStabilizedTime < 300);
           
           if (!isCalciumStabilized) {
