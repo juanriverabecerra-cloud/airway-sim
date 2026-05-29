@@ -54,7 +54,7 @@ export const LinesResusPanel = ({
   });
 
   return (
-    <div className="glass-panel p-4 flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+    <div className="glass-panel glass-indigo p-4 flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
       <h3 className="text-slate-400 text-[10px] border-b border-white/5 pb-1.5 uppercase font-black flex items-center justify-between shrink-0 font-mono tracking-wider">
         <span className="flex items-center gap-1.5 text-purple-400"><Droplet size={14} /> Lines & Resus</span>
         <div className="flex gap-1.5">
@@ -80,6 +80,8 @@ export const LinesResusPanel = ({
             const isBlown = line.failed;
             const currentLineEq = line.fluidLine || patient.fluidLine || 'gravity';
             
+            const isPIVOrIO = line.category?.includes('Peripheral IV') || line.category?.includes('IO') || line.category?.includes('Intraosseous');
+            
             const isBelmontOnIOOrSmallIV = currentLineEq === 'belmont' && !isBlown && (
               line.category.includes('IO') || 
               line.type.includes('20G') || 
@@ -97,12 +99,12 @@ export const LinesResusPanel = ({
             return (
               <div 
                 key={line.id} 
-                className={`bg-slate-950/40 border rounded-2xl p-3.5 flex flex-col gap-3 transition-all duration-300 relative shadow-inner backdrop-blur-md ${
+                className={`border rounded-2xl p-3.5 flex flex-col gap-3 transition-all duration-300 relative shadow-inner backdrop-blur-md ${
                   isBlown 
-                    ? 'border-red-950 opacity-50 bg-red-950/5' 
-                    : (hasFluidInfusion || hasMedInfusion)
-                      ? 'border-cyan-500/20 bg-cyan-950/5' 
-                      : 'border-white/5'
+                    ? 'border-red-500/35 bg-red-950/10 shadow-[0_2px_12px_rgba(239,68,68,0.05)] opacity-50' 
+                    : isPIVOrIO
+                      ? 'border-cyan-500/30 bg-cyan-950/10 shadow-[0_2px_12px_rgba(6,182,212,0.08)]' 
+                      : 'border-indigo-500/30 bg-indigo-950/10 shadow-[0_2px_12px_rgba(99,102,241,0.08)]'
                 }`}
               >
                 {/* Header Row */}
@@ -118,7 +120,13 @@ export const LinesResusPanel = ({
                               : 'bg-emerald-400'
                         }`} />
                       )}
-                      <span className={`font-black text-xs tracking-wide ${isBlown ? 'text-red-500 line-through' : 'text-slate-100 font-mono'}`}>
+                      <span className={`font-black text-xs tracking-wide font-mono ${
+                        isBlown 
+                          ? 'text-red-500 line-through' 
+                          : isPIVOrIO
+                            ? 'text-cyan-300 drop-shadow-[0_0_4px_rgba(6,182,212,0.15)]'
+                            : 'text-indigo-300 drop-shadow-[0_0_4px_rgba(99,102,241,0.15)]'
+                      }`}>
                         {line.name}
                       </span>
                     </div>

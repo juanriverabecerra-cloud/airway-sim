@@ -25,7 +25,7 @@ export const AirwayPanel = ({
 
   if (isCollapsed) {
     return (
-      <div className="glass-panel p-3.5 flex items-center justify-between shrink-0 font-mono transition-all duration-300">
+      <div className="glass-panel glass-cyan p-3.5 flex items-center justify-between shrink-0 font-mono transition-all duration-300">
         <div className="flex items-center gap-2.5 text-xs font-bold text-slate-300">
           <Wind size={16} className={patient.airwaySecured ? "text-emerald-400" : "text-amber-400"} />
           <span className="font-mono text-xs font-extrabold uppercase tracking-wide text-slate-100">Airway Panel</span>
@@ -103,7 +103,7 @@ export const AirwayPanel = ({
   // Render Secured Airway Dashboard
   if (patient.airwaySecured) {
     return (
-      <div className="glass-panel p-4 flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+      <div className="glass-panel glass-cyan p-4 flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
         {/* Header Minimize Row */}
         <div className="flex justify-between items-center border-b border-white/5 pb-2 shrink-0 font-mono">
           <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 flex items-center gap-1.5">
@@ -189,7 +189,7 @@ export const AirwayPanel = ({
 
   // Render Unsecured Airway Dashboard
   return (
-    <div className="glass-panel p-4 flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+    <div className="glass-panel glass-cyan p-4 flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
       {/* Header Minimize Row */}
       <div className="flex justify-between items-center border-b border-white/5 pb-2 shrink-0 font-mono">
         <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 flex items-center gap-1.5">
