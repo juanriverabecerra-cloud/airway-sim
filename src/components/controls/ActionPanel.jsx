@@ -317,10 +317,10 @@ export const ActionPanel = ({
           <div className="flex flex-col gap-2">
             <h3 className="text-slate-400 text-[10px] border-b border-white/5 pb-1 uppercase font-black tracking-wider flex items-center gap-2 font-mono"><Syringe size={12} className="text-purple-400"/> Access Placements</h3>
             <div className="grid grid-cols-2 gap-2 font-mono">
-              <button onClick={() => { setAccessModal({show: true, category: 'Peripheral IV'}); setSearchTerm(''); }} className="glass-button glass-button-purple p-2.5 rounded-lg text-[10px]">Place PIV</button>
-              <button onClick={() => { setAccessModal({show: true, category: 'Central Line'}); setSearchTerm(''); }} className="glass-button glass-button-purple p-2.5 rounded-lg text-[10px]">Central Line</button>
-              <button onClick={() => { setAccessModal({show: true, category: 'Intraosseous (IO)'}); setSearchTerm(''); }} className="glass-button glass-button-purple p-2.5 rounded-lg text-[10px]">Place IO</button>
-              <button onClick={() => { setAccessModal({show: true, category: 'Arterial Line'}); setSearchTerm(''); }} className="glass-button glass-button-purple p-2.5 rounded-lg text-[10px]">Arterial Line</button>
+              <button onClick={() => { setAccessModal({show: true, category: 'Peripheral IV'}); setSearchTerm(''); }} className="glass-button glass-button-cyan p-2.5 rounded-lg text-[10px]">Place PIV</button>
+              <button onClick={() => { setAccessModal({show: true, category: 'Central Line'}); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2.5 rounded-lg text-[10px]">Central Line</button>
+              <button onClick={() => { setAccessModal({show: true, category: 'Intraosseous (IO)'}); setSearchTerm(''); }} className="glass-button glass-button-amber p-2.5 rounded-lg text-[10px]">Place IO</button>
+              <button onClick={() => { setAccessModal({show: true, category: 'Arterial Line'}); setSearchTerm(''); }} className="glass-button glass-button-rose p-2.5 rounded-lg text-[10px]">Arterial Line</button>
             </div>
           </div>
         )}

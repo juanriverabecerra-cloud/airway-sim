@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Droplet, Zap, AlertTriangle } from 'lucide-react';
 import { MEDICATIONS } from '../../engine/Pharmacology';
+import { getMedColor, getFluidColor } from './Pharmacopoeia';
 
 export const LinesResusPanel = ({
   patient,
@@ -207,24 +208,25 @@ export const LinesResusPanel = ({
                   </div>
                 )}
 
-                {/* Resus Fluids on line */}
                 {line.activeInfusions && line.activeInfusions.map((fluid) => {
                   const startVol = fluid.startingVolume || Math.max(fluid.remainingVolume, 300);
                   const pct = Math.max(0, Math.min(100, (fluid.remainingVolume / startVol) * 100));
+                  const fluidColorTheme = getFluidColor(fluid.name);
+                  const isBlood = fluid.name.includes('PRBC') || fluid.name.includes('Plasma') || fluid.name.includes('Platelets') || fluid.name.includes('Fibrinogen') || fluid.name.includes('Cryo');
 
                   return (
                     <div key={fluid.id} className="bg-slate-950/60 border border-white/5 rounded-lg p-2 flex flex-col gap-1.5 font-mono">
                       <div className="flex justify-between items-center text-[9px]">
                         <span className="font-extrabold text-slate-200 text-[10px] tracking-wide">{fluid.name}</span>
-                        <span className="text-purple-300 font-bold bg-purple-950 border border-purple-900 px-1.5 py-0.5 rounded text-[10px]">
+                        <span className={`font-bold border px-1.5 py-0.5 rounded text-[10px] ${isBlood ? 'text-red-400 bg-red-950/20 border-red-900/40' : 'text-cyan-400 bg-cyan-950/20 border-cyan-900/40'}`}>
                           {Math.round(fluid.remainingVolume)} mL left
                         </span>
                       </div>
                       <div className="w-full h-1 bg-slate-900 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-purple-500 to-fuchsia-400 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                        <div className={`h-full bg-gradient-to-r ${fluidColorTheme.progress} rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
                       </div>
                       <div className="flex justify-between items-center text-[8px] text-slate-500">
-                        <span>Flow: <span className="text-purple-400 font-extrabold">{fluid.currentRate ? Math.round(fluid.currentRate) : 0} mL/hr</span></span>
+                        <span>Flow: <span className={`font-extrabold ${isBlood ? 'text-red-400' : 'text-cyan-400'}`}>{fluid.currentRate ? Math.round(fluid.currentRate) : 0} mL/hr</span></span>
                         <span>{Math.round(pct)}% left</span>
                       </div>
                       <div className="flex gap-1 mt-0.5">
@@ -236,8 +238,8 @@ export const LinesResusPanel = ({
                           value={editInfusionDose[fluid.id] !== undefined ? editInfusionDose[fluid.id] : ''} 
                           onChange={(e) => setEditInfusionDose({...editInfusionDose, [fluid.id]: e.target.value})} 
                         />
-                        <button onClick={() => updateFluidRate(line.id, fluid.id, editInfusionDose[fluid.id])} disabled={isBlown} className="flex-1 glass-button glass-button-purple py-0.5 text-[8px]">SET</button>
-                        <button onClick={() => updateFluidRate(line.id, fluid.id, '')} disabled={isBlown} className="flex-1 glass-button glass-button-purple py-0.5 text-[8px]">MAX</button>
+                        <button onClick={() => updateFluidRate(line.id, fluid.id, editInfusionDose[fluid.id])} disabled={isBlown} className={`flex-1 glass-button ${fluidColorTheme.btn} py-0.5 text-[8px]`}>SET</button>
+                        <button onClick={() => updateFluidRate(line.id, fluid.id, '')} disabled={isBlown} className={`flex-1 glass-button ${fluidColorTheme.btn} py-0.5 text-[8px]`}>MAX</button>
                         <button onClick={() => removeFluid(line.id, fluid.id)} className="flex-1 glass-button glass-button-rose py-0.5 text-[8px]">STOP</button>
                       </div>
                     </div>
@@ -254,12 +256,24 @@ export const LinesResusPanel = ({
                     const medData = MEDICATIONS[medInf.medId] || Object.values(MEDICATIONS).find(m => m.name.toLowerCase() === medInf.medId.toLowerCase());
                     const resolvedId = medData ? Object.keys(MEDICATIONS).find(k => MEDICATIONS[k].name === medData.name) : medInf.medId;
                     const baseUnit = medInf.unit ? medInf.unit.replace('/hr', '').replace('/min', '') : 'mg';
+                    const medColorTheme = getMedColor(resolvedId);
+                    const textColorClass = medColorTheme.active.includes('text-yellow') 
+                      ? 'text-yellow-400' 
+                      : medColorTheme.active.includes('text-orange')
+                        ? 'text-orange-400'
+                        : medColorTheme.active.includes('text-blue')
+                          ? 'text-blue-400'
+                          : medColorTheme.active.includes('text-emerald')
+                            ? 'text-emerald-400'
+                            : medColorTheme.active.includes('text-rose')
+                              ? 'text-rose-455'
+                              : 'text-purple-400';
 
                     return (
-                      <div key={resolvedId} className="bg-slate-950/60 border border-purple-900/30 rounded-lg p-2 flex flex-col gap-1.5 font-mono mt-0.5">
+                      <div key={resolvedId} className="bg-slate-950/60 border border-white/5 rounded-lg p-2 flex flex-col gap-1.5 font-mono mt-0.5">
                         <div className="flex justify-between items-center text-[9px]">
-                          <span className="font-extrabold text-purple-300 text-[10px] tracking-wide">{medData?.name || medInf.medId}</span>
-                          <span className="text-emerald-400 font-bold bg-emerald-950 border border-emerald-900 px-1.5 py-0.5 rounded text-[10px]">
+                          <span className={`font-extrabold ${textColorClass} text-[10px] tracking-wide`}>{medData?.name || medInf.medId}</span>
+                          <span className={`font-bold border px-1.5 py-0.5 rounded text-[10px] ${textColorClass} bg-slate-900/40 border-white/5`}>
                             {medInf.rate} {medInf.unit || 'mcg/kg/min'}
                           </span>
                         </div>
@@ -272,7 +286,7 @@ export const LinesResusPanel = ({
                             value={editInfusionDose[resolvedId] || ''} 
                             onChange={(e) => setEditInfusionDose({...editInfusionDose, [resolvedId]: e.target.value})} 
                           />
-                          <button onClick={() => { if (editInfusionDose[resolvedId]) { handleUpdateInfusion(resolvedId, editInfusionDose[resolvedId], medInf.unit, line.id); setEditInfusionDose({...editInfusionDose, [resolvedId]: ''}); } }} className="w-1/3 glass-button glass-button-purple py-0.5 text-[8px]">UPDATE</button>
+                          <button onClick={() => { if (editInfusionDose[resolvedId]) { handleUpdateInfusion(resolvedId, editInfusionDose[resolvedId], medInf.unit, line.id); setEditInfusionDose({...editInfusionDose, [resolvedId]: ''}); } }} className={`w-1/3 glass-button ${medColorTheme.btn} py-0.5 text-[8px]`}>UPDATE</button>
                           <button onClick={() => { handleUpdateInfusion(resolvedId, 0, medInf.unit, line.id); }} className="w-1/3 glass-button glass-button-rose py-0.5 text-[8px]">STOP</button>
                         </div>
 
@@ -286,7 +300,7 @@ export const LinesResusPanel = ({
                           />
                           <button 
                             onClick={() => { if (bolusInfusionDose[resolvedId]) { handlePushFromInfusion(resolvedId, bolusInfusionDose[resolvedId], medInf.unit, line.id); setBolusInfusionDose({...bolusInfusionDose, [resolvedId]: ''}); } }} 
-                            className="w-1/2 glass-button glass-button-purple py-0.5 text-[8px] uppercase tracking-wider"
+                            className={`w-1/2 glass-button ${medColorTheme.btn} py-0.5 text-[8px] uppercase tracking-wider`}
                           >
                             GIVE PUSH
                           </button>

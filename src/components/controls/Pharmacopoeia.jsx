@@ -2,6 +2,86 @@ import React, { useState, useEffect, useRef } from 'react';
 import { MEDICATIONS, FLUIDS } from '../../engine/Pharmacology';
 import { Search, X, Droplet, Activity, ShieldAlert, Zap, Layers, RefreshCw } from 'lucide-react';
 
+// ASTM / ISO standard-inspired color coordination profiles for clinical anesthesia agents
+export const getMedColor = (medId) => {
+  const id = medId.toLowerCase();
+  
+  // Induction Hypnotics -> Yellow
+  if (['propofol', 'etomidate', 'ketamine', 'dexmedetomidine'].some(k => id.includes(k))) {
+    return {
+      active: 'border-yellow-500/80 text-yellow-355 shadow-[0_0_12px_rgba(234,179,8,0.25)] bg-yellow-950/10 font-bold',
+      btn: 'glass-button-amber'
+    };
+  }
+  // Benzodiazepines -> Orange
+  if (['midazolam'].some(k => id.includes(k))) {
+    return {
+      active: 'border-orange-500/80 text-orange-355 shadow-[0_0_12px_rgba(249,115,22,0.25)] bg-orange-950/10 font-bold',
+      btn: 'glass-button-amber'
+    };
+  }
+  // Opioids -> Blue
+  if (['fentanyl', 'sufentanil', 'remifentanil', 'hydromorphone', 'morphine'].some(k => id.includes(k))) {
+    return {
+      active: 'border-blue-400/80 text-blue-300 shadow-[0_0_12px_rgba(59,130,246,0.25)] bg-blue-950/10 font-bold',
+      btn: 'glass-button-blue'
+    };
+  }
+  // Neuromuscular Blockers (NMBs) -> Fluorescent Green
+  if (['rocuronium', 'succinylcholine', 'vecuronium', 'cisatracurium'].some(k => id.includes(k))) {
+    return {
+      active: 'border-emerald-400/80 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)] bg-emerald-950/10 font-bold',
+      btn: 'glass-button-emerald'
+    };
+  }
+  // Vasopressors & Inotropes (Purple)
+  if (['norepinephrine', 'epinephrine', 'phenylephrine', 'vasopressin', 'ephedrine'].some(k => id.includes(k))) {
+    return {
+      active: 'border-purple-400/80 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.25)] bg-purple-950/10 font-bold',
+      btn: 'glass-button-purple'
+    };
+  }
+  // Anticholinergics / Reversals -> Green
+  if (['atropine', 'sugammadex', 'neostigmine', 'glycopyrrolate'].some(k => id.includes(k))) {
+    return {
+      active: 'border-emerald-500/80 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)] bg-emerald-950/10 font-bold',
+      btn: 'glass-button-emerald'
+    };
+  }
+  // Antihypertensives / Beta Blockers (Arterial red / pressure control) -> Red/Rose
+  if (['esmolol', 'labetalol', 'metoprolol', 'nicardipine', 'clevidipine', 'nitroglycerin'].some(k => id.includes(k))) {
+    return {
+      active: 'border-rose-500/80 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.25)] bg-red-950/10 font-bold',
+      btn: 'glass-button-rose'
+    };
+  }
+  
+  // Default general therapeutic -> Slate/Indigo
+  return {
+    active: 'border-purple-400/80 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.15)] bg-slate-900/40',
+    btn: 'glass-button-purple'
+  };
+};
+
+export const getFluidColor = (fluidId) => {
+  const id = fluidId.toLowerCase();
+  
+  // Blood Products -> Red/Rose
+  if (id.includes('prbc') || id.includes('fresh frozen') || id.includes('platelets') || id.includes('cryo') || id.includes('fibrinogen') || id.includes('blood') || id.includes('ffp')) {
+    return {
+      active: 'border-rose-550/80 text-rose-350 shadow-[0_0_12px_rgba(244,63,94,0.25)] bg-red-950/10 font-bold',
+      btn: 'glass-button-rose',
+      progress: 'from-rose-500 to-red-400'
+    };
+  }
+  // Crystalloids / Colloids -> Cyan/Teal
+  return {
+    active: 'border-cyan-400/80 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.25)] bg-cyan-950/10 font-bold',
+    btn: 'glass-button-cyan',
+    progress: 'from-cyan-500 to-teal-400'
+  };
+};
+
 export const Pharmacopoeia = ({ 
   pushFluid, 
   processMed, 
@@ -113,17 +193,18 @@ export const Pharmacopoeia = ({
     fluids: ['Lactated Ringers (LR)', 'Normal Saline (0.9% NS)', 'Plasmalyte', 'Albumin 5%', 'Packed Red Blood Cells (PRBC)', 'Fresh Frozen Plasma (FFP)', 'Platelets', 'Cryoprecipitate', 'Fibrinogen Concentrate']
   };
 
-  const renderFluidButton = (fluidId, colorClass) => {
+  const renderFluidButton = (fluidId) => {
     const isActive = fluidInput.fluid === fluidId;
     const selectedLineId = fluidInput.lineId || patient.accessLines?.[0]?.id;
     const selectedLine = patient.accessLines?.find(l => l.id === selectedLineId);
     const isArterial = selectedLine?.category === 'Arterial Line';
+    const colorTheme = getFluidColor(fluidId);
 
     return (
       <div className="flex flex-col gap-1 mb-1.5" key={fluidId}>
         <button 
           onClick={() => setFluidInput(isActive ? { fluid: null } : { fluid: fluidId, dose: '', lineId: selectedLineId })} 
-          className={`p-2 rounded-lg text-xs text-left border transition-all glass-button ${colorClass} ${isActive ? 'border-purple-400 text-purple-200' : 'border-slate-800'}`}
+          className={`p-2 rounded-lg text-xs text-left border transition-all glass-button ${colorTheme.active} ${isActive ? colorTheme.active : 'border-slate-800'}`}
         >
           <span className="font-bold text-slate-100">{fluidId}</span>
         </button>
@@ -170,7 +251,7 @@ export const Pharmacopoeia = ({
               <button 
                 onClick={() => handleFluidSubmit(fluidId)} 
                 disabled={isArterial}
-                className={`w-1/2 glass-button ${isArterial ? 'opacity-30 cursor-not-allowed' : 'glass-button-purple'}`}
+                className={`w-1/2 glass-button ${isArterial ? 'opacity-30 cursor-not-allowed' : colorTheme.btn} py-1.5 text-xs`}
               >
                 PUSH
               </button>
@@ -186,6 +267,7 @@ export const Pharmacopoeia = ({
     if (!med) return null;
     const isActive = medInput.drug === medId;
     const indicationKeys = Object.keys(med.indications);
+    const colorTheme = getMedColor(medId);
 
     const handleIndicationChange = (e) => {
       const ind = e.target.value; const data = med.indications[ind];
@@ -196,7 +278,7 @@ export const Pharmacopoeia = ({
       <div className="flex flex-col gap-1 mb-2" key={medId}>
         <button 
           onClick={() => setMedInput(isActive ? { drug: null } : { drug: medId, indication: indicationKeys[0], route: med.routes[0], type: med.indications[indicationKeys[0]].type, unit: med.indications[indicationKeys[0]].unit, dose: '' })}
-          className={`p-2 rounded-lg text-xs text-left border transition-all glass-button ${isActive ? 'border-purple-400 text-purple-200' : 'border-slate-800'}`}
+          className={`p-2 rounded-lg text-xs text-left border transition-all glass-button ${isActive ? colorTheme.active : 'border-slate-800'}`}
         >
           <span className="font-bold text-slate-100">{med.name}</span> 
           <span className="text-slate-400 text-[9px] float-right uppercase font-mono">{med.classes[0]}</span>
@@ -231,7 +313,7 @@ export const Pharmacopoeia = ({
                 onChange={(e) => setMedInput({...medInput, dose: e.target.value})} 
                 onKeyDown={(e) => { if (e.key === 'Enter') handleMedSubmit(medId); }}
               />
-              <button onClick={() => handleMedSubmit(medId)} className="w-1/3 glass-button glass-button-purple py-1 text-[10px]">
+              <button onClick={() => handleMedSubmit(medId)} className={`w-1/3 glass-button ${colorTheme.btn} py-1 text-[10px]`}>
                 {medInput.type === 'Infusion' ? 'START INF' : 'PUSH'}
               </button>
             </div>
@@ -282,7 +364,7 @@ export const Pharmacopoeia = ({
           {filteredMeds.map(m => renderAdvancedMedButton(m))}
           
           {filteredFluids.length > 0 && <span className="text-teal-400 text-[10px] font-black uppercase tracking-widest border-b border-teal-950 pb-1 mt-3 mb-1 font-mono">Resus Fluids</span>}
-          {filteredFluids.map(f => renderFluidButton(f, 'bg-blue-900/10 border-blue-900/30'))}
+          {filteredFluids.map(f => renderFluidButton(f))}
 
           {filteredMeds.length === 0 && filteredFluids.length === 0 && (
             <div className="text-slate-600 text-xs italic text-center mt-6 font-mono font-bold">No matching drugs or fluids.</div>
@@ -314,7 +396,7 @@ export const Pharmacopoeia = ({
             {activeSubTab === 'fluids' ? (
               <div className="flex flex-col gap-1">
                 <span className="text-slate-500 text-[9px] font-bold uppercase tracking-wider block mb-2 font-mono">Select Resus Crystalloid or Blood Product:</span>
-                {GROUPS.fluids.map(f => renderFluidButton(f, 'bg-blue-900/10 border-blue-900/30'))}
+                {GROUPS.fluids.map(f => renderFluidButton(f))}
               </div>
             ) : (
               <div className="flex flex-col gap-1">
