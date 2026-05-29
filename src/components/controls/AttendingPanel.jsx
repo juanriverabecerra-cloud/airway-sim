@@ -205,12 +205,12 @@ export default function AttendingPanel({
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed right-4 bottom-6 z-40 bg-gradient-to-r from-purple-900 to-indigo-900 border border-purple-500/50 text-white p-3 rounded-full shadow-[0_0_15px_rgba(168,85,247,0.4)] hover:scale-105 hover:from-purple-800 hover:to-indigo-800 transition-all flex items-center gap-2 group"
+          className="fixed right-4 bottom-6 z-40 bg-gradient-to-r from-amber-600 to-yellow-600 border border-amber-400/50 text-white p-3 rounded-full shadow-[0_0_15px_rgba(245,158,11,0.4)] hover:scale-105 hover:from-amber-500 hover:to-yellow-505 transition-all flex items-center gap-2 group"
         >
-          <MessageSquare size={20} className="text-purple-300 group-hover:text-purple-200" />
+          <MessageSquare size={20} className="text-amber-100 group-hover:text-white" />
           <span className="text-xs font-bold font-mono uppercase tracking-wider">Attending Consult</span>
           {activeAlertsCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white font-extrabold text-[10px] w-5 h-5 rounded-full flex items-center justify-center border border-purple-950">
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white font-extrabold text-[10px] w-5 h-5 rounded-full flex items-center justify-center border border-amber-955">
               {activeAlertsCount}
             </span>
           )}
@@ -219,14 +219,14 @@ export default function AttendingPanel({
 
       {/* Sidebar Panel */}
       <div 
-        className={`fixed top-16 right-0 h-[calc(100vh-4rem)] z-40 w-full max-w-sm md:w-96 bg-slate-900/90 border-l border-slate-800 text-white font-mono flex flex-col transition-all duration-350 shadow-2xl backdrop-blur-md ${
+        className={`fixed top-16 right-0 h-[calc(100vh-4rem)] z-40 w-full max-w-sm md:w-96 glass-panel glass-amber text-white font-mono flex flex-col transition-all duration-350 shadow-2xl backdrop-blur-md border-y-0 border-r-0 rounded-none ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         {/* Unified Sidebar Header */}
-        <div className="flex justify-between items-center px-4 py-3 border-b border-slate-800/80 bg-slate-950/40 shrink-0">
+        <div className="flex justify-between items-center px-4 py-3 border-b border-white/5 bg-slate-950/40 shrink-0">
           <div className="flex items-center gap-2">
-            <Award className="text-cyan-400" size={18} />
+            <Award className="text-amber-400" size={18} />
             <h3 className="text-sm font-black tracking-wider uppercase text-slate-100 flex items-center gap-1.5 font-mono">
               Attending Consult
               {activeAlertsCount > 0 && (
@@ -238,19 +238,19 @@ export default function AttendingPanel({
           </div>
           <button 
             onClick={() => setIsOpen(false)}
-            className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 transition"
+            className="text-slate-400 hover:text-white p-1 rounded hover:bg-white/5 transition"
           >
             <X size={16} />
           </button>
         </div>
 
         {/* Tab Selector */}
-        <div className="flex border-b border-slate-800 bg-slate-950/40 shrink-0">
+        <div className="flex border-b border-white/5 bg-slate-950/40 shrink-0">
           <button
             onClick={() => setActiveTab('advisor')}
             className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-wider transition-all border-b-2 ${
               activeTab === 'advisor'
-                ? 'border-cyan-500 text-cyan-400 bg-slate-900/40'
+                ? 'border-amber-500 text-amber-400 bg-slate-900/40'
                 : 'border-transparent text-slate-500 hover:text-slate-300 hover:bg-slate-900/20'
             }`}
           >
@@ -260,7 +260,7 @@ export default function AttendingPanel({
             onClick={() => setActiveTab('chat')}
             className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-wider transition-all border-b-2 flex items-center justify-center gap-1.5 ${
               activeTab === 'chat'
-                ? 'border-purple-500 text-purple-400 bg-slate-900/40'
+                ? 'border-amber-500 text-amber-400 bg-slate-900/40'
                 : 'border-transparent text-slate-500 hover:text-slate-300 hover:bg-slate-900/20'
             }`}
           >
@@ -271,16 +271,16 @@ export default function AttendingPanel({
         {activeTab === 'advisor' ? (
           <>
             {/* Mode Selector Controls */}
-            <div className="p-4 border-b border-slate-800/80 flex flex-col gap-3 bg-slate-950/20 shrink-0">
+            <div className="p-4 border-b border-white/5 flex flex-col gap-3 bg-slate-950/20 shrink-0">
               <span className="text-[10px] text-slate-500 font-extrabold uppercase tracking-wider block">Attending Mode</span>
-              <div className="grid grid-cols-3 gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800/85">
+              <div className="grid grid-cols-3 gap-1 bg-slate-950 p-1 rounded-lg border border-white/5">
                 {['silent', 'observing', 'teaching'].map((mode) => (
                   <button
                     key={mode}
                     onClick={() => setAttendingMode(mode)}
                     className={`py-1.5 text-[10px] font-black uppercase rounded transition-all ${
                       attendingMode === mode 
-                        ? 'bg-cyan-700 text-white shadow-md' 
+                        ? 'bg-amber-600 text-white shadow-md' 
                         : 'text-slate-500 hover:text-slate-300 hover:bg-slate-900/60'
                     }`}
                   >
@@ -319,8 +319,8 @@ export default function AttendingPanel({
  
                   {primaryGuidance.suggestion && (
                     <div className="flex items-start gap-2 bg-slate-950/60 p-2.5 rounded border border-slate-900/80 mt-1">
-                      <ArrowRight size={14} className="text-cyan-400 shrink-0 mt-0.5" />
-                      <span className="text-[10px] font-bold text-cyan-300 leading-snug">
+                      <ArrowRight size={14} className="text-amber-400 shrink-0 mt-0.5" />
+                      <span className="text-[10px] font-bold text-amber-300 leading-snug">
                         {parseAndRenderText(primaryGuidance.suggestion, handleActionClick)}
                       </span>
                     </div>
@@ -337,14 +337,14 @@ export default function AttendingPanel({
                   </span>
                 </div>
               )}
-
+              
               {/* Premium Attending Foresight (Near-Future Predictive Forecasting Card) */}
               {attendingMode !== 'silent' && nearFutureForecast && (
-                <div className="glass-panel glass-purple p-4 border border-purple-500/35 rounded-xl bg-purple-950/20 shadow-md flex flex-col gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <span className="text-[10px] font-extrabold uppercase text-purple-400 tracking-wider flex items-center gap-1.5 font-mono">
+                <div className="glass-panel glass-amber p-4 border border-amber-500/35 rounded-xl bg-amber-950/20 shadow-md flex flex-col gap-2.5 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <span className="text-[10px] font-extrabold uppercase text-amber-400 tracking-wider flex items-center gap-1.5 font-mono">
                     🔮 Attending Foresight
                   </span>
-                  <p className="text-[10.5px] leading-relaxed text-purple-100 font-mono italic font-medium bg-slate-950/45 p-3 rounded-lg border border-purple-900/40">
+                  <p className="text-[10.5px] leading-relaxed text-amber-105 font-mono italic font-medium bg-slate-950/45 p-3 rounded-lg border border-amber-900/40">
                     {parseAndRenderText(nearFutureForecast, handleActionClick)}
                   </p>
                 </div>
@@ -353,7 +353,7 @@ export default function AttendingPanel({
               {/* Call Attending Call-to-Action Button */}
               <button
                 onClick={handleCallAttending}
-                className="w-full py-3 bg-gradient-to-r from-purple-850 to-indigo-850 hover:from-purple-755 hover:to-indigo-755 active:scale-98 text-white text-xs font-black rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 border border-purple-600/40 shrink-0 font-mono"
+                className="w-full py-3 glass-button glass-button-amber active:scale-98 text-xs font-black rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 shrink-0 font-mono"
               >
                 <HelpCircle size={15} />
                 CALL ATTENDING CONSULT
@@ -362,13 +362,13 @@ export default function AttendingPanel({
  
             {/* Message Log History Panel - Hides in Silent Mode, Enlarged and Conditional for Observe & Teach */}
             {(attendingMode === 'observing' || attendingMode === 'teaching') && (
-              <div className="border-t border-slate-800 bg-slate-950/60 h-52 flex flex-col shrink-0 transition-all duration-300">
-                <div className="px-4 py-2.5 border-b border-slate-800 bg-slate-950/90 flex justify-between items-center shrink-0">
-                  <span className="text-[10px] font-black uppercase text-cyan-400 tracking-wider flex items-center gap-1.5 font-mono">
-                    <BookOpen size={12} className="text-cyan-500" />
+              <div className="border-t border-white/5 bg-slate-950/60 h-52 flex flex-col shrink-0 transition-all duration-300">
+                <div className="px-4 py-2.5 border-b border-white/5 bg-slate-950/90 flex justify-between items-center shrink-0">
+                  <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider flex items-center gap-1.5 font-mono">
+                    <BookOpen size={12} className="text-amber-500" />
                     Attending Guidance Log
                   </span>
-                  <span className="text-[9px] text-slate-400 bg-slate-800/80 px-1.5 py-0.5 rounded font-bold border border-slate-700/50">{messageHistory.length} ENTRIES</span>
+                  <span className="text-[9px] text-slate-450 bg-slate-800/80 px-1.5 py-0.5 rounded font-bold border border-slate-700/50">{messageHistory.length} ENTRIES</span>
                 </div>
    
                 <div className="flex-1 overflow-y-auto p-3.5 flex flex-col gap-3 custom-scrollbar text-[11px] font-mono">
@@ -389,8 +389,8 @@ export default function AttendingPanel({
                             {parseAndRenderText(msg.text, handleActionClick)}
                           </p>
                           {msg.suggestion && (
-                            <div className="text-[10px] text-cyan-300 font-bold pl-1 flex items-center gap-1.5">
-                              <ArrowRight size={10} className="text-cyan-400" />
+                            <div className="text-[10px] text-amber-305 font-bold pl-1 flex items-center gap-1.5">
+                              <ArrowRight size={10} className="text-amber-400" />
                               <span>{parseAndRenderText(msg.suggestion, handleActionClick)}</span>
                             </div>
                           )}
@@ -418,8 +418,8 @@ export default function AttendingPanel({
                   <div 
                     className={`px-3.5 py-2.5 rounded-2xl text-[11px] leading-relaxed font-mono ${
                       msg.sender === 'user' 
-                        ? 'bg-purple-900/40 border border-purple-500/30 text-purple-100 rounded-tr-none shadow-[0_2px_8px_rgba(168,85,247,0.1)]' 
-                        : 'bg-slate-900/80 border border-slate-800/80 text-slate-200 rounded-tl-none shadow-md'
+                        ? 'bg-amber-900/40 border border-amber-500/30 text-amber-100 rounded-tr-none shadow-[0_2px_8px_rgba(245,158,11,0.1)]' 
+                        : 'bg-slate-905/80 border border-white/5 text-slate-200 rounded-tl-none shadow-md'
                     }`}
                   >
                     {msg.sender === 'user' 
@@ -444,19 +444,19 @@ export default function AttendingPanel({
             </div>
  
             {/* Input Form */}
-            <form onSubmit={handleSendMessage} className="p-3 border-t border-slate-850 bg-slate-950/60 flex gap-2 shrink-0">
+            <form onSubmit={handleSendMessage} className="p-3 border-t border-white/5 bg-slate-950/60 flex gap-2 shrink-0">
               <input
                 type="text"
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
                 placeholder="Ask Attending (e.g. 'why is BP low?')..."
-                className="flex-1 bg-slate-900/90 border border-slate-700/60 rounded-lg px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500/60 focus:ring-1 focus:ring-purple-500/20 transition-all font-mono"
+                className="flex-1 bg-slate-900/90 border border-slate-700/60 rounded-lg px-3 py-2 text-xs text-slate-205 placeholder-slate-500 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/20 transition-all font-mono"
                 disabled={isTyping}
               />
               <button
                 type="submit"
                 disabled={isTyping || !userInput.trim()}
-                className="px-3 py-2 bg-gradient-to-r from-purple-850 to-indigo-850 hover:from-purple-755 hover:to-indigo-755 disabled:opacity-50 text-white rounded-lg transition-all flex items-center justify-center border border-purple-600/30 active:scale-95 shadow-lg shadow-purple-950/20"
+                className="px-3 py-2 glass-button glass-button-amber disabled:opacity-50 text-white rounded-lg transition-all flex items-center justify-center active:scale-95 shadow-lg shadow-amber-950/20"
               >
                 <ChevronRight size={16} />
               </button>
@@ -468,13 +468,13 @@ export default function AttendingPanel({
       {/* Comprehensive Audit Consult Modal */}
       {showAuditModal && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/85 backdrop-blur-sm p-4 font-mono">
-          <div className="bg-slate-900 border border-cyan-500/80 rounded-2xl p-6 md:p-8 max-w-2xl shadow-[0_0_30px_rgba(6,182,212,0.15)] w-full max-h-[85vh] overflow-y-auto flex flex-col gap-4 custom-scrollbar text-white">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+          <div className="glass-panel glass-amber rounded-2xl p-6 md:p-8 max-w-2xl shadow-[0_0_30px_rgba(245,158,11,0.15)] w-full max-h-[85vh] overflow-y-auto flex flex-col gap-4 custom-scrollbar text-white">
+            <div className="flex justify-between items-center border-b border-white/5 pb-3">
               <div className="flex items-center gap-2.5">
-                <Award className="text-cyan-400" size={24} />
+                <Award className="text-amber-400" size={24} />
                 <div>
                   <h2 className="text-lg font-black tracking-wide text-slate-100 uppercase font-mono">Attending Consult Audit</h2>
-                  <p className="text-[10px] text-cyan-400 mt-0.5 font-mono">Physiological diagnostic audit & pharmacological review</p>
+                  <p className="text-[10px] text-amber-400 mt-0.5 font-mono">Physiological diagnostic audit & pharmacological review</p>
                 </div>
               </div>
               <button 
@@ -493,7 +493,7 @@ export default function AttendingPanel({
               </div>
               <div>
                 <span className="block text-[9px] uppercase tracking-wider text-slate-500">Spirometric FRC</span>
-                <span className="font-bold text-cyan-300 text-xs">{(patient.lungVolumes?.frc_L || 2.4).toFixed(2)} L</span>
+                <span className="font-bold text-amber-400 text-xs">{(patient.lungVolumes?.frc_L || 2.4).toFixed(2)} L</span>
               </div>
               <div>
                 <span className="block text-[9px] uppercase tracking-wider text-slate-500">Oxygen Buffer</span>
@@ -507,8 +507,8 @@ export default function AttendingPanel({
  
             {/* Detailed Clinical Findings */}
             <div className="flex flex-col gap-3 my-2">
-              <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 border-b border-slate-800 pb-1 flex items-center gap-1.5">
-                <BookOpen size={14} className="text-cyan-400" /> Active Diagnostic Findings
+              <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 border-b border-white/5 pb-1 flex items-center gap-1.5">
+                <BookOpen size={14} className="text-amber-400" /> Active Diagnostic Findings
               </h3>
               
               {fullAudit && fullAudit.length > 0 ? (
@@ -538,8 +538,8 @@ export default function AttendingPanel({
                     </div>
                     <p>{parseAndRenderText(item.message, handleActionClick)}</p>
                     {item.action && (
-                      <div className="flex items-center gap-1.5 mt-1 border-t border-slate-800/40 pt-1.5 text-cyan-300 font-bold text-[10px]">
-                        <ArrowRight size={12} />
+                      <div className="flex items-center gap-1.5 mt-1 border-t border-slate-800/40 pt-1.5 text-amber-300 font-bold text-[10px]">
+                        <ArrowRight size={12} className="text-amber-400" />
                         <span>Recommended Action: {parseAndRenderText(item.action, handleActionClick)}</span>
                       </div>
                     )}

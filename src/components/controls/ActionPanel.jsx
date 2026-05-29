@@ -61,38 +61,38 @@ export const ActionPanel = ({
       <div className="flex flex-col gap-1 mb-1" key={id}>
         <button 
           onClick={() => setO2Input(isActive ? { device: null, flow: '', fio2: '', ipap: '', epap: '', rate: '' } : { device: id, flow: '', fio2: '', ipap: '', epap: '', rate: '' })}
-          className={`p-2 rounded-lg text-xs text-left border transition-all glass-button ${isActive ? 'border-cyan-400 text-cyan-200' : 'border-slate-800'}`}
+          className={`p-2 rounded-lg text-xs text-left border transition-all glass-button ${isActive ? 'border-blue-400 text-blue-200 font-bold' : 'border-slate-800'}`}
         >
           {label}
         </button>
         {isActive && (
-          <div className="flex flex-col gap-2 p-2.5 bg-slate-950/90 border border-cyan-900/50 rounded-lg animate-in slide-in-from-top-1 font-mono">
+          <div className="flex flex-col gap-2 p-2.5 bg-slate-950/90 border border-blue-900/50 rounded-lg animate-in slide-in-from-top-1 font-mono">
             {type === 'flow' && (
-              <input autoFocus type="number" placeholder="Flow (L/min)" value={o2Input.flow} onChange={(e) => setO2Input({...o2Input, flow: e.target.value})} onKeyDown={(e) => { if(e.key === 'Enter') handleO2Submit(id); }} className="bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white w-full outline-none focus:border-cyan-500" />
+              <input autoFocus type="number" placeholder="Flow (L/min)" value={o2Input.flow} onChange={(e) => setO2Input({...o2Input, flow: e.target.value})} onKeyDown={(e) => { if(e.key === 'Enter') handleO2Submit(id); }} className="bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white w-full outline-none focus:border-blue-500" />
             )}
             {type === 'hfnc' && (
               <div className="flex gap-2">
-                <input autoFocus type="number" placeholder="Flow (L/min)" value={o2Input.flow} onChange={(e) => setO2Input({...o2Input, flow: e.target.value})} onKeyDown={(e) => { if(e.key === 'Enter') handleO2Submit(id); }} className="bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white w-1/2 outline-none focus:border-cyan-500" />
-                <input type="number" placeholder="FiO2 (%)" value={o2Input.fio2} onChange={(e) => setO2Input({...o2Input, fio2: e.target.value})} onKeyDown={(e) => { if(e.key === 'Enter') handleO2Submit(id); }} className="bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white w-1/2 outline-none focus:border-cyan-500" />
+                <input autoFocus type="number" placeholder="Flow (L/min)" value={o2Input.flow} onChange={(e) => setO2Input({...o2Input, flow: e.target.value})} onKeyDown={(e) => { if(e.key === 'Enter') handleO2Submit(id); }} className="bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white w-1/2 outline-none focus:border-blue-500" />
+                <input type="number" placeholder="FiO2 (%)" value={o2Input.fio2} onChange={(e) => setO2Input({...o2Input, fio2: e.target.value})} onKeyDown={(e) => { if(e.key === 'Enter') handleO2Submit(id); }} className="bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white w-1/2 outline-none focus:border-blue-500" />
               </div>
             )}
             {(type === 'cpap' || type === 'bipap') && (
               <div className="flex flex-col gap-2">
                 <div className="flex gap-2">
-                  <input autoFocus type="number" placeholder="FiO2 (%)" value={o2Input.fio2} onChange={(e) => setO2Input({...o2Input, fio2: e.target.value})} onKeyDown={(e) => { if(e.key === 'Enter') handleO2Submit(id); }} className="bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white w-full outline-none focus:border-cyan-500" />
+                  <input autoFocus type="number" placeholder="FiO2 (%)" value={o2Input.fio2} onChange={(e) => setO2Input({...o2Input, fio2: e.target.value})} onKeyDown={(e) => { if(e.key === 'Enter') handleO2Submit(id); }} className="bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white w-full outline-none focus:border-blue-500" />
                 </div>
                 <div className="flex gap-2">
-                  <input type="number" placeholder="EPAP/PEEP" value={o2Input.epap} onChange={(e) => setO2Input({...o2Input, epap: e.target.value})} onKeyDown={(e) => { if(e.key === 'Enter') handleO2Submit(id); }} className="bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white w-1/2 outline-none focus:border-cyan-500" />
+                  <input type="number" placeholder="EPAP/PEEP" value={o2Input.epap} onChange={(e) => setO2Input({...o2Input, epap: e.target.value})} onKeyDown={(e) => { if(e.key === 'Enter') handleO2Submit(id); }} className="bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white w-1/2 outline-none focus:border-blue-500" />
                   {type === 'bipap' && (
-                    <input type="number" placeholder="IPAP" value={o2Input.ipap} onChange={(e) => setO2Input({...o2Input, ipap: e.target.value})} onKeyDown={(e) => { if(e.key === 'Enter') handleO2Submit(id); }} className="bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white w-1/2 outline-none focus:border-cyan-500" />
+                    <input type="number" placeholder="IPAP" value={o2Input.ipap} onChange={(e) => setO2Input({...o2Input, ipap: e.target.value})} onKeyDown={(e) => { if(e.key === 'Enter') handleO2Submit(id); }} className="bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white w-1/2 outline-none focus:border-blue-500" />
                   )}
                 </div>
                 {type === 'bipap' && (
-                  <input type="number" placeholder="Backup Rate (Optional)" value={o2Input.rate} onChange={(e) => setO2Input({...o2Input, rate: e.target.value})} onKeyDown={(e) => { if(e.key === 'Enter') handleO2Submit(id); }} className="bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white w-full outline-none focus:border-cyan-500" />
+                  <input type="number" placeholder="Backup Rate (Optional)" value={o2Input.rate} onChange={(e) => setO2Input({...o2Input, rate: e.target.value})} onKeyDown={(e) => { if(e.key === 'Enter') handleO2Submit(id); }} className="bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white w-full outline-none focus:border-blue-500" />
                 )}
               </div>
             )}
-            <button onClick={() => handleO2Submit(id)} className="w-full glass-button glass-button-cyan py-1 text-xs">APPLY</button>
+            <button onClick={() => handleO2Submit(id)} className="w-full glass-button glass-button-blue py-1 text-xs">APPLY</button>
           </div>
         )}
       </div>
@@ -101,7 +101,7 @@ export const ActionPanel = ({
 
   const getPosClass = (posName) => {
     const isCurrent = patient.position === posName || (!patient.position && posName === 'Supine');
-    return `p-2 rounded-lg text-[9px] leading-tight text-center border font-bold transition-all ${isCurrent ? 'bg-indigo-500/20 border-indigo-500 text-indigo-300 shadow-[0_0_10px_rgba(99,102,241,0.25)]' : 'bg-slate-950/40 border-white/5 text-slate-400 hover:text-slate-200'}`;
+    return `p-2 rounded-lg text-[9px] leading-tight text-center border font-bold transition-all ${isCurrent ? 'bg-blue-500/20 border-blue-500 text-blue-300 shadow-[0_0_10px_rgba(59,130,246,0.25)]' : 'bg-slate-950/40 border-white/5 text-slate-400 hover:text-slate-200'}`;
   };
 
   // Section Filtering Logic
@@ -116,12 +116,12 @@ export const ActionPanel = ({
   const showO2 = !term || ['oxygen', 'bmv', 'bag', 'cannula', 'mask', 'nrb', 'hfnc', 'cpap', 'bipap', 'room air'].some(k => k.includes(term));
 
   return (
-    <div className="col-span-1 glass-panel glass-indigo p-4 flex flex-col gap-4 overflow-y-auto overflow-x-hidden custom-scrollbar h-[500px] xl:h-full xl:max-h-full">
+    <div className="col-span-1 glass-panel glass-blue p-4 flex flex-col gap-4 overflow-y-auto overflow-x-hidden custom-scrollbar h-[500px] xl:h-full xl:max-h-full">
       
       {/* Omni-Search Header */}
       <div className="relative shrink-0">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search size={14} className="text-cyan-500" />
+          <Search size={14} className="text-blue-400" />
         </div>
         <input 
           ref={searchRef}
@@ -180,7 +180,7 @@ export const ActionPanel = ({
         {/* Positioning */}
         {showPos && (
           <div className="flex flex-col gap-2">
-            <h3 className="text-slate-400 text-[10px] border-b border-white/5 pb-1 uppercase font-black tracking-wider flex items-center gap-2 font-mono"><ArrowUpRight size={12} className="text-indigo-400"/> Patient Positioning</h3>
+            <h3 className="text-slate-400 text-[10px] border-b border-white/5 pb-1.5 uppercase font-black tracking-wider flex items-center gap-2 font-mono"><ArrowUpRight size={12} className="text-blue-500"/> Patient Positioning</h3>
             <div className="grid grid-cols-3 gap-1.5 font-mono">
               <button onClick={() => { setPatient(p => ({...p, position: 'Supine'})); logEvent("Position: Supine. FRC at baseline."); setSearchTerm(''); }} className={getPosClass('Supine')}>SUPINE</button>
               <button onClick={() => { setPatient(p => ({...p, position: 'Sniffing'})); logEvent("Position: Sniffing. Airway axes aligned."); setSearchTerm(''); }} className={getPosClass('Sniffing')}>SNIFFING</button>
@@ -198,13 +198,13 @@ export const ActionPanel = ({
         {/* Surgical Timeline */}
         {showSurg && (
           <div className="flex flex-col gap-2">
-            <h3 className="text-slate-400 text-[10px] border-b border-white/5 pb-1 uppercase font-black tracking-wider flex items-center gap-2 font-mono"><Zap size={12} className="text-cyan-400"/> Surgical Timeline</h3>
+            <h3 className="text-slate-400 text-[10px] border-b border-white/5 pb-1 uppercase font-black tracking-wider flex items-center gap-2 font-mono"><Zap size={12} className="text-blue-400"/> Surgical Timeline</h3>
             <div className="flex flex-wrap gap-1.5 justify-center font-mono">
               {['Pre-Op', 'Induction', 'Incision', 'Maintenance', 'Emergence'].map(phase => {
                 const isLockedInduction = phase === 'Induction' && !msmaidsComplete && !patient.emergentRSI;
                 let btnClass = '';
                 if (surgicalPhase === phase) {
-                  btnClass = 'glass-button-cyan border border-cyan-500 text-white shadow-[0_0_10px_rgba(34,211,238,0.25)]';
+                  btnClass = 'glass-button-blue border border-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.25)]';
                 } else if (isLockedInduction) {
                   btnClass = 'glass-button border border-dashed border-red-950 text-red-400/70 hover:bg-red-950/20';
                 } else {
@@ -240,43 +240,43 @@ export const ActionPanel = ({
         {/* Checklists & Protocols */}
         {showChecklists && (
           <div className="flex flex-col gap-2">
-            <h3 className="text-slate-400 text-[10px] border-b border-white/5 pb-1 uppercase font-black tracking-wider flex items-center gap-2 font-mono"><ShieldAlert size={12} className="text-purple-400"/> Checklists & Maneuvers</h3>
+            <h3 className="text-slate-400 text-[10px] border-b border-white/5 pb-1 uppercase font-black tracking-wider flex items-center gap-2 font-mono"><ShieldAlert size={12} className="text-blue-400"/> Checklists & Maneuvers</h3>
             <div className="grid grid-cols-2 gap-2 font-mono">
               <button 
                 onClick={() => { setPreopModal(true); setSearchTerm(''); }} 
-                className="bg-indigo-950/30 hover:bg-indigo-900/50 text-indigo-300 border border-indigo-500/40 hover:border-indigo-400 p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200"
+                className="bg-blue-950/30 hover:bg-blue-900/50 text-blue-300 border border-blue-500/40 hover:border-blue-400 p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200"
               >
                 📋 Pre-Op EMR Evals
               </button>
               <button 
                 onClick={() => { setMsmaidsModal(true); setSearchTerm(''); }} 
-                className="bg-cyan-950/30 hover:bg-cyan-900/50 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200"
+                className="bg-blue-950/30 hover:bg-blue-900/50 text-blue-300 border border-blue-500/40 hover:border-blue-400 p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200"
               >
                 🛠️ MSMAIDS Check
               </button>
               <button 
                 onClick={() => { setPostIntubationModal(true); setSearchTerm(''); }} 
                 disabled={!patient.airwaySecured}
-                className="bg-cyan-950/30 hover:bg-cyan-900/50 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 disabled:opacity-20 disabled:pointer-events-none p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200"
+                className="bg-blue-950/30 hover:bg-blue-900/50 text-blue-300 border border-blue-500/40 hover:border-blue-400 disabled:opacity-20 disabled:pointer-events-none p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200"
               >
                 🔄 Post-Intub A's
               </button>
               <button 
                 onClick={() => { setExtubationModal(true); setSearchTerm(''); }} 
                 disabled={!patient.airwaySecured}
-                className="bg-indigo-950/30 hover:bg-indigo-900/50 text-indigo-300 border border-indigo-500/40 hover:border-indigo-400 disabled:opacity-20 disabled:pointer-events-none p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200"
+                className="bg-blue-950/30 hover:bg-blue-900/50 text-blue-300 border border-blue-500/40 hover:border-blue-400 disabled:opacity-20 disabled:pointer-events-none p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200"
               >
                 💨 Extubation Check
               </button>
               <button 
                 onClick={() => { performLarsonManeuver(); setSearchTerm(''); }} 
-                className="bg-cyan-950/30 hover:bg-cyan-900/50 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider col-span-2 text-center transition-all duration-200"
+                className="bg-blue-950/30 hover:bg-blue-900/50 text-blue-300 border border-blue-500/40 hover:border-blue-400 p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider col-span-2 text-center transition-all duration-200"
               >
                 ✊ Perform Larson's Maneuver
               </button>
               <button 
                 onClick={() => { examineNpoHistory(); setSearchTerm(''); }} 
-                className="bg-indigo-950/30 hover:bg-indigo-900/50 text-indigo-300 border border-indigo-500/40 hover:border-indigo-400 p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider col-span-2 text-center transition-all duration-200"
+                className="bg-blue-950/30 hover:bg-blue-900/50 text-blue-300 border border-blue-500/40 hover:border-blue-400 p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider col-span-2 text-center transition-all duration-200"
               >
                 📋 Review NPO & Fasting History
               </button>
@@ -300,12 +300,12 @@ export const ActionPanel = ({
         {/* Neuro Monitors */}
         {showNeuro && (
           <div className="flex flex-col gap-2">
-            <h3 className="text-slate-400 text-[10px] border-b border-white/5 pb-1 uppercase font-black tracking-wider flex items-center gap-2 font-mono"><Award size={12} className="text-purple-400"/> Neuro & Twitch Monitors</h3>
+            <h3 className="text-slate-400 text-[10px] border-b border-white/5 pb-1 uppercase font-black tracking-wider flex items-center gap-2 font-mono"><Award size={12} className="text-blue-400"/> Neuro & Twitch Monitors</h3>
             <div className="grid grid-cols-2 gap-2 font-mono">
-              <button onClick={() => { toggleBis(); setSearchTerm(''); }} className={`p-2 rounded-lg text-[10px] border transition-all font-black uppercase tracking-wider ${patient.hasBisMonitor ? 'glass-button-purple text-purple-300 border-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.2)]' : 'glass-button border-slate-800 text-slate-500'}`}>
+              <button onClick={() => { toggleBis(); setSearchTerm(''); }} className={`p-2 rounded-lg text-[10px] border transition-all font-black uppercase tracking-wider ${patient.hasBisMonitor ? 'glass-button-blue text-blue-300 border-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.2)]' : 'glass-button border-slate-800 text-slate-500'}`}>
                 {patient.hasBisMonitor ? '✓ BIS ATTACHED' : 'ATTACH BIS'}
               </button>
-              <button onClick={() => { toggleTof(); setSearchTerm(''); }} className={`p-2 rounded-lg text-[10px] border transition-all font-black uppercase tracking-wider ${patient.hasTofMonitor ? 'glass-button-amber text-yellow-300 border-yellow-500 shadow-[0_0_8px_rgba(245,158,11,0.2)]' : 'glass-button border-slate-800 text-slate-500'}`}>
+              <button onClick={() => { toggleTof(); setSearchTerm(''); }} className={`p-2 rounded-lg text-[10px] border transition-all font-black uppercase tracking-wider ${patient.hasTofMonitor ? 'glass-button-blue text-blue-300 border-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.2)]' : 'glass-button border-slate-800 text-slate-500'}`}>
                 {patient.hasTofMonitor ? '✓ TOF ATTACHED' : 'ATTACH TOF'}
               </button>
             </div>
@@ -315,26 +315,26 @@ export const ActionPanel = ({
         {/* Lines Placement & POC Lab Orders */}
         {showLabs && (
           <div className="flex flex-col gap-2">
-            <h3 className="text-slate-400 text-[10px] border-b border-white/5 pb-1 uppercase font-black tracking-wider flex items-center gap-2 font-mono"><Syringe size={12} className="text-cyan-400"/> Access Placements & POC Labs</h3>
+            <h3 className="text-slate-400 text-[10px] border-b border-white/5 pb-1 uppercase font-black tracking-wider flex items-center gap-2 font-mono"><Syringe size={12} className="text-blue-400"/> Access Placements & POC Labs</h3>
             <div className="grid grid-cols-2 gap-2 font-mono">
-              <button onClick={() => { setAccessModal({show: true, category: 'Peripheral IV'}); setSearchTerm(''); }} className="glass-button glass-button-cyan p-2.5 rounded-lg text-[10px]">Place PIV</button>
-              <button onClick={() => { setAccessModal({show: true, category: 'Central Line'}); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2.5 rounded-lg text-[10px]">Central Line</button>
-              <button onClick={() => { setAccessModal({show: true, category: 'Intraosseous (IO)'}); setSearchTerm(''); }} className="glass-button glass-button-cyan p-2.5 rounded-lg text-[10px]">Place IO</button>
-              <button onClick={() => { setAccessModal({show: true, category: 'Arterial Line'}); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2.5 rounded-lg text-[10px]">Arterial Line</button>
+              <button onClick={() => { setAccessModal({show: true, category: 'Peripheral IV'}); setSearchTerm(''); }} className="glass-button glass-button-blue p-2.5 rounded-lg text-[10px]">Place PIV</button>
+              <button onClick={() => { setAccessModal({show: true, category: 'Central Line'}); setSearchTerm(''); }} className="glass-button glass-button-blue p-2.5 rounded-lg text-[10px]">Central Line</button>
+              <button onClick={() => { setAccessModal({show: true, category: 'Intraosseous (IO)'}); setSearchTerm(''); }} className="glass-button glass-button-blue p-2.5 rounded-lg text-[10px]">Place IO</button>
+              <button onClick={() => { setAccessModal({show: true, category: 'Arterial Line'}); setSearchTerm(''); }} className="glass-button glass-button-blue p-2.5 rounded-lg text-[10px]">Arterial Line</button>
               
-              <button onClick={() => { generateLab('ABG'); setSearchTerm(''); }} className="glass-button glass-button-cyan p-2 rounded-lg text-[9px] mt-1 border">Order ABG</button>
-              <button onClick={() => { generateLab('VBG'); setSearchTerm(''); }} className="glass-button glass-button-cyan p-2 rounded-lg text-[9px] mt-1 border">Order VBG</button>
-              <button onClick={() => { generateLab('CBC'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] border">Order CBC</button>
-              <button onClick={() => { generateLab('CMP'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] border">Order CMP</button>
-              <button onClick={() => { generateLab('Coagulation'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] border">Order Coags</button>
-              <button onClick={() => { generateLab('TEG'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] border">Order TEG</button>
-              <button onClick={() => { generateLab('LFTs'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] border">Order LFTs</button>
-              <button onClick={() => { generateLab('Thyroid'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] border">Order Thyroid</button>
-              <button onClick={() => { generateLab('Urinalysis'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] border">Order UA</button>
-              <button onClick={() => { generateLab('Pregnancy'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] border">Order hCG</button>
-              <button onClick={() => { generateLab('Type & Screen'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] border">Order T&S</button>
-              <button onClick={() => { generateLab('Type & Cross'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] border">Order T&Cross</button>
-              <button onClick={() => { generateLab('HbA1c'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] col-span-2 text-center border">Order HbA1c</button>
+              <button onClick={() => { generateLab('ABG'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] mt-1 border">Order ABG</button>
+              <button onClick={() => { generateLab('VBG'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] mt-1 border">Order VBG</button>
+              <button onClick={() => { generateLab('CBC'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order CBC</button>
+              <button onClick={() => { generateLab('CMP'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order CMP</button>
+              <button onClick={() => { generateLab('Coagulation'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order Coags</button>
+              <button onClick={() => { generateLab('TEG'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order TEG</button>
+              <button onClick={() => { generateLab('LFTs'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order LFTs</button>
+              <button onClick={() => { generateLab('Thyroid'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order Thyroid</button>
+              <button onClick={() => { generateLab('Urinalysis'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order UA</button>
+              <button onClick={() => { generateLab('Pregnancy'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order hCG</button>
+              <button onClick={() => { generateLab('Type & Screen'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order T&S</button>
+              <button onClick={() => { generateLab('Type & Cross'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order T&Cross</button>
+              <button onClick={() => { generateLab('HbA1c'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] col-span-2 text-center border">Order HbA1c</button>
             </div>
           </div>
         )}
@@ -342,7 +342,7 @@ export const ActionPanel = ({
         {/* Non-Invasive Oxygenation */}
         {showO2 && (
           <div className="flex flex-col gap-2">
-            <h3 className="text-slate-400 text-[10px] border-b border-white/5 pb-1 uppercase font-black tracking-wider flex items-center gap-2 font-mono"><Wind size={12} className="text-cyan-450"/> Non-Invasive Oxygenation</h3>
+            <h3 className="text-slate-400 text-[10px] border-b border-white/5 pb-1 uppercase font-black tracking-wider flex items-center gap-2 font-mono"><Wind size={12} className="text-blue-400"/> Non-Invasive Oxygenation</h3>
             <div className="flex flex-col gap-1.5 font-mono">
               {renderAdvancedO2Button('Bag-Mask Valve (BMV)', 'Bag-Mask Ventilation (100% O2)', 'fixed')}
               {renderAdvancedO2Button('Nasal Cannula', 'Nasal Cannula (1-15 L/min)', 'flow')}

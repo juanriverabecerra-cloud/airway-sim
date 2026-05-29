@@ -6,7 +6,7 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
   const showBottomRow = patient.hasBisMonitor || patient.hasTofMonitor || (patient.airwaySecured && vitals.mac > 0);
 
   return (
-    <div className="glass-panel glass-cyan p-2 flex flex-col md:grid md:grid-cols-4 gap-2 min-h-[450px] md:min-h-0 md:h-[380px] lg:h-[450px] relative overflow-hidden">
+    <div className="glass-panel glass-emerald p-2 flex flex-col md:grid md:grid-cols-4 gap-2 min-h-[450px] md:min-h-0 md:h-[380px] lg:h-[450px] relative overflow-hidden">
       
       {patient.isArrest && (
          <>

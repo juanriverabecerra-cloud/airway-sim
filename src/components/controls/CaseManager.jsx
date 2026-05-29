@@ -470,44 +470,44 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
   if (stagedCase) {
     const b = stagedCase.preOpBriefing;
     return (
-      <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 w-full max-w-3xl flex flex-col gap-6 text-white font-mono animate-in slide-in-from-bottom-4">
-        <div className="flex justify-between items-center border-b border-slate-700 pb-4">
-          <h2 className="text-3xl font-black text-blue-400 flex items-center gap-3"><FileText size={28}/> Pre-Op Briefing (EMR)</h2>
-          <span className={`px-3 py-1 rounded border font-bold text-xs ${stagedCase.difficulty === 'Easy' ? 'bg-green-950 border-green-500 text-green-400' : stagedCase.difficulty === 'Medium' ? 'bg-yellow-950 border-yellow-500 text-yellow-400' : 'bg-red-950 border-red-500 text-red-400'}`}>
+      <div className="glass-panel glass-blue p-6 w-full max-w-3xl flex flex-col gap-6 text-slate-100 font-mono animate-in slide-in-from-bottom-4">
+        <div className="flex justify-between items-center border-b border-white/5 pb-4">
+          <h2 className="text-3xl font-black text-blue-400 flex items-center gap-3 drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]"><FileText size={28}/> Pre-Op Briefing (EMR)</h2>
+          <span className={`px-3 py-1 rounded-lg border font-bold text-xs ${stagedCase.difficulty === 'Easy' ? 'bg-green-950/40 border-green-500/40 text-green-400' : stagedCase.difficulty === 'Medium' ? 'bg-yellow-950/40 border-yellow-500/40 text-yellow-400' : 'bg-red-950/40 border-red-500/40 text-red-400'}`}>
             {stagedCase.difficulty} Case
           </span>
         </div>
 
-        <div className="flex flex-col gap-4 bg-slate-950/50 p-4 rounded-lg border border-slate-800">
+        <div className="flex flex-col gap-4 bg-slate-950/40 p-4 rounded-xl border border-white/5 shadow-inner">
           <div>
-            <h3 className="text-slate-500 font-bold uppercase tracking-widest text-xs mb-1">History of Present Illness</h3>
-            <p className="text-slate-200 text-sm">{b.hpi}</p>
+            <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-1">History of Present Illness</h3>
+            <p className="text-slate-200 text-sm leading-relaxed">{b.hpi}</p>
           </div>
           <div>
-            <h3 className="text-slate-500 font-bold uppercase tracking-widest text-xs mb-1">Past Medical History</h3>
-            <p className="text-slate-200 text-sm">{b.pmhx}</p>
+            <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-1">Past Medical History</h3>
+            <p className="text-slate-200 text-sm leading-relaxed">{b.pmhx}</p>
           </div>
           <div>
-            <h3 className="text-slate-500 font-bold uppercase tracking-widest text-xs mb-1">Baseline Vitals</h3>
-            <p className="text-cyan-300 font-bold text-sm bg-cyan-950/30 p-2 rounded border border-cyan-900/50">{b.vitals}</p>
+            <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-1">Baseline Vitals</h3>
+            <p className="text-cyan-300 font-bold text-sm bg-cyan-950/30 p-2 rounded-lg border border-cyan-900/30">{b.vitals}</p>
           </div>
           <div>
-            <h3 className="text-slate-500 font-bold uppercase tracking-widest text-xs mb-1">Airway Exam</h3>
-            <p className="text-yellow-200 text-sm border-l-2 border-yellow-500 pl-2">{b.airway}</p>
+            <h3 className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-1">Airway Exam</h3>
+            <p className="text-yellow-200 text-sm border-l-2 border-yellow-500 pl-2 leading-relaxed">{b.airway}</p>
           </div>
         </div>
 
-        <div className="bg-purple-950/30 border border-purple-900/50 p-4 rounded-lg">
-          <h3 className="text-purple-400 font-bold uppercase tracking-widest text-xs mb-1">Attending Anesthesiologist Rationale</h3>
-          <p className="text-purple-200 text-sm italic">"{b.rationale}"</p>
+        <div className="bg-purple-950/20 border border-purple-900/35 p-4 rounded-xl shadow-inner">
+          <h3 className="text-purple-400 font-bold uppercase tracking-widest text-[10px] mb-1">Attending Anesthesiologist Rationale</h3>
+          <p className="text-purple-200 text-sm italic leading-relaxed">"{b.rationale}"</p>
         </div>
 
-        <div className="flex justify-between pt-4 border-t border-slate-800 mt-2 gap-4 flex-wrap">
-          <button onClick={() => setStagedCase(null)} className="px-6 py-2 rounded font-bold text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 transition flex items-center gap-2">
+        <div className="flex justify-between pt-4 border-t border-white/5 mt-2 gap-4 flex-wrap">
+          <button onClick={() => setStagedCase(null)} className="px-5 py-2 rounded-lg font-bold text-slate-400 hover:text-white bg-slate-950/40 hover:bg-slate-900/40 border border-white/5 transition flex items-center gap-2 active:scale-97 cursor-pointer">
             <ArrowLeft size={16}/> Back
           </button>
           <div className="flex gap-3">
-            <button onClick={() => openPreOpEMR(stagedCase)} className="px-8 py-2 rounded font-black text-white bg-indigo-600 hover:bg-indigo-500 transition flex items-center gap-2 shadow-[0_0_15px_rgba(79,70,229,0.4)]">
+            <button onClick={() => openPreOpEMR(stagedCase)} className="px-6 py-2 rounded-lg font-black text-white bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-600 hover:to-indigo-600 transition flex items-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.3)] active:scale-97 cursor-pointer">
               <FileText size={16}/> Perform Pre-Op EMR Assessment
             </button>
           </div>
@@ -517,12 +517,12 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
   }
 
   return (
-    <div className="bg-slate-900 border border-slate-700 rounded-xl shadow-2xl p-6 w-full max-w-6xl flex flex-col gap-6 text-white font-mono">
-      <div className="flex justify-between items-center border-b border-slate-700 pb-4">
-        <h2 className="text-3xl font-black text-cyan-400 flex items-center gap-3"><Activity size={28}/> Anesthesia Clinical Builder</h2>
+    <div className="glass-panel glass-blue p-6 w-full max-w-6xl flex flex-col gap-6 text-slate-100 font-mono">
+      <div className="flex justify-between items-center border-b border-white/5 pb-4">
+        <h2 className="text-3xl font-black text-blue-400 flex items-center gap-3 drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]"><Activity size={28}/> Anesthesia Clinical Builder</h2>
         <div className="flex gap-2">
-          <button onClick={() => setActiveTab('presets')} className={`px-4 py-2 font-bold rounded ${activeTab === 'presets' ? 'bg-cyan-700 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>Clinical Specialty Presets</button>
-          <button onClick={() => setActiveTab('custom')} className={`px-4 py-2 font-bold rounded ${activeTab === 'custom' ? 'bg-cyan-700 text-white' : 'bg-slate-800 text-slate-400 hover:bg-slate-700'}`}>High-Fidelity Customizer</button>
+          <button onClick={() => setActiveTab('presets')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${activeTab === 'presets' ? 'glass-button-blue text-white shadow-md' : 'glass-button text-slate-400 hover:text-slate-200'}`}>Clinical Specialty Presets</button>
+          <button onClick={() => setActiveTab('custom')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${activeTab === 'custom' ? 'glass-button-blue text-white shadow-md' : 'glass-button text-slate-400 hover:text-slate-200'}`}>High-Fidelity Customizer</button>
         </div>
       </div>
 

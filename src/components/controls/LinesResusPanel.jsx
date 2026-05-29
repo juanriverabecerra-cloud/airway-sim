@@ -54,11 +54,11 @@ export const LinesResusPanel = ({
   });
 
   return (
-    <div className="glass-panel glass-indigo p-4 flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+    <div className="glass-panel glass-purple p-4 flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
       <h3 className="text-slate-400 text-[10px] border-b border-white/5 pb-1.5 uppercase font-black flex items-center justify-between shrink-0 font-mono tracking-wider">
         <span className="flex items-center gap-1.5 text-purple-400"><Droplet size={14} /> Lines & Resus</span>
         <div className="flex gap-1.5">
-          <span className="bg-teal-950/60 text-teal-400 px-2 py-0.5 rounded-md border border-teal-800/40 text-[9px] font-black font-mono">
+          <span className="bg-purple-950/60 text-purple-400 px-2 py-0.5 rounded-md border border-purple-800/40 text-[9px] font-black font-mono">
             {resusLines.length} Lines
           </span>
           <span className="bg-purple-950/60 text-purple-400 px-2 py-0.5 rounded-md border border-purple-800/40 text-[9px] font-black font-mono">
@@ -104,7 +104,7 @@ export const LinesResusPanel = ({
                     ? 'border-red-500/35 bg-red-950/10 shadow-[0_2px_12px_rgba(239,68,68,0.05)] opacity-50' 
                     : isPIVOrIO
                       ? 'border-cyan-500/30 bg-cyan-950/10 shadow-[0_2px_12px_rgba(6,182,212,0.08)]' 
-                      : 'border-indigo-500/30 bg-indigo-950/10 shadow-[0_2px_12px_rgba(99,102,241,0.08)]'
+                      : 'border-purple-500/30 bg-purple-950/10 shadow-[0_2px_12px_rgba(168,85,247,0.08)]'
                 }`}
               >
                 {/* Header Row */}
@@ -125,7 +125,7 @@ export const LinesResusPanel = ({
                           ? 'text-red-500 line-through' 
                           : isPIVOrIO
                             ? 'text-cyan-300 drop-shadow-[0_0_4px_rgba(6,182,212,0.15)]'
-                            : 'text-indigo-300 drop-shadow-[0_0_4px_rgba(99,102,241,0.15)]'
+                            : 'text-purple-300 drop-shadow-[0_0_4px_rgba(168,85,247,0.15)]'
                       }`}>
                         {line.name}
                       </span>
@@ -216,15 +216,15 @@ export const LinesResusPanel = ({
                     <div key={fluid.id} className="bg-slate-950/60 border border-white/5 rounded-lg p-2 flex flex-col gap-1.5 font-mono">
                       <div className="flex justify-between items-center text-[9px]">
                         <span className="font-extrabold text-slate-200 text-[10px] tracking-wide">{fluid.name}</span>
-                        <span className="text-teal-400 font-bold bg-teal-950 border border-teal-900 px-1.5 py-0.5 rounded text-[10px]">
+                        <span className="text-purple-300 font-bold bg-purple-950 border border-purple-900 px-1.5 py-0.5 rounded text-[10px]">
                           {Math.round(fluid.remainingVolume)} mL left
                         </span>
                       </div>
                       <div className="w-full h-1 bg-slate-900 rounded-full overflow-hidden">
-                        <div className="h-full bg-gradient-to-r from-teal-500 to-emerald-400 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
+                        <div className="h-full bg-gradient-to-r from-purple-500 to-fuchsia-400 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
                       </div>
                       <div className="flex justify-between items-center text-[8px] text-slate-500">
-                        <span>Flow: <span className="text-emerald-400 font-extrabold">{fluid.currentRate ? Math.round(fluid.currentRate) : 0} mL/hr</span></span>
+                        <span>Flow: <span className="text-purple-400 font-extrabold">{fluid.currentRate ? Math.round(fluid.currentRate) : 0} mL/hr</span></span>
                         <span>{Math.round(pct)}% left</span>
                       </div>
                       <div className="flex gap-1 mt-0.5">
@@ -232,12 +232,12 @@ export const LinesResusPanel = ({
                           type="number" 
                           disabled={isBlown}
                           placeholder="Rate" 
-                          className="w-[30%] bg-slate-900 border border-slate-700 rounded px-1 text-[9px] text-white text-center outline-none" 
+                          className="w-[30%] bg-slate-900 border border-slate-700 rounded px-1 text-[9px] text-white text-center outline-none focus:border-purple-500/50 transition-colors" 
                           value={editInfusionDose[fluid.id] !== undefined ? editInfusionDose[fluid.id] : ''} 
                           onChange={(e) => setEditInfusionDose({...editInfusionDose, [fluid.id]: e.target.value})} 
                         />
-                        <button onClick={() => updateFluidRate(line.id, fluid.id, editInfusionDose[fluid.id])} disabled={isBlown} className="flex-1 glass-button py-0.5 text-[8px]">SET</button>
-                        <button onClick={() => updateFluidRate(line.id, fluid.id, '')} disabled={isBlown} className="flex-1 glass-button py-0.5 text-[8px]">MAX</button>
+                        <button onClick={() => updateFluidRate(line.id, fluid.id, editInfusionDose[fluid.id])} disabled={isBlown} className="flex-1 glass-button glass-button-purple py-0.5 text-[8px]">SET</button>
+                        <button onClick={() => updateFluidRate(line.id, fluid.id, '')} disabled={isBlown} className="flex-1 glass-button glass-button-purple py-0.5 text-[8px]">MAX</button>
                         <button onClick={() => removeFluid(line.id, fluid.id)} className="flex-1 glass-button glass-button-rose py-0.5 text-[8px]">STOP</button>
                       </div>
                     </div>
@@ -268,11 +268,11 @@ export const LinesResusPanel = ({
                           <input 
                             type="number" 
                             placeholder="Rate" 
-                            className="w-1/3 bg-slate-900 border border-slate-700 rounded px-1 text-[9px] text-white text-center outline-none" 
+                            className="w-1/3 bg-slate-900 border border-slate-700 rounded px-1 text-[9px] text-white text-center outline-none focus:border-purple-500/50 transition-colors" 
                             value={editInfusionDose[resolvedId] || ''} 
                             onChange={(e) => setEditInfusionDose({...editInfusionDose, [resolvedId]: e.target.value})} 
                           />
-                          <button onClick={() => { if (editInfusionDose[resolvedId]) { handleUpdateInfusion(resolvedId, editInfusionDose[resolvedId], medInf.unit, line.id); setEditInfusionDose({...editInfusionDose, [resolvedId]: ''}); } }} className="w-1/3 glass-button py-0.5 text-[8px]">UPDATE</button>
+                          <button onClick={() => { if (editInfusionDose[resolvedId]) { handleUpdateInfusion(resolvedId, editInfusionDose[resolvedId], medInf.unit, line.id); setEditInfusionDose({...editInfusionDose, [resolvedId]: ''}); } }} className="w-1/3 glass-button glass-button-purple py-0.5 text-[8px]">UPDATE</button>
                           <button onClick={() => { handleUpdateInfusion(resolvedId, 0, medInf.unit, line.id); }} className="w-1/3 glass-button glass-button-rose py-0.5 text-[8px]">STOP</button>
                         </div>
 
@@ -280,7 +280,7 @@ export const LinesResusPanel = ({
                           <input 
                             type="number" 
                             placeholder={`Push (${baseUnit})`} 
-                            className="w-1/2 bg-slate-900 border border-slate-700 rounded px-1 text-[9px] text-white text-center outline-none" 
+                            className="w-1/2 bg-slate-900 border border-slate-700 rounded px-1 text-[9px] text-white text-center outline-none focus:border-purple-500/50 transition-colors" 
                             value={bolusInfusionDose[resolvedId] || ''} 
                             onChange={(e) => setBolusInfusionDose({...bolusInfusionDose, [resolvedId]: e.target.value})} 
                           />

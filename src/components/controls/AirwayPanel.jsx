@@ -93,7 +93,7 @@ export const AirwayPanel = ({
             >
               {sizes.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
-            <button onClick={() => handlePlaceAirway(id, airwayToolInput.size)} className="w-1/3 glass-button glass-button-amber py-0.5 text-[10px]">PLACE</button>
+            <button onClick={() => handlePlaceAirway(id, airwayToolInput.size)} className="w-1/3 glass-button glass-button-cyan py-0.5 text-[10px]">PLACE</button>
           </div>
         )}
       </div>
@@ -107,7 +107,7 @@ export const AirwayPanel = ({
         {/* Header Minimize Row */}
         <div className="flex justify-between items-center border-b border-white/5 pb-2 shrink-0 font-mono">
           <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 flex items-center gap-1.5">
-            <Wind size={12} className="text-emerald-400" /> Airway Controls
+            <Wind size={12} className="text-cyan-400 animate-pulse" /> Airway Controls
           </span>
           <button 
             onClick={() => setIsCollapsed(true)} 
@@ -117,8 +117,8 @@ export const AirwayPanel = ({
           </button>
         </div>
         {/* Status Bezel */}
-        <div className="bg-emerald-950/20 border border-emerald-900/40 p-3 rounded-2xl flex flex-col gap-1 shadow-inner shrink-0 font-mono text-center">
-          <div className="flex items-center justify-center gap-2 text-emerald-400 font-black tracking-wider text-xs animate-pulse">
+        <div className="bg-cyan-950/20 border border-cyan-900/40 p-3 rounded-2xl flex flex-col gap-1 shadow-inner shrink-0 font-mono text-center">
+          <div className="flex items-center justify-center gap-2 text-cyan-450 font-black tracking-wider text-xs animate-pulse">
             <Wind size={16} /> AIRWAY SECURED
           </div>
           <span className="text-[9px] text-slate-400">Position: {patient.tubePosition?.replace('_', ' ') || 'trachea'}</span>
@@ -146,10 +146,10 @@ export const AirwayPanel = ({
 
           <button 
             onClick={() => { if (checkCuffLeak) checkCuffLeak(); }} 
-            className="w-full glass-button glass-button-purple p-2.5 text-left border text-xs flex items-center justify-between"
+            className="w-full glass-button glass-button-cyan p-2.5 text-left border text-xs flex items-center justify-between"
           >
             <span><Sliders size={14} className="inline mr-2"/> Perform Cuff Leak Test</span>
-            <span className="text-[9px] text-purple-400 font-mono font-bold">ETT</span>
+            <span className="text-[9px] text-cyan-400 font-mono font-bold">ETT</span>
           </button>
 
           {/* Quick Checklist Links */}
@@ -157,13 +157,13 @@ export const AirwayPanel = ({
           <div className="grid grid-cols-2 gap-2">
             <button 
               onClick={() => { if (setPostIntubationModal) setPostIntubationModal(true); }}
-              className="bg-indigo-950/20 hover:bg-indigo-900/30 border border-indigo-900/40 p-2 rounded-lg text-[10px] text-indigo-300 font-bold uppercase tracking-wider text-center font-mono"
+              className="glass-button glass-button-blue p-2 rounded-lg text-[10px] uppercase tracking-wider text-center font-mono"
             >
               📋 Post-Intub A's
             </button>
             <button 
               onClick={() => { if (setExtubationModal) setExtubationModal(true); }}
-              className="bg-rose-950/20 hover:bg-rose-900/30 border border-rose-900/40 p-2 rounded-lg text-[10px] text-rose-300 font-bold uppercase tracking-wider text-center font-mono"
+              className="glass-button glass-button-rose p-2 rounded-lg text-[10px] uppercase tracking-wider text-center font-mono"
             >
               💨 Extubation Check
             </button>

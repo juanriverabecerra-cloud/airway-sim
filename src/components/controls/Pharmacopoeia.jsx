@@ -123,17 +123,17 @@ export const Pharmacopoeia = ({
       <div className="flex flex-col gap-1 mb-1.5" key={fluidId}>
         <button 
           onClick={() => setFluidInput(isActive ? { fluid: null } : { fluid: fluidId, dose: '', lineId: selectedLineId })} 
-          className={`p-2 rounded-lg text-xs text-left border transition-all glass-button ${colorClass} ${isActive ? 'border-cyan-400 text-cyan-200' : 'border-slate-800'}`}
+          className={`p-2 rounded-lg text-xs text-left border transition-all glass-button ${colorClass} ${isActive ? 'border-purple-400 text-purple-200' : 'border-slate-800'}`}
         >
           <span className="font-bold text-slate-100">{fluidId}</span>
         </button>
         {isActive && (
-          <div className="flex flex-col p-2.5 bg-slate-950/90 border border-cyan-900/50 rounded-lg animate-in slide-in-from-top-1 duration-200">
+          <div className="flex flex-col p-2.5 bg-slate-950/90 border border-purple-900/50 rounded-lg animate-in slide-in-from-top-1 duration-200">
             <label className="text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider font-mono">Select Resus Line</label>
             <select 
               value={selectedLineId || ''} 
               onChange={(e) => setFluidInput({...fluidInput, lineId: e.target.value})} 
-              className="w-full bg-slate-900 text-xs text-slate-300 border border-slate-700 rounded-md p-1.5 mb-2 focus:border-cyan-500 focus:outline-none font-mono"
+              className="w-full bg-slate-900 text-xs text-slate-300 border border-slate-700 rounded-md p-1.5 mb-2 focus:border-purple-500 focus:outline-none font-mono"
             >
               {patient.accessLines?.length > 0 ? patient.accessLines.map(l => (
                 <option key={l.id} value={l.id}>
@@ -156,7 +156,7 @@ export const Pharmacopoeia = ({
                   type="number" 
                   disabled={isArterial}
                   placeholder={`Dose (${getFluidUnitLabel(fluidId)})`} 
-                  className={`w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white outline-none focus:border-cyan-500 font-mono ${isArterial ? 'opacity-40' : ''}`} 
+                  className={`w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white outline-none focus:border-purple-500 font-mono ${isArterial ? 'opacity-40' : ''}`} 
                   value={fluidInput.dose} 
                   onChange={(e) => setFluidInput({...fluidInput, dose: e.target.value})} 
                   onKeyDown={(e) => { if (e.key === 'Enter' && !isArterial) handleFluidSubmit(fluidId); }}
@@ -170,7 +170,7 @@ export const Pharmacopoeia = ({
               <button 
                 onClick={() => handleFluidSubmit(fluidId)} 
                 disabled={isArterial}
-                className={`w-1/2 glass-button ${isArterial ? 'opacity-30 cursor-not-allowed' : 'glass-button-cyan'}`}
+                className={`w-1/2 glass-button ${isArterial ? 'opacity-30 cursor-not-allowed' : 'glass-button-purple'}`}
               >
                 PUSH
               </button>
@@ -196,14 +196,14 @@ export const Pharmacopoeia = ({
       <div className="flex flex-col gap-1 mb-2" key={medId}>
         <button 
           onClick={() => setMedInput(isActive ? { drug: null } : { drug: medId, indication: indicationKeys[0], route: med.routes[0], type: med.indications[indicationKeys[0]].type, unit: med.indications[indicationKeys[0]].unit, dose: '' })}
-          className={`p-2 rounded-lg text-xs text-left border transition-all glass-button ${isActive ? 'border-cyan-400 text-cyan-200' : 'border-slate-800'}`}
+          className={`p-2 rounded-lg text-xs text-left border transition-all glass-button ${isActive ? 'border-purple-400 text-purple-200' : 'border-slate-800'}`}
         >
           <span className="font-bold text-slate-100">{med.name}</span> 
           <span className="text-slate-400 text-[9px] float-right uppercase font-mono">{med.classes[0]}</span>
         </button>
         {isActive && (
-          <div className="flex flex-col gap-2 p-2.5 bg-slate-950/90 border border-cyan-900/50 rounded-lg animate-in slide-in-from-top-1 duration-200 font-mono text-[11px]">
-            <div className="flex justify-between items-center text-[10px] text-cyan-400 font-bold border-b border-slate-900 pb-1">
+          <div className="flex flex-col gap-2 p-2.5 bg-slate-950/90 border border-purple-900/50 rounded-lg animate-in slide-in-from-top-1 duration-200 font-mono text-[11px]">
+            <div className="flex justify-between items-center text-[10px] text-purple-400 font-bold border-b border-slate-900 pb-1">
               <span>Dosing Profile</span>
               <span className="bg-slate-900 px-2 py-0.5 rounded text-slate-300">Uses {med.dosingWeight || 'TBW'}</span>
             </div>
@@ -226,12 +226,12 @@ export const Pharmacopoeia = ({
                 autoFocus 
                 type="number" 
                 placeholder={`Dose (${medInput.unit})`} 
-                className="w-1/3 bg-slate-900 border border-slate-700 rounded p-1 text-white outline-none focus:border-cyan-500"
+                className="w-1/3 bg-slate-900 border border-slate-700 rounded p-1 text-white outline-none focus:border-purple-500"
                 value={medInput.dose} 
                 onChange={(e) => setMedInput({...medInput, dose: e.target.value})} 
                 onKeyDown={(e) => { if (e.key === 'Enter') handleMedSubmit(medId); }}
               />
-              <button onClick={() => handleMedSubmit(medId)} className="w-1/3 glass-button glass-button-cyan py-1 text-[10px]">
+              <button onClick={() => handleMedSubmit(medId)} className="w-1/3 glass-button glass-button-purple py-1 text-[10px]">
                 {medInput.type === 'Infusion' ? 'START INF' : 'PUSH'}
               </button>
             </div>
@@ -259,7 +259,7 @@ export const Pharmacopoeia = ({
       {/* Omni-Search */}
       <div className="relative shrink-0 font-mono">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search size={14} className="text-cyan-500" />
+          <Search size={14} className="text-purple-400" />
         </div>
         <input 
           ref={searchRef}

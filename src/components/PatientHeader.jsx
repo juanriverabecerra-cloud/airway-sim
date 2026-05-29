@@ -19,11 +19,11 @@ export const PatientHeader = ({
 }) => {
   return (
     <>
-      <header className="flex flex-col glass-panel glass-cyan p-4 gap-4 relative z-10">
+      <header className="flex flex-col glass-panel glass-emerald p-4 gap-4 relative z-10">
         {/* Top Row: Demographics & Controls */}
         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center w-full gap-4">
           <div className="flex flex-col gap-1 w-full xl:w-auto">
-            <h1 className="text-2xl font-black tracking-tight text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.3)]">{activeCase.name}</h1>
+            <h1 className="text-2xl font-black tracking-tight text-emerald-400 drop-shadow-[0_0_12px_rgba(16,185,129,0.35)]">{activeCase.name}</h1>
             <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm text-slate-300 bg-slate-950/40 p-2 rounded-lg border border-white/5 font-mono">
               <span><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Age:</span> {patient.age}</span>
               <span><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Sex:</span> {patient.sex}</span>
@@ -49,7 +49,7 @@ export const PatientHeader = ({
               onClick={() => setShowFidelityPanel(!showFidelityPanel)} 
               className={`px-4 py-2 text-xs md:text-sm font-bold flex items-center justify-center flex-1 xl:flex-none whitespace-nowrap rounded-lg shadow-md transition duration-200 active:scale-95 border ${
                 showFidelityPanel 
-                  ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.35)] font-black' 
+                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.35)] font-black' 
                   : 'glass-button hover:bg-slate-800/40 text-slate-300 border-slate-700'
               }`}
             >

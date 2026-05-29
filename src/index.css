@@ -1,14 +1,32 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=JetBrains+Mono:ital,wght@0,400;0,700;0,800;1,400&display=swap');
 @import "tailwindcss";
 
+:root {
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+}
+
 body {
-  background-color: #0f172a; 
-  color: white;
+  background-color: #060913; 
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.03) 0px, transparent 50%),
+    radial-gradient(at 50% 0%, rgba(6, 182, 212, 0.03) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(168, 85, 247, 0.03) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(59, 130, 246, 0.03) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(245, 158, 11, 0.03) 0px, transparent 50%);
+  background-attachment: fixed;
+  color: #f8fafc;
+  font-family: var(--font-sans);
+}
+
+.font-mono {
+  font-family: var(--font-mono) !important;
 }
 
 /* Custom ICU Monitor Animations */
 @keyframes sweep {
   from { background-position: 0 0; }
-  to { background-position: -200px 0; } /* Adjust this to match the width of one waveform cycle */
+  to { background-position: -200px 0; }
 }
 
 @keyframes scan {
@@ -23,206 +41,277 @@ body {
 
 /* Custom Scrollbar */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: rgba(6, 9, 19, 0.5);
+  border-radius: 4px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  transition: all 0.3s ease;
 }
 
-/* We create custom classes that use repeating SVGs as backgrounds */
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* ICU Waveforms background repeats */
 .bg-ecg {
-  background-image: url("data:image/svg+xml,%3Csvg width='200' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='0,50 10,50 15,30 20,70 25,20 35,90 40,50 50,50 60,40 70,50 200,50' fill='none' stroke='%2322c55e' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='200' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='0,50 10,50 15,30 20,70 25,20 35,90 40,50 50,50 60,40 70,50 200,50' fill='none' stroke='%2310b981' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E");
   background-repeat: repeat-x;
   animation: sweep 2s linear infinite;
 }
 
 .bg-pleth {
-  background-image: url("data:image/svg+xml,%3Csvg width='200' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,80 C20,80 30,20 50,20 C70,20 80,80 100,80 C120,80 130,20 150,20 C170,20 180,80 200,80' fill='none' stroke='%2322d3ee' stroke-width='2'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='200' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0,80 C20,80 30,20 50,20 C70,20 80,80 100,80 C120,80 130,20 150,20 C170,20 180,80 200,80' fill='none' stroke='%2306b6d4' stroke-width='2'/%3E%3C/svg%3E");
   background-repeat: repeat-x;
   animation: sweep 3s linear infinite;
 }
 
 .bg-etco2 {
-  background-image: url("data:image/svg+xml,%3Csvg width='200' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='0,90 10,90 20,30 50,30 60,90 100,90 110,90 120,30 150,30 160,90 200,90' fill='none' stroke='%23facc15' stroke-width='2'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='200' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='0,90 10,90 20,30 50,30 60,90 100,90 110,90 120,30 150,30 160,90 200,90' fill='none' stroke='%23f59e0b' stroke-width='2'/%3E%3C/svg%3E");
   background-repeat: repeat-x;
   animation: sweep 4s linear infinite;
 }
 
-/* Glassmorphism Design System Utility Classes */
+/* Premium Frosted Glassmorphism Panels */
 .glass-panel {
-  background: rgba(15, 23, 42, 0.65) !important;
-  backdrop-filter: blur(12px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(12px) saturate(180%) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
-  border-radius: 1rem;
+  background: rgba(10, 15, 30, 0.65) !important;
+  backdrop-filter: blur(18px) saturate(220%) !important;
+  -webkit-backdrop-filter: blur(18px) saturate(220%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.05) !important;
+  box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.4) !important;
+  border-radius: 1.25rem;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
-.glass-cyan {
-  border-color: rgba(6, 182, 212, 0.25) !important;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35), 0 0 15px rgba(6, 182, 212, 0.12) !important;
+.glass-panel:hover {
+  transform: translateY(-2px) !important;
+  background: rgba(12, 18, 36, 0.72) !important;
+  border-color: rgba(255, 255, 255, 0.09) !important;
+  box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.5) !important;
 }
 
+/* Subsystem Interactive Glow Alignments */
+
+/* Category A: Cardiovascular & Vitals (Emerald) */
 .glass-emerald {
-  border-color: rgba(16, 185, 129, 0.25) !important;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35), 0 0 15px rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(16, 185, 129, 0.22) !important;
+  box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.4), 0 0 20px rgba(16, 185, 129, 0.08) !important;
 }
 
+.glass-emerald:hover {
+  border-color: rgba(16, 185, 129, 0.45) !important;
+  box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.5), 0 0 28px rgba(16, 185, 129, 0.18) !important;
+}
+
+/* Category B: Pulmonary & Ventilation (Cyan) */
+.glass-cyan {
+  border-color: rgba(6, 182, 212, 0.22) !important;
+  box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.4), 0 0 20px rgba(6, 182, 212, 0.08) !important;
+}
+
+.glass-cyan:hover {
+  border-color: rgba(6, 182, 212, 0.45) !important;
+  box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.5), 0 0 28px rgba(6, 182, 212, 0.18) !important;
+}
+
+/* Category C: Therapeutics & Resus (Purple) */
 .glass-purple {
-  border-color: rgba(168, 85, 247, 0.25) !important;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35), 0 0 15px rgba(168, 85, 247, 0.12) !important;
+  border-color: rgba(168, 85, 247, 0.22) !important;
+  box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.4), 0 0 20px rgba(168, 85, 247, 0.08) !important;
+}
+
+.glass-purple:hover {
+  border-color: rgba(168, 85, 247, 0.45) !important;
+  box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.5), 0 0 28px rgba(168, 85, 247, 0.18) !important;
+}
+
+/* Category D: Diagnostics & Operations (Blue) */
+.glass-blue {
+  border-color: rgba(59, 130, 246, 0.22) !important;
+  box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.4), 0 0 20px rgba(59, 130, 246, 0.08) !important;
+}
+
+.glass-blue:hover {
+  border-color: rgba(59, 130, 246, 0.45) !important;
+  box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.5), 0 0 28px rgba(59, 130, 246, 0.18) !important;
+}
+
+/* Category E: Guidance & Log (Amber) */
+.glass-amber {
+  border-color: rgba(245, 158, 11, 0.22) !important;
+  box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.4), 0 0 20px rgba(245, 158, 11, 0.08) !important;
+}
+
+.glass-amber:hover {
+  border-color: rgba(245, 158, 11, 0.45) !important;
+  box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.5), 0 0 28px rgba(245, 158, 11, 0.18) !important;
+}
+
+/* Legacy support maps to same theories */
+.glass-indigo {
+  border-color: rgba(99, 102, 241, 0.22) !important;
+  box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.4), 0 0 20px rgba(99, 102, 241, 0.08) !important;
+}
+
+.glass-indigo:hover {
+  border-color: rgba(99, 102, 241, 0.45) !important;
+  box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.5), 0 0 28px rgba(99, 102, 241, 0.18) !important;
 }
 
 .glass-rose {
-  border-color: rgba(244, 63, 94, 0.25) !important;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35), 0 0 15px rgba(244, 63, 94, 0.12) !important;
+  border-color: rgba(244, 63, 94, 0.22) !important;
+  box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.4), 0 0 20px rgba(244, 63, 94, 0.08) !important;
 }
 
-.glass-amber {
-  border-color: rgba(245, 158, 11, 0.25) !important;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35), 0 0 15px rgba(245, 158, 11, 0.12) !important;
+.glass-rose:hover {
+  border-color: rgba(244, 63, 94, 0.45) !important;
+  box-shadow: 0 16px 48px 0 rgba(0, 0, 0, 0.5), 0 0 28px rgba(244, 63, 94, 0.18) !important;
 }
 
-.glass-blue {
-  border-color: rgba(59, 130, 246, 0.25) !important;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35), 0 0 15px rgba(59, 130, 246, 0.12) !important;
-}
-
-.glass-indigo {
-  border-color: rgba(99, 102, 241, 0.25) !important;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.35), 0 0 15px rgba(99, 102, 241, 0.12) !important;
-}
-
+/* Glass inputs and buttons */
 .glass-input {
-  background: rgba(15, 23, 42, 0.6) !important;
-  backdrop-filter: blur(4px) !important;
-  -webkit-backdrop-filter: blur(4px) !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
-  color: white !important;
-  transition: all 0.2s ease-in-out !important;
+  background: rgba(6, 9, 19, 0.6) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  color: #ffffff !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 .glass-input:focus {
-  border-color: rgb(6, 182, 212) !important;
-  box-shadow: 0 0 10px rgba(6, 182, 212, 0.25) !important;
+  border-color: rgba(6, 182, 212, 0.6) !important;
+  box-shadow: 0 0 14px rgba(6, 182, 212, 0.22) !important;
   outline: none !important;
+  background: rgba(6, 9, 19, 0.8) !important;
 }
 
 .glass-button {
-  background: rgba(255, 255, 255, 0.04) !important;
-  border: 1px solid rgba(255, 255, 255, 0.08) !important;
-  backdrop-filter: blur(4px) !important;
-  -webkit-backdrop-filter: blur(4px) !important;
-  color: rgba(255, 255, 255, 0.85) !important;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  color: rgba(248, 250, 252, 0.8) !important;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
   font-weight: 700 !important;
-  border-radius: 0.5rem;
+  border-radius: 0.625rem;
   cursor: pointer;
 }
 
 .glass-button:hover {
-  background: rgba(255, 255, 255, 0.08) !important;
-  border-color: rgba(255, 255, 255, 0.18) !important;
-  color: white !important;
+  background: rgba(255, 255, 255, 0.07) !important;
+  border-color: rgba(255, 255, 255, 0.16) !important;
+  color: #ffffff !important;
 }
 
 .glass-button:active {
-  transform: scale(0.97) !important;
+  transform: scale(0.95) !important;
 }
 
-.glass-button-cyan {
-  background: rgba(6, 182, 212, 0.08) !important;
-  border-color: rgba(6, 182, 212, 0.15) !important;
-  color: rgb(165, 243, 252) !important;
-}
+/* Category-Specific Active Button Variants */
 
-.glass-button-cyan:hover {
-  background: rgba(6, 182, 212, 0.18) !important;
-  border-color: rgb(34, 211, 238) !important;
-  color: white !important;
-  box-shadow: 0 0 12px rgba(6, 182, 212, 0.25) !important;
-}
-
+/* Emerald (Category A) */
 .glass-button-emerald {
-  background: rgba(16, 185, 129, 0.08) !important;
-  border-color: rgba(16, 185, 129, 0.15) !important;
-  color: rgb(167, 243, 208) !important;
+  background: rgba(16, 185, 129, 0.05) !important;
+  border-color: rgba(16, 185, 129, 0.12) !important;
+  color: #a7f3d0 !important;
 }
 
 .glass-button-emerald:hover {
-  background: rgba(16, 185, 129, 0.18) !important;
-  border-color: rgb(52, 211, 153) !important;
-  color: white !important;
-  box-shadow: 0 0 12px rgba(16, 185, 129, 0.25) !important;
+  background: rgba(16, 185, 129, 0.14) !important;
+  border-color: #34d399 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.25) !important;
 }
 
-.glass-button-rose {
-  background: rgba(244, 63, 94, 0.08) !important;
-  border-color: rgba(244, 63, 94, 0.15) !important;
-  color: rgb(254, 205, 211) !important;
+/* Cyan (Category B) */
+.glass-button-cyan {
+  background: rgba(6, 182, 212, 0.05) !important;
+  border-color: rgba(6, 182, 212, 0.12) !important;
+  color: #a5f3fc !important;
 }
 
-.glass-button-rose:hover {
-  background: rgba(244, 63, 94, 0.18) !important;
-  border-color: rgb(251, 113, 133) !important;
-  color: white !important;
-  box-shadow: 0 0 12px rgba(244, 63, 94, 0.25) !important;
+.glass-button-cyan:hover {
+  background: rgba(6, 182, 212, 0.14) !important;
+  border-color: #22d3ee !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 14px rgba(6, 182, 212, 0.25) !important;
 }
 
-.glass-button-amber {
-  background: rgba(245, 158, 11, 0.08) !important;
-  border-color: rgba(245, 158, 11, 0.15) !important;
-  color: rgb(254, 243, 199) !important;
-}
-
-.glass-button-amber:hover {
-  background: rgba(245, 158, 11, 0.18) !important;
-  border-color: rgb(251, 191, 36) !important;
-  color: white !important;
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.25) !important;
-}
-
+/* Purple (Category C) */
 .glass-button-purple {
-  background: rgba(168, 85, 247, 0.08) !important;
-  border-color: rgba(168, 85, 247, 0.15) !important;
-  color: rgb(243, 232, 255) !important;
+  background: rgba(168, 85, 247, 0.05) !important;
+  border-color: rgba(168, 85, 247, 0.12) !important;
+  color: #f3e8ff !important;
 }
 
 .glass-button-purple:hover {
-  background: rgba(168, 85, 247, 0.18) !important;
-  border-color: rgb(192, 132, 252) !important;
-  color: white !important;
-  box-shadow: 0 0 12px rgba(168, 85, 247, 0.25) !important;
+  background: rgba(168, 85, 247, 0.14) !important;
+  border-color: #c084fc !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.25) !important;
 }
 
+/* Blue (Category D) */
 .glass-button-blue {
-  background: rgba(59, 130, 246, 0.08) !important;
-  border-color: rgba(59, 130, 246, 0.15) !important;
-  color: rgb(219, 234, 254) !important;
+  background: rgba(59, 130, 246, 0.05) !important;
+  border-color: rgba(59, 130, 246, 0.12) !important;
+  color: #dbeafe !important;
 }
 
 .glass-button-blue:hover {
-  background: rgba(59, 130, 246, 0.18) !important;
-  border-color: rgb(96, 165, 250) !important;
-  color: white !important;
-  box-shadow: 0 0 12px rgba(59, 130, 246, 0.25) !important;
+  background: rgba(59, 130, 246, 0.14) !important;
+  border-color: #60a5fa !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 14px rgba(59, 130, 246, 0.25) !important;
 }
 
+/* Amber (Category E) */
+.glass-button-amber {
+  background: rgba(245, 158, 11, 0.05) !important;
+  border-color: rgba(245, 158, 11, 0.12) !important;
+  color: #fef3c7 !important;
+}
+
+.glass-button-amber:hover {
+  background: rgba(245, 158, 11, 0.14) !important;
+  border-color: #fbbf24 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.25) !important;
+}
+
+/* Rose / Emergency Button */
+.glass-button-rose {
+  background: rgba(244, 63, 94, 0.06) !important;
+  border-color: rgba(244, 63, 94, 0.15) !important;
+  color: #fecdd3 !important;
+}
+
+.glass-button-rose:hover {
+  background: rgba(244, 63, 94, 0.16) !important;
+  border-color: #fb7185 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 14px rgba(244, 63, 94, 0.25) !important;
+}
+
+/* Indigo (Legacy) */
 .glass-button-indigo {
-  background: rgba(99, 102, 241, 0.08) !important;
-  border-color: rgba(99, 102, 241, 0.15) !important;
-  color: rgb(224, 231, 255) !important;
+  background: rgba(99, 102, 241, 0.05) !important;
+  border-color: rgba(99, 102, 241, 0.12) !important;
+  color: #e0e7ff !important;
 }
 
 .glass-button-indigo:hover {
-  background: rgba(99, 102, 241, 0.18) !important;
-  border-color: rgb(129, 140, 248) !important;
-  color: white !important;
-  box-shadow: 0 0 12px rgba(99, 102, 241, 0.25) !important;
+  background: rgba(99, 102, 241, 0.14) !important;
+  border-color: #818cf8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 14px rgba(99, 102, 241, 0.25) !important;
 }
+
 

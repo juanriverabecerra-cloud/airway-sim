@@ -9,7 +9,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
   const ventMorphology = ventSettings?.mode === 'VCV' ? 'vcv' : 'pcv';
 
   return (
-    <div className="glass-panel glass-purple p-2 md:p-3 flex flex-col gap-2 mt-4">
+    <div className="glass-panel glass-cyan p-2 md:p-3 flex flex-col gap-2 mt-4">
       <div className="flex flex-col md:grid md:grid-cols-4 gap-2 min-h-[300px] md:min-h-0 md:h-[280px] lg:h-[320px]">
         
         {/* Waveforms */}
