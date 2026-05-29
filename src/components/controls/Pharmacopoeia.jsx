@@ -10,56 +10,80 @@ export const getMedColor = (medId) => {
   if (['propofol', 'etomidate', 'ketamine', 'dexmedetomidine'].some(k => id.includes(k))) {
     return {
       active: 'border-yellow-500/80 text-yellow-355 shadow-[0_0_12px_rgba(234,179,8,0.25)] bg-yellow-950/10 font-bold',
-      btn: 'glass-button-amber'
+      btn: 'glass-button-amber',
+      subBorder: 'border-yellow-900/50',
+      text: 'text-yellow-400',
+      focus: 'focus:border-yellow-500 focus:ring-yellow-500'
     };
   }
   // Benzodiazepines -> Orange
   if (['midazolam'].some(k => id.includes(k))) {
     return {
       active: 'border-orange-500/80 text-orange-355 shadow-[0_0_12px_rgba(249,115,22,0.25)] bg-orange-950/10 font-bold',
-      btn: 'glass-button-amber'
+      btn: 'glass-button-amber',
+      subBorder: 'border-orange-900/50',
+      text: 'text-orange-400',
+      focus: 'focus:border-orange-500 focus:ring-orange-500'
     };
   }
   // Opioids -> Blue
   if (['fentanyl', 'sufentanil', 'remifentanil', 'hydromorphone', 'morphine'].some(k => id.includes(k))) {
     return {
       active: 'border-blue-400/80 text-blue-300 shadow-[0_0_12px_rgba(59,130,246,0.25)] bg-blue-950/10 font-bold',
-      btn: 'glass-button-blue'
+      btn: 'glass-button-blue',
+      subBorder: 'border-blue-900/50',
+      text: 'text-blue-400',
+      focus: 'focus:border-blue-500 focus:ring-blue-500'
     };
   }
   // Neuromuscular Blockers (NMBs) -> Fluorescent Green
   if (['rocuronium', 'succinylcholine', 'vecuronium', 'cisatracurium'].some(k => id.includes(k))) {
     return {
       active: 'border-emerald-400/80 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)] bg-emerald-950/10 font-bold',
-      btn: 'glass-button-emerald'
+      btn: 'glass-button-emerald',
+      subBorder: 'border-emerald-900/50',
+      text: 'text-emerald-400',
+      focus: 'focus:border-emerald-500 focus:ring-emerald-500'
     };
   }
   // Vasopressors & Inotropes (Purple)
   if (['norepinephrine', 'epinephrine', 'phenylephrine', 'vasopressin', 'ephedrine'].some(k => id.includes(k))) {
     return {
       active: 'border-purple-400/80 text-purple-300 shadow-[0_0_12px_rgba(168,85,247,0.25)] bg-purple-950/10 font-bold',
-      btn: 'glass-button-purple'
+      btn: 'glass-button-purple',
+      subBorder: 'border-purple-900/50',
+      text: 'text-purple-400',
+      focus: 'focus:border-purple-500 focus:ring-purple-500'
     };
   }
   // Anticholinergics / Reversals -> Green
   if (['atropine', 'sugammadex', 'neostigmine', 'glycopyrrolate'].some(k => id.includes(k))) {
     return {
       active: 'border-emerald-500/80 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)] bg-emerald-950/10 font-bold',
-      btn: 'glass-button-emerald'
+      btn: 'glass-button-emerald',
+      subBorder: 'border-emerald-900/50',
+      text: 'text-emerald-400',
+      focus: 'focus:border-emerald-500 focus:ring-emerald-500'
     };
   }
   // Antihypertensives / Beta Blockers (Arterial red / pressure control) -> Red/Rose
   if (['esmolol', 'labetalol', 'metoprolol', 'nicardipine', 'clevidipine', 'nitroglycerin'].some(k => id.includes(k))) {
     return {
       active: 'border-rose-500/80 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.25)] bg-red-950/10 font-bold',
-      btn: 'glass-button-rose'
+      btn: 'glass-button-rose',
+      subBorder: 'border-rose-900/50',
+      text: 'text-rose-400',
+      focus: 'focus:border-rose-500 focus:ring-rose-500'
     };
   }
   
   // Default general therapeutic -> Slate/Indigo
   return {
     active: 'border-purple-400/80 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.15)] bg-slate-900/40',
-    btn: 'glass-button-purple'
+    btn: 'glass-button-purple',
+    subBorder: 'border-purple-900/50',
+    text: 'text-purple-400',
+    focus: 'focus:border-purple-500 focus:ring-purple-500'
   };
 };
 
@@ -71,14 +95,20 @@ export const getFluidColor = (fluidId) => {
     return {
       active: 'border-rose-550/80 text-rose-350 shadow-[0_0_12px_rgba(244,63,94,0.25)] bg-red-950/10 font-bold',
       btn: 'glass-button-rose',
-      progress: 'from-rose-500 to-red-400'
+      progress: 'from-rose-500 to-red-400',
+      subBorder: 'border-rose-900/50',
+      text: 'text-rose-400',
+      focus: 'focus:border-rose-500 focus:ring-rose-500'
     };
   }
   // Crystalloids / Colloids -> Cyan/Teal
   return {
     active: 'border-cyan-400/80 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.25)] bg-cyan-950/10 font-bold',
     btn: 'glass-button-cyan',
-    progress: 'from-cyan-500 to-teal-400'
+    progress: 'from-cyan-500 to-teal-400',
+    subBorder: 'border-cyan-900/50',
+    text: 'text-cyan-400',
+    focus: 'focus:border-cyan-500 focus:ring-cyan-500'
   };
 };
 
@@ -209,12 +239,12 @@ export const Pharmacopoeia = ({
           <span className="font-bold text-slate-100">{fluidId}</span>
         </button>
         {isActive && (
-          <div className="flex flex-col p-2.5 bg-slate-950/90 border border-purple-900/50 rounded-lg animate-in slide-in-from-top-1 duration-200">
+          <div className={`flex flex-col p-2.5 bg-slate-950/90 border ${colorTheme.subBorder} rounded-lg animate-in slide-in-from-top-1 duration-200`}>
             <label className="text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider font-mono">Select Resus Line</label>
             <select 
               value={selectedLineId || ''} 
               onChange={(e) => setFluidInput({...fluidInput, lineId: e.target.value})} 
-              className="w-full bg-slate-900 text-xs text-slate-300 border border-slate-700 rounded-md p-1.5 mb-2 focus:border-purple-500 focus:outline-none font-mono"
+              className={`w-full bg-slate-900 text-xs text-slate-300 border border-slate-700 rounded-md p-1.5 mb-2 focus:outline-none font-mono ${colorTheme.focus}`}
             >
               {patient.accessLines?.length > 0 ? patient.accessLines.map(l => (
                 <option key={l.id} value={l.id}>
@@ -237,7 +267,7 @@ export const Pharmacopoeia = ({
                   type="number" 
                   disabled={isArterial}
                   placeholder={`Dose (${getFluidUnitLabel(fluidId)})`} 
-                  className={`w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white outline-none focus:border-purple-500 font-mono ${isArterial ? 'opacity-40' : ''}`} 
+                  className={`w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white outline-none font-mono ${isArterial ? 'opacity-40' : ''} ${colorTheme.focus}`} 
                   value={fluidInput.dose} 
                   onChange={(e) => setFluidInput({...fluidInput, dose: e.target.value})} 
                   onKeyDown={(e) => { if (e.key === 'Enter' && !isArterial) handleFluidSubmit(fluidId); }}
@@ -284,31 +314,31 @@ export const Pharmacopoeia = ({
           <span className="text-slate-400 text-[9px] float-right uppercase font-mono">{med.classes[0]}</span>
         </button>
         {isActive && (
-          <div className="flex flex-col gap-2 p-2.5 bg-slate-950/90 border border-purple-900/50 rounded-lg animate-in slide-in-from-top-1 duration-200 font-mono text-[11px]">
-            <div className="flex justify-between items-center text-[10px] text-purple-400 font-bold border-b border-slate-900 pb-1">
+          <div className={`flex flex-col gap-2 p-2.5 bg-slate-950/90 border ${colorTheme.subBorder} rounded-lg animate-in slide-in-from-top-1 duration-200 font-mono text-[11px]`}>
+            <div className={`flex justify-between items-center text-[10px] ${colorTheme.text} font-bold border-b border-slate-900 pb-1`}>
               <span>Dosing Profile</span>
               <span className="bg-slate-900 px-2 py-0.5 rounded text-slate-300">Uses {med.dosingWeight || 'TBW'}</span>
             </div>
             
-            <select value={medInput.indication} onChange={handleIndicationChange} className="bg-slate-900 text-slate-200 border border-slate-700 rounded p-1 outline-none">
+            <select value={medInput.indication} onChange={handleIndicationChange} className={`bg-slate-900 text-slate-200 border border-slate-700 rounded p-1 outline-none ${colorTheme.focus}`}>
               {indicationKeys.map(ind => <option key={ind} value={ind}>{ind} (Rec: {med.indications[ind].dose} {med.indications[ind].unit})</option>)}
             </select>
             
             {medInput.route === 'IV' && (
-              <select value={medInput.lineId || patient.accessLines?.[0]?.id || ''} onChange={(e) => setMedInput({...medInput, lineId: e.target.value})} className="bg-slate-900 text-slate-200 border border-slate-700 rounded p-1 outline-none">
+              <select value={medInput.lineId || patient.accessLines?.[0]?.id || ''} onChange={(e) => setMedInput({...medInput, lineId: e.target.value})} className={`bg-slate-900 text-slate-200 border border-slate-700 rounded p-1 outline-none ${colorTheme.focus}`}>
                 {patient.accessLines?.length > 0 ? patient.accessLines.map(l => <option key={l.id} value={l.id}>{l.name}</option>) : <option value="">No Venous Access</option>}
               </select>
             )}
             
             <div className="flex gap-2">
-              <select value={medInput.route} onChange={(e)=>setMedInput({...medInput, route: e.target.value})} className="bg-slate-900 text-slate-200 border border-slate-700 rounded p-1 w-1/3 outline-none">
+              <select value={medInput.route} onChange={(e)=>setMedInput({...medInput, route: e.target.value})} className={`bg-slate-900 text-slate-200 border border-slate-700 rounded p-1 w-1/3 outline-none ${colorTheme.focus}`}>
                 {med.routes.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
               <input 
                 autoFocus 
                 type="number" 
                 placeholder={`Dose (${medInput.unit})`} 
-                className="w-1/3 bg-slate-900 border border-slate-700 rounded p-1 text-white outline-none focus:border-purple-500"
+                className={`w-1/3 bg-slate-900 border border-slate-700 rounded p-1 text-white outline-none ${colorTheme.focus}`}
                 value={medInput.dose} 
                 onChange={(e) => setMedInput({...medInput, dose: e.target.value})} 
                 onKeyDown={(e) => { if (e.key === 'Enter') handleMedSubmit(medId); }}

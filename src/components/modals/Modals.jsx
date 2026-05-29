@@ -137,16 +137,16 @@ export const AccessModal = ({ data, close, establishAccess }) => {
       banner: 'bg-indigo-950/40 border border-indigo-800/40 text-indigo-200'
     },
     'Intraosseous (IO)': {
-      ring: 'border-cyan-500/60 shadow-[0_0_30px_rgba(6,182,212,0.25)]',
-      text: 'text-cyan-400',
-      btn: 'bg-cyan-600/20 hover:bg-cyan-600 border border-cyan-500/30 hover:border-cyan-400 text-cyan-100 hover:text-white',
-      banner: 'bg-cyan-950/40 border border-cyan-800/40 text-cyan-200'
+      ring: 'border-amber-500/60 shadow-[0_0_30px_rgba(245,158,11,0.25)]',
+      text: 'text-amber-400',
+      btn: 'bg-amber-600/20 hover:bg-amber-600 border border-amber-500/30 hover:border-amber-400 text-amber-100 hover:text-white',
+      banner: 'bg-amber-950/40 border border-amber-800/40 text-amber-200'
     },
     'Arterial Line': {
-      ring: 'border-indigo-500/60 shadow-[0_0_30px_rgba(99,102,241,0.25)]',
-      text: 'text-indigo-400',
-      btn: 'bg-indigo-600/20 hover:bg-indigo-600 border border-indigo-500/30 hover:border-indigo-400 text-indigo-100 hover:text-white',
-      banner: 'bg-indigo-950/40 border border-indigo-800/40 text-indigo-200'
+      ring: 'border-rose-500/60 shadow-[0_0_30px_rgba(244,63,94,0.25)]',
+      text: 'text-rose-400',
+      btn: 'bg-rose-600/20 hover:bg-rose-600 border border-rose-500/30 hover:border-rose-400 text-rose-100 hover:text-white',
+      banner: 'bg-rose-950/40 border border-rose-800/40 text-rose-200'
     }
   };
 
@@ -187,7 +187,7 @@ export const AccessModal = ({ data, close, establishAccess }) => {
                 <select 
                   value={pivType} 
                   onChange={e => setPivType(e.target.value)}
-                  className="w-full md:w-80 bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 font-bold focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
+                  className="w-full md:w-80 bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 font-bold focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 font-mono"
                 >
                   <option value="14G">14G (1.70mm OD, 45mm L)</option>
                   <option value="16G">16G (1.33mm OD, 45mm L)</option>
@@ -210,11 +210,11 @@ export const AccessModal = ({ data, close, establishAccess }) => {
                 </div>
                 <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800/80">
                   <span className="text-[10px] text-slate-500 uppercase block">R_catheter (L / r⁴)</span>
-                  <span className="text-lg font-extrabold text-emerald-400">{Math.round(len / Math.pow(rad, 4))}</span>
+                  <span className="text-lg font-extrabold text-cyan-400">{Math.round(len / Math.pow(rad, 4))}</span>
                 </div>
                 <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800/80">
                   <span className="text-[10px] text-slate-500 uppercase block">R_tubing (Gravity)</span>
-                  <span className="text-lg font-extrabold text-emerald-400">400</span>
+                  <span className="text-lg font-extrabold text-cyan-400">400</span>
                 </div>
               </div>
 
@@ -223,13 +223,13 @@ export const AccessModal = ({ data, close, establishAccess }) => {
                 {/* AC */}
                 <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
                   <div>
-                    <h3 className="font-extrabold text-emerald-400 mb-2 border-b border-slate-800 pb-1 text-sm font-mono text-center">Antecubital Vein (AC)</h3>
+                    <h3 className="font-extrabold text-cyan-400 mb-2 border-b border-slate-800 pb-1 text-sm font-mono text-center">Antecubital Vein (AC)</h3>
                     <div className="text-xs font-mono space-y-1 text-slate-400 mb-4">
                       <div className="flex justify-between"><span>Vein Resistance:</span><span className="text-white">200</span></div>
                       <div className="flex justify-between"><span>Venous Pressure:</span><span className="text-white">8 mmHg</span></div>
                       <div className="flex justify-between border-t border-slate-800/80 pt-1 mt-1 font-bold">
                         <span>Max Flow (Crystalloid):</span>
-                        <span className="text-emerald-400">{acStats.hr} mL/hr ({acStats.min} mL/min)</span>
+                        <span className="text-cyan-400">{acStats.hr} mL/hr ({acStats.min} mL/min)</span>
                       </div>
                     </div>
                   </div>
@@ -242,13 +242,13 @@ export const AccessModal = ({ data, close, establishAccess }) => {
                 {/* Forearm */}
                 <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
                   <div>
-                    <h3 className="font-extrabold text-emerald-400 mb-2 border-b border-slate-800 pb-1 text-sm font-mono text-center">Forearm Vein</h3>
+                    <h3 className="font-extrabold text-cyan-400 mb-2 border-b border-slate-800 pb-1 text-sm font-mono text-center">Forearm Vein</h3>
                     <div className="text-xs font-mono space-y-1 text-slate-400 mb-4">
                       <div className="flex justify-between"><span>Vein Resistance:</span><span className="text-white">800</span></div>
                       <div className="flex justify-between"><span>Venous Pressure:</span><span className="text-white">12 mmHg</span></div>
                       <div className="flex justify-between border-t border-slate-800/80 pt-1 mt-1 font-bold">
                         <span>Max Flow (Crystalloid):</span>
-                        <span className="text-emerald-400">{armStats.hr} mL/hr ({armStats.min} mL/min)</span>
+                        <span className="text-cyan-400">{armStats.hr} mL/hr ({armStats.min} mL/min)</span>
                       </div>
                     </div>
                   </div>
@@ -261,13 +261,13 @@ export const AccessModal = ({ data, close, establishAccess }) => {
                 {/* Hand */}
                 <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
                   <div>
-                    <h3 className="font-extrabold text-emerald-400 mb-2 border-b border-slate-800 pb-1 text-sm font-mono text-center">Hand Dorsal Plexus</h3>
+                    <h3 className="font-extrabold text-cyan-400 mb-2 border-b border-slate-800 pb-1 text-sm font-mono text-center">Hand Dorsal Plexus</h3>
                     <div className="text-xs font-mono space-y-1 text-slate-400 mb-4">
                       <div className="flex justify-between"><span>Vein Resistance:</span><span className="text-white">2200</span></div>
                       <div className="flex justify-between"><span>Venous Pressure:</span><span className="text-white">18 mmHg</span></div>
                       <div className="flex justify-between border-t border-slate-800/80 pt-1 mt-1 font-bold text-[11px]">
                         <span>Max Flow (Crystalloid):</span>
-                        <span className="text-rose-400">{handStats.hr} mL/hr ({handStats.min} mL/min)</span>
+                        <span className="text-cyan-400">{handStats.hr} mL/hr ({handStats.min} mL/min)</span>
                       </div>
                     </div>
                   </div>
@@ -296,7 +296,7 @@ export const AccessModal = ({ data, close, establishAccess }) => {
                 <select 
                   value={cvcType} 
                   onChange={e => setCvcType(e.target.value)}
-                  className="w-full md:w-96 bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 font-bold focus:border-purple-500 focus:outline-none focus:ring-1 focus:ring-purple-500 font-mono"
+                  className="w-full md:w-96 bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 font-bold focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
                 >
                   <option value="Single Lumen CVC (14G)">Single Lumen CVC (14G)</option>
                   <option value="Double Lumen CVC (14G, 18G)">Double Lumen CVC (14G, 18G)</option>
@@ -314,12 +314,12 @@ export const AccessModal = ({ data, close, establishAccess }) => {
                     const stats = getFlowStats(l.rad, l.len, 5, 0);
                     return (
                       <div key={i} className="bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs">
-                        <span className="font-extrabold text-purple-400 block mb-1.5">{l.name}</span>
+                        <span className="font-extrabold text-indigo-400 block mb-1.5">{l.name}</span>
                         <div className="space-y-0.5 text-slate-400 text-[11px]">
                           <div>Radius: <span className="text-white">{l.rad} mm</span></div>
                           <div>Length: <span className="text-white">{l.len} mm</span></div>
                           <div>Resistance (L/r⁴): <span className="text-white">{stats.rCath}</span></div>
-                          <div className="text-emerald-400 font-extrabold border-t border-slate-900 mt-1 pt-1">
+                          <div className="text-indigo-400 font-extrabold border-t border-slate-900 mt-1 pt-1">
                             Flow: {stats.hr} mL/hr ({stats.min} mL/min)
                           </div>
                         </div>
@@ -332,21 +332,21 @@ export const AccessModal = ({ data, close, establishAccess }) => {
               {/* Anatomical Placements */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80">
-                  <h3 className="font-extrabold text-purple-400 mb-3 text-center border-b border-slate-800 pb-2 text-sm font-mono">Internal Jugular (IJ)</h3>
+                  <h3 className="font-extrabold text-indigo-400 mb-3 text-center border-b border-slate-800 pb-2 text-sm font-mono">Internal Jugular (IJ)</h3>
                   <div className="flex gap-2">
                     <button onClick={() => establishAccess('CVC', cvcType, 'Right IJ')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Right IJ</button>
                     <button onClick={() => establishAccess('CVC', cvcType, 'Left IJ')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Left IJ</button>
                   </div>
                 </div>
                 <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80">
-                  <h3 className="font-extrabold text-purple-400 mb-3 text-center border-b border-slate-800 pb-2 text-sm font-mono">Subclavian Vein</h3>
+                  <h3 className="font-extrabold text-indigo-400 mb-3 text-center border-b border-slate-800 pb-2 text-sm font-mono">Subclavian Vein</h3>
                   <div className="flex gap-2">
                     <button onClick={() => establishAccess('CVC', cvcType, 'Right Subclavian')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Right SC</button>
                     <button onClick={() => establishAccess('CVC', cvcType, 'Left Subclavian')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Left SC</button>
                   </div>
                 </div>
                 <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80">
-                  <h3 className="font-extrabold text-purple-400 mb-3 text-center border-b border-slate-800 pb-2 text-sm font-mono">Femoral Vein</h3>
+                  <h3 className="font-extrabold text-indigo-400 mb-3 text-center border-b border-slate-800 pb-2 text-sm font-mono">Femoral Vein</h3>
                   <div className="flex gap-2">
                     <button onClick={() => establishAccess('CVC', cvcType, 'Right Femoral')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Right Fem</button>
                     <button onClick={() => establishAccess('CVC', cvcType, 'Left Femoral')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Left Fem</button>
@@ -373,7 +373,7 @@ export const AccessModal = ({ data, close, establishAccess }) => {
                 <select 
                   value={ioType} 
                   onChange={e => setIoType(e.target.value)}
-                  className="w-full md:w-80 bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 font-bold focus:border-orange-500 focus:outline-none focus:ring-1 focus:ring-orange-500 font-mono"
+                  className="w-full md:w-80 bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 font-bold focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono"
                 >
                   <option value="EZ-IO">EZ-IO (15G Needle / 1.1mm ID)</option>
                 </select>
@@ -383,14 +383,14 @@ export const AccessModal = ({ data, close, establishAccess }) => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
                   <div>
-                    <h3 className="font-extrabold text-orange-400 mb-2 border-b border-slate-800 pb-1 text-sm font-mono text-center">Proximal Tibia</h3>
+                    <h3 className="font-extrabold text-amber-400 mb-2 border-b border-slate-800 pb-1 text-sm font-mono text-center">Proximal Tibia</h3>
                     <div className="text-xs font-mono space-y-1 text-slate-400 mb-4">
                       <div className="flex justify-between"><span>Catheter (15G):</span><span className="text-white">r: 0.45mm, L: 25mm</span></div>
                       <div className="flex justify-between"><span>Bony Sinusoid Resistance:</span><span className="text-white">2500</span></div>
                       <div className="flex justify-between"><span>Intramedullary Pressure:</span><span className="text-white">18 mmHg</span></div>
                       <div className="flex justify-between border-t border-slate-800/80 pt-1 mt-1 font-bold text-[11px]">
                         <span>Gravity Crystalloid Flow:</span>
-                        <span className="text-orange-400">{tibiaStats.hr} mL/hr ({tibiaStats.min} mL/min)</span>
+                        <span className="text-amber-400">{tibiaStats.hr} mL/hr ({tibiaStats.min} mL/min)</span>
                       </div>
                     </div>
                   </div>
@@ -402,14 +402,14 @@ export const AccessModal = ({ data, close, establishAccess }) => {
 
                 <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
                   <div>
-                    <h3 className="font-extrabold text-orange-400 mb-2 border-b border-slate-800 pb-1 text-sm font-mono text-center">Humeral Head</h3>
+                    <h3 className="font-extrabold text-amber-400 mb-2 border-b border-slate-800 pb-1 text-sm font-mono text-center">Humeral Head</h3>
                     <div className="text-xs font-mono space-y-1 text-slate-400 mb-4">
                       <div className="flex justify-between"><span>Catheter (15G):</span><span className="text-white">r: 0.45mm, L: 25mm</span></div>
                       <div className="flex justify-between"><span>Humeral Sinusoid Resistance:</span><span className="text-white">1500</span></div>
                       <div className="flex justify-between"><span>Intramedullary Pressure:</span><span className="text-white">15 mmHg</span></div>
                       <div className="flex justify-between border-t border-slate-800/80 pt-1 mt-1 font-bold text-[11px]">
                         <span>Gravity Crystalloid Flow:</span>
-                        <span className="text-orange-400">{humeralStats.hr} mL/hr ({humeralStats.min} mL/min)</span>
+                        <span className="text-amber-400">{humeralStats.hr} mL/hr ({humeralStats.min} mL/min)</span>
                       </div>
                     </div>
                   </div>
