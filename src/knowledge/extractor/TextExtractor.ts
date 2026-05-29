@@ -1,7 +1,15 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
 import type { SourceFragment, ParsedSection, VisualDataEngine } from '../types/index.ts';
+
+let dirname = '';
+try {
+  dirname = __dirname;
+} catch (e) {
+  dirname = path.dirname(fileURLToPath(import.meta.url));
+}
 
 /**
  * TextExtractor handles reading raw content from source files.
@@ -24,7 +32,7 @@ export class TextExtractor {
 
     if (['.pdf', '.png', '.jpg', '.jpeg', '.pptx'].includes(ext)) {
       console.log(`  [EXTRACTOR] Performing local layout and figure extraction: ${fileName}`);
-      const scriptPath = path.resolve(__dirname, 'local_parser.py');
+      const scriptPath = path.resolve(dirname, 'local_parser.py');
       try {
         const result = execSync(
           `python3 ${JSON.stringify(scriptPath)} ${JSON.stringify(filePath)}`,
@@ -102,7 +110,7 @@ export class TextExtractor {
         
         if (provider === 'gemini') {
           // Call python multimodal vision enricher for standalone image
-          const scriptPath = path.resolve(__dirname, 'multimodal_extract.py');
+          const scriptPath = path.resolve(dirname, 'multimodal_extract.py');
           const result = execSync(
             `python3 ${JSON.stringify(scriptPath)} image_visual ${JSON.stringify(engine.image_path)}`,
             {
