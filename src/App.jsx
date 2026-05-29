@@ -132,7 +132,7 @@ export default function App() {
   } = usePhysiology({
     activeCase,
     isRunning,
-    isPaused: (viewModal.show || setupModal || pocusModal.show || airwayQuizModal.show || accessModal.show || tubeConfirmModal.show || preopModal || msmaidsModal || postIntubationModal || extubationModal) && !patient.isFuzzing,
+    isPaused: viewModal.show || setupModal || pocusModal.show || airwayQuizModal.show || accessModal.show || tubeConfirmModal.show || preopModal || msmaidsModal || postIntubationModal || extubationModal,
     ventSettings,
     gasSettings,
     logEvent,
@@ -230,7 +230,7 @@ export default function App() {
   const handleSetVentSettings = (update) => { saveState(); setVentSettings(update); };
   const handleSetGasSettings = (update) => { saveState(); setGasSettings(update); };
   const handleSetSurgicalPhase = (val) => {
-    if (val === 'Induction' && !msmaidsComplete && !patient.emergentRSI && !patient.isFuzzing) {
+    if (val === 'Induction' && !msmaidsComplete && !patient?.emergentRSI && !patient?.isFuzzing) {
       logEvent("⚠️ CLINICAL INTERLOCK BLOCKED: Induction phase locked. Complete MSMAIDS pre-induction checklist first.");
       setMsmaidsModal(true);
       return;
@@ -384,7 +384,7 @@ export default function App() {
           emergence: 'Emergence'
         };
         const targetPhase = phaseMap[rawPhase];
-        if (targetPhase === 'Induction' && !msmaidsComplete && !patient.emergentRSI && !patient.isFuzzing) {
+        if (targetPhase === 'Induction' && !msmaidsComplete && !patient?.emergentRSI && !patient?.isFuzzing) {
           logEvent("⚠️ CLINICAL INTERLOCK BLOCKED: Induction phase locked. Complete MSMAIDS pre-induction checklist first.");
           setMsmaidsModal(true);
         } else {
@@ -533,7 +533,7 @@ export default function App() {
 
   const examineAirway = () => {
     const mallampati = patient.mallampati || 1;
-    if (patient.isFuzzing) {
+    if (patient?.isFuzzing) {
       logEvent(`Airway Assessment (Fuzzer): Automatically identified Mallampati Class ${mallampati}.`);
       setPatient(p => ({ ...p, airwayExamined: true, mallampatiScore: mallampati }));
       return;
@@ -567,25 +567,42 @@ export default function App() {
     setAirwayQuizModal({ show: false, description: '', trueMallampati: 1 });
   };
 
-  const establishAccess = (category, type, location) => {
+  const establishAccess = (category = '', type = '', location = '') => {
+    if (!category || !type) return;
     const fullName = `${type} (${location})`;
 
     if (type.includes('Triple Lumen CVC')) {
-       const newLine1 = { id: Date.now().toString() + '1', name: `Distal Lumen (16G) - ${location}`, category, type: '16G CVC', location, radius: 0.665, length: 200, venousPressure: 5, veinResistance: 0, activeInfusions: [] };
-       const newLine2 = { id: Date.now().toString() + '2', name: `Medial Lumen (18G) - ${location}`, category, type: '18G CVC', location, radius: 0.475, length: 200, venousPressure: 5, veinResistance: 0, activeInfusions: [] };
-       const newLine3 = { id: Date.now().toString() + '3', name: `Proximal Lumen (18G) - ${location}`, category, type: '18G CVC', location, radius: 0.475, length: 200, venousPressure: 5, veinResistance: 0, activeInfusions: [] };
+       const newLine1 = { id: Date.now().toString() + '1', name: `Distal Lumen (16G) - ${location}`, category, type: '16G CVC', location, radius: 0.665, length: 200, venousPressure: 5, veinResistance: 0, activeInfusions: [], activeMedInfusions: [] };
+       const newLine2 = { id: Date.now().toString() + '2', name: `Medial Lumen (18G) - ${location}`, category, type: '18G CVC', location, radius: 0.475, length: 200, venousPressure: 5, veinResistance: 0, activeInfusions: [], activeMedInfusions: [] };
+       const newLine3 = { id: Date.now().toString() + '3', name: `Proximal Lumen (18G) - ${location}`, category, type: '18G CVC', location, radius: 0.475, length: 200, venousPressure: 5, veinResistance: 0, activeInfusions: [], activeMedInfusions: [] };
        
        logEvent(`Placed Triple Lumen CVC (${location}). 3 ports available.`);
-       setPatient(p => ({ ...p, hasIV: true, hasCVC: true, accessLines: [...(p.accessLines || []).filter(l => typeof l !== 'string'), newLine1, newLine2, newLine3] }));
+       setPatient(p => {
+         const prev = p || {};
+         return {
+           ...prev,
+           hasIV: true,
+           hasCVC: true,
+           accessLines: [...(prev.accessLines || []).filter(l => l && typeof l !== 'string'), newLine1, newLine2, newLine3]
+         };
+       });
        setAccessModal({ show: false, category: '' });
        return;
     }
     if (type.includes('Double Lumen CVC')) {
-       const newLine1 = { id: Date.now().toString() + '1', name: `Distal Lumen (14G) - ${location}`, category, type: '14G CVC', location, radius: 0.85, length: 200, venousPressure: 5, veinResistance: 0, activeInfusions: [] };
-       const newLine2 = { id: Date.now().toString() + '2', name: `Proximal Lumen (18G) - ${location}`, category, type: '18G CVC', location, radius: 0.475, length: 200, venousPressure: 5, veinResistance: 0, activeInfusions: [] };
+       const newLine1 = { id: Date.now().toString() + '1', name: `Distal Lumen (14G) - ${location}`, category, type: '14G CVC', location, radius: 0.85, length: 200, venousPressure: 5, veinResistance: 0, activeInfusions: [], activeMedInfusions: [] };
+       const newLine2 = { id: Date.now().toString() + '2', name: `Proximal Lumen (18G) - ${location}`, category, type: '18G CVC', location, radius: 0.475, length: 200, venousPressure: 5, veinResistance: 0, activeInfusions: [], activeMedInfusions: [] };
        
        logEvent(`Placed Double Lumen CVC (${location}). 2 ports available.`);
-       setPatient(p => ({ ...p, hasIV: true, hasCVC: true, accessLines: [...(p.accessLines || []).filter(l => typeof l !== 'string'), newLine1, newLine2] }));
+       setPatient(p => {
+         const prev = p || {};
+         return {
+           ...prev,
+           hasIV: true,
+           hasCVC: true,
+           accessLines: [...(prev.accessLines || []).filter(l => l && typeof l !== 'string'), newLine1, newLine2]
+         };
+       });
        setAccessModal({ show: false, category: '' });
        return;
     }
@@ -639,7 +656,7 @@ export default function App() {
     }
     
     const newLine = { 
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 5), 
+      id: Date.now().toString() + Math.random().toString(36).substring(2, 7), 
       name: fullName, 
       category, 
       type, 
@@ -648,17 +665,21 @@ export default function App() {
       length, 
       venousPressure,
       veinResistance,
-      activeInfusions: []
+      activeInfusions: [],
+      activeMedInfusions: []
     };
 
     logEvent(`Placed ${fullName}. Physical dimensions initialized (r: ${radius}mm, L: ${length}mm, Pv: ${venousPressure}mmHg, Rv: ${veinResistance}).`);
-    setPatient(p => ({ 
-       ...p, 
-       hasIV: p.hasIV || !category.includes('Arterial'), 
-       hasALine: p.hasALine || category.includes('Arterial'),
-       hasCVC: p.hasCVC || category.includes('CVC') || type.includes('MAC'),
-       accessLines: [...(p.accessLines || []).filter(l => typeof l !== 'string'), newLine] // Clear legacy string lines
-    }));
+    setPatient(p => {
+       const prev = p || {};
+       return { 
+         ...prev, 
+         hasIV: prev.hasIV || !category.includes('Arterial'), 
+         hasALine: prev.hasALine || category.includes('Arterial'),
+         hasCVC: prev.hasCVC || category.includes('CVC') || type.includes('MAC'),
+         accessLines: [...(prev.accessLines || []).filter(l => l && typeof l !== 'string'), newLine] // Clear legacy string lines
+       };
+    });
     setAccessModal({ show: false, category: '' });
   };
 
@@ -1244,7 +1265,7 @@ export default function App() {
         />
       </div>
 
-      {!patient.isFuzzing && (
+      {!patient?.isFuzzing && (
         <>
           <PocusModal 
             data={pocusModal} 

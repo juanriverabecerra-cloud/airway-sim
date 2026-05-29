@@ -208,3 +208,16 @@ body {
   box-shadow: 0 0 12px rgba(59, 130, 246, 0.25) !important;
 }
 
+.glass-button-indigo {
+  background: rgba(99, 102, 241, 0.08) !important;
+  border-color: rgba(99, 102, 241, 0.15) !important;
+  color: rgb(224, 231, 255) !important;
+}
+
+.glass-button-indigo:hover {
+  background: rgba(99, 102, 241, 0.18) !important;
+  border-color: rgb(129, 140, 248) !important;
+  color: white !important;
+  box-shadow: 0 0 12px rgba(99, 102, 241, 0.25) !important;
+}
+

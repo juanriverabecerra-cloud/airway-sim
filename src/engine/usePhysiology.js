@@ -697,7 +697,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
   useEffect(() => {
     let interval;
-    if (isRunning && !isPaused) {
+    const actualPaused = isPaused && !patient?.isFuzzing;
+    if (isRunning && !actualPaused) {
       interval = setInterval(() => {
         try {
           setTime((t) => t + 1);
@@ -1899,7 +1900,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
       }, patient?.simulationSpeed || 1000);
     }
     return () => clearInterval(interval);
-  }, [isRunning, isPaused, patient?.simulationSpeed]); 
+  }, [isRunning, isPaused, patient?.simulationSpeed, patient?.isFuzzing]); 
 
   const createSnapshot = () => {
     const clonedMeds = activeMeds.map(m => {

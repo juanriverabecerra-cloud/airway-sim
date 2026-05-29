@@ -244,39 +244,39 @@ export const ActionPanel = ({
             <div className="grid grid-cols-2 gap-2 font-mono">
               <button 
                 onClick={() => { setPreopModal(true); setSearchTerm(''); }} 
-                className="bg-indigo-950/20 hover:bg-indigo-900/30 p-2.5 rounded-lg text-[10px] text-indigo-300 border border-indigo-900/40 font-bold uppercase tracking-wider"
+                className="bg-indigo-950/30 hover:bg-indigo-900/50 text-indigo-300 border border-indigo-500/40 hover:border-indigo-400 p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200"
               >
                 📋 Pre-Op EMR Evals
               </button>
               <button 
                 onClick={() => { setMsmaidsModal(true); setSearchTerm(''); }} 
-                className="bg-emerald-950/20 hover:bg-emerald-900/30 p-2.5 rounded-lg text-[10px] text-emerald-300 border border-emerald-900/40 font-bold uppercase tracking-wider"
+                className="bg-cyan-950/30 hover:bg-cyan-900/50 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200"
               >
                 🛠️ MSMAIDS Check
               </button>
               <button 
                 onClick={() => { setPostIntubationModal(true); setSearchTerm(''); }} 
                 disabled={!patient.airwaySecured}
-                className="bg-cyan-950/20 hover:bg-cyan-900/30 disabled:opacity-30 disabled:pointer-events-none p-2.5 rounded-lg text-[10px] text-cyan-300 border border-cyan-900/40 font-bold uppercase tracking-wider"
+                className="bg-cyan-950/30 hover:bg-cyan-900/50 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 disabled:opacity-20 disabled:pointer-events-none p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200"
               >
                 🔄 Post-Intub A's
               </button>
               <button 
                 onClick={() => { setExtubationModal(true); setSearchTerm(''); }} 
                 disabled={!patient.airwaySecured}
-                className="bg-rose-950/20 hover:bg-rose-900/30 disabled:opacity-30 disabled:pointer-events-none p-2.5 rounded-lg text-[10px] text-rose-300 border border-rose-900/40 font-bold uppercase tracking-wider"
+                className="bg-indigo-950/30 hover:bg-indigo-900/50 text-indigo-300 border border-indigo-500/40 hover:border-indigo-400 disabled:opacity-20 disabled:pointer-events-none p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200"
               >
                 💨 Extubation Check
               </button>
               <button 
                 onClick={() => { performLarsonManeuver(); setSearchTerm(''); }} 
-                className="bg-purple-950/20 hover:bg-purple-900/30 p-2.5 rounded-lg text-[10px] text-purple-300 border border-purple-900/40 font-bold uppercase tracking-wider col-span-2 text-center"
+                className="bg-cyan-950/30 hover:bg-cyan-900/50 text-cyan-300 border border-cyan-500/40 hover:border-cyan-400 p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider col-span-2 text-center transition-all duration-200"
               >
                 ✊ Perform Larson's Maneuver
               </button>
               <button 
                 onClick={() => { examineNpoHistory(); setSearchTerm(''); }} 
-                className="glass-button p-2 text-[10px] uppercase font-bold col-span-2 text-center border border-slate-800"
+                className="bg-indigo-950/30 hover:bg-indigo-900/50 text-indigo-300 border border-indigo-500/40 hover:border-indigo-400 p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider col-span-2 text-center transition-all duration-200"
               >
                 📋 Review NPO & Fasting History
               </button>
@@ -315,26 +315,26 @@ export const ActionPanel = ({
         {/* Lines Placement & POC Lab Orders */}
         {showLabs && (
           <div className="flex flex-col gap-2">
-            <h3 className="text-slate-400 text-[10px] border-b border-white/5 pb-1 uppercase font-black tracking-wider flex items-center gap-2 font-mono"><Syringe size={12} className="text-emerald-400"/> Access Placements & POC Labs</h3>
+            <h3 className="text-slate-400 text-[10px] border-b border-white/5 pb-1 uppercase font-black tracking-wider flex items-center gap-2 font-mono"><Syringe size={12} className="text-cyan-400"/> Access Placements & POC Labs</h3>
             <div className="grid grid-cols-2 gap-2 font-mono">
-              <button onClick={() => { setAccessModal({show: true, category: 'Peripheral IV'}); setSearchTerm(''); }} className="glass-button glass-button-emerald p-2.5 rounded-lg text-[10px]">Place PIV</button>
-              <button onClick={() => { setAccessModal({show: true, category: 'Central Line'}); setSearchTerm(''); }} className="glass-button glass-button-emerald p-2.5 rounded-lg text-[10px]">Central Line</button>
-              <button onClick={() => { setAccessModal({show: true, category: 'Intraosseous (IO)'}); setSearchTerm(''); }} className="glass-button glass-button-emerald p-2.5 rounded-lg text-[10px]">Place IO</button>
-              <button onClick={() => { setAccessModal({show: true, category: 'Arterial Line'}); setSearchTerm(''); }} className="glass-button glass-button-emerald p-2.5 rounded-lg text-[10px]">Arterial Line</button>
+              <button onClick={() => { setAccessModal({show: true, category: 'Peripheral IV'}); setSearchTerm(''); }} className="glass-button glass-button-cyan p-2.5 rounded-lg text-[10px]">Place PIV</button>
+              <button onClick={() => { setAccessModal({show: true, category: 'Central Line'}); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2.5 rounded-lg text-[10px]">Central Line</button>
+              <button onClick={() => { setAccessModal({show: true, category: 'Intraosseous (IO)'}); setSearchTerm(''); }} className="glass-button glass-button-cyan p-2.5 rounded-lg text-[10px]">Place IO</button>
+              <button onClick={() => { setAccessModal({show: true, category: 'Arterial Line'}); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2.5 rounded-lg text-[10px]">Arterial Line</button>
               
-              <button onClick={() => { generateLab('ABG'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] mt-1 border">Order ABG</button>
-              <button onClick={() => { generateLab('VBG'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] mt-1 border">Order VBG</button>
-              <button onClick={() => { generateLab('CBC'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order CBC</button>
-              <button onClick={() => { generateLab('CMP'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order CMP</button>
-              <button onClick={() => { generateLab('Coagulation'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order Coags</button>
-              <button onClick={() => { generateLab('TEG'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order TEG</button>
-              <button onClick={() => { generateLab('LFTs'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order LFTs</button>
-              <button onClick={() => { generateLab('Thyroid'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order Thyroid</button>
-              <button onClick={() => { generateLab('Urinalysis'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order UA</button>
-              <button onClick={() => { generateLab('Pregnancy'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order hCG</button>
-              <button onClick={() => { generateLab('Type & Screen'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order T&S</button>
-              <button onClick={() => { generateLab('Type & Cross'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order T&Cross</button>
-              <button onClick={() => { generateLab('HbA1c'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] col-span-2 text-center border">Order HbA1c</button>
+              <button onClick={() => { generateLab('ABG'); setSearchTerm(''); }} className="glass-button glass-button-cyan p-2 rounded-lg text-[9px] mt-1 border">Order ABG</button>
+              <button onClick={() => { generateLab('VBG'); setSearchTerm(''); }} className="glass-button glass-button-cyan p-2 rounded-lg text-[9px] mt-1 border">Order VBG</button>
+              <button onClick={() => { generateLab('CBC'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] border">Order CBC</button>
+              <button onClick={() => { generateLab('CMP'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] border">Order CMP</button>
+              <button onClick={() => { generateLab('Coagulation'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] border">Order Coags</button>
+              <button onClick={() => { generateLab('TEG'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] border">Order TEG</button>
+              <button onClick={() => { generateLab('LFTs'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] border">Order LFTs</button>
+              <button onClick={() => { generateLab('Thyroid'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] border">Order Thyroid</button>
+              <button onClick={() => { generateLab('Urinalysis'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] border">Order UA</button>
+              <button onClick={() => { generateLab('Pregnancy'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] border">Order hCG</button>
+              <button onClick={() => { generateLab('Type & Screen'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] border">Order T&S</button>
+              <button onClick={() => { generateLab('Type & Cross'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] border">Order T&Cross</button>
+              <button onClick={() => { generateLab('HbA1c'); setSearchTerm(''); }} className="glass-button glass-button-indigo p-2 rounded-lg text-[9px] col-span-2 text-center border">Order HbA1c</button>
             </div>
           </div>
         )}

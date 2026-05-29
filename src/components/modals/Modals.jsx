@@ -4,17 +4,17 @@ import { X, Activity, Eye, Wind, Stethoscope } from 'lucide-react';
 export const PocusModal = ({ data, close }) => {
   if (!data.show) return null;
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border-2 border-purple-500 rounded-xl p-6 md:p-8 max-h-[85vh] overflow-y-auto custom-scrollbar w-11/12 max-w-md shadow-2xl">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+      <div className="bg-slate-950/90 border-2 border-indigo-500/60 shadow-[0_0_30px_rgba(99,102,241,0.25)] backdrop-blur-xl rounded-xl p-6 md:p-8 max-h-[85vh] overflow-y-auto custom-scrollbar w-11/12 max-w-md shadow-2xl">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2"><Eye size={24}/> {data.title}</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2"><Eye size={24} className="text-indigo-400"/> {data.title}</h2>
           <button onClick={close} className="text-slate-400 hover:text-white"><X size={24}/></button>
         </div>
-        <div className="p-4 bg-slate-800 border border-slate-700 rounded-lg">
-          <p className="text-purple-300 font-bold text-sm uppercase mb-2">Ultrasound Findings</p>
-          <p className="text-white text-base md:text-lg">{data.finding}</p>
+        <div className="p-4 bg-slate-900 border border-slate-800 rounded-lg">
+          <p className="text-indigo-400 font-bold text-xs uppercase tracking-wider mb-2 font-mono">Ultrasound Findings</p>
+          <p className="text-white text-base md:text-lg font-medium">{data.finding}</p>
         </div>
-        <button onClick={close} className="mt-6 w-full bg-slate-700 hover:bg-slate-600 p-3 rounded font-bold text-white transition">Close Report</button>
+        <button onClick={close} className="mt-6 w-full glass-button glass-button-cyan p-3 rounded-lg font-bold text-white transition text-xs font-mono uppercase tracking-wider">Close Report</button>
       </div>
     </div>
   );
@@ -40,10 +40,10 @@ export const AirwayQuizModal = ({ data, submitAirwayQuiz }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border-2 border-cyan-500 rounded-xl p-6 md:p-8 max-h-[85vh] overflow-y-auto custom-scrollbar w-11/12 max-w-2xl shadow-2xl">
-        <h2 className="text-xl md:text-2xl font-bold text-white mb-4 flex items-center gap-2"><Eye size={24}/> Pre-Intubation Airway Assessment</h2>
-        <p className="text-sm md:text-lg text-slate-300 mb-4 italic border-l-4 border-cyan-500 pl-4 py-2 bg-slate-800/50 whitespace-pre-wrap">{data.description}</p>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+      <div className="bg-slate-950/90 border-2 border-cyan-500/60 shadow-[0_0_30px_rgba(6,182,212,0.25)] backdrop-blur-xl rounded-xl p-6 md:p-8 max-h-[85vh] overflow-y-auto custom-scrollbar w-11/12 max-w-2xl shadow-2xl">
+        <h2 className="text-xl md:text-2xl font-bold text-white mb-4 flex items-center gap-2"><Eye size={24} className="text-cyan-400"/> Pre-Intubation Airway Assessment</h2>
+        <p className="text-sm md:text-lg text-slate-300 mb-4 italic border-l-4 border-cyan-500/60 pl-4 py-2 bg-slate-900/50 whitespace-pre-wrap">{data.description}</p>
         
         {error && (
             <div className="mb-4 bg-red-950/80 border border-red-500 text-red-200 p-3 rounded font-bold text-sm animate-pulse">
@@ -54,8 +54,8 @@ export const AirwayQuizModal = ({ data, submitAirwayQuiz }) => {
         <h3 className="text-yellow-400 font-bold mb-4 text-sm md:text-base">Based on your visualization, select the correct Mallampati Score:</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[1, 2, 3, 4].map(grade => (
-            <button key={grade} onClick={() => handleSelect(grade)} className="bg-slate-800 hover:bg-cyan-900 p-4 rounded text-left border border-slate-700 hover:border-cyan-400 transition">
-              <span className="font-bold text-white block">Mallampati Class {['I', 'II', 'III', 'IV'][grade-1]}</span>
+            <button key={grade} onClick={() => handleSelect(grade)} className="bg-slate-900/60 hover:bg-cyan-950/40 p-4 rounded-xl border border-slate-800/80 hover:border-cyan-500/50 hover:shadow-[0_0_15px_rgba(6,182,212,0.15)] transition-all font-mono">
+              <span className="font-black text-white block text-sm tracking-wide">Mallampati Class {['I', 'II', 'III', 'IV'][grade-1]}</span>
             </button>
           ))}
         </div>
@@ -125,28 +125,28 @@ export const AccessModal = ({ data, close, establishAccess }) => {
   // Ring theme colors
   const themes = {
     'Peripheral IV': {
-      ring: 'border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.25)]',
-      text: 'text-emerald-400',
-      btn: 'bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/30 hover:border-emerald-400 text-emerald-100 hover:text-white',
-      banner: 'bg-emerald-950/40 border border-emerald-800/40 text-emerald-200'
+      ring: 'border-cyan-500/60 shadow-[0_0_30px_rgba(6,182,212,0.25)]',
+      text: 'text-cyan-400',
+      btn: 'bg-cyan-600/20 hover:bg-cyan-600 border border-cyan-500/30 hover:border-cyan-400 text-cyan-100 hover:text-white',
+      banner: 'bg-cyan-950/40 border border-cyan-800/40 text-cyan-200'
     },
     'Central Line': {
-      ring: 'border-purple-500/50 shadow-[0_0_20px_rgba(168,85,247,0.25)]',
-      text: 'text-purple-400',
-      btn: 'bg-purple-600/20 hover:bg-purple-600 border border-purple-500/30 hover:border-purple-400 text-purple-100 hover:text-white',
-      banner: 'bg-purple-950/40 border border-purple-800/40 text-purple-200'
+      ring: 'border-indigo-500/60 shadow-[0_0_30px_rgba(99,102,241,0.25)]',
+      text: 'text-indigo-400',
+      btn: 'bg-indigo-600/20 hover:bg-indigo-600 border border-indigo-500/30 hover:border-indigo-400 text-indigo-100 hover:text-white',
+      banner: 'bg-indigo-950/40 border border-indigo-800/40 text-indigo-200'
     },
     'Intraosseous (IO)': {
-      ring: 'border-orange-500/50 shadow-[0_0_20px_rgba(249,115,22,0.25)]',
-      text: 'text-orange-400',
-      btn: 'bg-orange-600/20 hover:bg-orange-600 border border-orange-500/30 hover:border-orange-400 text-orange-100 hover:text-white',
-      banner: 'bg-orange-950/40 border border-orange-800/40 text-orange-200'
+      ring: 'border-cyan-500/60 shadow-[0_0_30px_rgba(6,182,212,0.25)]',
+      text: 'text-cyan-400',
+      btn: 'bg-cyan-600/20 hover:bg-cyan-600 border border-cyan-500/30 hover:border-cyan-400 text-cyan-100 hover:text-white',
+      banner: 'bg-cyan-950/40 border border-cyan-800/40 text-cyan-200'
     },
     'Arterial Line': {
-      ring: 'border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.25)]',
-      text: 'text-rose-400',
-      btn: 'bg-rose-600/20 hover:bg-rose-600 border border-rose-500/30 hover:border-rose-400 text-rose-100 hover:text-white',
-      banner: 'bg-rose-950/40 border border-rose-800/40 text-rose-200'
+      ring: 'border-indigo-500/60 shadow-[0_0_30px_rgba(99,102,241,0.25)]',
+      text: 'text-indigo-400',
+      btn: 'bg-indigo-600/20 hover:bg-indigo-600 border border-indigo-500/30 hover:border-indigo-400 text-indigo-100 hover:text-white',
+      banner: 'bg-indigo-950/40 border border-indigo-800/40 text-indigo-200'
     }
   };
 
@@ -481,32 +481,32 @@ export const AccessModal = ({ data, close, establishAccess }) => {
 export const TubeConfirmModal = ({ data, close, patient, auscultateLungs, adjustTube }) => {
   if (!data.show) return null;
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border-2 border-indigo-500 rounded-xl p-6 md:p-8 max-h-[85vh] overflow-y-auto custom-scrollbar w-11/12 max-w-xl shadow-2xl">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+      <div className="bg-slate-950/90 border-2 border-indigo-500/60 shadow-[0_0_30px_rgba(99,102,241,0.25)] backdrop-blur-xl rounded-xl p-6 md:p-8 max-h-[85vh] overflow-y-auto custom-scrollbar w-11/12 max-w-xl shadow-2xl">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2"><Stethoscope size={24}/> Auscultate & Confirm</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2"><Stethoscope size={24} className="text-indigo-400"/> Auscultate & Confirm</h2>
           <button onClick={close} className="text-slate-400 hover:text-white"><X size={24}/></button>
         </div>
 
         {data.result && (
-          <div className="mb-6 p-4 bg-indigo-900/40 border border-indigo-500 rounded text-indigo-200 font-bold text-sm md:text-base">
+          <div className="mb-6 p-4 bg-indigo-950/60 border border-indigo-500/40 rounded-xl text-indigo-200 font-mono font-bold text-xs md:text-sm shadow-inner">
             {data.result}
           </div>
         )}
 
-        <p className="text-sm md:text-base text-slate-300 mb-4">Select an anatomical location to auscultate for breath sounds or gastric insufflation:</p>
-        <div className="grid grid-cols-1 gap-3 mb-6">
-          <button onClick={() => auscultateLungs('Left Lung')} className="bg-slate-800 hover:bg-indigo-900 p-4 rounded text-left border border-slate-700 hover:border-indigo-400 transition font-bold text-sm md:text-base">Left Lung Field</button>
-          <button onClick={() => auscultateLungs('Right Lung')} className="bg-slate-800 hover:bg-indigo-900 p-4 rounded text-left border border-slate-700 hover:border-indigo-400 transition font-bold text-sm md:text-base">Right Lung Field</button>
-          <button onClick={() => auscultateLungs('Epigastrium')} className="bg-slate-800 hover:bg-indigo-900 p-4 rounded text-left border border-slate-700 hover:border-indigo-400 transition font-bold text-sm md:text-base">Epigastrium (Stomach)</button>
+        <p className="text-xs md:text-sm text-slate-400 mb-4 font-mono">Select an anatomical location to auscultate for breath sounds or gastric insufflation:</p>
+        <div className="grid grid-cols-1 gap-3 mb-6 font-mono">
+          <button onClick={() => auscultateLungs('Left Lung')} className="bg-slate-900/60 hover:bg-indigo-950/40 p-4 rounded-xl border border-slate-800/80 hover:border-indigo-500/50 hover:shadow-[0_0_12px_rgba(99,102,241,0.15)] text-left transition font-bold text-xs md:text-sm text-white">Left Lung Field</button>
+          <button onClick={() => auscultateLungs('Right Lung')} className="bg-slate-900/60 hover:bg-indigo-950/40 p-4 rounded-xl border border-slate-800/80 hover:border-indigo-500/50 hover:shadow-[0_0_12px_rgba(99,102,241,0.15)] text-left transition font-bold text-xs md:text-sm text-white">Right Lung Field</button>
+          <button onClick={() => auscultateLungs('Epigastrium')} className="bg-slate-900/60 hover:bg-indigo-950/40 p-4 rounded-xl border border-slate-800/80 hover:border-indigo-500/50 hover:shadow-[0_0_12px_rgba(99,102,241,0.15)] text-left transition font-bold text-xs md:text-sm text-white">Epigastrium (Stomach)</button>
         </div>
 
         {(patient.tubePosition === 'right_mainstem' || patient.tubePosition === 'left_mainstem' || patient.tubePosition === 'trachea' || patient.tubePosition === 'esophagus') && (
           <>
-            <h3 className="text-indigo-400 font-bold mb-3 border-b border-indigo-900 pb-1">Tube Interventions</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button onClick={() => adjustTube('pull_back')} className="bg-slate-800 hover:bg-slate-700 p-3 rounded text-sm text-center border border-slate-700 hover:border-slate-500 font-bold">Pull Tube Back 2cm</button>
-              <button onClick={() => adjustTube('remove')} className="bg-red-900/40 hover:bg-red-800 p-3 rounded text-sm text-center border border-red-900 hover:border-red-500 text-red-200 font-bold">Extubate / Remove Tube</button>
+            <h3 className="text-indigo-400 font-bold text-xs uppercase tracking-wider mb-3 border-b border-indigo-950 pb-1 font-mono">Tube Interventions</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 font-mono">
+              <button onClick={() => adjustTube('pull_back')} className="bg-slate-900/60 hover:bg-slate-800/60 p-3 rounded-xl border border-slate-800 hover:border-slate-600 text-xs text-center font-bold text-slate-200 transition-all">Pull Tube Back 2cm</button>
+              <button onClick={() => adjustTube('remove')} className="bg-rose-950/20 hover:bg-rose-900/35 p-3 rounded-xl border border-rose-900/40 hover:border-rose-500 text-xs text-center text-rose-300 font-bold transition-all">Extubate / Remove Tube</button>
             </div>
           </>
         )}
@@ -518,36 +518,36 @@ export const TubeConfirmModal = ({ data, close, patient, auscultateLungs, adjust
 export const SetupModal = ({ show, close, viewModal, setViewModal, processIntubation }) => {
   if (!show) return null;
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border-2 border-green-500 rounded-xl p-4 md:p-8 max-w-4xl shadow-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
-        <h2 className="text-xl md:text-2xl font-bold text-white mb-6 flex items-center gap-2"><Wind size={24}/> Intubation Equipment Setup</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+      <div className="bg-slate-950/90 border-2 border-cyan-500/60 shadow-[0_0_30px_rgba(6,182,212,0.25)] backdrop-blur-xl rounded-xl p-4 md:p-8 max-w-4xl shadow-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <h2 className="text-xl md:text-2xl font-bold text-white mb-6 flex items-center gap-2"><Wind size={24} className="text-cyan-400"/> Intubation Equipment Setup</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 font-mono">
           <div>
-            <h3 className="text-green-400 font-bold mb-3 border-b border-green-900 pb-1">1. Select Blade</h3>
+            <h3 className="text-cyan-400 font-bold mb-3 border-b border-cyan-950 pb-1 text-xs uppercase tracking-wider">1. Select Blade</h3>
             <div className="flex flex-col gap-2">
               {['Macintosh (Curved DL)', 'Miller (Straight DL)', 'Standard VL', 'Hyperangulated VL', 'Fiberoptic'].map(blade => (
-                <button key={blade} onClick={() => setViewModal(prev => ({...prev, blade}))} className={`p-2 rounded text-xs text-left border ${viewModal.blade === blade ? 'bg-green-800 border-green-400' : 'bg-slate-800 border-slate-700 hover:bg-slate-700 transition'}`}>{blade}</button>
+                <button key={blade} onClick={() => setViewModal(prev => ({...prev, blade}))} className={`p-2 rounded-xl text-xs text-left border transition-all ${viewModal.blade === blade ? 'bg-cyan-950/40 border-cyan-500/60 text-cyan-200 shadow-[0_0_12px_rgba(6,182,212,0.15)] font-bold' : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'}`}>{blade}</button>
               ))}
             </div>
             {viewModal.blade && !viewModal.blade.includes('Fiberoptic') && (
-              <select value={viewModal.bladeSize} onChange={(e) => setViewModal(prev => ({...prev, bladeSize: e.target.value}))} className="w-full mt-2 bg-slate-950 text-white text-xs p-2 border border-slate-700 rounded outline-none focus:border-green-500 transition">
+              <select value={viewModal.bladeSize} onChange={(e) => setViewModal(prev => ({...prev, bladeSize: e.target.value}))} className="w-full mt-2 bg-slate-950 text-white text-xs p-2 border border-slate-800 rounded outline-none focus:border-cyan-500 transition">
                 <option value="">Select Size (Hint: Size 3/4 Adult)</option>
                 <option value="2">Size 2 (Small)</option><option value="3">Size 3 (Normal)</option><option value="4">Size 4 (Large)</option>
               </select>
             )}
           </div>
           <div>
-            <h3 className="text-cyan-400 font-bold mb-3 border-b border-cyan-900 pb-1">2. Select ETT</h3>
-            <div className="bg-slate-800 p-3 rounded border border-slate-700">
+            <h3 className="text-indigo-400 font-bold mb-3 border-b border-indigo-950 pb-1 text-xs uppercase tracking-wider">2. Select ETT</h3>
+            <div className="bg-slate-900 border border-slate-800 p-3 rounded-xl">
               <label className="text-[10px] md:text-xs text-slate-400 block mb-1">Tube Size (Hint: 7.0-7.5 Female, 7.5-8.0 Male)</label>
-              <select value={viewModal.tubeSize} onChange={(e) => setViewModal(prev => ({...prev, tubeSize: e.target.value}))} className="w-full bg-slate-950 text-white text-sm p-2 border border-slate-600 rounded outline-none focus:border-cyan-500 transition">
+              <select value={viewModal.tubeSize} onChange={(e) => setViewModal(prev => ({...prev, tubeSize: e.target.value}))} className="w-full bg-slate-950 text-white text-xs p-2.5 border border-slate-850 rounded-lg outline-none focus:border-cyan-500 transition">
                 <option value="">Select ETT Size...</option>
                 <option value="6.0">6.0 mm</option><option value="6.5">6.5 mm</option><option value="7.0">7.0 mm</option><option value="7.5">7.5 mm</option><option value="8.0">8.0 mm</option>
               </select>
             </div>
           </div>
           <div>
-            <h3 className="text-blue-400 font-bold mb-3 border-b border-blue-900 pb-1">3. Select Adjunct</h3>
+            <h3 className="text-cyan-400 font-bold mb-3 border-b border-cyan-950 pb-1 text-xs uppercase tracking-wider">3. Select Adjunct</h3>
             <div className="flex flex-col gap-2">
               {[
                 'None (Direct Tube)', 
@@ -556,14 +556,14 @@ export const SetupModal = ({ show, close, viewModal, setViewModal, processIntuba
                 'Hyperangulated Rigid Stylet', 
                 'Articulating Bougie'
               ].map(adjunct => (
-                <button key={adjunct} onClick={() => setViewModal(prev => ({...prev, adjunct}))} className={`p-2 rounded text-xs text-left border ${viewModal.adjunct === adjunct ? 'bg-blue-800 border-blue-400' : 'bg-slate-800 border-slate-700 hover:bg-slate-700 transition'}`}>{adjunct}</button>
+                <button key={adjunct} onClick={() => setViewModal(prev => ({...prev, adjunct}))} className={`p-2 rounded-xl text-xs text-left border transition-all ${viewModal.adjunct === adjunct ? 'bg-cyan-950/40 border-cyan-500/60 text-cyan-200 shadow-[0_0_12px_rgba(6,182,212,0.15)] font-bold' : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'}`}>{adjunct}</button>
               ))}
             </div>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row justify-end gap-3 md:gap-4 border-t border-slate-800 pt-4">
-          <button onClick={close} className="px-6 py-3 sm:py-2 bg-slate-700 hover:bg-slate-600 rounded font-bold w-full sm:w-auto transition">Cancel</button>
-          <button onClick={() => processIntubation(`${viewModal.blade} Size ${viewModal.bladeSize || '-'} with ${viewModal.tubeSize} ETT`, viewModal.adjunct)} disabled={!viewModal.blade || !viewModal.adjunct || !viewModal.tubeSize} className="px-6 py-3 sm:py-2 bg-green-600 hover:bg-green-500 disabled:opacity-50 rounded font-bold text-white w-full sm:w-auto transition">Proceed to Intubate</button>
+        <div className="flex flex-col sm:flex-row justify-end gap-3 md:gap-4 border-t border-slate-800/60 pt-4">
+          <button onClick={close} className="px-6 py-3 sm:py-2 bg-slate-900 hover:bg-slate-800 rounded-xl font-bold w-full sm:w-auto text-slate-400 hover:text-white border border-slate-800 transition">Cancel</button>
+          <button onClick={() => processIntubation(`${viewModal.blade} Size ${viewModal.bladeSize || '-'} with ${viewModal.tubeSize} ETT`, viewModal.adjunct)} disabled={!viewModal.blade || !viewModal.adjunct || !viewModal.tubeSize} className="px-6 py-3 sm:py-2 bg-cyan-600/20 hover:bg-cyan-600 disabled:opacity-50 disabled:pointer-events-none rounded-xl font-bold text-cyan-300 hover:text-white border border-cyan-500/30 hover:border-cyan-400 w-full sm:w-auto transition shadow-[0_0_15px_rgba(6,182,212,0.1)]">Proceed to Intubate</button>
         </div>
       </div>
     </div>
@@ -573,16 +573,16 @@ export const SetupModal = ({ show, close, viewModal, setViewModal, processIntuba
 export const ViewModal = ({ data, submitGrade }) => {
   if (!data.show || !data.description) return null;
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border-2 border-cyan-500 rounded-xl p-6 md:p-8 max-w-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
-        <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2"><Eye size={24}/> Direct Visualization: {data.blade}</h2>
-        <p className="text-lg text-slate-300 mb-8 italic border-l-4 border-cyan-500 pl-4 py-2 bg-slate-800/50 whitespace-pre-wrap">"{data.description}"</p>
-        <h3 className="text-yellow-400 font-bold mb-4">Select the Cormack-Lehane Grade:</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+      <div className="bg-slate-950/90 border-2 border-cyan-500/60 shadow-[0_0_30px_rgba(6,182,212,0.25)] backdrop-blur-xl rounded-xl p-6 md:p-8 max-w-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2"><Eye size={24} className="text-cyan-400"/> Direct Visualization: {data.blade}</h2>
+        <p className="text-lg text-slate-300 mb-8 italic border-l-4 border-cyan-500/60 pl-4 py-2 bg-slate-900/50 whitespace-pre-wrap">"{data.description}"</p>
+        <h3 className="text-yellow-400 font-bold mb-4 font-mono text-sm md:text-base">Select the Cormack-Lehane Grade:</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono">
           {[1, 2, 3, 4].map(grade => (
-            <button key={grade} onClick={() => submitGrade(grade)} className="bg-slate-800 hover:bg-cyan-900 p-4 rounded text-left border border-slate-700 hover:border-cyan-400 transition">
-              <span className="font-bold text-white block">Grade {['I', 'II', 'III', 'IV'][grade-1]}</span>
-              <span className="text-sm text-slate-400">{['Full view of glottis', 'Partial view of glottis', 'Epiglottis only visible', 'No structures visible'][grade-1]}</span>
+            <button key={grade} onClick={() => submitGrade(grade)} className="bg-slate-900/60 hover:bg-cyan-950/40 p-4 rounded-xl border border-slate-800/85 hover:border-cyan-500/50 hover:shadow-[0_0_15px_rgba(6,182,212,0.15)] transition-all text-left">
+              <span className="font-black text-white block text-sm tracking-wide">Grade {['I', 'II', 'III', 'IV'][grade-1]}</span>
+              <span className="text-xs text-slate-400 mt-1 block">{['Full view of glottis', 'Partial view of glottis', 'Epiglottis only visible', 'No structures visible'][grade-1]}</span>
             </button>
           ))}
         </div>
@@ -660,8 +660,8 @@ export const PreopModal = ({ show, close, patient, setPatient, logEvent }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border-2 border-indigo-500 rounded-xl p-6 md:p-8 max-w-4xl shadow-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+      <div className="bg-slate-950/90 border-2 border-indigo-500/60 shadow-[0_0_30px_rgba(99,102,241,0.25)] backdrop-blur-xl rounded-xl p-6 md:p-8 max-w-4xl shadow-2xl w-full max-h-[90vh] overflow-y-auto custom-scrollbar">
         <div className="flex justify-between items-center mb-6 border-b border-slate-800 pb-3">
           <div>
             <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">📋 Pre-Operative Risk Assessment</h2>
@@ -984,87 +984,87 @@ export const MsmaidsModal = ({ show, close, logEvent, onComplete }) => {
 
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border-2 border-emerald-500 rounded-xl p-6 md:p-8 max-w-xl shadow-2xl w-full max-h-[85vh] overflow-y-auto custom-scrollbar">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+      <div className="bg-slate-950/90 border-2 border-cyan-500/60 shadow-[0_0_30px_rgba(6,182,212,0.25)] backdrop-blur-xl rounded-xl p-6 md:p-8 max-w-xl shadow-2xl w-full max-h-[85vh] overflow-y-auto custom-scrollbar">
         <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-2">
           <div>
             <h2 className="text-xl font-bold text-white flex items-center gap-2">🛠️ MSMAIDS Setup Checklist</h2>
-            <p className="text-xs text-emerald-400 mt-0.5">Critical pre-flight checklist prior to general anesthesia induction</p>
+            <p className="text-xs text-cyan-400 mt-0.5">Critical pre-flight checklist prior to general anesthesia induction</p>
           </div>
           <button onClick={close} className="text-slate-400 hover:text-white"><X size={20}/></button>
         </div>
 
         <div className="flex flex-col gap-3 my-4">
-          <button onClick={() => toggleCheck('m')} className={`flex items-start gap-3 p-3 rounded border text-left transition ${checks.m ? 'bg-emerald-950/30 border-emerald-600 text-emerald-200' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}`}>
-            <span className="text-xl font-black text-emerald-400 w-6">M</span>
+          <button onClick={() => toggleCheck('m')} className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${checks.m ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
+            <span className={`text-xl font-black w-6 ${checks.m ? 'text-cyan-400' : 'text-slate-500'}`}>M</span>
             <div className="flex-1">
-              <span className="font-bold text-sm block">Anesthesia Machine Check</span>
+              <span className="font-bold text-sm block text-white">Anesthesia Machine Check</span>
               <span className="text-xs text-slate-400 block mt-0.5">Leak test completed, vaporizers locked, circuit connected, backup O2 cylinder pressurized and verified.</span>
             </div>
-            <input type="checkbox" checked={checks.m} readOnly className="rounded border-slate-600 text-emerald-600 focus:ring-0 mt-1 pointer-events-none" />
+            <input type="checkbox" checked={checks.m} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-0 mt-1 pointer-events-none" />
           </button>
 
-          <button onClick={() => toggleCheck('s')} className={`flex items-start gap-3 p-3 rounded border text-left transition ${checks.s ? 'bg-emerald-950/30 border-emerald-600 text-emerald-200' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}`}>
-            <span className="text-xl font-black text-emerald-400 w-6">S</span>
+          <button onClick={() => toggleCheck('s')} className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${checks.s ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
+            <span className={`text-xl font-black w-6 ${checks.s ? 'text-cyan-400' : 'text-slate-500'}`}>S</span>
             <div className="flex-1">
-              <span className="font-bold text-sm block">Suction Setup</span>
+              <span className="font-bold text-sm block text-white">Suction Setup</span>
               <span className="text-xs text-slate-400 block mt-0.5">Yankauer catheter secured bedside, suction pressure verified &gt; -200 mmHg.</span>
             </div>
-            <input type="checkbox" checked={checks.s} readOnly className="rounded border-slate-600 text-emerald-600 focus:ring-0 mt-1 pointer-events-none" />
+            <input type="checkbox" checked={checks.s} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-0 mt-1 pointer-events-none" />
           </button>
 
-          <button onClick={() => toggleCheck('m2')} className={`flex items-start gap-3 p-3 rounded border text-left transition ${checks.m2 ? 'bg-emerald-950/30 border-emerald-600 text-emerald-200' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}`}>
-            <span className="text-xl font-black text-emerald-400 w-6">M</span>
+          <button onClick={() => toggleCheck('m2')} className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${checks.m2 ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
+            <span className={`text-xl font-black w-6 ${checks.m2 ? 'text-cyan-400' : 'text-slate-500'}`}>M</span>
             <div className="flex-1">
-              <span className="font-bold text-sm block">Monitors Applied</span>
+              <span className="font-bold text-sm block text-white">Monitors Applied</span>
               <span className="text-xs text-slate-400 block mt-0.5">3/5 lead ECG, pulse oximeter, blood pressure cuff, temperature probe applied and reading vitals.</span>
             </div>
-            <input type="checkbox" checked={checks.m2} readOnly className="rounded border-slate-600 text-emerald-600 focus:ring-0 mt-1 pointer-events-none" />
+            <input type="checkbox" checked={checks.m2} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-0 mt-1 pointer-events-none" />
           </button>
 
-          <button onClick={() => toggleCheck('a')} className={`flex items-start gap-3 p-3 rounded border text-left transition ${checks.a ? 'bg-emerald-950/30 border-emerald-600 text-emerald-200' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}`}>
-            <span className="text-xl font-black text-emerald-400 w-6">A</span>
+          <button onClick={() => toggleCheck('a')} className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${checks.a ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
+            <span className={`text-xl font-black w-6 ${checks.a ? 'text-cyan-400' : 'text-slate-500'}`}>A</span>
             <div className="flex-1">
-              <span className="font-bold text-sm block">Airway Equipment Ready</span>
+              <span className="font-bold text-sm block text-white">Airway Equipment Ready</span>
               <span className="text-xs text-slate-400 block mt-0.5">Primary ETT and backup ETT sizes verified, laryngoscopes (DL/VL blades) loaded, bougie and oral airways accessible.</span>
             </div>
-            <input type="checkbox" checked={checks.a} readOnly className="rounded border-slate-600 text-emerald-600 focus:ring-0 mt-1 pointer-events-none" />
+            <input type="checkbox" checked={checks.a} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-0 mt-1 pointer-events-none" />
           </button>
 
-          <button onClick={() => toggleCheck('i')} className={`flex items-start gap-3 p-3 rounded border text-left transition ${checks.i ? 'bg-emerald-950/30 border-emerald-600 text-emerald-200' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}`}>
-            <span className="text-xl font-black text-emerald-400 w-6">I</span>
+          <button onClick={() => toggleCheck('i')} className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${checks.i ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
+            <span className={`text-xl font-black w-6 ${checks.i ? 'text-cyan-400' : 'text-slate-500'}`}>I</span>
             <div className="flex-1">
-              <span className="font-bold text-sm block">Intravenous Access Patency</span>
+              <span className="font-bold text-sm block text-white">Intravenous Access Patency</span>
               <span className="text-xs text-slate-400 block mt-0.5">Large-bore PIV running, catheter gauge verified, extra lines available for rapid resuscitation.</span>
             </div>
-            <input type="checkbox" checked={checks.i} readOnly className="rounded border-slate-600 text-emerald-600 focus:ring-0 mt-1 pointer-events-none" />
+            <input type="checkbox" checked={checks.i} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-0 mt-1 pointer-events-none" />
           </button>
 
-          <button onClick={() => toggleCheck('d')} className={`flex items-start gap-3 p-3 rounded border text-left transition ${checks.d ? 'bg-emerald-950/30 border-emerald-600 text-emerald-200' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}`}>
-            <span className="text-xl font-black text-emerald-400 w-6">D</span>
+          <button onClick={() => toggleCheck('d')} className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${checks.d ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
+            <span className={`text-xl font-black w-6 ${checks.d ? 'text-cyan-400' : 'text-slate-500'}`}>D</span>
             <div className="flex-1">
-              <span className="font-bold text-sm block">Drugs & Syringes Labeled</span>
+              <span className="font-bold text-sm block text-white">Drugs & Syringes Labeled</span>
               <span className="text-xs text-slate-400 block mt-0.5">Induction sedatives, paralytics, and emergency rescue pressors (Epi, Phenylephrine, Atropine) drawn, labeled and verified.</span>
             </div>
-            <input type="checkbox" checked={checks.d} readOnly className="rounded border-slate-600 text-emerald-600 focus:ring-0 mt-1 pointer-events-none" />
+            <input type="checkbox" checked={checks.d} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-0 mt-1 pointer-events-none" />
           </button>
 
-          <button onClick={() => toggleCheck('s2')} className={`flex items-start gap-3 p-3 rounded border text-left transition ${checks.s2 ? 'bg-emerald-950/30 border-emerald-600 text-emerald-200' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}`}>
-            <span className="text-xl font-black text-emerald-400 w-6">S</span>
+          <button onClick={() => toggleCheck('s2')} className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${checks.s2 ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
+            <span className={`text-xl font-black w-6 ${checks.s2 ? 'text-cyan-400' : 'text-slate-500'}`}>S</span>
             <div className="flex-1">
-              <span className="font-bold text-sm block">Safety backups / Cricothyrotomy bedside</span>
+              <span className="font-bold text-sm block text-white">Safety backups / Cricothyrotomy bedside</span>
               <span className="text-xs text-slate-400 block mt-0.5">Emergency surgical airway cricothyrotomy kit bedside, code cart located, help available.</span>
             </div>
-            <input type="checkbox" checked={checks.s2} readOnly className="rounded border-slate-600 text-emerald-600 focus:ring-0 mt-1 pointer-events-none" />
+            <input type="checkbox" checked={checks.s2} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-0 mt-1 pointer-events-none" />
           </button>
         </div>
 
-        <div className="flex justify-end gap-3 border-t border-slate-800 pt-4 mt-6">
-          <button onClick={close} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded font-bold text-xs text-slate-300 transition">Cancel</button>
+        <div className="flex justify-end gap-3 border-t border-slate-800/60 pt-4 mt-6">
+          <button onClick={close} className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 rounded-xl font-bold text-xs text-slate-400 hover:text-white border border-slate-800 transition">Cancel</button>
           <button 
             onClick={handleVerify} 
             disabled={!allChecked} 
-            className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 rounded font-bold text-xs text-white transition shadow-lg shadow-emerald-950/30"
+            className="px-6 py-2.5 bg-cyan-600/20 hover:bg-cyan-600 disabled:opacity-50 disabled:pointer-events-none rounded-xl font-bold text-xs text-cyan-300 hover:text-white border border-cyan-500/30 hover:border-cyan-400 transition shadow-[0_0_15px_rgba(6,182,212,0.1)]"
           >
             Complete MSMAIDS Check
           </button>
@@ -1183,21 +1183,21 @@ export const ExtubationModal = ({ show, close, vitals, patient, logEvent, perfor
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border-2 border-rose-500 rounded-xl p-6 md:p-8 max-w-xl shadow-2xl w-full max-h-[85vh] overflow-y-auto custom-scrollbar">
-        <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-2">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
+      <div className="bg-slate-950/90 border-2 border-indigo-500/60 shadow-[0_0_30px_rgba(99,102,241,0.25)] backdrop-blur-xl rounded-xl p-6 md:p-8 max-w-xl shadow-2xl w-full max-h-[85vh] overflow-y-auto custom-scrollbar">
+        <div className="flex justify-between items-center mb-4 border-b border-slate-850 pb-2">
           <div>
             <h2 className="text-xl font-bold text-white flex items-center gap-2">💨 Extubation Evaluation Criteria</h2>
-            <p className="text-xs text-rose-400 mt-0.5">Rigorous assessment of awake extubation clinical safety criteria</p>
+            <p className="text-xs text-indigo-400 mt-0.5 font-mono">Rigorous assessment of awake extubation clinical safety criteria</p>
           </div>
           <button onClick={close} className="text-slate-400 hover:text-white"><X size={20}/></button>
         </div>
 
-        <div className="bg-slate-950 border border-slate-800 p-4 rounded-lg flex flex-col gap-3 my-4">
-          <h3 className="text-rose-400 font-bold text-xs uppercase tracking-wider">Objective Ventilatory & Neuromuscular Metrics</h3>
+        <div className="bg-slate-900/40 border border-slate-800 p-4 rounded-xl flex flex-col gap-3 my-4">
+          <h3 className="text-indigo-400 font-bold text-xs uppercase tracking-wider font-mono">Objective Ventilatory & Neuromuscular Metrics</h3>
           
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className="bg-slate-900 p-2.5 rounded border border-slate-800 flex flex-col">
+          <div className="grid grid-cols-2 gap-3 text-xs font-mono">
+            <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-850 flex flex-col">
               <span className="text-slate-400">TOF Recovery Ratio:</span>
               <span className={`text-base font-black mt-1 ${hasTofRatio ? 'text-green-400' : 'text-red-400'}`}>
                 {vitals.tofCount}/4 ({vitals.tofRatio ? `${(vitals.tofRatio*100).toFixed(0)}%` : '0%'})
@@ -1205,7 +1205,7 @@ export const ExtubationModal = ({ show, close, vitals, patient, logEvent, perfor
               <span className="text-[10px] text-slate-500 mt-0.5">Target: 4/4 (Ratio &gt;= 90%)</span>
             </div>
 
-            <div className="bg-slate-900 p-2.5 rounded border border-slate-800 flex flex-col">
+            <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-850 flex flex-col">
               <span className="text-slate-400">Spontaneous Resp Rate:</span>
               <span className={`text-base font-black mt-1 ${isRrGood ? 'text-green-400' : 'text-red-400'}`}>
                 {vitals.rr} bpm
@@ -1213,7 +1213,7 @@ export const ExtubationModal = ({ show, close, vitals, patient, logEvent, perfor
               <span className="text-[10px] text-slate-500 mt-0.5">Target: 6 - 30 bpm</span>
             </div>
 
-            <div className="bg-slate-900 p-2.5 rounded border border-slate-800 flex flex-col col-span-2">
+            <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-850 flex flex-col col-span-2">
               <span className="text-slate-400">Spontaneous Tidal Volume:</span>
               <span className={`text-base font-black mt-1 ${isTvGood ? 'text-green-400' : 'text-red-400'}`}>
                 {vitals.vte} mL ({(vitals.vte / patient.weight).toFixed(1)} mL/kg)
@@ -1224,45 +1224,45 @@ export const ExtubationModal = ({ show, close, vitals, patient, logEvent, perfor
         </div>
 
         <div className="flex flex-col gap-2 my-4">
-          <h3 className="text-rose-400 font-bold text-xs uppercase tracking-wider">Clinical Bedside Checks</h3>
+          <h3 className="text-indigo-400 font-bold text-xs uppercase tracking-wider font-mono">Clinical Bedside Checks</h3>
           
-          <button onClick={() => toggleCheck('tof')} className={`flex items-center justify-between p-2.5 rounded border text-left text-xs font-bold transition ${checks.tof ? 'bg-rose-950/20 border-rose-600 text-rose-200' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}`}>
+          <button onClick={() => toggleCheck('tof')} className={`flex items-center justify-between p-3 rounded-xl border text-left text-xs font-bold transition-all ${checks.tof ? 'bg-indigo-950/30 border-indigo-500/40 text-indigo-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
             <span>Confirm TOF Ratio &gt;= 90% (Neuromuscular safety)</span>
-            <input type="checkbox" checked={checks.tof} readOnly className="rounded border-slate-600 text-rose-600 focus:ring-0 pointer-events-none" />
+            <input type="checkbox" checked={checks.tof} readOnly className="rounded border-slate-700 text-indigo-500 focus:ring-0 pointer-events-none" />
           </button>
 
-          <button onClick={() => toggleCheck('rr')} className={`flex items-center justify-between p-2.5 rounded border text-left text-xs font-bold transition ${checks.rr ? 'bg-rose-950/20 border-rose-600 text-rose-200' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}`}>
+          <button onClick={() => toggleCheck('rr')} className={`flex items-center justify-between p-3 rounded-xl border text-left text-xs font-bold transition-all ${checks.rr ? 'bg-indigo-950/30 border-indigo-500/40 text-indigo-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
             <span>Spontaneous respiratory rate stable between 6-30 bpm</span>
-            <input type="checkbox" checked={checks.rr} readOnly className="rounded border-slate-600 text-rose-600 focus:ring-0 pointer-events-none" />
+            <input type="checkbox" checked={checks.rr} readOnly className="rounded border-slate-700 text-indigo-500 focus:ring-0 pointer-events-none" />
           </button>
 
-          <button onClick={() => toggleCheck('cuffLeak')} className={`flex items-center justify-between p-2.5 rounded border text-left text-xs font-bold transition ${checks.cuffLeak ? 'bg-rose-950/20 border-rose-600 text-rose-200' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}`}>
+          <button onClick={() => toggleCheck('cuffLeak')} className={`flex items-center justify-between p-3 rounded-xl border text-left text-xs font-bold transition-all ${checks.cuffLeak ? 'bg-indigo-950/30 border-indigo-500/40 text-indigo-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
             <span>Cuff Leak Test: audible leak present, no airway edema</span>
-            <input type="checkbox" checked={checks.cuffLeak} readOnly className="rounded border-slate-600 text-rose-600 focus:ring-0 pointer-events-none" />
+            <input type="checkbox" checked={checks.cuffLeak} readOnly className="rounded border-slate-700 text-indigo-500 focus:ring-0 pointer-events-none" />
           </button>
 
-          <button onClick={() => toggleCheck('tv')} className={`flex items-center justify-between p-2.5 rounded border text-left text-xs font-bold transition ${checks.tv ? 'bg-rose-950/20 border-rose-600 text-rose-200' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}`}>
+          <button onClick={() => toggleCheck('tv')} className={`flex items-center justify-between p-3 rounded-xl border text-left text-xs font-bold transition-all ${checks.tv ? 'bg-indigo-950/30 border-indigo-500/40 text-indigo-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
             <span>Spontaneous tidal volume &gt; 5 mL/kg verified</span>
-            <input type="checkbox" checked={checks.tv} readOnly className="rounded border-slate-600 text-rose-600 focus:ring-0 pointer-events-none" />
+            <input type="checkbox" checked={checks.tv} readOnly className="rounded border-slate-700 text-indigo-500 focus:ring-0 pointer-events-none" />
           </button>
 
-          <button onClick={() => toggleCheck('commands')} className={`flex items-center justify-between p-2.5 rounded border text-left text-xs font-bold transition ${checks.commands ? 'bg-rose-950/20 border-rose-600 text-rose-200' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}`}>
+          <button onClick={() => toggleCheck('commands')} className={`flex items-center justify-between p-3 rounded-xl border text-left text-xs font-bold transition-all ${checks.commands ? 'bg-indigo-950/30 border-indigo-500/40 text-indigo-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
             <span>Awake/Responsive: follows commands (5s head lift)</span>
-            <input type="checkbox" checked={checks.commands} readOnly className="rounded border-slate-600 text-rose-600 focus:ring-0 pointer-events-none" />
+            <input type="checkbox" checked={checks.commands} readOnly className="rounded border-slate-700 text-indigo-500 focus:ring-0 pointer-events-none" />
           </button>
 
-          <button onClick={() => toggleCheck('suction')} className={`flex items-center justify-between p-2.5 rounded border text-left text-xs font-bold transition ${checks.suction ? 'bg-rose-950/20 border-rose-600 text-rose-200' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}`}>
+          <button onClick={() => toggleCheck('suction')} className={`flex items-center justify-between p-3 rounded-xl border text-left text-xs font-bold transition-all ${checks.suction ? 'bg-indigo-950/30 border-indigo-500/40 text-indigo-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
             <span>Pharynx & ETT suctioned, oral secretions cleared</span>
-            <input type="checkbox" checked={checks.suction} readOnly className="rounded border-slate-600 text-rose-600 focus:ring-0 pointer-events-none" />
+            <input type="checkbox" checked={checks.suction} readOnly className="rounded border-slate-700 text-indigo-500 focus:ring-0 pointer-events-none" />
           </button>
         </div>
 
-        <div className="flex justify-end gap-3 border-t border-slate-800 pt-4 mt-6">
-          <button onClick={close} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded font-bold text-xs text-slate-300 transition">Cancel</button>
+        <div className="flex justify-end gap-3 border-t border-slate-800/60 pt-4 mt-6">
+          <button onClick={close} className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 rounded-xl font-bold text-xs text-slate-400 hover:text-white border border-slate-800 transition">Cancel</button>
           <button 
             onClick={handleExtubateSubmit} 
             disabled={!allChecked} 
-            className="px-6 py-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 rounded font-bold text-xs text-white transition shadow-lg shadow-rose-900/30"
+            className="px-6 py-2.5 bg-indigo-600/20 hover:bg-indigo-600 disabled:opacity-50 disabled:pointer-events-none rounded-xl font-bold text-xs text-indigo-300 hover:text-white border border-indigo-500/30 hover:border-indigo-400 transition shadow-[0_0_15px_rgba(99,102,241,0.1)]"
           >
             Deflate Cuff & Extubate ETT
           </button>
