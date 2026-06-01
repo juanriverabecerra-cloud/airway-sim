@@ -1,5 +1,40 @@
+import { PKParameters, PDParameters } from './config/meds.config';
+
+export interface MedicationProfileInput {
+  name: string;
+  classes?: string[];
+  pk: PKParameters;
+  pd: PDParameters;
+}
+
+export interface PKPDEffects {
+  hrDelta: number;
+  sysDelta: number;
+  diaDelta: number;
+  rrDelta: number;
+  hypnoticEffect: number;
+  receptorOccupancy: number;
+  group: string;
+  svrMultiplier: number;
+  coMultiplier: number;
+}
+
 export class PKPDModel {
-  constructor(med, weight) {
+  name: string;
+  pk: PKParameters;
+  pd: PDParameters;
+  classes: string[];
+  weight: number;
+  
+  // Compartment amounts in milligrams (mg)
+  A1: number = 0; // Central compartment (Blood plasma)
+  A2: number = 0; // Rapidly equilibrating compartment (Muscle/Organs)
+  A3: number = 0; // Slowly equilibrating compartment (Fat)
+  
+  Ce: number = 0; // Effect-site concentration (mg/L)
+  currentInfusionRate: number = 0; // mg/sec
+
+  constructor(med: MedicationProfileInput, weight: number) {
     this.name = med.name || 'Unknown';
     this.pk = med.pk; // V1, V2, V3, k10, k12, k21, k13, k31, ke0, coSensitivity, proteinBinding, renalFraction, hepaticFraction
     this.pd = med.pd; // c50, gamma, sysMax, diaMax, hrMax, rrMax, receptors, synergyGroup, inducesApneaAtCe, inducesParalysisAtCe
@@ -11,18 +46,10 @@ export class PKPDModel {
       w = 70.0;
     }
     this.weight = Math.max(1.0, Math.min(500.0, w));
-    
-    // Compartment amounts in milligrams (mg)
-    this.A1 = 0; // Central compartment (Blood plasma)
-    this.A2 = 0; // Rapidly equilibrating compartment (Muscle/Organs)
-    this.A3 = 0; // Slowly equilibrating compartment (Fat)
-    
-    this.Ce = 0; // Effect-site concentration (mg/L)
-    this.currentInfusionRate = 0; // mg/sec
   }
 
   // Administer a bolus (instantly enters V1)
-  giveBolus(doseMg) {
+  giveBolus(doseMg: number): void {
     const d = Number(doseMg);
     if (!isNaN(d) && isFinite(d) && d > 0) {
       this.A1 = Math.max(0, Math.min(1e9, this.A1 + d));
@@ -30,7 +57,7 @@ export class PKPDModel {
   }
 
   // Physical removal of drug mass (e.g., Sugammadex encapsulation)
-  chelate(fraction) {
+  chelate(fraction: number): void {
     // Sugammadex binds Rocuronium/Vecuronium in a 1:1 molar ratio in the plasma (A1)
     let f = Number(fraction);
     if (isNaN(f) || !isFinite(f)) {
@@ -42,7 +69,7 @@ export class PKPDModel {
   }
 
   // Set continuous infusion rate
-  setInfusion(rateMgPerSec) {
+  setInfusion(rateMgPerSec: number): void {
     let r = Number(rateMgPerSec);
     if (isNaN(r) || !isFinite(r) || r < 0) {
       r = 0;
@@ -52,21 +79,21 @@ export class PKPDModel {
 
   /**
    * Ticks the physics forward
-   * @param {number} dt seconds
-   * @param {number} coRatio Current CO / Baseline CO (1.0 = normal)
-   * @param {number} v1VolumeRatio Current Blood Vol / Baseline EBV (Hemoconcentration modifier)
-   * @param {number} renalRatio GFR clearance ratio (1.0 = normal)
-   * @param {number} pdSensitivityCoeff Sensitivity modifier (1.0 = normal)
-   * @param {number} hepaticRatio Hepatic clearance ratio (1.0 = normal)
+   * @param dt seconds
+   * @param coRatio Current CO / Baseline CO (1.0 = normal)
+   * @param v1VolumeRatio Current Blood Vol / Baseline EBV (Hemoconcentration modifier)
+   * @param renalRatio GFR clearance ratio (1.0 = normal)
+   * @param pdSensitivityCoeff Sensitivity modifier (1.0 = normal)
+   * @param hepaticRatio Hepatic clearance ratio (1.0 = normal)
    */
   tick(
-    dt = 1,
-    coRatio = 1.0,
-    v1VolumeRatio = 1.0,
-    renalRatio = 1.0,
-    pdSensitivityCoeff = 1.0,
-    hepaticRatio = 1.0
-  ) {
+    dt: number = 1,
+    coRatio: number = 1.0,
+    v1VolumeRatio: number = 1.0,
+    renalRatio: number = 1.0,
+    pdSensitivityCoeff: number = 1.0,
+    hepaticRatio: number = 1.0
+  ): PKPDEffects {
     // Validate inputs
     let safeDt = Number(dt);
     if (isNaN(safeDt) || !isFinite(safeDt) || safeDt <= 0) {
@@ -172,8 +199,8 @@ export class PKPDModel {
   }
 
   // Hill Equation for Pharmacodynamics
-  getEffects(pdSensitivityCoeff = 1.0) {
-    const effects = { 
+  getEffects(pdSensitivityCoeff: number = 1.0): PKPDEffects {
+    const effects: PKPDEffects = { 
       hrDelta: 0, 
       sysDelta: 0, 
       diaDelta: 0, 

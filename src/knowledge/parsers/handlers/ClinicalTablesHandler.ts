@@ -21,12 +21,15 @@ export class ClinicalTablesHandler implements IArchetypeHandler {
     const threshold_y = 15; // Vertical distance to group as a row
     
     // Sort boxes primarily by vertical top (y0), then horizontal left (x0)
-    const sorted = [...text_bounding_boxes].sort((a, b) => {
-      if (Math.abs(a.bbox[1] - b.bbox[1]) < threshold_y) {
-        return a.bbox[0] - b.bbox[0];
-      }
-      return a.bbox[1] - b.bbox[1];
-    });
+    // Filter out any boxes with missing or invalid spatial coordinate arrays to prevent NaN comparisons
+    const sorted = [...text_bounding_boxes]
+      .filter(box => box && box.bbox && box.bbox.length === 4 && box.bbox.every(coord => typeof coord === 'number' && !isNaN(coord)))
+      .sort((a, b) => {
+        if (Math.abs(a.bbox[1] - b.bbox[1]) < threshold_y) {
+          return a.bbox[0] - b.bbox[0];
+        }
+        return a.bbox[1] - b.bbox[1];
+      });
 
     const rows: Array<string[]> = [];
     let currentRow: string[] = [];
@@ -74,7 +77,7 @@ export class ClinicalTablesHandler implements IArchetypeHandler {
 
     return {
       ...engine,
-      archetype: L2S_CONFIG.archetypes.CLINICAL_TABLES.id as any,
+      archetype: L2S_CONFIG.archetypes.CLINICAL_TABLES.id,
       details
     };
   }

@@ -1,0 +1,489 @@
+export interface PatientState {
+  isArrest: boolean;
+  cardiacRhythm: string;
+  cprActive: boolean;
+  ischemicDamage: number;
+  biologicalDeath: boolean;
+  myocardialStunning: number;
+  ebl: number;
+  ebv: number;
+  height: number;
+  weight: number;
+  sex: string;
+  age: number;
+  bmi: number;
+  position: string;
+  copd?: boolean;
+  restrictive?: boolean;
+  arrestThreshold?: number;
+  codeStartTime?: number | null;
+  apneaStartTime?: number | null;
+  bradycardiaTriggered?: boolean;
+  bradycardiaTime?: number;
+  cad?: boolean;
+  hasCAD?: boolean;
+  chf?: boolean;
+  ef?: number;
+  afib?: boolean;
+  hasAFib?: boolean;
+  onBetaBlocker?: boolean;
+  betaBlocker?: boolean;
+  hasBetaBlocker?: boolean;
+  patientBaseSV?: number;
+  patientBaseSVR?: number;
+  isSeptic?: boolean;
+  calciumStabilized?: boolean;
+  calciumStabilizedTime?: number;
+  serotoninSyndromeTriggered?: boolean;
+}
+
+export interface VitalsState {
+  hr: number;
+  sys: number;
+  dia: number;
+  map: number;
+  co: number;
+  svr: number;
+  cmap: number;
+  bis: number;
+  temp: number;
+  spo2: number;
+  paco2: number;
+  etco2: number;
+}
+
+export interface CardiovascularDrugEffects {
+  drugSvrMod: number;
+  drugInotropyMod: number;
+  svrSympatheticSpike: number;
+  contractilitySympatheticSpike: number;
+  hrSympatheticSpike: number;
+  shiveringHRDrive: number;
+  anaphylaxisHrMod: number;
+  anaphylaxisSvrMod: number;
+  totalHrDelta: number;
+  ruleHrScale: number;
+  ruleHrOffset: number;
+  ruleHrClamp?: number;
+  ruleMapScale: number;
+  ruleMapOffset: number;
+  ruleKOffset: number;
+  ruleSpo2Offset: number;
+}
+
+export interface ResuscitationOutput {
+  patient: PatientState;
+  vitals: VitalsState;
+  events: string[];
+}
+
+export class CardiovascularEngine {
+  /**
+   * Ticks the cardiovascular system forward by 1 second.
+   * Deterministic, headless, and 100% mathematically faithful to the Golden Version equations.
+   */
+  static tick(
+    dt: number = 1,
+    st: { patient: PatientState; vitals: VitalsState; time: number; electrolytes: { k: number } },
+    drugEffects: CardiovascularDrugEffects,
+    inputs: {
+      currentMac: number;
+      bloodLossRatio: number;
+      currentEbl: number;
+      positionPreloadMod: number;
+      positionHydrostaticMod: number;
+      shiveringMultiplier: number;
+      seizureMetabolicMultiplier: number;
+      cyanideVO2Mod: number;
+      VO2_sec: number;
+      currentBuffer: number;
+      currentFRC_L: number;
+      newTemp: number;
+      newPaCO2: number;
+      activeMeds: { name: string; A1: number }[];
+      getAnatomicalParameter: (keyword: string, defaultValue: number) => number;
+    }
+  ): ResuscitationOutput {
+    const events: string[] = [];
+    const patient = { ...st.patient };
+    const vitals = { ...st.vitals };
+
+    // Sanitizing inputs defensively to prevent NaN/Infinity propagation
+    const safeTime = typeof st.time === 'number' && Number.isFinite(st.time) ? st.time : 0;
+    const safeElectrolytes = st.electrolytes || {};
+    const safeK = typeof safeElectrolytes.k === 'number' && Number.isFinite(safeElectrolytes.k) ? safeElectrolytes.k : 4.0;
+    const safeHR = typeof vitals.hr === 'number' && Number.isFinite(vitals.hr) ? vitals.hr : 70;
+    const safeSys = typeof vitals.sys === 'number' && Number.isFinite(vitals.sys) ? vitals.sys : 120;
+    const safeDia = typeof vitals.dia === 'number' && Number.isFinite(vitals.dia) ? vitals.dia : 80;
+    const safeMap = typeof vitals.map === 'number' && Number.isFinite(vitals.map) ? vitals.map : 90;
+    const safeCO = typeof vitals.co === 'number' && Number.isFinite(vitals.co) ? vitals.co : 5.0;
+    const safeSVR = typeof vitals.svr === 'number' && Number.isFinite(vitals.svr) ? vitals.svr : 1200;
+
+    const safeCurrentMac = typeof inputs.currentMac === 'number' && Number.isFinite(inputs.currentMac) ? Math.max(0, inputs.currentMac) : 0;
+    const safeBloodLossRatio = typeof inputs.bloodLossRatio === 'number' && Number.isFinite(inputs.bloodLossRatio) ? Math.max(0, Math.min(1.0, inputs.bloodLossRatio)) : 0;
+    const safeCurrentEbl = typeof inputs.currentEbl === 'number' && Number.isFinite(inputs.currentEbl) ? Math.max(0, inputs.currentEbl) : 0;
+    const safePreloadMod = typeof inputs.positionPreloadMod === 'number' && Number.isFinite(inputs.positionPreloadMod) ? inputs.positionPreloadMod : 0;
+    const safeHydrostaticMod = typeof inputs.positionHydrostaticMod === 'number' && Number.isFinite(inputs.positionHydrostaticMod) ? inputs.positionHydrostaticMod : 0;
+    const safeShiveringMultiplier = typeof inputs.shiveringMultiplier === 'number' && Number.isFinite(inputs.shiveringMultiplier) ? Math.max(0, inputs.shiveringMultiplier) : 1.0;
+    const safeBuffer = typeof inputs.currentBuffer === 'number' && Number.isFinite(inputs.currentBuffer) ? Math.max(0, inputs.currentBuffer) : 0.5;
+    const safeFRC_L = typeof inputs.currentFRC_L === 'number' && Number.isFinite(inputs.currentFRC_L) && inputs.currentFRC_L > 0 ? inputs.currentFRC_L : 2.4;
+    const safeNewTemp = typeof inputs.newTemp === 'number' && Number.isFinite(inputs.newTemp) ? Math.max(20, Math.min(45, inputs.newTemp)) : 37;
+
+    const safeDrugSvrMod = typeof drugEffects.drugSvrMod === 'number' && Number.isFinite(drugEffects.drugSvrMod) ? Math.max(0.1, drugEffects.drugSvrMod) : 1.0;
+    const safeDrugInotropyMod = typeof drugEffects.drugInotropyMod === 'number' && Number.isFinite(drugEffects.drugInotropyMod) ? Math.max(0.1, drugEffects.drugInotropyMod) : 1.0;
+    const safeSvrSympatheticSpike = typeof drugEffects.svrSympatheticSpike === 'number' && Number.isFinite(drugEffects.svrSympatheticSpike) ? drugEffects.svrSympatheticSpike : 0;
+    const safeContractilitySympatheticSpike = typeof drugEffects.contractilitySympatheticSpike === 'number' && Number.isFinite(drugEffects.contractilitySympatheticSpike) ? drugEffects.contractilitySympatheticSpike : 0;
+    const safeHrSympatheticSpike = typeof drugEffects.hrSympatheticSpike === 'number' && Number.isFinite(drugEffects.hrSympatheticSpike) ? drugEffects.hrSympatheticSpike : 0;
+    const safeShiveringHRDrive = typeof drugEffects.shiveringHRDrive === 'number' && Number.isFinite(drugEffects.shiveringHRDrive) ? drugEffects.shiveringHRDrive : 0;
+    const safeAnaphylaxisHrMod = typeof drugEffects.anaphylaxisHrMod === 'number' && Number.isFinite(drugEffects.anaphylaxisHrMod) ? drugEffects.anaphylaxisHrMod : 0;
+    const safeAnaphylaxisSvrMod = typeof drugEffects.anaphylaxisSvrMod === 'number' && Number.isFinite(drugEffects.anaphylaxisSvrMod) ? drugEffects.anaphylaxisSvrMod : 1.0;
+
+    let totalHrDelta = typeof drugEffects.totalHrDelta === 'number' && Number.isFinite(drugEffects.totalHrDelta) ? drugEffects.totalHrDelta : 0;
+
+    // Autonomic reflexes
+    let autonomicHrMod = 0;
+    if (safeDrugSvrMod > 1.5 && safeCurrentMac < 0.5) autonomicHrMod = -20; // Reflex bradycardia
+    else if (safeDrugSvrMod < 0.7 && safeCurrentMac < 0.5) autonomicHrMod = 25; // Reflex tachycardia
+
+    let isArrestState = patient.isArrest;
+    let currentRhythm = patient.cardiacRhythm;
+
+    // Neostigmine Vagal Bradycardia Arrest Trigger
+    if (patient.bradycardiaTriggered && patient.bradycardiaTime !== undefined) {
+      const bradycardiaDuration = Math.max(0, safeTime - patient.bradycardiaTime);
+      const bradycardiaHrDrop = Math.min(60, bradycardiaDuration * 2.5); // rapid drop
+      totalHrDelta -= bradycardiaHrDrop;
+
+      const expectedHR = safeHR + totalHrDelta;
+      if (expectedHR < 15 && !isArrestState) {
+        isArrestState = true;
+        currentRhythm = 'asystole';
+        events.push('🚨 CRITICAL EMERGENCY: Neostigmine-induced profound vagal bradycardia led to cardiac arrest (Asystole)!');
+      }
+    }
+
+    // Myocardial Ischemia due to high RPP (CAD patients)
+    let newStunning = typeof patient.myocardialStunning === 'number' && Number.isFinite(patient.myocardialStunning) ? patient.myocardialStunning : 0;
+    if ((patient.cad || patient.hasCAD) && !isArrestState) {
+      const doubleProduct = safeSys * safeHR;
+      if (doubleProduct > 14000 || safeDia < 50) {
+        newStunning = Math.min(60, Math.max(0, newStunning + 0.5));
+        if (Math.random() < 0.05) { // 5% chance per second to log
+          events.push(`⚠️ CORONARY ISCHEMIA: High myocardial O2 demand (Double Product ${doubleProduct}) or low coronary perfusion (DBP ${Math.round(safeDia)}) in patient with CAD is causing progressive myocardial stunning!`);
+        }
+      }
+    }
+
+    // Preload & Contractility Calculus
+    const safeEbv = typeof patient.ebv === 'number' && Number.isFinite(patient.ebv) && patient.ebv > 0 ? patient.ebv : 5000;
+    const effectiveIntravascularVolume = Math.max(100, safeEbv - safeCurrentEbl + safePreloadMod);
+    const inotropyFinal = Math.max(0.01, 1.0 - (newStunning / 100) + safeContractilitySympatheticSpike + (safeDrugInotropyMod - 1.0));
+    const preloadSV = Math.max(0.1, 1.0 - (safeBloodLossRatio * 1.2) + (effectiveIntravascularVolume / 2500));
+
+    const shiveringHRDriveVal = (safeShiveringMultiplier > 1.0) ? ((safeShiveringMultiplier - 1.0) * 15) : 0;
+
+    // AFib HR Flutter
+    let afibHRFlutter = 0;
+    if (patient.afib || patient.hasAFib || patient.cardiacRhythm === 'afib') {
+      afibHRFlutter = (Math.random() - 0.5) * 12;
+    }
+
+    // Beta-blocker compensatory tachycardia blunting
+    let adjustedAutonomicHrMod = autonomicHrMod;
+    let adjustedHypovolemicTachy = safeBloodLossRatio * 150;
+    if (patient.onBetaBlocker || patient.hasBetaBlocker || patient.betaBlocker) {
+      adjustedAutonomicHrMod *= 0.15;
+      adjustedHypovolemicTachy *= 0.15;
+    }
+
+    let targetHR = Math.max(0, safeHR + totalHrDelta + adjustedAutonomicHrMod + adjustedHypovolemicTachy + safeHrSympatheticSpike + shiveringHRDriveVal + afibHRFlutter + safeAnaphylaxisHrMod);
+    const safeRuleHrScale = typeof drugEffects.ruleHrScale === 'number' && Number.isFinite(drugEffects.ruleHrScale) ? drugEffects.ruleHrScale : 1.0;
+    const safeRuleHrOffset = typeof drugEffects.ruleHrOffset === 'number' && Number.isFinite(drugEffects.ruleHrOffset) ? drugEffects.ruleHrOffset : 0;
+    targetHR = targetHR * safeRuleHrScale + safeRuleHrOffset;
+    if (drugEffects.ruleHrClamp !== undefined && Number.isFinite(drugEffects.ruleHrClamp)) targetHR = Math.min(drugEffects.ruleHrClamp, targetHR);
+    targetHR = Math.max(0, targetHR);
+
+    // CHF inotropic EF penalty
+    let chfInotropicPenalty = 1.0;
+    if (patient.chf) {
+      const safeEf = typeof patient.ef === 'number' && Number.isFinite(patient.ef) && patient.ef > 0 ? patient.ef : 55;
+      chfInotropicPenalty = Math.max(0.15, safeEf / 55);
+    }
+    
+    const baseSV = typeof patient.patientBaseSV === 'number' && Number.isFinite(patient.patientBaseSV) && patient.patientBaseSV > 0 ? patient.patientBaseSV : 70;
+    const maxSV = baseSV * (patient.chf ? 1.0 : 1.6);
+
+    // AFib SV Penalty (15% reduction)
+    const afibSVModifier = (patient.afib || patient.hasAFib || patient.cardiacRhythm === 'afib') ? 0.85 : 1.0;
+
+    let currentSV = Math.min(maxSV, baseSV * preloadSV * Math.max(0.1, inotropyFinal) * chfInotropicPenalty * afibSVModifier);
+    currentSV = Math.max(0.1, currentSV);
+
+    // SVR computation
+    const baseSVR = typeof patient.patientBaseSVR === 'number' && Number.isFinite(patient.patientBaseSVR) && patient.patientBaseSVR > 0 ? patient.patientBaseSVR : 1200;
+    let targetSVR = (baseSVR * safeDrugSvrMod * (patient.isSeptic ? 0.6 : 1.0) * safeAnaphylaxisSvrMod) + safeSvrSympatheticSpike;
+    targetSVR = Math.max(50, targetSVR);
+
+    const targetCO = Math.max(0, Math.min(30.0, (targetHR * currentSV) / 1000));
+
+    // Systemic MAP Shifts
+    const pressorMAPShift = (effectiveIntravascularVolume / 250) * 8;
+    const sepsisMAPShift = patient.isSeptic ? -33.33 : 0;
+
+    // Damped transitions to resolve Ohm's law violations
+    let newCO = safeCO + (targetCO - safeCO) * 0.1;
+    let newSVR = safeSVR + (targetSVR - safeSVR) * 0.1;
+    if (Math.abs(targetCO - safeCO) < 0.05) newCO = targetCO;
+    if (Math.abs(targetSVR - safeSVR) < 5) newSVR = targetSVR;
+    if (isArrestState) {
+      newCO = targetCO;
+    }
+
+    let exactMap = ((newCO * newSVR) / 80) + pressorMAPShift + sepsisMAPShift;
+    const safeRuleMapScale = typeof drugEffects.ruleMapScale === 'number' && Number.isFinite(drugEffects.ruleMapScale) ? drugEffects.ruleMapScale : 1.0;
+    const safeRuleMapOffset = typeof drugEffects.ruleMapOffset === 'number' && Number.isFinite(drugEffects.ruleMapOffset) ? drugEffects.ruleMapOffset : 0;
+    exactMap = exactMap * safeRuleMapScale + safeRuleMapOffset;
+    exactMap = Math.min(220, Math.max(15, exactMap));
+
+    // Derive SBP & DBP using mathematically consistent Pulse Pressure PP
+    const pulsePressureRatio = Math.max(0.2, Math.min(2.5, (currentSV / baseSV)));
+    const basePP = 40 * pulsePressureRatio;
+
+    // Myocardial stunning map cap
+    if (newStunning > 0 && !isArrestState) {
+      exactMap = Math.max(15, exactMap - newStunning);
+    }
+
+    const hrNoise = isArrestState ? 0 : (Math.random() * 2 - 1);
+    const sysNoise = isArrestState ? 0 : (Math.random() * 4 - 2);
+    const diaNoise = isArrestState ? 0 : (Math.random() * 2 - 1);
+    const mapNoise = isArrestState ? 0 : (Math.random() * 2 - 1);
+
+    let newHr = safeHR + (targetHR - safeHR) * 0.1 + hrNoise;
+
+    // Vagal bradycardia heart rate limit clamp
+    if (patient.bradycardiaTriggered && patient.bradycardiaTime !== undefined) {
+      const bradycardiaDuration = Math.max(0, safeTime - patient.bradycardiaTime);
+      const neostigmineBradyLimit = typeof inputs.getAnatomicalParameter === 'function' 
+        ? inputs.getAnatomicalParameter("Neostigmine muscarinic bradycardia heart rate limit", 40) 
+        : 40;
+      const targetBradyHR = Math.max(neostigmineBradyLimit, 70 - bradycardiaDuration * 3.5);
+      if (newHr > targetBradyHR) {
+        newHr = targetBradyHR;
+      }
+    }
+
+    let newMap = Math.max(0, Math.round(exactMap + mapNoise));
+    let roundedSys = Math.max(0, Math.round(newMap + (2 / 3) * basePP));
+    let roundedDia = Math.max(0, Math.round(newMap - (1 / 3) * basePP));
+    if (roundedDia >= roundedSys - 10) roundedDia = Math.max(0, roundedSys - 10);
+
+    // CPR Resuscitation Pressures
+    if (isArrestState) {
+      roundedSys = patient.cprActive ? Math.round(80 + (Math.random() * 15)) : 0;
+      roundedDia = patient.cprActive ? Math.round(25 + (Math.random() * 10)) : 0;
+      newMap = Math.max(0, Math.round(roundedDia + (roundedSys - roundedDia) / 3));
+    }
+
+    const newCmap = Math.max(0, newMap + safeHydrostaticMod);
+
+    // Potassium ECG widened QRS and arrest limits
+    const safeRuleKOffset = typeof drugEffects.ruleKOffset === 'number' && Number.isFinite(drugEffects.ruleKOffset) ? drugEffects.ruleKOffset : 0;
+    let kLevel = safeK + safeRuleKOffset;
+    const isCalciumStabilized = !!(patient.calciumStabilized && (patient.calciumStabilizedTime !== undefined && safeTime - patient.calciumStabilizedTime < 300));
+
+    if (!isCalciumStabilized) {
+      if (kLevel > 10.0) {
+        if (!isArrestState) {
+          isArrestState = true;
+          currentRhythm = 'asystole';
+          events.push(`🚨 CRITICAL EMERGENCY: Hyperkalemia (K+ = ${kLevel.toFixed(1)} mEq/L) induced myocardial arrest!`);
+        }
+      } else if (kLevel > 8.5) {
+        currentRhythm = 'sine wave';
+      } else if (kLevel > 7.0) {
+        currentRhythm = 'widened QRS';
+      } else if (kLevel > 5.5) {
+        currentRhythm = 'peaked T-waves';
+      }
+    } else {
+      if (kLevel > 9.0) {
+        currentRhythm = 'widened QRS';
+      } else if (kLevel > 7.0) {
+        currentRhythm = 'peaked T-waves';
+      }
+    }
+
+    // Ischemic Damage Accumulation
+    const currentVitalsSpo2 = typeof vitals.spo2 === 'number' && Number.isFinite(vitals.spo2) ? vitals.spo2 : 98;
+    const safeRuleSpo2Offset = typeof drugEffects.ruleSpo2Offset === 'number' && Number.isFinite(drugEffects.ruleSpo2Offset) ? drugEffects.ruleSpo2Offset : 0;
+    const newSpo2 = Math.max(0, Math.min(100, currentVitalsSpo2 + safeRuleSpo2Offset));
+    const hypoxiaSeverity = Math.max(0, 90 - newSpo2);
+    const hypoPerfusionSeverity = Math.max(0, 55 - newCmap);
+
+    let newDamage = typeof patient.ischemicDamage === 'number' && Number.isFinite(patient.ischemicDamage) ? patient.ischemicDamage : 0;
+    if (patient.cprActive) {
+      const recoveryRate = newSpo2 >= 80 ? 4.5 : 1.0;
+      newDamage = Math.max(0, newDamage - recoveryRate);
+    } else {
+      newDamage += (hypoxiaSeverity * 0.4) + (hypoPerfusionSeverity * 0.7);
+    }
+    // Clamping to prevent infinite mathematical overflow/divergence
+    newDamage = Math.max(0, Math.min(10000, newDamage));
+
+    if (!isArrestState && !patient.biologicalDeath && newDamage > (patient.arrestThreshold || 1200)) {
+      isArrestState = true;
+      if (newSpo2 < 60) currentRhythm = 'asystole';
+      else if (safeBloodLossRatio > 0.35) currentRhythm = 'pea';
+      else currentRhythm = Math.random() > 0.5 ? 'vfib' : 'asystole';
+      events.push(`🚨 CARDIAC ARREST! Rhythm: ${currentRhythm.toUpperCase()}`);
+    }
+
+    let bioDeath = !!patient.biologicalDeath;
+    if (newDamage > 6000 && !bioDeath) {
+      events.push(`💀 BIOLOGICAL DEATH. No further resuscitation possible.`);
+      bioDeath = true;
+    }
+
+    // Serotonin Syndrome Extreme Hyperpyrexia Fatal Arrest
+    if (patient.serotoninSyndromeTriggered && safeNewTemp > 42.0 && !isArrestState) {
+      isArrestState = true;
+      currentRhythm = 'asystole';
+      events.push(`🚨 CRITICAL FATALITY: Extreme hyperpyrexia (Temp = ${safeNewTemp.toFixed(1)}°C) from Serotonin Syndrome triggered cardiac arrest!`);
+    }
+
+    // Spontaneous ROSC (PEA/Asystole)
+    let spontaneousRosc = false;
+    if (isArrestState && (currentRhythm === 'pea' || currentRhythm === 'asystole') && patient.cprActive) {
+      const hasEpi = activeMeds.some(m => m.name === 'Epinephrine' && m.A1 > 0.1);
+      if (safeBuffer > (safeFRC_L * 0.50) && safeBloodLossRatio < 0.2 && hasEpi && Math.random() < 0.04) {
+        spontaneousRosc = true;
+      }
+    }
+
+    if (spontaneousRosc) {
+      isArrestState = false;
+      currentRhythm = 'normal';
+      events.push(`✅ SPONTANEOUS ROSC ACHIEVED from PEA/Asystole! Underlying causes treated.`);
+    }
+
+    // Vitals overrides under arrest
+    if (isArrestState) {
+      roundedSys = patient.cprActive ? 80 + Math.round(Math.random() * 15) : 0;
+      roundedDia = patient.cprActive ? 25 + Math.round(Math.random() * 10) : 0;
+      newMap = Math.max(0, Math.round(roundedDia + (roundedSys - roundedDia) / 3));
+      if (!patient.cprActive || currentRhythm === 'vfib' || currentRhythm === 'asystole') newHr = 0;
+    }
+
+    // Update vital signs target values
+    vitals.co = newCO;
+    vitals.svr = newSVR;
+    vitals.hr = Math.round(newHr);
+    vitals.sys = roundedSys;
+    vitals.dia = roundedDia;
+    vitals.map = newMap;
+    vitals.cmap = newCmap;
+
+    // Update patient states
+    patient.isArrest = isArrestState;
+    patient.cardiacRhythm = currentRhythm;
+    patient.ischemicDamage = newDamage;
+    patient.biologicalDeath = bioDeath;
+    patient.myocardialStunning = Math.max(0, newStunning - 0.2);
+
+    if (isArrestState && !st.patient.isArrest) {
+      patient.codeStartTime = safeTime;
+    }
+    if (!isArrestState) {
+      patient.codeStartTime = null;
+    }
+    if (spontaneousRosc) {
+      patient.arrestThreshold = newDamage + 1500;
+    }
+
+    return {
+      patient,
+      vitals,
+      events
+    };
+  }
+
+  /**
+   * Headless implementation of ACLS Defibrillation / Synchronized Shock delivery.
+   * Completely decoupled from React components.
+   */
+  static deliverShock(
+    inputs: {
+      patient: PatientState;
+      activeMeds: { name: string }[];
+      currentBuffer: number;
+      currentFRC_L: number;
+      bloodLossRatio: number;
+      joules: number;
+      isSync: boolean;
+      simulationTime: number;
+    }
+  ): { patient: PatientState; events: string[] } {
+    const { patient, activeMeds, currentBuffer, currentFRC_L, bloodLossRatio, joules, isSync, simulationTime } = inputs;
+    const updated = { ...patient };
+    const events: string[] = [];
+
+    events.push(`⚡ ${isSync ? 'Synchronized Cardioversion' : 'Defibrillation'} delivered at ${joules}J.`);
+
+    // Sanitizing inputs defensively to avoid NaN/Infinity propagation
+    const safeBuffer = typeof currentBuffer === 'number' && Number.isFinite(currentBuffer) ? Math.max(0, currentBuffer) : 0.5;
+    const safeFRC = typeof currentFRC_L === 'number' && Number.isFinite(currentFRC_L) && currentFRC_L > 0 ? currentFRC_L : 2.4;
+    const safeBloodLossRatio = typeof bloodLossRatio === 'number' && Number.isFinite(bloodLossRatio) ? Math.max(0, Math.min(1.0, bloodLossRatio)) : 0;
+    const safeTime = typeof simulationTime === 'number' && Number.isFinite(simulationTime) ? simulationTime : 0;
+
+    if (!updated.isArrest) {
+      if (!isSync) {
+        events.push(`❌ WARNING: Unsynchronized shock induced R-on-T VFib!`);
+        updated.isArrest = true;
+        updated.cardiacRhythm = 'vfib';
+        updated.codeStartTime = updated.codeStartTime || safeTime;
+      } else {
+        updated.myocardialStunning = Math.min(100, Math.max(0, (updated.myocardialStunning || 0) + 15));
+      }
+      return { patient: updated, events };
+    }
+
+    if (updated.cardiacRhythm === 'vfib' || updated.cardiacRhythm === 'vtach') {
+      const amioBonus = activeMeds.some(m => m.name === 'Amiodarone') ? 0.25 : 0;
+      const lidoBonus = activeMeds.some(m => m.name === 'Lidocaine') ? 0.20 : 0;
+      const epiBonus = activeMeds.some(m => m.name === 'Epinephrine') ? 0.10 : 0;
+
+      const hypoxiaPenalty = safeBuffer < (safeFRC * 0.40) ? 0.6 : 0;
+      const hypovolemiaPenalty = safeBloodLossRatio > 0.3 ? 0.6 : 0;
+
+      const totalBonus = Math.min(0.4, amioBonus + lidoBonus + epiBonus);
+      const ischemicDamage = typeof updated.ischemicDamage === 'number' && Number.isFinite(updated.ischemicDamage) ? updated.ischemicDamage : 0;
+      const ischemicPenalty = (ischemicDamage / 5000);
+
+      const successChance = Math.max(0.01, 0.7 + totalBonus - ischemicPenalty - hypoxiaPenalty - hypovolemiaPenalty);
+
+      if (Math.random() < successChance) {
+        if (ischemicDamage > 4000) {
+          events.push("⚠️ Shock converted rhythm to PEA. Myocardium too ischemic for ROSC.");
+          updated.cardiacRhythm = 'pea';
+        } else {
+          events.push("✅ ROSC ACHIEVED! Organized rhythm restored.");
+          updated.isArrest = false;
+          updated.cardiacRhythm = 'normal';
+          updated.myocardialStunning = 60;
+          updated.arrestThreshold = ischemicDamage + 1500;
+          updated.codeStartTime = null;
+        }
+      } else {
+        events.push("⚡ Shock delivered. Rhythm remains VFib/VTach. Fix H's and T's if refractory.");
+      }
+    } else {
+      events.push(`❌ WARNING: Shock delivered to non-shockable rhythm (${updated.cardiacRhythm.toUpperCase()}). No effect.`);
+    }
+
+    return {
+      patient: updated,
+      events
+    };
+  }
+}

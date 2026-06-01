@@ -1,4 +1,5 @@
 import { textbookProse, physiologicalMatrices } from '../knowledge/medical_truth_snapshot.ts';
+import { DynamicMedicationRegistry } from '../knowledge/DynamicMedicationRegistry.ts';
 
 /**
  * Performs a rapid local wildcard match against textbook prose and physiological matrices.
@@ -96,7 +97,9 @@ export interface TextbookRule {
 }
 
 export function extractTextbookRules(): TextbookRule[] {
+  const dynamicMeds = Object.keys(DynamicMedicationRegistry.getMergedMedications());
   const conditionKeywords = [
+    ...dynamicMeds,
     // Drugs
     'amiodarone', 'propofol', 'succinylcholine', 'sux', 'neostigmine', 'glycopyrrolate', 'lidocaine', 'epinephrine', 'rocuronium', 'vecuronium', 'sugammadex', 'atropine', 'esmolol', 'phenylephrine', 'ketamine', 'fentanyl', 'midazolam', 'sevoflurane', 'isoflurane', 'desflurane',
     // Positioning

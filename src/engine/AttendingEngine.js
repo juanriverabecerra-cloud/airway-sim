@@ -8,46 +8,57 @@
  */
 
 function fmt(val, decimals = 0) {
-  if (val === undefined || val === null || isNaN(val)) return 'N/A';
-  return typeof val === 'number' ? val.toFixed(decimals) : val;
+  if (typeof val !== 'number' || !Number.isFinite(val)) {
+    if (typeof val === 'string' && val.trim() !== '') return val;
+    return 'N/A';
+  }
+  return val.toFixed(decimals);
 }
 
-export function evaluateAttendingGuidance({
-  vitals = {},
-  patient = {},
-  activeMeds = [],
-  surgicalPhase = 'Pre-Op',
-  time = 0,
-  logs = [],
-  attendingMode = 'observing',
-  msmaidsComplete = false,
-  ventSettings = {},
-  gasSettings = {}
-}) {
+export function evaluateAttendingGuidance(params) {
+  const safeParams = params || {};
+  const vitals = safeParams.vitals || {};
+  const patient = safeParams.patient || {};
+  const activeMeds = Array.isArray(safeParams.activeMeds) ? safeParams.activeMeds : [];
+  const surgicalPhase = safeParams.surgicalPhase || 'Pre-Op';
+  const time = typeof safeParams.time === 'number' && Number.isFinite(safeParams.time) ? safeParams.time : 0;
+  const logs = Array.isArray(safeParams.logs) ? safeParams.logs : [];
+  const attendingMode = safeParams.attendingMode || 'observing';
+  const msmaidsComplete = !!safeParams.msmaidsComplete;
+  const ventSettings = safeParams.ventSettings || {};
+  const gasSettings = safeParams.gasSettings || {};
+
   const alerts = [];
   const suggestions = [];
 
   // 1. EXTRACT TELEMETRY & PHYSIOLOGICAL VARIABLES
-  const hr = vitals.hr || 0;
-  const sys = vitals.sys || 0;
-  const dia = vitals.dia || 0;
-  const map = vitals.map || 0;
-  const spo2 = vitals.spo2 || 100;
-  const paco2 = vitals.paco2 || 40;
-  const etco2 = vitals.etco2 || 40;
-  const mac = vitals.mac || 0;
-  const bis = vitals.bis !== undefined ? vitals.bis : 99;
-  const tofCount = vitals.tofCount !== undefined ? vitals.tofCount : 4;
-  const pip = vitals.pip || 0;
-  const compliance = vitals.compl || 60;
-  const resistance = vitals.res || 10;
+  const hr = typeof vitals.hr === 'number' && Number.isFinite(vitals.hr) ? vitals.hr : 0;
+  const sys = typeof vitals.sys === 'number' && Number.isFinite(vitals.sys) ? vitals.sys : 0;
+  const dia = typeof vitals.dia === 'number' && Number.isFinite(vitals.dia) ? vitals.dia : 0;
+  const map = typeof vitals.map === 'number' && Number.isFinite(vitals.map) ? vitals.map : 0;
+  
+  // Use strict checks rather than `||` to prevent overriding real clinical zero readings in cardiovascular/pulmonary arrest
+  const spo2 = typeof vitals.spo2 === 'number' && Number.isFinite(vitals.spo2) ? vitals.spo2 : 100;
+  const paco2 = typeof vitals.paco2 === 'number' && Number.isFinite(vitals.paco2) ? vitals.paco2 : 40;
+  const etco2 = typeof vitals.etco2 === 'number' && Number.isFinite(vitals.etco2) ? vitals.etco2 : 40;
+  const mac = typeof vitals.mac === 'number' && Number.isFinite(vitals.mac) ? vitals.mac : 0;
+  
+  const bis = vitals.bis !== undefined && vitals.bis !== null && Number.isFinite(vitals.bis) ? vitals.bis : 99;
+  const tofCount = vitals.tofCount !== undefined && vitals.tofCount !== null && Number.isFinite(vitals.tofCount) ? vitals.tofCount : 4;
+  const pip = typeof vitals.pip === 'number' && Number.isFinite(vitals.pip) ? vitals.pip : 0;
+  const compliance = typeof vitals.compl === 'number' && Number.isFinite(vitals.compl) ? vitals.compl : 60;
+  const resistance = typeof vitals.res === 'number' && Number.isFinite(vitals.res) ? vitals.res : 10;
 
   const isArrest = patient.isArrest || false;
   const rhythm = patient.cardiacRhythm || 'sinus';
-  const stunning = patient.myocardialStunning || 0;
-  const ebl = patient.ebl || 0;
-  const ebv = patient.ebv || 5000;
-  const potassium = patient.suxPotassiumLeaked ? (patient.potassiumLevel || 6.2) : 4.0;
+  const stunning = typeof patient.myocardialStunning === 'number' && Number.isFinite(patient.myocardialStunning) ? patient.myocardialStunning : 0;
+  const ebl = typeof patient.ebl === 'number' && Number.isFinite(patient.ebl) ? patient.ebl : 0;
+  const ebv = typeof patient.ebv === 'number' && Number.isFinite(patient.ebv) && patient.ebv > 0 ? patient.ebv : 5000;
+  
+  // Dynamic baseline potassium logic: respect patient.potassiumLevel if provided, otherwise default to 4.0;
+  // if a succinylcholine leak occurs, it spikes the level to at least 6.2.
+  const basePotassium = typeof patient.potassiumLevel === 'number' && Number.isFinite(patient.potassiumLevel) ? patient.potassiumLevel : 4.0;
+  const potassium = patient.suxPotassiumLeaked ? Math.max(basePotassium, 6.2) : basePotassium;
 
   const isSeptic = patient.isSeptic || false;
   const isAnaphylaxis = patient.anaphylaxisTriggered || false;
@@ -56,9 +67,11 @@ export function evaluateAttendingGuidance({
   const airwaySecured = patient.airwaySecured || false;
   const isApneic = patient.isApneic || false;
 
-  const frc_L = patient.lungVolumes?.frc_L || 2.4;
-  const o2Buffer = patient.oxygenBuffer !== null && patient.oxygenBuffer !== undefined ? patient.oxygenBuffer : 0.5;
-  const frcO2Percent = frc_L > 0 ? (o2Buffer / frc_L) * 100 : 21;
+  const frc_L = patient.lungVolumes && typeof patient.lungVolumes.frc_L === 'number' && Number.isFinite(patient.lungVolumes.frc_L) && patient.lungVolumes.frc_L > 0 
+    ? patient.lungVolumes.frc_L 
+    : 2.4;
+  const o2Buffer = patient.oxygenBuffer !== null && patient.oxygenBuffer !== undefined && Number.isFinite(patient.oxygenBuffer) ? patient.oxygenBuffer : 0.5;
+  const frcO2Percent = frc_L > 0 ? Math.min(100, Math.max(0, (o2Buffer / frc_L) * 100)) : 21;
 
   // Active drugs concentration levels
   const propofolCe = activeMeds.find(m => m.name === 'Propofol')?.Ce || 0;
@@ -73,15 +86,15 @@ export function evaluateAttendingGuidance({
   const pos = patient.position || 'Supine';
 
   // Helper values to parse logs
-  const lowercaseLogs = logs.map(l => l.toLowerCase());
+  const lowercaseLogs = logs.map(l => typeof l === 'string' ? l.toLowerCase() : '');
   const logHas = (kw) => lowercaseLogs.some(log => log.includes(kw.toLowerCase()));
   const logHasAny = (kws) => kws.some(kw => lowercaseLogs.some(log => log.includes(kw.toLowerCase())));
 
   // Check placed access lines
-  const placedLines = patient.accessLines || [];
-  const hasPIV = placedLines.some(l => l.category?.includes('Peripheral') || l.name?.includes('PIV'));
-  const hasCVC = placedLines.some(l => l.category?.includes('Central') || l.name?.includes('CVC'));
-  const hasArt = placedLines.some(l => l.category?.includes('Arterial') || l.name?.includes('Arterial') || patient.hasALine);
+  const placedLines = Array.isArray(patient.accessLines) ? patient.accessLines : [];
+  const hasPIV = placedLines.some(l => l && typeof l.category === 'string' && (l.category.includes('Peripheral') || (typeof l.name === 'string' && l.name.includes('PIV'))));
+  const hasCVC = placedLines.some(l => l && typeof l.category === 'string' && (l.category.includes('Central') || (typeof l.name === 'string' && l.name.includes('CVC'))));
+  const hasArt = placedLines.some(l => l && typeof l.category === 'string' && (l.category.includes('Arterial') || (typeof l.name === 'string' && l.name.includes('Arterial')) || patient.hasALine));
 
   // Determine Case Profiles
   const isObeseCase = patient.isObese || patient.bmi > 35;
@@ -446,7 +459,7 @@ Once met, suction oral secretions, perform [cuff leak test], deflate the cuff, a
       forecasts.push(`🔮 VOLATILE MYOCARDIAL DEPRESSION: High volatile anesthetic concentration (MAC is ${fmt(mac, 2)}) is causing profound, dose-dependent myocardial depression and systemic vasodilation. Anticipate worsening hypotension. Titrate down the vaporizer dial, ensure volume resuscitation, and consider pushing [phenylephrine] to restore vascular tone.`);
     }
     if (ebl > 800) {
-      const bloodRatio = (ebl / ebv * 100).toFixed(1);
+      const bloodRatio = ebv > 0 ? (ebl / ebv * 100).toFixed(1) : '0';
       forecasts.push(`🔮 HEMORRHAGIC HYPOVOLEMIA: The patient has lost a significant fraction of blood volume (${bloodRatio}% of EBV). Compensatory vasoconstriction and tachycardia may temporarily mask vascular collapse. Anticipate rapid, refractory hypotension if bleeding continues. Order [order cbc] to evaluate hemoglobin, prepare the massive transfusion protocol, and maximize IV access.`);
     }
     if (surgicalPhase === 'Incision' && mac < 0.7 && bis > 60) {

@@ -3,6 +3,7 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import type { ParsedDocument, SourceFragment, VisualDataEngine, ParsedSection } from '../types/index.ts';
 import { KnowledgeStore } from '../store.ts';
+import type { ProseRecord, MatrixRecord } from '../medical_truth_snapshot.ts';
 
 let dirname = '';
 try {
@@ -14,11 +15,18 @@ try {
 export class TokenOptimizer {
   /**
    * Estimates the token count of a given object based on the standard 4-characters-per-token heuristic.
-   * Grounded in LLM standard weight estimation.
+   * Protected with strict safety guards to eliminate potential serializing crashes.
    */
-  public static estimateTokens(obj: any): number {
-    const serialized = JSON.stringify(obj);
-    return Math.ceil(serialized.length / 4.0);
+  public static estimateTokens(obj: unknown): number {
+    if (obj === undefined || obj === null) {
+      return 0;
+    }
+    try {
+      const serialized = JSON.stringify(obj);
+      return serialized ? Math.ceil(serialized.length / 4.0) : 0;
+    } catch {
+      return 0;
+    }
   }
 
   /**
@@ -260,8 +268,8 @@ export class TokenOptimizer {
     // 3. Compile static, typed ESM snapshot for browser/Vite environment compatibility
     console.log(`  [DATABASE SNAPSHOT] Compiling in-memory snapshot for browser environment...`);
     try {
-      const allProse = KnowledgeStore.getDb().prepare('SELECT * FROM textbook_prose').all() as any[];
-      const allMatrices = KnowledgeStore.getDb().prepare('SELECT * FROM physiological_matrices').all() as any[];
+      const allProse = KnowledgeStore.getDb().prepare('SELECT * FROM textbook_prose').all() as ProseRecord[];
+      const allMatrices = KnowledgeStore.getDb().prepare('SELECT * FROM physiological_matrices').all() as MatrixRecord[];
 
       const snapshotContent = `/**
  * AUTO-GENERATED MEDICAL TRUTH DATABASE SNAPSHOT
@@ -270,29 +278,30 @@ export class TokenOptimizer {
  */
 
 export interface ProseRecord {
-  id: string;
-  chapter_title: string;
-  section_heading: string;
-  body_text: string;
+  readonly id: string;
+  readonly chapter_title: string;
+  readonly section_heading: string;
+  readonly body_text: string;
 }
 
 export interface MatrixRecord {
-  id: string;
-  archetype: string;
-  caption: string;
-  structured_payload: string;
+  readonly id: string;
+  readonly archetype: string;
+  readonly caption: string;
+  readonly structured_payload: string;
 }
 
-export const textbookProse: ProseRecord[] = ${JSON.stringify(allProse, null, 2)};
+export const textbookProse: readonly ProseRecord[] = ${JSON.stringify(allProse, null, 2)};
 
-export const physiologicalMatrices: MatrixRecord[] = ${JSON.stringify(allMatrices, null, 2)};
+export const physiologicalMatrices: readonly MatrixRecord[] = ${JSON.stringify(allMatrices, null, 2)};
 `;
 
       const snapshotPath = path.resolve(dirname, '../medical_truth_snapshot.ts');
       fs.writeFileSync(snapshotPath, snapshotContent, 'utf-8');
       console.log(`  ✓ Database Snapshot compiled successfully: ${snapshotPath}`);
-    } catch (snapErr: any) {
-      console.error(`  [SNAPSHOT ERROR] Failed to compile static snapshot: ${snapErr.message}`);
+    } catch (snapErr: unknown) {
+      const errMsg = snapErr instanceof Error ? snapErr.message : String(snapErr);
+      console.error(`  [SNAPSHOT ERROR] Failed to compile static snapshot: ${errMsg}`);
     }
 
     // Return reference for backward compatibility with orchestrator interface

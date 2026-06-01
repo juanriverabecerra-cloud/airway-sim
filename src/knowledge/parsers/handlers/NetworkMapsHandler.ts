@@ -21,7 +21,9 @@ export class NetworkMapsHandler implements IArchetypeHandler {
     const nodes: Record<string, { name: string; relational_variants: string[]; bbox?: [number, number, number, number] }> = {};
     const labels: string[] = [];
 
+    // Guard against malformed or missing text properties inside bounding boxes to prevent runtime crashes
     for (const box of text_bounding_boxes) {
+      if (!box || typeof box.text !== 'string') continue;
       const cleanLabel = box.text.replace(" [uncertain]", "").trim();
       if (cleanLabel.length > 1) {
         labels.push(cleanLabel);
@@ -50,7 +52,7 @@ export class NetworkMapsHandler implements IArchetypeHandler {
 
     return {
       ...engine,
-      archetype: L2S_CONFIG.archetypes.NETWORK_MAPS.id as any,
+      archetype: L2S_CONFIG.archetypes.NETWORK_MAPS.id,
       details
     };
   }

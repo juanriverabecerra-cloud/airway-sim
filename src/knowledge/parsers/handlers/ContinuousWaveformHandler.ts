@@ -21,7 +21,9 @@ export class ContinuousWaveformHandler implements IArchetypeHandler {
     const other_labels: string[] = [];
 
     // Detect channel descriptors, timescale keys, and calibration markers programmatically
+    // Guard against malformed or missing text properties to avoid runtime exceptions
     for (const box of text_bounding_boxes) {
+      if (!box || typeof box.text !== 'string') continue;
       const text = box.text.replace(" [uncertain]", "").trim();
       
       // Match common channel patterns like "EEG (C3-A1)", "EEG (C4-A1)", "EEG (C2-A1)" or containing "EEG" / "ECG"
@@ -46,12 +48,14 @@ export class ContinuousWaveformHandler implements IArchetypeHandler {
         label: lbl,
         role: lbl.toLowerCase().includes("onset") ? "Event annotation" : "Signal context"
       })),
-      labels: text_bounding_boxes.map(box => box.text.replace(" [uncertain]", "").trim())
+      labels: text_bounding_boxes
+        .filter(box => box && typeof box.text === 'string')
+        .map(box => box.text.replace(" [uncertain]", "").trim())
     };
 
     return {
       ...engine,
-      archetype: L2S_CONFIG.archetypes.CONTINUOUS_WAVEFORM.id as any,
+      archetype: L2S_CONFIG.archetypes.CONTINUOUS_WAVEFORM.id,
       details
     };
   }

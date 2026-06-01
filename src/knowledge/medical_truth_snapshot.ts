@@ -5,20 +5,20 @@
  */
 
 export interface ProseRecord {
-  id: string;
-  chapter_title: string;
-  section_heading: string;
-  body_text: string;
+  readonly id: string;
+  readonly chapter_title: string;
+  readonly section_heading: string;
+  readonly body_text: string;
 }
 
 export interface MatrixRecord {
-  id: string;
-  archetype: string;
-  caption: string;
-  structured_payload: string;
+  readonly id: string;
+  readonly archetype: string;
+  readonly caption: string;
+  readonly structured_payload: string;
 }
 
-export const textbookProse: ProseRecord[] = [
+export const textbookProse: readonly ProseRecord[] = [
   {
     "id": "anesthesia_handbook_chapter_9.pdf_PAGE_001_sec_0",
     "chapter_title": "anesthesia_handbook_chapter_9.pdf",
@@ -33,7 +33,7 @@ export const textbookProse: ProseRecord[] = [
   }
 ];
 
-export const physiologicalMatrices: MatrixRecord[] = [
+export const physiologicalMatrices: readonly MatrixRecord[] = [
   {
     "id": "FIG_09_01",
     "archetype": "COORDINATE X-Y GRAPHS & COMPLEMENTARY PANELS",
@@ -41,3 +41,4 @@ export const physiologicalMatrices: MatrixRecord[] = [
     "structured_payload": "{\n  \"panels\": [\n    {\n      \"panel_id\": \"A\",\n      \"axes\": {\n        \"x_axis\": {\n          \"label\": \"Propofol concentration\",\n          \"unit\": \"mcg/ml\"\n        },\n        \"y_axis\": {\n          \"label\": \"GABAA Current Enhancement\",\n          \"unit\": \"%\"\n        }\n      },\n      \"mathematical_nature\": \"Sigmoidal/Logarithmic Plateau\",\n      \"curves\": [\n        {\n          \"legend_label\": \"Wildtype GABAA receptors\",\n          \"characteristic_nature\": \"Profound sigmoidal enhancement\"\n        }\n      ],\n      \"coordinate_inflections\": [\n        {\n          \"x_threshold\": \"1.5\",\n          \"y_value_or_change\": \"50%\",\n          \"inflection_description\": \"Half-maximal EC50 enhancement threshold\"\n        }\n      ]\n    }\n  ]\n}"
   }
 ];
+

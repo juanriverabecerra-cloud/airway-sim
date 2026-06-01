@@ -171,8 +171,9 @@ export class PipelineOrchestrator {
       const optResult = TokenOptimizer.optimizeAndSerialize(outputDoc, outputPath);
       console.log(`  ✓ Success! Saved ${optResult.partsCount} LLM-optimized part(s) under '/parsed texts/llm_optimized/'`);
       console.log(`  Total estimated LLM tokens: ${optResult.totalTokens.toLocaleString()}`);
-    } catch (optErr: any) {
-      console.error(`  [TOKEN OPTIMIZER ERROR] Failed to optimize mirror: ${optErr.message}`);
+    } catch (optErr: unknown) {
+      const errMsg = optErr instanceof Error ? optErr.message : String(optErr);
+      console.error(`  [TOKEN OPTIMIZER ERROR] Failed to optimize mirror: ${errMsg}`);
     }
 
     // Print warnings if any
@@ -262,8 +263,9 @@ if (isMain) {
   const orchestrator = new PipelineOrchestrator();
   orchestrator.run(targetFile, targetOutput).then(success => {
     process.exit(success ? 0 : 1);
-  }).catch(err => {
-    console.error(err);
+  }).catch((err: unknown) => {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error(errMsg);
     process.exit(1);
   });
 }

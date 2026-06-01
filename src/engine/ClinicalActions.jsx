@@ -287,7 +287,9 @@ export const parseAndRenderText = (text, onActionClick) => {
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            onActionClick(lowerPart);
+            if (typeof onActionClick === 'function') {
+              onActionClick(lowerPart);
+            }
           }}
           className={`inline-flex items-center mx-1 px-1.5 py-0.5 rounded text-[10px] font-black border font-mono tracking-wide uppercase transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm ${actionConfig.color}`}
         >

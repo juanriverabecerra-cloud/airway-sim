@@ -74,9 +74,10 @@ export class TextExtractor {
           visual_data_engines: visualEngines,
           warnings: parsed.warnings || []
         };
-      } catch (error: any) {
-        console.error(`  [EXTRACTOR ERROR] Spawn local_parser.py failed: ${error.message}`);
-        return { fragments: this.emptyFallback(fileName), visual_data_engines: [], warnings: [error.message] };
+      } catch (error: unknown) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        console.error(`  [EXTRACTOR ERROR] Spawn local_parser.py failed: ${errMsg}`);
+        return { fragments: this.emptyFallback(fileName), visual_data_engines: [], warnings: [errMsg] };
       }
     } else {
       // Plain text fallback
@@ -159,8 +160,9 @@ export class TextExtractor {
           console.warn(`  [VISION ENRICHER WARNING] Vision API returned no enriched data for ${engine.id}.`);
           enrichedEngines.push(engine);
         }
-      } catch (err: any) {
-        console.error(`  [VISION ENRICHER ERROR] Enrichment failed for ${engine.id}: ${err.message}`);
+      } catch (err: unknown) {
+        const errMsg = err instanceof Error ? err.message : String(err);
+        console.error(`  [VISION ENRICHER ERROR] Enrichment failed for ${engine.id}: ${errMsg}`);
         enrichedEngines.push(engine);
       }
       
@@ -200,8 +202,9 @@ except Exception as e:
     try {
       const result = execSync(`python3 -c ${JSON.stringify(python_code)}`, { encoding: 'utf-8', timeout: 120000 });
       return JSON.parse(result.trim());
-    } catch (e: any) {
-      return { error: e.message };
+    } catch (e: unknown) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      return { error: errMsg };
     }
   }
 

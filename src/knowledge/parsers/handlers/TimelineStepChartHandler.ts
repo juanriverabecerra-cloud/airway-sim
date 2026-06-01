@@ -21,7 +21,9 @@ export class TimelineStepChartHandler implements IArchetypeHandler {
     const literal_labels: string[] = [];
 
     // Separate text boxes into X-axis (timestamps) vs Y-axis (stages) based on layouts/patterns
+    // Guard against malformed or missing text properties inside bounding boxes to prevent runtime crashes
     for (const box of text_bounding_boxes) {
+      if (!box || typeof box.text !== 'string') continue;
       const text = box.text.replace(" [uncertain]", "").trim();
       if (!text) continue;
       
@@ -58,7 +60,7 @@ export class TimelineStepChartHandler implements IArchetypeHandler {
 
     return {
       ...engine,
-      archetype: L2S_CONFIG.archetypes.TIMELINE_STEP_CHART.id as any,
+      archetype: L2S_CONFIG.archetypes.TIMELINE_STEP_CHART.id,
       details
     };
   }

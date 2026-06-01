@@ -97,7 +97,7 @@ export interface VisualDataEngine {
   /** Textual label/caption of the graphic */
   caption: string;
   /** Key-value details tailored specifically to the graphic archetype (enriched in Phase 2) */
-  details?: any;
+  details?: VisualDataDetails;
   /** Verbatim text bounding boxes detected inside this specific cropped image frame */
   text_bounding_boxes?: Array<{
     text: string;
@@ -195,6 +195,7 @@ export interface Archetype4Data {
     name: string;
     relational_variants?: string[];
     prevalence_percentage?: number;
+    bbox?: [number, number, number, number];
   }>;
   /** Required explicit source target vectors */
   source_target_vectors: Array<{
@@ -219,4 +220,46 @@ export interface Archetype5Data {
     channel_relationships?: string; // e.g. Phase paradox
   }>;
 }
+
+/** Archetype 6: Continuous Waveform EEG/ECG details */
+export interface ContinuousWaveformDetails {
+  channels: Array<{
+    source_marker: string;
+    amplitude_range?: string;
+  }>;
+  calibration_keys: string[];
+  context_nodes: Array<{
+    label: string;
+    role: string;
+  }>;
+  labels: string[];
+}
+
+/** Archetype 7: Timeline Step Chart Hypnogram details */
+export interface TimelineStepChartDetails {
+  labels: string[];
+  y_axis_stages: string[];
+  x_axis_timestamps: string[];
+}
+
+/** Archetype 8: Clinical Tabular Matrix mapped details */
+export interface ClinicalTableDetails {
+  matrix_rows: string[][];
+  markdown_representation: string;
+  headers: string[];
+  labels: string[];
+}
+
+/** Union type representing the possible visual details structures */
+export type VisualDataDetails = 
+  | Archetype1Data 
+  | Archetype2Data 
+  | Archetype3Data 
+  | Archetype4Data 
+  | Archetype5Data
+  | ContinuousWaveformDetails
+  | TimelineStepChartDetails
+  | ClinicalTableDetails
+  | Record<string, any>;
+
 

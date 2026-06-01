@@ -1,8 +1,46 @@
 /**
+ * Individual entry for unicode glyph/string recovery
+ */
+export interface GlyphRecoveryEntry {
+  readonly target: string;
+  readonly replacement: string;
+}
+
+/**
+ * Configuration schema for visual archetype parser routing
+ */
+export interface ArchetypeConfigEntry {
+  readonly id: 'TIME-COURSE & PATHOPHYSIOLOGICAL TRENDS' 
+             | 'SUBCELLULAR BIOCHEMICAL CASCADE DIAGRAMS' 
+             | 'COORDINATE X-Y GRAPHS & COMPLEMENTARY PANELS' 
+             | 'ANATOMICAL NETWORKS & MICROCIRCUIT MAPS' 
+             | 'PHYSIOLOGICAL WAVEFORMS & TRACINGS'
+             | 'CONTINUOUS_WAVEFORM_EEG'
+             | 'TIMELINE_STEP_CHART_HYPNOGRAM';
+  readonly keywords: readonly string[];
+}
+
+/**
+ * Root Layout-to-Simulation configuration shape
+ */
+export interface L2SConfig {
+  readonly confidenceThreshold: number;
+  readonly verticalOverlapThreshold: number;
+  readonly horizontalGapMultiplier: number;
+  readonly glyphRecoveryMap: readonly GlyphRecoveryEntry[];
+  readonly archetypes: {
+    readonly NETWORK_MAPS: ArchetypeConfigEntry;
+    readonly CONTINUOUS_WAVEFORM: ArchetypeConfigEntry;
+    readonly TIMELINE_STEP_CHART: ArchetypeConfigEntry;
+    readonly CLINICAL_TABLES: ArchetypeConfigEntry;
+  };
+}
+
+/**
  * Global Configuration for L2S (Layout-to-Simulation) pipeline.
  * Contains thresholds, keywords, and unicode recovery dictionaries.
  */
-export const L2S_CONFIG = {
+export const L2S_CONFIG: L2SConfig = {
   // Gating thresholds
   confidenceThreshold: 80, // Minimum confidence score to preserve OCR text tokens (0-100)
 
@@ -53,4 +91,5 @@ export const L2S_CONFIG = {
       keywords: ["table", "dosing", "affinity", "grid", "matrix"]
     }
   }
-};
+} as const;
+

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { usePhysiology } from './engine/usePhysiology';
+import { ProceduralEngine } from './engine/ProceduralEngine';
 import { Search, Activity } from 'lucide-react';
 import { CaseManager } from './components/controls/CaseManager';
 
@@ -729,26 +730,7 @@ export default function App() {
   };
 
   const auscultateLungs = (location) => {
-    let finding = "";
-    if (!patient.airwaySecured && patient.isApneic) {
-      finding = "Silent. No breath sounds heard (Patient is apneic).";
-    } else if (!patient.airwaySecured && !patient.isApneic) {
-      finding = "Normal vesicular breath sounds. Clear bilaterally.";
-    } else if (patient.tubePosition === 'right_mainstem') {
-      if (location === 'Left Lung') finding = "Absent breath sounds on the left side.";
-      else if (location === 'Right Lung') finding = "Clear, loud breath sounds on the right side.";
-      else if (location === 'Epigastrium') finding = "Silent. No borborygmi heard over stomach.";
-    } else if (patient.tubePosition === 'left_mainstem') {
-      if (location === 'Left Lung') finding = "Clear, loud breath sounds on the left side.";
-      else if (location === 'Right Lung') finding = "Absent breath sounds on the right side.";
-      else if (location === 'Epigastrium') finding = "Silent. No borborygmi heard over stomach.";
-    } else if (patient.tubePosition === 'trachea' || patient.ventilationStatus === 'successful') {
-      if (location === 'Epigastrium') finding = "Silent. No borborygmi heard over stomach.";
-      else finding = "Clear, equal bilateral breath sounds with mechanical ventilation.";
-    } else if (patient.tubePosition === 'esophagus' || patient.ventilationStatus === 'failed') {
-      if (location === 'Epigastrium') finding = "Loud gurgling (Borborygmi) heard with each ventilator breath! TUBE IS IN THE STOMACH!";
-      else finding = "Diminished or absent breath sounds.";
-    }
+    const finding = ProceduralEngine.auscultateLungs(location, patient);
     logEvent(`Auscultated ${location}: ${finding}`);
     setTubeConfirmModal(prev => ({ ...prev, result: `Auscultated ${location}: ${finding}` }));
   };
@@ -759,12 +741,7 @@ export default function App() {
   };
 
   const handlePocus = (type) => {
-    let finding = "";
-    if (type === 'Cardiac (TTE)') finding = patient.isSeptic ? "Hyperdynamic left ventricle, underfilled Right Ventricle (Vasodilatory Shock)." : "Normal LV/RV function. Good contractility.";
-    else if (type === 'Gastric') finding = patient.stomach === 'full' ? "Antrum is distended with echogenic material (Full Stomach)." : "Antrum is flat and empty (Target sign).";
-    else if (type === 'Airway') finding = patient.airwaySecured ? "Single air-mucosal interface (Confirmed Tracheal Placement)." : (patient.ventilationStatus === 'failed' && patient.dlAttempts > 0 ? "Double-Tract Sign visible! Tube in esophagus!" : "Normal tracheal anatomy.");
-    else if (type === 'Lung') finding = (!patient.isApneic || patient.airwaySecured) ? "Bilateral lung sliding present (Ants marching sign)." : "Absent lung sliding bilaterally (Apnea).";
-    else if (type === 'eFAST') finding = patient.trauma ? "Positive FAST: Anechoic free fluid seen in Morison's pouch (RUQ)." : "Negative FAST. No free fluid in dependent views.";
+    const finding = ProceduralEngine.performPocus(type, patient);
     setPocusModal({ show: true, title: `${type} Ultrasound`, finding });
     logEvent(`Performed ${type} Ultrasound.`);
   };
@@ -984,70 +961,36 @@ export default function App() {
        }
     }
 
-    // Calculate Base Cormack-Lehane Grade from Anatomy
-    let baseGrade = patient.mallampati || 1;
-    if (patient.neckMobility === 'reduced') baseGrade += 1;
-    if (patient.isObese) baseGrade += 1;
-    let finalGrade = Math.min(4, baseGrade);
-
-    let desc = `You insert the ${blade}. `;
-
-    if (patient.airwayBlood) { 
-        desc += "The lens/view is completely obscured by thick red blood and secretions. You cannot see any anatomical landmarks."; 
-        finalGrade = 4; 
-    } else if (blade.includes('Fiberoptic')) { 
-        desc += "Navigating the flexible scope, you bypass the upper airway soft tissue and clearly visualize the vocal cords."; 
-        finalGrade = 1; 
-    } else if (blade.includes('Hyperangulated')) {
-        finalGrade = Math.max(1, finalGrade - 2); // Improves view significantly
-        if (finalGrade === 1) desc += "The steep angle of the hyperangulated blade provides an excellent 'around the corner' view of the glottic opening.";
-        else if (finalGrade === 2) desc += "You can see the posterior half of the vocal cords and the arytenoids.";
-        else desc += "Even with the hyperangulated blade, you can only see the tip of the epiglottis due to the severe anterior airway.";
-    } else {
-        // Standard Mac/Miller
-        if (finalGrade === 1) desc += "You sweep the tongue and have a direct, full line of sight to the vocal cords.";
-        else if (finalGrade === 2) desc += "You can see the posterior half of the glottic opening and arytenoids, but the anterior commissure is hidden.";
-        else if (finalGrade === 3) desc += "You can only see the epiglottis. The vocal cords are completely hidden (Anterior Airway).";
-        else desc += "You can only see the soft palate and posterior pharynx. No laryngeal structures are visible.";
-    }
-
+    const clResult = ProceduralEngine.calculateCormackLehaneGrade(patient, blade);
     logEvent(`Attempted Intubation using ${blade} with ${adjunct}. Analyzing view...`);
-    setViewModal({ show: true, blade, adjunct, description: desc, trueGrade: finalGrade });
+    setViewModal({ show: true, blade, adjunct, description: clResult.description, trueGrade: clResult.grade });
   };
 
   const submitGrade = (selectedGrade) => {
     const isCorrect = selectedGrade === viewModal.trueGrade;
     logEvent(`Student identified view as Grade ${selectedGrade}. (${isCorrect ? 'Correct' : 'Incorrect'})`);
 
-    let success = false;
-    let failReason = "";
-    
-    if (viewModal.trueGrade === 4 && !viewModal.blade.includes('Fiberoptic')) {
-        failReason = "Cannot intubate blindly with Grade IV view. Esophageal intubation.";
-    } else if (viewModal.blade.includes('Hyperangulated') && !viewModal.adjunct.includes('Hyperangulated') && !viewModal.adjunct.includes('Articulating')) {
-        failReason = "A hyperangulated blade requires a rigid hyperangulated stylet or articulating bougie to navigate the steep curve. A standard stylet/bougie cannot make the turn.";
-    } else if (viewModal.trueGrade === 3 && viewModal.adjunct.includes('None')) {
-        failReason = "Cannot direct tube into anterior airway without a stylet or bougie on a Grade III view.";
-    } else {
-        success = true;
-    }
+    const outcome = ProceduralEngine.evaluateIntubationOutcome(viewModal.blade, viewModal.adjunct, viewModal.trueGrade, patient);
 
-    if (success) {
+    if (outcome.success) {
       const height = patient.height || 170;
-      const mainstemRisk = Math.max(0.01, 0.40 - ((height - 140) * 0.01));
-      
-      const rand = Math.random();
-      let tubePos = 'trachea';
-      if (rand < mainstemRisk) tubePos = 'right_mainstem';
-      else if (rand < mainstemRisk + 0.02) tubePos = 'left_mainstem';
+      const tubePos = ProceduralEngine.calculateTubePosition(true, height, Math.random());
 
       logEvent(`✅ Intubation completed. Tube secured to Mechanical Ventilator.`);
       if (tubePos === 'right_mainstem' || tubePos === 'left_mainstem') logEvent(`⚠️ Note: Tube depth may be excessive for patient's height.`);
 
-      setPatient(p => ({ ...p, airwaySecured: true, ventilationStatus: 'successful', tubePosition: tubePos, currentO2Device: 'Mechanical Ventilator (100% FiO2)', currentO2Flow: 15, currentFiO2: 100 }));
+      setPatient(p => ({ 
+        ...p, 
+        airwaySecured: true, 
+        ventilationStatus: 'successful', 
+        tubePosition: tubePos, 
+        currentO2Device: 'Mechanical Ventilator (100% FiO2)', 
+        currentO2Flow: 15, 
+        currentFiO2: 100 
+      }));
       setPostIntubationModal(true);
     } else {
-      logEvent(`❌ Intubation FAILED. ${failReason}`);
+      logEvent(`❌ Intubation FAILED. ${outcome.failReason}`);
       setPatient(p => ({ ...p, ventilationStatus: 'failed', tubePosition: 'esophagus' }));
     }
     setViewModal({ show: false, blade: '', adjunct: '', description: '', trueGrade: 1 });

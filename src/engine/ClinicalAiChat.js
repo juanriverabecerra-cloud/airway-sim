@@ -7,50 +7,65 @@
  */
 
 function fmt(val, decimals = 0) {
-  if (val === undefined || val === null || isNaN(val)) return 'N/A';
-  return typeof val === 'number' ? val.toFixed(decimals) : val;
+  if (typeof val !== 'number' || !Number.isFinite(val)) {
+    if (typeof val === 'string' && val.trim() !== '') return val;
+    return 'N/A';
+  }
+  return val.toFixed(decimals);
 }
 
-export function getAttendingResponse(query, {
-  vitals = {},
-  patient = {},
-  activeMeds = [],
-  surgicalPhase = 'Pre-Op',
-  time = 0,
-  logs = []
-} = {}) {
-  const q = query.toLowerCase().trim();
+export function getAttendingResponse(query, state) {
+  const safeQuery = typeof query === 'string' ? query : '';
+  const q = safeQuery.toLowerCase().trim();
+
+  const safeState = state || {};
+  const vitals = safeState.vitals || {};
+  const patient = safeState.patient || {};
+  const activeMeds = Array.isArray(safeState.activeMeds) ? safeState.activeMeds : [];
+  const surgicalPhase = safeState.surgicalPhase || 'Pre-Op';
+  const time = typeof safeState.time === 'number' && Number.isFinite(safeState.time) ? safeState.time : 0;
+  const logs = Array.isArray(safeState.logs) ? safeState.logs : [];
 
   // 1. EXTRACT RELEVANT SIMULATION STATES
-  const hr = vitals.hr || 0;
-  const sys = vitals.sys || 0;
-  const dia = vitals.dia || 0;
-  const map = vitals.map || 0;
-  const spo2 = vitals.spo2 || 100;
-  const paco2 = vitals.paco2 || 40;
-  const etco2 = vitals.etco2 || 40;
-  const mac = vitals.mac || 0;
-  const bis = vitals.bis !== undefined ? vitals.bis : 99;
-  const tofCount = vitals.tofCount !== undefined ? vitals.tofCount : 4;
-  const pip = vitals.pip || 0;
-  const compliance = vitals.compl || 60;
-  const resistance = vitals.res || 10;
+  const hr = typeof vitals.hr === 'number' && Number.isFinite(vitals.hr) ? vitals.hr : 0;
+  const sys = typeof vitals.sys === 'number' && Number.isFinite(vitals.sys) ? vitals.sys : 0;
+  const dia = typeof vitals.dia === 'number' && Number.isFinite(vitals.dia) ? vitals.dia : 0;
+  const map = typeof vitals.map === 'number' && Number.isFinite(vitals.map) ? vitals.map : 0;
+  
+  // Use strict checks rather than `||` to prevent overriding real clinical zero readings in cardiovascular/pulmonary arrest
+  const spo2 = typeof vitals.spo2 === 'number' && Number.isFinite(vitals.spo2) ? vitals.spo2 : 100;
+  const paco2 = typeof vitals.paco2 === 'number' && Number.isFinite(vitals.paco2) ? vitals.paco2 : 40;
+  const etco2 = typeof vitals.etco2 === 'number' && Number.isFinite(vitals.etco2) ? vitals.etco2 : 40;
+  const mac = typeof vitals.mac === 'number' && Number.isFinite(vitals.mac) ? vitals.mac : 0;
+  
+  const bis = vitals.bis !== undefined && vitals.bis !== null && Number.isFinite(vitals.bis) ? vitals.bis : 99;
+  const tofCount = vitals.tofCount !== undefined && vitals.tofCount !== null && Number.isFinite(vitals.tofCount) ? vitals.tofCount : 4;
+  const pip = typeof vitals.pip === 'number' && Number.isFinite(vitals.pip) ? vitals.pip : 0;
+  const compliance = typeof vitals.compl === 'number' && Number.isFinite(vitals.compl) ? vitals.compl : 60;
+  const resistance = typeof vitals.res === 'number' && Number.isFinite(vitals.res) ? vitals.res : 10;
 
   const isArrest = patient.isArrest || false;
   const rhythm = patient.cardiacRhythm || 'sinus';
-  const stunning = patient.myocardialStunning || 0;
-  const ebl = patient.ebl || 0;
-  const ebv = patient.ebv || 5000;
-  const potassium = patient.suxPotassiumLeaked ? (patient.potassiumLevel || 6.2) : 4.0;
+  const stunning = typeof patient.myocardialStunning === 'number' && Number.isFinite(patient.myocardialStunning) ? patient.myocardialStunning : 0;
+  const ebl = typeof patient.ebl === 'number' && Number.isFinite(patient.ebl) ? patient.ebl : 0;
+  const ebv = typeof patient.ebv === 'number' && Number.isFinite(patient.ebv) && patient.ebv > 0 ? patient.ebv : 5000;
+  
+  // Dynamic baseline potassium logic: respect patient.potassiumLevel if provided, otherwise default to 4.0;
+  // if a succinylcholine leak occurs, it spikes the level to at least 6.2.
+  const basePotassium = typeof patient.potassiumLevel === 'number' && Number.isFinite(patient.potassiumLevel) ? patient.potassiumLevel : 4.0;
+  const potassium = patient.suxPotassiumLeaked ? Math.max(basePotassium, 6.2) : basePotassium;
+
   const isSeptic = patient.isSeptic || false;
   const isAnaphylaxis = patient.anaphylaxisTriggered || false;
   const isAnaphylaxisTreated = patient.anaphylaxisTreated || false;
   const bradycardiaTriggered = patient.bradycardiaTriggered || false;
   const airwaySecured = patient.airwaySecured || false;
   
-  const frc_L = patient.lungVolumes?.frc_L || 2.4;
-  const o2Buffer = patient.oxygenBuffer !== null && patient.oxygenBuffer !== undefined ? patient.oxygenBuffer : 0.5;
-  const frcO2Percent = frc_L > 0 ? (o2Buffer / frc_L) * 100 : 21;
+  const frc_L = patient.lungVolumes && typeof patient.lungVolumes.frc_L === 'number' && Number.isFinite(patient.lungVolumes.frc_L) && patient.lungVolumes.frc_L > 0 
+    ? patient.lungVolumes.frc_L 
+    : 2.4;
+  const o2Buffer = patient.oxygenBuffer !== null && patient.oxygenBuffer !== undefined && Number.isFinite(patient.oxygenBuffer) ? patient.oxygenBuffer : 0.5;
+  const frcO2Percent = frc_L > 0 ? Math.min(100, Math.max(0, (o2Buffer / frc_L) * 100)) : 21;
 
   // Active drugs concentration levels
   const propofolCe = activeMeds.find(m => m.name === 'Propofol')?.Ce || 0;
@@ -65,10 +80,10 @@ export function getAttendingResponse(query, {
   const pos = patient.position || 'Supine';
 
   // Check placed access lines
-  const placedLines = patient.accessLines || [];
-  const hasPIV = placedLines.some(l => l.category?.includes('Peripheral') || l.name?.includes('PIV'));
-  const hasCVC = placedLines.some(l => l.category?.includes('Central') || l.name?.includes('CVC'));
-  const hasArt = placedLines.some(l => l.category?.includes('Arterial') || l.name?.includes('Arterial') || patient.hasALine);
+  const placedLines = Array.isArray(patient.accessLines) ? patient.accessLines : [];
+  const hasPIV = placedLines.some(l => l && typeof l.category === 'string' && (l.category.includes('Peripheral') || (typeof l.name === 'string' && l.name.includes('PIV'))));
+  const hasCVC = placedLines.some(l => l && typeof l.category === 'string' && (l.category.includes('Central') || (typeof l.name === 'string' && l.name.includes('CVC'))));
+  const hasArt = placedLines.some(l => l && typeof l.category === 'string' && (l.category.includes('Arterial') || (typeof l.name === 'string' && l.name.includes('Arterial')) || patient.hasALine));
 
   // Case profiles
   const isObeseCase = patient.isObese || patient.bmi > 35;
@@ -86,9 +101,10 @@ export function getAttendingResponse(query, {
       msg += `- **Estimated Blood Loss (EBL)**: ${fmt(ebl)} mL\n`;
       msg += `- **Estimated Blood Volume (EBV)**: ${fmt(ebv)} mL\n`;
       msg += `- **Dilution/Fluid Volume**: ${fmt(patient.intravascularVolume || 5000)} mL\n`;
-      msg += `- **Volume Loss Ratio**: ${(ebl / ebv * 100).toFixed(1)}%\n\n`;
+      const bloodLossPct = ebv > 0 ? (ebl / ebv * 100) : 0;
+      msg += `- **Volume Loss Ratio**: ${bloodLossPct.toFixed(1)}%\n\n`;
 
-      const lossRatio = ebl / ebv;
+      const lossRatio = ebv > 0 ? ebl / ebv : 0;
       if (lossRatio > 0.25 || (patient.intravascularVolume && patient.intravascularVolume < 4200)) {
         msg += `🔴 **STATUS: CONFIRMED HYPOVOLEMIA**\n`;
         msg += `The patient has lost a significant fraction of blood volume (${(lossRatio * 100).toFixed(1)}% of total volume), causing severe venous return depletion and circulatory collapse. This is driving the cardiac arrest.\n\n`;

@@ -11,20 +11,22 @@ export class DataHygieneProcessor {
     const sanitizedFragments = fragments.map(frag => {
       let rawText = this.recoverGlyphs(frag.rawText);
       
-      const parsedSections = frag.parsedSections.map(sec => ({
+      const parsedSections = (frag.parsedSections || []).map(sec => ({
         ...sec,
-        heading: this.recoverGlyphs(sec.heading),
-        body: this.recoverGlyphs(sec.body)
+        heading: this.recoverGlyphs(sec.heading || ''),
+        body: this.recoverGlyphs(sec.body || '')
       }));
 
       // Apply confidence gating to page-level word bounding boxes if present
       let word_bounding_boxes = frag.word_bounding_boxes;
       // Note: page-level get_text("words") doesn't always have confidence, but if they do:
       if (word_bounding_boxes) {
-        word_bounding_boxes = word_bounding_boxes.map(w => ({
-          ...w,
-          text: this.recoverGlyphs(w.text)
-        }));
+        word_bounding_boxes = word_bounding_boxes
+          .filter(w => w && typeof w.text === 'string')
+          .map(w => ({
+            ...w,
+            text: this.recoverGlyphs(w.text)
+          }));
       }
 
       return {
@@ -37,11 +39,13 @@ export class DataHygieneProcessor {
 
     // 2. Sanitize visual data engines
     const sanitizedEngines = visualEngines.map(engine => {
-      const caption = this.recoverGlyphs(engine.caption);
+      const caption = this.recoverGlyphs(engine.caption || '');
       const closest_text_heading = this.recoverGlyphs(engine.closest_text_heading || '');
 
       // Apply Confidence Gating & Horizontal Token Merging to crop-level text bounding boxes
-      let text_bounding_boxes = engine.text_bounding_boxes || [];
+      // Filter out low-confidence, null, or malformed entries first
+      let text_bounding_boxes = (engine.text_bounding_boxes || [])
+        .filter(box => box && typeof box.confidence === 'number' && typeof box.text === 'string');
 
       // A. Confidence Gating: drop low confidence (< 80%) tokens to eliminate noise
       text_bounding_boxes = text_bounding_boxes.filter(
@@ -97,14 +101,19 @@ export class DataHygieneProcessor {
     if (boxes.length <= 1) return boxes;
 
     // Sort primarily by vertical top (y0), then horizontal left (x0)
-    let sorted = [...boxes].sort((a, b) => {
-      if (Math.abs(a.bbox[1] - b.bbox[1]) < 8) {
-        return a.bbox[0] - b.bbox[0];
-      }
-      return a.bbox[1] - b.bbox[1];
-    });
+    // Filter out boxes with missing or invalid spatial coordinate arrays to prevent NaN comparisons
+    let sorted = [...boxes]
+      .filter(box => box && box.bbox && box.bbox.length === 4 && box.bbox.every(c => typeof c === 'number' && !isNaN(c)))
+      .sort((a, b) => {
+        if (Math.abs(a.bbox[1] - b.bbox[1]) < 8) {
+          return a.bbox[0] - b.bbox[0];
+        }
+        return a.bbox[1] - b.bbox[1];
+      });
 
     let merged: Array<{ text: string, bbox: [number, number, number, number], confidence: number }> = [];
+    if (sorted.length === 0) return merged; // Crash guard for empty sorted list
+    
     let current = sorted[0];
 
     for (let i = 1; i < sorted.length; i++) {

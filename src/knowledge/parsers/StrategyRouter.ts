@@ -25,8 +25,9 @@ export class StrategyRouter {
       if (handler.supports(engine)) {
         try {
           return await handler.handle(engine);
-        } catch (err: any) {
-          console.error(`  [STRATEGY ROUTER ERROR] Handler failed for ${engine.id}: ${err.message}`);
+        } catch (err: unknown) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          console.error(`  [STRATEGY ROUTER ERROR] Handler failed for ${engine.id}: ${errMsg}`);
         }
       }
     }
