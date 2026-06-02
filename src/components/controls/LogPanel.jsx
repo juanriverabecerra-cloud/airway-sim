@@ -2,20 +2,24 @@ import React from 'react';
 import { Zap } from 'lucide-react';
 import { parseAndRenderText } from '../../engine/ClinicalActions';
 
-export const LogPanel = ({ logs, onActionClick }) => {
+export const LogPanel = ({ logs = [], onActionClick }) => {
+  const safeLogs = Array.isArray(logs) ? logs : [];
+
   return (
     <div className="col-span-1 glass-panel glass-amber p-4 flex flex-col min-h-[500px] max-h-[800px] shadow-2xl">
       <div className="flex justify-between items-center mb-3 border-b border-white/5 pb-2">
         <h3 className="text-amber-450 font-black flex items-center gap-2 uppercase tracking-widest text-xs font-mono"><Zap size={14}/> Clinical Log</h3>
       </div>
       <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-        {logs.map((log, index) => {
+        {safeLogs.map((rawLog, index) => {
+          const log = typeof rawLog === 'string' ? rawLog : String(rawLog || '');
+          
           // Detect and format the predictive Attending Consults
           if (log.includes('[STATUS]') && log.includes('[FORECAST]')) {
              const parts = log.split('\n');
-             const timeStr = parts[0].split('-')[0].trim();
-             const statusStr = parts[1].replace('[STATUS]', '').trim();
-             const forecastStr = parts[2].replace('[FORECAST]', '').trim();
+             const timeStr = parts[0] ? (parts[0].split('-')[0] || '').trim() : '';
+             const statusStr = parts[1] ? parts[1].replace('[STATUS]', '').trim() : '';
+             const forecastStr = parts[2] ? parts[2].replace('[FORECAST]', '').trim() : '';
              
              return (
                 <div key={index} className="flex flex-col gap-1.5 bg-amber-950/20 border border-amber-900/40 rounded-lg p-2.5 my-2">

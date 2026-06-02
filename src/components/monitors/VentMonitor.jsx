@@ -3,13 +3,14 @@ import { CanvasWaveform } from '../CanvasWaveform';
 
 export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSettings }) => {
   // If the airway is not secured, the ventilator monitor hides itself.
-  if (!patient.airwaySecured) return null;
+  if (!patient || !patient.airwaySecured) return null;
 
   // Derive the morphological shape of the waveform based on the active ventilator mode
   const ventMorphology = ventSettings?.mode === 'VCV' ? 'vcv' : 'pcv';
 
   return (
-    <div className="glass-panel glass-cyan p-2 md:p-3 flex flex-col gap-2 mt-4">
+    <div className="glass-panel glass-cyan crt-monitor p-2 md:p-3 flex flex-col gap-2 mt-4">
+      <div className="crt-sweep-line"></div>
       <div className="flex flex-col md:grid md:grid-cols-4 gap-2 min-h-[300px] md:min-h-0 md:h-[280px] lg:h-[320px]">
         
         {/* Waveforms */}
@@ -24,8 +25,8 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
               type="ventPressure" 
               morphology={ventMorphology}
               ieRatio={ventSettings?.ieRatio || 2} 
-              ampScale={Math.min(1, (vitals.pip || 0) / 60)} 
-              baseScale={Math.min(1, (vitals.peep || 0) / 20)} 
+              ampScale={Math.min(1, (vitals?.pip || 0) / 60)} 
+              baseScale={Math.min(1, (vitals?.peep || 0) / 20)} 
             />
           </div>
           <div className="flex-1 flex items-center w-full border border-slate-800 bg-black relative overflow-hidden rounded">
@@ -38,7 +39,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
               type="ventFlow" 
               morphology={ventMorphology}
               ieRatio={ventSettings?.ieRatio || 2} 
-              ampScale={Math.min(1, (vitals.pip || 0) / 40)} 
+              ampScale={Math.min(1, (vitals?.pip || 0) / 40)} 
             />
           </div>
           <div className="flex-1 flex items-center w-full border border-slate-800 bg-black relative overflow-hidden rounded">
@@ -51,7 +52,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
               type="ventVolume" 
               morphology={ventMorphology}
               ieRatio={ventSettings?.ieRatio || 2} 
-              ampScale={Math.min(1, (vitals.vte || 0) / 1000)} 
+              ampScale={Math.min(1, (vitals?.vte || 0) / 1000)} 
             />
           </div>
         </div>
@@ -65,14 +66,14 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
             </div>
             <div className="flex justify-between items-end">
               <div className="flex flex-col">
-                <span className="text-4xl font-black text-white leading-none">{Math.round(vitals.pip || 0)}</span>
+                <span className="text-4xl font-black text-white leading-none">{Math.round(vitals?.pip || 0)}</span>
                 <span className="text-yellow-500 text-[9px] font-bold uppercase tracking-widest mt-1">Pplat</span>
-                <span className="text-2xl font-black text-slate-300 leading-none">{Math.round(vitals.pplat || 0)}</span>
+                <span className="text-2xl font-black text-slate-300 leading-none">{Math.round(vitals?.pplat || 0)}</span>
               </div>
               <div className="flex flex-col items-end">
-                <span className="text-2xl font-black text-slate-300 leading-none">{Math.round(vitals.pmean || 0)}</span>
+                <span className="text-2xl font-black text-slate-300 leading-none">{Math.round(vitals?.pmean || 0)}</span>
                 <span className="text-yellow-600 text-[9px] font-bold uppercase tracking-widest mt-1">PEEP</span>
-                <span className="text-2xl font-black text-white leading-none">{Math.round(vitals.peep || 0)}</span>
+                <span className="text-2xl font-black text-white leading-none">{Math.round(vitals?.peep || 0)}</span>
               </div>
             </div>
           </div>
@@ -83,8 +84,8 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
               <span className="text-cyan-700 text-[10px] font-bold uppercase tracking-widest">MVe</span>
             </div>
             <div className="flex justify-between items-end">
-              <span className="text-5xl font-black text-green-400 leading-none">{Math.round(vitals.vte || 0)}</span>
-              <span className="text-3xl font-black text-green-400 leading-none">{(vitals.mv || 0).toFixed(1)}</span>
+              <span className="text-5xl font-black text-green-400 leading-none">{Math.round(vitals?.vte || 0)}</span>
+              <span className="text-3xl font-black text-green-400 leading-none">{(vitals?.mv || 0).toFixed(1)}</span>
             </div>
           </div>
 
@@ -98,7 +99,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
             </div>
             <div className="flex justify-between items-end">
               <div className="flex flex-col">
-                  <span className="text-4xl font-black text-white leading-none">{vitals.rr}</span>
+                  <span className="text-4xl font-black text-white leading-none">{vitals?.rr || 0}</span>
                   <div className="flex items-center gap-1 mt-1">
                      <span className="text-slate-500 text-[10px] font-bold uppercase tracking-widest">I:E 1:</span>
                      {setVentSettings ? (
@@ -120,8 +121,8 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
                   </div>
               </div>
               <div className="flex gap-4">
-                 <span className="text-3xl font-black text-slate-300 leading-none">{Math.round(vitals.compl || 60)}</span>
-                 <span className="text-3xl font-black text-slate-300 leading-none">{Math.round(vitals.res || 5)}</span>
+                 <span className="text-3xl font-black text-slate-300 leading-none">{Math.round(vitals?.compl || 60)}</span>
+                 <span className="text-3xl font-black text-slate-300 leading-none">{Math.round(vitals?.res || 5)}</span>
               </div>
             </div>
           </div>

@@ -49,16 +49,16 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     }
   });
 
-  // Load saved orders if they already exist in stagedCase
   useEffect(() => {
+    if (!stagedCase) return;
     const savedOrders = stagedCase.preOpOrders || stagedCase.patient?.preOpOrders;
     if (savedOrders) {
       setOrders(savedOrders);
     }
   }, [stagedCase]);
 
-  // Load verified risk assessment if exists
   useEffect(() => {
+    if (!stagedCase) return;
     const verified = stagedCase.patient?.verifiedRisk;
     if (verified && verified.verified) {
       setAssessment({
@@ -119,7 +119,8 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
   const [assessmentChecked, setAssessmentChecked] = useState(false);
 
   const getGroundTruth = () => {
-    const id = stagedCase.id;
+    if (!stagedCase) return {};
+    const id = stagedCase.id || '';
     const patient = stagedCase.patient || {};
     
     // 1. Calculate BMI
@@ -692,6 +693,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
 
   // Load saved plan if exists
   useEffect(() => {
+    if (!stagedCase) return;
     const savedPlan = stagedCase.preOpPlan || stagedCase.patient?.preOpPlan;
     if (savedPlan) {
       setAnesthesiaPlan(savedPlan);
@@ -746,8 +748,9 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
   // Returns an array of { severity: 'warning'|'caution'|'info', message: string }
   const getAnesthesiaAdvisories = () => {
     const advisories = [];
+    if (!stagedCase) return advisories;
     const { types, monitors, airway } = anesthesiaPlan;
-    const id = stagedCase.id;
+    const id = stagedCase.id || '';
     const isEmergent = id === 'trauma' || id === 'septic';
     const isSeptic = id === 'septic';
     const isTrauma = id === 'trauma';

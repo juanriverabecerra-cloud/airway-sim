@@ -27,14 +27,14 @@ export const AirwayPanel = ({
     return (
       <div className="glass-panel glass-cyan p-3.5 flex items-center justify-between shrink-0 font-mono transition-all duration-300">
         <div className="flex items-center gap-2.5 text-xs font-bold text-slate-300">
-          <Wind size={16} className={patient.airwaySecured ? "text-emerald-400" : "text-amber-400"} />
+          <Wind size={16} className={patient?.airwaySecured ? "text-emerald-400" : "text-amber-400"} />
           <span className="font-mono text-xs font-extrabold uppercase tracking-wide text-slate-100">Airway Panel</span>
           <span className={`text-[8px] font-black px-2 py-0.5 rounded-md border uppercase tracking-wider ${
-            patient.airwaySecured 
+            patient?.airwaySecured 
               ? 'bg-emerald-950/40 border-emerald-900/40 text-emerald-300' 
               : 'bg-amber-950/40 border-amber-900/40 text-amber-300 animate-pulse'
           }`}>
-            {patient.airwaySecured ? 'Secured' : 'Unsecured'}
+            {patient?.airwaySecured ? 'Secured' : 'Unsecured'}
           </span>
         </div>
         <button 
@@ -49,7 +49,7 @@ export const AirwayPanel = ({
 
   const handlePlaceAirway = (id, size) => {
     // ATLS CRITICAL GUARD: Basilar Skull Fracture / Facial Trauma Contraindication
-    if (id.includes('Nasopharyngeal') && patient.trauma) {
+    if (id.includes('Nasopharyngeal') && patient?.trauma) {
       logEvent(`🚨 CRITICAL ERROR: Attempted NPA placement in severe facial/basilar skull trauma! The device breached the fractured cribriform plate and entered the cranial vault!`);
       setAirwayToolInput({ tool: null, size: '' });
       return;
@@ -101,7 +101,7 @@ export const AirwayPanel = ({
   };
 
   // Render Secured Airway Dashboard
-  if (patient.airwaySecured) {
+  if (patient?.airwaySecured) {
     return (
       <div className="glass-panel glass-cyan p-4 flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
         {/* Header Minimize Row */}
@@ -121,7 +121,7 @@ export const AirwayPanel = ({
           <div className="flex items-center justify-center gap-2 text-cyan-450 font-black tracking-wider text-xs animate-pulse">
             <Wind size={16} /> AIRWAY SECURED
           </div>
-          <span className="text-[9px] text-slate-400">Position: {patient.tubePosition?.replace('_', ' ') || 'trachea'}</span>
+          <span className="text-[9px] text-slate-400">Position: {patient?.tubePosition?.replace('_', ' ') || 'trachea'}</span>
         </div>
 
         {/* Secured Airway Actions Checklist */}
@@ -204,23 +204,23 @@ export const AirwayPanel = ({
       </div>
       {/* Airway Status Bezel */}
       <div className={`border p-3 rounded-2xl flex flex-col gap-1 shadow-inner shrink-0 font-mono text-center ${
-        patient.airwayBlood 
+        patient?.airwayBlood 
           ? 'bg-red-950/20 border-red-800/40 text-red-400' 
-          : patient.ventilationStatus === 'failed' 
+          : patient?.ventilationStatus === 'failed' 
             ? 'bg-orange-950/20 border-orange-850/40 text-orange-400 animate-pulse'
             : 'bg-slate-950/30 border-white/5 text-slate-300'
       }`}>
         <div className="font-black tracking-wider text-xs flex items-center justify-center gap-1.5">
-          {patient.airwayBlood ? (
+          {patient?.airwayBlood ? (
             <>⚠️ AIRWAY COMPROMISED</>
-          ) : patient.ventilationStatus === 'failed' ? (
+          ) : patient?.ventilationStatus === 'failed' ? (
             <>🚨 FAILED VENTILATION</>
           ) : (
             <>🌬️ SPONTANEOUS DRIVE</>
           )}
         </div>
         <span className="text-[9px] text-slate-500">
-          {patient.airwayBlood ? 'Active blood/secretions obscuring pharynx' : 'Ventilation patency is critical'}
+          {patient?.airwayBlood ? 'Active blood/secretions obscuring pharynx' : 'Ventilation patency is critical'}
         </span>
       </div>
 
@@ -235,7 +235,7 @@ export const AirwayPanel = ({
           <button 
             onClick={handleSuction} 
             className={`flex-1 p-2 text-[10px] rounded-lg border font-bold transition-all ${
-              patient.airwayBlood 
+              patient?.airwayBlood 
                 ? 'glass-button-rose text-red-200 border-red-500 shadow-[0_0_12px_rgba(244,63,94,0.35)] animate-pulse' 
                 : 'glass-button border-slate-800'
             }`}
@@ -247,12 +247,12 @@ export const AirwayPanel = ({
         <button 
           onClick={() => pushMed('Topical Lidocaine Spray', 1)} 
           className={`w-full p-2 rounded-lg border font-bold transition-all text-xs font-mono ${
-            patient.isTopicalized 
+            patient?.isTopicalized 
               ? 'glass-button-emerald text-green-200 border-green-800/40' 
               : 'glass-button border-slate-800'
           }`}
         >
-          {patient.isTopicalized ? '✓ AIRWAY TOPICALIZED' : 'SPRAY LIDOCAINE 4%'}
+          {patient?.isTopicalized ? '✓ AIRWAY TOPICALIZED' : 'SPRAY LIDOCAINE 4%'}
         </button>
 
         {/* Placing Airways */}

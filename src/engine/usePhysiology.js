@@ -1044,7 +1044,6 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           }
           bloodLossRatio = Math.max(0, Math.min(0.95, bloodLossRatio));
 
-          const safeIntravascularVolume = typeof st.intravascularVolume === 'number' && Number.isFinite(st.intravascularVolume) ? st.intravascularVolume : 0;
           const safeVolumeAdded = typeof fluidicsOutput.intravascularVolumeAdded_mL === 'number' && Number.isFinite(fluidicsOutput.intravascularVolumeAdded_mL) ? fluidicsOutput.intravascularVolumeAdded_mL : 0;
           
           let calculatedHb = (baseHb * (1 - bloodLossRatio)) - (((safeIntravascularVolume + safeVolumeAdded) / safeEbv) * 3.0);

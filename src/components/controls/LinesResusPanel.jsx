@@ -49,8 +49,8 @@ export const LinesResusPanel = ({
   const resusLines = (patient?.accessLines || []).filter(l => l.category !== 'Arterial Line');
   let totalMedInfusionsCount = 0;
   resusLines.forEach(l => {
-    if (!l.failed && l.activeMedInfusions) {
-      totalMedInfusionsCount += l.activeMedInfusions.filter(m => parseFloat(m.rate) > 0).length;
+    if (l && !l.failed && l.activeMedInfusions) {
+      totalMedInfusionsCount += l.activeMedInfusions.filter(m => m && parseFloat(m.rate) > 0).length;
     }
   });
 
@@ -84,16 +84,16 @@ export const LinesResusPanel = ({
             const isPIVOrIO = line.category?.includes('Peripheral IV') || line.category?.includes('IO') || line.category?.includes('Intraosseous');
             
             const isBelmontOnIOOrSmallIV = currentLineEq === 'belmont' && !isBlown && (
-              line.category.includes('IO') || 
-              line.type.includes('20G') || 
-              line.type.includes('22G') || 
-              line.type.includes('24G')
+              line.category?.includes('IO') || 
+              line.type?.includes('20G') || 
+              line.type?.includes('22G') || 
+              line.type?.includes('24G')
             );
             
             const hasPRBCInSmallIV = !isBlown && (
-              line.activeInfusions && line.activeInfusions.some(inf => inf.name.includes('PRBC')) && (
-                line.type.includes('22G') || 
-                line.type.includes('24G')
+              line.activeInfusions && line.activeInfusions.some(inf => inf.name?.includes('PRBC')) && (
+                line.type?.includes('22G') || 
+                line.type?.includes('24G')
               )
             );
 
@@ -225,6 +225,11 @@ export const LinesResusPanel = ({
                       <div className="w-full h-1 bg-slate-900 rounded-full overflow-hidden">
                         <div className={`h-full bg-gradient-to-r ${fluidColorTheme.progress} rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
                       </div>
+                      {fluid.currentRate > 0 && (
+                        <div className="w-full h-1.5 bg-slate-950 border border-white/5 rounded-full overflow-hidden relative mt-0.5" title="Active intravenous infusion line">
+                          <div className={`h-full w-full ${fluid.currentRate > 500 ? 'flowing-line-fast' : 'flowing-line'}`} />
+                        </div>
+                      )}
                       <div className="flex justify-between items-center text-[8px] text-slate-500">
                         <span>Flow: <span className={`font-extrabold ${isBlood ? 'text-red-400' : 'text-cyan-400'}`}>{fluid.currentRate ? Math.round(fluid.currentRate) : 0} mL/hr</span></span>
                         <span>{Math.round(pct)}% left</span>

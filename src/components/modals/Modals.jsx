@@ -616,7 +616,7 @@ export const PreopModal = ({ show, close, patient, setPatient, logEvent }) => {
   });
 
   React.useEffect(() => {
-    if (patient.verifiedRisk) {
+    if (patient?.verifiedRisk) {
       setRcri({
         highRiskSurg: patient.verifiedRisk.rcriHighRisk || false,
         ischemicHeart: patient.verifiedRisk.rcriIhd || false,
@@ -627,7 +627,7 @@ export const PreopModal = ({ show, close, patient, setPatient, logEvent }) => {
       });
       setMets(patient.verifiedRisk.mets || null);
     }
-    if (patient.preOpOrders && patient.preOpOrders.labs) {
+    if (patient?.preOpOrders && patient.preOpOrders.labs) {
       setPreopOrders({
         cbc: patient.preOpOrders.labs.cbc || false,
         bmp: patient.preOpOrders.labs.bmp || false,
@@ -675,20 +675,20 @@ export const PreopModal = ({ show, close, patient, setPatient, logEvent }) => {
           <div className="bg-slate-800/80 p-4 rounded-lg border border-slate-700 col-span-2">
             <h3 className="text-indigo-300 font-bold text-sm uppercase mb-3">Clinical Profile & History</h3>
             <div className="grid grid-cols-2 gap-3 text-xs md:text-sm">
-              <div><span className="text-slate-400">Patient:</span> <span className="text-white font-bold">{patient.name || 'John Doe'}</span></div>
-              <div><span className="text-slate-400">Age / Weight:</span> <span className="text-white font-bold">{patient.age || 65}yo / {patient.weight || 75} kg</span></div>
-              <div><span className="text-slate-400">Height / BMI:</span> <span className="text-white font-bold">{patient.height || 175} cm / {patient.bmi ? parseFloat(patient.bmi.toFixed(1)) : 24.5} ({patient.isObese ? 'Obese' : 'Normal'})</span></div>
-              <div><span className="text-slate-400">Airway Exam:</span> <span className="text-white font-bold">Mallampati {patient.airwayExamined ? patient.mallampatiScore || 'N/A' : 'UNEXAMINED'}</span></div>
+              <div><span className="text-slate-400">Patient:</span> <span className="text-white font-bold">{patient?.name || 'John Doe'}</span></div>
+              <div><span className="text-slate-400">Age / Weight:</span> <span className="text-white font-bold">{patient?.age || 65}yo / {patient?.weight || 75} kg</span></div>
+              <div><span className="text-slate-400">Height / BMI:</span> <span className="text-white font-bold">{patient?.height || 175} cm / {patient?.bmi ? parseFloat(patient.bmi.toFixed(1)) : 24.5} ({patient?.isObese ? 'Obese' : 'Normal'})</span></div>
+              <div><span className="text-slate-400">Airway Exam:</span> <span className="text-white font-bold">Mallampati {patient?.airwayExamined ? patient.mallampatiScore || 'N/A' : 'UNEXAMINED'}</span></div>
             </div>
             
             <div className="mt-4 border-t border-slate-700/50 pt-3">
               <span className="text-slate-400 text-xs block mb-1">Active Comorbidities:</span>
               <div className="flex flex-wrap gap-1.5">
-                {patient.cad && <span className="bg-red-950 border border-red-800 text-red-300 px-2 py-0.5 rounded text-[10px] font-bold">Coronary Artery Disease</span>}
-                {patient.chf && <span className="bg-orange-950 border border-orange-800 text-orange-300 px-2 py-0.5 rounded text-[10px] font-bold">Congestive Heart Failure</span>}
-                {patient.diabetes && <span className="bg-yellow-950 border border-yellow-800 text-yellow-300 px-2 py-0.5 rounded text-[10px] font-bold">Diabetes Mellitus</span>}
-                {patient.mg && <span className="bg-purple-950 border border-purple-800 text-purple-300 px-2 py-0.5 rounded text-[10px] font-bold">Myasthenia Gravis</span>}
-                {patient.isTrauma && <span className="bg-red-950 border border-red-500 text-red-200 px-2 py-0.5 rounded text-[10px] font-bold animate-pulse">TRAUMA / BURNS</span>}
+                {patient?.cad && <span className="bg-red-950 border border-red-800 text-red-300 px-2 py-0.5 rounded text-[10px] font-bold">Coronary Artery Disease</span>}
+                {patient?.chf && <span className="bg-orange-950 border border-orange-800 text-orange-300 px-2 py-0.5 rounded text-[10px] font-bold">Congestive Heart Failure</span>}
+                {patient?.diabetes && <span className="bg-yellow-950 border border-yellow-800 text-yellow-300 px-2 py-0.5 rounded text-[10px] font-bold">Diabetes Mellitus</span>}
+                {patient?.mg && <span className="bg-purple-950 border border-purple-800 text-purple-300 px-2 py-0.5 rounded text-[10px] font-bold">Myasthenia Gravis</span>}
+                {patient?.isTrauma && <span className="bg-red-950 border border-red-500 text-red-200 px-2 py-0.5 rounded text-[10px] font-bold animate-pulse">TRAUMA / BURNS</span>}
               </div>
             </div>
           </div>
@@ -1167,9 +1167,9 @@ export const ExtubationModal = ({ show, close, vitals, patient, logEvent, perfor
     setChecks(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const hasTofRatio = vitals.tofCount === 4 && vitals.tofRatio >= 0.90;
-  const isRrGood = vitals.rr >= 6 && vitals.rr <= 30;
-  const isTvGood = vitals.vte >= 5 * patient.weight;
+  const hasTofRatio = vitals?.tofCount === 4 && vitals?.tofRatio >= 0.90;
+  const isRrGood = vitals?.rr >= 6 && vitals?.rr <= 30;
+  const isTvGood = vitals?.vte >= 5 * (patient?.weight || 70);
   
   const allChecked = Object.values(checks).every(Boolean);
 
@@ -1200,7 +1200,7 @@ export const ExtubationModal = ({ show, close, vitals, patient, logEvent, perfor
             <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-850 flex flex-col">
               <span className="text-slate-400">TOF Recovery Ratio:</span>
               <span className={`text-base font-black mt-1 ${hasTofRatio ? 'text-green-400' : 'text-red-400'}`}>
-                {vitals.tofCount}/4 ({vitals.tofRatio ? `${(vitals.tofRatio*100).toFixed(0)}%` : '0%'})
+                {vitals?.tofCount || 0}/4 ({vitals?.tofRatio ? `${(vitals.tofRatio*100).toFixed(0)}%` : '0%'})
               </span>
               <span className="text-[10px] text-slate-500 mt-0.5">Target: 4/4 (Ratio &gt;= 90%)</span>
             </div>
@@ -1208,7 +1208,7 @@ export const ExtubationModal = ({ show, close, vitals, patient, logEvent, perfor
             <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-850 flex flex-col">
               <span className="text-slate-400">Spontaneous Resp Rate:</span>
               <span className={`text-base font-black mt-1 ${isRrGood ? 'text-green-400' : 'text-red-400'}`}>
-                {vitals.rr} bpm
+                {vitals?.rr || 0} bpm
               </span>
               <span className="text-[10px] text-slate-500 mt-0.5">Target: 6 - 30 bpm</span>
             </div>
@@ -1216,9 +1216,9 @@ export const ExtubationModal = ({ show, close, vitals, patient, logEvent, perfor
             <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-850 flex flex-col col-span-2">
               <span className="text-slate-400">Spontaneous Tidal Volume:</span>
               <span className={`text-base font-black mt-1 ${isTvGood ? 'text-green-400' : 'text-red-400'}`}>
-                {vitals.vte} mL ({(vitals.vte / patient.weight).toFixed(1)} mL/kg)
+                {vitals?.vte || 0} mL ({(vitals?.vte && patient?.weight) ? (vitals.vte / patient.weight).toFixed(1) : '0'} mL/kg)
               </span>
-              <span className="text-[10px] text-slate-500 mt-0.5">Target: &gt; 5 mL/kg (&gt;= {5 * patient.weight} mL)</span>
+              <span className="text-[10px] text-slate-500 mt-0.5">Target: &gt; 5 mL/kg (&gt;= {5 * (patient?.weight || 70)} mL)</span>
             </div>
           </div>
         </div>

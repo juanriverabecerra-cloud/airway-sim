@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import './App.css';
 import { usePhysiology } from './engine/usePhysiology';
 import { ProceduralEngine } from './engine/ProceduralEngine';
 import { Search, Activity } from 'lucide-react';

@@ -225,11 +225,11 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
   });
 
   useEffect(() => {
-    const height = customForm.height;
-    const weight = customForm.weight;
-    const sex = customForm.sex;
-    const age = customForm.age;
-    const position = customForm.position;
+    const height = typeof customForm.height === 'number' && Number.isFinite(customForm.height) && customForm.height > 0 ? customForm.height : 170;
+    const weight = typeof customForm.weight === 'number' && Number.isFinite(customForm.weight) && customForm.weight > 0 ? customForm.weight : 70;
+    const sex = typeof customForm.sex === 'string' ? customForm.sex : 'male';
+    const age = typeof customForm.age === 'number' && Number.isFinite(customForm.age) && customForm.age > 0 ? customForm.age : 40;
+    const position = typeof customForm.position === 'string' ? customForm.position : 'Supine';
 
     const bmi = weight / Math.pow(height / 100, 2);
     const ibw = calculateIBW(height, sex);
@@ -247,35 +247,42 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
     const lung = calculateLungVolumes(height, age, sex, bmi, position, customForm.copd || false, customForm.restrictive || false);
 
     setDemographics({
-      bmi: parseFloat(bmi.toFixed(1)),
-      ibw: parseFloat(ibw.toFixed(1)),
-      lbw: parseFloat(lbw.toFixed(1)),
-      ebv: Math.round(ebv),
-      bsa: parseFloat(bsa.toFixed(2)),
-      lung: lung
+      bmi: parseFloat(Number.isFinite(bmi) ? bmi.toFixed(1) : '24.5'),
+      ibw: parseFloat(Number.isFinite(ibw) ? ibw.toFixed(1) : '65.0'),
+      lbw: parseFloat(Number.isFinite(lbw) ? lbw.toFixed(1) : '55.0'),
+      ebv: Math.round(Number.isFinite(ebv) ? ebv : 5000),
+      bsa: parseFloat(Number.isFinite(bsa) ? bsa.toFixed(2) : '1.8'),
+      lung: lung || {}
     });
   }, [customForm.height, customForm.weight, customForm.sex, customForm.age, customForm.position, customForm.copd, customForm.restrictive]);
 
   const calculateDifficulty = (data) => {
+    if (!data) return { level: 'Medium', color: 'text-yellow-400', border: 'border-yellow-500' };
     let score = 0;
 
     // 1. Calculate Body Mass Index (BMI) and apply obesity difficulty weighting
-    const bmi = data.weight / Math.pow(data.height / 100, 2);
+    const height = typeof data.height === 'number' && Number.isFinite(data.height) && data.height > 0 ? data.height : 170;
+    const weight = typeof data.weight === 'number' && Number.isFinite(data.weight) && data.weight > 0 ? data.weight : 70;
+    const bmi = weight / Math.pow(height / 100, 2);
     if (bmi > 30) score += 1;   // Class I Obesity (moderately reduced FRC)
     if (bmi > 35) score += 2;   // Class II Obesity (significantly reduced FRC, mechanical airway compromise)
     if (bmi > 45) score += 2;   // Morbid Obesity (extremely rapid apnea desaturation, high aspiration risk)
 
     // 2. Age-related physiological reserve decay
-    if (data.age > 65) score += 1;
-    if (data.age > 75) score += 1; // Elderly patients have reduced cardiac compliance and respiratory elasticity
+    const age = typeof data.age === 'number' ? data.age : 40;
+    if (age > 65) score += 1;
+    if (age > 75) score += 1; // Elderly patients have reduced cardiac compliance and respiratory elasticity
 
     // 3. Baseline Vitals / Hemodynamic reserve
-    if (data.sys < 100) {
+    const sys = typeof data.sys === 'number' ? data.sys : 120;
+    const dia = typeof data.dia === 'number' ? data.dia : 80;
+    const spo2 = typeof data.spo2 === 'number' ? data.spo2 : 99;
+    if (sys < 100) {
       score += 3; // Profound hypotension/shock (extreme risk of vascular collapse on induction!)
-    } else if (data.sys > 160 || data.dia > 100) {
+    } else if (sys > 160 || dia > 100) {
       score += 1.5; // Severe baseline hypertension (hyperdynamic response, high risk of myocardial ischemia)
     }
-    if (data.spo2 < 93) {
+    if (spo2 < 93) {
       score += 3; // Baseline hypoxemia (pre-depleted oxygen reserve, extremely short safe apnea time)
     }
 
@@ -442,7 +449,7 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
         ebv: finalEbv, ebl: finalEbl, 
         patientBaseSV: data.chf ? Math.round(70 * (data.ef / 60)) : 70, 
         patientBaseSVR: data.septic ? 600 : (data.htn ? 1450 : 1100),
-        shuntFraction: data.procedure.includes('OLV') ? 0.25 : 0.05,
+        shuntFraction: (data?.procedure || '').includes('OLV') ? 0.25 : 0.05,
         npoSolids: data.npoSolids || 8,
         npoLiquids: data.npoLiquids || 4,
         allergies: data.penicillinAllergy ? 'Penicillin' : 'NKDA',
@@ -468,7 +475,7 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
   const currDiff = calculateDifficulty(customForm);
 
   if (stagedCase) {
-    const b = stagedCase.preOpBriefing;
+    const b = stagedCase.preOpBriefing || { hpi: '', pmhx: '', vitals: '', airway: '', rationale: '' };
     return (
       <div className="glass-panel glass-blue p-6 w-full max-w-3xl flex flex-col gap-6 text-slate-100 font-mono animate-in slide-in-from-bottom-4">
         <div className="flex justify-between items-center border-b border-white/5 pb-4">

@@ -489,19 +489,19 @@ export default function AttendingPanel({
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 bg-slate-950 p-3.5 rounded-xl border border-slate-800/80 text-[10px] text-slate-400">
               <div>
                 <span className="block text-[9px] uppercase tracking-wider text-slate-500">Patient Class</span>
-                <span className="font-bold text-slate-200 text-xs">{patient.name || 'Custom Subject'} (ASA {patient.asaStatus || 'I'})</span>
+                <span className="font-bold text-slate-200 text-xs">{patient?.name || 'Custom Subject'} (ASA {patient?.asaStatus || 'I'})</span>
               </div>
               <div>
                 <span className="block text-[9px] uppercase tracking-wider text-slate-500">Spirometric FRC</span>
-                <span className="font-bold text-amber-400 text-xs">{(patient.lungVolumes?.frc_L || 2.4).toFixed(2)} L</span>
+                <span className="font-bold text-amber-400 text-xs">{(patient?.lungVolumes?.frc_L || 2.4).toFixed(2)} L</span>
               </div>
               <div>
                 <span className="block text-[9px] uppercase tracking-wider text-slate-500">Oxygen Buffer</span>
-                <span className="font-bold text-emerald-400 text-xs">{(patient.oxygenBuffer || 0.5).toFixed(2)} L O2 ({Math.round(frcO2Percent)}%)</span>
+                <span className="font-bold text-emerald-400 text-xs">{(patient?.oxygenBuffer || 0.5).toFixed(2)} L O2 ({Math.round(frcO2Percent)}%)</span>
               </div>
               <div>
                 <span className="block text-[9px] uppercase tracking-wider text-slate-500">Ischemic Damage</span>
-                <span className="font-bold text-yellow-500 text-xs">{Math.round(patient.ischemicDamage || 0)} / {patient.arrestThreshold || 1200}</span>
+                <span className="font-bold text-yellow-500 text-xs">{Math.round(patient?.ischemicDamage || 0)} / {patient?.arrestThreshold || 1200}</span>
               </div>
             </div>
  

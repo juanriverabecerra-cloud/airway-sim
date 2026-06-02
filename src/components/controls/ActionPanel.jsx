@@ -100,7 +100,7 @@ export const ActionPanel = ({
   };
 
   const getPosClass = (posName) => {
-    const isCurrent = patient.position === posName || (!patient.position && posName === 'Supine');
+    const isCurrent = patient?.position === posName || (!patient?.position && posName === 'Supine');
     return `p-2 rounded-lg text-[9px] leading-tight text-center border font-bold transition-all ${isCurrent ? 'bg-blue-500/20 border-blue-500 text-blue-300 shadow-[0_0_10px_rgba(59,130,246,0.25)]' : 'bg-slate-950/40 border-white/5 text-slate-400 hover:text-slate-200'}`;
   };
 
@@ -143,22 +143,22 @@ export const ActionPanel = ({
         {showCPR && (
           <div className="flex flex-col gap-2">
             <h3 className="text-slate-400 text-[10px] border-b border-white/5 pb-1 uppercase font-black tracking-wider flex items-center gap-2 font-mono"><Activity size={12} className="text-red-500 animate-pulse"/> Defibrillator & CPR</h3>
-            {(patient.cprActive || patient.isArrest) && (
+            {(patient?.cprActive || patient?.isArrest) && (
               <div className="bg-red-950/20 border border-red-900/40 p-2.5 rounded-xl flex justify-between items-center shadow-inner font-mono">
                 <span className="text-red-400 font-black text-[10px] animate-pulse">
-                  {patient.isArrest ? '🚨 CODE BLUE ACTIVE' : '❤️ CPR ACTIVE'}
+                  {patient?.isArrest ? '🚨 CODE BLUE ACTIVE' : '❤️ CPR ACTIVE'}
                 </span>
                 <span className="text-white font-black text-base">
-                  {formatTime(time - (patient.isArrest ? (patient.codeStartTime ?? time) : (patient.cprStartTime ?? time)))}
+                  {formatTime(time - (patient?.isArrest ? (patient?.codeStartTime ?? time) : (patient?.cprStartTime ?? time)))}
                 </span>
               </div>
             )}
             <div className="flex flex-col gap-2 font-mono">
               <div className="flex gap-2">
-                <button onClick={() => { toggleCPR(); setSearchTerm(''); }} className={`flex-1 p-2 rounded-lg text-[10px] font-black border transition active:scale-97 shadow-lg ${patient.cprActive ? 'glass-button-rose text-white border-red-500 shadow-[0_0_12px_rgba(244,63,94,0.3)] animate-pulse' : 'glass-button border-red-950/30 text-red-300 hover:bg-red-950/20'}`}>
-                  {patient.cprActive ? 'STOP COMPRESSIONS' : 'START CPR'}
+                <button onClick={() => { toggleCPR(); setSearchTerm(''); }} className={`flex-1 p-2 rounded-lg text-[10px] font-black border transition active:scale-97 shadow-lg ${patient?.cprActive ? 'glass-button-rose text-white border-red-500 shadow-[0_0_12px_rgba(244,63,94,0.3)] animate-pulse' : 'glass-button border-red-950/30 text-red-300 hover:bg-red-950/20'}`}>
+                  {patient?.cprActive ? 'STOP COMPRESSIONS' : 'START CPR'}
                 </button>
-                <button onClick={() => { checkRhythm(); setSearchTerm(''); }} disabled={!patient.cprActive && !patient.isArrest} className="flex-1 glass-button text-[10px] border border-slate-800 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-1">
+                <button onClick={() => { checkRhythm(); setSearchTerm(''); }} disabled={!patient?.cprActive && !patient?.isArrest} className="flex-1 glass-button text-[10px] border border-slate-800 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-1">
                   <Eye size={12}/> CHECK RHYTHM
                 </button>
               </div>
@@ -201,7 +201,7 @@ export const ActionPanel = ({
             <h3 className="text-slate-400 text-[10px] border-b border-white/5 pb-1 uppercase font-black tracking-wider flex items-center gap-2 font-mono"><Zap size={12} className="text-blue-400"/> Surgical Timeline</h3>
             <div className="flex flex-wrap gap-1.5 justify-center font-mono">
               {['Pre-Op', 'Induction', 'Incision', 'Maintenance', 'Emergence'].map(phase => {
-                const isLockedInduction = phase === 'Induction' && !msmaidsComplete && !patient.emergentRSI;
+                const isLockedInduction = phase === 'Induction' && !msmaidsComplete && !patient?.emergentRSI;
                 let btnClass = '';
                 if (surgicalPhase === phase) {
                   btnClass = 'glass-button-blue border border-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.25)]';
@@ -256,14 +256,14 @@ export const ActionPanel = ({
               </button>
               <button 
                 onClick={() => { setPostIntubationModal(true); setSearchTerm(''); }} 
-                disabled={!patient.airwaySecured}
+                disabled={!patient?.airwaySecured}
                 className="bg-blue-950/30 hover:bg-blue-900/50 text-blue-300 border border-blue-500/40 hover:border-blue-400 disabled:opacity-20 disabled:pointer-events-none p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200"
               >
                 🔄 Post-Intub A's
               </button>
               <button 
                 onClick={() => { setExtubationModal(true); setSearchTerm(''); }} 
-                disabled={!patient.airwaySecured}
+                disabled={!patient?.airwaySecured}
                 className="bg-blue-950/30 hover:bg-blue-900/50 text-blue-300 border border-blue-500/40 hover:border-blue-400 disabled:opacity-20 disabled:pointer-events-none p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200"
               >
                 💨 Extubation Check
@@ -283,7 +283,7 @@ export const ActionPanel = ({
             </div>
           </div>
         )}
-
+ 
         {/* Diagnostics & POCUS */}
         {showDiag && (
           <div className="flex flex-col gap-2">
@@ -296,17 +296,17 @@ export const ActionPanel = ({
             </div>
           </div>
         )}
-
+ 
         {/* Neuro Monitors */}
         {showNeuro && (
           <div className="flex flex-col gap-2">
             <h3 className="text-slate-400 text-[10px] border-b border-white/5 pb-1 uppercase font-black tracking-wider flex items-center gap-2 font-mono"><Award size={12} className="text-blue-400"/> Neuro & Twitch Monitors</h3>
             <div className="grid grid-cols-2 gap-2 font-mono">
-              <button onClick={() => { toggleBis(); setSearchTerm(''); }} className={`p-2 rounded-lg text-[10px] border transition-all font-black uppercase tracking-wider ${patient.hasBisMonitor ? 'glass-button-blue text-blue-300 border-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.2)]' : 'glass-button border-slate-800 text-slate-500'}`}>
-                {patient.hasBisMonitor ? '✓ BIS ATTACHED' : 'ATTACH BIS'}
+              <button onClick={() => { toggleBis(); setSearchTerm(''); }} className={`p-2 rounded-lg text-[10px] border transition-all font-black uppercase tracking-wider ${patient?.hasBisMonitor ? 'glass-button-blue text-blue-300 border-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.2)]' : 'glass-button border-slate-800 text-slate-500'}`}>
+                {patient?.hasBisMonitor ? '✓ BIS ATTACHED' : 'ATTACH BIS'}
               </button>
-              <button onClick={() => { toggleTof(); setSearchTerm(''); }} className={`p-2 rounded-lg text-[10px] border transition-all font-black uppercase tracking-wider ${patient.hasTofMonitor ? 'glass-button-blue text-blue-300 border-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.2)]' : 'glass-button border-slate-800 text-slate-500'}`}>
-                {patient.hasTofMonitor ? '✓ TOF ATTACHED' : 'ATTACH TOF'}
+              <button onClick={() => { toggleTof(); setSearchTerm(''); }} className={`p-2 rounded-lg text-[10px] border transition-all font-black uppercase tracking-wider ${patient?.hasTofMonitor ? 'glass-button-blue text-blue-300 border-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.2)]' : 'glass-button border-slate-800 text-slate-500'}`}>
+                {patient?.hasTofMonitor ? '✓ TOF ATTACHED' : 'ATTACH TOF'}
               </button>
             </div>
           </div>

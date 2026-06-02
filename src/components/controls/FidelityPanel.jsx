@@ -55,16 +55,42 @@ export default function FidelityPanel({
   const [submitError, setSubmitError] = useState('');
 
   // Ref to hold the current active state variables so the fuzzer can read them dynamically
-  const currentStateRef = useRef({ vitals, patient, activeMeds, gasSettings, ventSettings, surgicalPhase, electrolytes, coags, time });
+  const currentStateRef = useRef({
+    vitals: vitals || {},
+    patient: patient || {},
+    activeMeds: activeMeds || [],
+    gasSettings: gasSettings || {},
+    ventSettings: ventSettings || {},
+    surgicalPhase: surgicalPhase || '',
+    electrolytes: electrolytes || {},
+    coags: coags || {},
+    time: typeof time === 'number' ? time : 0
+  });
   
   // Synchronously update ref during render pass to ensure fuzzer always reads the absolute latest committed state
   currentStateRef.current = {
-    vitals, patient, activeMeds, gasSettings, ventSettings, surgicalPhase, electrolytes, coags, time
+    vitals: vitals || {},
+    patient: patient || {},
+    activeMeds: activeMeds || [],
+    gasSettings: gasSettings || {},
+    ventSettings: ventSettings || {},
+    surgicalPhase: surgicalPhase || '',
+    electrolytes: electrolytes || {},
+    coags: coags || {},
+    time: typeof time === 'number' ? time : 0
   };
 
   useEffect(() => {
     currentStateRef.current = {
-      vitals, patient, activeMeds, gasSettings, ventSettings, surgicalPhase, electrolytes, coags, time
+      vitals: vitals || {},
+      patient: patient || {},
+      activeMeds: activeMeds || [],
+      gasSettings: gasSettings || {},
+      ventSettings: ventSettings || {},
+      surgicalPhase: surgicalPhase || '',
+      electrolytes: electrolytes || {},
+      coags: coags || {},
+      time: typeof time === 'number' ? time : 0
     };
   }, [vitals, patient, activeMeds, gasSettings, ventSettings, surgicalPhase, electrolytes, coags, time]);
 
@@ -73,28 +99,28 @@ export default function FidelityPanel({
   useEffect(() => {
     if (vitals && Object.keys(vitals).length > 0) {
       const snap = {
-        tick: time,
-        actionText: surgicalPhase,
+        tick: time || 0,
+        actionText: surgicalPhase || '',
         vitals: {
-          hr: vitals.hr,
-          sys: vitals.sys,
-          dia: vitals.dia,
-          map: vitals.map,
-          spo2: vitals.spo2,
-          etco2: vitals.etco2,
-          temp: vitals.temp,
-          svr: vitals.svr,
-          co: vitals.co,
-          tofCount: vitals.tofCount
+          hr: typeof vitals.hr === 'number' ? vitals.hr : 0,
+          sys: typeof vitals.sys === 'number' ? vitals.sys : 0,
+          dia: typeof vitals.dia === 'number' ? vitals.dia : 0,
+          map: typeof vitals.map === 'number' ? vitals.map : 0,
+          spo2: typeof vitals.spo2 === 'number' ? vitals.spo2 : 0,
+          etco2: typeof vitals.etco2 === 'number' ? vitals.etco2 : 0,
+          temp: typeof vitals.temp === 'number' ? vitals.temp : 37.0,
+          svr: typeof vitals.svr === 'number' ? vitals.svr : 1100,
+          co: typeof vitals.co === 'number' ? vitals.co : 5.0,
+          tofCount: typeof vitals.tofCount === 'number' ? vitals.tofCount : 4
         },
         electrolytes: {
-          ph: electrolytes?.ph,
-          k: electrolytes?.k,
-          ca: electrolytes?.ca
+          ph: typeof electrolytes?.ph === 'number' ? electrolytes.ph : 7.4,
+          k: typeof electrolytes?.k === 'number' ? electrolytes.k : 4.0,
+          ca: typeof electrolytes?.ca === 'number' ? electrolytes.ca : 1.15
         },
         patient: {
-          nAChR_state: patient?.nAChR_state,
-          isArrest: patient?.isArrest
+          nAChR_state: patient?.nAChR_state || 'normal',
+          isArrest: !!patient?.isArrest
         }
       };
       liveHistoryRef.current.push(snap);

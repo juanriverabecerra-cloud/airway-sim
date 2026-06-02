@@ -25,13 +25,13 @@ export const PatientHeader = ({
           <div className="flex flex-col gap-1 w-full xl:w-auto">
             <h1 className="text-2xl font-black tracking-tight text-emerald-400 drop-shadow-[0_0_12px_rgba(16,185,129,0.35)]">{activeCase.name}</h1>
             <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm text-slate-300 bg-slate-950/40 p-2 rounded-lg border border-white/5 font-mono">
-              <span><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Age:</span> {patient.age}</span>
-              <span><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Sex:</span> {patient.sex}</span>
-              <span><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Height:</span> {patient.height} cm</span>
-              <span><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">TBW:</span> {Math.round(patient.weight || 0)} kg</span>
-              <span><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">IBW:</span> {Math.round(patient.ibw || 0)} kg</span>
-              <span className={`ml-auto xl:ml-2 border-l border-slate-800 pl-3 ${patient.bmi > 30 ? 'text-orange-400 font-bold animate-pulse' : ''}`}><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px] mr-1">BMI:</span>{(patient.bmi || 22).toFixed(1)}</span>
-              <span className="text-red-300 ml-2 border-l border-slate-800 pl-3 bg-red-950/30 px-2.5 py-0.5 rounded-md border border-red-900/30"><span className="text-red-400 font-extrabold uppercase tracking-wider text-[10px] mr-1">EBL:</span>{Math.round(patient.ebl || 0)} mL</span>
+              <span><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Age:</span> {patient?.age ?? '--'}</span>
+              <span><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Sex:</span> {patient?.sex ?? '--'}</span>
+              <span><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Height:</span> {patient?.height ?? '--'} cm</span>
+              <span><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">TBW:</span> {Math.round(patient?.weight || 0)} kg</span>
+              <span><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">IBW:</span> {Math.round(patient?.ibw || 0)} kg</span>
+              <span className={`ml-auto xl:ml-2 border-l border-slate-800 pl-3 ${patient?.bmi > 30 ? 'text-orange-400 font-bold animate-pulse' : ''}`}><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px] mr-1">BMI:</span>{(patient?.bmi || 22).toFixed(1)}</span>
+              <span className="text-red-300 ml-2 border-l border-slate-800 pl-3 bg-red-950/30 px-2.5 py-0.5 rounded-md border border-red-900/30"><span className="text-red-400 font-extrabold uppercase tracking-wider text-[10px] mr-1">EBL:</span>{Math.round(patient?.ebl || 0)} mL</span>
             </div>
           </div>
 
@@ -76,8 +76,8 @@ export const PatientHeader = ({
           <p className="text-slate-400 text-[10px] font-extrabold uppercase tracking-widest min-w-max font-mono">Pre-Ox FRC</p>
           
           {(() => {
-            const frcL = (patient.lungVolumes && patient.lungVolumes.frc_L) || 2.5;
-            const bufferPct = Math.min(100, Math.max(0, ((patient.oxygenBuffer || 0) / frcL) * 100));
+            const frcL = (patient?.lungVolumes && patient?.lungVolumes?.frc_L) || 2.5;
+            const bufferPct = Math.min(100, Math.max(0, ((patient?.oxygenBuffer || 0) / frcL) * 100));
             return (
               <>
                 <div className="h-6 w-full bg-slate-900/60 rounded-full overflow-hidden border border-white/10 relative shadow-inner">
@@ -88,7 +88,7 @@ export const PatientHeader = ({
                    <div className="absolute top-0 bottom-0 left-[90%] border-l-2 border-green-500/30 z-10"></div>
                    <span className="absolute top-[5px] left-[91%] text-[8px] font-black text-green-400/80 z-10 leading-none font-mono">TARGET</span>
                    <div className="absolute top-0 bottom-0 left-[90%] right-0 bg-green-950/10"></div>
-
+ 
                    <div 
                      className={`h-full transition-all duration-1000 ease-linear relative ${
                        bufferPct < 21 ? 'bg-gradient-to-r from-red-600 to-red-500' : (bufferPct > 88 ? 'bg-gradient-to-r from-emerald-600 to-emerald-400' : 'bg-gradient-to-r from-blue-600 to-cyan-400')
@@ -98,13 +98,13 @@ export const PatientHeader = ({
                       <div className="absolute top-0 left-0 right-0 h-1/2 bg-white/10"></div>
                    </div>
                 </div>
-
+ 
                 <div className="flex items-center justify-between w-full md:w-auto gap-4 min-w-max font-mono">
                    <span className={`font-black text-lg w-12 text-right ${bufferPct < 21 ? 'text-red-500 animate-pulse' : (bufferPct > 88 ? 'text-emerald-400' : 'text-cyan-400')}`}>
                      {Math.round(bufferPct)}%
                    </span>
                    <div className="text-slate-500 text-[9px] leading-tight border-l border-slate-800 pl-3">
-                     Device:<br/><span className="text-slate-200 font-bold text-xs">{patient.currentO2Device}</span>
+                     Device:<br/><span className="text-slate-200 font-bold text-xs">{patient?.currentO2Device || 'None'}</span>
                    </div>
                 </div>
               </>

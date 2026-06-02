@@ -144,15 +144,15 @@ export const Pharmacopoeia = ({
 
   const handleMedSubmit = (medId) => {
     if (medInput.dose) {
-      processMed(medId, medInput.dose, medInput.route, medInput.type, medInput.unit, medInput.lineId || patient.accessLines?.[0]?.id);
+      processMed(medId, medInput.dose, medInput.route, medInput.type, medInput.unit, medInput.lineId || patient?.accessLines?.[0]?.id);
       setMedInput({ drug: null, dose: '', indication: '', route: 'IV', type: 'Bolus', unit: '', lineId: '' });
       setSearchTerm('');
     }
   };
 
   const handleFluidSubmit = (fluidId) => {
-    const selectedLineId = fluidInput.lineId || patient.accessLines?.[0]?.id;
-    const selectedLine = patient.accessLines?.find(l => l.id === selectedLineId);
+    const selectedLineId = fluidInput.lineId || patient?.accessLines?.[0]?.id;
+    const selectedLine = patient?.accessLines?.find(l => l.id === selectedLineId);
     if (selectedLine?.category === 'Arterial Line') return;
     if (fluidInput.dose) {
       pushFluid(fluidId, fluidInput.dose, selectedLineId);
@@ -225,8 +225,8 @@ export const Pharmacopoeia = ({
 
   const renderFluidButton = (fluidId) => {
     const isActive = fluidInput.fluid === fluidId;
-    const selectedLineId = fluidInput.lineId || patient.accessLines?.[0]?.id;
-    const selectedLine = patient.accessLines?.find(l => l.id === selectedLineId);
+    const selectedLineId = fluidInput.lineId || patient?.accessLines?.[0]?.id;
+    const selectedLine = patient?.accessLines?.find(l => l.id === selectedLineId);
     const isArterial = selectedLine?.category === 'Arterial Line';
     const colorTheme = getFluidColor(fluidId);
 
@@ -246,7 +246,7 @@ export const Pharmacopoeia = ({
               onChange={(e) => setFluidInput({...fluidInput, lineId: e.target.value})} 
               className={`w-full bg-slate-900 text-xs text-slate-300 border border-slate-700 rounded-md p-1.5 mb-2 focus:outline-none font-mono ${colorTheme.focus}`}
             >
-              {patient.accessLines?.length > 0 ? patient.accessLines.map(l => (
+              {patient?.accessLines?.length > 0 ? patient.accessLines.map(l => (
                 <option key={l.id} value={l.id}>
                   {l.name}{l.failed ? ' (FAILED)' : ''}
                 </option>
@@ -325,8 +325,8 @@ export const Pharmacopoeia = ({
             </select>
             
             {medInput.route === 'IV' && (
-              <select value={medInput.lineId || patient.accessLines?.[0]?.id || ''} onChange={(e) => setMedInput({...medInput, lineId: e.target.value})} className={`bg-slate-900 text-slate-200 border border-slate-700 rounded p-1 outline-none ${colorTheme.focus}`}>
-                {patient.accessLines?.length > 0 ? patient.accessLines.map(l => <option key={l.id} value={l.id}>{l.name}</option>) : <option value="">No Venous Access</option>}
+              <select value={medInput.lineId || patient?.accessLines?.[0]?.id || ''} onChange={(e) => setMedInput({...medInput, lineId: e.target.value})} className={`bg-slate-900 text-slate-200 border border-slate-700 rounded p-1 outline-none ${colorTheme.focus}`}>
+                {patient?.accessLines?.length > 0 ? patient.accessLines.map(l => <option key={l.id} value={l.id}>{l.name}</option>) : <option value="">No Venous Access</option>}
               </select>
             )}
             
@@ -357,11 +357,11 @@ export const Pharmacopoeia = ({
   const filteredMeds = Object.keys(MEDICATIONS).filter(id => MEDICATIONS[id].name.toLowerCase().includes(term) || MEDICATIONS[id].classes.some(c => c.toLowerCase().includes(term)));
   const filteredFluids = Object.keys(FLUIDS).filter(id => id.toLowerCase().includes(term));
 
-  const resusLines = (patient.accessLines || []).filter(l => l.category !== 'Arterial Line');
+  const resusLines = (patient?.accessLines || []).filter(l => l && l.category !== 'Arterial Line');
   let totalMedInfusionsCount = 0;
   resusLines.forEach(l => {
-    if (!l.failed && l.activeMedInfusions) {
-      totalMedInfusionsCount += l.activeMedInfusions.filter(m => parseFloat(m.rate) > 0).length;
+    if (l && !l.failed && l.activeMedInfusions) {
+      totalMedInfusionsCount += l.activeMedInfusions.filter(m => m && parseFloat(m.rate) > 0).length;
     }
   });
 
