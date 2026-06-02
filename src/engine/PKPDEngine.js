@@ -1,10 +1,46 @@
 export class PKPDModel {
   constructor(med, weight) {
     this.name = med.name || 'Unknown';
-    this.pk = med.pk; // V1, V2, V3, k10, k12, k21, k13, k31, ke0, coSensitivity, proteinBinding, renalFraction, hepaticFraction
-    this.pd = med.pd; // c50, gamma, sysMax, diaMax, hrMax, rrMax, receptors, synergyGroup, inducesApneaAtCe, inducesParalysisAtCe
     this.classes = med.classes || [];
     
+    // Defensive PK parameters sanitization
+    const rawPk = med.pk || {};
+    this.pk = {
+      V1: typeof rawPk.V1 === 'number' && Number.isFinite(rawPk.V1) && rawPk.V1 > 0 ? rawPk.V1 : 10.0,
+      V2: typeof rawPk.V2 === 'number' && Number.isFinite(rawPk.V2) && rawPk.V2 >= 0 ? rawPk.V2 : 0,
+      V3: typeof rawPk.V3 === 'number' && Number.isFinite(rawPk.V3) && rawPk.V3 >= 0 ? rawPk.V3 : 0,
+      k10: typeof rawPk.k10 === 'number' && Number.isFinite(rawPk.k10) && rawPk.k10 >= 0 ? rawPk.k10 : 0.05,
+      k12: typeof rawPk.k12 === 'number' && Number.isFinite(rawPk.k12) && rawPk.k12 >= 0 ? rawPk.k12 : 0,
+      k21: typeof rawPk.k21 === 'number' && Number.isFinite(rawPk.k21) && rawPk.k21 >= 0 ? rawPk.k21 : 0,
+      k13: typeof rawPk.k13 === 'number' && Number.isFinite(rawPk.k13) && rawPk.k13 >= 0 ? rawPk.k13 : 0,
+      k31: typeof rawPk.k31 === 'number' && Number.isFinite(rawPk.k31) && rawPk.k31 >= 0 ? rawPk.k31 : 0,
+      ke0: typeof rawPk.ke0 === 'number' && Number.isFinite(rawPk.ke0) && rawPk.ke0 >= 0 ? rawPk.ke0 : 0.1,
+      coSensitivity: typeof rawPk.coSensitivity === 'number' && Number.isFinite(rawPk.coSensitivity) ? Math.max(0, Math.min(1.0, rawPk.coSensitivity)) : 0.5,
+      proteinBinding: typeof rawPk.proteinBinding === 'number' && Number.isFinite(rawPk.proteinBinding) ? Math.max(0, Math.min(0.999, rawPk.proteinBinding)) : 0,
+      renalFraction: typeof rawPk.renalFraction === 'number' && Number.isFinite(rawPk.renalFraction) ? Math.max(0, Math.min(1.0, rawPk.renalFraction)) : 0,
+      hepaticFraction: typeof rawPk.hepaticFraction === 'number' && Number.isFinite(rawPk.hepaticFraction) ? Math.max(0, Math.min(1.0, rawPk.hepaticFraction)) : 0,
+    };
+    
+    // Defensive PD parameters sanitization
+    const rawPd = med.pd || {};
+    this.pd = {
+      c50: typeof rawPd.c50 === 'number' && Number.isFinite(rawPd.c50) && rawPd.c50 > 0 ? rawPd.c50 : 1.0,
+      gamma: typeof rawPd.gamma === 'number' && Number.isFinite(rawPd.gamma) && rawPd.gamma > 0 ? rawPd.gamma : 1.0,
+      sysMax: typeof rawPd.sysMax === 'number' && Number.isFinite(rawPd.sysMax) ? rawPd.sysMax : 0,
+      diaMax: typeof rawPd.diaMax === 'number' && Number.isFinite(rawPd.diaMax) ? rawPd.diaMax : 0,
+      hrMax: typeof rawPd.hrMax === 'number' && Number.isFinite(rawPd.hrMax) ? rawPd.hrMax : 0,
+      rrMax: typeof rawPd.rrMax === 'number' && Number.isFinite(rawPd.rrMax) ? rawPd.rrMax : 0,
+      synergyGroup: typeof rawPd.synergyGroup === 'string' ? rawPd.synergyGroup : 'None',
+      inducesApneaAtCe: typeof rawPd.inducesApneaAtCe === 'number' && Number.isFinite(rawPd.inducesApneaAtCe) ? rawPd.inducesApneaAtCe : 999,
+      inducesParalysisAtCe: typeof rawPd.inducesParalysisAtCe === 'number' && Number.isFinite(rawPd.inducesParalysisAtCe) ? rawPd.inducesParalysisAtCe : 999,
+      receptors: rawPd.receptors ? {
+        Alpha1: typeof rawPd.receptors.Alpha1 === 'number' && Number.isFinite(rawPd.receptors.Alpha1) ? rawPd.receptors.Alpha1 : 0,
+        Beta1: typeof rawPd.receptors.Beta1 === 'number' && Number.isFinite(rawPd.receptors.Beta1) ? rawPd.receptors.Beta1 : 0,
+        Beta2: typeof rawPd.receptors.Beta2 === 'number' && Number.isFinite(rawPd.receptors.Beta2) ? rawPd.receptors.Beta2 : 0,
+        V1: typeof rawPd.receptors.V1 === 'number' && Number.isFinite(rawPd.receptors.V1) ? rawPd.receptors.V1 : 0,
+      } : undefined
+    };
+
     // Validate and clamp weight
     let w = Number(weight);
     if (isNaN(w) || !isFinite(w) || w <= 0) {
@@ -189,22 +225,27 @@ export class PKPDModel {
 
     let fraction = 0;
     if (this.pd.c50 && this.pd.c50 > 0) {
-      const gamma = this.pd.gamma || 1;
+      const gamma = Math.max(0.001, Math.min(100.0, this.pd.gamma || 1.0));
       const safeCe = Math.max(0, this.Ce); 
       const activeCe = safeCe * pdSensitivityCoeff;
       if (activeCe > 0) {
-        const ceGamma = Math.pow(activeCe, gamma);
-        const c50Gamma = Math.pow(this.pd.c50, gamma);
-        const sum = ceGamma + c50Gamma;
-        if (sum > 0 && isFinite(sum)) {
-          fraction = ceGamma / sum;
+        // Base-ratio division to mathematically prevent floating point overflows to Infinity
+        if (activeCe >= this.pd.c50) {
+          const ratio = this.pd.c50 / activeCe;
+          fraction = 1.0 / (1.0 + Math.pow(ratio, gamma));
         } else {
-          // Safe fallback if power functions overflow to Infinity
-          fraction = 1.0;
+          const ratio = activeCe / this.pd.c50;
+          const power = Math.pow(ratio, gamma);
+          fraction = power / (1.0 + power);
         }
       }
     }
+    if (isNaN(fraction) || !isFinite(fraction)) {
+      fraction = 0.5; // Defensive fallback
+    }
     fraction = Math.max(0, Math.min(1.0, fraction));
+    if (fraction < 1e-15) fraction = 0.0;
+    if (fraction > 1.0 - 1e-15) fraction = 1.0;
 
     // Direct Deltas for non-vasopressor agents (Sedatives, Opioids)
     if (this.pd.sysMax && !this.pd.receptors) effects.sysDelta = this.pd.sysMax * fraction;
@@ -249,6 +290,12 @@ export class PKPDModel {
       effects.receptorOccupancy = fraction;
     }
     
+    // Prevent negative zero (-0) propagation in clinical deltas
+    effects.hrDelta += 0;
+    effects.sysDelta += 0;
+    effects.diaDelta += 0;
+    effects.rrDelta += 0;
+
     return effects;
   }
 }

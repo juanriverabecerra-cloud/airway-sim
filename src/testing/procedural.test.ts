@@ -177,4 +177,43 @@ describe('Procedural & Clinical Exam Engine Regression Tests', () => {
       expect(finding).toBe("Positive FAST: Anechoic free fluid seen in Morison's pouch (RUQ).");
     });
   });
+
+  describe('5. High-Fidelity Audit: Procedural Engine Crash-Resiliency and Safety Bounds', () => {
+    it('should handle malformed, NaN, or non-finite inputs in laryngoscopy calculations safely', () => {
+      // Malformed patient/blade inputs
+      const badPatient = {
+        mallampati: NaN,
+        neckMobility: undefined as any
+      } as any;
+      
+      const view = ProceduralEngine.calculateCormackLehaneGrade(badPatient, null as any);
+      expect(view).toBeDefined();
+      expect(view.grade).toBe(1); // falls back to 1
+      expect(view.description).toContain('You insert the .'); // falls back to empty string blade description
+    });
+
+    it('should handle malformed strings in evaluateIntubationOutcome safely', () => {
+      const outcome = ProceduralEngine.evaluateIntubationOutcome(undefined as any, null as any, NaN);
+      expect(outcome).toBeDefined();
+      expect(outcome.success).toBe(true);
+      expect(outcome.failReason).toBe('');
+    });
+
+    it('should clamp height and limit mainstem risk boundaries to mathematically stable ranges', () => {
+      // Extremely short height (e.g. 10cm) should clamp to 50cm, which restricts mainstem risk to maximum 95%
+      const posShort = ProceduralEngine.calculateTubePosition(true, 10, 0.98); // randVal above max mainstem risk
+      expect(posShort).toBe('trachea');
+
+      const posNaN = ProceduralEngine.calculateTubePosition(true, NaN, 0.50);
+      expect(posNaN).toBeDefined();
+    });
+
+    it('should handle nullish patient state and non-string inputs in auscultation and POCUS safely', () => {
+      const sounds = ProceduralEngine.auscultateLungs(null as any, null as any);
+      expect(sounds).toBe('Normal vesicular breath sounds. Clear bilaterally.'); // spontaneous default vesicular sounds
+
+      const pocus = ProceduralEngine.performPocus(undefined as any, null as any);
+      expect(pocus).toBe('');
+    });
+  });
 });

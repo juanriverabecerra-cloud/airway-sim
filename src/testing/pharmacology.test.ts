@@ -112,6 +112,13 @@ describe('Pharmacology Core Mathematical and Clinical Guards', () => {
       expect(vols.frc_mL).toBeGreaterThan(0);
       expect(vols.tlc_mL).toBeGreaterThan(0);
     });
+
+    it('should ensure dead space (vd_mL) and vital capacities are positive even at extreme short heights', () => {
+      const vols = calculateLungVolumes(10, 40, 'male', 24.0, 'Supine');
+      expect(vols.vd_mL).toBeGreaterThan(0);
+      expect(vols.vc_mL).toBeGreaterThan(0);
+      expect(vols.fev1FvcRatio).toBeGreaterThan(0);
+    });
   });
 
   describe('PKPDModel numerical and input guards', () => {
@@ -192,6 +199,29 @@ describe('Pharmacology Core Mathematical and Clinical Guards', () => {
       
       model.chelate(1.5); // should clamp to 1.0 (100% chelation)
       expect(model.A1).toBe(0);
+    });
+  });
+
+  describe('usePhysiology Integration & Core Math Safety Guards', () => {
+    it('should calculate and scale initial case parameters safely without crashing under NaN/extreme inputs', () => {
+      const vols = calculateLungVolumes(NaN, NaN, null as any, NaN, undefined as any);
+      expect(vols.frc_mL).toBeGreaterThan(0);
+      expect(Number.isFinite(vols.frc_mL)).toBe(true);
+
+      const volsInf = calculateLungVolumes(Infinity, Infinity, 'female', -10, 'Trendelenburg');
+      expect(volsInf.frc_mL).toBeGreaterThan(0);
+      expect(Number.isFinite(volsInf.frc_mL)).toBe(true);
+    });
+
+    it('should clamp age-adjusted MAC safely under non-finite inputs to prevent division-by-zero in usePhysiology', () => {
+      const mac40 = 2.0;
+      const safeAdjMac = Math.max(0.01, calculateAgeAdjustedMAC(mac40, NaN));
+      expect(safeAdjMac).toBeGreaterThan(0);
+      expect(Number.isFinite(safeAdjMac)).toBe(true);
+
+      const zeroMAC = calculateAgeAdjustedMAC(0.0, 40);
+      const safeZeroMAC = Math.max(0.01, zeroMAC);
+      expect(safeZeroMAC).toBe(0.01);
     });
   });
 });

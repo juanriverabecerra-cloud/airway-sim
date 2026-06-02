@@ -179,4 +179,67 @@ describe('PK/PD & Volatile Gas Ingestion Engine Regression Tests', () => {
       expect(sevoModel.Fb).toBeLessThan(sevoModel.Fa);  // Fb always lags Fa during induction phase
     });
   });
+
+  describe('5. High-Fidelity Audit: Parameter Sanitization and Hill Equation Overflow Protection', () => {
+    it('should safely default malformed or missing PK/PD parameters in the constructor without crashing', () => {
+      const malformedMed = {
+        name: 'MalformedMed',
+        classes: ['Sedative'],
+        pk: {
+          V1: NaN,
+          V2: undefined as any,
+          k10: -0.1, // negative should fall back
+          ke0: NaN
+        } as any,
+        pd: {
+          c50: NaN,
+          gamma: -5, // negative exponent should fall back
+          sysMax: 'not-a-number' as any
+        } as any
+      };
+
+      const model = new PKPDModel(malformedMed, 70);
+      
+      // Sanitized values should be finite and positive
+      expect(model.pk.V1).toBeGreaterThan(0);
+      expect(Number.isFinite(model.pk.V1)).toBe(true);
+      expect(model.pk.k10).toBeGreaterThanOrEqual(0);
+      expect(model.pd.c50).toBeGreaterThan(0);
+      expect(model.pd.gamma).toBeGreaterThan(0);
+      expect(model.pd.sysMax).toBe(0);
+
+      // Ticking should run fine and yield normal effects without crashing
+      const effects = model.tick(1, 1.0, 1.0, 1.0, 1.0, 1.0);
+      expect(effects).toBeDefined();
+      expect(isNaN(model.Ce)).toBe(false);
+    });
+
+    it('should mathematically guarantee zero Hill equation overflows when gamma or activeCe are extremely large', () => {
+      const highSteepMed = {
+        name: 'SuperSteepMed',
+        classes: ['Sedative'],
+        pk: { V1: 10.0, k10: 0.1, ke0: 1.0 } as any,
+        pd: {
+          c50: 2.0,
+          gamma: 80.0, // extremely steep curve
+          sysMax: -20
+        } as any
+      };
+
+      const model = new PKPDModel(highSteepMed, 70);
+
+      // Case A: activeCe (100) is way above c50 (2.0) with gamma = 80
+      // Traditional Math.pow(100, 80) is 1e160, Math.pow(2, 80) is 1.2e24.
+      // If we go even larger: activeCe = 1e5 (100000) -> 100000^80 overflows to Infinity!
+      model.Ce = 100000;
+      let effects = model.getEffects(1.0);
+      expect(effects.sysDelta).toBeCloseTo(-20, 4); // should evaluate to exactly 1.0 fraction -> -20
+
+      // Case B: activeCe (0.1) is way below c50 (2.0) with gamma = 80
+      // 0.1^80 underflows to 0. 2.0^80 is 1.2e24.
+      model.Ce = 0.1;
+      effects = model.getEffects(1.0);
+      expect(effects.sysDelta).toBe(0); // should evaluate to exactly 0.0 fraction -> 0
+    });
+  });
 });

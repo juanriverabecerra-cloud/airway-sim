@@ -10,9 +10,8 @@
  */
 
 export function calculateIBW(heightCm, sex) {
-  // Validate heightCm: must be a positive finite number. Default to 170.0 cm if malformed.
   let hCm = Number(heightCm);
-  if (typeof heightCm !== 'number' || isNaN(hCm) || !isFinite(hCm) || hCm <= 0) {
+  if (isNaN(hCm) || !Number.isFinite(hCm) || hCm <= 0) {
     hCm = 170.0;
   }
   // Clamp height between 50 cm and 250 cm
@@ -32,16 +31,14 @@ export function calculateIBW(heightCm, sex) {
 }
 
 export function calculateLBW(heightCm, weightKg, sex) {
-  // Validate heightCm: must be positive finite number. Default to 170.0 cm.
   let hCm = Number(heightCm);
-  if (typeof heightCm !== 'number' || isNaN(hCm) || !isFinite(hCm) || hCm <= 0) {
+  if (isNaN(hCm) || !Number.isFinite(hCm) || hCm <= 0) {
     hCm = 170.0;
   }
   hCm = Math.max(50.0, Math.min(250.0, hCm));
 
-  // Validate weightKg: must be positive finite number. Default to 70.0 kg.
   let wKg = Number(weightKg);
-  if (typeof weightKg !== 'number' || isNaN(wKg) || !isFinite(wKg) || wKg <= 0) {
+  if (isNaN(wKg) || !Number.isFinite(wKg) || wKg <= 0) {
     wKg = 70.0;
   }
   wKg = Math.max(10.0, Math.min(300.0, wKg));
@@ -56,13 +53,11 @@ export function calculateLBW(heightCm, weightKg, sex) {
   }
 
   const hM = hCm / 100;
-  // Guard against heightCm being 0 to avoid division by zero or NaN
   const denominatorHeight = hM * hM;
   const bmi = denominatorHeight > 0.01 ? wKg / denominatorHeight : wKg / 0.01;
 
   if (safeSex === 'male') {
     const denom = 6680 + (216 * bmi);
-    // Guard against denominator division by zero or NaN
     return denom > 0 ? (9270 * wKg) / denom : 0;
   } else {
     const denom = 8780 + (244 * bmi);
@@ -71,15 +66,14 @@ export function calculateLBW(heightCm, weightKg, sex) {
 }
 
 export function calculateAgeAdjustedMAC(mac40, age) {
-  // Validate mac40
   let m40 = Number(mac40);
-  if (typeof mac40 !== 'number' || isNaN(m40) || !isFinite(m40) || m40 < 0) {
+  if (isNaN(m40) || !Number.isFinite(m40) || m40 < 0) {
     m40 = 2.0; // Fallback default to Sevoflurane mac40
   }
 
   // Validate age: clamp between 0 and 120. Default to 40 years.
   let safeAge = Number(age);
-  if (typeof age !== 'number' || isNaN(safeAge) || !isFinite(safeAge) || safeAge < 0) {
+  if (isNaN(safeAge) || !Number.isFinite(safeAge) || safeAge < 0) {
     safeAge = 40.0;
   }
   safeAge = Math.max(0, Math.min(120.0, safeAge));
@@ -155,7 +149,7 @@ export const MEDICATIONS = {
     metabolism: 'Hepatic (CYP3A4) to active 1-hydroxymidazolam', proteinBinding: 0.94, synergyGroup: 'Sedative', pkModel: 'Greenblatt',
     targetReceptor: 'GABA-A', intracellularCascade: 'Allosteric GABA-A modulator -> increases frequency of Chloride (Cl-) channel opening',
     indications: { 'Pre-op Anxiolysis': { dose: '0.02-0.04', unit: 'mg/kg', type: 'Bolus' }, 'Sedation': { dose: '1-5', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 12.0, V2: 30.0, V3: 80, k10: 0.12, k12: 0.1, k21: 0.05, k13: 0.03, k31: 0.01, ke0: 0.8, coSensitivity: 0.2 },
+    pk: { V1: 12.0, V2: 30.0, V3: 80, k10: 0.12, k12: 0.1, k21: 0.05, k13: 0.03, k31: 0.01, ke0: 0.8, coSensitivity: 0.2 }, 
     pd: { c50: 0.05, gamma: 1.5, sysMax: -10, diaMax: -10, hrMax: 0, rrMax: -6, inducesApneaAtCe: 0.2 },
     notes: 'Anterograde amnesia, anxiolysis, anticonvulsant. Heavy synergy with opioids (induces respiratory depression). Reversible with Flumazenil.'
   },
@@ -203,7 +197,7 @@ export const MEDICATIONS = {
     metabolism: 'Nonspecific Blood & Tissue Esterases', proteinBinding: 0.70, synergyGroup: 'Opioid',
     targetReceptor: 'Mu-Opioid (u1/u2)', intracellularCascade: 'Mu (Gi-coupled) -> inhibits adenylate cyclase (decreased cAMP) -> closes VGCCs, opens K+ channels (hyperpolarization)',
     indications: { 'Maintenance': { dose: '0.1-0.5', unit: 'mcg/kg/min', type: 'Infusion' }, 'Intubation Spike': { dose: '1.0', unit: 'mcg/kg', type: 'Bolus' } },
-    pk: { V1: 5.0, V2: 10.0, V3: 15.0, k10: 1.5, k12: 0.8, k21: 0.5, k13: 0.2, k31: 0.1, ke0: 2.5, coSensitivity: 0.1 },
+    pk: { V1: 5.0, V2: 10.0, V3: 15.0, k10: 1.5, k12: 0.8, k21: 0.5, k13: 0.2, k31: 0.1, ke0: 2.5, coSensitivity: 0.1 }, 
     pd: { c50: 0.001, gamma: 2.5, sysMax: -20, diaMax: -15, hrMax: -30, rrMax: -14, inducesApneaAtCe: 0.0015 },
     notes: 'Context-independent half-life (constant 3-5 min offset regardless of infusion duration). Fast bolus causes severe bradycardia. Prolonged infusion at >0.15 mcg/kg/min triggers acute opioid tolerance and Opioid-Induced Hyperalgesia (OIH).'
   },
@@ -319,7 +313,7 @@ export const MEDICATIONS = {
   },
   norepinephrine: { 
     name: 'Norepinephrine', classes: ['Vasopressor'], routes: ['IV'], types: ['Infusion', 'Bolus'], dosingWeight: 'TBW',
-    metabolism: 'MAO/COMT', mechanism: 'Agonist', targetReceptor: 'Alpha-1 > Beta-1', intracellularCascade: 'a1 (Gq -> IP3/DAG -> intracellular Ca2+) >> B1 (Gs -> cAMP)', intracellularCascade: 'a1 (Gq -> IP3/DAG/Ca2+), B1/B2 (Gs -> adenylate cyclase -> cAMP)',
+    metabolism: 'MAO/COMT', mechanism: 'Agonist', targetReceptor: 'Alpha-1 > Beta-1', intracellularCascade: 'a1 (Gq -> IP3/DAG/Ca2+), B1/B2 (Gs -> adenylate cyclase -> cAMP)',
     indications: { 'Shock / Vasoplegia': { dose: '0.01-0.3', unit: 'mcg/kg/min', type: 'Infusion' } },
     pk: { V1: 8.0, V2: 0, V3: 0, k10: 0.6, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.5, coSensitivity: 0.1 }, 
     pd: { c50: 0.005, gamma: 1.5, sysMax: 40, diaMax: 50, hrMax: 10, rrMax: 0, receptors: { Alpha1: 3, Beta1: 2, Beta2: 0 } },
@@ -421,7 +415,7 @@ export const MEDICATIONS = {
     indications: { 'HTN Crisis': { dose: '0.3-0.5', unit: 'mcg/kg/min', type: 'Infusion' } },
     pk: { V1: 10.0, V2: 0, V3: 0, k10: 0.3, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.5, coSensitivity: 0.1 }, 
     pd: { c50: 0.002, gamma: 2.0, sysMax: -40, diaMax: -40, hrMax: 20, rrMax: 0 },
-    notes: 'Balanced arterial and venous smooth muscle dilator. High potency, immediate effect. STRICT safety warning: Photodegradable. Releases 5 cyanide groups per molecule. Prolonged or high-dose infusion (>2 mcg/kg/min) risks lethal Cyanide Toxicity (inhibits cytochrome c oxidase, blocking oxidative phosphorylation, causing profound cellular hypoxia, lactic acidosis, and elevated mixed venous oxygen).'
+    notes: 'Balanced arterial and venous smooth muscle dilator. High potency, immediate effect. STRICT safety warning: Photodegradable. Releases 5 cyanide groups per molecule. Prolonged or high-dose infusion (~2 mcg/kg/min) risks lethal Cyanide Toxicity (inhibits cytochrome c oxidase, blocking oxidative phosphorylation, causing profound cellular hypoxia, lactic acidosis, and elevated mixed venous oxygen).'
   },
   phentolamine: { 
     name: 'Phentolamine', classes: ['Alpha Blocker'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
@@ -529,231 +523,79 @@ export const MEDICATIONS = {
     indications: { 'Chemical Cardioversion': { dose: '1.0', unit: 'mg', type: 'Bolus' } },
     pk: { V1: 10.0, V2: 20.0, V3: 0, k10: 0.05, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.2, coSensitivity: 0.2 }, 
     pd: { c50: 0.005, gamma: 1.5, sysMax: -5, diaMax: -5, hrMax: -10, rrMax: 0 },
-    notes: 'Class III antiarrhythmic. Prolongs action potential duration. High risk of Torsades de Pointes (QT prolongation).'
+    notes: 'Class III antiarrhythmic. Prompts slow inward sodium currents and delays potassium currents, prolonging action potential duration. Used to chemically cardiovert AF/flutter. High risk of torsades de pointes (prolonged QT).'
   },
   lidocaine: { 
-    name: 'Lidocaine', classes: ['Class IB'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic (CYP1A2) to active MEGX', proteinBinding: 0.70, mechanism: 'Na+ Channel Blocker', targetReceptor: 'Sodium Channels',
-    indications: { 'VT/VF Arrest': { dose: '1.0-1.5', unit: 'mg/kg', type: 'Bolus' } },
-    pk: { V1: 30.0, V2: 0, V3: 0, k10: 0.05, k12: 0.08, k21: 0.04, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.2 }, 
-    pd: { c50: 3.0, gamma: 2, sysMax: -10, diaMax: -10, hrMax: -5, rrMax: 0 },
-    notes: 'Class IB antiarrhythmic. Fast sodium channel blocker. Blocks active/ischemic cardiac cells. High doses risk LAST (Local Anesthetic Systemic Toxicity: seizures, cardiovascular collapse).'
-  },
-  benzocaine: {
-    name: 'Benzocaine', classes: ['Local Anesthetic'], routes: ['Topical'], types: ['Bolus'], dosingWeight: 'TBW',
-    metabolism: 'Plasma Cholinesterase', proteinBinding: 0, mechanism: 'Na+ Channel Blocker', targetReceptor: 'Sodium Channels',
-    indications: { 'Topical Anesthesia': { dose: '1.0-2.0', unit: 'sprays', type: 'Bolus' } },
-    pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.1, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.1 },
-    pd: { c50: 1.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
-    notes: 'Ester local anesthetic. Used for topical mucosal anesthesia. High risk of inducing Methemoglobinemia due to oxidation of hemoglobin to methemoglobin.'
-  },
-  prilocaine: {
-    name: 'Prilocaine', classes: ['Local Anesthetic'], routes: ['Topical', 'IV'], types: ['Bolus'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic to o-toluidine active metabolite', proteinBinding: 0.55, mechanism: 'Na+ Channel Blocker', targetReceptor: 'Sodium Channels',
-    indications: { 'Local Infiltration': { dose: '1.0-2.0', unit: 'mg/kg', type: 'Bolus' } },
-    pk: { V1: 25.0, V2: 40.0, V3: 0, k10: 0.05, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.1 },
-    pd: { c50: 2.0, gamma: 1.5, sysMax: -5, diaMax: -5, hrMax: -5, rrMax: 0 },
-    notes: 'Amide local anesthetic. Metabolized to o-toluidine, which oxidizes hemoglobin to methemoglobin, risking severe Methemoglobinemia.'
+    name: 'Lidocaine', classes: ['Class Ib'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP1A2/3A4) to active MEGX', proteinBinding: 0.60, mechanism: 'Blocker', targetReceptor: 'Fast Na+ Channels',
+    indications: { 'Arrhythmia': { dose: '1.0-1.5', unit: 'mg/kg', type: 'Bolus' }, 'Airway Blunting': { dose: '1.5', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 25.0, V2: 50.0, V3: 150, k10: 0.05, k12: 0.1, k21: 0.05, k13: 0.02, k31: 0.01, ke0: 0.5, coSensitivity: 0.3 }, 
+    pd: { c50: 1.0, gamma: 1.0, sysMax: -10, diaMax: -10, hrMax: -10, rrMax: 0 },
+    notes: 'Class Ib sodium channel blocker. Suppresses ventricular arrhythmias (VT/VF) and blunts sympathetic responses to intubation. Risks Local Anesthetic Systemic Toxicity (LAST: seizures, bradycardia, arrest) at high plasma levels.'
   },
   magnesium: { 
-    name: 'Magnesium Sulfate', classes: ['Electrolyte'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
-    metabolism: 'Renal excretion', mechanism: 'Membrane Stabilizer', targetReceptor: 'Ca2+/K+ Channels',
-    indications: { 'Torsades / Pre-Eclampsia': { dose: '1-2', unit: 'g', type: 'Bolus' } },
-    pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.05, k12: 0.05, k21: 0.02, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.1 }, 
-    pd: { c50: 1.0, gamma: 1.0, sysMax: -15, diaMax: -20, hrMax: -5, rrMax: 0 },
-    notes: 'Calcium antagonist. Excellent membrane stabilizer. Reduces acetylcholine release at the motor endplate. Interacts with paralytics: pre-existing hypermagnesemia (e.g. OB pre-eclampsia) heavily enhances NMBA block (requires reducing Vec/Roc doses by 25-50%).'
+    name: 'Magnesium Sulfate', classes: ['Electrolyte'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Renal', mechanism: 'Blocker / Stabilizer', targetReceptor: 'L-type Calcium / NMDA',
+    indications: { 'Torsades / Eclampsia': { dose: '1.0-2.0', unit: 'g', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 30.0, V3: 0, k10: 0.04, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.2, coSensitivity: 0.1 }, 
+    pd: { c50: 0.5, gamma: 1.5, sysMax: -15, diaMax: -15, hrMax: -5, rrMax: -2 },
+    notes: 'Calcium antagonist. Stabilizes membrane potentials. Treatment of choice for Torsades de Pointes. Enhances neuromuscular blockade.'
   },
-  procainamide: { 
-    name: 'Procainamide', classes: ['Class IA'], routes: ['IV'], types: ['Infusion'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic (acetylation) to active NAPA', mechanism: 'Na+ Channel Blocker', targetReceptor: 'Sodium Channels',
-    indications: { 'Stable VT / WPW': { dose: '20-50', unit: 'mg/min', type: 'Infusion' } },
-    pk: { V1: 35.0, V2: 60.0, V3: 0, k10: 0.04, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.2 }, 
-    pd: { c50: 4.0, gamma: 1.5, sysMax: -20, diaMax: -15, hrMax: -10, rrMax: 0 },
-    notes: 'Class IA antiarrhythmic. Prolongs refractory period. Exerts moderate ganglionic-blocking vasodilatory effect.'
-  },
-  sotalol: { 
-    name: 'Sotalol', classes: ['Class III / Beta-Blocker'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
-    metabolism: 'Renal (Unchanged)', mechanism: 'K+ Channel / Beta Blocker', targetReceptor: 'Potassium / Beta-1/2',
-    indications: { 'Afib / VT': { dose: '75-150', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.02, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.1 }, 
-    pd: { c50: 2.0, gamma: 1.5, sysMax: -15, diaMax: -15, hrMax: -30, rrMax: 0 },
-    notes: 'Nonselective beta blocker with strong Class III antiarrhythmic (K+ channel blocking) characteristics.'
-  },
-  verapamil: { 
-    name: 'Verapamil', classes: ['Class IV CCB'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic', mechanism: 'Blocker', targetReceptor: 'L-type Calcium', intracellularCascade: 'Non-DHP CCB -> blocks L-type VGCCs in myocardium/AV node -> prevents Ca2+ influx',
-    indications: { 'SVT / Rate Control': { dose: '2.5-5.0', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 40.0, V2: 80.0, V3: 0, k10: 0.08, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.2, coSensitivity: 0.2 }, 
-    pd: { c50: 0.3, gamma: 2.0, sysMax: -25, diaMax: -25, hrMax: -35, rrMax: 0 },
-    notes: 'Phenylalkylamine calcium channel blocker. Acts selectively on AV/SA nodes. Strongly negatively inotropic.'
+  potassium: { 
+    name: 'Potassium Chloride', classes: ['Electrolyte'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Intracellular shift / Renal', mechanism: 'Electrolyte', targetReceptor: 'Membrane Potential',
+    indications: { 'Hypokalemia': { dose: '10-20', unit: 'mEq', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 30.0, V3: 0, k10: 0.03, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.2, coSensitivity: 0.1 }, 
+    pd: { c50: 1.0, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: -10, rrMax: 0 },
+    notes: 'Restores serum potassium. Highly irritating to peripheral veins (infusion rate strictly capped at 10 mEq/hr peripherally, 20 mEq/hr centrally to avoid local burning, chemical phlebitis, and hyperkalemic arrest).'
   },
 
-  // === SPECIAL BARBITURATES & BENZOS ===
-  thiopental: {
-    name: 'Thiopental', classes: ['Barbiturate'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'LBW',
-    metabolism: 'Hepatic (CYP2C19)', proteinBinding: 0.85, synergyGroup: 'Sedative', pkModel: 'Stanski',
-    targetReceptor: 'GABA-A',
-    indications: { 'Induction': { dose: '3-5', unit: 'mg/kg', type: 'Bolus' } },
-    pk: { V1: 25.0, V2: 40.0, V3: 150.0, k10: 0.05, k12: 0.1, k21: 0.08, k13: 0.02, k31: 0.01, ke0: 1.2, coSensitivity: 0.3 },
-    pd: { c50: 15.0, gamma: 2.0, sysMax: -25, diaMax: -20, hrMax: 15, rrMax: -12, inducesApneaAtCe: 10.0 },
-    notes: 'Potent barbiturate. Fast onset/offset due to brain-to-tissue redistribution. STRICT safety warning: Highly alkaline (pH 10.5). If injected intra-arterially (e.g. into an arterial line), it immediately precipitates into crystals, blocking microvasculature, causing profound endothelial destruction, severe vasospasm, gangrene, and necrosis (Treat immediately with Papaverine, Lidocaine, or stellate ganglion block).'
+  // === MISCELLANEOUS ===
+  albumin: { 
+    name: 'Albumin 5%', classes: ['Colloid'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Reticuloendothelial system', mechanism: 'Volume Expander', targetReceptor: 'Oncotic Pressure',
+    indications: { 'Volume Resuscitation': { dose: '250-500', unit: 'mL', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.005, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.0 }, 
+    pd: { c50: 0, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Natural colloid volume expander. Expands intravascular volume 1:1. Retained in vascular space longer than crystalloids.'
   },
-  lorazepam: {
-    name: 'Lorazepam', classes: ['Benzodiazepine'], routes: ['IV', 'IM'], types: ['Bolus'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic (glucuronidation only, no active metabolites)', proteinBinding: 0.85, synergyGroup: 'Sedative', pkModel: 'Greenblatt',
-    targetReceptor: 'GABA-A',
-    indications: { 'Anxiolysis / Seizure': { dose: '1-2', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 15.0, V2: 35.0, V3: 0, k10: 0.01, k12: 0.03, k21: 0.02, k13: 0, k31: 0, ke0: 0.05, coSensitivity: 0.1 },
-    pd: { c50: 0.05, gamma: 1.5, sysMax: -5, diaMax: -5, hrMax: 0, rrMax: -4, inducesApneaAtCe: 0.5 },
-    notes: 'Intermediate-acting benzodiazepine. Slower onset than midazolam. Highly stable profile.'
+  flumazenil: { 
+    name: 'Flumazenil', classes: ['Antagonist'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic', mechanism: 'Antagonist', targetReceptor: 'Benzodiazepine (GABA-A)',
+    indications: { 'Benzo Reversal': { dose: '0.2-0.5', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 12.0, V2: 24.0, V3: 0, k10: 0.15, k12: 0.1, k21: 0.1, k13: 0, k31: 0, ke0: 2.0, coSensitivity: 0.1 }, 
+    pd: { c50: 0.05, gamma: 2.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Competitive benzodiazepine receptor antagonist. Fast onset, short half-life (~50 min, risks re-sedation). Contraindicated in chronic benzo users (triggers withdrawal seizures).'
   },
-  flumazenil: {
-    name: 'Flumazenil', classes: ['GABA Antagonist'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic', proteinBinding: 0.50, mechanism: 'Competitive Antagonist', targetReceptor: 'GABA-A',
-    indications: { 'Benzo Reversal': { dose: '0.2-1.0', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 15.0, V2: 25.0, V3: 0, k10: 0.1, k12: 0.08, k21: 0.05, k13: 0, k31: 0, ke0: 0.4, coSensitivity: 0.1 },
-    pd: { c50: 0.002, gamma: 1, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0, receptorAffinity: 1.8 },
-    notes: 'Competitive antagonist at the GABA-A benzodiazepine binding site. Dose: 0.2mg IV, repeat q1 min to 1mg max. Duration of action is 45-90 minutes. STRICT clinical constraint: Must monitor for re-sedation for 2-3 hours because benzodiazepine half-life often exceeds Flumazenil (renarcotization/resedation risk).'
+  naloxone: { 
+    name: 'Naloxone', classes: ['Antagonist'], routes: ['IV', 'IM'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (glucuronidation)', mechanism: 'Antagonist', targetReceptor: 'Mu-Opioid',
+    indications: { 'Opioid Reversal': { dose: '0.04-0.4', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 30.0, V3: 0, k10: 0.1, k12: 0.1, k21: 0.1, k13: 0, k31: 0, ke0: 2.0, coSensitivity: 0.1 }, 
+    pd: { c50: 0.02, gamma: 2.0, sysMax: 15, diaMax: 10, hrMax: 20, rrMax: 12 },
+    notes: 'Competitive mu-opioid receptor antagonist. Fast onset, short half-life (~45 min, risks re-narcotization). Fast reversal of chronic opioid users causes severe sympathetic surge (pulmonary edema, tachycardia, arrest).'
   },
-
-  // === SPECIAL OPIOID ANTAGONISTS & MEPERIDINE ===
-  meperidine: {
-    name: 'Meperidine', classes: ['Opioid'], routes: ['IV', 'IM'], types: ['Bolus'], dosingWeight: 'IBW',
-    metabolism: 'Hepatic (demethylation) to active Normeperidine', proteinBinding: 0.60, synergyGroup: 'Opioid', pkModel: 'Mather',
-    targetReceptor: 'Mu-Opioid (u1/u2) & Kappa',
-    activeMetabolite: 'Normeperidine',
-    indications: { 'Post-op Shivering': { dose: '12.5-25', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 40.0, V2: 60.0, V3: 100.0, k10: 0.05, k12: 0.08, k21: 0.04, k13: 0.02, k31: 0.01, ke0: 0.2, coSensitivity: 0.4 },
-    pd: { c50: 0.5, gamma: 1.5, sysMax: -5, diaMax: -5, hrMax: 15, rrMax: -8, inducesApneaAtCe: 2.0 },
-    notes: 'Weak opioid agonist. Specifically acts on Kappa receptors to treat post-op shivering. STRICT drug-drug warning: Concomitant MAOIs (Phenelzine, Selegiline) trigger fatal hyperpyrexic Serotonin Syndrome (Libby Zion Law). STRICT renal warning: Active metabolite Normeperidine accumulates heavily in renal failure, causing severe central nervous system hyper-excitation, tremors, myoclonus, and tonic-clonic seizures.'
-  },
-  naloxone: {
-    name: 'Naloxone', classes: ['Opioid Antagonist'], routes: ['IV', 'IM'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic conjugation', proteinBinding: 0.45, mechanism: 'Competitive Antagonist', targetReceptor: 'Mu-Opioid',
-    indications: { 'Opioid Reversal': { dose: '40-400', unit: 'mcg', type: 'Bolus' } },
-    pk: { V1: 20.0, V2: 30.0, V3: 0, k10: 0.08, k12: 0.05, k21: 0.04, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 },
-    pd: { c50: 0.001, gamma: 1, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0, receptorAffinity: 2.0 },
-    notes: 'Competitive opioid receptor antagonist. Reverses opioid-induced depression. Dose: 40mcg IV titration. STRICT safety warning: Duration of action (30-45 min) is shorter than most full agonist opioids (e.g. Morphine, Fentanyl). Patients must be observed continuously to prevent delayed recurrences of respiratory arrest (re-narcotization).'
-  },
-
-  // === NEW PARALYTICS ===
-  pancuronium: {
-    name: 'Pancuronium', classes: ['NDMR'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'IBW',
-    metabolism: 'Renal (mostly unchanged 40-70%), hepatic 10-20%', proteinBinding: 0.87, mechanism: 'Antagonist', targetReceptor: 'nAChR',
-    indications: { 'Long-acting Paralysis': { dose: '0.08-0.1', unit: 'mg/kg', type: 'Bolus' } },
-    pk: { V1: 15.0, V2: 30.0, V3: 0, k10: 0.015, k12: 0.03, k21: 0.02, k13: 0, k31: 0, ke0: 0.05, coSensitivity: 0.1 },
-    pd: { c50: 0.4, gamma: 4, sysMax: 5, diaMax: 5, hrMax: 20, rrMax: -20, inducesParalysisAtCe: 0.3, inducesApneaAtCe: 0.3, receptorAffinity: 0.8 },
-    notes: 'Long-acting aminosteroid NDMR. Blocks cardiac muscarinic M2 receptors, causing significant tachycardia.'
-  },
-
-  // === NEW PRESSORS ===
-  angiotensin_ii: {
-    name: 'Angiotensin II', classes: ['Vasopressor'], routes: ['IV'], types: ['Infusion'], dosingWeight: 'TBW',
-    metabolism: 'Plasma Peptidases (immediate)', mechanism: 'Agonist', targetReceptor: 'AT1',
-    indications: { 'Refractory Shock': { dose: '20-80', unit: 'ng/kg/min', type: 'Infusion' } },
-    pk: { V1: 5.0, V2: 0, V3: 0, k10: 2.5, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 3.0, coSensitivity: 0.05 },
-    pd: { c50: 0.005, gamma: 2.0, sysMax: 60, diaMax: 70, hrMax: 0, rrMax: 0 },
-    notes: 'Synthetic human angiotensin II. Binds G-protein coupled AT1 receptors. Specifically designed for vasodilatory, catecholamine-refractory shock.'
-  },
-  methylene_blue: {
-    name: 'Methylene Blue', classes: ['Vasopressor Adjunct'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
-    metabolism: 'Tissue reduction (to leucomethylene blue)', mechanism: 'Inhibitor', targetReceptor: 'Nitric Oxide Synthase',
-    indications: { 'Vasoplegia': { dose: '1-2', unit: 'mg/kg', type: 'Bolus' } },
-    pk: { V1: 20.0, V2: 50.0, V3: 0, k10: 0.02, k12: 0.05, k21: 0.03, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.2 },
-    pd: { c50: 2.0, gamma: 1.5, sysMax: 30, diaMax: 35, hrMax: 0, rrMax: 0 },
-    notes: 'Inhibits soluble guanylyl cyclase and nitric oxide synthase, blocking NO-induced vasodilation. Highly effective for refractory vasoplegic shock (e.g. post-cardiopulmonary bypass, severe sepsis).'
-  },
-
-  // === COAGULATION ===
-  heparin: {
-    name: 'Heparin', classes: ['Anticoagulant'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
-    metabolism: 'Reticuloendothelial clearance', proteinBinding: 0.95, mechanism: 'Activator', targetReceptor: 'Antithrombin III',
-    indications: { 'Cardiopulmonary Bypass': { dose: '300-400', unit: 'Units/kg', type: 'Bolus' } },
-    pk: { V1: 5.0, V2: 0, V3: 0, k10: 0.015, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.1 },
-    pd: { c50: 1.5, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
-    notes: 'Accelerates antithrombin III activity 1000-fold, inactivating thrombin and factor Xa. Reversed by protamine on a 1mg : 100 Units Heparin ratio.'
-  },
-  protamine: {
-    name: 'Protamine Sulfate', classes: ['Reversal'], routes: ['IV'], types: ['Infusion'], dosingWeight: 'TBW',
-    metabolism: 'Plasma Peptidases', proteinBinding: 0, mechanism: 'Chelator', targetReceptor: 'Heparin',
-    indications: { 'Heparin Reversal': { dose: '1.0', unit: 'mg/100U Heparin', type: 'Infusion' } },
-    pk: { V1: 10.0, V2: 0, V3: 0, k10: 0.05, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.1 },
-    pd: { c50: 0.5, gamma: 1.0, sysMax: -15, diaMax: -15, hrMax: 0, rrMax: 0 },
-    notes: 'Highly basic protein derived from salmon sperm. Forms stable, inactive ionic complex with highly acidic heparin. STRICT safety warning (Protamine Reactions): Type I is isolated hypotension from rapid administration (histamine release); Type II is true IgE-mediated anaphylaxis; Type III is catastrophic pulmonary vasoconstriction, acute right ventricular failure, and severe refractory systemic shock (Thromboxane A2-mediated). Avoid rapid infusion.'
-  },
-  tranexamic_acid: {
-    name: 'Tranexamic Acid (TXA)', classes: ['Antifibrinolytic'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
-    metabolism: 'Renal (mostly unchanged >90%)', proteinBinding: 0.03, mechanism: 'Inhibitor', targetReceptor: 'Plasminogen',
-    indications: { 'Massive Hemorrhage': { dose: '1.0', unit: 'g', type: 'Bolus' } },
-    pk: { V1: 15.0, V2: 25.0, V3: 0, k10: 0.02, k12: 0.04, k21: 0.03, k13: 0, k31: 0, ke0: 0.2, coSensitivity: 0.1 },
-    pd: { c50: 10.0, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
-    notes: 'Competitive inhibitor of plasminogen activation. Blocks lysine-binding sites, preventing fibrinolysis. First line agent for trauma-induced coagulopathy and postpartum hemorrhage.'
-  },
-
-  // === ANTIEMETICS & RESPIRATORY ===
-  ondansetron: {
-    name: 'Ondansetron', classes: ['Antiemetic'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic (CYP3A4/2D6)', proteinBinding: 0.73, mechanism: 'Antagonist', targetReceptor: '5-HT3',
-    indications: { 'PONV Prophylaxis': { dose: '4.0', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 20.0, V2: 50.0, V3: 0, k10: 0.05, k12: 0.05, k21: 0.04, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 },
-    pd: { c50: 0.1, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
-    notes: 'Selective 5-HT3 serotonin receptor antagonist. First line antiemetic. Side effects include mild headache and QT prolongation.'
-  },
-  dexamethasone: {
-    name: 'Dexamethasone', classes: ['Corticosteroid'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic', proteinBinding: 0.70, mechanism: 'Agonist', targetReceptor: 'Glucocorticoid',
-    indications: { 'PONV Prophylaxis / Swelling': { dose: '4-8', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 30.0, V2: 40.0, V3: 0, k10: 0.01, k12: 0.02, k21: 0.01, k13: 0, k31: 0, ke0: 0.05, coSensitivity: 0.1 },
-    pd: { c50: 0.5, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
-    notes: 'Potent long-acting corticosteroid. Strongly reduces post-op swelling and acts as highly effective secondary antiemetic.'
-  },
-  albuterol: {
-    name: 'Albuterol', classes: ['Beta-2 Agonist'], routes: ['Inhaled (via ETT)'], types: ['Bolus'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic / Local pulmonary clearance', proteinBinding: 0.10, mechanism: 'Agonist', targetReceptor: 'Beta-2',
-    indications: { 'Bronchospasm': { dose: '2.5', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 5.0, V2: 10.0, V3: 0, k10: 0.1, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.8, coSensitivity: 0.1 },
-    pd: { c50: 0.02, gamma: 1.5, sysMax: 0, diaMax: -5, hrMax: 20, rrMax: 0 },
-    notes: 'Cardioselective Beta-2 adrenergic agonist. Triggers bronchial smooth muscle relaxation. Side effects include reflex/sympathetic tachycardia, tremors, and mild hyperlactatemia or hypokalemia in continuous doses.'
-  },
-  unasyn: {
-    name: 'Ampicillin/Sulbactam', classes: ['Antibiotic'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
-    metabolism: 'Renal (Unchanged >80%)', proteinBinding: 0.20, mechanism: 'Cell Wall Inhibitor / Beta-lactamase Inhibitor', targetReceptor: 'Bacterial Cell Wall',
-    indications: { 'Surgical Prophylaxis': { dose: '3.0', unit: 'g', type: 'Bolus' } },
-    pk: { V1: 15.0, V2: 25.0, V3: 0, k10: 0.05, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 },
-    pd: { c50: 1.0, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
-    notes: 'Broad-spectrum beta-lactam antibiotic. STRICT safety warning: In patients with history of penicillin anaphylaxis, administration triggers immediate severe anaphylactic shock (bronchospasm, profound vasoplegic hypotension, extreme compensatory tachycardia).'
+  unasyn: { 
+    name: 'Ampicillin/Sulbactam (Unasyn)', classes: ['Antibiotic'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Renal (Unchanged)', proteinBinding: 0.28, mechanism: 'Cell Wall Synthesis Inhibitor', targetReceptor: 'Penicillin-Binding Proteins',
+    indications: { 'Surgical Prophylaxis': { dose: '1.5-3.0', unit: 'g', type: 'Bolus' } },
+    pk: { V1: 12.0, V2: 18.0, V3: 0, k10: 0.05, k12: 0.04, k21: 0.04, k13: 0, k31: 0, ke0: 0.1 }, 
+    pd: { c50: 0.1, gamma: 1, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Penicillin antibiotic with beta-lactamase inhibitor. Highly effective for intra-abdominal and soft-tissue prophylaxis. Pushing this bolus in patients with documented severe penicillin allergy triggers life-threatening Penicillin Anaphylaxis (IgE-mediated severe vasodilation, hypotension, bradycardia, and severe bronchospasm/apnea).'
   }
-};;
+};
 
-/**
- * Calculate predicted lung volumes using ECCS/ERS 1993 reference equations
- * with obesity correction (Pelosi et al.) and positional modifiers (Rehder et al.)
- * 
- * References:
- *   - Quanjer PH et al. "Lung volumes and forced ventilatory flows." Eur Respir J. 1993;6 Suppl 16:5-40.
- *   - Pelosi P et al. "Respiratory system mechanics in sedated, paralyzed, morbidly obese patients."
- *     J Appl Physiol. 1998;84(3):811-816.
- *   - Rehder K et al. "Ventilation-perfusion relationships in health and disease." Am Rev Respir Dis. 1977.
- *   - Radford EP. "Ventilation standards for use in artificial respiration." J Appl Physiol. 1955;7(4):451-460.
- *
- * @param {number} heightCm - Patient height in cm
- * @param {number} age - Patient age in years  
- * @param {string} sex - 'male' or 'female'
- * @param {number} bmi - Body mass index
- * @param {string} position - Patient position (default 'Supine')
- * @returns {object} { frc_mL, tlc_mL, rv_mL, vc_mL, erv_mL, irv_mL, fvc_mL, fev1_mL, vd_mL, frc_L, tlc_L, obesityFactor, positionFactor }
- */
 export function calculateLungVolumes(heightCm, age, sex, bmi, position = 'Supine', isCopd = false, isRestrictive = false) {
     // Validate heightCm: must be a positive finite number. Default to 170.0 cm.
     let hCm = Number(heightCm);
-    if (typeof heightCm !== 'number' || isNaN(hCm) || !isFinite(hCm) || hCm <= 0) {
+    if (isNaN(hCm) || !Number.isFinite(hCm) || hCm <= 0) {
         hCm = 170.0;
     }
     hCm = Math.max(50.0, Math.min(250.0, hCm));
 
     // Validate age: clamp between 1 and 120. Default to 40.
     let safeAge = Number(age);
-    if (typeof age !== 'number' || isNaN(safeAge) || !isFinite(safeAge) || safeAge <= 0) {
+    if (isNaN(safeAge) || !Number.isFinite(safeAge) || safeAge <= 0) {
         safeAge = 40.0;
     }
     safeAge = Math.max(1.0, Math.min(120.0, safeAge));
@@ -770,7 +612,7 @@ export function calculateLungVolumes(heightCm, age, sex, bmi, position = 'Supine
 
     // Validate bmi: clamp between 10 and 100. Default to 25.0.
     let safeBmi = Number(bmi);
-    if (typeof bmi !== 'number' || isNaN(safeBmi) || !isFinite(safeBmi) || safeBmi <= 0) {
+    if (isNaN(safeBmi) || !Number.isFinite(safeBmi) || safeBmi <= 0) {
         safeBmi = 25.0;
     }
     safeBmi = Math.max(10.0, Math.min(100.0, safeBmi));
@@ -851,18 +693,28 @@ export function calculateLungVolumes(heightCm, age, sex, bmi, position = 'Supine
     // Derived volumes
     const vc  = Math.max(0.5, tlc - rv);
     const erv = Math.max(0, frc - rv);
-    // VT = 7 mL/kg IBW (Devine formula inline)
-    const ibwKg = isMale ? (50 + 2.3 * ((hCm / 2.54) - 60)) : (45.5 + 2.3 * ((hCm / 2.54) - 60));
+    // VT = 7 mL/kg IBW (Devine formula inline replaced with robust calculateIBW)
+    const ibwKg = calculateIBW(hCm, safeSex);
     const vt_L = 0.007 * ibwKg;
     const irv = Math.max(0, vc - vt_L - erv);
     
     // Anatomic dead space — Radford nomogram approximation (~2.2 mL/kg IBW)
     const vd = ibwKg * 2.2 / 1000; // Liters
 
+    // Guard final predictions to prevent non-finite division
+    if (!Number.isFinite(fev1_pred) || fev1_pred <= 0) fev1_pred = 3.5;
+    if (!Number.isFinite(fvc_pred) || fvc_pred <= 0) fvc_pred = 4.5;
+    if (!Number.isFinite(fev1) || fev1 <= 0) fev1 = 2.8;
+    if (!Number.isFinite(fvc) || fvc <= 0) fvc = 3.8;
+
     // Clinical spirometry metrics
-    const fev1PercentPredicted = Math.round((fev1 / (fev1_pred || 0.0001)) * 100);
-    const fvcPercentPredicted = Math.round((fvc / (fvc_pred || 0.0001)) * 100);
-    const fev1FvcRatio = Math.round((fev1 / (fvc || 0.0001)) * 100);
+    let fev1PercentPredicted = Math.round((fev1 / fev1_pred) * 100);
+    let fvcPercentPredicted = Math.round((fvc / fvc_pred) * 100);
+    let fev1FvcRatio = Math.round((fev1 / fvc) * 100);
+
+    if (isNaN(fev1PercentPredicted) || !Number.isFinite(fev1PercentPredicted)) fev1PercentPredicted = 80;
+    if (isNaN(fvcPercentPredicted) || !Number.isFinite(fvcPercentPredicted)) fvcPercentPredicted = 80;
+    if (isNaN(fev1FvcRatio) || !Number.isFinite(fev1FvcRatio)) fev1FvcRatio = 80;
     
     return {
         frc_mL:  Math.round(frc * 1000),

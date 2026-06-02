@@ -6,8 +6,8 @@
  */
 
 function fmt(val, decimals = 1) {
-  if (val === undefined || val === null || isNaN(val)) return 'N/A';
-  return typeof val === 'number' ? val.toFixed(decimals) : val;
+  if (val === undefined || val === null || typeof val !== 'number' || !Number.isFinite(val)) return 'N/A';
+  return val.toFixed(decimals);
 }
 
 /**
@@ -31,6 +31,9 @@ export function evaluateFidelity(state, history = []) {
 
   if (!state) return { anomalies, systemStatus };
 
+  // Enforce array safety on history
+  const safeHistory = Array.isArray(history) ? history : [];
+
   // 1. EXTRACT TELEMETRY VARIABLES
   const vitals = state.vitals || {};
   const patient = state.patient || {};
@@ -40,53 +43,82 @@ export function evaluateFidelity(state, history = []) {
   const ventSettings = state.ventSettings || {};
   const surgicalPhase = state.surgicalPhase || 'Pre-Op';
 
-  const hr = vitals.hr || 0;
-  const sys = vitals.sys || 0;
-  const dia = vitals.dia || 0;
-  const map = vitals.map || 0;
-  const co = vitals.co || 5.0;
-  const svr = vitals.svr || 1200;
-  const spo2 = vitals.spo2 || 100;
-  const pao2 = vitals.pao2 || 100;
-  const paco2 = vitals.paco2 || 40;
-  const etco2 = vitals.etco2 || 40;
-  const temp = vitals.temp || 37.0;
-  const bis = vitals.bis !== undefined ? vitals.bis : 99;
-  const tofCount = vitals.tofCount !== undefined ? vitals.tofCount : 4;
-  const pip = vitals.pip || 0;
-  const compliance = vitals.compl || 60;
-  const resistance = vitals.res || 10;
-  const lacticAcid = vitals.lacticAcid || patient.lacticAcid || 1.0;
-  const rr = vitals.rr !== undefined ? vitals.rr : (patient.rr !== undefined ? patient.rr : 12);
+  // --- DYNAMIC TELEMETRY CORRUPTION & FINITENESS LOOP ---
+  const nonFiniteVitals = [];
+  const vitalKeys = ['hr', 'sys', 'dia', 'map', 'co', 'svr', 'spo2', 'pao2', 'paco2', 'etco2', 'temp', 'bis', 'tofCount', 'pip', 'compl', 'res', 'lacticAcid', 'mac'];
+  for (const key of vitalKeys) {
+    const val = vitals[key];
+    if (val !== undefined && (typeof val !== 'number' || !Number.isFinite(val))) {
+      nonFiniteVitals.push(key);
+    }
+  }
+  if (nonFiniteVitals.length > 0) {
+    systemStatus.hemodynamics = 'FAILED';
+    anomalies.push({
+      system: 'Telemetry',
+      severity: 'CRITICAL',
+      rule: 'Telemetry Value Finiteness',
+      message: `Telemetry contains non-finite vital parameters: ${nonFiniteVitals.join(', ')}.`,
+      rationale: 'Telemetry variables must always be finite, real numbers. NaN or Infinite values indicate a severe mathematical overflow/underflow or unhandled division by zero in the physical integrator loops.',
+      resolution: 'Check physical integration in usePhysiology.js.'
+    });
+  }
+
+  const hr = Number.isFinite(vitals.hr) ? vitals.hr : 0;
+  const sys = Number.isFinite(vitals.sys) ? vitals.sys : 0;
+  const dia = Number.isFinite(vitals.dia) ? vitals.dia : 0;
+  const map = Number.isFinite(vitals.map) ? vitals.map : 0;
+  const co = Number.isFinite(vitals.co) ? vitals.co : 5.0;
+  const svr = Number.isFinite(vitals.svr) ? vitals.svr : 1200;
+  const spo2 = Number.isFinite(vitals.spo2) ? vitals.spo2 : 100;
+  const pao2 = Number.isFinite(vitals.pao2) ? vitals.pao2 : 100;
+  const paco2 = Number.isFinite(vitals.paco2) ? vitals.paco2 : 40;
+  const etco2 = Number.isFinite(vitals.etco2) ? vitals.etco2 : 40;
+  const temp = Number.isFinite(vitals.temp) ? vitals.temp : 37.0;
+  const bis = Number.isFinite(vitals.bis) ? vitals.bis : 99;
+  const tofCount = Number.isFinite(vitals.tofCount) ? vitals.tofCount : 4;
+  const pip = Number.isFinite(vitals.pip) ? vitals.pip : 0;
+  const compliance = Number.isFinite(vitals.compl) ? vitals.compl : 60;
+  const resistance = Number.isFinite(vitals.res) ? vitals.res : 10;
+  const lacticAcid = Number.isFinite(vitals.lacticAcid) ? vitals.lacticAcid : (Number.isFinite(patient.lacticAcid) ? patient.lacticAcid : 1.0);
+  const rr = Number.isFinite(vitals.rr) ? vitals.rr : (Number.isFinite(patient.rr) ? patient.rr : 12);
 
   const isArrest = patient.isArrest || false;
   const cprActive = patient.cprActive || false;
-  const stunning = patient.myocardialStunning || 0;
-  const ebl = patient.ebl || 0;
-  const ebv = patient.ebv || 5000;
+  const stunning = Number.isFinite(patient.myocardialStunning) ? patient.myocardialStunning : 0;
+  const ebl = Number.isFinite(patient.ebl) ? patient.ebl : 0;
+  const ebv = Number.isFinite(patient.ebv) ? patient.ebv : 5000;
   const position = patient.position || 'Supine';
   const airwaySecured = patient.airwaySecured || false;
   const tubePosition = patient.tubePosition || null;
   const isApneic = patient.isApneic || false;
 
-  const potassium = electrolytes.k || 4.0;
-  const calcium = electrolytes.ca || 9.0;
-  const ph = electrolytes.ph || 7.4;
+  const potassium = Number.isFinite(electrolytes.k) ? electrolytes.k : 4.0;
+  const calcium = Number.isFinite(electrolytes.ca) ? electrolytes.ca : 9.0;
+  const ph = Number.isFinite(electrolytes.ph) ? electrolytes.ph : 7.4;
 
-  const propofolCe = activeMeds.find(m => m.name === 'Propofol')?.Ce || 0;
-  const etomidateCe = activeMeds.find(m => m.name === 'Etomidate')?.Ce || 0;
-  const ketamineCe = activeMeds.find(m => m.name === 'Ketamine')?.Ce || 0;
-  const fentanylCe = activeMeds.find(m => m.name === 'Fentanyl')?.Ce || 0;
-  const rocuroniumCe = activeMeds.find(m => m.name === 'Rocuronium')?.Ce || 0;
-  const succinylcholineCe = activeMeds.find(m => m.name === 'Succinylcholine')?.Ce || 0;
-  const vecuroniumCe = activeMeds.find(m => m.name === 'Vecuronium')?.Ce || 0;
+  // Case-Insensitive CE Drug Finder Helper
+  const findCe = (drugName) => {
+    if (!Array.isArray(activeMeds)) return 0;
+    const found = activeMeds.find(m => m && (m.name || m.drug || '').toLowerCase() === drugName.toLowerCase());
+    return found && Number.isFinite(found.Ce) ? found.Ce : 0;
+  };
 
-  const mac = vitals.mac !== undefined ? vitals.mac : (patient.mac !== undefined ? patient.mac : 0);
-  const time = state.time || 0;
-  const apneaDuration = (state.time && patient.apneaStartTime) ? (state.time - patient.apneaStartTime) : 0;
+  const propofolCe = findCe('Propofol');
+  const etomidateCe = findCe('Etomidate');
+  const ketamineCe = findCe('Ketamine');
+  const fentanylCe = findCe('Fentanyl');
+  const rocuroniumCe = findCe('Rocuronium');
+  const succinylcholineCe = findCe('Succinylcholine');
+  const vecuroniumCe = findCe('Vecuronium');
+  const remifentanilCe = findCe('Remifentanil');
+
+  const mac = Number.isFinite(vitals.mac) ? vitals.mac : (Number.isFinite(patient.mac) ? patient.mac : 0);
+  const time = Number.isFinite(state.time) ? state.time : 0;
+  const apneaDuration = (Number.isFinite(state.time) && Number.isFinite(patient.apneaStartTime)) ? (state.time - patient.apneaStartTime) : 0;
   const bradycardiaTriggered = patient.bradycardiaTriggered || false;
 
-  const deliveredFiO2 = state.ventSettings?.fio2 || patient.currentFiO2 || 21;
+  const deliveredFiO2 = Number.isFinite(state.ventSettings?.fio2) ? state.ventSettings.fio2 : (Number.isFinite(patient.currentFiO2) ? patient.currentFiO2 : 21);
 
   // ==========================================
   // 2. PHYSIOLOGICAL INVARIANT ASSERTIONS (Strict Medical Boundaries)
@@ -96,9 +128,8 @@ export function evaluateFidelity(state, history = []) {
   
   // A1. SVR-MAP-CO Hemodynamic Closed Loop consistency
   // Standard systemic cardiovascular physics: MAP - CVP = CO * SVR / 80.
-  // Assuming CVP ~ 2-8 mmHg (standard CVP omitted in simplified cuff equation, making MAP ~ CO * SVR / 80)
   const calculatedPhysMAP = (co * svr) / 80;
-  if (Math.abs(map - calculatedPhysMAP) > 6.0 && !isArrest) {
+  if (Number.isFinite(map) && Number.isFinite(calculatedPhysMAP) && Math.abs(map - calculatedPhysMAP) > 6.0 && !isArrest) {
     systemStatus.hemodynamics = 'FAILED';
     anomalies.push({
       system: 'Hemodynamics',
@@ -111,14 +142,13 @@ export function evaluateFidelity(state, history = []) {
   }
 
   // A2. ECG Rhythm - Heart Rate Congruency
-  // If HR is 0, the cardiac electrical rhythm must represent a pulseless/flatline state (Asystole, VFib, PEA).
   if (hr === 0 && !isArrest && !isApneic) {
     systemStatus.hemodynamics = 'FAILED';
     anomalies.push({
       system: 'Hemodynamics',
       severity: 'CRITICAL',
       rule: 'ECG Rhythm - HR Congruency',
-      message: `Pulse shows HR of 0 bpm, but patient state is marked as NOT IN CARDIAC ARREST and rhythm is "${patient.cardiacRhythm}".`,
+      message: `Pulse shows HR of 0 bpm, but patient state is marked as NOT IN CARDIAC ARREST and rhythm is "${patient.cardiacRhythm || 'sinus'}".`,
       rationale: 'Heart rate of 0 is mathematically and clinically incompatible with a healthy, perfusing sinus rhythm. A flatline rate must trigger arrest states immediately to align diagnostic dashboards.',
       resolution: 'Enforce cardiac arrest transitions in usePhysiology.js when HR drops to zero.'
     });
@@ -126,7 +156,7 @@ export function evaluateFidelity(state, history = []) {
 
   // A3. Mathematical MAP Equation
   const calculatedMap = dia + (sys - dia) / 3;
-  if (Math.abs(map - calculatedMap) > 2.5 && !isArrest) {
+  if (Number.isFinite(map) && Number.isFinite(calculatedMap) && Math.abs(map - calculatedMap) > 2.5 && !isArrest) {
     systemStatus.hemodynamics = 'FAILED';
     anomalies.push({
       system: 'Hemodynamics',
@@ -165,22 +195,22 @@ export function evaluateFidelity(state, history = []) {
   }
 
   // A5. Thermal Redistribution Maximum Rate Limits
-  // Body temp cannot drop faster than 0.15 degrees C per tick/second unless huge cold infusions run.
-  if (history.length > 1) {
-    const prevTick = history[history.length - 2];
-    const prevTemp = prevTick?.vitals?.temp || 37.0;
-    const tempChange = Math.abs(temp - prevTemp);
-    // Scale allowance with time-step or check strictly for instant drops
-    if (tempChange > 0.15 && !state.patient.coldFluidsInfused) {
-      systemStatus.hemodynamics = 'FAILED';
-      anomalies.push({
-        system: 'Hemodynamics',
-        severity: 'CRITICAL',
-        rule: 'Thermal Redistribution Continuity',
-        message: `Core body temperature shifted instantaneously by ${fmt(tempChange)}°C in one second (Current: ${fmt(temp)}°C, Prev: ${fmt(prevTemp)}°C).`,
-        rationale: 'Human tissue possesses massive thermal capacity. Instantaneous, sharp drops in core temperature (>0.15°C/s) without active thermal clearance or massive icy volume infusion violate physical thermodynamics.',
-        resolution: 'Verify thermal decay rate coefficients in usePhysiology.js.'
-      });
+  if (safeHistory.length > 1) {
+    const prevTick = safeHistory[safeHistory.length - 2];
+    const prevTemp = prevTick?.vitals?.temp;
+    if (Number.isFinite(temp) && Number.isFinite(prevTemp)) {
+      const tempChange = Math.abs(temp - prevTemp);
+      if (tempChange > 0.15 && !state.patient.coldFluidsInfused) {
+        systemStatus.hemodynamics = 'FAILED';
+        anomalies.push({
+          system: 'Hemodynamics',
+          severity: 'CRITICAL',
+          rule: 'Thermal Redistribution Continuity',
+          message: `Core body temperature shifted instantaneously by ${fmt(tempChange)}°C in one second (Current: ${fmt(temp)}°C, Prev: ${fmt(prevTemp)}°C).`,
+          rationale: 'Human tissue possesses massive thermal capacity. Instantaneous, sharp drops in core temperature (>0.15°C/s) without active thermal clearance or massive icy volume infusion violate physical thermodynamics.',
+          resolution: 'Verify thermal decay rate coefficients in usePhysiology.js.'
+        });
+      }
     }
   }
 
@@ -241,7 +271,7 @@ export function evaluateFidelity(state, history = []) {
   }
 
   // B3. Cyanide Pulse Oximetry Deception
-  const cyanide = patient.cyanide || vitals.cyanide || 0;
+  const cyanide = Number.isFinite(patient.cyanide) ? patient.cyanide : (Number.isFinite(vitals.cyanide) ? vitals.cyanide : 0);
   if (cyanide > 0.3 && spo2 < 99 && !isArrest) {
     systemStatus.ventilation = 'FAILED';
     anomalies.push({
@@ -274,7 +304,7 @@ export function evaluateFidelity(state, history = []) {
 
   // C1. Propofol Vasodilation & Hypotension
   if (propofolCe > 1.5 && !isArrest) {
-    const vasopressorActive = activeMeds.some(m => m.classes.includes('Vasopressor') && m.Ce > 0.01);
+    const vasopressorActive = Array.isArray(activeMeds) && activeMeds.some(m => m && Array.isArray(m.classes) && m.classes.includes('Vasopressor') && m.Ce > 0.01);
     if (!vasopressorActive && svr >= 1100) {
       systemStatus.pharmacology = 'WARNING';
       anomalies.push({
@@ -317,7 +347,6 @@ export function evaluateFidelity(state, history = []) {
   }
 
   // C4. Sedative-Opioid Synergistic Apnea Check
-  const remifentanilCe = activeMeds.find(m => m.name === 'Remifentanil')?.Ce || 0;
   const isDeepSynergySedation = (propofolCe > 1.5 && (fentanylCe > 1.0 || remifentanilCe > 0.05)) || mac > 0.8;
   const isSpontaneouslyBreathing = patient.ventilationStatus === 'spontaneous' || !ventSettings.rr || ventSettings.rr === 0;
   if (isDeepSynergySedation && isSpontaneouslyBreathing && !airwaySecured && !isArrest) {
@@ -367,10 +396,10 @@ export function evaluateFidelity(state, history = []) {
   // --- E. VASCULAR ACCESS & LINES FIDELITY AUDIT ---
 
   // E1. Belmont IO Rapid Pressure Blowout
-  const ioLine = patient.accessLines?.find(l => l.category?.includes('IO'));
+  const ioLine = Array.isArray(patient.accessLines) ? patient.accessLines.find(l => l && l.category?.includes('IO')) : undefined;
   if (ioLine) {
     const lType = ioLine.fluidLine || patient.fluidLine || 'gravity';
-    const isBelmontRunningOnIO = lType === 'belmont' && ioLine.activeInfusions && ioLine.activeInfusions.length > 0;
+    const isBelmontRunningOnIO = lType === 'belmont' && Array.isArray(ioLine.activeInfusions) && ioLine.activeInfusions.length > 0;
     if (isBelmontRunningOnIO && !ioLine.failed) {
       systemStatus.lines = 'FAILED';
       anomalies.push({
@@ -385,14 +414,14 @@ export function evaluateFidelity(state, history = []) {
   }
 
   // E2. Arterial Resuscitation Bolus Block
-  const artLine = patient.accessLines?.find(l => l.category?.includes('Arterial'));
-  if (artLine && artLine.activeInfusions && artLine.activeInfusions.length > 0) {
+  const artLine = Array.isArray(patient.accessLines) ? patient.accessLines.find(l => l && l.category?.includes('Arterial')) : undefined;
+  if (artLine && Array.isArray(artLine.activeInfusions) && artLine.activeInfusions.length > 0) {
     systemStatus.lines = 'FAILED';
     anomalies.push({
       system: 'Vascular Access',
       severity: 'CRITICAL',
       rule: 'Arterial Resuscitation Bolus Block',
-      message: `Active fluid infusion (${artLine.activeInfusions[0].name}) is running on Arterial Line: ${artLine.name}.`,
+      message: `Active fluid infusion (${artLine.activeInfusions[0]?.name || 'Unknown'}) is running on Arterial Line: ${artLine.name || 'Arterial'}.`,
       rationale: 'Arterial lines are placed strictly to monitor continuous blood pressure and draw blood gases. Attempting fluid resuscitation or pushing medications via an arterial line is a severe clinical error that causes instant arterial vasospasm, vascular endothelial damage, and severe distal tissue ischemia/necrosis.',
       resolution: 'Block fluid administration and trigger severe vascular penalties when infusions are directed to arterial lines.'
     });
@@ -404,9 +433,9 @@ export function evaluateFidelity(state, history = []) {
   // F1. Beach Chair Hydrostatic Pressure Shift
   if ((position === 'Sitting' || position === 'Beach Chair') && !isArrest) {
     const cuffMap = map;
-    const cerebralMap = (vitals.cmap !== undefined && vitals.cmap !== null) ? vitals.cmap : map;
+    const cerebralMap = (vitals.cmap !== undefined && vitals.cmap !== null && Number.isFinite(vitals.cmap)) ? vitals.cmap : map;
     const expectedCMap = Math.max(0, cuffMap - 29.6);
-    if (Math.abs(cerebralMap - expectedCMap) > 3) {
+    if (Number.isFinite(cerebralMap) && Number.isFinite(expectedCMap) && Math.abs(cerebralMap - expectedCMap) > 3) {
       systemStatus.positioning = 'FAILED';
       anomalies.push({
         system: 'Positioning',
@@ -468,10 +497,8 @@ export function evaluateFidelity(state, history = []) {
 
   // D1. Alveolar Gas Equation Differential Test
   // PAO2 = FiO2 * (Patm - PH2O) - PaCO2 / R
-  // Assuming standard room/OR dry gas: Patm - PH2O = 713 mmHg, Respiratory Quotient R = 0.8.
-  // Arterial PaO2 cannot exceed Alveolar PAO2 (2nd Law of Thermodynamics).
   const calculatedPAO2 = (deliveredFiO2 * 7.13) - (paco2 / 0.8);
-  if (pao2 > calculatedPAO2 + 5.0 && !isArrest) {
+  if (Number.isFinite(pao2) && Number.isFinite(calculatedPAO2) && pao2 > calculatedPAO2 + 5.0 && !isArrest) {
     systemStatus.ventilation = 'FAILED';
     anomalies.push({
       system: 'Ventilation',
@@ -484,134 +511,139 @@ export function evaluateFidelity(state, history = []) {
   }
 
   // D2. PK/PD Compartment Mass Balance Conservation
-  // Drug Ce * V1 must never exceed the cumulative dose pushed. For active meds,
-  // ensure compartment mass concentration values do not accumulate beyond physiological ceilings.
-  activeMeds.forEach(m => {
-    const rawMaxDoseMg = 2000; // Physical sanity ceiling for bolus doses in catalog
-    const estCentralMassMg = m.A1 || 0;
-    if (estCentralMassMg > rawMaxDoseMg) {
-      systemStatus.pharmacology = 'FAILED';
-      anomalies.push({
-        system: 'Pharmacology',
-        severity: 'CRITICAL',
-        rule: 'PK/PD Mass Conservation',
-        message: `Drug central compartment mass for ${m.name} is abnormally elevated at ${fmt(estCentralMassMg)} mg, exceeding standard clinical bolus limits.`,
-        rationale: 'Pharmacokinetic engines must conserve mass. Spontaneous accumulation of central compartment mass values beyond clinical dosing catalogs indicates an algebraic integration leakage or division-by-zero error.',
-        resolution: 'Review PK integration loop subdivisions in PKPDEngine.js.'
-      });
-    }
-  });
+  if (Array.isArray(activeMeds)) {
+    activeMeds.forEach(m => {
+      if (!m) return;
+      const rawMaxDoseMg = 2000; // Physical sanity ceiling for bolus doses in catalog
+      const estCentralMassMg = Number.isFinite(m.A1) ? m.A1 : 0;
+      if (estCentralMassMg > rawMaxDoseMg) {
+        systemStatus.pharmacology = 'FAILED';
+        anomalies.push({
+          system: 'Pharmacology',
+          severity: 'CRITICAL',
+          rule: 'PK/PD Mass Conservation',
+          message: `Drug central compartment mass for ${m.name || m.drug || 'Unknown'} is abnormally elevated at ${fmt(estCentralMassMg)} mg, exceeding standard clinical bolus limits.`,
+          rationale: 'Pharmacokinetic engines must conserve mass. Spontaneous accumulation of central compartment mass values beyond clinical dosing catalogs indicates an algebraic integration leakage or division-by-zero error.',
+          resolution: 'Review PK integration loop subdivisions in PKPDEngine.js.'
+        });
+      }
+    });
+  }
 
 
   // ==========================================
   // 4. TIME-DELAYED ORACLE EXPECTATIONS (Historical Telemetry Windows)
   // ==========================================
-  if (history && history.length > 5) {
-    // Scan history array to track time-delayed pharmacokinetic and clinical outcomes:
-
+  if (safeHistory.length > 5) {
     // T1. Sugammadex Neuromuscular Block Reversal Timeline (Routine/Rescue)
-    // Expectation: If Sugammadex is given, TOF count must recover to 4/4 within 120 seconds.
-    const sugammadexPushIdx = history.findIndex(step => step.actionText && step.actionText.toLowerCase().includes('sugammadex'));
+    const sugammadexPushIdx = safeHistory.findIndex(step => step && step.actionText && step.actionText.toLowerCase().includes('sugammadex'));
     if (sugammadexPushIdx !== -1) {
-      const pushTick = history[sugammadexPushIdx].tick;
-      const currentTick = history[history.length - 1].tick;
-      const elapsedSec = currentTick - pushTick;
-
-      // If at least 120s has elapsed since Sugammadex administration
-      if (elapsedSec >= 120) {
-        if (tofCount < 4 && !isArrest) {
-          systemStatus.neurology = 'FAILED';
-          anomalies.push({
-            system: 'Neurology',
-            severity: 'CRITICAL',
-            rule: 'Sugammadex Reversal Delayed Recovery',
-            message: `Sugammadex was pushed ${fmt(elapsedSec)}s ago, but muscle TOF twitch count remains depressed at ${tofCount}/4 (expected: 4/4).`,
-            rationale: 'Sugammadex encapsulates steroidal neuromuscular blockers (Rocuronium, Vecuronium) on a 1:1 molar basis. An adequate dose (2-4 mg/kg routine, or 16 mg/kg rescue) must completely reverse neuromuscular blockade within 1.5 to 2 minutes, restoring twitches to 4/4.',
-            resolution: 'Check Sugammadex chelation speed coefficients and TOF twitch binding calculations in usePhysiology.js.'
-          });
-        }
-      }
-    }
-
-    // T2. Upregulated nAChR Succinylcholine Efflux
-    // Expectation: Within 60 seconds of Succinylcholine bolus in an upregulated state, potassium must spike by >= 1.5 mEq/L.
-    const suxPushIdx = history.findIndex(step => step.actionText && step.actionText.toLowerCase().includes('succinylcholine'));
-    if (suxPushIdx !== -1) {
-      const suxStep = history[suxPushIdx];
-      const isUpregulated = suxStep.patient && suxStep.patient.nAChR_state === 'upregulated';
-
-      if (isUpregulated) {
-        const pushTick = suxStep.tick;
-        const currentTick = history[history.length - 1].tick;
+      const pushTick = safeHistory[sugammadexPushIdx]?.tick;
+      const currentTick = safeHistory[safeHistory.length - 1]?.tick;
+      if (Number.isFinite(pushTick) && Number.isFinite(currentTick)) {
         const elapsedSec = currentTick - pushTick;
 
-        if (elapsedSec >= 10 && elapsedSec <= 60) {
-          const initialK = suxStep.electrolytes?.k || 4.0;
-          const kDelta = potassium - initialK;
-          if (kDelta < 1.5) {
-            systemStatus.pharmacology = 'FAILED';
+        // If at least 120s has elapsed since Sugammadex administration
+        if (elapsedSec >= 120) {
+          if (tofCount < 4 && !isArrest) {
+            systemStatus.neurology = 'FAILED';
             anomalies.push({
-              system: 'Pharmacology',
+              system: 'Neurology',
               severity: 'CRITICAL',
-              rule: 'Upregulated nAChR Potassium Leak Timeline',
-              message: `Succinylcholine was pushed ${fmt(elapsedSec)}s ago in upregulated state, but potassium delta is only +${fmt(kDelta)} mEq/L (expected: >= +1.5 mEq/L).`,
-              rationale: 'In upregulated nicotinic receptor states, Succinylcholine triggers persistent opening of extrajunctional channels. This must cause a hyperacute, massive potassium efflux (+1.5 to +5.0 mEq/L) within 60s, leading to hyperkalemic cardiac arrest.',
-              resolution: 'Review depolarizing NMBA potassium flux modifiers in usePhysiology.js.'
+              rule: 'Sugammadex Reversal Delayed Recovery',
+              message: `Sugammadex was pushed ${fmt(elapsedSec)}s ago, but muscle TOF twitch count remains depressed at ${tofCount}/4 (expected: 4/4).`,
+              rationale: 'Sugammadex encapsulates steroidal neuromuscular blockers (Rocuronium, Vecuronium) on a 1:1 molar basis. An adequate dose (2-4 mg/kg routine, or 16 mg/kg rescue) must completely reverse neuromuscular blockade within 1.5 to 2 minutes, restoring twitches to 4/4.',
+              resolution: 'Check Sugammadex chelation speed coefficients and TOF twitch binding calculations in usePhysiology.js.'
             });
           }
         }
       }
     }
 
-    // T3. Neostigmine Muscarinic Bradycardic Surge
-    // Expectation: Within 60 seconds of Neostigmine without Glycopyrrolate, vagal bradycardia (HR < 40 bpm) must trigger.
-    const neoPushIdx = history.findIndex(step => step.actionText && step.actionText.toLowerCase().includes('neostigmine') && !step.actionText.toLowerCase().includes('glyco'));
-    if (neoPushIdx !== -1) {
-      const pushTick = history[neoPushIdx].tick;
-      const currentTick = history[history.length - 1].tick;
-      const elapsedSec = currentTick - pushTick;
+    // T2. Upregulated nAChR Succinylcholine Efflux
+    const suxPushIdx = safeHistory.findIndex(step => step && step.actionText && step.actionText.toLowerCase().includes('succinylcholine'));
+    if (suxPushIdx !== -1) {
+      const suxStep = safeHistory[suxPushIdx];
+      const isUpregulated = suxStep?.patient && suxStep.patient.nAChR_state === 'upregulated';
 
-      if (elapsedSec >= 30 && elapsedSec <= 90) {
-        // Check if glyco was given in this window
-        const glycoGiven = history.slice(neoPushIdx).some(step => step.actionText && step.actionText.toLowerCase().includes('glycopyrrolate'));
-        if (!glycoGiven && hr >= 55 && !isArrest) {
-          systemStatus.pharmacology = 'FAILED';
-          anomalies.push({
-            system: 'Pharmacology',
-            severity: 'CRITICAL',
-            rule: 'Unopposed Neostigmine Vagal Chronotropy Decay',
-            message: `Neostigmine was administered ${fmt(elapsedSec)}s ago without anticholinergic protection, but heart rate remains stable at ${fmt(hr)} bpm (expected: < 40 bpm or arrest).`,
-            rationale: 'Neostigmine blocks acetylcholinesterase, accumulating acetylcholine at cardiac M2 receptors. Without Glycopyrrolate co-administration, it triggers profound vagal chronotropy, causing severe bradycardia or asystolic arrest within 60s.',
-            resolution: 'Tighten muscarinic bradycardia time kinetics when Glycopyrrolate Ce is low.'
-          });
+      if (isUpregulated) {
+        const pushTick = suxStep.tick;
+        const currentTick = safeHistory[safeHistory.length - 1]?.tick;
+        if (Number.isFinite(pushTick) && Number.isFinite(currentTick)) {
+          const elapsedSec = currentTick - pushTick;
+
+          if (elapsedSec >= 10 && elapsedSec <= 60) {
+            const initialK = suxStep.electrolytes?.k || 4.0;
+            const kDelta = potassium - initialK;
+            if (kDelta < 1.5) {
+              systemStatus.pharmacology = 'FAILED';
+              anomalies.push({
+                system: 'Pharmacology',
+                severity: 'CRITICAL',
+                rule: 'Upregulated nAChR Potassium Leak Timeline',
+                message: `Succinylcholine was pushed ${fmt(elapsedSec)}s ago in upregulated state, but potassium delta is only +${fmt(kDelta)} mEq/L (expected: >= +1.5 mEq/L).`,
+                rationale: 'In upregulated nicotinic receptor states, Succinylcholine triggers persistent opening of extrajunctional channels. This must cause a hyperacute, massive potassium efflux (+1.5 to +5.0 mEq/L) within 60s, leading to hyperkalemic cardiac arrest.',
+                resolution: 'Review depolarizing NMBA potassium flux modifiers in usePhysiology.js.'
+              });
+            }
+          }
+        }
+      }
+    }
+
+    // T3. Neostigmine Muscarinic Bradycardic Surge
+    const neoPushIdx = safeHistory.findIndex(step => step && step.actionText && step.actionText.toLowerCase().includes('neostigmine') && !step.actionText.toLowerCase().includes('glyco'));
+    if (neoPushIdx !== -1) {
+      const pushTick = safeHistory[neoPushIdx]?.tick;
+      const currentTick = safeHistory[safeHistory.length - 1]?.tick;
+      if (Number.isFinite(pushTick) && Number.isFinite(currentTick)) {
+        const elapsedSec = currentTick - pushTick;
+
+        if (elapsedSec >= 30 && elapsedSec <= 90) {
+          // Check if glyco was given in this window
+          const glycoGiven = safeHistory.slice(neoPushIdx).some(step => step && step.actionText && step.actionText.toLowerCase().includes('glycopyrrolate'));
+          if (!glycoGiven && hr >= 55 && !isArrest) {
+            systemStatus.pharmacology = 'FAILED';
+            anomalies.push({
+              system: 'Pharmacology',
+              severity: 'CRITICAL',
+              rule: 'Unopposed Neostigmine Vagal Chronotropy Decay',
+              message: `Neostigmine was administered ${fmt(elapsedSec)}s ago without anticholinergic protection, but heart rate remains stable at ${fmt(hr)} bpm (expected: < 40 bpm or arrest).`,
+              rationale: 'Neostigmine blocks acetylcholinesterase, accumulating acetylcholine at cardiac M2 receptors. Without Glycopyrrolate co-administration, it triggers profound vagal chronotropy, causing severe bradycardia or asystolic arrest within 60s.',
+              resolution: 'Tighten muscarinic bradycardia time kinetics when Glycopyrrolate Ce is low.'
+            });
+          }
         }
       }
     }
 
     // T4. Propofol Bolus Hypotension
-    // Expectation: Within 90 seconds of Propofol bolus (>150mg) with no vasopressors, SVR must decay by >= 15%.
-    const propofolPushIdx = history.findIndex(step => step.actionText && step.actionText.toLowerCase().includes('propofol 150mg'));
+    const propofolPushIdx = safeHistory.findIndex(step => step && step.actionText && step.actionText.toLowerCase().includes('propofol 150mg'));
     if (propofolPushIdx !== -1) {
-      const pushStep = history[propofolPushIdx];
-      const pushTick = pushStep.tick;
-      const currentTick = history[history.length - 1].tick;
-      const elapsedSec = currentTick - pushTick;
+      const pushStep = safeHistory[propofolPushIdx];
+      const pushTick = pushStep?.tick;
+      const currentTick = safeHistory[safeHistory.length - 1]?.tick;
+      if (Number.isFinite(pushTick) && Number.isFinite(currentTick)) {
+        const elapsedSec = currentTick - pushTick;
 
-      if (elapsedSec >= 30 && elapsedSec <= 90) {
-        const vasopressorActive = activeMeds.some(m => m.classes.includes('Vasopressor') && m.Ce > 0.01);
-        if (!vasopressorActive) {
-          const initialSVR = pushStep.vitals?.svr || 1200;
-          const svrRatio = svr / initialSVR;
-          if (svrRatio > 0.90) {
-            systemStatus.pharmacology = 'WARNING';
-            anomalies.push({
-              system: 'Pharmacology',
-              severity: 'WARNING',
-              rule: 'Propofol Vasodepressive Response Timeline',
-              message: `Propofol bolus was pushed ${fmt(elapsedSec)}s ago with no active pressors, but SVR decayed by only ${fmt((1 - svrRatio) * 100)}% (expected: >= 15% SVR drop).`,
-              rationale: 'Propofol induces profound, rapid-onset arterial and venous smooth muscle dilation, reducing SVR. An SVR drop must manifest clinically within 60-90s in the absence of opposing vasopressors.',
-              resolution: 'Increase Propofol effect-site SVR depression sensitivity and speed.'
-            });
+        if (elapsedSec >= 30 && elapsedSec <= 90) {
+          const vasopressorActive = Array.isArray(activeMeds) && activeMeds.some(m => m && Array.isArray(m.classes) && m.classes.includes('Vasopressor') && m.Ce > 0.01);
+          if (!vasopressorActive) {
+            const initialSVR = pushStep.vitals?.svr || 1200;
+            if (Number.isFinite(initialSVR) && initialSVR > 0) {
+              const svrRatio = svr / initialSVR;
+              if (svrRatio > 0.90) {
+                systemStatus.pharmacology = 'WARNING';
+                anomalies.push({
+                  system: 'Pharmacology',
+                  severity: 'WARNING',
+                  rule: 'Propofol Vasodepressive Response Timeline',
+                  message: `Propofol bolus was pushed ${fmt(elapsedSec)}s ago with no active pressors, but SVR decayed by only ${fmt((1 - svrRatio) * 100)}% (expected: >= 15% SVR drop).`,
+                  rationale: 'Propofol induces profound, rapid-onset arterial and venous smooth muscle dilation, reducing SVR. An SVR drop must manifest clinically within 60-90s in the absence of opposing vasopressors.',
+                  resolution: 'Increase Propofol effect-site SVR depression sensitivity and speed.'
+                });
+              }
+            }
           }
         }
       }

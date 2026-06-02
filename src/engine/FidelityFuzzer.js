@@ -89,26 +89,27 @@ export const FUZZ_ACTIONS = [
   { name: 'Observe physiology for 30 seconds', type: 'wait', duration: 30 }
 ];
 
+export const FALLBACK_ACTION = { name: 'Observe physiology for 10 seconds', type: 'wait', duration: 10 };
+
 /**
  * Returns a random action from the default set (Backwards Compatibility)
  */
 export function getRandomFuzzAction() {
   const idx = Math.floor(Math.random() * FUZZ_ACTIONS.length);
-  return FUZZ_ACTIONS[idx];
+  return FUZZ_ACTIONS[idx] || FALLBACK_ACTION;
 }
 
 /**
  * Main Guided Stateful Clinical Scenario Action Generator.
  * Tracks patient state and queues logical sequences according to chosen fuzzer archetype.
- * 
- * @param {Object} state Current simulator state (vitals, patient, activeMeds, time)
- * @param {Object} fuzzerState Persistent fuzzer state (phase, currentSequence, counters)
- * @param {string} strategy Strategy archetype ('polypharmacy', 'malpractice', 'mechanical', 'guided')
  */
 export function getGuidedFuzzAction(state, fuzzerState, strategy = 'guided') {
   if (!state) return getRandomFuzzAction();
 
-  // 1. Initialize fuzzerState if empty
+  // Safeguard fuzzerState input to avoid unhandled property access errors
+  if (!fuzzerState) {
+    fuzzerState = {};
+  }
   if (!fuzzerState.phase) {
     fuzzerState.phase = 'PRE_OP';
     fuzzerState.currentSequence = [];
@@ -122,17 +123,18 @@ export function getGuidedFuzzAction(state, fuzzerState, strategy = 'guided') {
   const activeMeds = state.activeMeds || [];
 
   // Check if we have a pre-programmed sequence running
-  if (fuzzerState.currentSequence && fuzzerState.currentSequence.length > 0) {
+  if (Array.isArray(fuzzerState.currentSequence) && fuzzerState.currentSequence.length > 0) {
     const nextAction = fuzzerState.currentSequence.shift();
-    return nextAction;
+    if (nextAction) return nextAction;
   }
 
   // Determine current physical/clinical milestones to transition fuzzer phases:
-  const hasIV = patient.accessLines && patient.accessLines.some(l => l.category?.includes('IV') || l.name?.includes('IV'));
-  const hasArtLine = patient.accessLines && patient.accessLines.some(l => l.category?.includes('Arterial'));
+  const accessLines = Array.isArray(patient.accessLines) ? patient.accessLines : [];
+  const hasIV = accessLines.some(l => l && (l.category?.includes('IV') || l.name?.includes('IV')));
+  const hasArtLine = accessLines.some(l => l && l.category?.includes('Arterial'));
   const hasMonitors = patient.hasBisMonitor && patient.hasTofMonitor;
-  const isHypnotic = activeMeds.some(m => m.classes.includes('Sedative') || m.classes.includes('Hypnotic') || m.classes.includes('Dissociative'));
-  const isParalyzed = patient.isParalyzed || vitals.tofCount < 4;
+  const isHypnotic = activeMeds.some(m => m && Array.isArray(m.classes) && (m.classes.includes('Sedative') || m.classes.includes('Hypnotic') || m.classes.includes('Dissociative')));
+  const isParalyzed = patient.isParalyzed || (Number.isFinite(vitals.tofCount) && vitals.tofCount < 4);
   const isAirwaySecured = patient.airwaySecured;
 
   // Sync fuzzerState.phase with patient status (Bypass for comprehensive 'ultimate' strategy)
@@ -170,14 +172,12 @@ export function getGuidedFuzzAction(state, fuzzerState, strategy = 'guided') {
  * Exhaustive Clinical Coverage Strategy Action Generator (ultimate)
  */
 function generateUltimateCoverageAction(state, fuzzerState, flags) {
-  const patient = state.patient || {};
-  const vitals = state.vitals || {};
-  const activeMeds = state.activeMeds || [];
+  if (!fuzzerState) fuzzerState = {};
 
   // Check if we have a pre-programmed sequence running
-  if (fuzzerState.currentSequence && fuzzerState.currentSequence.length > 0) {
+  if (Array.isArray(fuzzerState.currentSequence) && fuzzerState.currentSequence.length > 0) {
     const nextAction = fuzzerState.currentSequence.shift();
-    return nextAction;
+    if (nextAction) return nextAction;
   }
 
   // Define phases: 'PRE_OP', 'INDUCTION', 'AIRWAY_MGMT', 'MAINTENANCE', 'EMERGENCE', 'POST_OP'
@@ -206,7 +206,7 @@ function generateUltimateCoverageAction(state, fuzzerState, flags) {
       { name: 'Observe physiology for 10 seconds', type: 'wait', duration: 10 }
     ];
     fuzzerState.ultimatePhase = 'INDUCTION';
-    return fuzzerState.currentSequence.shift();
+    return fuzzerState.currentSequence.shift() || FALLBACK_ACTION;
   }
 
   // 2. INDUCTION PHASE: Randomize sedative, opioid, and paralytic pick
@@ -231,17 +231,17 @@ function generateUltimateCoverageAction(state, fuzzerState, flags) {
       { name: 'Push Cisatracurium 10mg', type: 'med', drug: 'Cisatracurium', dose: 10, unit: 'mg', medType: 'Bolus', route: 'IV' }
     ];
 
-    const shuffle = (arr) => [...arr].sort(() => Math.random() - 0.5);
+    const shuffle = (arr) => Array.isArray(arr) ? [...arr].sort(() => Math.random() - 0.5) : [];
     const shuffSed = shuffle(sedatives);
     const shuffOpi = shuffle(opioids);
     const shuffPar = shuffle(paralytics);
 
     fuzzerState.currentSequence = [
-      shuffSed[0],
+      shuffSed[0] || FALLBACK_ACTION,
       { name: 'Observe physiology for 10 seconds', type: 'wait', duration: 10 },
-      shuffOpi[0],
+      shuffOpi[0] || FALLBACK_ACTION,
       { name: 'Observe physiology for 10 seconds', type: 'wait', duration: 10 },
-      shuffPar[0],
+      shuffPar[0] || FALLBACK_ACTION,
       { name: 'Observe physiology for 30 seconds', type: 'wait', duration: 30 }
     ];
 
@@ -251,7 +251,7 @@ function generateUltimateCoverageAction(state, fuzzerState, flags) {
     fuzzerState.remainingParalytics = shuffPar.slice(1);
 
     fuzzerState.ultimatePhase = 'AIRWAY_MGMT';
-    return fuzzerState.currentSequence.shift();
+    return fuzzerState.currentSequence.shift() || FALLBACK_ACTION;
   }
 
   // 3. AIRWAY MANAGEMENT PHASE: Exhaustive tubes, compliance and rescue maneuvers
@@ -281,7 +281,7 @@ function generateUltimateCoverageAction(state, fuzzerState, flags) {
       { name: 'Observe physiology for 10 seconds', type: 'wait', duration: 10 }
     ];
     fuzzerState.ultimatePhase = 'MAINTENANCE';
-    return fuzzerState.currentSequence.shift();
+    return fuzzerState.currentSequence.shift() || FALLBACK_ACTION;
   }
 
   // 4. MAINTENANCE PHASE: Diverse shuffled critical stresses and treatments
@@ -387,14 +387,14 @@ function generateUltimateCoverageAction(state, fuzzerState, flags) {
 
       // Add remaining sedatives/opioids/paralytics to pharmacopoeia sweeps
       const remainingMeds = [];
-      if (fuzzerState.remainingSedatives) {
-        fuzzerState.remainingSedatives.forEach(m => remainingMeds.push(m));
+      if (Array.isArray(fuzzerState.remainingSedatives)) {
+        fuzzerState.remainingSedatives.forEach(m => m && remainingMeds.push(m));
       }
-      if (fuzzerState.remainingOpioids) {
-        fuzzerState.remainingOpioids.forEach(m => remainingMeds.push(m));
+      if (Array.isArray(fuzzerState.remainingOpioids)) {
+        fuzzerState.remainingOpioids.forEach(m => m && remainingMeds.push(m));
       }
-      if (fuzzerState.remainingParalytics) {
-        fuzzerState.remainingParalytics.forEach(m => remainingMeds.push(m));
+      if (Array.isArray(fuzzerState.remainingParalytics)) {
+        fuzzerState.remainingParalytics.forEach(m => m && remainingMeds.push(m));
       }
 
       if (remainingMeds.length > 0) {
@@ -402,13 +402,16 @@ function generateUltimateCoverageAction(state, fuzzerState, flags) {
         challengesList.push(pharmacopoeiaSeq);
       }
 
-      // Shuffle challenges
+      // Shuffle challenges safely
       fuzzerState.maintenanceChallenges = challengesList.sort(() => Math.random() - 0.5);
     }
 
-    if (fuzzerState.maintenanceChallenges.length > 0) {
+    if (Array.isArray(fuzzerState.maintenanceChallenges) && fuzzerState.maintenanceChallenges.length > 0) {
       fuzzerState.currentSequence = fuzzerState.maintenanceChallenges.shift();
-      return fuzzerState.currentSequence.shift();
+      if (Array.isArray(fuzzerState.currentSequence) && fuzzerState.currentSequence.length > 0) {
+        return fuzzerState.currentSequence.shift() || FALLBACK_ACTION;
+      }
+      return FALLBACK_ACTION;
     } else {
       fuzzerState.ultimatePhase = 'EMERGENCE';
     }
@@ -440,7 +443,7 @@ function generateUltimateCoverageAction(state, fuzzerState, flags) {
       { name: 'Observe physiology for 10 seconds', type: 'wait', duration: 10 }
     ];
     fuzzerState.ultimatePhase = 'POST_OP';
-    return fuzzerState.currentSequence.shift();
+    return fuzzerState.currentSequence.shift() || FALLBACK_ACTION;
   }
 
   // 6. POST-OP PHASE: Patient is stable and recovering
@@ -454,19 +457,24 @@ function generateUltimateCoverageAction(state, fuzzerState, flags) {
  * and schedules time delays to allow PK/PD kinetics to manifest.
  */
 function generateMaintenanceAction(state, fuzzerState, strategy) {
-  const vitals = state.vitals || {};
-  const patient = state.patient || {};
-  const activeMeds = state.activeMeds || [];
+  const vitals = state?.vitals || {};
+  const patient = state?.patient || {};
+  const activeMeds = state?.activeMeds || [];
+
+  if (!fuzzerState) fuzzerState = {};
+
+  const hasMap = Number.isFinite(vitals.map);
+  const hasHr = Number.isFinite(vitals.hr);
 
   // 1. Hypotension check (MAP < 65) - Clinically react with fluids or pressors
-  if (vitals.map < 65 && !patient.isArrest) {
+  if (hasMap && vitals.map < 65 && !patient.isArrest) {
     if (strategy === 'malpractice' && Math.random() < 0.20) {
       // Malpractice: Extreme Epinephrine bolus overdose (1mg/1000mcg instead of pressor push)
       return { name: 'Push Epinephrine 1mg (ACLS Arrest Dose)', type: 'med', drug: 'Epinephrine', dose: 1000, unit: 'mcg', medType: 'Bolus', route: 'IV' };
     }
     
     const pChoice = Math.random();
-    if (pChoice < 0.3 && patient.ebl > 1500) {
+    if (pChoice < 0.3 && Number.isFinite(patient.ebl) && patient.ebl > 1500) {
       return { name: 'Transfuse PRBC 1 Unit', type: 'fluid', nameFluid: 'Packed Red Blood Cells (PRBC)', volume: 1 };
     } else if (pChoice < 0.6) {
       return { name: 'Bolus LR 500mL', type: 'fluid', nameFluid: 'Lactated Ringers (LR)', volume: 500 };
@@ -478,8 +486,8 @@ function generateMaintenanceAction(state, fuzzerState, strategy) {
   }
 
   // 2. Hypertension/Tachycardia check (MAP > 110 or HR > 110) - Treat with beta blockers
-  if ((vitals.map > 110 || vitals.hr > 110) && !patient.isArrest) {
-    if (strategy === 'malpractice' && vitals.hr < 60 && Math.random() < 0.35) {
+  if (((hasMap && vitals.map > 110) || (hasHr && vitals.hr > 110)) && !patient.isArrest) {
+    if (strategy === 'malpractice' && hasHr && vitals.hr < 60 && Math.random() < 0.35) {
       // Malpractice: Pushing beta-blocker in severe bradycardia
       return { name: 'Push Metoprolol 5mg', type: 'med', drug: 'Metoprolol', dose: 5, unit: 'mg', medType: 'Bolus', route: 'IV' };
     }
@@ -489,15 +497,17 @@ function generateMaintenanceAction(state, fuzzerState, strategy) {
   }
 
   // 3. Awareness risk / Wake-up (BIS > 65) - Deepen anesthesia
-  if (vitals.bis > 65 && !patient.isArrest) {
+  if (Number.isFinite(vitals.bis) && vitals.bis > 65 && !patient.isArrest) {
     return Math.random() > 0.5 
       ? { name: 'Push Propofol 150mg', type: 'med', drug: 'Propofol', dose: 150, unit: 'mg', medType: 'Bolus', route: 'IV' }
       : { name: 'Push Fentanyl 100mcg', type: 'med', drug: 'Fentanyl', dose: 100, unit: 'mcg', medType: 'Bolus', route: 'IV' };
   }
 
   // 4. Neuromuscular recovery check (Stress NMJ chelation/reversal loops)
-  const rocuroniumCe = activeMeds.find(m => m.name === 'Rocuronium')?.Ce || 0;
-  if (rocuroniumCe > 0.1 && Math.random() < 0.20) {
+  const rocuroniumCe = Array.isArray(activeMeds)
+    ? (activeMeds.find(m => (m.name || m.drug || '').toLowerCase() === 'rocuronium')?.Ce || 0)
+    : 0;
+  if (Number.isFinite(rocuroniumCe) && rocuroniumCe > 0.1 && Math.random() < 0.20) {
     if (strategy === 'polypharmacy') {
       // Test complex chelation and muscarinic antagonism
       fuzzerState.currentSequence = [
@@ -506,7 +516,7 @@ function generateMaintenanceAction(state, fuzzerState, strategy) {
         { name: 'Push Glycopyrrolate 0.2mg', type: 'med', drug: 'Glycopyrrolate', dose: 0.2, unit: 'mg', medType: 'Bolus', route: 'IV' },
         { name: 'Observe physiology for 30 seconds', type: 'wait', duration: 30 }
       ];
-      return fuzzerState.currentSequence.shift();
+      return fuzzerState.currentSequence.shift() || FALLBACK_ACTION;
     } else if (strategy === 'malpractice') {
       // Trigger unopposed muscarinic bradycardia
       return { name: 'Push Neostigmine 5mg (Without Glyco)', type: 'med', drug: 'Neostigmine', dose: 5, unit: 'mg', medType: 'Bolus', route: 'IV' };
@@ -558,7 +568,7 @@ function generateMaintenanceAction(state, fuzzerState, strategy) {
   } else if (activityChoice < 0.60) {
     // Vent settings adjustment
     const fields = ['rr', 'peep', 'vt', 'fio2'];
-    const field = fields[Math.floor(Math.random() * fields.length)];
+    const field = fields[Math.floor(Math.random() * fields.length)] || 'rr';
     let val = 12;
     if (field === 'rr') val = Math.random() > 0.5 ? 10 : 16;
     else if (field === 'peep') val = Math.random() > 0.5 ? 5 : 8;
@@ -568,12 +578,12 @@ function generateMaintenanceAction(state, fuzzerState, strategy) {
   } else if (activityChoice < 0.75) {
     // Lab Diagnostics
     const labs = ['ABG', 'VBG', 'TEG', 'CBC'];
-    const labType = labs[Math.floor(Math.random() * labs.length)];
+    const labType = labs[Math.floor(Math.random() * labs.length)] || 'ABG';
     return { name: `Order POC ${labType} Panel`, type: 'lab', labType };
   } else if (activityChoice < 0.90) {
     // Positioning shifts
     const positions = ['Supine', 'Trendelenburg', 'Sitting', 'Ramped'];
-    const p = positions[Math.floor(Math.random() * positions.length)];
+    const p = positions[Math.floor(Math.random() * positions.length)] || 'Supine';
     return { name: `Position ${p}`, type: 'position', value: p };
   } else {
     // Pharyngeal suction / OPA / Larstons
@@ -588,9 +598,7 @@ function generateMaintenanceAction(state, fuzzerState, strategy) {
  * Goal: Blends multiple drugs, reversals, and vasoactives to check for physiological model scaling bugs.
  */
 function generatePolypharmacyAction(state, fuzzerState, flags) {
-  const activeMeds = state.activeMeds || [];
-  const vitals = state.vitals || {};
-  const patient = state.patient || {};
+  if (!fuzzerState) fuzzerState = {};
 
   // Pre-Op Phase: Establish IV, Arterial line, CVC, and hook up monitors
   if (fuzzerState.phase === 'PRE_OP') {
@@ -606,7 +614,7 @@ function generatePolypharmacyAction(state, fuzzerState, flags) {
         { name: 'Attach TOF Monitor', type: 'procedure_action', actionName: 'attach_tof' },
         { name: 'Position Sniffing', type: 'position', value: 'Sniffing' }
       ];
-      return fuzzerState.currentSequence.shift();
+      return fuzzerState.currentSequence.shift() || FALLBACK_ACTION;
     }
   }
 
@@ -630,7 +638,7 @@ function generatePolypharmacyAction(state, fuzzerState, flags) {
       { name: 'Observe physiology for 30 seconds', type: 'wait', duration: 30 }
     ];
     fuzzerState.phase = 'AIRWAY_MGMT';
-    return fuzzerState.currentSequence.shift();
+    return fuzzerState.currentSequence.shift() || FALLBACK_ACTION;
   }
 
   // Airway: Pre-ox LMA / ETT
@@ -642,7 +650,7 @@ function generatePolypharmacyAction(state, fuzzerState, flags) {
       { name: 'Set Vent FiO2 100%', type: 'vent', field: 'fio2', value: 100 }
     ];
     fuzzerState.phase = 'MAINTENANCE';
-    return fuzzerState.currentSequence.shift();
+    return fuzzerState.currentSequence.shift() || FALLBACK_ACTION;
   }
 
   // Maintenance: Compound interactions, Vasoactive titrations, Fluid Hemodilution
@@ -650,7 +658,7 @@ function generatePolypharmacyAction(state, fuzzerState, flags) {
     return generateMaintenanceAction(state, fuzzerState, 'polypharmacy');
   }
 
-  return { name: 'Observe physiology for 10 seconds', type: 'wait', duration: 10 };
+  return FALLBACK_ACTION;
 }
 
 /**
@@ -658,9 +666,9 @@ function generatePolypharmacyAction(state, fuzzerState, flags) {
  * Goal: Simulates classic, high-risk clinical errors (sloppy timing, massive dosing, and fixation bias).
  */
 function generateMalpracticeAction(state, fuzzerState, flags) {
-  const vitals = state.vitals || {};
-  const patient = state.patient || {};
-  const activeMeds = state.activeMeds || [];
+  if (!fuzzerState) fuzzerState = {};
+  const vitals = state?.vitals || {};
+  const patient = state?.patient || {};
 
   // Setup: Attach monitors but skip pre-op safeguards (Checklists, NPO review)
   if (fuzzerState.phase === 'PRE_OP') {
@@ -672,7 +680,7 @@ function generateMalpracticeAction(state, fuzzerState, flags) {
         { name: 'Attach BIS Monitor', type: 'procedure_action', actionName: 'attach_bis' },
         { name: 'Attach TOF Monitor', type: 'procedure_action', actionName: 'attach_tof' }
       ];
-      return fuzzerState.currentSequence.shift();
+      return fuzzerState.currentSequence.shift() || FALLBACK_ACTION;
     }
   }
 
@@ -711,21 +719,22 @@ function generateMalpracticeAction(state, fuzzerState, flags) {
       ];
     }
     fuzzerState.phase = 'AIRWAY_MGMT';
-    return fuzzerState.currentSequence.shift();
+    return fuzzerState.currentSequence.shift() || FALLBACK_ACTION;
   }
 
   // Airway & Maintenance: Fixation Bias Simulation
   if (fuzzerState.phase === 'AIRWAY_MGMT' || fuzzerState.phase === 'MAINTENANCE') {
     // Fixation Bias: If patient SpO2 drops severely during difficult intubation, 
     // keep repeatedly attempting laryngoscopy instead of bag ventilation or ventilating with O2.
-    if (vitals.spo2 < 85) {
-      fuzzerState.attemptCount++;
+    const spo2 = Number.isFinite(vitals.spo2) ? vitals.spo2 : 100;
+    if (spo2 < 85) {
+      fuzzerState.attemptCount = (fuzzerState.attemptCount || 0) + 1;
       if (fuzzerState.attemptCount <= 3) {
         fuzzerState.currentSequence = [
           { name: `Failed Intubation attempt #${fuzzerState.attemptCount} (Fixation Bias)`, type: 'procedure', action: 'laryngoscopy', tubePosition: 'esophagus' },
           { name: 'Observe physiology for 10 seconds', type: 'wait', duration: 10 }
         ];
-        return fuzzerState.currentSequence.shift();
+        return fuzzerState.currentSequence.shift() || FALLBACK_ACTION;
       } else {
         // Finally try rescue CPR if they went into cardiac arrest, or rescue ACLS epinephrine bolus (1mg - 1000mcg)
         fuzzerState.attemptCount = 0;
@@ -735,7 +744,7 @@ function generateMalpracticeAction(state, fuzzerState, flags) {
             { name: 'Push Epinephrine 1mg (ACLS Arrest Dose)', type: 'med', drug: 'Epinephrine', dose: 1000, unit: 'mcg', medType: 'Bolus', route: 'IV' },
             { name: 'Observe physiology for 10 seconds', type: 'wait', duration: 10 }
           ];
-          return fuzzerState.currentSequence.shift();
+          return fuzzerState.currentSequence.shift() || FALLBACK_ACTION;
         } else {
           return { name: 'Perform BMV ventilation', type: 'procedure', action: 'bmv' };
         }
@@ -746,7 +755,7 @@ function generateMalpracticeAction(state, fuzzerState, flags) {
     return generateMaintenanceAction(state, fuzzerState, 'malpractice');
   }
 
-  return { name: 'Observe physiology for 10 seconds', type: 'wait', duration: 10 };
+  return FALLBACK_ACTION;
 }
 
 /**
@@ -754,8 +763,9 @@ function generateMalpracticeAction(state, fuzzerState, flags) {
  * Goal: Progressively introduces circuit leaks, kinking, and tube misplacement cascading loops.
  */
 function generateMechanicalFailureAction(state, fuzzerState, flags) {
-  const vitals = state.vitals || {};
-  const patient = state.patient || {};
+  if (!fuzzerState) fuzzerState = {};
+  const vitals = state?.vitals || {};
+  const patient = state?.patient || {};
 
   // Pre-Op Setup
   if (fuzzerState.phase === 'PRE_OP') {
@@ -767,7 +777,7 @@ function generateMechanicalFailureAction(state, fuzzerState, flags) {
         { name: 'Attach BIS Monitor', type: 'procedure_action', actionName: 'attach_bis' },
         { name: 'Attach TOF Monitor', type: 'procedure_action', actionName: 'attach_tof' }
       ];
-      return fuzzerState.currentSequence.shift();
+      return fuzzerState.currentSequence.shift() || FALLBACK_ACTION;
     }
   }
 
@@ -779,7 +789,7 @@ function generateMechanicalFailureAction(state, fuzzerState, flags) {
       { name: 'Observe physiology for 30 seconds', type: 'wait', duration: 30 }
     ];
     fuzzerState.phase = 'AIRWAY_MGMT';
-    return fuzzerState.currentSequence.shift();
+    return fuzzerState.currentSequence.shift() || FALLBACK_ACTION;
   }
 
   // Airway: Mechanical Failures (Esophageal placement, Mainstem, or tube kinking)
@@ -809,13 +819,15 @@ function generateMechanicalFailureAction(state, fuzzerState, flags) {
       ];
     }
     fuzzerState.phase = 'MAINTENANCE';
-    return fuzzerState.currentSequence.shift();
+    return fuzzerState.currentSequence.shift() || FALLBACK_ACTION;
   }
 
   // Maintenance: Progressive troubleshooting or cascading circuit issues
   if (fuzzerState.phase === 'MAINTENANCE') {
-    // If tube is in esophagus, fuzzer must troubleshooting or suffer desaturation
-    if (patient.tubePosition === 'esophagus' && vitals.spo2 < 90) {
+    const spo2 = Number.isFinite(vitals.spo2) ? vitals.spo2 : 100;
+
+    // If tube is in esophagus, fuzzer must troubleshoot or suffer desaturation
+    if (patient.tubePosition === 'esophagus' && spo2 < 90) {
       fuzzerState.currentSequence = [
         { name: 'Recognize Esophageal ETT: Remove ETT', type: 'procedure_action', actionName: 'remove_ett' },
         { name: 'Perform BMV ventilation', type: 'procedure', action: 'bmv' },
@@ -823,29 +835,31 @@ function generateMechanicalFailureAction(state, fuzzerState, flags) {
         { name: 'Observe physiology for 20 seconds', type: 'wait', duration: 20 },
         { name: 'Re-attempt Laryngoscopy (ETT in trachea)', type: 'procedure', action: 'laryngoscopy', tubePosition: 'trachea' }
       ];
-      return fuzzerState.currentSequence.shift();
+      return fuzzerState.currentSequence.shift() || FALLBACK_ACTION;
     }
 
-    if (patient.tubePosition === 'right_mainstem' && vitals.spo2 < 92) {
+    if (patient.tubePosition === 'right_mainstem' && spo2 < 92) {
       // Mainstem: Pull back tube to trachea
       fuzzerState.currentSequence = [
         { name: 'Recognize Mainstem: Pull back ETT', type: 'procedure_action', actionName: 'pull_back_ett' },
         { name: 'Observe physiology for 20 seconds', type: 'wait', duration: 20 }
       ];
-      return fuzzerState.currentSequence.shift();
+      return fuzzerState.currentSequence.shift() || FALLBACK_ACTION;
     }
 
     // Default mechanical adjustments
     return generateMaintenanceAction(state, fuzzerState, 'mechanical');
   }
 
-  return { name: 'Observe physiology for 10 seconds', type: 'wait', duration: 10 };
+  return FALLBACK_ACTION;
 }
 
 /**
  * Standard Guided Fuzzer Pathway (General case progression)
  */
 function generateStandardGuidedAction(state, fuzzerState, flags) {
+  if (!fuzzerState) fuzzerState = {};
+
   if (fuzzerState.phase === 'PRE_OP') {
     if (!flags.hasIV) {
       return { name: 'Place 18G PIV Right Forearm', type: 'line', category: 'Peripheral IV', lType: '18G Peripheral IV', location: 'Right Forearm' };
@@ -856,7 +870,7 @@ function generateStandardGuidedAction(state, fuzzerState, flags) {
         { name: 'Attach TOF Monitor', type: 'procedure_action', actionName: 'attach_tof' },
         { name: 'Complete MSMAIDS Checklist', type: 'procedure_action', actionName: 'msmaids' }
       ];
-      return fuzzerState.currentSequence.shift();
+      return fuzzerState.currentSequence.shift() || FALLBACK_ACTION;
     }
   }
 
@@ -870,7 +884,7 @@ function generateStandardGuidedAction(state, fuzzerState, flags) {
       { name: 'Observe physiology for 30 seconds', type: 'wait', duration: 30 }
     ];
     fuzzerState.phase = 'AIRWAY_MGMT';
-    return fuzzerState.currentSequence.shift();
+    return fuzzerState.currentSequence.shift() || FALLBACK_ACTION;
   }
 
   if (fuzzerState.phase === 'AIRWAY_MGMT') {
@@ -880,66 +894,74 @@ function generateStandardGuidedAction(state, fuzzerState, flags) {
       { name: 'Set Vent FiO2 100%', type: 'vent', field: 'fio2', value: 100 }
     ];
     fuzzerState.phase = 'MAINTENANCE';
-    return fuzzerState.currentSequence.shift();
+    return fuzzerState.currentSequence.shift() || FALLBACK_ACTION;
   }
 
   if (fuzzerState.phase === 'MAINTENANCE') {
     return generateMaintenanceAction(state, fuzzerState, 'guided');
   }
 
-  return { name: 'Observe physiology for 10 seconds', type: 'wait', duration: 10 };
+  return FALLBACK_ACTION;
 }
 
 /**
  * Dispatches a generated fuzzer action onto the simulator state methods.
  */
-export function executeFuzzAction(action, {
-  setPatient,
-  handleProcessMed,
-  handlePushMed,
-  handlePushFluid,
-  handleSetVentSettings,
-  handleSetO2,
-  handleToggleCPR,
-  handleDeliverShock,
-  establishAccess,
-  performLarsonManeuver,
-  checkCuffLeak,
-  examineNpoHistory,
-  generateLab,
-  logEvent,
-  patient,
-  setSurgicalPhase,
-  handleExtubation
-}) {
+export function executeFuzzAction(action, handlers = {}) {
+  if (!action) return 'No action provided';
+
+  const {
+    setPatient = () => {},
+    handleProcessMed = () => {},
+    handlePushMed = () => {},
+    handlePushFluid = () => {},
+    handleSetVentSettings = () => {},
+    handleSetO2 = () => {},
+    handleToggleCPR = () => {},
+    handleDeliverShock = () => {},
+    establishAccess = () => {},
+    performLarsonManeuver = () => {},
+    checkCuffLeak = () => {},
+    examineNpoHistory = () => {},
+    generateLab = () => {},
+    logEvent = () => {},
+    patient = {},
+    setSurgicalPhase = () => {},
+    handleExtubation = () => {}
+  } = handlers || {};
+
   let lineId = null;
-  if (patient.accessLines && patient.accessLines.length > 0) {
+  const accessLines = Array.isArray(patient?.accessLines) ? patient.accessLines : [];
+  if (accessLines.length > 0) {
     if (action.useArterial) {
-      const artLine = patient.accessLines.find(l => l.category?.includes('Arterial') || l.name?.includes('Arterial'));
+      const artLine = accessLines.find(l => l && (l.category?.includes('Arterial') || l.name?.includes('Arterial')));
       if (artLine) lineId = artLine.id;
     } else if (action.useIO) {
-      const ioLine = patient.accessLines.find(l => !l.failed && (l.category?.includes('IO') || l.name?.includes('IO') || l.type?.includes('IO') || l.type?.includes('Intraosseous')));
+      const ioLine = accessLines.find(l => l && !l.failed && (l.category?.includes('IO') || l.name?.includes('IO') || l.type?.includes('IO') || l.type?.includes('Intraosseous')));
       if (ioLine) lineId = ioLine.id;
     } else if (action.useCVC) {
-      const cvcLine = patient.accessLines.find(l => !l.failed && (l.category?.includes('CVC') || l.type?.includes('CVC') || l.category?.includes('Central') || l.type?.includes('Central') || l.type?.includes('Cordis') || l.type?.includes('Introducer')));
+      const cvcLine = accessLines.find(l => l && !l.failed && (l.category?.includes('CVC') || l.type?.includes('CVC') || l.category?.includes('Central') || l.type?.includes('Central') || l.type?.includes('Cordis') || l.type?.includes('Introducer')));
       if (cvcLine) lineId = cvcLine.id;
     } else if (action.usePIV) {
-      const pivLine = patient.accessLines.find(l => !l.failed && (l.category?.includes('PIV') || l.name?.includes('PIV') || l.category?.includes('IV') || l.name?.includes('IV') || l.category?.includes('Peripheral')));
+      const pivLine = accessLines.find(l => l && !l.failed && (l.category?.includes('PIV') || l.name?.includes('PIV') || l.category?.includes('IV') || l.name?.includes('IV') || l.category?.includes('Peripheral')));
       if (pivLine) lineId = pivLine.id;
     }
     
     // Fallback: Use the first non-failed venous line, or just first line
     if (!lineId) {
-      const venousLine = patient.accessLines.find(l => !l.failed && !l.category?.includes('Arterial'));
-      lineId = venousLine ? venousLine.id : patient.accessLines[0].id;
+      const venousLine = accessLines.find(l => l && !l.failed && !l.category?.includes('Arterial'));
+      lineId = venousLine ? venousLine.id : (accessLines[0]?.id || null);
     }
   }
 
   try {
     switch (action.type) {
       case 'med':
-        handleProcessMed(action.drug.toLowerCase(), action.dose, action.route, action.medType, action.unit, lineId);
-        return `Push ${action.drug} ${action.dose}${action.unit} ${action.route}`;
+        if (action.drug) {
+          handleProcessMed(action.drug.toLowerCase(), action.dose, action.route, action.medType, action.unit, lineId);
+          return `Push ${action.drug} ${action.dose}${action.unit} ${action.route}`;
+        }
+        return 'Medication skipped (No drug specified)';
         
       case 'fluid':
         if (lineId) {
@@ -1109,38 +1131,55 @@ export function executeFuzzAction(action, {
 /**
  * Formats a reproducible physiological bug report.
  */
-export function generateFidelityReport(anomalies, history, patientInfo = {}) {
+export function generateFidelityReport(anomalies = [], history = [], patientInfo = {}) {
+  const safeAnomalies = Array.isArray(anomalies) ? anomalies : [];
+  const safeHistory = Array.isArray(history) ? history : [];
+  const safePatientInfo = patientInfo || {};
+  
   const timestamp = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
   
   let md = `# Clinical Fidelity Verification Bug Report\n\n`;
   md += `**Timestamp**: ${timestamp}  \n`;
-  md += `**Subject**: ${patientInfo.name || 'Standard Subject'} (ASA ${patientInfo.asaStatus || 'I'})  \n`;
+  md += `**Subject**: ${safePatientInfo.name || 'Standard Subject'} (ASA ${safePatientInfo.asaStatus || 'I'})  \n`;
   md += `**Simulation Mode**: Stateful Coverage-Guided Clinical Fuzzing Stress-Test  \n`;
-  md += `**Stress Test Steps**: ${history.length} ticks executed\n\n`;
+  md += `**Stress Test Steps**: ${safeHistory.length} ticks executed\n\n`;
   
-  md += `## 🚨 Discovered Clinical Inconsistencies (${anomalies.length})\n\n`;
+  md += `## 🚨 Discovered Clinical Inconsistencies (${safeAnomalies.length})\n\n`;
   
-  if (anomalies.length === 0) {
+  if (safeAnomalies.length === 0) {
     md += `🟢 **SUCCESS**: All physiological, pharmacological, and mechanical bounds are fully compliant with clinical laws under guided stress testing. Excellent fidelity!\n\n`;
   } else {
-    anomalies.forEach((item, idx) => {
-      md += `### Bug #${idx + 1}: ${item.rule} (${item.system})\n`;
-      md += `- **Severity**: \`${item.severity}\`\n`;
-      md += `- **Discrepancy Details**: ${item.message}\n`;
-      md += `- **Physiological Rationale**: *${item.rationale}*\n`;
-      md += `- **Technical Resolution**: ${item.resolution}\n\n`;
+    safeAnomalies.forEach((item, idx) => {
+      if (!item) return;
+      md += `### Bug #${idx + 1}: ${item.rule || 'Unknown Rule'} (${item.system || 'Unknown System'})\n`;
+      md += `- **Severity**: \`${item.severity || 'info'}\`\n`;
+      md += `- **Discrepancy Details**: ${item.message || 'No details provided.'}\n`;
+      md += `- **Physiological Rationale**: *${item.rationale || 'No rationale available.'}*\n`;
+      md += `- **Technical Resolution**: ${item.resolution || 'No resolution provided.'}\n\n`;
     });
   }
   
   md += `## ⏪ Replication Case Steps\n`;
   md += `Execute these steps in order to reproduce the physiological anomalies in the simulator:\n\n`;
   
-  if (history.length === 0) {
+  if (safeHistory.length === 0) {
     md += `*No actions recorded.*\n`;
   } else {
-    history.forEach((step, idx) => {
-      md += `${idx + 1}. **Tick ${step.tick}**: ${step.actionText}  \n`;
-      md += `   *Telemetry snapshot*: HR: ${Math.round(step.vitals.hr)} bpm | BP: ${Math.round(step.vitals.sys)}/${Math.round(step.vitals.dia)} mmHg (MAP: ${Math.round(step.vitals.map)}) | SpO2: ${Math.round(step.vitals.spo2)}% | EtCO2: ${Math.round(step.vitals.etco2)} mmHg | pH: ${step.electrolytes.ph?.toFixed(2) || '7.4'}\n`;
+    safeHistory.forEach((step, idx) => {
+      if (!step) return;
+      const actionText = step.actionText || 'Unknown Action';
+      const vitals = step.vitals || {};
+      const electrolytes = step.electrolytes || {};
+      const hr = Number.isFinite(vitals.hr) ? Math.round(vitals.hr) : 'N/A';
+      const sys = Number.isFinite(vitals.sys) ? Math.round(vitals.sys) : 'N/A';
+      const dia = Number.isFinite(vitals.dia) ? Math.round(vitals.dia) : 'N/A';
+      const map = Number.isFinite(vitals.map) ? Math.round(vitals.map) : 'N/A';
+      const spo2 = Number.isFinite(vitals.spo2) ? Math.round(vitals.spo2) : 'N/A';
+      const etco2 = Number.isFinite(vitals.etco2) ? Math.round(vitals.etco2) : 'N/A';
+      const ph = Number.isFinite(electrolytes.ph) ? electrolytes.ph.toFixed(2) : '7.4';
+
+      md += `${idx + 1}. **Tick ${Number.isFinite(step.tick) ? step.tick : idx}**: ${actionText}  \n`;
+      md += `   *Telemetry snapshot*: HR: ${hr} bpm | BP: ${sys}/${dia} mmHg (MAP: ${map}) | SpO2: ${spo2}% | EtCO2: ${etco2} mmHg | pH: ${ph}\n`;
     });
   }
   

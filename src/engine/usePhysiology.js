@@ -143,37 +143,57 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
   if (activeCase && activeCase.id !== prevCaseId) {
     setPrevCaseId(activeCase.id);
     DynamicMedicationRegistry.hydrate();
-      const initialMap = (activeCase.baseVitals.dia) + (((activeCase.baseVitals.sys) - (activeCase.baseVitals.dia)) / 3);
-      const assumedBaseSV = activeCase.patient.isObese ? 85 : 70; 
-      const initialCO = (activeCase.baseVitals.hr * assumedBaseSV) / 1000;
-      const calculatedBaseSVR = (initialMap * 80) / initialCO;
+      const safeBaseVitals = activeCase.baseVitals || {};
+      const baseDia = typeof safeBaseVitals.dia === 'number' && Number.isFinite(safeBaseVitals.dia) ? safeBaseVitals.dia : 80;
+      const baseSys = typeof safeBaseVitals.sys === 'number' && Number.isFinite(safeBaseVitals.sys) ? safeBaseVitals.sys : 120;
+      const baseHr = typeof safeBaseVitals.hr === 'number' && Number.isFinite(safeBaseVitals.hr) && safeBaseVitals.hr > 0 ? safeBaseVitals.hr : 70;
+
+      const initialMap = baseDia + ((baseSys - baseDia) / 3);
+      const safePatientObj = activeCase.patient || {};
+      const assumedBaseSV = safePatientObj.isObese ? 85 : 70; 
+      let initialCO = (baseHr * assumedBaseSV) / 1000;
+      if (isNaN(initialCO) || !Number.isFinite(initialCO) || initialCO <= 0.1) {
+        initialCO = 5.0;
+      }
+      let calculatedBaseSVR = (initialMap * 80) / initialCO;
+      if (isNaN(calculatedBaseSVR) || !Number.isFinite(calculatedBaseSVR) || calculatedBaseSVR <= 10.0) {
+        calculatedBaseSVR = 1200.0;
+      }
 
       setVitals({ 
-        ...activeCase.baseVitals, pip: 0, pplat: 0, vte: 0, bis: 98, temp: 37.0, 
+        ...safeBaseVitals, pip: 0, pplat: 0, vte: 0, bis: 98, temp: 37.0, 
         tofCount: 4, tofRatio: 1.0, mac: 0, etAgent: 0, etN2O: 0, 
-        pao2: activeCase.patient.isObese ? 75 : 100, 
-        paco2: activeCase.patient.isObese ? 52 : 40, 
-        ph: activeCase.patient.isSeptic ? 7.22 : (activeCase.patient.isObese ? 7.36 : 7.4), 
+        pao2: safePatientObj.isObese ? 75 : 100, 
+        paco2: safePatientObj.isObese ? 52 : 40, 
+        ph: safePatientObj.isSeptic ? 7.22 : (safePatientObj.isObese ? 7.36 : 7.4), 
         co: initialCO, svr: calculatedBaseSVR, map: Math.round(initialMap), cmap: Math.round(initialMap), 
-        metHb: 0.8, coHb: activeCase.id === 'trauma' ? 12.0 : 1.0, cyanide: 0.0, lacticAcid: activeCase.patient.isSeptic ? 4.5 : 1.0,
+        metHb: 0.8, coHb: activeCase.id === 'trauma' ? 12.0 : 1.0, cyanide: 0.0, lacticAcid: safePatientObj.isSeptic ? 4.5 : 1.0,
         cao2: 20.0, cvo2: 15.0, p50: 26.6, r_ratio: 0.90
       });
-      setTargetVitals({ ...activeCase.baseVitals });
+      setTargetVitals({ ...safeBaseVitals });
       
-      const heightCm = activeCase.patient.height || 170;
-      const weightKg = activeCase.patient.weight || 70;
-      const sex = activeCase.patient.sex || 'male';
-      const ebv = activeCase.patient.ebv || (weightKg * (sex.toLowerCase() === 'male' ? 75 : 65));
-      const baseBleedRate = activeCase.patient.bleedRate !== undefined ? activeCase.patient.bleedRate : (activeCase.id === 'trauma' ? 1.5 : 0.05); 
+      const heightCm = typeof safePatientObj.height === 'number' && Number.isFinite(safePatientObj.height) ? safePatientObj.height : 170;
+      const weightKg = typeof safePatientObj.weight === 'number' && Number.isFinite(safePatientObj.weight) ? safePatientObj.weight : 70;
+      const sex = typeof safePatientObj.sex === 'string' ? safePatientObj.sex : 'male';
+      
+      const clampedHeight = Math.max(50.0, Math.min(250.0, heightCm));
+      const clampedWeight = Math.max(5.0, Math.min(300.0, weightKg));
+      const clampedAge = Math.max(1.0, Math.min(120.0, typeof safePatientObj.age === 'number' && Number.isFinite(safePatientObj.age) ? safePatientObj.age : 40));
+      
+      const ebv = typeof safePatientObj.ebv === 'number' && Number.isFinite(safePatientObj.ebv) && safePatientObj.ebv > 0 
+        ? safePatientObj.ebv 
+        : (clampedWeight * (sex.toLowerCase() === 'female' ? 65 : 75));
+      const baseBleedRate = typeof safePatientObj.bleedRate === 'number' && Number.isFinite(safePatientObj.bleedRate) ? safePatientObj.bleedRate : (activeCase.id === 'trauma' ? 1.5 : 0.05); 
 
-      const age = activeCase.patient.age || 40;
-      const bmi = activeCase.patient.bmi || (weightKg / Math.pow(heightCm / 100, 2));
-      const position = activeCase.patient.position || 'Supine';
-      const lungVols = calculateLungVolumes(heightCm, age, sex, bmi, position, activeCase.patient.copd || false, activeCase.patient.restrictive || false);
+      const bmi = typeof safePatientObj.bmi === 'number' && Number.isFinite(safePatientObj.bmi) && safePatientObj.bmi > 0 
+        ? safePatientObj.bmi 
+        : (clampedWeight / Math.pow(clampedHeight / 100, 2));
+      const position = typeof safePatientObj.position === 'string' ? safePatientObj.position : 'Supine';
+      const lungVols = calculateLungVolumes(clampedHeight, clampedAge, sex, bmi, position, safePatientObj.copd || false, safePatientObj.restrictive || false);
 
       setPatient({
-        ...activeCase.patient, height: heightCm, weight: weightKg, sex, ebv, ebl: activeCase.patient.ebl || 0, bleedRate: baseBleedRate,
-        ibw: calculateIBW(heightCm, sex), lbw: calculateLBW(heightCm, weightKg, sex),
+        ...safePatientObj, height: clampedHeight, weight: clampedWeight, sex, ebv, ebl: safePatientObj.ebl || 0, bleedRate: baseBleedRate,
+        ibw: calculateIBW(clampedHeight, sex), lbw: calculateLBW(clampedHeight, clampedWeight, sex),
         lungVolumes: lungVols,
         position: position,
         isApneic: false, isParalyzed: false, isTopicalized: false,
@@ -183,14 +203,14 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
         hasBisMonitor: false, hasTofMonitor: false,
         isArrest: false, cardiacRhythm: 'normal', cprActive: false, ischemicDamage: 0, biologicalDeath: false, myocardialStunning: 0,
         arrestThreshold: 1200, codeStartTime: null, apneaStartTime: null,
-        shuntFraction: activeCase.id === 'trauma' ? 0.20 : (activeCase.patient.isObese ? 0.12 : 0.05),
+        shuntFraction: activeCase.id === 'trauma' ? 0.20 : (safePatientObj.isObese ? 0.12 : 0.05),
         patientBaseSVR: calculatedBaseSVR,
         patientBaseSV: assumedBaseSV,
         
         metHb: 0.8,
         coHb: activeCase.id === 'trauma' ? 12.0 : 1.0,
         cyanide: 0.0,
-        lacticAcid: activeCase.patient.isSeptic ? 4.5 : 1.0,
+        lacticAcid: safePatientObj.isSeptic ? 4.5 : 1.0,
         glp1Held: activeCase.id === 'obese' ? false : true,
         nAChR_state: activeCase.id === 'trauma' ? 'upregulated' : 'normal',
         ivGauge: '18G',
@@ -201,7 +221,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
         isSeizure: false
       });
       
-     setTime(0); setActiveMeds([]); setIntravascularVolume(0); setSurgicalPhase('Pre-Op');
+      setTime(0); setActiveMeds([]); setIntravascularVolume(0); setSurgicalPhase('Pre-Op');
       
       const safeGasModels = {};
       Object.keys(INHALATIONAL_AGENTS).forEach(key => {
@@ -211,14 +231,18 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
       });
       setGasModels(safeGasModels);
       
-      setTotalBodyWaterLiters(weightKg * 0.6); 
-      setElectrolytes({ na: 140, k: activeCase.patient.trauma ? 5.2 : 4.0, cl: 100, ca: 9.0, ph: activeCase.patient.isSeptic ? 7.2 : 7.4 });
-      setCoags({ r_offset: activeCase.patient.trauma ? 6 : 0, ma_offset: activeCase.patient.trauma ? -15 : 0, angle_offset: activeCase.patient.trauma ? -15 : 0 });
+      setTotalBodyWaterLiters(clampedWeight * 0.6); 
+      setElectrolytes({ na: 140, k: safePatientObj.trauma ? 5.2 : 4.0, cl: 100, ca: 9.0, ph: safePatientObj.isSeptic ? 7.2 : 7.4 });
+      setCoags({ r_offset: safePatientObj.trauma ? 6 : 0, ma_offset: safePatientObj.trauma ? -15 : 0, angle_offset: safePatientObj.trauma ? -15 : 0 });
   }
 
   const pushFluid = (fluidName, volumeStr, lineId) => {
     const currentPatient = stateRef.current.patient || patient;
     const volume = parseFloat(volumeStr);
+    if (isNaN(volume) || !Number.isFinite(volume) || volume <= 0) {
+        logEvent(`❌ FAILED: Cannot administer ${fluidName}. Invalid volume specified!`);
+        return false;
+    }
     const targetLine = currentPatient.accessLines?.find(l => l.id === lineId);
     
     if (!targetLine) {
@@ -243,7 +267,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
         const bb = currentPatient.bloodBank || { status: 'none', unitsInOR: 0, deliveryCountdown: 0, totalDeliveryTime: 0, preOpWorkup: 'none' };
 
         if (bb.status === 'available' && bb.unitsInOR > 0) {
-            const requestedUnits = parseFloat(volumeStr) || 1;
+            const requestedUnits = volume;
             if (requestedUnits > bb.unitsInOR) {
                 logEvent(`❌ FAILED: Requested ${requestedUnits} unit(s) of ${fluidName}, but only ${bb.unitsInOR} unit(s) remain in the OR cooler. Order more from Blood Bank.`);
                 return false;
@@ -270,7 +294,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
             if (hasTypeAndCross && bb.status === 'none') {
                 logEvent(`✅ Blood Bank: Type & Crossmatch was completed pre-operatively. 2 crossmatched units of PRBCs are in the OR cooler. Proceeding with transfusion.`);
-                const requestedUnits = parseFloat(volumeStr) || 1;
+                const requestedUnits = volume;
                 setPatient(prev => ({
                     ...prev,
                     bloodBank: {
@@ -361,6 +385,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                     logEvent(`Max flow enabled for ${infusions[infIndex].name} on ${line.name}.`);
                 } else {
                     let rate = parseFloat(newRate_ml_hr);
+                    if (isNaN(rate) || !Number.isFinite(rate) || rate < 0) {
+                        logEvent(`❌ FAILED: Invalid flow rate requested!`);
+                        return prev;
+                    }
                     const lType = line.fluidLine || prev.fluidLine || 'gravity';
                     let pInfusion = 74; 
                     if (lType === 'ranger') pInfusion = 150;
@@ -372,16 +400,21 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                     if (deltaP < 0) deltaP = 0;
                     
                     const fluidData = FLUIDS[infusions[infIndex].name];
-                    const eta = fluidData ? (fluidData.viscosity || 1.0) : 1.0;
+                    const eta = fluidData ? Math.max(0.01, fluidData.viscosity || 1.0) : 1.0;
                     
                     let rTubing = 400;
                     if (lType === 'ranger') rTubing = 800;
                     else if (lType === 'belmont') rTubing = 200;
                     
-                    const rCath = line.length / Math.pow(line.radius || 0.475, 4);
-                    const rTotal = rTubing + rCath + rv;
+                    const safeRadius = Math.max(0.01, line.radius || 0.475);
+                    const safeLength = Math.max(1, line.length || 30);
+                    const rCath = safeLength / Math.pow(safeRadius, 4);
+                    const rTotal = Math.max(1.0, rTubing + rCath + rv);
                     
                     let q_ml_min = 1200 * deltaP / (eta * rTotal);
+                    if (isNaN(q_ml_min) || !Number.isFinite(q_ml_min) || q_ml_min < 0) {
+                        q_ml_min = 0;
+                    }
                     if (lType === 'belmont' && q_ml_min > 500) q_ml_min = 500;
                     
                     const max_ml_hr = q_ml_min * 60;
@@ -453,13 +486,27 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     }
 
     let doseInMg = parseFloat(doseInput);
-    const dosingWeight = medData.dosingWeight === 'IBW' ? currentPatient.ibw : (medData.dosingWeight === 'LBW' ? currentPatient.lbw : currentPatient.weight);
-    if (unit.includes('mcg/kg/min')) doseInMg = (doseInMg * dosingWeight) / 1000;
-    else if (unit.includes('mcg')) doseInMg = doseInMg / 1000;
-    else if (unit.includes('mg/kg')) doseInMg = doseInMg * dosingWeight;
+    if (isNaN(doseInMg) || !Number.isFinite(doseInMg) || doseInMg <= 0) {
+        logEvent(`❌ FAILED: Invalid medication dose specified!`);
+        return false;
+    }
+    const safePatientWeight = typeof currentPatient.weight === 'number' && Number.isFinite(currentPatient.weight) && currentPatient.weight > 0 ? currentPatient.weight : 70;
+    const safePatientIbw = typeof currentPatient.ibw === 'number' && Number.isFinite(currentPatient.ibw) && currentPatient.ibw > 0 ? currentPatient.ibw : 70;
+    const safePatientLbw = typeof currentPatient.lbw === 'number' && Number.isFinite(currentPatient.lbw) && currentPatient.lbw > 0 ? currentPatient.lbw : 60;
+
+    const dosingWeight = medData.dosingWeight === 'IBW' ? safePatientIbw : (medData.dosingWeight === 'LBW' ? safePatientLbw : safePatientWeight);
+    const safeUnit = typeof unit === 'string' ? unit : '';
+    if (safeUnit.includes('mcg/kg/min')) doseInMg = (doseInMg * dosingWeight) / 1000;
+    else if (safeUnit.includes('mcg')) doseInMg = doseInMg / 1000;
+    else if (safeUnit.includes('mg/kg')) doseInMg = doseInMg * dosingWeight;
+
+    if (isNaN(doseInMg) || !Number.isFinite(doseInMg) || doseInMg <= 0) {
+        logEvent(`❌ FAILED: Invalid calculated medication dose in mg!`);
+        return false;
+    }
 
     let existingModel = currentActiveMeds.find(m => m.name === medData.name);
-    if (!existingModel) { existingModel = new PKPDModel(medData, currentPatient.weight); setActiveMeds(prev => [...prev, existingModel]); }
+    if (!existingModel) { existingModel = new PKPDModel(medData, safePatientWeight); setActiveMeds(prev => [...prev, existingModel]); }
 
     if (type === 'Bolus') {
       const bio = route === 'IV' ? 1.0 : (route === 'IM' ? 0.8 : 0.5);
@@ -776,9 +823,12 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           }
           const coRatio = currentCOForPK / 5.0;
 
-          const safeEbv = (st.patient && st.patient.ebv > 0) ? st.patient.ebv : 5000;
-          const currentBloodVolume = safeEbv - (st.patient.ebl || 0) + st.intravascularVolume + fluidicsOutput.intravascularVolumeAdded_mL;
-          const v1VolumeRatio = Math.max(0.4, currentBloodVolume / safeEbv);
+          const safeEbv = (st.patient && typeof st.patient.ebv === 'number' && Number.isFinite(st.patient.ebv) && st.patient.ebv > 0) ? st.patient.ebv : 5000;
+          const safeEbl = (st.patient && typeof st.patient.ebl === 'number' && Number.isFinite(st.patient.ebl)) ? st.patient.ebl : 0;
+          const safeIntravascularVolume = typeof st.intravascularVolume === 'number' && Number.isFinite(st.intravascularVolume) ? st.intravascularVolume : 0;
+          const safeAdded = typeof fluidicsOutput.intravascularVolumeAdded_mL === 'number' && Number.isFinite(fluidicsOutput.intravascularVolumeAdded_mL) ? fluidicsOutput.intravascularVolumeAdded_mL : 0;
+          const currentBloodVolume = Math.max(100.0, safeEbv - safeEbl + safeIntravascularVolume + safeAdded);
+          const v1VolumeRatio = Math.max(0.4, Math.min(10.0, currentBloodVolume / safeEbv));
 
           let renalRatio = 1.0;
           if (st.patient.renalComorbidity) {
@@ -986,9 +1036,22 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           } else if (st.surgicalPhase === 'Incision' || st.surgicalPhase === 'Maintenance') {
               activeBleedRate = st.patient.bleedRate !== undefined ? st.patient.bleedRate : 0.05;
           }
-          const currentEbl = (st.patient.ebl || 0) + activeBleedRate;
-          const bloodLossRatio = currentEbl / safeEbv;
-          const currentHb = Math.max(3.0, (baseHb * (1 - bloodLossRatio)) - (((st.intravascularVolume + fluidicsOutput.intravascularVolumeAdded_mL) / safeEbv) * 3.0));
+          const safeCurrentEbl = typeof st.patient.ebl === 'number' && Number.isFinite(st.patient.ebl) ? st.patient.ebl : 0;
+          const currentEbl = safeCurrentEbl + activeBleedRate;
+          let bloodLossRatio = currentEbl / safeEbv;
+          if (isNaN(bloodLossRatio) || !Number.isFinite(bloodLossRatio)) {
+              bloodLossRatio = 0.05;
+          }
+          bloodLossRatio = Math.max(0, Math.min(0.95, bloodLossRatio));
+
+          const safeIntravascularVolume = typeof st.intravascularVolume === 'number' && Number.isFinite(st.intravascularVolume) ? st.intravascularVolume : 0;
+          const safeVolumeAdded = typeof fluidicsOutput.intravascularVolumeAdded_mL === 'number' && Number.isFinite(fluidicsOutput.intravascularVolumeAdded_mL) ? fluidicsOutput.intravascularVolumeAdded_mL : 0;
+          
+          let calculatedHb = (baseHb * (1 - bloodLossRatio)) - (((safeIntravascularVolume + safeVolumeAdded) / safeEbv) * 3.0);
+          if (isNaN(calculatedHb) || !Number.isFinite(calculatedHb)) {
+              calculatedHb = 12.0;
+          }
+          const currentHb = Math.max(3.0, Math.min(25.0, calculatedHb));
 
           // Gas kinetics
           let currentMac = 0;
@@ -998,14 +1061,16 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let n2oPercent = 0;
 
           if (st.gasSettings && st.patient.airwaySecured) {
-              const o2F = st.gasSettings.o2Flow || 0;
-              const airF = st.gasSettings.airFlow || 0;
-              const n2oF = st.gasSettings.n2oFlow || 0;
+              const o2F = typeof st.gasSettings.o2Flow === 'number' && Number.isFinite(st.gasSettings.o2Flow) ? st.gasSettings.o2Flow : 0;
+              const airF = typeof st.gasSettings.airFlow === 'number' && Number.isFinite(st.gasSettings.airFlow) ? st.gasSettings.airFlow : 0;
+              const n2oF = typeof st.gasSettings.n2oFlow === 'number' && Number.isFinite(st.gasSettings.n2oFlow) ? st.gasSettings.n2oFlow : 0;
               const totalFGF = o2F + airF + n2oF;
-              if (totalFGF > 0) {
+              if (Number.isFinite(totalFGF) && totalFGF > 0.001) {
                   deliveredFiO2 = ((o2F * 100) + (airF * 21)) / totalFGF;
                   n2oPercent = (n2oF / totalFGF) * 100;
               }
+              if (isNaN(deliveredFiO2) || !Number.isFinite(deliveredFiO2)) deliveredFiO2 = 21;
+              if (isNaN(n2oPercent) || !Number.isFinite(n2oPercent)) n2oPercent = 0;
           }
 
           if (st.gasModels && Object.keys(st.gasModels).length > 0) {
@@ -1031,11 +1096,11 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                           if (currentHb < 5.0) macModifier -= 0.1;
                           macModifier = Math.max(0.4, macModifier);
                           
-                          const adjMac = calculateAgeAdjustedMAC(agentData.mac40, st.patient.age || 40) * macModifier;
-                          const macContribution = gasState.Fa / adjMac;
+                          const safeAdjMac = Math.max(0.01, calculateAgeAdjustedMAC(agentData.mac40, st.patient.age || 40) * macModifier);
+                          const macContribution = gasState.Fa / safeAdjMac;
                           currentMac += macContribution;
                           sedativeEff = 1 - (1 - sedativeEff) * (1 - Math.min(1, macContribution));
-                          svrMod = svrMod * (1 - (macContribution * 0.15));
+                          drugSvrMod = drugSvrMod * (1 - (macContribution * 0.15));
                       }
                   }
               });
@@ -1044,7 +1109,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                   st.gasModels.n2o.setDial(st.patient.airwaySecured ? n2oPercent : 0);
                   const n2oState = st.gasModels.n2o.tick(1, effectiveMv, currentCOForPK, currentFRC, st.patient.ibw, st.patient.shuntFraction);
                   currentEtN2O = n2oState.Fa;
-                  const n2oAdjMac = calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.n2o.mac40, st.patient.age || 40);
+                  const n2oAdjMac = Math.max(0.01, calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.n2o.mac40, st.patient.age || 40));
                   currentMac += (n2oState.Fb / n2oAdjMac);
               }
           }
@@ -1396,7 +1461,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
         } catch (error) {
           console.error("Physics Engine Tick Failed: ", error);
         }
-      }, patient?.simulationSpeed || 1000);
+      }, typeof patient?.simulationSpeed === 'number' && Number.isFinite(patient.simulationSpeed) ? Math.max(50, Math.min(5000, patient.simulationSpeed)) : 1000);
     }
     return () => clearInterval(interval);
   }, [isRunning, isPaused, patient?.simulationSpeed, patient?.isFuzzing]); 

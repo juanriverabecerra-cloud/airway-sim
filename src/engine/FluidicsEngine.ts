@@ -82,7 +82,15 @@ export class FluidicsEngine {
     dt: number = 1,
     st: { patient: FluidicsPatientState; electrolytes: ElectrolytesState; coags: CoagsState; vitals: FluidicsVitalsState; time: number }
   ): FluidicsOutput {
-    const { patient, electrolytes, coags, vitals, time } = st;
+    // Defensively handle missing state container
+    const safeSt = st || {};
+    const patient = safeSt.patient || {};
+    const electrolytes = safeSt.electrolytes || { k: 4.0, na: 140, cl: 100, ca: 2.2, ph: 7.40 };
+    const coags = safeSt.coags || { r_offset: 0, ma_offset: 0, angle_offset: 0 };
+    const vitals = safeSt.vitals || { temp: 37.0 };
+    
+    const safeDt = Number.isFinite(dt) && dt > 0 ? dt : 1;
+    const safeTime = Number.isFinite(safeSt.time) ? safeSt.time : 0;
     
     let totalFluidVolumeLiters = 0;
     let newLines: FluidicLine[] = (patient.accessLines || []).map(l => ({ 
@@ -102,7 +110,7 @@ export class FluidicsEngine {
     // === POISEUILLE FLUID RESUSCITATION DRAINAGE (MULTI-LINE) ===
     for (let lineIndex = 0; lineIndex < newLines.length; lineIndex++) {
       let line = newLines[lineIndex];
-      if (line.failed) continue;
+      if (!line || line.failed) continue;
 
       if (!line.activeInfusions || line.activeInfusions.length === 0) continue;
       
@@ -113,7 +121,7 @@ export class FluidicsEngine {
       const isIO = line.category && line.category.includes('IO');
       if (lType === 'belmont' && (isIO || isNarrowIV)) {
         const blowoutMsg = `🚨 CLINICAL CATASTROPHE: Belmont Rapid Infuser connected to ${line.name}! High pressure (300 mmHg) caused immediate ${isIO ? 'bone/vascular blowout, leading to severe extravasation and compartment syndrome' : 'vein rupture and blown line'}! Access lost!`;
-        activeInfusionMessages.push({ time, msg: blowoutMsg, type: 'error' });
+        activeInfusionMessages.push({ time: safeTime, msg: blowoutMsg, type: 'error' });
         line.activeInfusions = [];
         line.activeMedInfusions = [];
         line.failed = true;
@@ -125,12 +133,14 @@ export class FluidicsEngine {
       if (lType === 'ranger') pInfusion = 150;
       else if (lType === 'belmont') pInfusion = 300;
       
-      const pv = line.venousPressure !== undefined ? line.venousPressure : 10;
-      const rv = line.veinResistance !== undefined ? line.veinResistance : 500;
+      const pv = line.venousPressure !== undefined && Number.isFinite(line.venousPressure) ? line.venousPressure : 10;
+      const rv = line.veinResistance !== undefined && Number.isFinite(line.veinResistance) ? line.veinResistance : 500;
       let deltaP = pInfusion - pv;
-      if (deltaP < 0) deltaP = 0;
+      if (!Number.isFinite(deltaP) || deltaP < 0) deltaP = 0;
       
       let currentInfusion = line.activeInfusions[0];
+      if (!currentInfusion) continue;
+
       const fluidData: FluidProfile = FLUIDS_CONFIG[currentInfusion.name];
       const eta = fluidData ? (fluidData.viscosity || 1.0) : 1.0;
       
@@ -138,13 +148,15 @@ export class FluidicsEngine {
       if (lType === 'ranger') rTubing = 800;
       else if (lType === 'belmont') rTubing = 200;
       
-      const rCath = line.length / Math.pow(line.radius || 0.475, 4);
-      const rTotal = rTubing + rCath + rv;
+      const safeRadius = Math.max(0.01, line.radius || 0.475);
+      const rCath = line.length / Math.pow(safeRadius, 4);
+      const rTotal = Math.max(1.0, rTubing + rCath + rv);
       
-      let q_ml_min = 1200 * deltaP / (eta * rTotal);
+      const safeEta = Math.max(0.01, eta);
+      let q_ml_min = 1200 * deltaP / (safeEta * rTotal);
       if (lType === 'belmont' && q_ml_min > 500) q_ml_min = 500;
       
-      if (currentInfusion.userRate !== undefined) {
+      if (currentInfusion.userRate !== undefined && Number.isFinite(currentInfusion.userRate)) {
         const user_ml_min = currentInfusion.userRate / 60;
         q_ml_min = Math.min(q_ml_min, user_ml_min);
       }
@@ -152,7 +164,8 @@ export class FluidicsEngine {
       const q_ml_sec = q_ml_min / 60;
       currentInfusion.currentRate = q_ml_min * 60; // in mL/hr
       
-      let infusedThisTick = Math.min(currentInfusion.remainingVolume, q_ml_sec * dt);
+      let infusedThisTick = Math.min(currentInfusion.remainingVolume, q_ml_sec * safeDt);
+      if (!Number.isFinite(infusedThisTick) || infusedThisTick < 0) infusedThisTick = 0;
       
       if (infusedThisTick > 0 && fluidData) {
         currentInfusion.remainingVolume -= infusedThisTick;
@@ -163,7 +176,10 @@ export class FluidicsEngine {
         if (lType === 'gravity') {
           const tempDiff = (fluidData.type === 'Blood Product' ? 4.0 : 22.0) - (vitals.temp || 37.0);
           const scaling = fluidData.type === 'Blood Product' ? 0.07 : 0.05;
-          fluidInducedTempDrop += volLiters * tempDiff * scaling;
+          const incrementalDrop = volLiters * tempDiff * scaling;
+          if (Number.isFinite(incrementalDrop)) {
+            fluidInducedTempDrop += incrementalDrop;
+          }
         }
         
         const isUnit = fluidData.type === 'Blood Product' || fluidData.type === 'Colloid';
@@ -174,15 +190,27 @@ export class FluidicsEngine {
         intravascularVolumeAdded += (infusedThisTick * retFactor);
         
         tbwDelta += volLiters;
-        const prevTBW = patient.weight * 0.6 + tbwDelta;
-        const newTBW = prevTBW + volLiters;
+        const safeWeight = Number.isFinite(patient.weight) && patient.weight > 0 ? patient.weight : 70;
+        const prevTBW = Math.max(1.0, safeWeight * 0.6 + tbwDelta - volLiters);
+        const newTBW = Math.max(1.0, prevTBW + volLiters);
         
-        updatedElectrolytes.k = ((updatedElectrolytes.k * prevTBW) + (fluidData.k * volLiters)) / newTBW;
-        updatedElectrolytes.na = ((updatedElectrolytes.na * prevTBW) + (fluidData.na * volLiters)) / newTBW;
-        updatedElectrolytes.cl = ((updatedElectrolytes.cl * prevTBW) + (fluidData.cl * volLiters)) / newTBW;
+        const nextK = ((updatedElectrolytes.k * prevTBW) + (fluidData.k * volLiters)) / newTBW;
+        if (Number.isFinite(nextK)) updatedElectrolytes.k = nextK;
+
+        const nextNa = ((updatedElectrolytes.na * prevTBW) + (fluidData.na * volLiters)) / newTBW;
+        if (Number.isFinite(nextNa)) updatedElectrolytes.na = nextNa;
+
+        const nextCl = ((updatedElectrolytes.cl * prevTBW) + (fluidData.cl * volLiters)) / newTBW;
+        if (Number.isFinite(nextCl)) updatedElectrolytes.cl = nextCl;
         
-        updatedElectrolytes.ca = Math.max(1.0, updatedElectrolytes.ca + (fluidData.ca * (isUnit ? unitEq : volLiters)) - (fluidData.citrateLoad * unitEq * 0.02));
-        updatedElectrolytes.ph = updatedElectrolytes.ph - (fluidData.cl > 110 ? 0.05 * volLiters : 0);
+        const calciumDelta = (fluidData.ca * (isUnit ? unitEq : volLiters)) - (fluidData.citrateLoad * unitEq * 0.02);
+        if (Number.isFinite(calciumDelta)) {
+          updatedElectrolytes.ca = Math.max(1.0, updatedElectrolytes.ca + calciumDelta);
+        }
+        
+        if (fluidData.cl > 110) {
+          updatedElectrolytes.ph = Math.max(6.0, Math.min(8.0, updatedElectrolytes.ph - (0.05 * volLiters)));
+        }
         
         coagDelta.r += (fluidData.coag.r * unitEq);
         coagDelta.ma += (fluidData.coag.ma * unitEq);
@@ -193,7 +221,7 @@ export class FluidicsEngine {
       
       if (currentInfusion.remainingVolume <= 0) {
         activeInfusionMessages.push({
-          time,
+          time: safeTime,
           msg: `✅ Infusion Complete: ${currentInfusion.name} via ${line.name}`,
           type: 'success'
         });
@@ -207,46 +235,52 @@ export class FluidicsEngine {
       angle_offset: coags.angle_offset + coagDelta.angle
     };
 
+    if (!Number.isFinite(updatedCoags.r_offset)) updatedCoags.r_offset = coags.r_offset;
+    if (!Number.isFinite(updatedCoags.ma_offset)) updatedCoags.ma_offset = coags.ma_offset;
+    if (!Number.isFinite(updatedCoags.angle_offset)) updatedCoags.angle_offset = coags.angle_offset;
+
     // === BLOOD BANK DELIVERY COUNTDOWN (Simulation-Time) ===
     let updatedBloodBank = { ...patient.bloodBank };
-    if (updatedBloodBank && updatedBloodBank.status === 'ordered' && updatedBloodBank.deliveryCountdown > 0) {
-      // Decrement by delta-time (dt)
-      const newCountdown = Math.max(0, updatedBloodBank.deliveryCountdown - dt);
-      updatedBloodBank.deliveryCountdown = newCountdown;
+    if (updatedBloodBank && updatedBloodBank.status === 'ordered') {
+      const currentCountdown = Number.isFinite(updatedBloodBank.deliveryCountdown) ? updatedBloodBank.deliveryCountdown : 0;
+      if (currentCountdown > 0) {
+        const newCountdown = Math.max(0, currentCountdown - safeDt);
+        updatedBloodBank.deliveryCountdown = newCountdown;
 
-      if (newCountdown <= 0) {
-        // Cooler has arrived — transition to available
-        const arrivedUnits = updatedBloodBank.pendingUnits || 4;
-        const isUncrossmatched = updatedBloodBank.preOpWorkup === 'none';
-        
-        updatedBloodBank.status = 'available';
-        updatedBloodBank.unitsInOR = (updatedBloodBank.unitsInOR || 0) + arrivedUnits;
-        updatedBloodBank.deliveryCountdown = 0;
-        updatedBloodBank.pendingUnits = 0;
+        if (newCountdown <= 0) {
+          // Cooler has arrived — transition to available
+          const arrivedUnits = updatedBloodBank.pendingUnits || 4;
+          const isUncrossmatched = updatedBloodBank.preOpWorkup === 'none';
+          
+          updatedBloodBank.status = 'available';
+          updatedBloodBank.unitsInOR = (updatedBloodBank.unitsInOR || 0) + arrivedUnits;
+          updatedBloodBank.deliveryCountdown = 0;
+          updatedBloodBank.pendingUnits = 0;
 
-        const arrivalMsg = `✅ Blood Bank: Cooler has arrived in the OR! ${arrivedUnits} unit(s) of ${isUncrossmatched ? 'UNCROSSMATCHED O-Negative' : 'crossmatched'} blood are now available. ${isUncrossmatched ? '⚠️ Transfusion reaction risk elevated — administer cautiously and monitor closely.' : 'Products verified and compatible.'}`;
-        activeInfusionMessages.push({ time, msg: arrivalMsg, type: 'success' });
-      } else {
-        // Milestone notifications at halfway and at 60 seconds remaining
-        const totalTime = updatedBloodBank.totalDeliveryTime || 600;
-        const halfwayMark = Math.round(totalTime / 2);
-        
-        // Check if countdown crossed the halfway mark or the 60s mark in this tick
-        const crossedHalfway = (updatedBloodBank.deliveryCountdown + dt > halfwayMark) && (newCountdown <= halfwayMark);
-        const crossedSixty = (updatedBloodBank.deliveryCountdown + dt > 60) && (newCountdown <= 60);
+          const arrivalMsg = `✅ Blood Bank: Cooler has arrived in the OR! ${arrivedUnits} unit(s) of ${isUncrossmatched ? 'UNCROSSMATCHED O-Negative' : 'crossmatched'} blood are now available. ${isUncrossmatched ? '⚠️ Transfusion reaction risk elevated — administer cautiously and monitor closely.' : 'Products verified and compatible.'}`;
+          activeInfusionMessages.push({ time: safeTime, msg: arrivalMsg, type: 'success' });
+        } else {
+          // Milestone notifications at halfway and at 60 seconds remaining
+          const totalTime = updatedBloodBank.totalDeliveryTime || 600;
+          const halfwayMark = Math.round(totalTime / 2);
+          
+          // Check if countdown crossed the halfway mark or the 60s mark in this tick
+          const crossedHalfway = (currentCountdown > halfwayMark) && (newCountdown <= halfwayMark);
+          const crossedSixty = (currentCountdown > 60) && (newCountdown <= 60);
 
-        if (crossedHalfway) {
-          activeInfusionMessages.push({
-            time,
-            msg: `🔔 Blood Bank Update: Cooler is halfway to the OR. ETA: ${Math.ceil(newCountdown / 60)} min (${Math.round(newCountdown)}s).`,
-            type: 'info'
-          });
-        } else if (crossedSixty) {
-          activeInfusionMessages.push({
-            time,
-            msg: `🔔 Blood Bank Update: Cooler arriving in 60 seconds. Prepare IV line and blood warmer.`,
-            type: 'info'
-          });
+          if (crossedHalfway) {
+            activeInfusionMessages.push({
+              time: safeTime,
+              msg: `🔔 Blood Bank Update: Cooler is halfway to the OR. ETA: ${Math.ceil(newCountdown / 60)} min (${Math.round(newCountdown)}s).`,
+              type: 'info'
+            });
+          } else if (crossedSixty) {
+            activeInfusionMessages.push({
+              time: safeTime,
+              msg: `🔔 Blood Bank Update: Cooler arriving in 60 seconds. Prepare IV line and blood warmer.`,
+              type: 'info'
+            });
+          }
         }
       }
     }
@@ -255,7 +289,7 @@ export class FluidicsEngine {
       accessLines: newLines,
       electrolytes: updatedElectrolytes,
       coags: updatedCoags,
-      bloodBank: updatedBloodBank,
+      bloodBank: updatedBloodBank as BloodBankState,
       intravascularVolumeAdded_mL: intravascularVolumeAdded,
       tbwDelta_L: tbwDelta,
       rbcVolumeAdded_mL: rbcVolumeAdded,

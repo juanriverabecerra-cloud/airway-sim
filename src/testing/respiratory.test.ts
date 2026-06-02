@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { RespiratoryEngine, RespiratoryPatientState, RespiratoryVitalsState, RespiratoryDrugEffects } from '../engine/RespiratoryEngine';
+import { WAVEFORMS } from '../engine/WaveformDatabase';
 
 describe('Respiratory & Blood Gas Engine Regression Tests', () => {
   const createHealthyState = (): { patient: RespiratoryPatientState; vitals: RespiratoryVitalsState; time: number } => ({
@@ -304,6 +305,175 @@ describe('Respiratory & Blood Gas Engine Regression Tests', () => {
       // The SpO2 of the severe shunt patient should have dropped well below the normal shunt patient
       expect(out1.vitals.spo2).toBeGreaterThan(out2.vitals.spo2);
       expect(out2.vitals.spo2).toBeLessThan(95); 
+    });
+  });
+
+  describe('4. Boundary, NaN, and Crash-Resiliency Safety Tests', () => {
+    it('should gracefully handle malformed inputs in calculateLungVolumes', () => {
+      // Test heightCm is NaN or non-finite
+      const volsNaNHeight = RespiratoryEngine.calculateLungVolumes(NaN, 40, 'male', 25);
+      expect(volsNaNHeight.frc_mL).toBeGreaterThan(0);
+      expect(Number.isFinite(volsNaNHeight.frc_mL)).toBe(true);
+
+      const volsInfHeight = RespiratoryEngine.calculateLungVolumes(Infinity, 40, 'male', 25);
+      expect(volsInfHeight.frc_mL).toBeGreaterThan(0);
+      expect(Number.isFinite(volsInfHeight.frc_mL)).toBe(true);
+
+      // Test age is NaN or extreme
+      const volsNaNAge = RespiratoryEngine.calculateLungVolumes(175, NaN, 'male', 25);
+      expect(volsNaNAge.frc_mL).toBeGreaterThan(0);
+      expect(Number.isFinite(volsNaNAge.frc_mL)).toBe(true);
+
+      const volsNegAge = RespiratoryEngine.calculateLungVolumes(175, -50, 'male', 25);
+      expect(volsNegAge.frc_mL).toBeGreaterThan(0);
+      expect(Number.isFinite(volsNegAge.frc_mL)).toBe(true);
+
+      // Test BMI is NaN or extreme
+      const volsNaNBmi = RespiratoryEngine.calculateLungVolumes(175, 40, 'male', NaN);
+      expect(volsNaNBmi.frc_mL).toBeGreaterThan(0);
+      expect(Number.isFinite(volsNaNBmi.frc_mL)).toBe(true);
+
+      const volsNegBmi = RespiratoryEngine.calculateLungVolumes(175, 40, 'male', -10);
+      expect(volsNegBmi.frc_mL).toBeGreaterThan(0);
+      expect(Number.isFinite(volsNegBmi.frc_mL)).toBe(true);
+
+      // Test sex and position are non-strings or invalid
+      const volsInvalidSex = RespiratoryEngine.calculateLungVolumes(175, 40, null as any, 25, undefined as any);
+      expect(volsInvalidSex.frc_mL).toBeGreaterThan(0);
+      expect(Number.isFinite(volsInvalidSex.frc_mL)).toBe(true);
+    });
+
+    it('should be completely resilient to NaN, Infinity, and zero denominators during tick', () => {
+      const state = createHealthyState();
+      const drugEffects = createBaselineDrugEffects();
+      const inputs = createBaselineInputs();
+
+      // Corrupt inputs with NaN/Infinity and zero-values that would trigger division-by-zero
+      const crazyInputs = {
+        ...inputs,
+        VO2_sec: NaN,
+        totalMetabolicMultiplier: Infinity,
+        currentHb: 0.0, // Should be clamped or handled defensively
+        targetCO: 0.0, // Could cause division by zero in Fick equation
+        hco3: NaN,
+        volatileRightShift: Infinity,
+        dpgDepletionShift: -Infinity,
+        baselinePaCO2: NaN
+      };
+
+      const crazyDrugEffects = {
+        ...drugEffects,
+        maxNMJOccupancy: NaN,
+        totalRrDelta: Infinity,
+        ruleRrScale: NaN,
+        ruleRrOffset: -Infinity,
+        ruleComplScale: 0, // Could cause compliance to become zero
+        rulePipOffset: NaN,
+        ruleSpo2Offset: Infinity
+      };
+
+      // Ensure that calling tick on completely corrupted inputs does not throw, and returns finite values
+      expect(() => {
+        const out = RespiratoryEngine.tick(1, state, null, 21, crazyDrugEffects, crazyInputs);
+        expect(Number.isFinite(out.newPaCO2)).toBe(true);
+        expect(Number.isFinite(out.newPh)).toBe(true);
+        expect(Number.isFinite(out.newSpo2)).toBe(true);
+        expect(Number.isFinite(out.newRr)).toBe(true);
+        expect(Number.isFinite(out.newEtco2)).toBe(true);
+        expect(Number.isFinite(out.compliance)).toBe(true);
+        expect(out.compliance).toBeGreaterThan(0); // Compliance floor is 5
+        expect(Number.isFinite(out.resistance)).toBe(true);
+      }).not.toThrow();
+    });
+
+    it('should securely clamp massive Bohr shift inputs and zero pulse oximetry light absorbances', () => {
+      const state = createHealthyState();
+      
+      // Induce extreme respiratory acidosis and hypothermia to make Bohr exponent huge
+      state.vitals.temp = 500.0; // Extreme high temperature
+      state.vitals.paco2 = 0.0001; // Tiny PaCO2 to force log10 math bounds
+      
+      const drugEffects = createBaselineDrugEffects();
+      const inputs = createBaselineInputs();
+      
+      // We will also pass malformed inputs to ensure extreme capillary PO2 and Hb content
+      inputs.currentHb = 0.001; // Extreme low Hb to check oximetry content denominators
+      inputs.targetCO = 0.01;
+      
+      expect(() => {
+        const out = RespiratoryEngine.tick(1, state, null, 21, drugEffects, inputs);
+        expect(Number.isFinite(out.newPh)).toBe(true);
+        expect(Number.isFinite(out.measuredSpo2)).toBe(true);
+        expect(out.measuredSpo2).toBeGreaterThanOrEqual(0);
+        expect(out.measuredSpo2).toBeLessThanOrEqual(100);
+      }).not.toThrow();
+    });
+  });
+
+  describe('5. High-Fidelity Waveform Synthesis Database Safety Tests', () => {
+    it('should calculate all waveform points safely under zero, negative, NaN, or non-finite inputs without throwing', () => {
+      // Zero and negative durations
+      const zeroD = 0;
+      const negD = -1.5;
+      const nanD = NaN;
+      const infD = Infinity;
+
+      // Ensure ECG waveforms do not crash or return non-finite values under bad inputs
+      expect(() => {
+        const valNormal = WAVEFORMS.ecg.normal(0.5, zeroD, 1.0, 0.0);
+        expect(Number.isFinite(valNormal)).toBe(true);
+
+        const valVfib = WAVEFORMS.ecg.vfib(0.5, negD, 1.0, 0.0, NaN);
+        expect(Number.isFinite(valVfib)).toBe(true);
+
+        const valVtach = WAVEFORMS.ecg.vtach(0.5, nanD, 1.0, 0.0);
+        expect(Number.isFinite(valVtach)).toBe(true);
+
+        const valSt = WAVEFORMS.ecg.st_elevation(0.5, infD, 1.0, 0.0);
+        expect(Number.isFinite(valSt)).toBe(true);
+      }).not.toThrow();
+
+      // Ensure A-line and Pleth waveforms do not crash
+      expect(() => {
+        const alNormal = WAVEFORMS.aline.normal(0.2, zeroD, NaN, Infinity);
+        expect(Number.isFinite(alNormal)).toBe(true);
+
+        const alUnder = WAVEFORMS.aline.underdamped(0.2, negD, 1.0, 0.0);
+        expect(Number.isFinite(alUnder)).toBe(true);
+
+        const alOver = WAVEFORMS.aline.overdamped(0.2, nanD, 1.0, 0.0);
+        expect(Number.isFinite(alOver)).toBe(true);
+
+        const plethNormal = WAVEFORMS.pleth.normal(0.5, zeroD, 1.0, 0.0);
+        expect(Number.isFinite(plethNormal)).toBe(true);
+      }).not.toThrow();
+
+      // Ensure Capnography and Vent waveforms do not crash
+      expect(() => {
+        const co2Normal = WAVEFORMS.etco2.normal(0.5, zeroD, 40.0, 0.0, 1.0, NaN, -1.0);
+        expect(Number.isFinite(co2Normal)).toBe(true);
+
+        const co2Bronch = WAVEFORMS.etco2.bronchospasm(0.5, negD, 40.0, 0.0, 1.0, -2.0, NaN);
+        expect(Number.isFinite(co2Bronch)).toBe(true);
+
+        const vpVcv = WAVEFORMS.ventPressure.vcv(0.5, nanD, 20.0, 0.0, 1.0, 2.0, 1.0, NaN);
+        expect(Number.isFinite(vpVcv)).toBe(true);
+
+        const vpPcv = WAVEFORMS.ventPressure.pcv(0.5, infD, 20.0, 0.0, 1.0, 2.0, 1.0, 0.0);
+        expect(Number.isFinite(vpPcv)).toBe(true);
+
+        const vfVcv = WAVEFORMS.ventFlow.vcv(0.5, zeroD, 30.0, 0.0, 1.0, 2.0, 1.0);
+        expect(Number.isFinite(vfVcv)).toBe(true);
+
+        const vfPcv = WAVEFORMS.ventFlow.pcv(0.5, negD, 30.0, 0.0, 1.0, 2.0, 1.0);
+        expect(Number.isFinite(vfPcv)).toBe(true);
+
+        const vvVcv = WAVEFORMS.ventVolume.vcv(0.5, nanD, 500.0, 0.0, 1.0, 2.0, 1.0);
+        expect(Number.isFinite(vvVcv)).toBe(true);
+
+        const vvPcv = WAVEFORMS.ventVolume.pcv(0.5, infD, 500.0, 0.0, 1.0, 2.0, 1.0);
+        expect(Number.isFinite(vvPcv)).toBe(true);
+      }).not.toThrow();
     });
   });
 });

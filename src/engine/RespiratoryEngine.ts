@@ -109,22 +109,50 @@ export class RespiratoryEngine {
     isCopd: boolean = false,
     isRestrictive: boolean = false
   ) {
-    const H = heightCm / 100;
-    const isMale = sex.toLowerCase() === 'male';
+    let hCm = Number(heightCm);
+    if (isNaN(hCm) || !Number.isFinite(hCm) || hCm <= 0) {
+      hCm = 170.0;
+    }
+    hCm = Math.max(50.0, Math.min(250.0, hCm));
+
+    let safeAge = Number(age);
+    if (isNaN(safeAge) || !Number.isFinite(safeAge) || safeAge <= 0) {
+      safeAge = 40.0;
+    }
+    safeAge = Math.max(1.0, Math.min(120.0, safeAge));
+
+    let safeSex = 'male';
+    if (typeof sex === 'string') {
+      const trimmed = sex.trim().toLowerCase();
+      if (trimmed === 'female') {
+        safeSex = 'female';
+      }
+    }
+    const isMale = safeSex === 'male';
+
+    let safeBmi = Number(bmi);
+    if (isNaN(safeBmi) || !Number.isFinite(safeBmi) || safeBmi <= 0) {
+      safeBmi = 25.0;
+    }
+    safeBmi = Math.max(10.0, Math.min(100.0, safeBmi));
+
+    const safePosition = typeof position === 'string' ? position : 'Supine';
+
+    const H = hCm / 100;
 
     let fvc_pred = 0, fev1_pred = 0, tlc_pred = 0, rv_pred = 0, frc_pred = 0;
     if (isMale) {
-      fvc_pred  = 5.76 * H - 0.026 * age - 4.34;
-      fev1_pred = 4.30 * H - 0.029 * age - 2.49;
+      fvc_pred  = 5.76 * H - 0.026 * safeAge - 4.34;
+      fev1_pred = 4.30 * H - 0.029 * safeAge - 2.49;
       tlc_pred  = 7.99 * H - 7.08;
-      rv_pred   = 1.31 * H + 0.022 * age - 1.23;
-      frc_pred  = 2.34 * H + 0.009 * age - 1.09;
+      rv_pred   = 1.31 * H + 0.022 * safeAge - 1.23;
+      frc_pred  = 2.34 * H + 0.009 * safeAge - 1.09;
     } else {
-      fvc_pred  = 4.43 * H - 0.026 * age - 2.89;
-      fev1_pred = 3.95 * H - 0.025 * age - 2.60;
+      fvc_pred  = 4.43 * H - 0.026 * safeAge - 2.89;
+      fev1_pred = 3.95 * H - 0.025 * safeAge - 2.60;
       tlc_pred  = 6.60 * H - 5.79;
-      rv_pred   = 1.81 * H + 0.016 * age - 2.00;
-      frc_pred  = 2.24 * H + 0.001 * age - 1.00;
+      rv_pred   = 1.81 * H + 0.016 * safeAge - 2.00;
+      frc_pred  = 2.24 * H + 0.001 * safeAge - 1.00;
     }
 
     let fvc = fvc_pred;
@@ -150,7 +178,7 @@ export class RespiratoryEngine {
       fev1 = fvc * 0.81;
     }
 
-    const obesityFactor = bmi > 25 ? Math.exp(-0.02 * (bmi - 25)) : 1.0;
+    const obesityFactor = safeBmi > 25 ? Math.exp(-0.02 * (safeBmi - 25)) : 1.0;
     frc *= obesityFactor;
 
     const positionFactors: Record<string, number> = {
@@ -164,7 +192,7 @@ export class RespiratoryEngine {
       'Lithotomy': 0.72,
       'Trendelenburg': 0.70
     };
-    const posFactor = positionFactors[position] || 0.80;
+    const posFactor = positionFactors[safePosition] || 0.80;
     frc *= posFactor;
 
     frc  = Math.max(0.5, frc);
@@ -175,14 +203,28 @@ export class RespiratoryEngine {
 
     const vc  = Math.max(0.5, tlc - rv);
     const erv = Math.max(0, frc - rv);
-    const ibwKg = isMale ? (50 + 2.3 * ((heightCm / 2.54) - 60)) : (45.5 + 2.3 * ((heightCm / 2.54) - 60));
+    
+    // devine formula with correct height above 60 inches clamp
+    const devineHeightDiff = Math.max(0, (hCm / 2.54) - 60);
+    const ibwKg = isMale ? (50 + 2.3 * devineHeightDiff) : (45.5 + 2.3 * devineHeightDiff);
+    
     const vt_L = 0.007 * ibwKg;
     const irv = Math.max(0, vc - vt_L - erv);
     const vd = ibwKg * 2.2 / 1000;
 
-    const fev1PercentPredicted = Math.round((fev1 / fev1_pred) * 100);
-    const fvcPercentPredicted = Math.round((fvc / fvc_pred) * 100);
-    const fev1FvcRatio = Math.round((fev1 / fvc) * 100);
+    // Guard final predictions to prevent non-finite division
+    if (!Number.isFinite(fev1_pred) || fev1_pred <= 0) fev1_pred = 3.5;
+    if (!Number.isFinite(fvc_pred) || fvc_pred <= 0) fvc_pred = 4.5;
+    if (!Number.isFinite(fev1) || fev1 <= 0) fev1 = 2.8;
+    if (!Number.isFinite(fvc) || fvc <= 0) fvc = 3.8;
+
+    let fev1PercentPredicted = Math.round((fev1 / fev1_pred) * 100);
+    let fvcPercentPredicted = Math.round((fvc / fvc_pred) * 100);
+    let fev1FvcRatio = Math.round((fev1 / fvc) * 100);
+
+    if (isNaN(fev1PercentPredicted) || !Number.isFinite(fev1PercentPredicted)) fev1PercentPredicted = 80;
+    if (isNaN(fvcPercentPredicted) || !Number.isFinite(fvcPercentPredicted)) fvcPercentPredicted = 80;
+    if (isNaN(fev1FvcRatio) || !Number.isFinite(fev1FvcRatio)) fev1FvcRatio = 80;
 
     return {
       frc_mL: Math.round(frc * 1000),
@@ -234,64 +276,65 @@ export class RespiratoryEngine {
       aspirationResistancePenalty: number;
     }
   ): RespiratoryOutput {
-    const { patient, vitals } = st;
-    const {
-      VO2_sec,
-      totalMetabolicMultiplier,
-      compensatoryRR,
-      opioidRRDrop,
-      m6gRrDelta,
-      shiveringRRDrive,
-      currentHb,
-      targetMAP,
-      targetCO,
-      hco3,
-      volatileRightShift,
-      dpgDepletionShift,
-      baselinePaCO2,
-      anaphylaxisCompliancePenalty,
-      anaphylaxisResistancePenalty,
-      aspirationCompliancePenalty,
-      aspirationResistancePenalty
-    } = inputs;
+    const { patient, vitals } = st || { patient: {} as any, vitals: {} as any };
+    const safePatient = patient || {} as any;
+    const safeVitals = vitals || {} as any;
 
-    const {
-      maxNMJOccupancy,
-      totalRrDelta,
-      ruleRrScale,
-      ruleRrOffset,
-      ruleComplScale,
-      rulePipOffset,
-      ruleSpo2Offset
-    } = drugEffects;
+    const safeInputs = inputs || {} as any;
+    const VO2_sec = typeof safeInputs.VO2_sec === 'number' && Number.isFinite(safeInputs.VO2_sec) && safeInputs.VO2_sec >= 0 ? safeInputs.VO2_sec : 0.004;
+    const safeTotalMetabolicMultiplier = typeof safeInputs.totalMetabolicMultiplier === 'number' && Number.isFinite(safeInputs.totalMetabolicMultiplier) && safeInputs.totalMetabolicMultiplier >= 0 ? safeInputs.totalMetabolicMultiplier : 1.0;
+    const compensatoryRR = typeof safeInputs.compensatoryRR === 'number' && Number.isFinite(safeInputs.compensatoryRR) ? safeInputs.compensatoryRR : 0;
+    const opioidRRDrop = typeof safeInputs.opioidRRDrop === 'number' && Number.isFinite(safeInputs.opioidRRDrop) ? safeInputs.opioidRRDrop : 0;
+    const shiveringRRDrive = typeof safeInputs.shiveringRRDrive === 'number' && Number.isFinite(safeInputs.shiveringRRDrive) ? safeInputs.shiveringRRDrive : 0;
+    const safeCurrentHb = typeof safeInputs.currentHb === 'number' && Number.isFinite(safeInputs.currentHb) && safeInputs.currentHb > 0 ? safeInputs.currentHb : 14.0;
+    const targetMAP = typeof safeInputs.targetMAP === 'number' && Number.isFinite(safeInputs.targetMAP) ? safeInputs.targetMAP : 90.0;
+    const safeTargetCO = typeof safeInputs.targetCO === 'number' && Number.isFinite(safeInputs.targetCO) && safeInputs.targetCO > 0 ? safeInputs.targetCO : 5.0;
+    const safeHco3 = typeof safeInputs.hco3 === 'number' && Number.isFinite(safeInputs.hco3) && safeInputs.hco3 > 0 ? safeInputs.hco3 : 24.0;
+    const safeVolatileRightShift = typeof safeInputs.volatileRightShift === 'number' && Number.isFinite(safeInputs.volatileRightShift) ? safeInputs.volatileRightShift : 0.0;
+    const safeDpgDepletionShift = typeof safeInputs.dpgDepletionShift === 'number' && Number.isFinite(safeInputs.dpgDepletionShift) ? safeInputs.dpgDepletionShift : 0.0;
+    const safeBaselinePaCO2 = typeof safeInputs.baselinePaCO2 === 'number' && Number.isFinite(safeInputs.baselinePaCO2) && safeInputs.baselinePaCO2 > 0 ? safeInputs.baselinePaCO2 : 40.0;
+    const anaphylaxisCompliancePenalty = typeof safeInputs.anaphylaxisCompliancePenalty === 'number' && Number.isFinite(safeInputs.anaphylaxisCompliancePenalty) ? safeInputs.anaphylaxisCompliancePenalty : 0;
+    const anaphylaxisResistancePenalty = typeof safeInputs.anaphylaxisResistancePenalty === 'number' && Number.isFinite(safeInputs.anaphylaxisResistancePenalty) ? safeInputs.anaphylaxisResistancePenalty : 0;
+    const aspirationCompliancePenalty = typeof safeInputs.aspirationCompliancePenalty === 'number' && Number.isFinite(safeInputs.aspirationCompliancePenalty) ? safeInputs.aspirationCompliancePenalty : 0;
+    const aspirationResistancePenalty = typeof safeInputs.aspirationResistancePenalty === 'number' && Number.isFinite(safeInputs.aspirationResistancePenalty) ? safeInputs.aspirationResistancePenalty : 0;
+
+    const safeDrugEffects = drugEffects || {} as any;
+    const maxNMJOccupancy = typeof safeDrugEffects.maxNMJOccupancy === 'number' && Number.isFinite(safeDrugEffects.maxNMJOccupancy) ? safeDrugEffects.maxNMJOccupancy : 0;
+    const safeTotalRrDelta = typeof safeDrugEffects.totalRrDelta === 'number' && Number.isFinite(safeDrugEffects.totalRrDelta) ? safeDrugEffects.totalRrDelta : 0;
+    const safeRuleRrScale = typeof safeDrugEffects.ruleRrScale === 'number' && Number.isFinite(safeDrugEffects.ruleRrScale) ? safeDrugEffects.ruleRrScale : 1.0;
+    const safeRuleRrOffset = typeof safeDrugEffects.ruleRrOffset === 'number' && Number.isFinite(safeDrugEffects.ruleRrOffset) ? safeDrugEffects.ruleRrOffset : 0;
+    const safeRuleComplScale = typeof safeDrugEffects.ruleComplScale === 'number' && Number.isFinite(safeDrugEffects.ruleComplScale) ? safeDrugEffects.ruleComplScale : 1.0;
+    const safeRulePipOffset = typeof safeDrugEffects.rulePipOffset === 'number' && Number.isFinite(safeDrugEffects.rulePipOffset) ? safeDrugEffects.rulePipOffset : 0;
+    const safeRuleSpo2Offset = typeof safeDrugEffects.ruleSpo2Offset === 'number' && Number.isFinite(safeDrugEffects.ruleSpo2Offset) ? safeDrugEffects.ruleSpo2Offset : 0;
 
     const isParalyzed = maxNMJOccupancy > 0.90;
-    const isApneic = isParalyzed || (vitals.rr !== undefined ? vitals.rr < 1 : false);
+    const isApneic = isParalyzed || (safeVitals.rr !== undefined && Number.isFinite(safeVitals.rr) ? safeVitals.rr < 1 : false);
 
     // Calculate current volumes
     const currentLungVols = this.calculateLungVolumes(
-      patient.height || 170,
-      patient.age || 40,
-      patient.sex || 'male',
-      patient.bmi || 25,
-      patient.position || 'Supine',
-      patient.copd || false,
-      patient.restrictive || false
+      safePatient.height || 170,
+      safePatient.age || 40,
+      safePatient.sex || 'male',
+      safePatient.bmi || 25,
+      safePatient.position || 'Supine',
+      safePatient.copd || false,
+      safePatient.restrictive || false
     );
     const currentFRC_L = currentLungVols.frc_L;
 
     // FRC O2 buffer calculation
-    let buffer = (patient.oxygenBuffer !== undefined && patient.oxygenBuffer !== null) 
-      ? patient.oxygenBuffer 
+    let buffer = (typeof safePatient.oxygenBuffer === 'number' && Number.isFinite(safePatient.oxygenBuffer)) 
+      ? safePatient.oxygenBuffer 
       : (currentFRC_L * 0.21);
 
-    const isBagMaskActive = (patient.currentO2Device && patient.currentO2Device.includes('Bag-Mask')) 
-      || patient.ventilationStatus === 'assisted';
+    const currentO2DeviceStr = typeof safePatient.currentO2Device === 'string' ? safePatient.currentO2Device : '';
+    const isBagMaskActive = currentO2DeviceStr.includes('Bag-Mask') 
+      || safePatient.ventilationStatus === 'assisted';
 
     let passiveO2Influx = 0;
-    if ((isParalyzed || isApneic) && !patient.airwaySecured && !isBagMaskActive) {
-      const currentO2Flow = patient.currentO2Flow || 0;
-      const currentFiO2 = patient.currentFiO2 || 21;
+    if ((isParalyzed || isApneic) && !safePatient.airwaySecured && !isBagMaskActive) {
+      const currentO2Flow = safePatient.currentO2Flow || 0;
+      const currentFiO2 = safePatient.currentFiO2 || 21;
       if (currentO2Flow > 0 && currentFiO2 > 21) {
         const flowFraction = Math.min(1.0, currentO2Flow / 10.0);
         const fiO2Fraction = (currentFiO2 - 21) / (100 - 21);
@@ -300,17 +343,22 @@ export class RespiratoryEngine {
     }
 
     let effectiveMV_L_min = 0;
-    if (patient.airwaySecured) {
-      effectiveMV_L_min = vitals.mv || 6.0;
+    if (safePatient.airwaySecured) {
+      effectiveMV_L_min = safeVitals.mv || 6.0;
     } else if (isBagMaskActive) {
       effectiveMV_L_min = 5.0;
     } else if (!isParalyzed && !isApneic) {
-      const currentRR = vitals.rr !== undefined ? vitals.rr : 12;
+      const currentRR = safeVitals.rr !== undefined && Number.isFinite(safeVitals.rr) ? safeVitals.rr : 12;
       effectiveMV_L_min = (currentRR * 0.5);
     }
 
     if (effectiveMV_L_min > 0.1) {
-      const replenishmentFiO2 = patient.airwaySecured ? deliveredFiO2 : (patient.currentFiO2 || 21);
+      let replenishmentFiO2 = safePatient.airwaySecured ? Number(deliveredFiO2) : Number(safePatient.currentFiO2 || 21);
+      if (isNaN(replenishmentFiO2) || !Number.isFinite(replenishmentFiO2)) {
+        replenishmentFiO2 = 21;
+      }
+      replenishmentFiO2 = Math.max(10, Math.min(100, replenishmentFiO2));
+      
       const targetO2_L = currentFRC_L * (replenishmentFiO2 / 100);
       const k = effectiveMV_L_min / 60 / currentFRC_L;
       buffer += k * (targetO2_L - buffer);
@@ -323,35 +371,35 @@ export class RespiratoryEngine {
     // Pulmonary compliance & resistance loops
     let pulmComplianceBonus = 0;
     let pulmResistanceBonus = 0;
-    if (patient.pulmonaryComorbidity) {
-      const pulm = patient.pulmonaryComorbidity.toLowerCase();
-      if (pulm.includes('copd gold i')) { pulmComplianceBonus = 5; pulmResistanceBonus = 5; }
-      else if (pulm.includes('copd gold ii')) { pulmComplianceBonus = 10; pulmResistanceBonus = 10; }
-      else if (pulm.includes('copd gold iii')) { pulmComplianceBonus = 15; pulmResistanceBonus = 18; }
-      else if (pulm.includes('copd gold iv')) { pulmComplianceBonus = 20; pulmResistanceBonus = 25; }
-      else if (pulm.includes('asthma')) { pulmComplianceBonus = -12; pulmResistanceBonus = 20; }
+    const pulmComorbStr = typeof safePatient.pulmonaryComorbidity === 'string' ? safePatient.pulmonaryComorbidity.toLowerCase() : '';
+    if (pulmComorbStr) {
+      if (pulmComorbStr.includes('copd gold i')) { pulmComplianceBonus = 5; pulmResistanceBonus = 5; }
+      else if (pulmComorbStr.includes('copd gold ii')) { pulmComplianceBonus = 10; pulmResistanceBonus = 10; }
+      else if (pulmComorbStr.includes('copd gold iii')) { pulmComplianceBonus = 15; pulmResistanceBonus = 18; }
+      else if (pulmComorbStr.includes('copd gold iv')) { pulmComplianceBonus = 20; pulmResistanceBonus = 25; }
+      else if (pulmComorbStr.includes('asthma')) { pulmComplianceBonus = -12; pulmResistanceBonus = 20; }
     } else {
-      if (patient.copd) { pulmComplianceBonus = 15; pulmResistanceBonus = 18; }
+      if (safePatient.copd) { pulmComplianceBonus = 15; pulmResistanceBonus = 18; }
     }
 
     let currentCompliance = 65;
-    if (patient.isObese) currentCompliance -= 25;
-    if (patient.isSeptic) currentCompliance -= 20;
-    if (patient.trauma) currentCompliance -= 15;
-    if (patient.chf) currentCompliance -= 20;
+    if (safePatient.isObese) currentCompliance -= 25;
+    if (safePatient.isSeptic) currentCompliance -= 20;
+    if (safePatient.trauma) currentCompliance -= 15;
+    if (safePatient.chf) currentCompliance -= 20;
     currentCompliance += pulmComplianceBonus;
-    if (patient.position === 'Trendelenburg') {
+    if (safePatient.position === 'Trendelenburg') {
       currentCompliance *= 0.80; // 20% compliance reduction
-    } else if (patient.position === 'Lithotomy') {
+    } else if (safePatient.position === 'Lithotomy') {
       currentCompliance -= 10;
     }
     currentCompliance -= aspirationCompliancePenalty;
     currentCompliance -= anaphylaxisCompliancePenalty;
-    currentCompliance *= ruleComplScale;
+    currentCompliance *= safeRuleComplScale;
     currentCompliance = Math.max(5, currentCompliance);
 
     let currentResistance = 5;
-    if (patient.isObese) currentResistance += 3;
+    if (safePatient.isObese) currentResistance += 3;
     currentResistance += pulmResistanceBonus;
     currentResistance += aspirationResistancePenalty;
     currentResistance += anaphylaxisResistancePenalty;
@@ -359,11 +407,11 @@ export class RespiratoryEngine {
     // Ventilation settings and dynamic pressure calculations
     let newPip = 0; let newVte = 0; let newPplat = 0; let newPmean = 0; let newMv = 0; let newPeep = 0;
 
-    let patientDriveRR = isParalyzed ? 0 : Math.max(0, (vitals.rr || 12) + compensatoryRR + shiveringRRDrive + totalRrDelta - opioidRRDrop);
+    let patientDriveRR = isParalyzed ? 0 : Math.max(0, (safeVitals.rr || 12) + compensatoryRR + shiveringRRDrive + safeTotalRrDelta - opioidRRDrop);
     let targetRR = patientDriveRR;
-    targetRR = Math.max(0, targetRR * ruleRrScale + ruleRrOffset);
+    targetRR = Math.max(0, targetRR * safeRuleRrScale + safeRuleRrOffset);
 
-    if (patient.airwaySecured && ventSettings) {
+    if (safePatient.airwaySecured && ventSettings) {
       newPeep = ventSettings.peep || 0;
 
       if (ventSettings.mode === 'PSV') {
@@ -403,98 +451,109 @@ export class RespiratoryEngine {
       newPmean = newPeep + ((newPip - newPeep) / 3);
       newMv = (newVte * targetRR) / 1000;
     }
-    if (newPip > 0) newPip = Math.max(0, newPip + rulePipOffset);
+    if (newPip > 0) newPip = Math.max(0, newPip + safeRulePipOffset);
 
     // Alveolar Ventilation
-    const deadSpace = (patient.ibw * 2.2) / 1000;
-    const tidalVolLiters = patient.airwaySecured ? (newVte / 1000) : ((patient.ibw * 7) / 1000);
+    let ibwVal = Number(safePatient.ibw);
+    if (isNaN(ibwVal) || !Number.isFinite(ibwVal) || ibwVal <= 0) {
+      ibwVal = 70.0;
+    }
+    const deadSpace = (ibwVal * 2.2) / 1000;
+    const tidalVolLiters = safePatient.airwaySecured ? (newVte / 1000) : ((ibwVal * 7) / 1000);
     const currentAlvVent_L_min = Math.max(0, (tidalVolLiters - deadSpace) * targetRR);
-    const baseTidalVolLiters = (patient.ibw * 7) / 1000;
+    const baseTidalVolLiters = (ibwVal * 7) / 1000;
     const baseAlvVent_L_min = (baseTidalVolLiters - deadSpace) * 12;
 
     let targetPaCO2;
     let targetEtco2 = 0;
 
-    const safePaCO2 = vitals.paco2 || 40;
-    const safeSys = vitals.sys || 120;
+    const safePaCO2 = safeVitals.paco2 || 40;
+    const safeSys = safeVitals.sys || 120;
 
     // Eger & Severinghaus Apnea CO2 accumulation
     if (targetRR === 0 || currentAlvVent_L_min <= 0.1) {
-      const currentApneaDuration = patient.apneaStartTime ? (st.time - patient.apneaStartTime) : 0;
+      const currentApneaDuration = safePatient.apneaStartTime ? (st.time - safePatient.apneaStartTime) : 0;
       const co2RiseRate_sec = (currentApneaDuration < 60) ? (6 / 60) : (3 / 60);
 
-      targetPaCO2 = safePaCO2 + (co2RiseRate_sec * totalMetabolicMultiplier);
+      targetPaCO2 = safePaCO2 + (co2RiseRate_sec * safeTotalMetabolicMultiplier);
       targetEtco2 = 0;
     } else {
-      targetPaCO2 = baselinePaCO2 * ((baseAlvVent_L_min * totalMetabolicMultiplier) / Math.max(0.1, currentAlvVent_L_min));
+      targetPaCO2 = safeBaselinePaCO2 * ((baseAlvVent_L_min * safeTotalMetabolicMultiplier) / Math.max(0.1, currentAlvVent_L_min));
       targetPaCO2 = Math.max(15, Math.min(120, targetPaCO2));
-      let co2Gradient = patient.isObese ? 7 : (patient.copd ? 10 : 4);
+      let co2Gradient = safePatient.isObese ? 7 : (safePatient.copd ? 10 : 4);
       if (safeSys < 80) co2Gradient += (80 - safeSys) * 0.5;
       targetEtco2 = Math.max(0, targetPaCO2 - co2Gradient);
     }
     const newPaCO2 = safePaCO2 + (targetPaCO2 - safePaCO2) * 0.05;
 
     // pH calculation
-    const newPh = 6.1 + Math.log10(hco3 / (0.03 * newPaCO2));
+    const newPh = 6.1 + Math.log10(safeHco3 / (0.03 * newPaCO2));
 
     // Riley Shunt exchange mathematics
     const alveolarFiO2 = Math.min(100, (currentBuffer / currentFRC_L) * 100);
     const PAO2 = (713 * (alveolarFiO2 / 100)) - (newPaCO2 / 0.8);
-    const baseAaGradient = (patient.age / 4) + 4;
-    const AaGradient = baseAaGradient + (patient.isObese ? 12 : 0) + (patient.isSeptic ? 15 : 0) + (patient.hasAspirated ? 25 : 0);
+    const baseAaGradient = ((safePatient.age || 40) / 4) + 4;
+    const AaGradient = baseAaGradient + (safePatient.isObese ? 12 : 0) + (safePatient.isSeptic ? 15 : 0) + (safePatient.hasAspirated ? 25 : 0);
     const capillaryPO2 = Math.max(10, PAO2 - AaGradient);
 
-    // Bohr Shift
-    const bohrShift = Math.pow(10, 0.48 * (newPh - 7.4) - 0.024 * (vitals.temp - 37.0) - volatileRightShift + dpgDepletionShift);
+    // Bohr Shift exponent clamping
+    const safeTemp = typeof safeVitals.temp === 'number' && Number.isFinite(safeVitals.temp) ? safeVitals.temp : 37.0;
+    let bohrExponent = 0.48 * (newPh - 7.4) - 0.024 * (safeTemp - 37.0) - safeVolatileRightShift + safeDpgDepletionShift;
+    bohrExponent = Math.max(-5.0, Math.min(5.0, bohrExponent));
+    const bohrShift = Math.pow(10, bohrExponent);
 
-    const effectiveCapillaryPO2 = capillaryPO2 * bohrShift;
+    // Capillary PO2 Bohr Clamping
+    const effectiveCapillaryPO2 = Math.max(0, Math.min(10000.0, capillaryPO2 * bohrShift));
     const ScO2 = Math.min(100, ((Math.pow(effectiveCapillaryPO2, 3) + 150 * effectiveCapillaryPO2) / (Math.pow(effectiveCapillaryPO2, 3) + 150 * effectiveCapillaryPO2 + 23400)) * 100);
 
-    const capillaryO2Content = (currentHb * 1.34 * (ScO2 / 100)) + (capillaryPO2 * 0.0031);
+    const capillaryO2Content = (safeCurrentHb * 1.34 * (ScO2 / 100)) + (capillaryPO2 * 0.0031);
     const VO2_ml_min = VO2_sec * 60 * 1000;
 
     // Fick equation for mixed venous O2 content
-    const venousO2Content = Math.max(1.0, capillaryO2Content - (VO2_ml_min / (Math.max(0.5, targetCO) * 10)));
+    const venousO2Content = Math.max(1.0, capillaryO2Content - (VO2_ml_min / (Math.max(0.5, safeTargetCO) * 10)));
 
-    const actualShunt = patient.shuntFraction || 0.05;
+    const actualShunt = safePatient.shuntFraction || 0.05;
     const arterialO2Content = (capillaryO2Content * (1 - actualShunt)) + (venousO2Content * actualShunt);
 
-    let targetSpo2 = Math.min(100, (arterialO2Content / (currentHb * 1.34)) * 100);
+    const contentDenom = Math.max(0.1, safeCurrentHb * 1.34);
+    let targetSpo2 = Math.min(100, (arterialO2Content / contentDenom) * 100);
     let targetPaO2 = capillaryPO2 * (1 - (actualShunt * 1.5));
 
     // Optical pulse oximetry model
     const SaO2 = targetSpo2;
-    const SM = (patient.metHb || 0.8) / 100;
-    const SC = (patient.coHb || 1.0) / 100;
+    const SM = (safePatient.metHb || 0.8) / 100;
+    const SC = (safePatient.coHb || 1.0) / 100;
     const SO = (SaO2 / 100) * (1 - SM - SC);
     const SD = ((100 - SaO2) / 100) * (1 - SM - SC);
     const A660 = 0.1 * SO + 1.0 * SD + 1.0 * SM + 0.1 * SC;
     const A940 = 1.0 * SO + 0.1 * SD + 1.0 * SM + 1.0 * SC;
-    const R_ratio = A660 / A940;
+    
+    // Clamp A940 denominator to prevent division-by-zero
+    const R_ratio = A940 > 0.0001 ? A660 / A940 : A660 / 0.0001;
 
     let measuredSpo2 = 110 - 25 * R_ratio;
     measuredSpo2 = Math.min(100, Math.max(0, measuredSpo2));
 
-    if (patient.cyanide && patient.cyanide > 0.3) {
+    if (safePatient.cyanide && safePatient.cyanide > 0.3) {
       measuredSpo2 = 100;
     }
 
-    let newSpo2 = (vitals.spo2 || 100) + (measuredSpo2 - (vitals.spo2 || 100)) * 0.05;
-    newSpo2 = Math.min(100, Math.max(0, newSpo2 + ruleSpo2Offset));
+    let newSpo2 = (safeVitals.spo2 || 100) + (measuredSpo2 - (safeVitals.spo2 || 100)) * 0.05;
+    newSpo2 = Math.min(100, Math.max(0, newSpo2 + safeRuleSpo2Offset));
 
-    const activeMechanicalVent = patient.airwaySecured && ventSettings && (ventSettings.rr > 0 || ventSettings.mode === 'PCV' || ventSettings.mode === 'VCV' || ventSettings.mode === 'PCV-VG');
-    const isBMVActiveVal = patient.ventilationStatus === 'assisted';
+    const activeMechanicalVent = safePatient.airwaySecured && ventSettings && (ventSettings.rr > 0 || ventSettings.mode === 'PCV' || ventSettings.mode === 'VCV' || ventSettings.mode === 'PCV-VG');
+    const isBMVActiveVal = safePatient.ventilationStatus === 'assisted';
     const hasTidalExchange = activeMechanicalVent || isBMVActiveVal || (!isApneic && targetRR > 0);
 
-    let newEtco2 = !hasTidalExchange ? 0 : (targetRR === 0 ? 0 : (vitals.etco2 || 40) + (targetEtco2 - (vitals.etco2 || 40)) * 0.2);
+    let newEtco2 = !hasTidalExchange ? 0 : (targetRR === 0 ? 0 : (safeVitals.etco2 || 40) + (targetEtco2 - (safeVitals.etco2 || 40)) * 0.2);
 
-    let newRr = (vitals.rr || 12) + (targetRR - (vitals.rr || 12)) * 0.2;
-    if (Math.abs(measuredSpo2 - (vitals.spo2 || 100)) < 1.5) newSpo2 = measuredSpo2;
-    if (Math.abs(targetRR - (vitals.rr || 12)) < 1.5) newRr = targetRR;
-    if (Math.abs(targetEtco2 - (vitals.etco2 || 40)) < 1.5) newEtco2 = targetEtco2;
+    let newRr = (safeVitals.rr || 12) + (targetRR - (safeVitals.rr || 12)) * 0.2;
+    if (Math.abs(measuredSpo2 - (safeVitals.spo2 || 100)) < 1.5) newSpo2 = measuredSpo2;
+    if (Math.abs(targetRR - (safeVitals.rr || 12)) < 1.5) newRr = targetRR;
+    if (Math.abs(targetEtco2 - (safeVitals.etco2 || 40)) < 1.5) newEtco2 = targetEtco2;
 
     const outVitals = {
-      ...vitals,
+      ...safeVitals,
       spo2: Math.round(newSpo2),
       paco2: newPaCO2,
       etco2: Math.round(newEtco2),
