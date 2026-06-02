@@ -671,14 +671,21 @@ export default function App() {
       activeMedInfusions: []
     };
 
+    if (category.includes('IO')) {
+      logEvent(`🚨 CLINICAL ALERT: IO placement into bone cavity triggered intense autonomic pain response! Transient sympathetic surge initiated.`);
+    }
+
     logEvent(`Placed ${fullName}. Physical dimensions initialized (r: ${radius}mm, L: ${length}mm, Pv: ${venousPressure}mmHg, Rv: ${veinResistance}).`);
     setPatient(p => {
        const prev = p || {};
+       const isIO = category.includes('IO');
        return { 
          ...prev, 
          hasIV: prev.hasIV || !category.includes('Arterial'), 
          hasALine: prev.hasALine || category.includes('Arterial'),
          hasCVC: prev.hasCVC || category.includes('CVC') || type.includes('MAC'),
+         ioSympatheticSurgeActive: prev.ioSympatheticSurgeActive || isIO,
+         ioPlacedTime: isIO ? time : prev.ioPlacedTime,
          accessLines: [...(prev.accessLines || []).filter(l => l && typeof l !== 'string'), newLine] // Clear legacy string lines
        };
     });
@@ -1105,29 +1112,31 @@ export default function App() {
         setShowFidelityPanel={setShowFidelityPanel}
       />
 
-      <PrimaryMonitor 
-        patient={patient} 
-        vitals={vitals} 
-        nibp={nibp} 
-        cycleNibp={cycleNibp}
-        nibpIntervalMs={nibpIntervalMs}
-        setNibpIntervalMs={setNibpIntervalMs} 
-        isCyclingNibp={isCyclingNibp}
-        hrSpeed={hrSpeed} 
-        rrSpeed={rrSpeed} 
-        gasSettings={gasSettings} 
-        ventSettings={ventSettings}
-      />
-
-      {patient.airwaySecured && (
-        <VentMonitor 
+      <div className={`grid grid-cols-1 ${patient?.airwaySecured ? 'lg:grid-cols-2' : ''} gap-4 mb-4`}>
+        <PrimaryMonitor 
           patient={patient} 
           vitals={vitals} 
+          nibp={nibp} 
+          cycleNibp={cycleNibp}
+          nibpIntervalMs={nibpIntervalMs}
+          setNibpIntervalMs={setNibpIntervalMs} 
+          isCyclingNibp={isCyclingNibp}
+          hrSpeed={hrSpeed} 
           rrSpeed={rrSpeed} 
-          ventSettings={ventSettings} 
-          setVentSettings={handleSetVentSettings}
+          gasSettings={gasSettings} 
+          ventSettings={ventSettings}
         />
-      )}
+
+        {patient?.airwaySecured && (
+          <VentMonitor 
+            patient={patient} 
+            vitals={vitals} 
+            rrSpeed={rrSpeed} 
+            ventSettings={ventSettings} 
+            setVentSettings={handleSetVentSettings}
+          />
+        )}
+      </div>
       
         <BottomBar 
         gasSettings={gasSettings} 

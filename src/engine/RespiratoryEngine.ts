@@ -320,53 +320,80 @@ export class RespiratoryEngine {
       safePatient.copd || false,
       safePatient.restrictive || false
     );
-    const currentFRC_L = currentLungVols.frc_L;
+      const currentFRC_L = currentLungVols.frc_L;
 
-    // FRC O2 buffer calculation
-    let buffer = (typeof safePatient.oxygenBuffer === 'number' && Number.isFinite(safePatient.oxygenBuffer)) 
-      ? safePatient.oxygenBuffer 
-      : (currentFRC_L * 0.21);
+      const currentO2DeviceStr = typeof safePatient.currentO2Device === 'string' ? safePatient.currentO2Device : '';
+      const isBagMaskActive = currentO2DeviceStr.includes('Bag-Mask') 
+        || safePatient.ventilationStatus === 'assisted';
 
-    const currentO2DeviceStr = typeof safePatient.currentO2Device === 'string' ? safePatient.currentO2Device : '';
-    const isBagMaskActive = currentO2DeviceStr.includes('Bag-Mask') 
-      || safePatient.ventilationStatus === 'assisted';
-
-    let passiveO2Influx = 0;
-    if ((isParalyzed || isApneic) && !safePatient.airwaySecured && !isBagMaskActive) {
-      const currentO2Flow = safePatient.currentO2Flow || 0;
-      const currentFiO2 = safePatient.currentFiO2 || 21;
-      if (currentO2Flow > 0 && currentFiO2 > 21) {
-        const flowFraction = Math.min(1.0, currentO2Flow / 10.0);
-        const fiO2Fraction = (currentFiO2 - 21) / (100 - 21);
-        passiveO2Influx = VO2_sec * 0.8 * flowFraction * fiO2Fraction;
+      // Calculate non-invasive positive airway pressure (PEEP)
+      let nippvPeep = 0;
+      if (currentO2DeviceStr.includes('CPAP')) {
+        nippvPeep = safePatient.nippv?.epap || 5;
+      } else if (currentO2DeviceStr.includes('BiPAP')) {
+        nippvPeep = safePatient.nippv?.epap || 5;
+      } else if (currentO2DeviceStr.includes('HFNC') || currentO2DeviceStr.includes('High Flow')) {
+        // HFNC delivers approx 1 cmH2O of PEEP per 10 L/min of flow with mouth closed
+        nippvPeep = Math.min(6.0, (safePatient.currentO2Flow || 50) / 10.0);
+      } else if (isBagMaskActive) {
+        nippvPeep = safePatient.bmvPeep || 5;
       }
-    }
 
-    let effectiveMV_L_min = 0;
-    if (safePatient.airwaySecured) {
-      effectiveMV_L_min = safeVitals.mv || 6.0;
-    } else if (isBagMaskActive) {
-      effectiveMV_L_min = 5.0;
-    } else if (!isParalyzed && !isApneic) {
-      const currentRR = safeVitals.rr !== undefined && Number.isFinite(safeVitals.rr) ? safeVitals.rr : 12;
-      effectiveMV_L_min = (currentRR * 0.5);
-    }
+      // PEEP recruits collapsed/atelectatic alveoli, expanding the effective FRC volume
+      const shuntReduction = nippvPeep > 0 ? Math.min(0.15, nippvPeep * 0.015) : 0;
+      const lungRecruitment = nippvPeep > 0 ? (safePatient.isObese || safePatient.chf ? 0.045 : 0.03) * nippvPeep : 0;
+      const recruitedFRC_L = currentFRC_L * (1.0 + lungRecruitment);
 
-    if (effectiveMV_L_min > 0.1) {
-      let replenishmentFiO2 = safePatient.airwaySecured ? Number(deliveredFiO2) : Number(safePatient.currentFiO2 || 21);
-      if (isNaN(replenishmentFiO2) || !Number.isFinite(replenishmentFiO2)) {
-        replenishmentFiO2 = 21;
+      // FRC O2 buffer calculation based on recruited FRC volume
+      let buffer = (typeof safePatient.oxygenBuffer === 'number' && Number.isFinite(safePatient.oxygenBuffer)) 
+        ? safePatient.oxygenBuffer 
+        : (recruitedFRC_L * 0.21);
+
+      let passiveO2Influx = 0;
+      if ((isParalyzed || isApneic) && !safePatient.airwaySecured && !isBagMaskActive) {
+        const currentO2Flow = safePatient.currentO2Flow || 0;
+        const currentFiO2 = safePatient.currentFiO2 || 21;
+        
+        if (currentO2Flow > 0 && currentFiO2 > 21) {
+          const flowFraction = Math.min(1.0, currentO2Flow / 15.0);
+          const fiO2Fraction = (currentFiO2 - 21) / (100 - 21);
+          passiveO2Influx = VO2_sec * 0.9 * flowFraction * fiO2Fraction;
+        }
+        
+        if (currentO2DeviceStr.includes('HFNC') || currentO2DeviceStr.includes('High Flow')) {
+          const fiO2Fraction = (currentFiO2 - 21) / (100 - 21);
+          passiveO2Influx = VO2_sec * 0.98 * fiO2Fraction;
+        } else if (currentO2DeviceStr.includes('CPAP') || currentO2DeviceStr.includes('BiPAP')) {
+          const fiO2Fraction = (currentFiO2 - 21) / (100 - 21);
+          passiveO2Influx = VO2_sec * 0.95 * fiO2Fraction;
+        }
       }
-      replenishmentFiO2 = Math.max(10, Math.min(100, replenishmentFiO2));
-      
-      const targetO2_L = currentFRC_L * (replenishmentFiO2 / 100);
-      const k = effectiveMV_L_min / 60 / currentFRC_L;
-      buffer += k * (targetO2_L - buffer);
-    } else {
-      buffer -= (VO2_sec - passiveO2Influx);
-    }
-    buffer = Math.max(0, Math.min(currentFRC_L, buffer));
-    const currentBuffer = buffer;
+
+      let effectiveMV_L_min = 0;
+      if (safePatient.airwaySecured) {
+        effectiveMV_L_min = safeVitals.mv || 6.0;
+      } else if (isBagMaskActive) {
+        effectiveMV_L_min = 5.0;
+      } else if (!isParalyzed && !isApneic) {
+        const currentRR = safeVitals.rr !== undefined && Number.isFinite(safeVitals.rr) ? safeVitals.rr : 12;
+        effectiveMV_L_min = (currentRR * 0.5);
+      }
+
+      if (effectiveMV_L_min > 0.1) {
+        let replenishmentFiO2 = safePatient.airwaySecured ? Number(deliveredFiO2) : Number(safePatient.currentFiO2 || 21);
+        if (isNaN(replenishmentFiO2) || !Number.isFinite(replenishmentFiO2)) {
+          replenishmentFiO2 = 21;
+        }
+        replenishmentFiO2 = Math.max(10, Math.min(100, replenishmentFiO2));
+        
+        const targetO2_L = recruitedFRC_L * (replenishmentFiO2 / 100);
+        const k = effectiveMV_L_min / 60 / recruitedFRC_L;
+        buffer += k * (targetO2_L - buffer);
+      } else {
+        buffer -= (VO2_sec - passiveO2Influx);
+      }
+      buffer = Math.max(0, Math.min(recruitedFRC_L, buffer));
+      const currentBuffer = buffer;
 
     // Pulmonary compliance & resistance loops
     let pulmComplianceBonus = 0;
@@ -489,8 +516,8 @@ export class RespiratoryEngine {
     // pH calculation
     const newPh = 6.1 + Math.log10(safeHco3 / (0.03 * newPaCO2));
 
-    // Riley Shunt exchange mathematics
-    const alveolarFiO2 = Math.min(100, (currentBuffer / currentFRC_L) * 100);
+      // Riley Shunt exchange mathematics using recruited FRC
+      const alveolarFiO2 = Math.min(100, (currentBuffer / recruitedFRC_L) * 100);
     const PAO2 = (713 * (alveolarFiO2 / 100)) - (newPaCO2 / 0.8);
     const baseAaGradient = ((safePatient.age || 40) / 4) + 4;
     const AaGradient = baseAaGradient + (safePatient.isObese ? 12 : 0) + (safePatient.isSeptic ? 15 : 0) + (safePatient.hasAspirated ? 25 : 0);
@@ -512,7 +539,8 @@ export class RespiratoryEngine {
     // Fick equation for mixed venous O2 content
     const venousO2Content = Math.max(1.0, capillaryO2Content - (VO2_ml_min / (Math.max(0.5, safeTargetCO) * 10)));
 
-    const actualShunt = safePatient.shuntFraction || 0.05;
+      const baselineShunt = safePatient.shuntFraction || 0.05;
+      const actualShunt = Math.max(0.02, baselineShunt - shuntReduction);
     const arterialO2Content = (capillaryO2Content * (1 - actualShunt)) + (venousO2Content * actualShunt);
 
     const contentDenom = Math.max(0.1, safeCurrentHb * 1.34);
@@ -571,7 +599,11 @@ export class RespiratoryEngine {
       oxygenBuffer: currentBuffer,
       isApneic,
       isParalyzed,
-      lungVolumes: currentLungVols,
+      lungVolumes: {
+        ...currentLungVols,
+        frc_L: recruitedFRC_L,
+        frc_mL: Math.round(recruitedFRC_L * 1000)
+      },
       currentAlvVent_L_min,
       newPaCO2,
       newPh,

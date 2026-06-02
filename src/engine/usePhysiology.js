@@ -373,7 +373,16 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
   const updateFluidRate = (lineId, infusionId, newRate_ml_hr) => {
     setPatient(prev => {
-        const newLines = (prev.accessLines || []).map(l => ({ ...l, activeInfusions: [...(l.activeInfusions || [])] }));
+        const newLines = (prev.accessLines || []).map(l => {
+            if (l.id !== lineId) return l;
+            return {
+                ...l,
+                activeInfusions: (l.activeInfusions || []).map(inf => {
+                    if (inf.id !== infusionId) return inf;
+                    return { ...inf };
+                })
+            };
+        });
         const lineIndex = newLines.findIndex(l => l.id === lineId);
         if (lineIndex >= 0) {
             const line = newLines[lineIndex];
@@ -422,7 +431,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                         rate = max_ml_hr;
                         logEvent(`⚠️ Requested rate exceeds physical limits of ${line.name}. Capped at ${Math.round(rate)} mL/hr.`);
                     }
-                    infusions[infIndex] = { ...infusions[infIndex], userRate: rate };
+                    infusions[infIndex].userRate = rate;
                 }
             }
         }
@@ -506,7 +515,11 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     }
 
     let existingModel = currentActiveMeds.find(m => m.name === medData.name);
-    if (!existingModel) { existingModel = new PKPDModel(medData, safePatientWeight); setActiveMeds(prev => [...prev, existingModel]); }
+    let updatedMeds = [...currentActiveMeds];
+    if (!existingModel) { 
+      existingModel = new PKPDModel(medData, safePatientWeight); 
+      updatedMeds.push(existingModel); 
+    }
 
     if (type === 'Bolus') {
       const bio = route === 'IV' ? 1.0 : (route === 'IM' ? 0.8 : 0.5);
@@ -629,6 +642,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
       });
       logEvent(`⏹ Stopped ${medData.name} infusion.`);
     }
+    setActiveMeds(updatedMeds);
   };
 
   const pushMed = (medName) => { 
@@ -1159,12 +1173,26 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const safePaCO2 = st.vitals.paco2 || 40;
           const safePaO2 = st.vitals.pao2 || 100;
           const safeSys = st.vitals.sys || 120;
-
           if (safePaCO2 > 55) {
               stimulus += Math.min(25, (safePaCO2 - 55) * 1.5);
           }
 
           const unbluntedSympatheticDrive = Math.max(0, stimulus * (1.0 - Math.min(1.0, centralSympatholysis)));
+
+          let ioSurgeHr = 0;
+          let ioSurgeMap = 0;
+          if (st.patient.ioSympatheticSurgeActive && st.patient.ioPlacedTime !== undefined) {
+              const dt_io = st.time - st.patient.ioPlacedTime;
+              if (dt_io >= 0 && dt_io < 45) {
+                  const anesthesiaBlunting = Math.max(0, Math.min(1.0, centralSympatholysis));
+                  const painFactor = Math.max(0, 1.0 - anesthesiaBlunting);
+                  const decay = Math.exp(-0.08 * dt_io);
+                  ioSurgeHr = 30 * painFactor * decay;
+                  ioSurgeMap = 40 * painFactor * decay;
+              } else if (dt_io >= 45) {
+                  st.patient.ioSympatheticSurgeActive = false;
+              }
+          }
 
           const esmololCe = esmololModel ? esmololModel.Ce : 0;
           const esmololEff = esmololModel ? (esmololCe / (esmololCe + (esmololModel.pd?.c50 || 1.0))) : 0;
@@ -1321,6 +1349,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const cvOutput = CardiovascularEngine.tick(1, {
               patient: {
                   ...patientAfterFluidics,
+                  intravascularVolume: safeIntravascularVolume + safeAdded,
                   hasAspirated,
                   anaphylaxisTriggered,
                   anaphylaxisTreated: st.patient.anaphylaxisTreated,
@@ -1350,10 +1379,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               anaphylaxisSvrMod,
               totalHrDelta,
               ruleHrScale,
-              ruleHrOffset,
+              ruleHrOffset: ruleHrOffset + ioSurgeHr,
               ruleHrClamp,
               ruleMapScale,
-              ruleMapOffset,
+              ruleMapOffset: ruleMapOffset + ioSurgeMap,
               ruleKOffset,
               ruleSpo2Offset
           }, {
@@ -1450,6 +1479,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
           // Update final states
           setPatient(finalPatient);
+          setActiveMeds([...st.activeMeds]);
           setVitals({
               ...finalVitals,
               bis: Math.round(finalBis),

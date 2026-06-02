@@ -343,9 +343,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     } else {
       setAssessmentVerified(false);
     }
-  };
-
-  // Generate dynamic results based on patient demographics and comorbidities
+  };  // Generate dynamic results based on patient demographics and comorbidities
   const generatePreOpResults = () => {
     const res = {
       labs: {},
@@ -353,79 +351,193 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
       consults: {}
     };
 
+    const isSeptic = !!patient.isSeptic;
+    const isTrauma = !!patient.trauma;
+    const hasBleeding = isTrauma || (patient.ebl && patient.ebl > 0);
+    const isCkd = !!(patient.ckd || (patient.gfr && patient.gfr < 60) || (patient.renalComorbidity && !patient.renalComorbidity.includes('stage 1') && !patient.renalComorbidity.includes('stage 2')));
+    const isCirrhosis = !!(patient.cirrhosis || patient.childPugh === 'C' || patient.childPugh === 'B');
+    const isDiabetic = !!(patient.diabetes || patient.pmhx?.toLowerCase().includes('diabetes') || patient.insulin);
+    const hasCoag = !!(patient.coagulopathy || isCirrhosis);
+    const isCopd = !!(patient.copd || patient.pmhx?.toLowerCase().includes('copd') || patient.pmhx?.toLowerCase().includes('bronchitis') || patient.pmhx?.toLowerCase().includes('emphysema'));
+    
+    // Baselines influenced by age & sex
+    const isMale = patient.sex === 'male';
+    const age = patient.age || 40;
+
     // LABS
     if (orders.labs.cbc) {
-      const isSeptic = patient.isSeptic;
-      const hasBleeding = patient.trauma || (patient.ebl && patient.ebl > 0);
-      const wbcVal = isSeptic ? 19.4 : 6.8;
-      const hbVal = patient.anemia ? 8.9 : (isSeptic ? 11.2 : (hasBleeding ? 10.5 : 14.2));
-      const hctVal = hbVal * 3;
-      const pltVal = patient.thrombocytopenia ? 75 : (isSeptic ? 88 : 245);
+      // WBC baseline with septic elevation or trauma stress surge
+      let wbcVal = 6.5;
+      if (isSeptic) {
+        wbcVal = 18.5 + (age * 0.02) + (Math.sin(age) * 2.0); // severe septic leukocytosis
+      } else if (isTrauma) {
+        wbcVal = 12.8 + (Math.sin(age) * 1.5); // stress demargination
+      } else if (isCopd) {
+        wbcVal = 8.8; // mild elevation or chronic steroid use
+      }
       
+      // Hb baseline affected by sex, anemia, chronic disease (CKD/cirrhosis), and acute bleeding
+      let baseHb = isMale ? 15.2 : 13.5;
+      if (patient.anemia) {
+        baseHb -= 4.2;
+      }
+      if (isCkd) {
+        baseHb -= 2.8; // anemia of chronic disease due to low erythropoietin
+      }
+      if (isCirrhosis) {
+        baseHb -= 3.1; // splenomegaly sequestration and poor synthesis
+      }
+      if (hasBleeding) {
+        baseHb -= 3.5; // active blood loss depletion
+      }
+      const hbVal = Math.max(4.0, baseHb + (Math.sin(age) * 0.3));
+      const hctVal = hbVal * 3;
+
+      // Platelet baseline affected by splenomegaly (cirrhosis) or consumption (sepsis) or chronic thrombocytopenia
+      let basePlt = 245;
+      if (patient.thrombocytopenia) {
+        basePlt = 72;
+      } else if (isCirrhosis) {
+        basePlt = 85; // congestive splenomegaly
+      } else if (isSeptic) {
+        basePlt = 110; // mild DIC / systemic activation
+      }
+      const pltVal = Math.max(10, Math.round(basePlt + (Math.cos(age) * 15)));
+
       res.labs.cbc = {
         title: 'Complete Blood Count (CBC)',
         values: [
-          { name: 'WBC', val: wbcVal.toFixed(1), range: '4.5 - 11.0 x10^3/µL', alert: wbcVal > 11.0 },
-          { name: 'Hemoglobin (Hb)', val: hbVal.toFixed(1), range: '12.0 - 17.5 g/dL', alert: hbVal < 12.0 },
-          { name: 'Hematocrit (Hct)', val: hctVal.toFixed(1), range: '36.0 - 50.0 %', alert: hctVal < 36.0 },
+          { name: 'WBC', val: wbcVal.toFixed(1), range: '4.5 - 11.0 x10^3/µL', alert: wbcVal > 11.0 || wbcVal < 4.5 },
+          { name: 'Hemoglobin (Hb)', val: hbVal.toFixed(1), range: isMale ? '13.8 - 17.2 g/dL' : '12.1 - 15.1 g/dL', alert: hbVal < (isMale ? 13.8 : 12.1) },
+          { name: 'Hematocrit (Hct)', val: hctVal.toFixed(1), range: isMale ? '40.7 - 50.3 %' : '36.1 - 44.3 %', alert: hctVal < (isMale ? 40.7 : 36.1) },
           { name: 'Platelets', val: pltVal, range: '150 - 450 x10^3/µL', alert: pltVal < 150 }
         ]
       };
     }
 
     if (orders.labs.bmp) {
-      const isSeptic = patient.isSeptic;
-      const isCkd = patient.ckd || (patient.renalStage && patient.renalStage > 0);
-      const kVal = isCkd ? 5.4 : (patient.trauma ? 4.9 : 4.1);
-      const crVal = isCkd ? 2.8 : (isSeptic ? 1.8 : 0.85);
-      const glucVal = patient.diabetes ? 195 : (isSeptic ? 165 : 98);
-      const bunVal = isCkd ? 48 : (isSeptic ? 28 : 12);
-      
+      // Sodium affected by hypervolemic state of CHF/cirrhosis (dilutional hyponatremia) or septic shock
+      let naVal = 139;
+      if (patient.chf || isCirrhosis) {
+        naVal = 132; // hypervolemic dilutional hyponatremia
+      } else if (isSeptic) {
+        naVal = 135;
+      }
+      naVal = Math.round(naVal + (Math.sin(age) * 1.5));
+
+      // Potassium affected by renal failure (reduced excretion) and trauma (cell lysis)
+      let kVal = 4.1;
+      if (isCkd) {
+        kVal = 5.3 + (patient.gfr < 20 ? 0.8 : 0.3); // hyperkalemia in advanced CKD
+      } else if (isTrauma) {
+        kVal = 4.8; // tissue crush cell lysis
+      }
+      kVal = kVal + (Math.cos(age) * 0.15);
+
+      // Bicarbonate (CO2) affected by sepsis lactic acidosis, trauma hemorrhagic shock, or COPD retention
+      let hco3Val = 24;
+      if (isSeptic) {
+        hco3Val = 16; // severe metabolic acidosis
+      } else if (isTrauma) {
+        hco3Val = 18; // metabolic acidosis from hypoperfusion
+      } else if (isCopd) {
+        hco3Val = 31; // compensatory metabolic alkalosis for chronic hypercapnia
+      }
+      hco3Val = Math.round(hco3Val + (Math.sin(age) * 0.5));
+
+      // Creatinine affected by sex, baseline GFR (kidney pathology), and acute septic AKI
+      let baseCr = isMale ? 0.95 : 0.78;
+      if (patient.gfr) {
+        baseCr = isMale ? (95 / Math.max(10, patient.gfr)) : (78 / Math.max(10, patient.gfr));
+      }
+      if (isSeptic) {
+        baseCr += 0.8; // acute kidney injury
+      }
+      const crVal = Math.max(0.4, baseCr);
+
+      // BUN affected by CKD, dehydration/sepsis, and gastrointestinal bleeding
+      let bunVal = 13;
+      if (isCkd) {
+        bunVal = 48 + (patient.gfr < 20 ? 30 : 0);
+      } else if (isSeptic) {
+        bunVal = 29;
+      }
+      bunVal = Math.max(5, Math.round(bunVal + (Math.cos(age) * 2)));
+
+      // Glucose affected by diabetes and septic stress response
+      let glucVal = 92;
+      if (isDiabetic) {
+        glucVal = 198;
+      } else if (isSeptic) {
+        glucVal = 155; // stress hyperglycemia
+      }
+      glucVal = Math.round(glucVal + (Math.sin(age) * 8));
+
       res.labs.bmp = {
         title: 'Basic Metabolic Panel (BMP)',
         values: [
-          { name: 'Sodium (Na)', val: '138', range: '135 - 145 mEq/L', alert: false },
-          { name: 'Potassium (K)', val: kVal.toFixed(1), range: '3.5 - 5.1 mEq/L', alert: kVal > 5.1 },
-          { name: 'Chloride (Cl)', val: '102', range: '96 - 106 mEq/L', alert: false },
-          { name: 'CO2 (Bicarbonate)', val: isSeptic ? '17' : '24', range: '22 - 29 mEq/L', alert: isSeptic },
-          { name: 'BUN', val: bunVal, range: '7 - 20 mg/dL', alert: bunVal > 20 },
-          { name: 'Creatinine (Cr)', val: crVal.toFixed(2), range: '0.70 - 1.30 mg/dL', alert: crVal > 1.3 },
-          { name: 'Glucose', val: glucVal, range: '70 - 100 mg/dL', alert: glucVal > 100 }
+          { name: 'Sodium (Na)', val: naVal.toString(), range: '135 - 145 mEq/L', alert: naVal < 135 || naVal > 145 },
+          { name: 'Potassium (K)', val: kVal.toFixed(1), range: '3.5 - 5.1 mEq/L', alert: kVal < 3.5 || kVal > 5.1 },
+          { name: 'Chloride (Cl)', val: Math.round(102 + (Math.cos(age) * 1.5)).toString(), range: '96 - 106 mEq/L', alert: false },
+          { name: 'CO2 (Bicarbonate)', val: hco3Val.toString(), range: '22 - 29 mEq/L', alert: hco3Val < 22 || hco3Val > 29 },
+          { name: 'BUN', val: bunVal.toString(), range: '7 - 20 mg/dL', alert: bunVal > 20 },
+          { name: 'Creatinine (Cr)', val: crVal.toFixed(2), range: isMale ? '0.70 - 1.30 mg/dL' : '0.50 - 1.10 mg/dL', alert: crVal > (isMale ? 1.30 : 1.10) },
+          { name: 'Glucose', val: glucVal.toString(), range: '70 - 100 mg/dL', alert: glucVal > 100 }
         ]
       };
     }
 
     if (orders.labs.coags) {
-      const hasCoag = patient.coagulopathy || patient.cirrhosis;
-      const inrVal = hasCoag ? 2.3 : 1.0;
-      const ptVal = hasCoag ? 26.5 : 12.0;
-      const pttVal = hasCoag ? 54.0 : 31.0;
-      
+      let inrVal = 1.0;
+      let ptVal = 12.0;
+      let pttVal = 30.5;
+
+      if (hasCoag) {
+        inrVal = 2.4 + (Math.sin(age) * 0.2); // severe coagulopathy
+        ptVal = 27.2 + (Math.sin(age) * 1.2);
+        pttVal = 55.4 + (Math.cos(age) * 2.5);
+      } else if (isTrauma) {
+        inrVal = 1.4; // acute traumatic coagulopathy
+        ptVal = 15.8;
+        pttVal = 39.5;
+      }
+
       res.labs.coags = {
         title: 'Coagulation Panel',
         values: [
-          { name: 'Prothrombin Time (PT)', val: ptVal.toFixed(1) + ' s', range: '11.0 - 13.5 s', alert: hasCoag },
-          { name: 'INR', val: inrVal.toFixed(1), range: '0.8 - 1.2', alert: hasCoag },
-          { name: 'Partial Thromboplastin Time (PTT)', val: pttVal.toFixed(1) + ' s', range: '25.0 - 35.0 s', alert: hasCoag }
+          { name: 'Prothrombin Time (PT)', val: ptVal.toFixed(1) + ' s', range: '11.0 - 13.5 s', alert: hasCoag || isTrauma },
+          { name: 'INR', val: inrVal.toFixed(1), range: '0.8 - 1.2', alert: hasCoag || isTrauma },
+          { name: 'Partial Thromboplastin Time (PTT)', val: pttVal.toFixed(1) + ' s', range: '25.0 - 35.0 s', alert: hasCoag || isTrauma }
         ]
       };
     }
 
     if (orders.labs.lfts) {
-      const isCirrhosis = patient.cirrhosis;
-      const astVal = isCirrhosis ? 134 : 22;
-      const altVal = isCirrhosis ? 118 : 25;
-      const alkVal = isCirrhosis ? 210 : 68;
-      const biliVal = isCirrhosis ? 3.4 : 0.6;
-      const albVal = isCirrhosis ? 2.5 : 4.1;
+      let astVal = 24;
+      let altVal = 28;
+      let alkVal = 72;
+      let biliVal = 0.6;
+      let albVal = 4.2;
+
+      if (isCirrhosis) {
+        astVal = 138 + Math.round(Math.sin(age) * 12);
+        altVal = 115 + Math.round(Math.cos(age) * 10);
+        alkVal = 220 + Math.round(Math.sin(age) * 15);
+        biliVal = 3.6 + (Math.cos(age) * 0.4);
+        albVal = 2.4 + (Math.sin(age) * 0.15); // hypoalbuminemia
+      } else if (isSeptic) {
+        astVal = 58; // shock liver / hypoperfusion
+        altVal = 62;
+        biliVal = 1.4; // mild septic jaundice
+      }
 
       res.labs.lfts = {
         title: 'Liver Function Tests (LFTs)',
         values: [
-          { name: 'AST', val: astVal + ' U/L', range: '10 - 40 U/L', alert: isCirrhosis },
-          { name: 'ALT', val: altVal + ' U/L', range: '7 - 56 U/L', alert: isCirrhosis },
+          { name: 'AST', val: astVal + ' U/L', range: '10 - 40 U/L', alert: isCirrhosis || isSeptic },
+          { name: 'ALT', val: altVal + ' U/L', range: '7 - 56 U/L', alert: isCirrhosis || isSeptic },
           { name: 'Alkaline Phosphatase', val: alkVal + ' U/L', range: '44 - 147 U/L', alert: isCirrhosis },
-          { name: 'Total Bilirubin', val: biliVal.toFixed(1) + ' mg/dL', range: '0.2 - 1.2 mg/dL', alert: isCirrhosis },
+          { name: 'Total Bilirubin', val: biliVal.toFixed(1) + ' mg/dL', range: '0.2 - 1.2 mg/dL', alert: isCirrhosis || isSeptic },
           { name: 'Albumin', val: albVal.toFixed(1) + ' g/dL', range: '3.5 - 5.0 g/dL', alert: isCirrhosis }
         ]
       };
@@ -435,7 +547,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
       res.labs.typeAndScreen = {
         title: 'Type & Screen',
         values: [
-          { name: 'ABO / Rh Type', val: sex === 'male' ? 'A Positive' : 'O Negative', range: 'N/A', alert: false },
+          { name: 'ABO / Rh Type', val: isMale ? 'A Positive' : 'O Negative', range: 'N/A', alert: false },
           { name: 'Antibody Screen', val: 'Negative', range: 'Negative', alert: false }
         ]
       };
@@ -445,24 +557,24 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
       res.labs.typeAndCross = {
         title: 'Type & Crossmatch',
         values: [
-          { name: 'Units Ordered', val: '2 Units PRBC', range: 'N/A', alert: false },
+          { name: 'Units Ordered', val: isTrauma ? '4 Units PRBC' : '2 Units PRBC', range: 'N/A', alert: false },
           { name: 'Crossmatch Status', val: 'Compatible - In Blood Bank', range: 'Compatible', alert: false }
         ]
       };
     }
 
     if (orders.labs.hba1c) {
-      const a1c = patient.diabetes ? 8.4 : 5.3;
+      const a1c = isDiabetic ? 8.6 + (Math.sin(age) * 0.4) : 5.2 + (Math.cos(age) * 0.15);
       res.labs.hba1c = {
         title: 'Glycated Hemoglobin (HbA1c)',
         values: [
-          { name: 'HbA1c', val: a1c.toFixed(1) + ' %', range: '< 5.7 %', alert: patient.diabetes }
+          { name: 'HbA1c', val: a1c.toFixed(1) + ' %', range: '< 5.7 %', alert: a1c >= 5.7 }
         ]
       };
     }
 
     if (orders.labs.pregnancy) {
-      const isPregnant = patient.pregnancyStatus === 'pregnant' || patient.isPregnant;
+      const isPregnant = patient.pregnancyStatus === 'pregnant' || !!patient.isPregnant;
       res.labs.pregnancy = {
         title: 'Pregnancy Screen (beta-hCG)',
         values: [
@@ -472,29 +584,28 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     }
 
     if (orders.labs.urinalysis) {
-      const isSeptic = patient.isSeptic;
       res.labs.urinalysis = {
         title: 'Urinalysis',
         values: [
           { name: 'Appearance', val: isSeptic ? 'Cloudy' : 'Clear', range: 'Clear', alert: isSeptic },
           { name: 'Nitrite', val: isSeptic ? 'Positive' : 'Negative', range: 'Negative', alert: isSeptic },
-          { name: 'Leukocyte Esterase', val: isSeptic ? 'Trace' : 'Negative', range: 'Negative', alert: isSeptic },
-          { name: 'Protein', val: 'Negative', range: 'Negative', alert: false }
+          { name: 'Leukocyte Esterase', val: isSeptic ? 'Positive' : 'Negative', range: 'Negative', alert: isSeptic },
+          { name: 'Protein', val: isCkd ? '1+' : 'Negative', range: 'Negative', alert: isCkd }
         ]
       };
     }
 
     if (orders.labs.thyroid) {
-      const isHyper = patient.thyroid === 'hyper' || patient.hyperthyroid;
-      const isHypo = patient.thyroid === 'hypo' || patient.hypothyroid;
-      const tsh = isHyper ? 0.05 : (isHypo ? 14.5 : 1.8);
-      const t4 = isHyper ? 3.2 : (isHypo ? 0.4 : 1.2);
+      const isHyper = patient.thyroid === 'hyper' || !!patient.hyperthyroid;
+      const isHypo = patient.thyroid === 'hypo' || !!patient.hypothroid;
+      const tsh = isHyper ? 0.04 : (isHypo ? 14.8 : 1.7 + (Math.sin(age) * 0.2));
+      const t4 = isHyper ? 3.4 : (isHypo ? 0.35 : 1.15 + (Math.cos(age) * 0.1));
       
       res.labs.thyroid = {
         title: 'Thyroid Panel',
         values: [
-          { name: 'TSH', val: tsh.toFixed(2) + ' mIU/L', range: '0.40 - 4.00 mIU/L', alert: isHyper || isHypo },
-          { name: 'Free T4', val: t4.toFixed(1) + ' ng/dL', range: '0.8 - 1.8 ng/dL', alert: isHyper || isHypo }
+          { name: 'TSH', val: tsh.toFixed(2) + ' mIU/L', range: '0.40 - 4.00 mIU/L', alert: tsh < 0.40 || tsh > 4.00 },
+          { name: 'Free T4', val: t4.toFixed(1) + ' ng/dL', range: '0.8 - 1.8 ng/dL', alert: t4 < 0.8 || t4 > 1.8 }
         ]
       };
     }
@@ -1549,7 +1660,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                     </div>
 
                     {/* Live RCRI Staging Output */}
-                    <div className={`p-5 rounded-xl border flex flex-col justify-between ${borderClass} transition-all duration-300`}>
+                    <div className={`p-5 rounded-xl border flex flex-col gap-4 justify-between min-h-[180px] lg:min-h-0 ${borderClass} transition-all duration-300 shadow-inner`}>
                       <div>
                         <div className="flex justify-between items-center mb-1">
                           <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Your Score</span>

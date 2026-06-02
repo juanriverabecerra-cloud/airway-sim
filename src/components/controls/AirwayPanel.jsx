@@ -130,26 +130,35 @@ export const AirwayPanel = ({
           
           <button 
             onClick={() => { handleSuction(); logEvent("Performed deep in-line tracheal suctioning. Cleared ETT of mucous plugs."); }} 
-            className="w-full glass-button hover:bg-slate-800/40 p-2.5 text-left border text-xs flex items-center justify-between"
+            className="w-full glass-button hover:bg-slate-800/40 p-2.5 text-left border text-xs flex items-center justify-between gap-2 overflow-hidden"
           >
-            <span><Droplet size={14} className="inline mr-2 text-blue-400"/> In-Line Tracheal Suction</span>
-            <span className="text-[9px] text-slate-500 font-mono">Yankauer</span>
+            <span className="flex items-center gap-1.5 min-w-0 truncate">
+              <Droplet size={14} className="text-blue-400 shrink-0"/> 
+              <span className="truncate">In-Line Tracheal Suction</span>
+            </span>
+            <span className="text-[9px] text-slate-500 font-mono shrink-0">Yankauer</span>
           </button>
 
           <button 
             onClick={() => setTubeConfirmModal({ show: true, result: '' })} 
-            className="w-full glass-button glass-button-cyan hover:bg-slate-850 p-2.5 text-left border text-xs flex items-center justify-between"
+            className="w-full glass-button glass-button-cyan hover:bg-slate-850 p-2.5 text-left border text-xs flex items-center justify-between gap-2 overflow-hidden"
           >
-            <span><Stethoscope size={14} className="inline mr-2"/> Auscultate Breath Sounds</span>
-            <span className="text-[9px] text-cyan-400 font-mono font-bold">Lungs</span>
+            <span className="flex items-center gap-1.5 min-w-0 truncate">
+              <Stethoscope size={14} className="text-cyan-400 shrink-0"/> 
+              <span className="truncate">Auscultate Breath Sounds</span>
+            </span>
+            <span className="text-[9px] text-cyan-400 font-mono font-bold shrink-0">Lungs</span>
           </button>
 
           <button 
             onClick={() => { if (checkCuffLeak) checkCuffLeak(); }} 
-            className="w-full glass-button glass-button-cyan p-2.5 text-left border text-xs flex items-center justify-between"
+            className="w-full glass-button glass-button-cyan p-2.5 text-left border text-xs flex items-center justify-between gap-2 overflow-hidden"
           >
-            <span><Sliders size={14} className="inline mr-2"/> Perform Cuff Leak Test</span>
-            <span className="text-[9px] text-cyan-400 font-mono font-bold">ETT</span>
+            <span className="flex items-center gap-1.5 min-w-0 truncate">
+              <Sliders size={14} className="text-cyan-400 shrink-0"/> 
+              <span className="truncate">Perform Cuff Leak Test</span>
+            </span>
+            <span className="text-[9px] text-cyan-400 font-mono font-bold shrink-0">ETT</span>
           </button>
 
           {/* Quick Checklist Links */}

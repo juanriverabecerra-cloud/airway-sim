@@ -7,7 +7,6 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
 
   return (
     <div className="glass-panel glass-emerald crt-monitor p-2 flex flex-col md:grid md:grid-cols-4 gap-2 min-h-[360px] md:min-h-0 md:h-auto lg:h-[420px] relative overflow-hidden">
-      <div className="crt-sweep-line"></div>
       
       {patient?.isArrest && (
          <>

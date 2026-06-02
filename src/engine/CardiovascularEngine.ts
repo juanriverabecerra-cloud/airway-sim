@@ -35,6 +35,7 @@ export interface PatientState {
   calciumStabilized?: boolean;
   calciumStabilizedTime?: number;
   serotoninSyndromeTriggered?: boolean;
+  intravascularVolume?: number;
 }
 
 export interface VitalsState {
@@ -176,7 +177,7 @@ export class CardiovascularEngine {
 
     // Preload & Contractility Calculus
     const safeEbv = typeof patient.ebv === 'number' && Number.isFinite(patient.ebv) && patient.ebv > 0 ? patient.ebv : 5000;
-    const effectiveIntravascularVolume = Math.max(100, safeEbv - safeCurrentEbl + safePreloadMod);
+    const effectiveIntravascularVolume = Math.max(100, safeEbv - safeCurrentEbl + safePreloadMod + (patient.intravascularVolume || 0));
     const inotropyFinal = Math.max(0.01, 1.0 - (newStunning / 100) + safeContractilitySympatheticSpike + (safeDrugInotropyMod - 1.0));
     const preloadSV = Math.max(0.1, 1.0 - (safeBloodLossRatio * 1.2) + (effectiveIntravascularVolume / 2500));
 
@@ -254,10 +255,25 @@ export class CardiovascularEngine {
       exactMap = Math.max(15, exactMap - newStunning);
     }
 
-    const hrNoise = isArrestState ? 0 : (Math.random() * 2 - 1);
-    const sysNoise = isArrestState ? 0 : (Math.random() * 4 - 2);
-    const diaNoise = isArrestState ? 0 : (Math.random() * 2 - 1);
-    const mapNoise = isArrestState ? 0 : (Math.random() * 2 - 1);
+    const rrVal = typeof vitals.rr === 'number' && Number.isFinite(vitals.rr) ? Math.max(4, vitals.rr) : 12;
+    const respPeriod = 60 / rrVal;
+    const respPhase = safeTime * 2 * Math.PI / respPeriod;
+    
+    // Respiratory Sinus Arrhythmia & BP respiratory variations (intrathoracic pressure swings)
+    const rsaEffect = isArrestState ? 0 : Math.sin(respPhase) * 1.3;
+    const respBpVar = isArrestState ? 0 : Math.sin(respPhase) * 2.2;
+
+    // Slow homeostatic vasomotor waves (Traube-Hering-Mayer waves, 10s period)
+    const thmEffect = isArrestState ? 0 : Math.sin(safeTime * 2 * Math.PI / 10.0) * 0.9;
+
+    // Micro-fluctuations (Pulse Rate Variability / minor blood pressure noise)
+    const hrMicro = isArrestState ? 0 : (Math.random() - 0.5) * 0.4;
+    const bpMicro = isArrestState ? 0 : (Math.random() - 0.5) * 0.7;
+
+    const hrNoise = rsaEffect + thmEffect * 0.2 + hrMicro;
+    const sysNoise = respBpVar + thmEffect + bpMicro * 1.5;
+    const diaNoise = respBpVar * 0.7 + thmEffect * 0.8 + bpMicro;
+    const mapNoise = respBpVar * 0.8 + thmEffect * 0.9 + bpMicro * 1.2;
 
     let newHr = safeHR + (targetHR - safeHR) * 0.1 + hrNoise;
 
@@ -274,8 +290,8 @@ export class CardiovascularEngine {
     }
 
     let newMap = Math.max(0, Math.round(exactMap + mapNoise));
-    let roundedSys = Math.max(0, Math.round(newMap + (2 / 3) * basePP));
-    let roundedDia = Math.max(0, Math.round(newMap - (1 / 3) * basePP));
+    let roundedSys = Math.max(0, Math.round(newMap + (2 / 3) * basePP + sysNoise));
+    let roundedDia = Math.max(0, Math.round(newMap - (1 / 3) * basePP + diaNoise));
     if (roundedDia >= roundedSys - 10) roundedDia = Math.max(0, roundedSys - 10);
 
     // CPR Resuscitation Pressures

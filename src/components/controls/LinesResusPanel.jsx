@@ -242,6 +242,11 @@ export const LinesResusPanel = ({
                           className="w-[30%] bg-slate-900 border border-slate-700 rounded px-1 text-[9px] text-white text-center outline-none focus:border-purple-500/50 transition-colors" 
                           value={editInfusionDose[fluid.id] !== undefined ? editInfusionDose[fluid.id] : ''} 
                           onChange={(e) => setEditInfusionDose({...editInfusionDose, [fluid.id]: e.target.value})} 
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              updateFluidRate(line.id, fluid.id, editInfusionDose[fluid.id]);
+                            }
+                          }}
                         />
                         <button onClick={() => updateFluidRate(line.id, fluid.id, editInfusionDose[fluid.id])} disabled={isBlown} className={`flex-1 glass-button ${fluidColorTheme.btn} py-0.5 text-[8px]`}>SET</button>
                         <button onClick={() => updateFluidRate(line.id, fluid.id, '')} disabled={isBlown} className={`flex-1 glass-button ${fluidColorTheme.btn} py-0.5 text-[8px]`}>MAX</button>
@@ -290,6 +295,12 @@ export const LinesResusPanel = ({
                             className="w-1/3 bg-slate-900 border border-slate-700 rounded px-1 text-[9px] text-white text-center outline-none focus:border-purple-500/50 transition-colors" 
                             value={editInfusionDose[resolvedId] || ''} 
                             onChange={(e) => setEditInfusionDose({...editInfusionDose, [resolvedId]: e.target.value})} 
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && editInfusionDose[resolvedId]) {
+                                handleUpdateInfusion(resolvedId, editInfusionDose[resolvedId], medInf.unit, line.id);
+                                setEditInfusionDose({...editInfusionDose, [resolvedId]: ''});
+                              }
+                            }}
                           />
                           <button onClick={() => { if (editInfusionDose[resolvedId]) { handleUpdateInfusion(resolvedId, editInfusionDose[resolvedId], medInf.unit, line.id); setEditInfusionDose({...editInfusionDose, [resolvedId]: ''}); } }} className={`w-1/3 glass-button ${medColorTheme.btn} py-0.5 text-[8px]`}>UPDATE</button>
                           <button onClick={() => { handleUpdateInfusion(resolvedId, 0, medInf.unit, line.id); }} className="w-1/3 glass-button glass-button-rose py-0.5 text-[8px]">STOP</button>
@@ -302,6 +313,12 @@ export const LinesResusPanel = ({
                             className="w-1/2 bg-slate-900 border border-slate-700 rounded px-1 text-[9px] text-white text-center outline-none focus:border-purple-500/50 transition-colors" 
                             value={bolusInfusionDose[resolvedId] || ''} 
                             onChange={(e) => setBolusInfusionDose({...bolusInfusionDose, [resolvedId]: e.target.value})} 
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && bolusInfusionDose[resolvedId]) {
+                                handlePushFromInfusion(resolvedId, bolusInfusionDose[resolvedId], medInf.unit, line.id);
+                                setBolusInfusionDose({...bolusInfusionDose, [resolvedId]: ''});
+                              }
+                            }}
                           />
                           <button 
                             onClick={() => { if (bolusInfusionDose[resolvedId]) { handlePushFromInfusion(resolvedId, bolusInfusionDose[resolvedId], medInf.unit, line.id); setBolusInfusionDose({...bolusInfusionDose, [resolvedId]: ''}); } }} 

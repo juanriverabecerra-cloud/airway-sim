@@ -439,7 +439,7 @@ Once met, suction oral secretions, perform [cuff leak test], deflate the cuff, a
     if (sedativeActive && !isApneic) {
       forecasts.push("🔮 SEDATIVE REFLEX ALERT: Induction agents are circulating. Expect rapid onset of apnea and loss of airway protective reflexes in the next 30 seconds. Prepare for immediate bag-mask ventilation (BMV) and monitor for systemic vasodilation (hypotension). Have a vasopressor (phenylephrine or ephedrine) ready to support SVR.");
     }
-    if ((propofolCe > 0 || etomidateCe > 0) && isApneic && tofCount === 4) {
+    if (!airwaySecured && (propofolCe > 0 || etomidateCe > 0) && isApneic && tofCount === 4) {
       forecasts.push("🔮 PARALYSIS REQUIREMENT: Sedation is active but the patient is not yet paralyzed (TOF 4/4 twitches). To optimize vocal cord visualization and prevent laryngospasm or severe airway trauma during laryngoscopy, wait until neuromuscular blockade is established (TOF 0/4 twitches) before attempting intubation.");
     }
     if (frcO2Percent > 85) {
