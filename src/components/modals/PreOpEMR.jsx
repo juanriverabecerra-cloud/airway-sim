@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Activity, FileText, ClipboardList, CheckSquare, ShieldAlert, Award, Play, ArrowLeft, ArrowRight } from 'lucide-react';
 import { calculateLungVolumes, calculateIBW, calculateLBW } from '../../engine/Pharmacology';
 
@@ -49,10 +49,29 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     }
   });
 
+  // Interactive Clinical Assessment Wizard States & Ground Truths
+  const [assessment, setAssessment] = useState({
+    rcriHighRisk: false,
+    rcriIhd: false,
+    rcriChf: false,
+    rcriCva: false,
+    rcriInsulin: false,
+    rcriCr: false,
+    mets: '',
+    asa: '',
+    mallampati: '',
+    neckMobility: '',
+    npoStatus: ''
+  });
+  const [assessmentVerified, setAssessmentVerified] = useState(false);
+  const [assessmentErrors, setAssessmentErrors] = useState({});
+  const [assessmentChecked, setAssessmentChecked] = useState(false);
+
   useEffect(() => {
     if (!stagedCase) return;
     const savedOrders = stagedCase.preOpOrders || stagedCase.patient?.preOpOrders;
     if (savedOrders) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOrders(savedOrders);
     }
   }, [stagedCase]);
@@ -61,11 +80,12 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     if (!stagedCase) return;
     const verified = stagedCase.patient?.verifiedRisk;
     if (verified && verified.verified) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAssessment({
         rcriHighRisk: verified.rcriHighRisk || false,
         rcriIhd: verified.rcriIhd || false,
         rcriChf: verified.rcriChf || false,
-        rcriCva: verified.rcriCva || false,
+        cerebrovascular: verified.rcriCva || false,
         rcriInsulin: verified.rcriInsulin || false,
         rcriCr: verified.rcriCr || false,
         mets: verified.mets || '',
@@ -98,25 +118,6 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
       }));
     }
   };
-
-
-  // Interactive Clinical Assessment Wizard States & Ground Truths
-  const [assessment, setAssessment] = useState({
-    rcriHighRisk: false,
-    rcriIhd: false,
-    rcriChf: false,
-    rcriCva: false,
-    rcriInsulin: false,
-    rcriCr: false,
-    mets: '',
-    asa: '',
-    mallampati: '',
-    neckMobility: '',
-    npoStatus: ''
-  });
-  const [assessmentVerified, setAssessmentVerified] = useState(false);
-  const [assessmentErrors, setAssessmentErrors] = useState({});
-  const [assessmentChecked, setAssessmentChecked] = useState(false);
 
   const getGroundTruth = () => {
     if (!stagedCase) return {};
@@ -173,10 +174,9 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     // 8. Texts
     const pronounSubject = patient.sex === 'female' ? 'She' : 'He';
     const pronounPossessive = patient.sex === 'female' ? 'Her' : 'His';
-    const pronounObject = patient.sex === 'female' ? 'her' : 'him';
     const nameGender = patient.sex === 'female' ? 'female' : 'male';
 
-    let medicalHistory = '';
+    let medicalHistory;
     if (id === 'normal' || id === 'general') {
       medicalHistory = `You are interviewing a ${patient.age}-year-old ${nameGender} in the pre-operative holding area. ${pronounSubject} is scheduled for an elective ${patient.procedure || 'laparoscopic cholecystectomy'}. When asked about exercise tolerance, ${pronounSubject.toLowerCase()} tells you ${pronounSubject.toLowerCase()} jogs daily without any chest pain, shortness of breath, or dizziness. ${pronounSubject} has never been hospitalized, takes no daily medications, and denies any history of chronic diseases.`;
     } else if (id === 'trauma') {
@@ -189,7 +189,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
 
     let globalHistory = `A ${patient.age}-year-old ${patient.sex || 'patient'} presenting for ${patient.procedure || 'surgery'}. Relevant baseline parameters include a BMI of ${bmi.toFixed(1)} (${bmi > 30 ? 'obese' : 'normal weight'}), and the following documented comorbidities: ${patient.pmhx || 'none'}. The clinical concern for anesthesia is the combination of the patient's physiological state and the ${rcriHighRisk ? 'high-risk surgical stress' : 'intermediate-risk procedure'}.`;
 
-    let airwayExam = '';
+    let airwayExam;
     if (id === 'normal' || id === 'general') {
       airwayExam = `You ask the patient to sit upright and open ${pronounPossessive.toLowerCase()} mouth wide. ${pronounSubject} opens widely with full mandibular excursion. You observe the entire soft palate, the fauces, the full uvula from tip to base, and tonsillar pillars (Class I). ${pronounSubject} achieves full atlanto-occipital extension without limitation or pain. Thyromental distance measures approximately 7 cm.`;
     } else if (id === 'trauma') {
@@ -738,10 +738,10 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
   const rcriScore = (assessment.rcriHighRisk ? 1 : 0) + (assessment.rcriIhd ? 1 : 0) + (assessment.rcriChf ? 1 : 0) + (assessment.rcriCva ? 1 : 0) + (assessment.rcriInsulin ? 1 : 0) + (assessment.rcriCr ? 1 : 0);
 
   // Derived Risk Class and ACC/AHA Action Recommendation based on user selections
-  let riskClass = '';
-  let riskPercent = '';
-  let accAction = '';
-  let borderClass = '';
+  let riskClass;
+  let riskPercent;
+  let accAction;
+  let borderClass;
 
   if (rcriScore === 0) {
     riskClass = 'Class I';
@@ -807,6 +807,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     if (!stagedCase) return;
     const savedPlan = stagedCase.preOpPlan || stagedCase.patient?.preOpPlan;
     if (savedPlan) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAnesthesiaPlan(savedPlan);
     }
   }, [stagedCase]);
@@ -1660,7 +1661,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                     </div>
 
                     {/* Live RCRI Staging Output */}
-                    <div className={`p-5 rounded-xl border flex flex-col gap-4 justify-between min-h-[180px] lg:min-h-0 ${borderClass} transition-all duration-300 shadow-inner`}>
+                    <div className={`p-5 rounded-xl border flex flex-col gap-4 justify-between min-h-[220px] ${borderClass} transition-all duration-300 shadow-inner`}>
                       <div>
                         <div className="flex justify-between items-center mb-1">
                           <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Your Score</span>

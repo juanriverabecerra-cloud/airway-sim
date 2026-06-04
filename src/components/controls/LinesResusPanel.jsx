@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Droplet, Zap, AlertTriangle } from 'lucide-react';
+import { useState } from 'react';
+import { Droplet } from 'lucide-react';
 import { MEDICATIONS } from '../../engine/Pharmacology';
 import { getMedColor, getFluidColor } from './Pharmacopoeia';
 
@@ -76,8 +76,6 @@ export const LinesResusPanel = ({
           </div>
         ) : (
           resusLines.map((line) => {
-            const hasFluidInfusion = line.activeInfusions && line.activeInfusions.length > 0;
-            const hasMedInfusion = line.activeMedInfusions && line.activeMedInfusions.some(m => parseFloat(m.rate) > 0);
             const isBlown = line.failed;
             const currentLineEq = line.fluidLine || patient.fluidLine || 'gravity';
             

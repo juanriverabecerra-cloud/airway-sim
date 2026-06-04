@@ -84,7 +84,7 @@ export const CanvasWaveform = React.memo(({ color, speed, rrSpeed = 0, active, t
 
       const isCardiac = type === 'ecg' || type === 'aline' || type === 'pleth';
       const base = isCardiac ? (h / 2) : (h * 0.9); 
-      let y = base;
+      let y;
 
       const isActiveAndBeating = active && parsedSpeed > 0 && !isNaN(parsedSpeed);
 

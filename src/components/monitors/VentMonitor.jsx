@@ -1,4 +1,3 @@
-import React from 'react';
 import { CanvasWaveform } from '../CanvasWaveform';
 
 export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSettings }) => {
@@ -9,7 +8,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
   const ventMorphology = ventSettings?.mode === 'VCV' ? 'vcv' : 'pcv';
 
   return (
-    <div className="glass-panel glass-cyan crt-monitor p-2 flex flex-col md:grid md:grid-cols-4 gap-2 min-h-[300px] md:min-h-0 md:h-[280px] lg:h-[420px] relative overflow-hidden">
+    <div className="glass-panel glass-emerald crt-monitor p-2 flex flex-col md:grid md:grid-cols-4 gap-2 min-h-[300px] md:min-h-0 md:h-[280px] lg:h-[420px] relative overflow-hidden">
       {/* Waveforms */}
       <div className="col-span-1 md:col-span-3 flex flex-col justify-between relative z-10 w-full h-[220px] md:h-full gap-1">
         <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">

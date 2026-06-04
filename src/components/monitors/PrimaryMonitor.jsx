@@ -1,9 +1,7 @@
-import React from 'react';
-import { Activity, Heart, Wind, RefreshCw, Thermometer } from 'lucide-react';
+import { Activity, Heart, Wind, RefreshCw } from 'lucide-react';
 import { CanvasWaveform } from '../CanvasWaveform';
 
 export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp, hrSpeed, rrSpeed, gasSettings, ventSettings, nibpIntervalMs, setNibpIntervalMs }) => {
-  const showBottomRow = patient?.hasBisMonitor || patient?.hasTofMonitor || (patient?.airwaySecured && vitals?.mac > 0);
 
   return (
     <div className="glass-panel glass-emerald crt-monitor p-2 flex flex-col md:grid md:grid-cols-4 gap-2 min-h-[360px] md:min-h-0 md:h-auto lg:h-[420px] relative overflow-hidden">

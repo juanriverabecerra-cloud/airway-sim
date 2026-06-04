@@ -23,8 +23,7 @@ export function getAttendingResponse(query, state) {
   const patient = safeState.patient || {};
   const activeMeds = Array.isArray(safeState.activeMeds) ? safeState.activeMeds : [];
   const surgicalPhase = safeState.surgicalPhase || 'Pre-Op';
-  const time = typeof safeState.time === 'number' && Number.isFinite(safeState.time) ? safeState.time : 0;
-  const logs = Array.isArray(safeState.logs) ? safeState.logs : [];
+
 
   // 1. EXTRACT RELEVANT SIMULATION STATES
   const hr = typeof vitals.hr === 'number' && Number.isFinite(vitals.hr) ? vitals.hr : 0;
@@ -69,21 +68,17 @@ export function getAttendingResponse(query, state) {
 
   // Active drugs concentration levels
   const propofolCe = activeMeds.find(m => m.name === 'Propofol')?.Ce || 0;
-  const etomidateCe = activeMeds.find(m => m.name === 'Etomidate')?.Ce || 0;
-  const ketamineCe = activeMeds.find(m => m.name === 'Ketamine')?.Ce || 0;
-  const fentanylCe = activeMeds.find(m => m.name === 'Fentanyl')?.Ce || 0;
+
+
   const rocuroniumCe = activeMeds.find(m => m.name === 'Rocuronium')?.Ce || 0;
   const succinylcholineCe = activeMeds.find(m => m.name === 'Succinylcholine')?.Ce || 0;
-  const vecuroniumCe = activeMeds.find(m => m.name === 'Vecuronium')?.Ce || 0;
-  const sedativeActive = propofolCe > 0.05 || etomidateCe > 0.05 || ketamineCe > 0.05;
+
 
   const pos = patient.position || 'Supine';
 
   // Check placed access lines
   const placedLines = Array.isArray(patient.accessLines) ? patient.accessLines : [];
-  const hasPIV = placedLines.some(l => l && typeof l.category === 'string' && (l.category.includes('Peripheral') || (typeof l.name === 'string' && l.name.includes('PIV'))));
-  const hasCVC = placedLines.some(l => l && typeof l.category === 'string' && (l.category.includes('Central') || (typeof l.name === 'string' && l.name.includes('CVC'))));
-  const hasArt = placedLines.some(l => l && typeof l.category === 'string' && (l.category.includes('Arterial') || (typeof l.name === 'string' && l.name.includes('Arterial')) || patient.hasALine));
+
 
   // Case profiles
   const isObeseCase = patient.isObese || patient.bmi > 35;

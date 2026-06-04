@@ -27,112 +27,85 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
   const stateRef = useRef({ time: timeVal, vitals: vitalsVal, targetVitals: targetVitalsVal, patient: patientVal, activeMeds: activeMedsVal, gasModels, intravascularVolume: intravascularVolumeVal, electrolytes: electrolytesVal, ventSettings, gasSettings, surgicalPhase: surgicalPhaseVal, msmaidsComplete });
 
   const setTime = (update) => {
-    setTimeState(prev => {
-      const next = typeof update === 'function' ? update(prev) : update;
-      stateRef.current.time = next;
-      return next;
-    });
+    const prev = stateRef.current.time !== undefined ? stateRef.current.time : timeVal;
+    const next = typeof update === 'function' ? update(prev) : update;
+    stateRef.current.time = next;
+    setTimeState(next);
   };
 
   const setVitals = (update) => {
-    setVitalsState(prev => {
-      const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
-      stateRef.current.vitals = next;
-      return next;
-    });
+    const prev = stateRef.current.vitals || vitalsVal;
+    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+    stateRef.current.vitals = next;
+    setVitalsState(next);
   };
 
   const setTargetVitals = (update) => {
-    setTargetVitalsState(prev => {
-      const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
-      stateRef.current.targetVitals = next;
-      return next;
-    });
+    const prev = stateRef.current.targetVitals || targetVitalsVal;
+    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+    stateRef.current.targetVitals = next;
+    setTargetVitalsState(next);
   };
 
   const setPatient = (update) => {
-    setPatientState(prev => {
-      const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
-      stateRef.current.patient = next;
-      return next;
-    });
+    const prev = stateRef.current.patient || patientVal;
+    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+    stateRef.current.patient = next;
+    setPatientState(next);
   };
 
   const setActiveMeds = (update) => {
-    setActiveMedsState(prev => {
-      const next = typeof update === 'function' ? update(prev) : update;
-      stateRef.current.activeMeds = next;
-      return next;
-    });
+    const prev = stateRef.current.activeMeds || activeMedsVal;
+    const next = typeof update === 'function' ? update(prev) : update;
+    stateRef.current.activeMeds = next;
+    setActiveMedsState(next);
   };
 
   const setIntravascularVolume = (update) => {
-    setIntravascularVolumeState(prev => {
-      const next = typeof update === 'function' ? update(prev) : update;
-      stateRef.current.intravascularVolume = next;
-      return next;
-    });
+    const prev = stateRef.current.intravascularVolume !== undefined ? stateRef.current.intravascularVolume : intravascularVolumeVal;
+    const next = typeof update === 'function' ? update(prev) : update;
+    stateRef.current.intravascularVolume = next;
+    setIntravascularVolumeState(next);
   };
 
   const setTotalBodyWaterLiters = (update) => {
-    setTotalBodyWaterLitersState(prev => {
-      const next = typeof update === 'function' ? update(prev) : update;
-      stateRef.current.totalBodyWaterLiters = next;
-      return next;
-    });
+    const prev = stateRef.current.totalBodyWaterLiters !== undefined ? stateRef.current.totalBodyWaterLiters : totalBodyWaterLitersVal;
+    const next = typeof update === 'function' ? update(prev) : update;
+    stateRef.current.totalBodyWaterLiters = next;
+    setTotalBodyWaterLitersState(next);
   };
 
   const setElectrolytes = (update) => {
-    setElectrolytesState(prev => {
-      const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
-      stateRef.current.electrolytes = next;
-      return next;
-    });
+    const prev = stateRef.current.electrolytes || electrolytesVal;
+    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+    stateRef.current.electrolytes = next;
+    setElectrolytesState(next);
   };
 
   const setCoags = (update) => {
-    setCoagsState(prev => {
-      const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
-      stateRef.current.coags = next;
-      return next;
-    });
+    const prev = stateRef.current.coags || coagsVal;
+    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+    stateRef.current.coags = next;
+    setCoagsState(next);
   };
 
   const setSurgicalPhase = (update) => {
-    setSurgicalPhaseState(prev => {
-      const next = typeof update === 'function' ? update(prev) : update;
-      stateRef.current.surgicalPhase = next;
-      return next;
-    });
+    const prev = stateRef.current.surgicalPhase || surgicalPhaseVal;
+    const next = typeof update === 'function' ? update(prev) : update;
+    stateRef.current.surgicalPhase = next;
+    setSurgicalPhaseState(next);
   };
 
-  const time = stateRef.current.time !== undefined ? stateRef.current.time : timeVal;
-  const vitals = stateRef.current.vitals || vitalsVal;
-  const targetVitals = stateRef.current.targetVitals || targetVitalsVal;
-  const patient = stateRef.current.patient || patientVal;
-  const activeMeds = stateRef.current.activeMeds || activeMedsVal;
-  const intravascularVolume = stateRef.current.intravascularVolume !== undefined ? stateRef.current.intravascularVolume : intravascularVolumeVal;
-  const totalBodyWaterLiters = stateRef.current.totalBodyWaterLiters !== undefined ? stateRef.current.totalBodyWaterLiters : totalBodyWaterLitersVal;
-  const electrolytes = stateRef.current.electrolytes || electrolytesVal;
-  const coags = stateRef.current.coags || coagsVal;
-  const surgicalPhase = stateRef.current.surgicalPhase || surgicalPhaseVal;
-
-  stateRef.current = { 
-    time, 
-    vitals, 
-    targetVitals, 
-    patient, 
-    activeMeds, 
-    gasModels, 
-    intravascularVolume, 
-    totalBodyWaterLiters,
-    electrolytes, 
-    coags,
-    ventSettings, 
-    gasSettings, 
-    surgicalPhase, 
-    msmaidsComplete 
-  };
+  const time = timeVal;
+  const vitals = vitalsVal;
+  const targetVitals = targetVitalsVal;
+  const patient = patientVal;
+  const activeMeds = activeMedsVal;
+  const intravascularVolume = intravascularVolumeVal;
+  const totalBodyWaterLiters = totalBodyWaterLitersVal;
+  const electrolytes = electrolytesVal;
+  const coags = coagsVal;
+  const surgicalPhase = surgicalPhaseVal;
 
   useEffect(() => {
     stateRef.current = { 
@@ -140,101 +113,105 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     };
   });
 
-  if (activeCase && activeCase.id !== prevCaseId) {
-    setPrevCaseId(activeCase.id);
-    DynamicMedicationRegistry.hydrate();
-      const safeBaseVitals = activeCase.baseVitals || {};
-      const baseDia = typeof safeBaseVitals.dia === 'number' && Number.isFinite(safeBaseVitals.dia) ? safeBaseVitals.dia : 80;
-      const baseSys = typeof safeBaseVitals.sys === 'number' && Number.isFinite(safeBaseVitals.sys) ? safeBaseVitals.sys : 120;
-      const baseHr = typeof safeBaseVitals.hr === 'number' && Number.isFinite(safeBaseVitals.hr) && safeBaseVitals.hr > 0 ? safeBaseVitals.hr : 70;
+  useEffect(() => {
+    if (activeCase && activeCase.id !== prevCaseId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPrevCaseId(activeCase.id);
+      DynamicMedicationRegistry.hydrate();
+        const safeBaseVitals = activeCase.baseVitals || {};
+        const baseDia = typeof safeBaseVitals.dia === 'number' && Number.isFinite(safeBaseVitals.dia) ? safeBaseVitals.dia : 80;
+        const baseSys = typeof safeBaseVitals.sys === 'number' && Number.isFinite(safeBaseVitals.sys) ? safeBaseVitals.sys : 120;
+        const baseHr = typeof safeBaseVitals.hr === 'number' && Number.isFinite(safeBaseVitals.hr) && safeBaseVitals.hr > 0 ? safeBaseVitals.hr : 70;
 
-      const initialMap = baseDia + ((baseSys - baseDia) / 3);
-      const safePatientObj = activeCase.patient || {};
-      const assumedBaseSV = safePatientObj.isObese ? 85 : 70; 
-      let initialCO = (baseHr * assumedBaseSV) / 1000;
-      if (isNaN(initialCO) || !Number.isFinite(initialCO) || initialCO <= 0.1) {
-        initialCO = 5.0;
-      }
-      let calculatedBaseSVR = (initialMap * 80) / initialCO;
-      if (isNaN(calculatedBaseSVR) || !Number.isFinite(calculatedBaseSVR) || calculatedBaseSVR <= 10.0) {
-        calculatedBaseSVR = 1200.0;
-      }
+        const initialMap = baseDia + ((baseSys - baseDia) / 3);
+        const safePatientObj = activeCase.patient || {};
+        const assumedBaseSV = safePatientObj.isObese ? 85 : 70; 
+        let initialCO = (baseHr * assumedBaseSV) / 1000;
+        if (isNaN(initialCO) || !Number.isFinite(initialCO) || initialCO <= 0.1) {
+          initialCO = 5.0;
+        }
+        let calculatedBaseSVR = (initialMap * 80) / initialCO;
+        if (isNaN(calculatedBaseSVR) || !Number.isFinite(calculatedBaseSVR) || calculatedBaseSVR <= 10.0) {
+          calculatedBaseSVR = 1200.0;
+        }
 
-      setVitals({ 
-        ...safeBaseVitals, pip: 0, pplat: 0, vte: 0, bis: 98, temp: 37.0, 
-        tofCount: 4, tofRatio: 1.0, mac: 0, etAgent: 0, etN2O: 0, 
-        pao2: safePatientObj.isObese ? 75 : 100, 
-        paco2: safePatientObj.isObese ? 52 : 40, 
-        ph: safePatientObj.isSeptic ? 7.22 : (safePatientObj.isObese ? 7.36 : 7.4), 
-        co: initialCO, svr: calculatedBaseSVR, map: Math.round(initialMap), cmap: Math.round(initialMap), 
-        metHb: 0.8, coHb: activeCase.id === 'trauma' ? 12.0 : 1.0, cyanide: 0.0, lacticAcid: safePatientObj.isSeptic ? 4.5 : 1.0,
-        cao2: 20.0, cvo2: 15.0, p50: 26.6, r_ratio: 0.90
-      });
-      setTargetVitals({ ...safeBaseVitals });
-      
-      const heightCm = typeof safePatientObj.height === 'number' && Number.isFinite(safePatientObj.height) ? safePatientObj.height : 170;
-      const weightKg = typeof safePatientObj.weight === 'number' && Number.isFinite(safePatientObj.weight) ? safePatientObj.weight : 70;
-      const sex = typeof safePatientObj.sex === 'string' ? safePatientObj.sex : 'male';
-      
-      const clampedHeight = Math.max(50.0, Math.min(250.0, heightCm));
-      const clampedWeight = Math.max(5.0, Math.min(300.0, weightKg));
-      const clampedAge = Math.max(1.0, Math.min(120.0, typeof safePatientObj.age === 'number' && Number.isFinite(safePatientObj.age) ? safePatientObj.age : 40));
-      
-      const ebv = typeof safePatientObj.ebv === 'number' && Number.isFinite(safePatientObj.ebv) && safePatientObj.ebv > 0 
-        ? safePatientObj.ebv 
-        : (clampedWeight * (sex.toLowerCase() === 'female' ? 65 : 75));
-      const baseBleedRate = typeof safePatientObj.bleedRate === 'number' && Number.isFinite(safePatientObj.bleedRate) ? safePatientObj.bleedRate : (activeCase.id === 'trauma' ? 1.5 : 0.05); 
-
-      const bmi = typeof safePatientObj.bmi === 'number' && Number.isFinite(safePatientObj.bmi) && safePatientObj.bmi > 0 
-        ? safePatientObj.bmi 
-        : (clampedWeight / Math.pow(clampedHeight / 100, 2));
-      const position = typeof safePatientObj.position === 'string' ? safePatientObj.position : 'Supine';
-      const lungVols = calculateLungVolumes(clampedHeight, clampedAge, sex, bmi, position, safePatientObj.copd || false, safePatientObj.restrictive || false);
-
-      setPatient({
-        ...safePatientObj, height: clampedHeight, weight: clampedWeight, sex, ebv, ebl: safePatientObj.ebl || 0, bleedRate: baseBleedRate,
-        ibw: calculateIBW(clampedHeight, sex), lbw: calculateLBW(clampedHeight, clampedWeight, sex),
-        lungVolumes: lungVols,
-        position: position,
-        isApneic: false, isParalyzed: false, isTopicalized: false,
-        airwaySecured: false, airwayExamined: false, ventilationStatus: 'spontaneous',
-        hasIV: false, hasALine: false, currentO2Device: 'Room Air', currentO2Flow: 0, currentFiO2: 21,
-        oxygenBuffer: lungVols.frc_L * 0.21, 
-        hasBisMonitor: false, hasTofMonitor: false,
-        isArrest: false, cardiacRhythm: 'normal', cprActive: false, ischemicDamage: 0, biologicalDeath: false, myocardialStunning: 0,
-        arrestThreshold: 1200, codeStartTime: null, apneaStartTime: null,
-        shuntFraction: activeCase.id === 'trauma' ? 0.20 : (safePatientObj.isObese ? 0.12 : 0.05),
-        patientBaseSVR: calculatedBaseSVR,
-        patientBaseSV: assumedBaseSV,
+        setVitals({ 
+          ...safeBaseVitals, pip: 0, pplat: 0, vte: 0, bis: 98, temp: 37.0, 
+          tofCount: 4, tofRatio: 1.0, mac: 0, etAgent: 0, etN2O: 0, 
+          pao2: safePatientObj.isObese ? 75 : 100, 
+          paco2: safePatientObj.isObese ? 52 : 40, 
+          ph: safePatientObj.isSeptic ? 7.22 : (safePatientObj.isObese ? 7.36 : 7.4), 
+          co: initialCO, svr: calculatedBaseSVR, map: Math.round(initialMap), cmap: Math.round(initialMap), 
+          metHb: 0.8, coHb: activeCase.id === 'trauma' ? 12.0 : 1.0, cyanide: 0.0, lacticAcid: safePatientObj.isSeptic ? 4.5 : 1.0,
+          cao2: 20.0, cvo2: 15.0, p50: 26.6, r_ratio: 0.90
+        });
+        setTargetVitals({ ...safeBaseVitals });
         
-        metHb: 0.8,
-        coHb: activeCase.id === 'trauma' ? 12.0 : 1.0,
-        cyanide: 0.0,
-        lacticAcid: safePatientObj.isSeptic ? 4.5 : 1.0,
-        glp1Held: activeCase.id === 'obese' ? false : true,
-        nAChR_state: activeCase.id === 'trauma' ? 'upregulated' : 'normal',
-        ivGauge: '18G',
-        fluidLine: 'gravity',
-        stomach: activeCase.id === 'obese' ? 'full' : (activeCase.id === 'trauma' ? 'full' : 'empty'),
-        fluidInfusing: null,
-        suxPotassiumLeaked: false,
-        isSeizure: false
-      });
-      
-      setTime(0); setActiveMeds([]); setIntravascularVolume(0); setSurgicalPhase('Pre-Op');
-      
-      const safeGasModels = {};
-      Object.keys(INHALATIONAL_AGENTS).forEach(key => {
-          if (INHALATIONAL_AGENTS[key]) {
-              safeGasModels[key] = new GasKineticsModel(INHALATIONAL_AGENTS[key]);
-          }
-      });
-      setGasModels(safeGasModels);
-      
-      setTotalBodyWaterLiters(clampedWeight * 0.6); 
-      setElectrolytes({ na: 140, k: safePatientObj.trauma ? 5.2 : 4.0, cl: 100, ca: 9.0, ph: safePatientObj.isSeptic ? 7.2 : 7.4 });
-      setCoags({ r_offset: safePatientObj.trauma ? 6 : 0, ma_offset: safePatientObj.trauma ? -15 : 0, angle_offset: safePatientObj.trauma ? -15 : 0 });
-  }
+        const heightCm = typeof safePatientObj.height === 'number' && Number.isFinite(safePatientObj.height) ? safePatientObj.height : 170;
+        const weightKg = typeof safePatientObj.weight === 'number' && Number.isFinite(safePatientObj.weight) ? safePatientObj.weight : 70;
+        const sex = typeof safePatientObj.sex === 'string' ? safePatientObj.sex : 'male';
+        
+        const clampedHeight = Math.max(50.0, Math.min(250.0, heightCm));
+        const clampedWeight = Math.max(5.0, Math.min(300.0, weightKg));
+        const clampedAge = Math.max(1.0, Math.min(120.0, typeof safePatientObj.age === 'number' && Number.isFinite(safePatientObj.age) ? safePatientObj.age : 40));
+        
+        const ebv = typeof safePatientObj.ebv === 'number' && Number.isFinite(safePatientObj.ebv) && safePatientObj.ebv > 0 
+          ? safePatientObj.ebv 
+          : (clampedWeight * (sex.toLowerCase() === 'female' ? 65 : 75));
+        const baseBleedRate = typeof safePatientObj.bleedRate === 'number' && Number.isFinite(safePatientObj.bleedRate) ? safePatientObj.bleedRate : (activeCase.id === 'trauma' ? 1.5 : 0.05); 
+
+        const bmi = typeof safePatientObj.bmi === 'number' && Number.isFinite(safePatientObj.bmi) && safePatientObj.bmi > 0 
+          ? safePatientObj.bmi 
+          : (clampedWeight / Math.pow(clampedHeight / 100, 2));
+        const position = typeof safePatientObj.position === 'string' ? safePatientObj.position : 'Supine';
+        const lungVols = calculateLungVolumes(clampedHeight, clampedAge, sex, bmi, position, safePatientObj.copd || false, safePatientObj.restrictive || false);
+
+        setPatient({
+          ...safePatientObj, height: clampedHeight, weight: clampedWeight, sex, ebv, ebl: safePatientObj.ebl || 0, bleedRate: baseBleedRate,
+          ibw: calculateIBW(clampedHeight, sex), lbw: calculateLBW(clampedHeight, clampedWeight, sex),
+          lungVolumes: lungVols,
+          position: position,
+          isApneic: false, isParalyzed: false, isTopicalized: false,
+          airwaySecured: false, airwayExamined: false, ventilationStatus: 'spontaneous',
+          hasIV: false, hasALine: false, currentO2Device: 'Room Air', currentO2Flow: 0, currentFiO2: 21,
+          oxygenBuffer: lungVols.frc_L * 0.21, 
+          hasBisMonitor: false, hasTofMonitor: false,
+          isArrest: false, cardiacRhythm: 'normal', cprActive: false, ischemicDamage: 0, biologicalDeath: false, myocardialStunning: 0,
+          arrestThreshold: 1200, codeStartTime: null, apneaStartTime: null,
+          shuntFraction: activeCase.id === 'trauma' ? 0.20 : (safePatientObj.isObese ? 0.12 : 0.05),
+          patientBaseSVR: calculatedBaseSVR,
+          patientBaseSV: assumedBaseSV,
+          
+          metHb: 0.8,
+          coHb: activeCase.id === 'trauma' ? 12.0 : 1.0,
+          cyanide: 0.0,
+          lacticAcid: safePatientObj.isSeptic ? 4.5 : 1.0,
+          glp1Held: activeCase.id === 'obese' ? false : true,
+          nAChR_state: activeCase.id === 'trauma' ? 'upregulated' : 'normal',
+          ivGauge: '18G',
+          fluidLine: 'gravity',
+          stomach: activeCase.id === 'obese' ? 'full' : (activeCase.id === 'trauma' ? 'full' : 'empty'),
+          fluidInfusing: null,
+          suxPotassiumLeaked: false,
+          isSeizure: false
+        });
+        
+        setTime(0); setActiveMeds([]); setIntravascularVolume(0); setSurgicalPhase('Pre-Op');
+        
+        const safeGasModels = {};
+        Object.keys(INHALATIONAL_AGENTS).forEach(key => {
+            if (INHALATIONAL_AGENTS[key]) {
+                safeGasModels[key] = new GasKineticsModel(INHALATIONAL_AGENTS[key]);
+            }
+        });
+        setGasModels(safeGasModels);
+        
+        setTotalBodyWaterLiters(clampedWeight * 0.6); 
+        setElectrolytes({ na: 140, k: safePatientObj.trauma ? 5.2 : 4.0, cl: 100, ca: 9.0, ph: safePatientObj.isSeptic ? 7.2 : 7.4 });
+        setCoags({ r_offset: safePatientObj.trauma ? 6 : 0, ma_offset: safePatientObj.trauma ? -15 : 0, angle_offset: safePatientObj.trauma ? -15 : 0 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCase, prevCaseId]);
 
   const pushFluid = (fluidName, volumeStr, lineId) => {
     const currentPatient = stateRef.current.patient || patient;
@@ -1146,7 +1123,9 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
           const totalMetabolicMultiplier = shiveringMultiplier * seizureMetabolicMultiplier;
           const VO2_sec = (0.250 * totalMetabolicMultiplier * cyanideVO2Mod) / 60;
+          // eslint-disable-next-line no-unused-vars
           const VCO2_sec = (0.200 * totalMetabolicMultiplier) / 60;
+          const opioidRRDrop = opioidEff * 10;
 
           // Central Sympatholysis spikes
           const aggregateHypnosis = sedativeEff + opioidEff - (sedativeEff * opioidEff);
@@ -1277,22 +1256,19 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           }
 
           // Position modifiers
-          let positionFRCMod = 0;
           let positionPreloadMod = 0;
           let positionHydrostaticMod = 0; 
           const pos = st.patient.position || 'Supine';
           if (pos === 'Ramped' || pos === 'Rev Trendelenburg') {
-              positionFRCMod = 0.3; positionPreloadMod = -200; positionHydrostaticMod = -14.8; 
+              positionPreloadMod = -200; positionHydrostaticMod = -14.8; 
           } else if (pos === 'Sitting' || pos === 'Beach Chair') {
-              positionFRCMod = 0.5; positionPreloadMod = -400; positionHydrostaticMod = -29.6; 
+              positionPreloadMod = -400; positionHydrostaticMod = -29.6; 
           } else if (pos === 'Trendelenburg') {
-              positionFRCMod = -0.5; positionPreloadMod = 300; positionHydrostaticMod = +14.8; 
+              positionPreloadMod = 300; positionHydrostaticMod = +14.8; 
           } else if (pos === 'Lithotomy') {
-              positionFRCMod = -0.4; positionPreloadMod = 400; 
+              positionPreloadMod = 400; 
           } else if (pos === 'Prone') {
-              positionFRCMod = 0.2; positionPreloadMod = -100; 
-          } else if (pos === 'Lateral') {
-              positionFRCMod = -0.1;
+              positionPreloadMod = -100; 
           }
 
           // 4. RespiratoryEngine Tick
@@ -1415,7 +1391,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               oxygenBuffer: respOutput.oxygenBuffer,
               isApneic: respOutput.isApneic,
               isParalyzed: respOutput.isParalyzed,
-              lungVolumes: respOutput.lungVolumes
+              lungVolumes: respOutput.lungVolumes,
+              isSeizure: isSeizure
           };
 
           const finalVitals = {
@@ -1436,8 +1413,32 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               res: Math.round(respOutput.resistance),
               cao2: respOutput.vitals.cao2,
               cvo2: respOutput.vitals.cvo2,
-              temp: newTemp
+              temp: newTemp,
+              etAgent: currentEtAgent,
+              etN2O: currentEtN2O
           };
+
+          // Apply natural wave-like fluctuations in non-arrest states
+          if (!finalPatient.isArrest && finalVitals.hr > 0 && finalPatient.cardiacRhythm !== 'asystole') {
+              const hrOsc = Math.sin(st.time * 0.1) * 0.8 + Math.cos(st.time * 0.03) * 0.4;
+              finalVitals.hr = Math.round(finalVitals.hr + hrOsc);
+
+              const bpOsc = Math.sin(st.time * 0.07) * 1.5 + Math.cos(st.time * 0.02) * 1.0;
+              if (finalVitals.sys > 0) finalVitals.sys = Math.round(finalVitals.sys + bpOsc);
+              if (finalVitals.dia > 0) finalVitals.dia = Math.round(finalVitals.dia + bpOsc);
+              if (finalVitals.map > 0) finalVitals.map = Math.round(finalVitals.map + bpOsc);
+              if (finalVitals.cmap > 0) finalVitals.cmap = Math.round(finalVitals.cmap + bpOsc);
+
+              if (finalVitals.rr > 0 && finalPatient.ventilationStatus === 'spontaneous') {
+                  const rrOsc = Math.sin(st.time * 0.05) * 0.5;
+                  finalVitals.rr = Math.round(finalVitals.rr + rrOsc);
+              }
+
+              if (finalVitals.spo2 > 50 && finalVitals.spo2 <= 100) {
+                  const spo2Osc = Math.sin(st.time * 0.04) * 0.3;
+                  finalVitals.spo2 = Math.round(Math.max(0, Math.min(100, finalVitals.spo2 + spo2Osc)));
+              }
+          }
 
           const burstSuppression = Math.max(0, (currentMac - 1.5) * 40);
           let targetBis = 98 - (aggregateHypnosis * 55) - burstSuppression;
@@ -1493,6 +1494,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
       }, typeof patient?.simulationSpeed === 'number' && Number.isFinite(patient.simulationSpeed) ? Math.max(50, Math.min(5000, patient.simulationSpeed)) : 1000);
     }
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRunning, isPaused, patient?.simulationSpeed, patient?.isFuzzing]); 
 
   const createSnapshot = () => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Activity, Eye, Wind, Stethoscope } from 'lucide-react';
+import { X, Eye, Wind, Stethoscope } from 'lucide-react';
 
 export const PocusModal = ({ data, close }) => {
   if (!data.show) return null;
@@ -22,8 +22,12 @@ export const PocusModal = ({ data, close }) => {
 
 export const AirwayQuizModal = ({ data, submitAirwayQuiz }) => {
   const [error, setError] = React.useState('');
+  const [prevShow, setPrevShow] = React.useState(data.show);
   
-  React.useEffect(() => { if (data.show) setError(''); }, [data.show]);
+  if (data.show !== prevShow) {
+    setPrevShow(data.show);
+    setError('');
+  }
 
   if (!data.show) return null;
 
@@ -593,8 +597,6 @@ export const ViewModal = ({ data, submitGrade }) => {
 
 // 1. PRE-OPERATIVE RISK ASSESSMENT & FLOWCHART MODAL
 export const PreopModal = ({ show, close, patient, setPatient, logEvent }) => {
-  if (!show) return null;
-
   const [rcri, setRcri] = React.useState({
     highRiskSurg: false,
     ischemicHeart: false,
@@ -605,7 +607,6 @@ export const PreopModal = ({ show, close, patient, setPatient, logEvent }) => {
   });
 
   const [mets, setMets] = React.useState(null); // 'poor', 'adequate'
-  const [cleared, setCleared] = React.useState(false);
   
   const [preopOrders, setPreopOrders] = React.useState({
       cbc: false,
@@ -617,6 +618,7 @@ export const PreopModal = ({ show, close, patient, setPatient, logEvent }) => {
 
   React.useEffect(() => {
     if (patient?.verifiedRisk) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRcri({
         highRiskSurg: patient.verifiedRisk.rcriHighRisk || false,
         ischemicHeart: patient.verifiedRisk.rcriIhd || false,
@@ -638,6 +640,8 @@ export const PreopModal = ({ show, close, patient, setPatient, logEvent }) => {
     }
   }, [patient]);
 
+  if (!show) return null;
+
   const calculateRcriScore = () => {
     return Object.values(rcri).filter(Boolean).length;
   };
@@ -655,7 +659,6 @@ export const PreopModal = ({ show, close, patient, setPatient, logEvent }) => {
                 : { status: 'none', unitsInOR: 0, deliveryCountdown: 0, totalDeliveryTime: 0, preOpWorkup: preopOrders.typeAndScreen ? 'screen' : 'none' }
         }));
     }
-    setCleared(true);
     close();
   };
 
@@ -958,8 +961,6 @@ export const PreopModal = ({ show, close, patient, setPatient, logEvent }) => {
 
 // 2. MSMAIDS PRE-INDUCTION CHECKLIST
 export const MsmaidsModal = ({ show, close, logEvent, onComplete }) => {
-  if (!show) return null;
-
   const [checks, setChecks] = React.useState({
     m: false,
     s: false,
@@ -969,6 +970,8 @@ export const MsmaidsModal = ({ show, close, logEvent, onComplete }) => {
     d: false,
     s2: false
   });
+
+  if (!show) return null;
 
   const allChecked = Object.values(checks).every(Boolean);
 
@@ -1076,8 +1079,6 @@ export const MsmaidsModal = ({ show, close, logEvent, onComplete }) => {
 
 // 3. POST-INTUBATION "A'S" CHECKLIST
 export const PostIntubationModal = ({ show, close, logEvent }) => {
-  if (!show) return null;
-
   const [checks, setChecks] = React.useState({
     airway: false,
     anesthesia: false,
@@ -1089,6 +1090,8 @@ export const PostIntubationModal = ({ show, close, logEvent }) => {
     antibiotics: false,
     analgesia: false
   });
+
+  if (!show) return null;
 
   const allChecked = Object.values(checks).every(Boolean);
 
@@ -1152,8 +1155,6 @@ export const PostIntubationModal = ({ show, close, logEvent }) => {
 
 // 4. EXTUBATION EVALUATION MODAL
 export const ExtubationModal = ({ show, close, vitals, patient, logEvent, performExtubation }) => {
-  if (!show) return null;
-
   const [checks, setChecks] = React.useState({
     tof: false,
     rr: false,
@@ -1162,6 +1163,8 @@ export const ExtubationModal = ({ show, close, vitals, patient, logEvent, perfor
     commands: false,
     suction: false
   });
+
+  if (!show) return null;
 
   const toggleCheck = (key) => {
     setChecks(prev => ({ ...prev, [key]: !prev[key] }));

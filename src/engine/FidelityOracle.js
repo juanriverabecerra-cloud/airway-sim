@@ -39,9 +39,7 @@ export function evaluateFidelity(state, history = []) {
   const patient = state.patient || {};
   const activeMeds = state.activeMeds || [];
   const electrolytes = state.electrolytes || {};
-  const coags = state.coags || {};
   const ventSettings = state.ventSettings || {};
-  const surgicalPhase = state.surgicalPhase || 'Pre-Op';
 
   // --- DYNAMIC TELEMETRY CORRUPTION & FINITENESS LOOP ---
   const nonFiniteVitals = [];
@@ -79,7 +77,7 @@ export function evaluateFidelity(state, history = []) {
   const tofCount = Number.isFinite(vitals.tofCount) ? vitals.tofCount : 4;
   const pip = Number.isFinite(vitals.pip) ? vitals.pip : 0;
   const compliance = Number.isFinite(vitals.compl) ? vitals.compl : 60;
-  const resistance = Number.isFinite(vitals.res) ? vitals.res : 10;
+
   const lacticAcid = Number.isFinite(vitals.lacticAcid) ? vitals.lacticAcid : (Number.isFinite(patient.lacticAcid) ? patient.lacticAcid : 1.0);
   const rr = Number.isFinite(vitals.rr) ? vitals.rr : (Number.isFinite(patient.rr) ? patient.rr : 12);
 
@@ -87,7 +85,7 @@ export function evaluateFidelity(state, history = []) {
   const cprActive = patient.cprActive || false;
   const stunning = Number.isFinite(patient.myocardialStunning) ? patient.myocardialStunning : 0;
   const ebl = Number.isFinite(patient.ebl) ? patient.ebl : 0;
-  const ebv = Number.isFinite(patient.ebv) ? patient.ebv : 5000;
+
   const position = patient.position || 'Supine';
   const airwaySecured = patient.airwaySecured || false;
   const tubePosition = patient.tubePosition || null;
@@ -105,16 +103,13 @@ export function evaluateFidelity(state, history = []) {
   };
 
   const propofolCe = findCe('Propofol');
-  const etomidateCe = findCe('Etomidate');
-  const ketamineCe = findCe('Ketamine');
   const fentanylCe = findCe('Fentanyl');
   const rocuroniumCe = findCe('Rocuronium');
   const succinylcholineCe = findCe('Succinylcholine');
-  const vecuroniumCe = findCe('Vecuronium');
   const remifentanilCe = findCe('Remifentanil');
 
   const mac = Number.isFinite(vitals.mac) ? vitals.mac : (Number.isFinite(patient.mac) ? patient.mac : 0);
-  const time = Number.isFinite(state.time) ? state.time : 0;
+
   const apneaDuration = (Number.isFinite(state.time) && Number.isFinite(patient.apneaStartTime)) ? (state.time - patient.apneaStartTime) : 0;
   const bradycardiaTriggered = patient.bradycardiaTriggered || false;
 

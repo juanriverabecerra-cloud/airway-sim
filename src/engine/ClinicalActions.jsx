@@ -1,4 +1,3 @@
-import React from 'react';
 
 export const CLINICAL_ACTIONS = {
   // === SEDATIVES & HYPNOTICS ===
@@ -268,7 +267,7 @@ export const CLINICAL_ACTIONS = {
 };
 
 const keywords = Object.keys(CLINICAL_ACTIONS).sort((a, b) => b.length - a.length);
-const regexPattern = new RegExp(`\\b(${keywords.map(k => k.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|')})\\b`, 'gi');
+const regexPattern = new RegExp(`\\b(${keywords.map(k => k.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|')})\\b`, 'gi');
 
 export const parseAndRenderText = (text, onActionClick) => {
   if (!text || typeof text !== 'string') return text;

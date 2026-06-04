@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Zap, Eye, Syringe, Search, Wind, Activity, ArrowUpRight, X, Heart, ShieldAlert, Award, FileText, Stethoscope } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Zap, Eye, Syringe, Search, Wind, Activity, ArrowUpRight, X, ShieldAlert, Award, FileText } from 'lucide-react';
 
 export const ActionPanel = ({ 
   patient, 
@@ -27,7 +27,6 @@ export const ActionPanel = ({
   setPostIntubationModal,
   setExtubationModal,
   performLarsonManeuver,
-  checkCuffLeak,
   examineNpoHistory
 }) => {
   
@@ -202,7 +201,7 @@ export const ActionPanel = ({
             <div className="flex flex-wrap gap-1.5 justify-center font-mono">
               {['Pre-Op', 'Induction', 'Incision', 'Maintenance', 'Emergence'].map(phase => {
                 const isLockedInduction = phase === 'Induction' && !msmaidsComplete && !patient?.emergentRSI;
-                let btnClass = '';
+                let btnClass;
                 if (surgicalPhase === phase) {
                   btnClass = 'glass-button-blue border border-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.25)]';
                 } else if (isLockedInduction) {

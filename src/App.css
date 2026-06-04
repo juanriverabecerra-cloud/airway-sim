@@ -92,6 +92,7 @@
 }
 
 .crt-sweep-line {
+  display: none !important;
   position: absolute;
   top: 0;
   left: 0;

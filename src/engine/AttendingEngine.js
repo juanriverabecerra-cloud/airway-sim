@@ -26,7 +26,7 @@ export function evaluateAttendingGuidance(params) {
   const attendingMode = safeParams.attendingMode || 'observing';
   const msmaidsComplete = !!safeParams.msmaidsComplete;
   const ventSettings = safeParams.ventSettings || {};
-  const gasSettings = safeParams.gasSettings || {};
+
 
   const alerts = [];
   const suggestions = [];
@@ -34,23 +34,23 @@ export function evaluateAttendingGuidance(params) {
   // 1. EXTRACT TELEMETRY & PHYSIOLOGICAL VARIABLES
   const hr = typeof vitals.hr === 'number' && Number.isFinite(vitals.hr) ? vitals.hr : 0;
   const sys = typeof vitals.sys === 'number' && Number.isFinite(vitals.sys) ? vitals.sys : 0;
-  const dia = typeof vitals.dia === 'number' && Number.isFinite(vitals.dia) ? vitals.dia : 0;
+
   const map = typeof vitals.map === 'number' && Number.isFinite(vitals.map) ? vitals.map : 0;
   
   // Use strict checks rather than `||` to prevent overriding real clinical zero readings in cardiovascular/pulmonary arrest
   const spo2 = typeof vitals.spo2 === 'number' && Number.isFinite(vitals.spo2) ? vitals.spo2 : 100;
   const paco2 = typeof vitals.paco2 === 'number' && Number.isFinite(vitals.paco2) ? vitals.paco2 : 40;
-  const etco2 = typeof vitals.etco2 === 'number' && Number.isFinite(vitals.etco2) ? vitals.etco2 : 40;
+
   const mac = typeof vitals.mac === 'number' && Number.isFinite(vitals.mac) ? vitals.mac : 0;
   
   const bis = vitals.bis !== undefined && vitals.bis !== null && Number.isFinite(vitals.bis) ? vitals.bis : 99;
   const tofCount = vitals.tofCount !== undefined && vitals.tofCount !== null && Number.isFinite(vitals.tofCount) ? vitals.tofCount : 4;
   const pip = typeof vitals.pip === 'number' && Number.isFinite(vitals.pip) ? vitals.pip : 0;
   const compliance = typeof vitals.compl === 'number' && Number.isFinite(vitals.compl) ? vitals.compl : 60;
-  const resistance = typeof vitals.res === 'number' && Number.isFinite(vitals.res) ? vitals.res : 10;
+
 
   const isArrest = patient.isArrest || false;
-  const rhythm = patient.cardiacRhythm || 'sinus';
+
   const stunning = typeof patient.myocardialStunning === 'number' && Number.isFinite(patient.myocardialStunning) ? patient.myocardialStunning : 0;
   const ebl = typeof patient.ebl === 'number' && Number.isFinite(patient.ebl) ? patient.ebl : 0;
   const ebv = typeof patient.ebv === 'number' && Number.isFinite(patient.ebv) && patient.ebv > 0 ? patient.ebv : 5000;
@@ -77,7 +77,7 @@ export function evaluateAttendingGuidance(params) {
   const propofolCe = activeMeds.find(m => m.name === 'Propofol')?.Ce || 0;
   const etomidateCe = activeMeds.find(m => m.name === 'Etomidate')?.Ce || 0;
   const ketamineCe = activeMeds.find(m => m.name === 'Ketamine')?.Ce || 0;
-  const fentanylCe = activeMeds.find(m => m.name === 'Fentanyl')?.Ce || 0;
+
   const rocuroniumCe = activeMeds.find(m => m.name === 'Rocuronium')?.Ce || 0;
   const succinylcholineCe = activeMeds.find(m => m.name === 'Succinylcholine')?.Ce || 0;
   const vecuroniumCe = activeMeds.find(m => m.name === 'Vecuronium')?.Ce || 0;
@@ -87,13 +87,12 @@ export function evaluateAttendingGuidance(params) {
 
   // Helper values to parse logs
   const lowercaseLogs = logs.map(l => typeof l === 'string' ? l.toLowerCase() : '');
-  const logHas = (kw) => lowercaseLogs.some(log => log.includes(kw.toLowerCase()));
+
   const logHasAny = (kws) => kws.some(kw => lowercaseLogs.some(log => log.includes(kw.toLowerCase())));
 
   // Check placed access lines
   const placedLines = Array.isArray(patient.accessLines) ? patient.accessLines : [];
-  const hasPIV = placedLines.some(l => l && typeof l.category === 'string' && (l.category.includes('Peripheral') || (typeof l.name === 'string' && l.name.includes('PIV'))));
-  const hasCVC = placedLines.some(l => l && typeof l.category === 'string' && (l.category.includes('Central') || (typeof l.name === 'string' && l.name.includes('CVC'))));
+
   const hasArt = placedLines.some(l => l && typeof l.category === 'string' && (l.category.includes('Arterial') || (typeof l.name === 'string' && l.name.includes('Arterial')) || patient.hasALine));
 
   // Determine Case Profiles
@@ -276,7 +275,7 @@ export function evaluateAttendingGuidance(params) {
   }
 
   // 3. STEP-BY-STEP TEACHING / TUTORIAL FLOW (Active in Teaching Mode)
-  let teachingGuide = null;
+  let teachingGuide;
 
   if (!msmaidsComplete) {
     teachingGuide = {
@@ -481,10 +480,9 @@ Once met, suction oral secretions, perform [cuff leak test], deflate the cuff, a
     : "🔮 Telemetry stable. Maintain current anesthetic depth, fluid balance, and mechanical ventilation parameters. Review labs and monitor for surgical blood loss.";
 
   // 6. COMBINE AND RETURN ACCORDING TO ATTENDING MODE
-  let primaryGuidance = null;
+  let primaryGuidance;
   const criticalAlert = activeFilteredAlerts.find(a => a.priority === 'CRITICAL');
   const warningAlert = activeFilteredAlerts.find(a => a.priority === 'WARNING');
-  const highestSuggestion = activeFilteredSuggestions.find(s => s.priority === 'SUGGESTION');
 
   if (attendingMode === 'teaching') {
     if (criticalAlert) {

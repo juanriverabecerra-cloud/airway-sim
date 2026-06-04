@@ -171,7 +171,7 @@ export function getGuidedFuzzAction(state, fuzzerState, strategy = 'guided') {
 /**
  * Exhaustive Clinical Coverage Strategy Action Generator (ultimate)
  */
-function generateUltimateCoverageAction(state, fuzzerState, flags) {
+function generateUltimateCoverageAction(state, fuzzerState) {
   if (!fuzzerState) fuzzerState = {};
 
   // Check if we have a pre-programmed sequence running
@@ -913,7 +913,6 @@ export function executeFuzzAction(action, handlers = {}) {
   const {
     setPatient = () => {},
     handleProcessMed = () => {},
-    handlePushMed = () => {},
     handlePushFluid = () => {},
     handleSetVentSettings = () => {},
     handleSetO2 = () => {},
@@ -923,7 +922,6 @@ export function executeFuzzAction(action, handlers = {}) {
     performLarsonManeuver = () => {},
     checkCuffLeak = () => {},
     examineNpoHistory = () => {},
-    generateLab = () => {},
     logEvent = () => {},
     patient = {},
     setSurgicalPhase = () => {},

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Wind, Stethoscope, AlertTriangle, Droplet, Zap, Sliders, CheckSquare, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
+import { Wind, Stethoscope, AlertTriangle, Droplet, Sliders } from 'lucide-react';
 
 export const AirwayPanel = ({ 
   patient, 
@@ -7,7 +7,6 @@ export const AirwayPanel = ({
   handleSuction, 
   optimizeAirway, 
   pushMed, 
-  setViewModal, 
   setSetupModal, 
   setTubeConfirmModal, 
   logEvent, 
@@ -21,7 +20,6 @@ export const AirwayPanel = ({
 }) => {
   const [airwayToolInput, setAirwayToolInput] = useState({ tool: null, size: '' });
   const [extubateConfirm, setExtubateConfirm] = useState(false);
-  const [o2Input, setO2Input] = useState({ device: null, flow: '', fio2: '', ipap: '', epap: '', rate: '' });
 
   if (isCollapsed) {
     return (
@@ -103,7 +101,7 @@ export const AirwayPanel = ({
   // Render Secured Airway Dashboard
   if (patient?.airwaySecured) {
     return (
-      <div className="glass-panel glass-cyan p-4 flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+      <div className="glass-panel glass-cyan p-4 flex flex-col gap-4 flex-1 min-h-[250px] overflow-y-auto custom-scrollbar">
         {/* Header Minimize Row */}
         <div className="flex justify-between items-center border-b border-white/5 pb-2 shrink-0 font-mono">
           <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 flex items-center gap-1.5">
@@ -198,7 +196,7 @@ export const AirwayPanel = ({
 
   // Render Unsecured Airway Dashboard
   return (
-    <div className="glass-panel glass-cyan p-4 flex flex-col gap-4 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+    <div className="glass-panel glass-cyan p-4 flex flex-col gap-4 flex-1 min-h-[250px] overflow-y-auto custom-scrollbar">
       {/* Header Minimize Row */}
       <div className="flex justify-between items-center border-b border-white/5 pb-2 shrink-0 font-mono">
         <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 flex items-center gap-1.5">

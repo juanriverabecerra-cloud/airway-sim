@@ -163,7 +163,7 @@ export class PKPDModel {
     const k31 = (this.pk.k31 || 0) / 60;
 
     // Autoregulation of Effect-Site Equilibration (ke0)
-    let ke0Mod = 1.0;
+    let ke0Mod;
     if (this.classes.includes('Sedative') || this.classes.includes('Hypnotic') || this.classes.includes('Opioid')) {
       // Cerebral autoregulation preserves brain blood flow (and ke0) until severe shock
       ke0Mod = safeCoRatio < 0.5 ? (safeCoRatio * 2) : 1.0; 

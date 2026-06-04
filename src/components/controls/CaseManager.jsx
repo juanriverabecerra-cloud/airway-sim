@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Activity, Dices, AlertTriangle, CheckCircle2, FileText, ArrowLeft, Play, Info, Settings, Heart, ShieldAlert } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Activity, Dices, FileText, ArrowLeft, Info, Settings, Heart, ShieldAlert } from 'lucide-react';
 import { calculateIBW, calculateLungVolumes } from '../../engine/Pharmacology';
 
 const PRESETS = [
@@ -93,7 +93,8 @@ const PRESETS = [
     ebl: 'Low', duration: 90, penicillinAllergy: false,
     npoSolids: 8, npoLiquids: 4, ef: 60, gfr: 110,
     betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: true, as: false
+    burns: false, immobility: false, cp: 'none', htn: true, as: false,
+    diabetes: true, insulin: true
   },
   {
     id: 'obgyn',
@@ -185,11 +186,12 @@ const PRESETS = [
     npoSolids: 8, npoLiquids: 4, ef: 60, gfr: 72,
     betaBlocker: false, cad: false, afib: false, mg: false,
     burns: false, immobility: false, cp: 'C', htn: false, as: false,
-    cirrhosis: true, childPugh: 'C'
+    cirrhosis: true, childPugh: 'C',
+    anemia: true, coagulopathy: true, thrombocytopenia: true
   }
 ];
 
-export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase: propSetStagedCase, openPreOpEMR }) => {
+export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSetStagedCase, openPreOpEMR }) => {
   const [activeTab, setActiveTab] = useState('presets'); 
   const [selectedPresetId, setSelectedPresetId] = useState(PRESETS[0].id);
   const [localStagedCase, localSetStagedCase] = useState(null);
@@ -208,6 +210,7 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
     npoSolids: 8, npoLiquids: 4, ef: 60, gfr: 100,
     betaBlocker: false, cad: false, afib: false, as: false, mg: false,
     burns: false, immobility: false, cp: 'none', htn: false,
+    anemia: false, thrombocytopenia: false, coagulopathy: false, diabetes: false, insulin: false,
     emergentRSI: false
   });
 
@@ -235,7 +238,7 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
     const ibw = calculateIBW(height, sex);
     
     // lean body weight (Janmahasatian equation)
-    let lbw = 0;
+    let lbw;
     if (sex === 'male') {
       lbw = (9270 * weight) / (6680 + 216 * bmi);
     } else {
@@ -246,6 +249,7 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
     const bsa = Math.sqrt((height * weight) / 3600);
     const lung = calculateLungVolumes(height, age, sex, bmi, position, customForm.copd || false, customForm.restrictive || false);
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDemographics({
       bmi: parseFloat(Number.isFinite(bmi) ? bmi.toFixed(1) : '24.5'),
       ibw: parseFloat(Number.isFinite(ibw) ? ibw.toFixed(1) : '65.0'),
@@ -384,7 +388,7 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
     airway += data.neckMobility === 'reduced' ? "Severe neck mobility restriction. " : "Normal neck extension. ";
     if (data.airwayBlood) airway += "Active blood/secretions in the oropharynx. ";
 
-    let rationale = "";
+    let rationale;
     if (levelStr === 'Easy') {
       rationale = "Healthy patient, excellent physiological reserve. Tolerates standard induction doses. Straightforward direct laryngoscopy anticipated.";
     } else if (levelStr === 'Medium') {
@@ -454,7 +458,12 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
         npoLiquids: data.npoLiquids || 4,
         allergies: data.penicillinAllergy ? 'Penicillin' : 'NKDA',
         pmhx: briefing.pmhx,
-        emergentRSI: !!data.emergentRSI
+        emergentRSI: !!data.emergentRSI,
+        anemia: !!data.anemia,
+        thrombocytopenia: !!data.thrombocytopenia,
+        coagulopathy: !!data.coagulopathy,
+        diabetes: !!data.diabetes,
+        insulin: !!data.insulin
       }
     };
     setStagedCase(newCase);
@@ -834,7 +843,7 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
                </div>
 
                {/* NEURO & MUSCULO */}
-               <div className="flex flex-col gap-1">
+               <div className="flex flex-col gap-1 border-b border-slate-850 pb-2">
                  <span className="text-[10px] text-green-400 font-bold uppercase tracking-wider">Neuromuscular</span>
                  <div className="grid grid-cols-2 gap-1.5 mt-0.5">
                    <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300">
@@ -844,6 +853,30 @@ export const CaseManager = ({ onStart, stagedCase: propStagedCase, setStagedCase
                      <input type="checkbox" checked={customForm.burns || customForm.immobility} onChange={e => setCustomForm({...customForm, burns: e.target.checked, immobility: e.target.checked})} className="accent-red-500" /> Upregulated AChR ⚠️
                    </label>
                  </div>
+               </div>
+
+               {/* HEMATOLOGY & METABOLISM */}
+               <div className="flex flex-col gap-1">
+                 <span className="text-[10px] text-green-400 font-bold uppercase tracking-wider">Hematology & Metabolism</span>
+                 <div className="grid grid-cols-2 gap-1.5 mt-0.5">
+                   <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300">
+                     <input type="checkbox" checked={customForm.anemia} onChange={e => setCustomForm({...customForm, anemia: e.target.checked})} className="accent-green-500" /> Anemia
+                   </label>
+                   <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300">
+                     <input type="checkbox" checked={customForm.thrombocytopenia} onChange={e => setCustomForm({...customForm, thrombocytopenia: e.target.checked})} className="accent-green-500" /> Thrombocytopenia
+                   </label>
+                   <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300">
+                     <input type="checkbox" checked={customForm.coagulopathy} onChange={e => setCustomForm({...customForm, coagulopathy: e.target.checked})} className="accent-green-500" /> Coagulopathy
+                   </label>
+                   <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300">
+                     <input type="checkbox" checked={customForm.diabetes} onChange={e => setCustomForm({...customForm, diabetes: e.target.checked})} className="accent-green-500" /> Diabetes
+                   </label>
+                 </div>
+                 {customForm.diabetes && (
+                   <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300 mt-1">
+                     <input type="checkbox" checked={customForm.insulin} onChange={e => setCustomForm({...customForm, insulin: e.target.checked})} className="accent-green-500" /> Insulin-Dependent
+                   </label>
+                 )}
                </div>
             </div>
 

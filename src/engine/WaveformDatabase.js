@@ -151,7 +151,7 @@ export const WAVEFORMS = {
       const duration = typeof beatDuration === 'number' && Number.isFinite(beatDuration) && beatDuration > 0.001 ? beatDuration : 5.0;
       const t = typeof tBeat === 'number' && Number.isFinite(tBeat) && tBeat >= 0 ? tBeat : 0;
       const safeH = typeof h === 'number' && Number.isFinite(h) ? h : 40.0;
-      const safeBase = typeof base === 'number' && Number.isFinite(base) ? base : 0.0;
+
       const safeIeRatio = typeof ieRatio === 'number' && Number.isFinite(ieRatio) && ieRatio > 0.01 ? ieRatio : 2.0;
       const safeAmpScale = typeof ampScale === 'number' && Number.isFinite(ampScale) ? ampScale : 1.0;
 
@@ -181,7 +181,7 @@ export const WAVEFORMS = {
       const duration = typeof beatDuration === 'number' && Number.isFinite(beatDuration) && beatDuration > 0.001 ? beatDuration : 5.0;
       const t = typeof tBeat === 'number' && Number.isFinite(tBeat) && tBeat >= 0 ? tBeat : 0;
       const safeH = typeof h === 'number' && Number.isFinite(h) ? h : 40.0;
-      const safeBase = typeof base === 'number' && Number.isFinite(base) ? base : 0.0;
+
       const safeIeRatio = typeof ieRatio === 'number' && Number.isFinite(ieRatio) && ieRatio > 0.01 ? ieRatio : 2.0;
       const safeAmpScale = typeof ampScale === 'number' && Number.isFinite(ampScale) ? ampScale : 1.0;
 

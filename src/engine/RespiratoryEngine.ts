@@ -388,7 +388,21 @@ export class RespiratoryEngine {
         
         const targetO2_L = recruitedFRC_L * (replenishmentFiO2 / 100);
         const k = effectiveMV_L_min / 60 / recruitedFRC_L;
-        buffer += k * (targetO2_L - buffer);
+
+        let modalityWashinMultiplier = 1.0;
+        if (currentO2DeviceStr.includes('HFNC') || currentO2DeviceStr.includes('High Flow')) {
+          modalityWashinMultiplier = 2.5;
+        } else if (currentO2DeviceStr.includes('CPAP') || currentO2DeviceStr.includes('BiPAP')) {
+          modalityWashinMultiplier = 2.2;
+        } else if (currentO2DeviceStr.includes('Non-Rebreather') || currentO2DeviceStr.includes('NRB')) {
+          modalityWashinMultiplier = 1.8;
+        } else if (isBagMaskActive || currentO2DeviceStr.includes('BMV')) {
+          modalityWashinMultiplier = 1.5;
+        } else if (currentO2DeviceStr.includes('Simple Face Mask') || currentO2DeviceStr.includes('Face Mask')) {
+          modalityWashinMultiplier = 1.2;
+        }
+
+        buffer += k * modalityWashinMultiplier * (targetO2_L - buffer);
       } else {
         buffer -= (VO2_sec - passiveO2Influx);
       }

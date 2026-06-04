@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
-  MessageSquare, ChevronRight, X, Volume2, VolumeX, AlertTriangle, 
-  HelpCircle, Shield, Award, Clock, ArrowRight, Play, BookOpen
+  MessageSquare, ChevronRight, X, 
+  HelpCircle, Shield, Award, Clock, ArrowRight, BookOpen
 } from 'lucide-react';
 import { parseAndRenderText } from '../../engine/ClinicalActions';
 import { getAttendingResponse } from '../../engine/ClinicalAiChat';
@@ -26,7 +26,6 @@ export default function AttendingPanel({
   const [isOpen, setIsOpen] = useState(false);
   const [messageHistory, setMessageHistory] = useState([]);
   const [showAuditModal, setShowAuditModal] = useState(false);
-  const lastMessageRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState('advisor'); // 'advisor' or 'chat'
   const [chatMessages, setChatMessages] = useState([]);
@@ -34,8 +33,10 @@ export default function AttendingPanel({
   const [isTyping, setIsTyping] = useState(false);
   const chatEndRef = useRef(null);
 
+
   // Initialize and reset chat messages on patient name changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setChatMessages([
       {
         id: 'welcome',
@@ -44,6 +45,7 @@ export default function AttendingPanel({
         timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m`
       }
     ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patient?.name]);
 
   // Scroll to bottom on new messages
@@ -57,7 +59,7 @@ export default function AttendingPanel({
     if (actionKey.startsWith('audit ')) {
       setActiveTab('chat');
       const userMessage = {
-        id: `user-${Date.now()}`,
+        id: `user-${chatMessages.length}`,
         sender: 'user',
         text: actionKey.toUpperCase(),
         timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m`
@@ -73,13 +75,15 @@ export default function AttendingPanel({
           time,
           logs
         });
-        const responseMessage = {
-          id: `attending-${Date.now()}`,
-          sender: 'attending',
-          text: attendingReply,
-          timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m`
-        };
-        setChatMessages(prev => [...prev, responseMessage]);
+        setChatMessages(prev => {
+          const responseMessage = {
+            id: `attending-${prev.length}`,
+            sender: 'attending',
+            text: attendingReply,
+            timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m`
+          };
+          return [...prev, responseMessage];
+        });
         setIsTyping(false);
       }, 600);
     } else {
@@ -92,7 +96,7 @@ export default function AttendingPanel({
     if (!userInput.trim()) return;
 
     const userMessage = {
-      id: `user-${Date.now()}`,
+      id: `user-${chatMessages.length}`,
       sender: 'user',
       text: userInput,
       timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m`
@@ -113,14 +117,15 @@ export default function AttendingPanel({
         logs
       });
 
-      const responseMessage = {
-        id: `attending-${Date.now()}`,
-        sender: 'attending',
-        text: attendingReply,
-        timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m`
-      };
-
-      setChatMessages(prev => [...prev, responseMessage]);
+      setChatMessages(prev => {
+        const responseMessage = {
+          id: `attending-${prev.length}`,
+          sender: 'attending',
+          text: attendingReply,
+          timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m`
+        };
+        return [...prev, responseMessage];
+      });
       setIsTyping(false);
     }, 600);
   };
@@ -132,6 +137,7 @@ export default function AttendingPanel({
   // Sync primary guidance to message history when it changes to prevent duplicates
   useEffect(() => {
     if (primaryGuidance) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMessageHistory(prev => {
         // Prevent appending the exact same message back-to-back
         if (prev.length > 0 && prev[prev.length - 1].text === primaryGuidance.text) {
@@ -140,7 +146,7 @@ export default function AttendingPanel({
         return [
           ...prev,
           {
-            id: Date.now(),
+            id: `msg-${prev.length}`,
             timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m`,
             stepName: primaryGuidance.title,
             text: primaryGuidance.text,

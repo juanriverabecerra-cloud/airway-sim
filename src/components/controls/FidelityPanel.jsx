@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { flushSync } from 'react-dom';
 import { 
-  X, AlertTriangle, HelpCircle, Shield, Award, Clock, ArrowRight, 
-  Play, CheckCircle2, Activity, FileCode, CheckSquare, Settings
+  X, Shield, Play, CheckCircle2, Activity, FileCode, CheckSquare, Settings, ArrowRight
 } from 'lucide-react';
 import { evaluateFidelity } from '../../engine/FidelityOracle';
-import { getRandomFuzzAction, getGuidedFuzzAction, executeFuzzAction, generateFidelityReport } from '../../engine/FidelityFuzzer';
+import { getGuidedFuzzAction, executeFuzzAction, generateFidelityReport } from '../../engine/FidelityFuzzer';
 
 const WEB3FORMS_ACCESS_KEY = 'e2175b71-5996-4f82-b55f-cf76fcca8255';
 

@@ -1,4 +1,3 @@
-import React from 'react';
 import { INHALATIONAL_AGENTS } from '../../engine/Pharmacology';
 
 export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSettings, patient }) => {

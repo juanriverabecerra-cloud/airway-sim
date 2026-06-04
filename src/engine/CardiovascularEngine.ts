@@ -228,7 +228,7 @@ export class CardiovascularEngine {
     const targetCO = Math.max(0, Math.min(30.0, (targetHR * currentSV) / 1000));
 
     // Systemic MAP Shifts
-    const pressorMAPShift = (effectiveIntravascularVolume / 250) * 8;
+    const pressorMAPShift = ((effectiveIntravascularVolume - safeEbv) / 250) * 8;
     const sepsisMAPShift = patient.isSeptic ? -33.33 : 0;
 
     // Damped transitions to resolve Ohm's law violations

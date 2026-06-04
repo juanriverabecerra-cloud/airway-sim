@@ -1,10 +1,8 @@
-import React, { useState } from 'react';
-import { Undo2, FileText, X } from 'lucide-react';
+import { Undo2, FileText } from 'lucide-react';
 
 export const PatientHeader = ({ 
   activeCase, 
   patient, 
-  vitals, 
   setActiveCase, 
   handleUndo, 
   history, 
@@ -12,7 +10,6 @@ export const PatientHeader = ({
   setShowLabPanel, 
   isRunning, 
   setIsRunning, 
-  showPreOp, 
   setShowPreOp,
   showFidelityPanel,
   setShowFidelityPanel

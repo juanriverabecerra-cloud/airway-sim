@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './App.css';
 import { usePhysiology } from './engine/usePhysiology';
 import { ProceduralEngine } from './engine/ProceduralEngine';
@@ -25,6 +25,7 @@ import FidelityPanel from './components/controls/FidelityPanel';
 import { CLINICAL_ACTIONS } from './engine/ClinicalActions';
 
 
+// eslint-disable-next-line no-unused-vars
 const CASES = [
   {
     id: 'normal', name: 'Elective Surgery (Perfect Baseline)', difficulty: 'Easy',
@@ -107,6 +108,7 @@ export default function App() {
 
   const [preopModal, setPreopModal] = useState(false);
   const [preOpEMR, setPreOpEMR] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [showPreOp, setShowPreOp] = useState(false);
   const [stagedCase, setStagedCase] = useState(null);
   const [msmaidsModal, setMsmaidsModal] = useState(false);
@@ -123,12 +125,15 @@ export default function App() {
     return `${Math.floor(seconds / 60).toString().padStart(2, '0')}:${(seconds % 60).toString().padStart(2, '0')}`;
   }
 
-  const logEvent = (msg) => {
-    setLogs(prev => [`${formatTime(time || 0)} - ${msg}`, ...prev]);
-  };
+  const vitalsRef = useRef({ hr: 0, sys: 0, dia: 0, spo2: 0, rr: 0 });
+  const timeRef = useRef(0);
+
+  const logEvent = useCallback((msg) => {
+    setLogs(prev => [`${formatTime(timeRef.current || 0)} - ${msg}`, ...prev]);
+  }, []);
  
   const {
-    time, setTime, vitals, setVitals, targetVitals, setTargetVitals, patient, setPatient,
+    time, setTime, vitals, setVitals, setTargetVitals, patient, setPatient,
     processMed, pushMed, pushFluid, updateFluidRate, removeFluid, activeMeds, intravascularVolume, electrolytes, coags,
     deliverShock, toggleCPR, surgicalPhase, setSurgicalPhase, createSnapshot, restoreSnapshot
   } = usePhysiology({
@@ -141,8 +146,6 @@ export default function App() {
     msmaidsComplete
   });
 
-  const vitalsRef = useRef(vitals);
-  const timeRef = useRef(time);
   useEffect(() => {
     vitalsRef.current = vitals;
   }, [vitals]);
@@ -150,16 +153,30 @@ export default function App() {
     timeRef.current = time;
   }, [time]);
 
+  const cycleNibp = useCallback(() => { 
+    if (isCyclingNibp) return;
+    setIsCyclingNibp(true);
+    logEvent(`Started NIBP measurement cycle (15s)...`);
+    setTimeout(() => {
+      const currentVitals = vitalsRef.current;
+      const currentTime = timeRef.current;
+      setNibp({ sys: currentVitals.sys, dia: currentVitals.dia, time: currentTime }); 
+      logEvent(`NIBP Result: ${Math.round(currentVitals.sys)}/${Math.round(currentVitals.dia)} mmHg`); 
+      setIsCyclingNibp(false);
+    }, 15000); 
+  }, [isCyclingNibp, logEvent]);
+
   // Periodic NIBP cycle evaluation
   useEffect(() => {
     const isPaused = viewModal.show || setupModal || pocusModal.show || airwayQuizModal.show || accessModal.show || tubeConfirmModal.show || preopModal || msmaidsModal || postIntubationModal || extubationModal;
     if (isRunning && !isPaused && nibpIntervalMs > 0 && !patient?.hasALine) {
       const intervalSec = nibpIntervalMs / 1000;
       if (time > 0 && time % intervalSec === 0 && !isCyclingNibp) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         cycleNibp();
       }
     }
-  }, [time, isRunning, nibpIntervalMs, isCyclingNibp, patient?.hasALine, viewModal.show, setupModal, pocusModal.show, airwayQuizModal.show, accessModal.show, tubeConfirmModal.show, preopModal, msmaidsModal, postIntubationModal, extubationModal]);
+  }, [time, isRunning, nibpIntervalMs, isCyclingNibp, patient?.hasALine, viewModal.show, setupModal, pocusModal.show, airwayQuizModal.show, accessModal.show, tubeConfirmModal.show, preopModal, msmaidsModal, postIntubationModal, extubationModal, cycleNibp]);
 
   const attendingGuidance = evaluateAttendingGuidance({
     vitals,
@@ -311,7 +328,7 @@ export default function App() {
       } else if (action.action === 'cpr') {
         toggleCPR();
       } else if (action.action === 'check_rhythm') {
-        checkRhythm();
+        handleCheckRhythm();
       } else if (action.action === 'shock') {
         deliverShock(defibSettings.joules, defibSettings.sync);
       } else if (action.action === 'jaw_thrust') {
@@ -503,19 +520,6 @@ export default function App() {
     setLogs([`00:00 - Case Started: ${selectedCase.name}. ${selectedCase.description}`]);
     setIsCyclingNibp(false);
     setTime(0); setHistory([]); setIsRunning(true);
-  };
-
-  const cycleNibp = () => { 
-    if (isCyclingNibp) return;
-    setIsCyclingNibp(true);
-    logEvent(`Started NIBP measurement cycle (15s)...`);
-    setTimeout(() => {
-      const currentVitals = vitalsRef.current;
-      const currentTime = timeRef.current;
-      setNibp({ sys: currentVitals.sys, dia: currentVitals.dia, time: currentTime }); 
-      logEvent(`NIBP Result: ${Math.round(currentVitals.sys)}/${Math.round(currentVitals.dia)} mmHg`); 
-      setIsCyclingNibp(false);
-    }, 15000); 
   };
 
   const performLarsonManeuver = () => {
@@ -757,8 +761,8 @@ export default function App() {
   const generateClinicalHint = () => {
     if (!activeCase) return;
     
-    let currentStatus = "";
-    let forecast = "";
+    let currentStatus;
+    let forecast;
 
     // Pull from high-fidelity, unified AttendingEngine findings
     const guidance = attendingGuidance?.primaryGuidance;

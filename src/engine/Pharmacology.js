@@ -639,8 +639,8 @@ export function calculateLungVolumes(heightCm, age, sex, bmi, position = 'Supine
     }
 
     // Initialize actual parameters with predicted baselines
-    let fvc = fvc_pred;
-    let fev1 = fev1_pred;
+    let fvc;
+    let fev1;
     let tlc = tlc_pred;
     let rv = rv_pred;
     let frc = frc_pred;

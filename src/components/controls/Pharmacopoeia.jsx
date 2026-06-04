@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import { useState, useEffect, useRef } from 'react';
 import { MEDICATIONS, FLUIDS } from '../../engine/Pharmacology';
-import { Search, X, Droplet, Activity, ShieldAlert, Zap, Layers, RefreshCw } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 
 // ASTM / ISO standard-inspired color coordination profiles for clinical anesthesia agents
 export const getMedColor = (medId) => {
@@ -115,19 +116,12 @@ export const getFluidColor = (fluidId) => {
 export const Pharmacopoeia = ({ 
   pushFluid, 
   processMed, 
-  patient, 
-  setPatient, 
-  updateFluidRate, 
-  removeFluid, 
-  logEvent 
+  patient 
 }) => {
-  const [activeTab, setActiveTab] = useState('meds'); // 'meds' | 'infusions'
   const [activeSubTab, setActiveSubTab] = useState('induction'); // 'induction' | 'analgesia' | 'hemodynamics' | 'other' | 'fluids'
   const [searchTerm, setSearchTerm] = useState('');
   const [medInput, setMedInput] = useState({ drug: null, dose: '', indication: '', route: 'IV', type: 'Bolus', unit: '', lineId: '' });
   const [fluidInput, setFluidInput] = useState({ fluid: null, dose: '', lineId: '' });
-  const [editInfusionDose, setEditInfusionDose] = useState({});
-  const [bolusInfusionDose, setBolusInfusionDose] = useState({});
   const searchRef = useRef(null);
 
   // QoL: Global Keyboard Shortcut to focus search
@@ -180,38 +174,6 @@ export const Pharmacopoeia = ({
       return `≈ ${dose * (fluid.defaultVol || 300)} mL (${dose} Units)`;
     }
     return '';
-  };
-
-  const handleUpdateInfusion = (medId, newDose, originalUnit, lineId) => {
-    if ((newDose === undefined || newDose === null || newDose === '') || !lineId) return;
-    
-    setPatient(prev => {
-      const newLines = (prev.accessLines || []).map(l => {
-        if (l.id !== lineId) return l;
-        const currentMeds = [...(l.activeMedInfusions || [])];
-        const existingIdx = currentMeds.findIndex(m => m.medId === medId);
-        
-        if (parseFloat(newDose) <= 0) {
-          return { ...l, activeMedInfusions: currentMeds.filter(m => m.medId !== medId) };
-        }
-
-        if (existingIdx >= 0) {
-          currentMeds[existingIdx] = { ...currentMeds[existingIdx], rate: parseFloat(newDose) };
-        } else {
-          currentMeds.push({ medId, rate: parseFloat(newDose), unit: originalUnit });
-        }
-        return { ...l, activeMedInfusions: currentMeds };
-      });
-      return { ...prev, accessLines: newLines };
-    });
-
-    processMed(medId, newDose, 'IV', 'Infusion', originalUnit);
-    logEvent(`Set ${medId} infusion rate to ${newDose} ${originalUnit} on selected line.`);
-  };
-
-  const handlePushFromInfusion = (medId, doseToPush, originalUnit, lineId) => {
-    if (!doseToPush || !lineId) return;
-    processMed(medId, doseToPush, 'IV', 'Bolus', originalUnit.replace('/hr', '').replace('/min', ''));
   };
 
   // Group Definitions
@@ -357,13 +319,6 @@ export const Pharmacopoeia = ({
   const filteredMeds = Object.keys(MEDICATIONS).filter(id => MEDICATIONS[id].name.toLowerCase().includes(term) || MEDICATIONS[id].classes.some(c => c.toLowerCase().includes(term)));
   const filteredFluids = Object.keys(FLUIDS).filter(id => id.toLowerCase().includes(term));
 
-  const resusLines = (patient?.accessLines || []).filter(l => l && l.category !== 'Arterial Line');
-  let totalMedInfusionsCount = 0;
-  resusLines.forEach(l => {
-    if (l && !l.failed && l.activeMedInfusions) {
-      totalMedInfusionsCount += l.activeMedInfusions.filter(m => m && parseFloat(m.rate) > 0).length;
-    }
-  });
 
   return (
     <div className="col-span-1 glass-panel glass-purple p-4 flex flex-col gap-4 overflow-y-auto overflow-x-hidden custom-scrollbar min-h-[500px] max-h-[800px]">
