@@ -223,11 +223,7 @@ export const LinesResusPanel = ({
                       <div className="w-full h-1 bg-slate-900 rounded-full overflow-hidden">
                         <div className={`h-full bg-gradient-to-r ${fluidColorTheme.progress} rounded-full transition-all duration-500`} style={{ width: `${pct}%` }} />
                       </div>
-                      {fluid.currentRate > 0 && (
-                        <div className="w-full h-1.5 bg-slate-950 border border-white/5 rounded-full overflow-hidden relative mt-0.5" title="Active intravenous infusion line">
-                          <div className={`h-full w-full ${fluid.currentRate > 500 ? 'flowing-line-fast' : 'flowing-line'}`} />
-                        </div>
-                      )}
+
                       <div className="flex justify-between items-center text-[8px] text-slate-500">
                         <span>Flow: <span className={`font-extrabold ${isBlood ? 'text-red-400' : 'text-cyan-400'}`}>{fluid.currentRate ? Math.round(fluid.currentRate) : 0} mL/hr</span></span>
                         <span>{Math.round(pct)}% left</span>

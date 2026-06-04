@@ -510,7 +510,8 @@ export default function App() {
       hasCVC: selectedCase.patient.hasCVC || false,
       currentO2Device: 'Room Air', currentFiO2: 21, currentO2Flow: 0,
       oxygenBuffer: null, // Let engine calculate from FRC
-      drugEffects: { sys: 0, hr: 0 }, accessLines: []
+      drugEffects: { sys: 0, hr: 0 }, accessLines: [],
+      patientBaseHR: selectedCase.baseVitals.hr
     });
     if (selectedCase.preOpLabs) {
       setLabs(selectedCase.preOpLabs);

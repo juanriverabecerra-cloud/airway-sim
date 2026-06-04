@@ -121,7 +121,7 @@ export const Pharmacopoeia = ({
   const [activeSubTab, setActiveSubTab] = useState('induction'); // 'induction' | 'analgesia' | 'hemodynamics' | 'other' | 'fluids'
   const [searchTerm, setSearchTerm] = useState('');
   const [medInput, setMedInput] = useState({ drug: null, dose: '', indication: '', route: 'IV', type: 'Bolus', unit: '', lineId: '' });
-  const [fluidInput, setFluidInput] = useState({ fluid: null, dose: '', lineId: '' });
+  const [fluidInput, setFluidInput] = useState({ fluid: null, dose: '', rate: '', lineId: '' });
   const searchRef = useRef(null);
 
   // QoL: Global Keyboard Shortcut to focus search
@@ -149,8 +149,8 @@ export const Pharmacopoeia = ({
     const selectedLine = patient?.accessLines?.find(l => l.id === selectedLineId);
     if (selectedLine?.category === 'Arterial Line') return;
     if (fluidInput.dose) {
-      pushFluid(fluidId, fluidInput.dose, selectedLineId);
-      setFluidInput({ fluid: null, dose: '', lineId: '' });
+      pushFluid(fluidId, fluidInput.dose, selectedLineId, fluidInput.rate);
+      setFluidInput({ fluid: null, dose: '', rate: '', lineId: '' });
       setSearchTerm('');
     }
   };
@@ -195,7 +195,7 @@ export const Pharmacopoeia = ({
     return (
       <div className="flex flex-col gap-1 mb-1.5" key={fluidId}>
         <button 
-          onClick={() => setFluidInput(isActive ? { fluid: null } : { fluid: fluidId, dose: '', lineId: selectedLineId })} 
+          onClick={() => setFluidInput(isActive ? { fluid: null } : { fluid: fluidId, dose: '', rate: '', lineId: selectedLineId })} 
           className={`p-2 rounded-lg text-xs text-left border transition-all glass-button ${colorTheme.active} ${isActive ? colorTheme.active : 'border-slate-800'}`}
         >
           <span className="font-bold text-slate-100">{fluidId}</span>
@@ -223,15 +223,24 @@ export const Pharmacopoeia = ({
             )}
 
             <div className="flex gap-2">
-              <div className="w-1/2 flex flex-col">
+              <div className="w-1/2 flex flex-col gap-1.5">
                 <input 
                   autoFocus 
                   type="number" 
                   disabled={isArterial}
-                  placeholder={`Dose (${getFluidUnitLabel(fluidId)})`} 
+                  placeholder={`Vol (${getFluidUnitLabel(fluidId)})`} 
                   className={`w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white outline-none font-mono ${isArterial ? 'opacity-40' : ''} ${colorTheme.focus}`} 
                   value={fluidInput.dose} 
                   onChange={(e) => setFluidInput({...fluidInput, dose: e.target.value})} 
+                  onKeyDown={(e) => { if (e.key === 'Enter' && !isArterial) handleFluidSubmit(fluidId); }}
+                />
+                <input 
+                  type="number" 
+                  disabled={isArterial}
+                  placeholder="Rate (mL/hr) (opt)" 
+                  className={`w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white outline-none font-mono ${isArterial ? 'opacity-40' : ''} ${colorTheme.focus}`} 
+                  value={fluidInput.rate || ''} 
+                  onChange={(e) => setFluidInput({...fluidInput, rate: e.target.value})} 
                   onKeyDown={(e) => { if (e.key === 'Enter' && !isArterial) handleFluidSubmit(fluidId); }}
                 />
                 {fluidInput.dose && getFluidVolumePreview(fluidId, fluidInput.dose) && (
@@ -243,9 +252,9 @@ export const Pharmacopoeia = ({
               <button 
                 onClick={() => handleFluidSubmit(fluidId)} 
                 disabled={isArterial}
-                className={`w-1/2 glass-button ${isArterial ? 'opacity-30 cursor-not-allowed' : colorTheme.btn} py-1.5 text-xs`}
+                className={`w-1/2 glass-button ${isArterial ? 'opacity-30 cursor-not-allowed' : colorTheme.btn} py-1.5 text-xs flex items-center justify-center`}
               >
-                PUSH
+                START INFUSION
               </button>
             </div>
           </div>

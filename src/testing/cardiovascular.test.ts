@@ -76,6 +76,44 @@ describe('Cardiovascular & Resuscitation Engine Regression Tests', () => {
     getAnatomicalParameter: (kw: string, defVal: number) => defVal
   });
 
+  it('should verify targetHR stabilizes with chronotropic drug (Atropine) relative to patientBaseHR instead of climbing indefinitely', () => {
+    const state = createBaselineState();
+    state.patient.patientBaseHR = 70;
+    
+    // Simulate Atropine effect (Atropine chronotropic max is 55, let's assume totalHrDelta = 55)
+    const drugEffects = createBaselineDrugEffects();
+    drugEffects.totalHrDelta = 55;
+    
+    const inputs = baselineInputs(state);
+    
+    // Initial HR is 70.
+    // targetHR = baseHR (70) + totalHrDelta (55) = 125.
+    // 1st tick: newHr = 70 + (125 - 70) * 0.1 = 75.5.
+    let out = CardiovascularEngine.tick(1, { ...state, time: 1 }, drugEffects, inputs);
+    expect(out.vitals.hr).toBeGreaterThanOrEqual(75);
+    expect(out.vitals.hr).toBeLessThanOrEqual(79);
+    
+    // Feed the output back into the engine for 50 ticks to simulate progression
+    let currentState = {
+      patient: { ...out.patient },
+      vitals: { ...out.vitals },
+      electrolytes: { k: 4.0 }
+    };
+    
+    for (let i = 2; i <= 50; i++) {
+      out = CardiovascularEngine.tick(1, { ...currentState, time: i }, drugEffects, inputs);
+      currentState = {
+        patient: { ...out.patient },
+        vitals: { ...out.vitals },
+        electrolytes: { k: 4.0 }
+      };
+    }
+    
+    // The heart rate should asymptotically approach 125, not 1100!
+    expect(out.vitals.hr).toBeLessThanOrEqual(128);
+    expect(out.vitals.hr).toBeGreaterThanOrEqual(121);
+  });
+
   it('should verify Rate Pressure Product stunning in CAD patients', () => {
     const state = createBaselineState();
     state.patient.cad = true;

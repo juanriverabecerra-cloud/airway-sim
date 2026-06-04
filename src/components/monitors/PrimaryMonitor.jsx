@@ -2,6 +2,11 @@ import { Activity, Heart, Wind, RefreshCw } from 'lucide-react';
 import { CanvasWaveform } from '../CanvasWaveform';
 
 export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp, hrSpeed, rrSpeed, gasSettings, ventSettings, nibpIntervalMs, setNibpIntervalMs }) => {
+  const isSplit = patient?.airwaySecured;
+  const hrSpO2Class = isSplit ? "text-3xl lg:text-3.5xl xl:text-4xl" : "text-4xl lg:text-5xl xl:text-6xl";
+  const bpClass = isSplit ? "text-2xl lg:text-2.5xl xl:text-3xl" : "text-3xl lg:text-4xl xl:text-5xl";
+  const mapClass = isSplit ? "text-base lg:text-lg xl:text-xl" : "text-lg lg:text-xl xl:text-2xl";
+  const advClass = isSplit ? "text-lg lg:text-xl xl:text-2xl" : "text-2xl lg:text-3xl xl:text-4xl";
 
   return (
     <div className="glass-panel glass-emerald crt-monitor p-2 flex flex-col md:grid md:grid-cols-4 gap-2 min-h-[360px] md:min-h-0 md:h-auto lg:h-[420px] relative overflow-hidden">
@@ -70,7 +75,7 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
               </span>
             </div>
             <div className="flex-1 flex items-center justify-center">
-              <span className="text-4xl lg:text-5xl xl:text-6xl font-black text-green-400 leading-none select-all">
+              <span className={`${hrSpO2Class} font-black text-green-400 leading-none select-all`}>
                 {vitals?.hr ?? '--'}
               </span>
             </div>
@@ -88,7 +93,7 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
               </span>
             </div>
             <div className="flex-1 flex items-center justify-center">
-              <span className={`text-4xl lg:text-5xl xl:text-6xl font-black leading-none select-all ${ (vitals?.spo2 || 0) < 88 ? 'text-cyan-600 animate-pulse' : 'text-cyan-400'}`}>
+              <span className={`${hrSpO2Class} font-black leading-none select-all ${ (vitals?.spo2 || 0) < 88 ? 'text-cyan-600 animate-pulse' : 'text-cyan-400'}`}>
                 {vitals?.spo2 ?? '--'}%
               </span>
             </div>
@@ -125,7 +130,7 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
           
           {/* Middle Row: Main BP Number */}
           <div className="flex-1 flex items-center justify-center py-0.5">
-            <span className="text-3xl lg:text-4xl xl:text-5xl font-black text-red-400 leading-none tracking-tighter select-all">
+            <span className={`${bpClass} font-black text-red-400 leading-none tracking-tighter select-all`}>
               {patient?.hasALine ? `${vitals?.sys ?? '--'}/${vitals?.dia ?? '--'}` : `${nibp?.sys ?? '--'}/${nibp?.dia ?? '--'}`}
             </span>
           </div>
@@ -161,7 +166,7 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
             {/* MAP & cMAP Block */}
             <div className="flex items-center gap-1.5 leading-none">
               <span className="text-[8px] lg:text-[9px] text-red-500/60 font-bold uppercase tracking-wider">MAP</span>
-              <span className="text-lg lg:text-xl xl:text-2xl font-black text-red-400 leading-none">
+              <span className={`${mapClass} font-black text-red-400 leading-none`}>
                 ({Math.round(patient?.hasALine ? (vitals?.map || 0) : ((nibp?.dia || 80) + ((nibp?.sys || 120) - (nibp?.dia || 80)) / 3))})
               </span>
               {patient?.position && patient?.position !== 'Supine' && (
@@ -182,7 +187,7 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
             </div>
             <div className="flex-1 flex items-center justify-center">
               {patient?.airwaySecured ? (
-                <span className="text-4xl lg:text-5xl xl:text-6xl font-black text-yellow-400 leading-none select-all">{vitals?.etco2 ?? '--'}</span>
+                <span className={`${hrSpO2Class} font-black text-yellow-400 leading-none select-all`}>{vitals?.etco2 ?? '--'}</span>
               ) : (
                 <span className="text-[9px] lg:text-[10px] text-slate-500 font-black uppercase tracking-wider select-none">No Airway</span>
               )}
@@ -195,7 +200,7 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
               <span className="text-white font-bold text-[10px] lg:text-xs leading-none uppercase">RR</span>
             </div>
             <div className="flex-1 flex items-center justify-center">
-              <span className={`text-4xl lg:text-5xl xl:text-6xl font-black leading-none select-all ${ (vitals?.rr || 0) < 8 ? 'text-slate-400 animate-pulse' : 'text-white'}`}>
+              <span className={`${hrSpO2Class} font-black leading-none select-all ${ (vitals?.rr || 0) < 8 ? 'text-slate-400 animate-pulse' : 'text-white'}`}>
                 {vitals?.rr ?? '--'}
               </span>
             </div>
@@ -211,7 +216,7 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
             <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between hover:border-slate-500/20 transition-all overflow-hidden">
               <span className="text-[8px] lg:text-[9.5px] text-slate-400 font-bold uppercase tracking-wider leading-none">TEMP</span>
               <div className="flex-1 flex items-center justify-center">
-                <span className="text-2xl lg:text-3xl xl:text-4xl font-black text-slate-300 leading-none select-all">
+                <span className={`${advClass} font-black text-slate-300 leading-none select-all`}>
                   {(vitals?.temp || 37.0).toFixed(1)}<span className="text-[10px] lg:text-xs font-normal text-slate-500 ml-0.5">°C</span>
                 </span>
               </div>
@@ -223,7 +228,7 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
               <div className="flex-1 flex items-center justify-center">
                 {(patient?.airwaySecured && (vitals?.mac || 0) > 0) ? (
                   <div className="flex flex-col items-center justify-center leading-none">
-                    <span className="text-2xl lg:text-3xl xl:text-4xl font-black text-teal-300 leading-none select-all">{vitals?.mac?.toFixed(1)}</span>
+                    <span className={`${advClass} font-black text-teal-300 leading-none select-all`}>{vitals?.mac?.toFixed(1)}</span>
                     <span className="text-[8.5px] text-teal-500 font-bold mt-0.5 leading-none" title={gasSettings?.agent}>
                       {gasSettings?.agent?.charAt(0).toUpperCase()}{vitals?.etAgent?.toFixed(1)}%
                     </span>
@@ -239,7 +244,7 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
               <span className="text-[8px] lg:text-[9.5px] text-purple-400 font-bold uppercase tracking-wider leading-none">BIS</span>
               <div className="flex-1 flex items-center justify-center">
                 {patient?.hasBisMonitor ? (
-                  <span className="text-2xl lg:text-3xl xl:text-4xl font-black text-purple-300 leading-none select-all">{vitals?.bis || 98}</span>
+                  <span className={`${advClass} font-black text-purple-300 leading-none select-all`}>{vitals?.bis || 98}</span>
                 ) : (
                   <span className="text-[8px] lg:text-[9.5px] text-slate-655 font-bold uppercase tracking-wider select-none italic text-center">NO EEG</span>
                 )}
@@ -252,7 +257,7 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
               <div className="flex-1 flex items-center justify-center">
                 {patient?.hasTofMonitor ? (
                   <div className="flex flex-col items-center justify-center leading-none">
-                    <span className="text-2xl lg:text-3xl xl:text-4xl font-black text-orange-300 leading-none select-all">{vitals?.tofCount}/4</span>
+                    <span className={`${advClass} font-black text-orange-300 leading-none select-all`}>{vitals?.tofCount}/4</span>
                     <span className="text-[8.5px] text-orange-555 font-bold mt-0.5 leading-none">{(vitals?.tofRatio * 100).toFixed(0)}%</span>
                   </div>
                 ) : (

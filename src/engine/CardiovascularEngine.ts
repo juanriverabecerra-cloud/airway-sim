@@ -31,6 +31,7 @@ export interface PatientState {
   hasBetaBlocker?: boolean;
   patientBaseSV?: number;
   patientBaseSVR?: number;
+  patientBaseHR?: number;
   isSeptic?: boolean;
   calciumStabilized?: boolean;
   calciumStabilizedTime?: number;
@@ -197,7 +198,8 @@ export class CardiovascularEngine {
       adjustedHypovolemicTachy *= 0.15;
     }
 
-    let targetHR = Math.max(0, safeHR + totalHrDelta + adjustedAutonomicHrMod + adjustedHypovolemicTachy + safeHrSympatheticSpike + shiveringHRDriveVal + afibHRFlutter + safeAnaphylaxisHrMod);
+    const baseHR = typeof patient.patientBaseHR === 'number' && Number.isFinite(patient.patientBaseHR) && patient.patientBaseHR > 0 ? patient.patientBaseHR : 70;
+    let targetHR = Math.max(0, baseHR + totalHrDelta + adjustedAutonomicHrMod + adjustedHypovolemicTachy + safeHrSympatheticSpike + shiveringHRDriveVal + afibHRFlutter + safeAnaphylaxisHrMod);
     const safeRuleHrScale = typeof drugEffects.ruleHrScale === 'number' && Number.isFinite(drugEffects.ruleHrScale) ? drugEffects.ruleHrScale : 1.0;
     const safeRuleHrOffset = typeof drugEffects.ruleHrOffset === 'number' && Number.isFinite(drugEffects.ruleHrOffset) ? drugEffects.ruleHrOffset : 0;
     targetHR = targetHR * safeRuleHrScale + safeRuleHrOffset;

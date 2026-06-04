@@ -181,6 +181,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           shuntFraction: activeCase.id === 'trauma' ? 0.20 : (safePatientObj.isObese ? 0.12 : 0.05),
           patientBaseSVR: calculatedBaseSVR,
           patientBaseSV: assumedBaseSV,
+          patientBaseHR: baseHr,
           
           metHb: 0.8,
           coHb: activeCase.id === 'trauma' ? 12.0 : 1.0,
@@ -213,7 +214,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCase, prevCaseId]);
 
-  const pushFluid = (fluidName, volumeStr, lineId) => {
+  const pushFluid = (fluidName, volumeStr, lineId, rateStr = undefined) => {
     const currentPatient = stateRef.current.patient || patient;
     const volume = parseFloat(volumeStr);
     if (isNaN(volume) || !Number.isFinite(volume) || volume <= 0) {
@@ -328,6 +329,12 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     const effectiveVolumeML = fluidName.includes('Fibrinogen') ? volume * 50 : (isUnit ? volume * (fluidData.defaultVol || 300) : volume);
 
     let initialUserRate = undefined;
+    if (rateStr !== undefined && rateStr !== null && rateStr !== '') {
+        const parsedRate = parseFloat(rateStr);
+        if (!isNaN(parsedRate) && Number.isFinite(parsedRate) && parsedRate > 0) {
+            initialUserRate = parsedRate;
+        }
+    }
 
     setPatient(prev => {
         const newLines = [...(prev.accessLines || [])];
@@ -1166,8 +1173,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                   const anesthesiaBlunting = Math.max(0, Math.min(1.0, centralSympatholysis));
                   const painFactor = Math.max(0, 1.0 - anesthesiaBlunting);
                   const decay = Math.exp(-0.08 * dt_io);
-                  ioSurgeHr = 30 * painFactor * decay;
-                  ioSurgeMap = 40 * painFactor * decay;
+                  ioSurgeHr = 15 * painFactor * decay;
+                  ioSurgeMap = 20 * painFactor * decay;
               } else if (dt_io >= 45) {
                   st.patient.ioSympatheticSurgeActive = false;
               }
