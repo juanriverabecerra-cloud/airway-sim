@@ -458,6 +458,7 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
         npoLiquids: data.npoLiquids || 4,
         allergies: data.penicillinAllergy ? 'Penicillin' : 'NKDA',
         pmhx: briefing.pmhx,
+        procedure: data.procedure || 'surgery',
         emergentRSI: !!data.emergentRSI,
         anemia: !!data.anemia,
         thrombocytopenia: !!data.thrombocytopenia,

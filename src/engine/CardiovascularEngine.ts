@@ -180,7 +180,7 @@ export class CardiovascularEngine {
     const safeEbv = typeof patient.ebv === 'number' && Number.isFinite(patient.ebv) && patient.ebv > 0 ? patient.ebv : 5000;
     const effectiveIntravascularVolume = Math.max(100, safeEbv - safeCurrentEbl + safePreloadMod + (patient.intravascularVolume || 0));
     const inotropyFinal = Math.max(0.01, 1.0 - (newStunning / 100) + safeContractilitySympatheticSpike + (safeDrugInotropyMod - 1.0));
-    const preloadSV = Math.max(0.1, 1.0 - (safeBloodLossRatio * 1.2) + (effectiveIntravascularVolume / 2500));
+    const preloadSV = Math.max(0.1, 1.0 - (safeBloodLossRatio * 1.2) + ((effectiveIntravascularVolume - safeEbv) / 2500));
 
     const shiveringHRDriveVal = (safeShiveringMultiplier > 1.0) ? ((safeShiveringMultiplier - 1.0) * 15) : 0;
 

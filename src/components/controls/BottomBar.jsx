@@ -102,7 +102,7 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
           <span className="text-[9px] text-cyan-300 font-bold bg-cyan-950/30 px-1.5 py-0.5 rounded-md border border-cyan-900/30 font-mono">1.0 MAC = {INHALATIONAL_AGENTS[gasSettings.agent]?.mac40}%</span>
         </div>
         <div className="flex gap-2 h-full items-center">
-          <select value={gasSettings.agent} style={{ textAlignLast: 'center' }} onChange={handleAgentChange} className="flex-1 glass-input text-xs font-bold text-cyan-300 border border-white/10 rounded-lg outline-none appearance-none px-2 py-2 text-center h-full cursor-pointer hover:border-cyan-500/80 transition control-dial-hover">
+          <select value={gasSettings.agent} style={{ textAlignLast: 'center' }} onChange={handleAgentChange} className="flex-1 glass-input text-xs font-bold text-cyan-300 border border-white/10 rounded-lg outline-none appearance-none px-2 py-2 text-center h-full cursor-pointer hover:border-cyan-500/80 transition">
             <option value="sevoflurane">Sevoflurane</option>
             <option value="desflurane">Desflurane</option>
             <option value="isoflurane">Isoflurane</option>
@@ -124,7 +124,7 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
           
           <div className="flex flex-col flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[70px]">
             <span className="text-[9px] text-slate-400 font-bold text-center mb-1">MODE</span>
-            <select value={ventSettings.mode} style={{ textAlignLast: 'center' }} onChange={e => setVentSettings(s => ({...s, mode: e.target.value}))} className="w-full glass-input text-xs font-black text-cyan-300 outline-none appearance-none text-center h-full rounded-lg cursor-pointer hover:border-cyan-500/80 transition control-dial-hover">
+            <select value={ventSettings.mode} style={{ textAlignLast: 'center' }} onChange={e => setVentSettings(s => ({...s, mode: e.target.value}))} className="w-full glass-input text-xs font-black text-cyan-300 outline-none appearance-none text-center h-full rounded-lg cursor-pointer hover:border-cyan-500/80 transition">
               <option value="PCV-VG">PCV-VG</option><option value="VCV">VCV</option><option value="PCV">PCV</option><option value="PSV">PSV</option>
             </select>
             <span className="text-[8px] text-slate-650 text-center mt-1 uppercase font-bold">Control</span>

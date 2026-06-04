@@ -76,6 +76,33 @@ describe('Cardiovascular & Resuscitation Engine Regression Tests', () => {
     getAnatomicalParameter: (kw: string, defVal: number) => defVal
   });
 
+  it('should verify vitals and blood pressure remain stable under baseline ticking conditions', () => {
+    const state = createBaselineState();
+    const drugEffects = createBaselineDrugEffects();
+    const inputs = baselineInputs(state);
+    
+    let currentState = {
+      patient: { ...state.patient },
+      vitals: { ...state.vitals },
+      electrolytes: { k: 4.0 }
+    };
+    
+    for (let i = 1; i <= 60; i++) {
+      let out = CardiovascularEngine.tick(1, { ...currentState, time: i }, drugEffects, inputs);
+      currentState = {
+        patient: { ...out.patient },
+        vitals: { ...out.vitals },
+        electrolytes: { k: 4.0 }
+      };
+    }
+    
+    // Blood pressure and HR should stay in stable, normal physiologic ranges rather than drifting exponentially
+    expect(currentState.vitals.hr).toBeLessThanOrEqual(75);
+    expect(currentState.vitals.hr).toBeGreaterThanOrEqual(65);
+    expect(currentState.vitals.sys).toBeLessThanOrEqual(125);
+    expect(currentState.vitals.sys).toBeGreaterThanOrEqual(95);
+  });
+
   it('should verify targetHR stabilizes with chronotropic drug (Atropine) relative to patientBaseHR instead of climbing indefinitely', () => {
     const state = createBaselineState();
     state.patient.patientBaseHR = 70;

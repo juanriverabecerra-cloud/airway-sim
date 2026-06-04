@@ -85,7 +85,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
         rcriHighRisk: verified.rcriHighRisk || false,
         rcriIhd: verified.rcriIhd || false,
         rcriChf: verified.rcriChf || false,
-        cerebrovascular: verified.rcriCva || false,
+        rcriCva: verified.rcriCva || false,
         rcriInsulin: verified.rcriInsulin || false,
         rcriCr: verified.rcriCr || false,
         mets: verified.mets || '',
@@ -179,10 +179,23 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     let medicalHistory;
     if (id === 'normal' || id === 'general') {
       medicalHistory = `You are interviewing a ${patient.age}-year-old ${nameGender} in the pre-operative holding area. ${pronounSubject} is scheduled for an elective ${patient.procedure || 'laparoscopic cholecystectomy'}. When asked about exercise tolerance, ${pronounSubject.toLowerCase()} tells you ${pronounSubject.toLowerCase()} jogs daily without any chest pain, shortness of breath, or dizziness. ${pronounSubject} has never been hospitalized, takes no daily medications, and denies any history of chronic diseases.`;
-    } else if (id === 'trauma') {
+    } else if (patient.trauma) {
       medicalHistory = `EMS brings in a ${patient.age}-year-old ${nameGender}, unrestrained passenger from a high-speed motor vehicle collision. ${pronounSubject} is obtunded with a Glasgow Coma Scale of 7, and emergent intubation is requested by the trauma surgery team. ${pronounSubject} is hemodynamically unstable. ${pronounPossessive} family reports that ${pronounSubject.toLowerCase()} has no prior cardiac history, no diabetes, no kidney disease, and was not on any daily medications.`;
-    } else if (id === 'urology' && patient.isSeptic) {
-      medicalHistory = `You are called to the ICU to evaluate a ${patient.age}-year-old ${nameGender} for emergent source control surgery. The patient is febrile, confused, and on a norepinephrine infusion to maintain blood pressure. Blood cultures have grown Gram-negative rods. ${pronounSubject} has a history of coronary artery disease (prior myocardial infarction) and chronic kidney disease stage III.`;
+    } else if (patient.isSeptic) {
+      // Build a dynamic septic narrative using the patient's actual comorbidity flags
+      const septicComorbidities = [];
+      if (patient.cad) septicComorbidities.push('coronary artery disease (prior myocardial infarction)');
+      if (patient.chf) septicComorbidities.push(`congestive heart failure (EF ${patient.ef || 40}%)`);
+      if (patient.gfr && patient.gfr < 60) {
+        const ckdStage = patient.gfr < 15 ? '5 (dialysis-dependent)' : patient.gfr < 30 ? '4' : '3';
+        septicComorbidities.push(`chronic kidney disease stage ${ckdStage}`);
+      }
+      if (patient.diabetes) septicComorbidities.push('insulin-dependent diabetes mellitus');
+      if (patient.copd) septicComorbidities.push('severe COPD');
+      const comorbidityStr = septicComorbidities.length > 0
+        ? `${pronounSubject} has a history of ${septicComorbidities.join(', ')}.`
+        : `${pronounPossessive} family reports no significant prior medical history.`;
+      medicalHistory = `You are called to the ICU to evaluate a ${patient.age}-year-old ${nameGender} for emergent source control surgery (${patient.procedure || 'surgical debridement'}). The patient is febrile, confused, and on a norepinephrine infusion to maintain blood pressure. Blood cultures have grown Gram-negative rods. ${comorbidityStr}`;
     } else {
       medicalHistory = `You are evaluating a ${patient.age}-year-old ${nameGender} scheduled for a ${patient.procedure || 'surgery'} in the ${patient.position || 'Supine'} position. ${pronounSubject} has a chronic medical history of ${patient.pmhx || 'no significant chronic diseases'}. ${pronounPossessive} daily medications include ${patient.onBetaBlocker ? 'beta-blockers' : 'standard regimens'}. ${pronounSubject} describes ${pronounPossessive} exercise capacity as ${mets === 'adequate' ? 'adequate (able to climb stairs or walk briskly without symptoms)' : 'poor (severely limited by dyspnea or pain)'}.`;
     }
@@ -376,13 +389,18 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
         wbcVal = 8.8; // mild elevation or chronic steroid use
       }
       
-      // Hb baseline affected by sex, anemia, chronic disease (CKD/cirrhosis), and acute bleeding
+      // Hb baseline affected by sex, anemia, chronic disease (CKD graded by GFR/cirrhosis), and acute bleeding
       let baseHb = isMale ? 15.2 : 13.5;
       if (patient.anemia) {
         baseHb -= 4.2;
       }
       if (isCkd) {
-        baseHb -= 2.8; // anemia of chronic disease due to low erythropoietin
+        // Grade Hb reduction by CKD severity (erythropoietin production correlates with residual GFR)
+        const gfr = patient.gfr || 60;
+        if (gfr < 15) baseHb -= 4.0;       // Stage 5: severe EPO deficiency
+        else if (gfr < 30) baseHb -= 2.8;  // Stage 4: moderate-severe EPO deficiency
+        else if (gfr < 45) baseHb -= 1.8;  // Stage 3b: moderate EPO deficiency
+        else baseHb -= 1.0;                // Stage 3a: mild EPO deficiency
       }
       if (isCirrhosis) {
         baseHb -= 3.1; // splenomegaly sequestration and poor synthesis
@@ -425,14 +443,20 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
       }
       naVal = Math.round(naVal + (Math.sin(age) * 1.5));
 
-      // Potassium affected by renal failure (reduced excretion) and trauma (cell lysis)
+      // Potassium affected by renal failure (graded by GFR stage) and trauma (cell lysis)
       let kVal = 4.1;
       if (isCkd) {
-        kVal = 5.3 + (patient.gfr < 20 ? 0.8 : 0.3); // hyperkalemia in advanced CKD
+        // Grade K by CKD severity — reduced tubular secretion correlates with declining GFR
+        const gfr = patient.gfr || 60;
+        if (gfr < 15) kVal = 5.8 + (Math.cos(age) * 0.2);       // Stage 5: severe hyperkalemia
+        else if (gfr < 30) kVal = 5.3 + (Math.cos(age) * 0.15); // Stage 4: moderate hyperkalemia
+        else if (gfr < 45) kVal = 4.8 + (Math.cos(age) * 0.1);  // Stage 3b: mild hyperkalemia
+        else kVal = 4.4 + (Math.cos(age) * 0.1);                // Stage 3a: high-normal
       } else if (isTrauma) {
         kVal = 4.8; // tissue crush cell lysis
+      } else {
+        kVal = kVal + (Math.cos(age) * 0.15);
       }
-      kVal = kVal + (Math.cos(age) * 0.15);
 
       // Bicarbonate (CO2) affected by sepsis lactic acidosis, trauma hemorrhagic shock, or COPD retention
       let hco3Val = 24;
@@ -445,20 +469,29 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
       }
       hco3Val = Math.round(hco3Val + (Math.sin(age) * 0.5));
 
-      // Creatinine affected by sex, baseline GFR (kidney pathology), and acute septic AKI
+      // Creatinine derived from patient's GFR using age-adjusted reverse Cockcroft-Gault
+      // Cr = (140 - age) × weight / (72 × GFR) [× 0.85 if female]
       let baseCr = isMale ? 0.95 : 0.78;
-      if (patient.gfr) {
-        baseCr = isMale ? (95 / Math.max(10, patient.gfr)) : (78 / Math.max(10, patient.gfr));
+      if (patient.gfr && patient.gfr < 100) {
+        const gfr = Math.max(5, patient.gfr);
+        baseCr = ((140 - age) * weightKg) / (72 * gfr);
+        if (!isMale) baseCr *= 0.85;
+        // Clamp to clinically plausible range for the given GFR
+        baseCr = Math.min(baseCr, 12.0);
       }
       if (isSeptic) {
-        baseCr += 0.8; // acute kidney injury
+        baseCr += 0.8; // acute kidney injury superimposed
       }
       const crVal = Math.max(0.4, baseCr);
 
-      // BUN affected by CKD, dehydration/sepsis, and gastrointestinal bleeding
+      // BUN affected by CKD (graded by GFR stage), dehydration/sepsis, and gastrointestinal bleeding
       let bunVal = 13;
       if (isCkd) {
-        bunVal = 48 + (patient.gfr < 20 ? 30 : 0);
+        const gfr = patient.gfr || 60;
+        if (gfr < 15) bunVal = 78;      // Stage 5: severe azotemia
+        else if (gfr < 30) bunVal = 48;  // Stage 4: moderate-severe azotemia
+        else if (gfr < 45) bunVal = 32;  // Stage 3b: moderate azotemia
+        else bunVal = 22;                // Stage 3a: mild azotemia
       } else if (isSeptic) {
         bunVal = 29;
       }
@@ -1661,7 +1694,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                     </div>
 
                     {/* Live RCRI Staging Output */}
-                    <div className={`p-5 rounded-xl border flex flex-col gap-4 justify-between min-h-[220px] ${borderClass} transition-all duration-300 shadow-inner`}>
+                    <div className={`p-5 rounded-xl border flex flex-col gap-4 ${borderClass} transition-all duration-300 shadow-inner`}>
                       <div>
                         <div className="flex justify-between items-center mb-1">
                           <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Your Score</span>
