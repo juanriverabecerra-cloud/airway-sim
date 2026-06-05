@@ -805,7 +805,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     riskClass = 'Class IV';
     riskPercent = '11.0%';
     accAction = 'HIGH RISK: Cardiology Consult required. Delay non-emergent surgery. Consider coronary angiography or cath lab referral.';
-    borderClass = 'border-red-500 bg-red-950/20 text-red-400 animate-pulse';
+    borderClass = 'border-red-500 bg-red-950/20 text-red-400';
   }
 
   // Accessor for ground truth vignettes (computed once, cached per render)
