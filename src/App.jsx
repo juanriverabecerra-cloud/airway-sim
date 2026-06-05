@@ -31,13 +31,13 @@ const CASES = [
     id: 'normal', name: 'Elective Surgery (Perfect Baseline)', difficulty: 'Easy',
     description: '45yo Female, ASA 1. Fasting for 12 hours. Normal neck anatomy, Mallampati I. Perfectly stable hemodynamics.',
     baseVitals: { hr: 72, sys: 120, dia: 80, spo2: 99, etco2: 0, rr: 12 },
-    patient: { age: 45, sex: 'female', weight: 60, height: 165, ibw: 56, bmi: 22.0, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: false, isObese: false, baseGrade: 1, isSeptic: false, hasCCollar: false, stomach: 'empty', limitedMouth: false, trauma: false }
+    patient: { age: 45, sex: 'female', weight: 60, height: 165, ibw: 56, bmi: 22.0, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: false, isObese: false, baseGrade: 1, isSeptic: false, hasCCollar: false, stomach: 'empty', limitedMouth: false, trauma: false, chronicBetaBlockade: true }
   },
   {
     id: 'trauma', name: 'Motor Vehicle Trauma (Bloody Airway)', difficulty: 'Hard',
     description: '54yo Male, GCS 7. Facial trauma, active bleeding in airway. Cervical collar in place restricting neck extension.',
     baseVitals: { hr: 115, sys: 105, dia: 65, spo2: 88, etco2: 0, rr: 24 },
-    patient: { age: 54, sex: 'male', weight: 85, height: 180, ibw: 75, bmi: 26.2, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: true, isObese: false, baseGrade: 3, isSeptic: false, hasCCollar: true, stomach: 'full', limitedMouth: false, trauma: true }
+    patient: { age: 54, sex: 'male', weight: 85, height: 180, ibw: 75, bmi: 26.2, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: true, isObese: false, baseGrade: 3, isSeptic: false, hasCCollar: true, stomach: 'full', limitedMouth: false, trauma: true, highAnxiety: true }
   },
   {
     id: 'septic', name: 'Septic Shock (Hemodynamic Cliff)', difficulty: 'Hard',
@@ -49,7 +49,7 @@ const CASES = [
     id: 'obese', name: 'Morbid Obesity / OSA (Rapid Desat)', difficulty: 'Hard',
     description: '50yo Male, BMI 45, severe Obstructive Sleep Apnea (OSA). Severely decreased Functional Residual Capacity (FRC).',
     baseVitals: { hr: 88, sys: 150, dia: 95, spo2: 94, etco2: 0, rr: 18 },
-    patient: { age: 50, sex: 'male', weight: 142, height: 178, bmi: 44.8, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: false, isObese: true, baseGrade: 3, isSeptic: false, hasCCollar: false, stomach: 'full', limitedMouth: false, trauma: false }
+    patient: { age: 50, sex: 'male', weight: 142, height: 178, bmi: 44.8, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: false, isObese: true, baseGrade: 3, isSeptic: false, hasCCollar: false, stomach: 'full', limitedMouth: false, trauma: false, chronicHTN: true }
   }
 ];
 
@@ -265,7 +265,7 @@ export default function App() {
   const handleSurgicalCric = () => {
     saveState();
     logEvent("Performed Surgical Cric.");
-    setPatient(p => ({...p, airwaySecured: true, ventilationStatus: 'successful', tubePosition: 'trachea', currentO2Device: 'Cricothyroidotomy (100% FiO2)', currentFiO2: 100, currentO2Flow: 15}));
+    setPatient(p => ({...p, airwaySecured: true, ventilationStatus: 'successful', tubePosition: 'trachea', currentO2Device: 'Cricothyroidotomy (100% FiO2)', currentFiO2: 100, currentO2Flow: 15, cricPlacedTime: time, cricSympatheticSurgeActive: true}));
   };
 
   const handleExtubation = () => {
@@ -278,7 +278,9 @@ export default function App() {
         tubePosition: null, 
         currentO2Device: 'Room Air', 
         currentFiO2: 21, 
-        currentO2Flow: 0
+        currentO2Flow: 0,
+        lastAirwayManipulationTime: time,
+        lastAirwayManipulationType: 'extubation'
     }));
   };
 
@@ -691,6 +693,8 @@ export default function App() {
          hasCVC: prev.hasCVC || category.includes('CVC') || type.includes('MAC'),
          ioSympatheticSurgeActive: prev.ioSympatheticSurgeActive || isIO,
          ioPlacedTime: isIO ? time : prev.ioPlacedTime,
+         lastLinePlacementTime: time,
+         lastLineCategory: category,
          accessLines: [...(prev.accessLines || []).filter(l => l && typeof l !== 'string'), newLine] // Clear legacy string lines
        };
     });
@@ -708,11 +712,11 @@ export default function App() {
     }
     if (device.includes('Laryngeal Mask Airway')) {
       logEvent(`✅ Placed ${device}. Airway secured via supraglottic device.`);
-      setPatient(p => ({...p, airwaySecured: true, ventilationStatus: 'successful', currentO2Device: 'LMA (100% FiO2)', currentFiO2: 100, currentO2Flow: 15}));
+      setPatient(p => ({...p, airwaySecured: true, ventilationStatus: 'successful', currentO2Device: 'LMA (100% FiO2)', currentFiO2: 100, currentO2Flow: 15, lastAirwayManipulationTime: time, lastAirwayManipulationType: 'device'}));
       return;
     }
     logEvent(`✅ Placed ${device}. Airway patency improved for BMV.`);
-    setPatient(p => ({...p, bmvOptimized: true}));
+    setPatient(p => ({...p, bmvOptimized: true, lastAirwayManipulationTime: time, lastAirwayManipulationType: 'device'}));
   };
 
   const handleSetO2 = (id, flow, fio2, ipap, epap, rate) => {
@@ -750,7 +754,7 @@ export default function App() {
 
   const handleSuction = () => {
     saveState("Performed rigid Yankauer suction. Cleared airway of blood and secretions.");
-    setPatient(p => ({ ...p, airwayBlood: false, isSuctioned: true }));
+    setPatient(p => ({ ...p, airwayBlood: false, isSuctioned: true, lastAirwayManipulationTime: time, lastAirwayManipulationType: 'suction' }));
   };
 
   const handlePocus = (type) => {
@@ -964,12 +968,12 @@ export default function App() {
 
   const processIntubation = (blade, adjunct) => {
     setSetupModal(false);
-    setPatient(p => ({...p, dlAttempts: (p.dlAttempts || 0) + 1}));
+    setPatient(p => ({...p, dlAttempts: (p.dlAttempts || 0) + 1, laryngoscopyActive: true, laryngoscopyTime: time}));
 
     if (!patient.isApneic && !blade.includes('Fiberoptic')) {
        if (!patient.isTopicalized) {
           logEvent(`❌ FAILED: Patient is awake and not topicalized! Severe gag reflex and laryngospasm triggered!`);
-          setPatient(p => ({...p, ventilationStatus: 'failed', targetBuffer: 0}));
+          setPatient(p => ({...p, ventilationStatus: 'failed', targetBuffer: 0, laryngoscopyActive: false}));
           return;
        }
     }
@@ -999,12 +1003,13 @@ export default function App() {
         tubePosition: tubePos, 
         currentO2Device: 'Mechanical Ventilator (100% FiO2)', 
         currentO2Flow: 15, 
-        currentFiO2: 100 
+        currentFiO2: 100,
+        laryngoscopyActive: false
       }));
       setPostIntubationModal(true);
     } else {
       logEvent(`❌ Intubation FAILED. ${outcome.failReason}`);
-      setPatient(p => ({ ...p, ventilationStatus: 'failed', tubePosition: 'esophagus' }));
+      setPatient(p => ({ ...p, ventilationStatus: 'failed', tubePosition: 'esophagus', laryngoscopyActive: false }));
     }
     setViewModal({ show: false, blade: '', adjunct: '', description: '', trueGrade: 1 });
   };

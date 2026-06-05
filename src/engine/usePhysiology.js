@@ -7,6 +7,7 @@ import { DynamicMedicationRegistry } from '../knowledge/DynamicMedicationRegistr
 import { FluidicsEngine } from './FluidicsEngine';
 import { CardiovascularEngine } from './CardiovascularEngine';
 import { RespiratoryEngine } from './RespiratoryEngine';
+import { PainEngine } from './PainEngine';
 
 export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, gasSettings, logEvent, msmaidsComplete }) {
   const [timeVal, setTimeState] = useState(0);
@@ -879,7 +880,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                   totalRrDelta += effects.rrDelta || 0;
                   
                   if (effects.diaDelta) {
-                      const scalingFactor = model.name === 'Propofol' ? getAnatomicalParameter("Propofol SVR drop scaling factor", 4.5) : 1.0;
+                      const scalingFactor = model.name === 'Propofol' ? (getAnatomicalParameter("Propofol SVR drop scaling factor", 4.5) * (st.patient.chronicHTN ? 1.6 : 1.0)) : 1.0;
                       drugSvrMod *= (1.0 + ((effects.diaDelta * scalingFactor) / 120));
                   }
                   if (effects.sysDelta) {
@@ -1134,66 +1135,61 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const VCO2_sec = (0.200 * totalMetabolicMultiplier) / 60;
           const opioidRRDrop = opioidEff * 10;
 
-          // Central Sympatholysis spikes
+          // Pain Engine Tick
+          if (st.surgicalPhase === 'Incision' && st.patient.incisionStartTime === undefined) {
+              st.patient.incisionStartTime = st.time;
+          }
+
+          const painOutput = PainEngine.tick(1, st.patient, st.vitals, st.activeMeds, currentMac, st.time);
+          
+          // Log bucking/movement events
+          if (painOutput.somaticResponse.event && (!st.patient.lastPainEventTime || st.time - st.patient.lastPainEventTime >= 8)) {
+              logEvent(painOutput.somaticResponse.event);
+              st.patient.lastPainEventTime = st.time;
+          }
+
+          // Spasm Logic & Resolution
+          let finalLaryngospasm = st.patient.laryngospasm || false;
+          let finalBronchospasm = st.patient.bronchospasm || false;
+
+          if (painOutput.somaticResponse.triggerLaryngospasm) {
+              finalLaryngospasm = true;
+              logEvent("🚨 CRITICAL ALERT: Laryngospasm triggered due to airway manipulation under inadequate anesthesia! Airway resistance is now infinite.");
+          }
+          if (painOutput.somaticResponse.triggerBronchospasm) {
+              finalBronchospasm = true;
+              logEvent("🚨 CRITICAL ALERT: Bronchospasm triggered due to airway manipulation/pain under inadequate anesthesia! Compliance is halved and resistance is elevated.");
+          }
+
+          // Spasm Resolution
+          if (finalLaryngospasm && (maxNMJOccupancy > 0.90 || currentMac > 1.2)) {
+              finalLaryngospasm = false;
+              logEvent("✅ SUCCESS: Laryngospasm resolved (deep anesthesia or muscle relaxation achieved).");
+          }
+          const epiModelForSpasm = st.activeMeds?.find(m => m.name === 'Epinephrine');
+          const epiActive = epiModelForSpasm ? epiModelForSpasm.Ce > 0.01 : false;
+          if (finalBronchospasm && (currentMac > 1.2 || epiActive)) {
+              finalBronchospasm = false;
+              logEvent("✅ SUCCESS: Bronchospasm resolved (bronchodilation achieved via deep anesthesia or Epinephrine).");
+          }
+
+          // Propagating updated states to patient objects for subsequent calculations in this tick
+          st.patient.C_cat = painOutput.C_cat;
+          st.patient.MAP_set = painOutput.MAP_set;
+          st.patient.laryngospasm = finalLaryngospasm;
+          st.patient.bronchospasm = finalBronchospasm;
+          st.patient.isBucking = painOutput.somaticResponse.isBucking;
+
+          patientAfterFluidics.C_cat = painOutput.C_cat;
+          patientAfterFluidics.MAP_set = painOutput.MAP_set;
+          patientAfterFluidics.laryngospasm = finalLaryngospasm;
+          patientAfterFluidics.bronchospasm = finalBronchospasm;
+          patientAfterFluidics.isBucking = painOutput.somaticResponse.isBucking;
+
           const aggregateHypnosis = sedativeEff + opioidEff - (sedativeEff * opioidEff);
-          const opioidAnalgesia = opioidEff * 0.85;
-          const macAnalgesia = Math.min(0.90, (currentMac / 1.5) * 0.75);
-          const sedativeBlunting = sedativeEff * 0.85;
-          
-          const dexmedCe = dexmedModel ? dexmedModel.Ce : 0;
-          const dexmedEff = dexmedModel ? (dexmedCe / (dexmedCe + (dexmedModel.pd?.c50 || 1.2))) : 0;
-          const dexmedBlunting = dexmedEff * 0.80;
-
-          const lidoCe = lidoModel ? lidoModel.Ce : 0;
-          const lidoEff = lidoModel ? (lidoCe / (lidoCe + (lidoModel.pd?.c50 || 3.0))) : 0;
-          const lidoBlunting = Math.min(0.40, lidoEff + (st.patient.isTopicalized ? 0.30 : 0.0));
-
-          const centralSympatholysis = 1.0 - (1.0 - opioidAnalgesia) * (1.0 - macAnalgesia) * (1.0 - sedativeBlunting) * (1.0 - dexmedBlunting) * (1.0 - lidoBlunting);
-
-          let stimulus = 0;
-          if (st.surgicalPhase === 'Induction') stimulus = 20;
-          if (st.surgicalPhase === 'Incision') stimulus = 45;
-          if (st.surgicalPhase === 'Maintenance') stimulus = 15;
-          if (st.surgicalPhase === 'Emergence') stimulus = 10;
-          
-          const safePaCO2 = st.vitals.paco2 || 40;
-          const safePaO2 = st.vitals.pao2 || 100;
-          const safeSys = st.vitals.sys || 120;
-          if (safePaCO2 > 55) {
-              stimulus += Math.min(25, (safePaCO2 - 55) * 1.5);
-          }
-
-          const unbluntedSympatheticDrive = Math.max(0, stimulus * (1.0 - Math.min(1.0, centralSympatholysis)));
-
-          let ioSurgeHr = 0;
-          let ioSurgeMap = 0;
-          if (st.patient.ioSympatheticSurgeActive && st.patient.ioPlacedTime !== undefined) {
-              const dt_io = st.time - st.patient.ioPlacedTime;
-              if (dt_io >= 0 && dt_io < 45) {
-                  const anesthesiaBlunting = Math.max(0, Math.min(1.0, centralSympatholysis));
-                  const painFactor = Math.max(0, 1.0 - anesthesiaBlunting);
-                  const decay = Math.exp(-0.08 * dt_io);
-                  ioSurgeHr = 15 * painFactor * decay;
-                  ioSurgeMap = 20 * painFactor * decay;
-              } else if (dt_io >= 45) {
-                  st.patient.ioSympatheticSurgeActive = false;
-              }
-          }
-
-          const esmololCe = esmololModel ? esmololModel.Ce : 0;
-          const esmololEff = esmololModel ? (esmololCe / (esmololCe + (esmololModel.pd?.c50 || 1.0))) : 0;
-          
-          const labetalolCe = labetalolModel ? labetalolModel.Ce : 0;
-          const labetalolEff = labetalolModel ? (labetalolCe / (labetalolCe + (labetalolModel.pd?.c50 || 0.5))) : 0;
-          
-          const metoprololCe = metoprololModel ? metoprololModel.Ce : 0;
-          const metoprololEff = metoprololModel ? (metoprololCe / (metoprololCe + (metoprololModel.pd?.c50 || 0.1))) : 0;
-
-          const betaBlockade = Math.min(0.95, (esmololEff * 0.90) + (labetalolEff * 0.75) + (metoprololEff * 0.85));
-
-          const hrSympatheticSpike = unbluntedSympatheticDrive * 0.85 * (1.0 - betaBlockade);
-          const contractilitySympatheticSpike = (unbluntedSympatheticDrive / 300) * (1.0 - betaBlockade);
-          const svrSympatheticSpike = unbluntedSympatheticDrive * 7.5 * Math.max(0.3, drugSvrMod);
+          const hrSympatheticSpike = painOutput.hrSpike;
+          const contractilitySympatheticSpike = painOutput.contractilitySpike;
+          const svrSympatheticSpike = painOutput.svrSpike;
 
           // Anaphylaxis triggers
           const unasynModel = st.activeMeds?.find(m => m.name === 'Ampicillin/Sulbactam');
@@ -1303,9 +1299,9 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               maxNMJOccupancy,
               totalRrDelta,
               ruleRrScale,
-              ruleRrOffset,
-              ruleComplScale,
-              rulePipOffset,
+              ruleRrOffset: ruleRrOffset + painOutput.rrSpike,
+              ruleComplScale: ruleComplScale * painOutput.somaticResponse.complianceMultiplier,
+              rulePipOffset: rulePipOffset + painOutput.somaticResponse.pipOffset,
               ruleSpo2Offset,
               ruleKOffset
           }, {
@@ -1362,10 +1358,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               anaphylaxisSvrMod,
               totalHrDelta,
               ruleHrScale,
-              ruleHrOffset: ruleHrOffset + ioSurgeHr,
+              ruleHrOffset: ruleHrOffset,
               ruleHrClamp,
               ruleMapScale,
-              ruleMapOffset: ruleMapOffset + ioSurgeMap,
+              ruleMapOffset: ruleMapOffset,
               ruleKOffset,
               ruleSpo2Offset
           }, {
@@ -1453,7 +1449,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               const ischemicSlowing = (50 - finalVitals.cmap) * 1.5;
               targetBis -= ischemicSlowing;
           }
-          let finalBis = Math.max(0, Math.min(98, targetBis + (unbluntedSympatheticDrive * 0.2)));
+          let finalBis = Math.max(0, Math.min(98, targetBis + painOutput.bisSpike));
           if (finalPatient.isArrest) {
               finalBis = finalPatient.biologicalDeath ? 0 : Math.max(0, (st.vitals.bis || 98) - 5);
           }

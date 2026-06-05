@@ -30,6 +30,10 @@ export interface RespiratoryPatientState {
   lacticAcid?: number;
   shuntFraction?: number;
   pulmonaryComorbidity?: string;
+  laryngospasm?: boolean;
+  bronchospasm?: boolean;
+  isBucking?: boolean;
+  C_cat?: number;
 }
 
 export interface RespiratoryVitalsState {
@@ -437,7 +441,14 @@ export class RespiratoryEngine {
     currentCompliance -= aspirationCompliancePenalty;
     currentCompliance -= anaphylaxisCompliancePenalty;
     currentCompliance *= safeRuleComplScale;
-    currentCompliance = Math.max(5, currentCompliance);
+
+    if (safePatient.bronchospasm) {
+      currentCompliance *= 0.5;
+    }
+    if (safePatient.laryngospasm) {
+      currentCompliance = 2;
+    }
+    currentCompliance = Math.max(2, currentCompliance);
 
     let currentResistance = 5;
     if (safePatient.isObese) currentResistance += 3;
@@ -445,12 +456,35 @@ export class RespiratoryEngine {
     currentResistance += aspirationResistancePenalty;
     currentResistance += anaphylaxisResistancePenalty;
 
+    if (safePatient.isBucking) {
+      currentResistance += 15;
+    }
+    if (safePatient.bronchospasm) {
+      currentResistance += 40;
+    }
+    if (safePatient.laryngospasm) {
+      currentResistance = 999;
+    }
+
     // Ventilation settings and dynamic pressure calculations
     let newPip = 0; let newVte = 0; let newPplat = 0; let newPmean = 0; let newMv = 0; let newPeep = 0;
 
     let patientDriveRR = isParalyzed ? 0 : Math.max(0, (safeVitals.rr || 12) + compensatoryRR + shiveringRRDrive + safeTotalRrDelta - opioidRRDrop);
     let targetRR = patientDriveRR;
     targetRR = Math.max(0, targetRR * safeRuleRrScale + safeRuleRrOffset);
+
+    // Irregular gasping breathing pattern under high C_cat (pain/stress)
+    const C_cat = typeof safePatient.C_cat === 'number' ? safePatient.C_cat : 0;
+    let vtGaspMultiplier = 1.0;
+    if (C_cat > 30 && !isParalyzed && !isApneic) {
+      const gaspSeverity = Math.min(1.0, (C_cat - 30) / 70);
+      const timeSec = typeof st.time === 'number' ? st.time : 0;
+      const rrOsc = Math.sin(timeSec * 0.4) * 3 + (timeSec % 7 < 3 ? -4 : 2);
+      targetRR = Math.max(4, targetRR + rrOsc * gaspSeverity);
+      
+      // Gasping Vt multiplier (irregular deep/shallow breaths, on average deeper)
+      vtGaspMultiplier = 1.0 + (Math.sin(timeSec * 0.3) * 0.4 + 0.3) * gaspSeverity;
+    }
 
     if (safePatient.airwaySecured && ventSettings) {
       newPeep = ventSettings.peep || 0;
@@ -500,7 +534,7 @@ export class RespiratoryEngine {
       ibwVal = 70.0;
     }
     const deadSpace = (ibwVal * 2.2) / 1000;
-    const tidalVolLiters = safePatient.airwaySecured ? (newVte / 1000) : ((ibwVal * 7) / 1000);
+    const tidalVolLiters = (safePatient.airwaySecured ? (newVte / 1000) : ((ibwVal * 7) / 1000)) * vtGaspMultiplier;
     const currentAlvVent_L_min = Math.max(0, (tidalVolLiters - deadSpace) * targetRR);
     const baseTidalVolLiters = (ibwVal * 7) / 1000;
     const baseAlvVent_L_min = (baseTidalVolLiters - deadSpace) * 12;
