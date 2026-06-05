@@ -1421,7 +1421,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               cvo2: respOutput.vitals.cvo2,
               temp: newTemp,
               etAgent: currentEtAgent,
-              etN2O: currentEtN2O
+              etN2O: currentEtN2O,
+              mac: currentMac
           };
 
           // Apply natural wave-like fluctuations in non-arrest states
