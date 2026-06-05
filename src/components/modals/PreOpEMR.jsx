@@ -1694,7 +1694,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                     </div>
 
                     {/* Live RCRI Staging Output */}
-                    <div className={`p-5 rounded-xl border flex flex-col gap-4 ${borderClass} transition-all duration-300 shadow-inner`}>
+                    <div className={`p-5 rounded-xl border flex flex-col gap-4 ${borderClass} transition-colors duration-300 shadow-inner`}>
                       <div>
                         <div className="flex justify-between items-center mb-1">
                           <span className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Your Score</span>
