@@ -1275,6 +1275,9 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           }
 
           // 4. RespiratoryEngine Tick
+          const safePaCO2 = st.vitals.paco2 || 40;
+          const safePaO2 = st.vitals.pao2 || 100;
+          const safeSys = st.vitals.sys || 120;
           let compensatoryRR = 0;
           if (safePaCO2 > 45) compensatoryRR += (safePaCO2 - 45) * 0.8; 
           if (safePaO2 < 70) compensatoryRR += (70 - safePaO2) * 0.4;   
@@ -1544,10 +1547,20 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     setGasModels(snap.gasModels);
 
     stateRef.current = {
-        vitals: snap.vitals, targetVitals: snap.targetVitals, patient: snap.patient,
-        activeMeds: snap.activeMeds, gasModels: snap.gasModels,
-        intravascularVolume: snap.intravascularVolume, ventSettings, gasSettings,
-        surgicalPhase: snap.surgicalPhase
+        time: snap.time,
+        vitals: snap.vitals,
+        targetVitals: snap.targetVitals,
+        patient: snap.patient,
+        activeMeds: snap.activeMeds,
+        gasModels: snap.gasModels,
+        intravascularVolume: snap.intravascularVolume,
+        totalBodyWaterLiters: snap.totalBodyWaterLiters,
+        electrolytes: snap.electrolytes,
+        coags: snap.coags,
+        ventSettings,
+        gasSettings,
+        surgicalPhase: snap.surgicalPhase,
+        msmaidsComplete
     };
   };
 
