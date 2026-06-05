@@ -1052,11 +1052,13 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const currentHb = Math.max(3.0, Math.min(25.0, calculatedHb));
 
           // Gas kinetics
-          let currentMac = 0;
+          let brainMac = 0;
+          let displayedMac = 0;
           let currentEtAgent = 0;
           let currentEtN2O = 0;
           let deliveredFiO2 = 21;
           let n2oPercent = 0;
+          let freshGasFlow = 2.0; // default 2 L/min
 
           if (st.gasSettings && st.patient.airwaySecured) {
               const o2F = typeof st.gasSettings.o2Flow === 'number' && Number.isFinite(st.gasSettings.o2Flow) ? st.gasSettings.o2Flow : 0;
@@ -1066,9 +1068,18 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               if (Number.isFinite(totalFGF) && totalFGF > 0.001) {
                   deliveredFiO2 = ((o2F * 100) + (airF * 21)) / totalFGF;
                   n2oPercent = (n2oF / totalFGF) * 100;
+                  freshGasFlow = totalFGF;
               }
               if (isNaN(deliveredFiO2) || !Number.isFinite(deliveredFiO2)) deliveredFiO2 = 21;
               if (isNaN(n2oPercent) || !Number.isFinite(n2oPercent)) n2oPercent = 0;
+          } else if (st.gasSettings) {
+              const o2F = typeof st.gasSettings.o2Flow === 'number' && Number.isFinite(st.gasSettings.o2Flow) ? st.gasSettings.o2Flow : 0;
+              const airF = typeof st.gasSettings.airFlow === 'number' && Number.isFinite(st.gasSettings.airFlow) ? st.gasSettings.airFlow : 0;
+              const n2oF = typeof st.gasSettings.n2oFlow === 'number' && Number.isFinite(st.gasSettings.n2oFlow) ? st.gasSettings.n2oFlow : 0;
+              const total = o2F + airF + n2oF;
+              if (Number.isFinite(total) && total > 0.001) {
+                  freshGasFlow = total;
+              }
           }
 
           if (st.gasModels && Object.keys(st.gasModels).length > 0) {
@@ -1084,7 +1095,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                       if (st.gasSettings && st.gasSettings.agent === key && st.patient.airwaySecured) model.setDial(st.gasSettings.dial || 0);
                       else model.setDial(0);
                       
-                      const gasState = model.tick(1, effectiveMv, currentCOForPK, currentFRC, st.patient.ibw, st.patient.shuntFraction);
+                      const gasState = model.tick(1, effectiveMv, currentCOForPK, currentFRC, st.patient.ibw, st.patient.shuntFraction, freshGasFlow);
                       if (gasState.Fa > 0.01) {
                           currentEtAgent = gasState.Fa;
                           
@@ -1095,22 +1106,28 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                           macModifier = Math.max(0.4, macModifier);
                           
                           const safeAdjMac = Math.max(0.01, calculateAgeAdjustedMAC(agentData.mac40, st.patient.age || 40) * macModifier);
-                          const macContribution = gasState.Fa / safeAdjMac;
-                          currentMac += macContribution;
-                          sedativeEff = 1 - (1 - sedativeEff) * (1 - Math.min(1, macContribution));
-                          drugSvrMod = drugSvrMod * (1 - (macContribution * 0.15));
+                          
+                          displayedMac += gasState.Fa / safeAdjMac;
+                          const brainMacContribution = gasState.Fb / safeAdjMac;
+                          brainMac += brainMacContribution;
+                          
+                          sedativeEff = 1 - (1 - sedativeEff) * (1 - Math.min(1, brainMacContribution));
+                          drugSvrMod = drugSvrMod * (1 - (brainMacContribution * 0.15));
                       }
                   }
               });
 
               if (st.gasModels.n2o && INHALATIONAL_AGENTS.n2o) {
                   st.gasModels.n2o.setDial(st.patient.airwaySecured ? n2oPercent : 0);
-                  const n2oState = st.gasModels.n2o.tick(1, effectiveMv, currentCOForPK, currentFRC, st.patient.ibw, st.patient.shuntFraction);
+                  const n2oState = st.gasModels.n2o.tick(1, effectiveMv, currentCOForPK, currentFRC, st.patient.ibw, st.patient.shuntFraction, freshGasFlow);
                   currentEtN2O = n2oState.Fa;
                   const n2oAdjMac = Math.max(0.01, calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.n2o.mac40, st.patient.age || 40));
-                  currentMac += (n2oState.Fb / n2oAdjMac);
+                  displayedMac += (n2oState.Fa / n2oAdjMac);
+                  brainMac += (n2oState.Fb / n2oAdjMac);
               }
           }
+
+          const currentMac = brainMac;
 
           // Thermoregulation & metabolic multi
           let tempDropRate = 0.0001;
@@ -1422,7 +1439,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               temp: newTemp,
               etAgent: currentEtAgent,
               etN2O: currentEtN2O,
-              mac: currentMac
+              mac: displayedMac
           };
 
           // Apply natural wave-like fluctuations in non-arrest states

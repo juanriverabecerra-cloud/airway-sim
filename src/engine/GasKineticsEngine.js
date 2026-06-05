@@ -16,6 +16,7 @@ export class GasKineticsModel {
     this.Fi = 0; // Inspired Fractional Concentration
     this.Fa = 0; // Alveolar Fractional Concentration (End-Tidal)
     this.Fb = 0; // Brain Effect-Site Concentration (Lags VRG due to BBB)
+    this.F_dial = 0; // Dial setting fraction (0.0 - 1.0)
     
     // Tissue Compartments (Equilibrated fractional concentrations)
     this.F_vrg = 0; // Vessel Rich Group (Brain, Heart, Viscera)
@@ -33,13 +34,13 @@ export class GasKineticsModel {
   // Receives the dial setting from the UI (0 - 100%)
   setDial(dialPercent) {
     const val = Number.isFinite(dialPercent) ? dialPercent : 0;
-    this.Fi = Math.max(0, Math.min(1.0, val / 100));
+    this.F_dial = Math.max(0, Math.min(1.0, val / 100));
   }
 
   /**
    * Tick the physics forward
    */
-  tick(dt = 1, alveolarVentilation_L_min, cardiacOutput_L_min, frc_L, ibw_kg, shuntFraction) {
+  tick(dt = 1, alveolarVentilation_L_min, cardiacOutput_L_min, frc_L, ibw_kg, shuntFraction, fgf_L_min = 6.0) {
     // Internal Euler sub-stepping for differential equation stability
     const subSteps = 10;
     const safeDt = Number.isFinite(dt) && dt > 0 ? dt : 1;
@@ -88,7 +89,15 @@ export class GasKineticsModel {
     const safeLambdaMg = Math.max(0.01, this.lambda_mg);
     const safeLambdaFg = Math.max(0.01, this.lambda_fg);
 
+    const V_circuit = 5.0; // Circle system circuit volume in Liters
+    const safeFgf = Number.isFinite(fgf_L_min) && fgf_L_min >= 0 ? fgf_L_min : 6.0;
+    const k_circuit = safeFgf / (V_circuit * 60); // s^-1
+
     for (let i = 0; i < subSteps; i++) {
+        // Circle system circuit wash-in/wash-out kinetics
+        this.Fi += subDt * k_circuit * (this.F_dial - this.Fi);
+        this.Fi = Math.max(0, Math.min(1.0, this.Fi));
+
         // 1. Calculate Mixed Venous Return Concentration (F_v_bar)
         let F_v_bar = (Q_vrg * this.F_vrg + Q_mg * this.F_mg + Q_fg * this.F_fg) / CO_sec;
         if (!Number.isFinite(F_v_bar)) F_v_bar = 0;

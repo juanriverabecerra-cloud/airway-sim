@@ -20,25 +20,2016 @@ export interface MatrixRecord {
 
 export const textbookProse: readonly ProseRecord[] = [
   {
-    "id": "anesthesia_handbook_chapter_9.pdf_PAGE_001_sec_0",
-    "chapter_title": "anesthesia_handbook_chapter_9.pdf",
-    "section_heading": "Mechanism of Action of Propofol",
-    "body_text": "Propofol induces anesthesia by enhancing GABA-mediated inhibitory neurotransmission. It acts primarily on the GABAA receptor complex in the central nervous system, particularly in the locus ceruleus, causing neural hyperpolarization."
+    "id": "Millers_9_10_PAGE_001_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "GEORGE A. MASHOUR and KANE O. PRYOR\n9\n\nConsciousness, Memory",
+    "body_text": "GEORGE A. MASHOUR and KANE O. PRYOR\n9"
   },
   {
-    "id": "anesthesia_handbook_chapter_9.pdf_PAGE_002_sec_0",
-    "chapter_title": "anesthesia_handbook_chapter_9.pdf",
-    "section_heading": "Cardiovascular Effects of Halothane",
-    "body_text": "Halothane reduces cardiac contractility and sensitizes the myocardium to catecholamines. In the locus ceruleus, it causes hyperpolarization via potassium channel activation."
+    "id": "Millers_9_10_PAGE_001_sec_2",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "KEY POINTS",
+    "body_text": "␣□␣ Mechanisms of consciousness and memory, and their interruption by general anesthetics, are\nimportant scientiﬁc problems that have clinical relevance for the practice of anesthesiology.\n␣□␣ Consciousness is characterized by both wakefulness (i.e., the brain being aroused) and aware-\nness (i.e., subjective experience).\n␣□␣ Anesthetics act at structures in the brainstem, hypothalamus, and basal forebrain that regulate\nsleep-wake states, which may account for loss of wakefulness.\n␣□␣ Anesthetics disrupt connectivity and communication across cortical and thalamocortical net-\nworks, which may account for loss of awareness.\n␣□␣ Memory can be subdivided into explicit (conscious) and implicit (unconscious) recall; an exam-\nple of explicit episodic recall is remembering a surgical event.\n␣□␣ Suppression of explicit episodic recall is one of the most potent effects of most general anes-\nthetics.\n␣□␣ Effects on the hippocampus, amygdala, and prefrontal cortex—as well as the connectivity of\nthese structures—may account for anesthetic-induced amnesia, even before loss of conscious-\nness."
+  },
+  {
+    "id": "Millers_9_10_PAGE_001_sec_4",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Introduction",
+    "body_text": "phers use the term “awareness” to mean only subjective \nexperience. In clinical anesthesiology, we (inaccurately) \nuse the term “awareness” to include both consciousness \nand explicit episodic memory7 (the taxonomy of memory \nwill be discussed in the next major section of the chap-\nter).\n 2.  Connected versus disconnected consciousness:"
+  },
+  {
+    "id": "Millers_9_10_PAGE_001_sec_6",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Consciousness and memory are among the most fascinating",
+    "body_text": "and complex subjects in all of science. The richness of human\nconsciousness and memory—and the ability to express this\nrichness in language—is a defining characteristic of homo\nsapiens. Consciousness and memory also have clinical rel-\nevance for the anesthesiologist; together, the experience\nand explicit episodic recall of surgical events is known as\nthe problem of “intraoperative awareness.” When formally\nassessed, this complication occurs in approximately 1 to 2\ncases per 10001-3 and is associated with a high incidence\nof posttraumatic stress disorder (PTSD).4,5 The incidence of\nintraoperative consciousness without recall is substantially\nhigher.6 To advance the field of perioperative brain moni-\ntoring, a detailed understanding of the neurobiology of con-\nsciousness, memory, and anesthesia is required.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_001_sec_7",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Connected consciousness is the experience of environ-",
+    "body_text": "mental stimuli (such as surgery), whereas disconnected\nconsciousness is an endogenous experience (such as a\ndream state).8\n3.  Consciousness versus responsiveness: An individ-\nual may fully experience a stimulus (such as the com-\nmand “Open your eyes!”) but not be able to respond (as \nwhen a patient is paralyzed but conscious during sur-\ngery).9"
+  },
+  {
+    "id": "Millers_9_10_PAGE_001_sec_8",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "There have been a number of theories proposed to",
+    "body_text": "explain the mechanisms of consciousness and general\nanesthesia. Advances in neuroscience, however, have\nenabled us to move beyond speculative frameworks and\nfocus on a systems-based approach to both subjects.10\nThe remainder of this section on consciousness adopts\nsuch an approach by discussing (1) brainstem and hypo-\nthalamic nuclei regulating the sleep-wake cycle (and\ntherefore arousal states) (Figs. 9.1 and 9.2); (2) the role\nof the thalamus in consciousness and anesthesia; (3)\ncortical-subcortical connectivity, with a focus on the\nthalamocortical system, which is thought to mediate the\nexperiential component of consciousness; and (4) cortico-\ncortical communication.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_001_sec_11",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The field of consciousness studies has been plagued by the",
+    "body_text": "indiscriminate use of the term “consciousness.” When we\nrefer to consciousness, we mean subjective experience. In\nsimple terms, it is what we lose when we have dreamless\nsleep and what we regain again in the morning upon awak-\nening. There are, however, several important definitions\nand distinctions that should be considered.\n250\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_002_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "9 • Consciousness, Memory, and Anesthesia\n251\n\nFig. 9.1 Neur",
+    "body_text": "9 • Consciousness, Memory, and Anesthesia\n251\nFig. 9.1 Neurobiology of wakefulness. Multiple neurochemical systems in subcortical regions (shown here in rodent brain) promote arousal and activa-\ntion of the cortex. Monoaminergic neurons (light green) in the rostral brainstem and caudal hypothalamus innervate the cortex as well as many subcor-\ntical regions including the hypothalamus and thalamus. These monoaminergic regions include noradrenergic neurons (locus coeruleus), serotonergic \nneurons (dorsal and median raphe nuclei), dopaminergic neurons (ventral tegmental area), and histaminergic neurons (tuberomammillary nucleus). \nWake-promoting signals also arise from cholinergic regions (dark green with hatching), including the pedunculopontine and laterodorsal tegmental \nnuclei and basal forebrain. General anesthetics have been demonstrated to suppress many of these regions. (Redrawn from Scammell TE, Arrigoni E, \nLipton JO. Neural circuitry of wakefulness and sleep. Neuron. 2017;93[4]:747–765.)\nFig. 9.2 Neurobiology of slow-wave sleep. GABA-ergic neurons in the ventrolateral preoptic area and median preoptic nucleus in the hypothala-\nmus (shown here in rodent brain) promote sleep by inhibiting wake-promoting neurons in the caudal hypothalamus and brainstem. These hypo-\nthalamic nuclei are activated by general anesthetics. (Redrawn from Scammell TE, Arrigoni E, Lipton JO. Neural circuitry of wakefulness and sleep. Neuron. \n2017;93[4]:747–765.)"
+  },
+  {
+    "id": "Millers_9_10_PAGE_002_sec_2",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Brainstem",
+    "body_text": "Locus ceruleus. Norepinephrine is synthesized in the locus\nceruleus (LC), which is located in the pons and projects\nwidely throughout the cortex.15 Like other monoaminergic\nneuronal populations, LC activity is highest during waking\nconsciousness, decreased during nonrapid eye movement\n(NREM) sleep, and at its nadir during rapid eye movement\n(REM) sleep.16,17 Thus LC is associated with cortical arousal\nonly during wakefulness and not with the cortical activa-\ntion during REM sleep. LC neurons are hyperpolarized by\nhalothane.18 The role of norepinephrine (generated by LC)"
+  },
+  {
+    "id": "Millers_9_10_PAGE_002_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "It was hypothesized in the mid-1990s that anesthetics sup-",
+    "body_text": "press consciousness by actions at the subcortical nuclei that\nevolved to control sleep-wake cycles.11 The past decades\nhave supported the hypothesis that anesthetics interact\nwith a number of these sleep-wake centers,12,13 although\nprecise interactions and contributions to the state of gen-\neral anesthesia have yet to be elucidated. The following is\na description of select subcortical nuclei in the brainstem\nand hypothalamus that mediate sleep-wake cycles14 and,\npotentially, some traits of anesthesia.\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_003_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "SECTION II • Anesthetic Physiology\n252\n\nPRF.37 When the GABA",
+    "body_text": "SECTION II • Anesthetic Physiology\n252\nPRF.37 When the GABAA antagonist bicuculline is micro-\ninjected, wakefulness is suppressed, but REM sleep (another \nstate of cortical arousal) is triggered. Vanini and colleagues \nfound that decreased levels of GABA in the PRF correlated \nwith isoflurane-induced unconsciousness, muscular hypo-\ntonia, and decreased respiratory rate.38 Since the effects of \nanesthetics are normally associated with a potentiation of \nGABA activity, these findings highlight that a specific neu-\nroanatomic and neurochemical milieu can play a unique \nand unexpected role in the mechanisms of consciousness \nand anesthesia. In addition, Vanini and colleagues found \nthat GABA-ergic transmission in the rat PRF modulates \nthe loss of consciousness induced by isoflurane but does not \nappear to affect emergence,39 providing evidence for asym-\nmetry between the two processes.\nin anesthesia is further supported by studies demonstrating \nthat barbiturate anesthesia time is increased by antagoniz-\ning norepinephrine and reduced by agonizing it.19,20 Nor-\nepinephrine transmission in the basal forebrain may be \nof particular relevance to anesthetic depth.21 It has been \nfound that LC noradrenergic neurons modulate the state \nof isoflurane anesthesia as well as emergence therefrom.22 \nOf note, administration of ketamine is associated with an \nincrease of activity in the LC23 and appears to contribute to \nits anesthetic effects.24\nLC and the role of norepinephrine in hypnosis are of par-\nticular interest due to the role of the α-2 agonist dexmedeto-\nmidine in clinical care. Microinjection of dexmedetomidine \nin the LC results in reduced levels of consciousness that \ncan be prevented by coadministration of the α-2 antago-\nnist atipamezole.25 After exposure to dexmedetomidine, \nbrain changes somewhat mimic NREM sleep in that the \nLC and tuberomammillary nucleus (TMN) are deactivated, \nwhereas the ventrolateral preoptic nucleus (VLPO) is acti-\nvated.26 Data in dopamine-β-hydroxylase knockout mice \n(which lack the ability to synthesize norepinephrine) dem-\nonstrate a hypersensitivity to dexmedetomidine, suggesting \nalternative mechanisms of action.27 However, selective \nknockdown of α-2A adrenergic receptors from LC pre-\nvent dexmedetomidine-induced loss of righting reflex,28 a \nmarker of general anesthesia in rodents.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_003_sec_1",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The mesopontine tegmental anesthesia area is located in",
+    "body_text": "the PRF. When pentobarbital is microinjected in this area,\na reversible state with anesthetic traits is induced.40 More\nrecently, this phenomenon has been defined with greater\nspatial resolution, with the identification of around 1900\nneurons in this area that can induce general anesthesia.41␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_003_sec_2",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Ventral tegmental area. Dopaminergic neurons of the",
+    "body_text": "ventral tegmental area (VTA) in the midbrain have not\nclassically been considered key mediators of the sleep-wake\ncycle because of relatively less evidence of state-dependent\nchanges compared with neurons in other brainstem nuclei.\nThis view has been challenged in sleep neurobiology.42 A\ndopaminergic pathway regulating sleep-wake states has\nbeen identified in Drosophila43 and dopaminergic neurons\nof the VTA have more recently been found to play a role in\nmammalian sleep.44 There has been renewed interest in\nthe ability of dopaminergic activity to reverse or accelerate\nrecovery from general anesthesia. Studies of the dopamine\nagonist methylphenidate have revealed an ability to reverse\nthe sedative effects of both isoflurane and propofol.45,46\nVTA appears to be the source of the dopaminergic transmis-\nsion mediating arousal during exposure to anesthesia, as\nevidenced by the fact that electrical stimulation of the VTA\nor selective stimulation of VTA dopaminergic neurons can\nreverse anesthetic-induced unconsciousness.47,48␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_003_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Laterodorsal/pedunculopontine tegmentum. Along",
+    "body_text": "with the basal forebrain, the laterodorsal tegmentum (LDT)\nand pedunculopontine tegmentum (PPT) in the pons are\nthe brain’s source of acetylcholine.29 There are direct pro-\njections to the thalamus from LDT/PPT with a known role\nin the generation of slow oscillations and sleep spindles,30\nwhich together represent a neurophysiologic sign that\ninformation transfer to the cortex is likely blocked.31 As\nwith the noradrenergic LC, activity of the LDT/PPT is high\nduring waking consciousness and decreases during NREM\nsleep.15 However, in contrast to the LC and other mono-\naminergic neurons, the cholinergic LDT/PPT is also active\nduring REM sleep, during which the cortex is aroused. Fur-\nthermore, activation of cholinergic neurons in LDT or PPT\ninduces REM sleep.32 Thus, both states of cortical activa-\ntion across the sleep-wake cycle are associated with high\ncholinergic tone. General anesthetics modulate cholinergic\nprojections from the LDT/PPT. Sleep spindles occur during\nhalothane anesthesia and are associated with decreased\ncholinergic transmission to the medial pontine reticular\nformation (PRF).33,34 There is evidence that synaptic and\nextrasynaptic γ-aminobutyric acid (GABA) receptors play a\nrole in modulating LDT neurons,35 which could provide a\ndirect link to molecular mechanisms of numerous general\nanesthetics. However, there has been relatively little study\nof the role of LDT/PPT in anesthetic mechanisms, with a\ngreater focus on cholinergic neurons in the basal forebrain.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_003_sec_4",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Hypothalamus",
+    "body_text": "Ventrolateral preoptic nucleus. The anterior hypo-\nthalamus has long been hypothesized to play a role in sleep-\nwake regulation.49 VLPO is a structure in this region that\ntransmits GABA and galanin.50 Neurons in VLPO are maxi-\nmally active during NREM and REM sleep;51,52 the median\npreoptic nucleus (MnPO) is also active during sleep. Of note,\nthe activity profile of GABA-ergic neurons in VLPO cor-\nrelates with sleep amount, whereas the activity of GABA-\nergic neurons in MnPO correlates with homeostatic sleep\npressure or propensity.53 Importantly, activity of the VLPO\nduring sleep is correlated with inhibition of other arousal\ncenters in the brainstem and hypothalamus.51,54 Given\nits potentially central role as a mediator of sleep, VLPO\nbecame an attractive candidate as a mediator of anesthetic-\ninduced unconsciousness. Nelson and colleagues demon-\nstrated activation of VLPO after systemic administration of\npropofol or pentothal55; recent studies have examined the\nmechanistic significance of these findings. Eikermann and\ncolleagues conducted studies of rats with chronic lesions of"
+  },
+  {
+    "id": "Millers_9_10_PAGE_003_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Pontine reticular formation. The PRF is part of the",
+    "body_text": "reticular activating system, which plays an important role\nin cortical arousal. Although GABA is the primary inhibi-\ntory neurotransmitter in the brain, the actions of GABA in\nthe PRF are associated with cortical arousal.36 For example,\nthere is increased time spent in the waking state when the\nGABAA receptor agonist muscimol is microinjected in the\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_004_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "9 • Consciousness, Memory, and Anesthesia\n253\n\nVLPO, finding",
+    "body_text": "9 • Consciousness, Memory, and Anesthesia\n253\nVLPO, finding that ablation of VLPO resulted in sleep depri-\nvation (as expected) but conferred increased sensitivity to the \neffects of isoflurane.56 This finding would argue against a \ncritical role of VLPO in the mechanism of anesthesia. How-\never, Moore and colleagues demonstrated that acute lesions \nof VLPO conferred resistance to the effects of isoflurane, an \neffect that appeared to be mediated specifically through the \nsleep-active neurons in VLPO.57 These neurons are actually \ndepolarized (i.e., activated) by isoflurane. Taken together, \nthese data suggest that VLPO plays a role in anesthetic-\ninduced unconsciousness (as evidenced by acute lesion \ndata), but that the effects of sleep deprivation associated \nwith chronic VLPO lesions could overwhelm this role. Curi-\nously, direct administration of dexmedetomidine, an α-2-\nadrenergic agonist, to the VLPO can destabilize the state of \nisoflurane anesthesia.58␣\npentothal, and the GABA agonist muscimol all result in \ndecreased activity in the TMN.55 Microinjection of hista-\nmine in the nucleus basalis magnocellularis of the basal \nforebrain reverses the depressant effects of isoflurane on the \nEEG, an effect likely mediated by H1 histamine receptors.80 \nA recent study in which GABAA receptors were genetically \nremoved demonstrated that histaminergic neurons are \nresistant to the effects of propofol.81 However, at the behav-\nioral level, there was no effect of propofol on loss-of-righting \nreflex, a surrogate for anesthetic-induced unconsciousness. \nThus the role of TMN and histaminergic transmission in the \nmechanism of anesthesia is still unclear.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_004_sec_2",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The thalamus is composed of more than 50 nuclei and",
+    "body_text": "subnuclei that can be grossly classified as relays for sen-\nsory input from the periphery or multimodal, integrative\nregions that receive input from the cortex. Additionally,\nthe thalamus is critical for transmitting arousal signals\nfrom the brainstem and for regulating cortical communi-\ncation. The involvement of the thalamus in arousal, sen-\nsory processing, and cortical computation is likely critical\nfor normal consciousness. As such, the thalamus has been\nof continued interest to those investigating mechanisms of\nanesthetic-induced unconsciousness."
+  },
+  {
+    "id": "Millers_9_10_PAGE_004_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Orexinergic neurons. Orexinergic neurons are found in",
+    "body_text": "the lateral hypothalamus and provide an important arousal\nstimulus for the cortex. There are two types of orexin (A and\nB), which are also referred to as hypocretins. Orexinergic\nneurons innervate other arousal centers in the brainstem\nand basal forebrain, and fire maximally in the waking state,\nare suppressed during NREM sleep, and show occasional\nbursts during phasic REM sleep.59,60 Dysfunction of the\norexinergic system is associated with narcolepsy in both\nhuman and animal models.61,62 The often dramatic delay\nof anesthetic emergence in narcoleptic patients63 has moti-\nvated the study of orexin in anesthetic mechanism. Orexins\nattenuate the effects of isoflurane,64 propofol,65 ketamine,66\nand barbiturates,67 using various measures. Local infusion\nof orexin in the basal forebrain is associated with electro-\nencephalographic (EEG) arousal and decreased emergence\ntime in animals anesthetized with sevoflurane68 and isoflu-\nrane.69 Microinjection of propofol in the perifornical region\nof the hypothalamus (the locus of orexinergic neurons) is\nassociated with a decrease in cortical acetylcholine, an\nimportant mediator of arousal.70 Importantly, both genetic\nand pharmacologic studies have demonstrated that orex-\nins play an important role in emergence from sevoflurane\nand isoflurane anesthesia, but not induction.71 This semi-\nnal study suggested that there is a distinct neurobiology of\ninduction and emergence, and formed the basis for a theory\nof “neural inertia” across state transitions.72 Of note, halo-\nthane did not show an effect on orexinergic neurons and\nemergence time was not altered in orexin knockout mice.73\nThese findings have been confirmed for propofol anesthesia:\npropofol reduces activity in orexinergic neurons in rats and\ninfusion of orexin in the basal forebrain affects emergence\ntime, but not induction time.74 Orexins might facilitate\nemergence from anesthesia through actions in the basal\nforebrain.75␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_004_sec_4",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The thalamus has been proposed as an ON/OFF switch",
+    "body_text": "for anesthetic state transitions.82 This theory was gener-\nated based on the consistent metabolic depression of the\nthalamus by a number of inhaled and intravenous anes-\nthetics83-85 (with the exception of ketamine),86 suggesting\nthat it could serve as an effective OFF switch. The hyperpo-\nlarization of the thalamus would shift tonic firing to burst\nfiring that—as with sleep—would prevent afferent sensory\nstimuli from arousing the cortex. Importantly, however,\nsensory nuclei in the thalamus (and their connectivity to\nthe cortex) appear to be less involved in anesthetic-induced\nunconsciousness compared to the higher-order or “nonspe-\ncific” nuclei.87,88"
+  },
+  {
+    "id": "Millers_9_10_PAGE_004_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Evidence for the thalamus as an ON switch has been",
+    "body_text": "derived primarily from animal experiments, in which\nstimulation of the centromedial thalamus by either nico-\ntine or antibodies blocking voltage-gated potassium chan-\nnels could reverse the effects of inhaled anesthetics.89,90\nAlthough microinjection of large doses of nicotine into the\nthalamus could precipitate anesthetic emergence, antago-\nnism of nicotinic acetylcholine receptors in the same loca-\ntion did not appear to contribute to anesthetic-induced\nunconsciousness. Central thalamic activation results in\nbehavioral improvement in humans with traumatic brain\ninjury.91 A study in humans demonstrated that (spontane-\nous) activation of the thalamus along with other subcorti-\ncal structures is correlated with recovery from anesthesia,\nsuggesting the involvement of the thalamus in the primitive\nor “core” consciousness observed at emergence.92"
+  },
+  {
+    "id": "Millers_9_10_PAGE_004_sec_6",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Tuberomammillary nucleus. The TMN is located in the",
+    "body_text": "caudal hypothalamus and is the brain’s source of hista-\nmine, an arousal-promoting transmitter. TMN activity and\nhistamine levels are highest during wakefulness and lowest\nduring sleep;76 the TMN is thought to have a relationship\nof reciprocal inhibition with the sleep-promoting GABA-\nergic neurons of the VLPO.51,54,77 Histamine release in the\nanterior hypothalamus is depressed during sleep78 and hal-\nothane anesthesia.79 Systemic administration of propofol,"
+  },
+  {
+    "id": "Millers_9_10_PAGE_004_sec_7",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Nonspecific nuclei of the thalamus have been proposed",
+    "body_text": "as a computational blackboard for the cortex.93 Thus if the\nmechanism of anesthetic-induced unconsciousness was\nachieved primarily by a suppression of cortical computa-\ntion, a depressed thalamus should be the result. To address\nthis question, Velly and colleagues conducted a neurophys-\niologic study using scalp EEG (reflecting cortical signals)\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_005_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "SECTION II • Anesthetic Physiology\n254\n\nand subthalamic nucl",
+    "body_text": "SECTION II • Anesthetic Physiology\n254\nand subthalamic nuclei electrodes (argued to reflect tha-\nlamic activity).94 Induction of anesthesia with either propo-\nfol or sevoflurane was associated with cortical rather than \nsubcortical changes, suggesting that the depression of the \nthalamus identified through neuroimaging studies reflected \nan effect rather than a cause of anesthetic-induced uncon-\nsciousness. Other case studies in humans suggest concur-\nrent suppression of thalamus and cortex during induction \nof propofol.95 Furthermore, more precise neurophysiologic \nrecordings of thalamus and cortex in animal models sug-\ngest that effects of propofol on central thalamic activity \nprecede effects on the cortex; interestingly this was found \nduring the spontaneous induction of sleep as well.96 Other \nanimal studies have found that attenuation of high-fre-\nquency oscillations by propofol is more pronounced in the \nthalamus than the cortex.97\nprofound functional disconnections between the cortex and \nputamen, a subcortical structure in the basal ganglia.105 \nIn contrast, thalamic connectivity was relatively well pre-\nserved. The potential role of the striatum (composed of the \nputamen and caudate) in anesthetic-induced unconscious-\nness has been demonstrated in a study of rats undergoing \nisoflurane anesthesia.106 This study was conducted with \nfMRI and found that the functional connection between the \nfrontal cortex and the basal ganglia was disrupted during \ngeneral anesthesia. A functional disconnection of associa-\ntion cortex and subcortical structures has also been shown \nby fMRI in a study of propofol-induced unconsciousness in \nhumans.107 With improved spatial resolution of 7T fMRI \nmachines and templates for brainstem nuclei,108 future \nstudies can focus on identifying with greater precision the \ncritical subcortical and cortical interactions or functional \ndisconnections that contribute to anesthetic-induced \nunconsciousness.109␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_005_sec_1",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The prior two possibilities (thalamic switch or compu-",
+    "body_text": "tational blackboard for the cortex) treat the thalamus as a\npassive player in general anesthesia. However, more recent\ndata suggest that it might, instead, play an active role. A\ncomputational study using human EEG data and modeling\nsuggested that the action of propofol on GABA receptors\nin the nucleus reticularis generates a hypersynchronous\nalpha rhythm (8-13 Hz) with the frontal cortex that blocks\nsensory input.98 Hypersynchrony of alpha may block the\nflexible corticocortical communication required for normal\nconsciousness.99 A recent animal study identified alpha\nsynchronization between thalamus and medial prefrontal\ncortex during propofol induction.100 The potential role of\nthalamocortical interactions in anesthetic-induced uncon-\nsciousness prompts further discussion of the thalamus and\nits connectivity to the cortex.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_005_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The last three sections were organized according to a bot-",
+    "body_text": "tom-up approach to consciousness and anesthesia, starting\nwith the brainstem, and then moving to the diencepha-\nlon and thalamocortical system. Sleep is clearly generated\nthrough such bottom-up mechanisms14; however, anes-\nthetics may suppress the level of consciousness through bot-\ntom-up mechanisms and content of consciousness through\ntop-down (i.e., cortical) mechanisms.12"
+  },
+  {
+    "id": "Millers_9_10_PAGE_005_sec_4",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Early studies using positron emission tomography",
+    "body_text": "(PET) demonstrated regional depression in cortical areas,\nincluding lateral and medial frontal-parietal networks.110\nDisruption of fMRI-based functional connectivity in fron-\ntal-parietal networks has been demonstrated during anes-\nthetic-induced unconsciousness induced by drugs with\ndistinct molecular mechanisms, including propofol,102,111\nsevoflurane,103 and ketamine.112 However, the cortex\nis amenable not only to fMRI but also neurophysiologi-\ncal techniques of assessing connectivity, enabling data on\nanesthetic-induced unconsciousness with improved tempo-\nral resolution. EEG can be used to measure functional con-\nnectivity (the statistical covariation of the activities of brain\nregions), and directional or effective connectivity (the pre-\nsumed causal influence of one brain region on another).113\nUsing such techniques applied to EEG (in some cases with\nconcomitant fMRI), disruption of frontal-parietal connectiv-\nity and surrogates of information exchange in humans has\nbeen consistently observed after administration of a variety\nof anesthetics with diverse molecular targets.104,114-117 It\nhas been suggested that such disruption of frontal-parietal\nconnectivity, with implications for impaired information\ntransfer of relevance to consciousness, might be a com-\nmon mediator and proximate cause of anesthetic-induced\nunconsciousness.118"
+  },
+  {
+    "id": "Millers_9_10_PAGE_005_sec_6",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The closely integrated function of the cortex and thala-",
+    "body_text": "mus suggests that the two can be treated as a single thala-\nmocortical system. The thalamocortical system undergoes\nstate-dependent changes across the sleep-wake cycle, and\nis thought to play a critical role in consciousness. This role\nis defined by its ability to integrate the activities of function-\nally diverse cognitive modules, a property that is critical for\nsubjective experience.101"
+  },
+  {
+    "id": "Millers_9_10_PAGE_005_sec_7",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Recent studies using functional magnetic resonance",
+    "body_text": "imaging (fMRI) have refined the role of thalamocortical\nconnectivity in anesthesia. One study identified a propofol-\ninduced disruption of connectivity between the thalamus\nand lateral frontal-parietal networks.102 Similarly, a study\nof the specific nuclei (linked to particular sensory modali-\nties) and nonspecific nuclei (linked to integrative functions)\nfound that disrupted connectivity between the nonspecific\nnuclei and the cortex best accounted for a reduction in the\nlevel of consciousness by propofol.87 Recently, the inhaled\nanesthetic sevoflurane has been shown to functionally\ndisconnect the thalamus and cortex, especially frontal cor-\ntex.103,104 Notably, a consistent finding of neuroimaging\nstudies is that the thalamocortical connectivity of primary\nsensory networks is relatively well preserved despite anes-\nthetic-induced unconsciousness."
+  },
+  {
+    "id": "Millers_9_10_PAGE_005_sec_8",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The inhibition of frontal-parietal communication is",
+    "body_text": "likely representative of a more global disruption of corti-\ncal communication. A study using high-density EEG and\ntranscranial magnetic stimulation revealed an inhibition\nof cortical-effective connectivity after midazolam-induced\nunconsciousness.119 After administration of the benzodi-\nazepine, local cortical activation could be observed at the\nsite of magnetic stimulation, but robust evoked potentials"
+  },
+  {
+    "id": "Millers_9_10_PAGE_005_sec_9",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The finding of impaired thalamocortical connectivity in",
+    "body_text": "association with anesthetic-induced unconsciousness has\nnot been universal. An fMRI study of propofol revealed more\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_006_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "9 • Consciousness, Memory, and Anesthesia\n255\n\nWakefulness\nS",
+    "body_text": "9 • Consciousness, Memory, and Anesthesia\n255"
+  },
+  {
+    "id": "Millers_9_10_PAGE_006_sec_7",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Network level",
+    "body_text": "10-60 functional areas/network"
+  },
+  {
+    "id": "Millers_9_10_PAGE_006_sec_8",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Long-Range",
+    "body_text": "Connectivity\nFig. 9.3 Schematic summary of the consecutive stages of unconsciousness. Relative to the control state of wakefulness (left column), sedation (middle \npanel) is marked by an increase of local/regional signal synchrony and consequent breakdown of global connectivity. Deep surgical anesthesia or \ndisorders of consciousness (DOC, right column) is associated with collapse of both local/regional synchrony and global connectivity. (From Huang Z, \nLiu X, Mashour GA, Hudetz AG. Timescales of intrinsic BOLD signal dynamics and functional connectivity in pharmacologic and neuropathologic states of \nunconsciousness. J Neurosci. 2018;38[9]:2304–2317.)\npropofol-induced unconsciousness124,125 that would pre-\nclude the kind of flexibility required for normal conscious \nexperience. Dynamic patterns are impaired during general \nanesthesia and cortical dynamics are stabilized during gen-\neral anesthesia.126 This is likely a discrete, multistage pro-\ncess with distinct dynamic signatures during sedation and \ngeneral anesthesia (Fig. 9.3).127,128 Relating dynamics to \nconnectivity, it appears that the repertoire of functional \nconnectivity patterns in the primate brain becomes more \ntethered to structural/anatomical connectivity patterns \nduring the anesthetized state.129 Of note, animal studies \nsuggest that the return of consciousness after general anes-\nthesia is defined by discrete neural states that reconfigure \nduring emergence.130\nwere terminated at less than 100 milliseconds, and cor-\ntical communication was limited. Of note, this finding is \nconsistent with findings in NREM sleep.120 This perturba-\ntional approach determined that the complexity of corti-\ncal response to a stimulus decreased during sleep, general \nanesthesia, and disorders of consciousness.121 The con-\ncordant findings across physiologic (sleep) and pharma-\ncologic (anesthesia) states of unconsciousness may reflect \na common neurophysiologic mechanism of disrupted cor-\ntical connectivity through slow oscillations, which share \na number of characteristics in NREM sleep and general \nanesthesia.122 A study of three epilepsy patients with \nintracranial neurophysiologic monitoring123 revealed \nthat, within 5 seconds of propofol-induced unconscious-\nness, there was a dramatic increase in the power of slow \noscillations. Although single-unit neuronal activity was \ninitially suppressed, it returned to baseline (or above base-\nline) but was fragmented into highly active and quiescent \nperiods. Neural firing became coupled with the slow oscil-\nlation. However, the slow oscillations themselves demon-\nstrated decay in phase coupling with increased distance \nacross the cortex. Thus neuronal spike activity became \nfragmented into “on” and “off” periods, which became \ntemporally uncoordinated across the cortex. These neuro-\nphysiologic conditions dramatically reduce the probability \nof meaningful corticocortical communication."
+  },
+  {
+    "id": "Millers_9_10_PAGE_006_sec_9",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "In the next section, we discuss memory, the thread that",
+    "body_text": "links conscious experiences together to form the narrative\nof “self.”␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_006_sec_12",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Modern understanding of the structure, function, and",
+    "body_text": "organization of human memory is deeply informed by\nthe study of amnesia. The most renowned demonstration\nof this principle occurred in 1957, when Brenda Milner\nreported the remarkable case of Henry Gustav Molaison\n(1926–2008),131 an amnesiac who would become known\nfamously as H.M., and who would represent the single most\ninfluential case study in the history of neuroscience. In a\nprocedure intended to treat a refractory seizure disorder,"
+  },
+  {
+    "id": "Millers_9_10_PAGE_006_sec_13",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "More recent trends of analyzing cortical changes dur-",
+    "body_text": "ing states of unconsciousness take a dynamic approach\nthat reflects not just connectivity configurations but\nthe repertoire of states that can be accessed during gen-\neral anesthesia. For example, there is a contraction of\ndynamic repertoire and neural signal diversity during\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_007_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "SECTION II • Anesthetic Physiology\n256\n\nsignificant portions",
+    "body_text": "SECTION II • Anesthetic Physiology\n256\nsignificant portions of the medial temporal lobe (MTL) were \nremoved bilaterally—including the hippocampus, amyg-\ndala, and adjacent parahippocampal gyrus. H.M. developed \nprofound and enduring anterograde amnesia, and was \nunable to establish any new conscious memory, irrespec-\ntive of the sensory modality. He also developed a temporally \ngraded window of retrograde amnesia, with impaired recall \nof events occurring during the 3 years preceding his sur-\ngery. However, most of his associated cognitive functions—\nperceptual processing, language, attention, access to \nsemantic knowledge, and capacity to retain small packages \nof information in constant rehearsal—remained largely \nor entirely intact. Prior to this report, the prevailing the-\nory—articulated by Canadian neuropsychologist Donald \nHebb132—was that there was no brain region dedicated to \nmemory function. Instead, memory processes were thought \nto be distributed and integrated into region-specific percep-\ntual and cognitive functions. For example, the visual attri-\nbute of a memory would be wholly served within the striate \nand extrastriate cortical regions responsible for visual per-\nception. The description of H.M. immediately disproved this \nmodel. It became clear that the MTL was a specialized and \nobligatory structure for the establishment and early mainte-\nnance of all conscious memory, irrespective of the modality. \nThe trajectory of memory research was profoundly trans-\nformed. Initially, largely independent branches evolved to \nfocus on the structural-functional organization of the MTL \n(Fig. 9.4A) and the nature of cellular-level neuroplastic \nprocesses—the latter notably marked by the description of \nlong-term potentiation (LTP) by Timothy Bliss and Terje \nLømo in 1973.133 Subsequently, emerging technologies \nenabled the development and investigation of systems-level \nconstructs. Examples include the use of EEG and magne-\ntoencephalography to assess the role of oscillatory phase \nsynchronization in neuronal assemblies,134 fMRI to identify \nlarge-scale networks associated with specific memory func-\ntions,135 and machine learning to classify complex neural \nnetwork patterns predictive of memory.136"
+  },
+  {
+    "id": "Millers_9_10_PAGE_007_sec_1",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "These important distinctions establish the axiom that",
+    "body_text": "patients who form memories while under anesthesia can-\nnot have been truly unconscious; they must have possessed\nsome conscious substrate from which the memory derives.\nHowever, the converse inference is not always true: the exis-\ntence of consciousness will not necessarily lead to the exis-\ntence of memory if an anesthetic drug is present. Evidence\nto support this statement is unambiguously encountered in\neveryday anesthetic practice—patients receiving a small\ndose of propofol or midazolam who engage in a cogent con-\nversation that they are later unable to recall, or in patients\nemerging from general anesthesia who follow commands\nto demonstrate that extubation can proceed safely, yet later\ncannot recall anything related to this clearly conscious\nevent. Anesthetic drugs must therefore have direct effects\non memory processes that are dissociable from those on\nconsciousness—and it is this observation that provides a\nframework for the systematic study of how anesthetic drugs\naffect memory.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_007_sec_4",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "When the term memory is used in everyday language, it",
+    "body_text": "almost always refers to declarative memory. Declarative\nmemory is the representation of prior events and knowl-\nedge that is accessible to consciousness and can be manipu-\nlated by attention and executive function. It is the form of\nmemory referred to in the context of anesthetic amnesia."
+  },
+  {
+    "id": "Millers_9_10_PAGE_007_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Further important organizational structure exists within",
+    "body_text": "declarative memory. The first is the distinction between epi-\nsodic and semantic memory. Episodic memory is the recollec-\ntion of events with a clear spatiotemporal context (as when\nrecalling autobiographical events with a distinct sense of\npersonal experience, time, and place), whereas semantic\nmemory is the capacity to recall and apply meaning, facts,\nand knowledge without spatiotemporal context (as when\nrecalling that Mount Everest is the tallest mountain in the\nworld without any sense of time and place for the acqui-\nsition of that knowledge). The episodic memory system is\nfast-mapping and highly dependent on the MTL as well as\nfrontal and parietal structures,137,138 whereas the semantic\nmemory system is slower and involves distributed cortical\nregions that closely map to the default mode network, a\nlarge-scale system that is active during the resting state and\nflow of spontaneous cognition.135,139 The second organiza-\ntional structure within episodic memory is the distinction\nbetween recollection and familiarity. Recollection involves\nremembering specific qualitative contextual details about\na prior event, whereas in a familiarity judgment, there is a\nsense that an item has been encountered previously, but\nbeyond that there are no added contextual details. The\naccepted understanding is that recollection and familiarity\narise from distinct processes and neural architecture within\nthe MTL. The perirhinal cortex receives input from sen-\nsory association areas and supports familiarity judgments\nthrough encoding and retrieval of the identifying qualities\nof an item (the “what” information). The parahippocam-\npal cortex and entorhinal areas receive input from areas"
+  },
+  {
+    "id": "Millers_9_10_PAGE_007_sec_6",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Amnesia is the term used to describe one of the cardinal",
+    "body_text": "properties of general anesthesia. As understood by most\nanesthesiologists and laypeople, this description is phenom-\nenological; it states that patients do not recall the events\nthat occur to them while receiving anesthesia. However,\nthis usage confuses a critical mechanistic and semantic\ndistinction. Patients in the deepest states of anesthesia are\nunable to process and bind perceptual elements into an\nintegrated conscious experience. From the perspective of\ncognitive neuroscience, the “amnesia” of general anesthe-\nsia is not a primary failure of memory, but rather a failure of\nconsciousness. It simply reflects that a conscious experience\ncannot be reconstructed by memory processes when it does\nnot exist in the first place. Further confusion is added by the\nfrequent use of the term awareness—a synonym for con-\nscious perception—to describe the case in which a patient\nconsciously recalls events occurring during the admin-\nistration of an anesthetic. This ignores the fundamental\nprinciple that memory is functionally dissociable from con-\nsciousness. Awareness is necessary for the establishment of\nmemory under anesthesia, but it is not sufﬁcient. Conscious\nrecall can occur only if awareness is accompanied by mem-\nory processes in the MTL and elsewhere that establish and\npreserve a representation that can be reconstructed later.\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_008_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "9 • Consciousness, Memory, and Anesthesia\n257\n\nPrefrontal co",
+    "body_text": "9 • Consciousness, Memory, and Anesthesia\n257"
+  },
+  {
+    "id": "Millers_9_10_PAGE_008_sec_29",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "B",
+    "body_text": "Fig. 9.4 Memory systems in the medial temporal lobe. (A) Representation of unidirectional and bidirectional network connectivity of structures in \nthe medial temporal lobe, diencephalic nuclei, and neocortical association areas. CA, Cornu ammonis; DG, dentate gyrus; EC, entorhinal cortex; MTT, \nmammillothalamic tract. (B) Intrinsic connectivity of the amygdala. BA, Basal nucleus; CeL, central nucleus lateral segment; CeM, central nucleus medial \nsegment; ICML, lateral intercalated cell mass; ICMMD, dorsomedial intercalated cell mass; ICMMV, ventromedial intercalated cell mass; LA, lateral nucleus. \n([A] Modiﬁed from Bartsch T, Butler C. Transient amnesic syndromes. Nat Rev Neurol. 2013;9[2]:86–97, Figure 2. [B] Modiﬁed from Duvarci S, Pare D. Amygdala \nmicrocircuits controlling learned fear. Neuron. 2014;82[5]:966–980, Figure 2.)\nprocessing spatial information (the “where” information), \nand support recollection through encoding and retrieval \nof context. The hippocampus links these two, binding item \nand context information, and appears necessary for recol-\nlection, but plays little or no role in familiarity.140,141"
+  },
+  {
+    "id": "Millers_9_10_PAGE_008_sec_30",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Other forms of memory are dissociable from declarative",
+    "body_text": "memory. Findings that amnesiacs could learn a hand-eye\ncoordination skill even while possessing no memory of the\ntask led to the distinction between declarative and proce-\ndural memory, which is dependent on the caudate nucleus.\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_009_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "SECTION II • Anesthetic Physiology\n258\n\nSubsequently, memory",
+    "body_text": "SECTION II • Anesthetic Physiology\n258"
+  },
+  {
+    "id": "Millers_9_10_PAGE_009_sec_1",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Subsequently, memory-impaired patients were also found",
+    "body_text": "to have intact priming,142 which is a nonconscious process\nin which exposure to a stimulus influences the response to a\nlater stimulus—for example, amnesiacs can name pictures\n100 milliseconds faster if they have seen them previously,\ndespite having no declarative memory of the exposure.143\nThe neural bases for priming effects are thought to arise\nwithin regions serving perceptual and contextual process-\ning of the stimulus, and so vary with the nature of the\ntask.144 Lastly, a large body of work has extensively eluci-\ndated the emotional memory system. The classic experimen-\ntal model is Pavlovian fear conditioning and its variants,\nwherein an emotionally neutral conditioned stimulus is\npaired with an aversive unconditioned stimulus, leading\nto an involuntary associative physiologic and/or behav-\nioral response to the conditioned stimulus. The circuitry\ninvolves convergence of afferent information from all sen-\nsory modalities on the lateral nucleus of the amygdala,\nand the basolateral and central nuclei projecting widely to\nmodulate processes in cortical and subcortical regions (see\nFig. 9. 4B).145,146 With the progressive description of these\nand other functional distinctions, the framework for under-\nstanding memory eventually shifted to models that con-\ntained multiple memory systems in the brain, distributed\nfunctionally and anatomically.147\noccurring in working memory, with deeper levels of execu-\ntive processing resulting in better learning.155"
+  },
+  {
+    "id": "Millers_9_10_PAGE_009_sec_2",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The transition of memory from short-term stores through",
+    "body_text": "to stable long-term stores is experienced as continuous and\nwas assumed to reflect sequential transfer across systems.\nHowever, this model is challenged by rare case examples\nof patients who have a selective short-term memory deficit\nbut intact declarative memory function, and recent studies\nhave reinforced the view that memories are formed in mul-\ntiple systems in parallel.156␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_009_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "LONG-TERM POTENTIATION, SYNAPTIC",
+    "body_text": "TAGGING, AND THE CONSOLIDATION MODEL\nOF MEMORY"
+  },
+  {
+    "id": "Millers_9_10_PAGE_009_sec_4",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The consolidation hypothesis of memory was first pro-",
+    "body_text": "posed by Müller and Pilzecker in 1900.157 They noted that\nmemory for new information could be disrupted by learn-\ning other information shortly after the initial training. This\neffect, called retroactive interference, is temporally graded\nsuch that the susceptibility of the memory is greatest imme-\ndiately after learning and decreases with time. Müller and\nPilzecker proposed that the memory trace must initially\nexist in a fragile state, but subsequently becomes stable\nthrough the process of consolidation. The consolidation\nhypothesis remains the framework for understanding the\ntemporal course of memory processes and behavior."
+  },
+  {
+    "id": "Millers_9_10_PAGE_009_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Working memory refers to the capacity to maintain lim-",
+    "body_text": "ited amounts of information in the stream of consciousness,\nwhich can be manipulated to perform complex cognitive\ntasks such as reasoning, comprehension, and learning.148\nThe concept evolved from, and has largely replaced, earlier\nideas about short-term memory, but the terms should not be\nused interchangeably, as working memory implies both a\nshort-term memory store and the capacity for manipula-\ntion. The most influential current model, first proposed by\nBaddeley and Hitch in 1974,149 divides working memory\ninto capacity-limited component subsystems: a phonological\nloop that maintains information through vocal or subvocal\nrehearsal, such as when one holds a telephone number in\nmind; a visuospatial sketchpad, which holds and manipulates\nspatial, visual, and kinesthetic information; and a central\nexecutive, which is responsible for regulating selective atten-\ntion and inhibition. A fourth subsystem, the episodic buffer,\nwas later added to the model150 and is responsible for the\ntemporary storage of multidimensional representations and\nintegration with declarative memory."
+  },
+  {
+    "id": "Millers_9_10_PAGE_009_sec_6",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "For a memory trace to be consolidated, it must of course",
+    "body_text": "be created. The term used to describe this process is encoding.\nEncoding implies that the networks mediating the neural\nrepresentation of an event as it is experienced do not immedi-\nately return to their previous state and are modified in such a\nway that potentiates reactivation of that representation. The\nsynaptic plasticity and memory hypothesis states that activity-\ninduced synaptic plasticity is both necessary and sufficient for\nthe information storage underlying memory,158 and within\nthis framework encoding implies that some form of synaptic\nplasticity has been initiated. However, encoding cannot in\nitself assure the propagation of a memory trace. Encoding cre-\nates the potential for the formation of a long-term memory."
+  },
+  {
+    "id": "Millers_9_10_PAGE_009_sec_7",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The minimal events that constitute the neural correlates",
+    "body_text": "of encoding are incompletely understood. Cellular models\ndemonstrate that functional changes in synaptic strength\ncan occur in the absence of any structural change in den-\ndritic spines.159 The perpetuation of these initial changes\nthrough structural and functional remodeling represents the\nneural correlate of memory consolidation. The prevailing\ncellular model for this is LTP,160 which describes a durable\nincrease in synaptic transmission efficiency following a stim-\nulation protocol. It is now recognized that LTP occurs richly\nthroughout the hippocampus, as well as in other afferent\npathways.161 LTP can be induced by nonphysiologic high-\nfrequency stimulation, but also by stimulation protocols\nthat resemble physiologic activity, the most important being\nbursts in the theta range (4-8 Hz).162 This is of notable rele-\nvance to memory, as synchronized hippocampal theta oscil-\nlations appear critical to successful memory behaviors.134"
+  },
+  {
+    "id": "Millers_9_10_PAGE_009_sec_8",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Working memory has long been understood to not involve",
+    "body_text": "the MTL,151 although the belief that it has no role has recently\nbeen questioned in studies of spatial working memory.152\nNotwithstanding, current understanding of working mem-\nory suggests that it is served by persistent activity and flexible\nresource allocation in a distributed cortical network, with a\ncritical hub in the dorsolateral prefrontal cortex (DLPFC)\ninterconnected with parietal cortex, thalamus, caudate, and\nglobus pallidus.153 The functional and structural distinc-\ntion between working memory and the MTL does not mean\nthat working memory and declarative memory systems\ndo not interact. Working memory depends on declarative\nmemory representations to provide semantic meaning and\ncontext. During working memory tasks, cortical perceptual\nareas associated with representations of declarative mem-\nory become activated and show increased synchrony with\nprefrontal regions.154 Reciprocally, encoding of declarative\nmemory is strongly influenced by the nature of processing"
+  },
+  {
+    "id": "Millers_9_10_PAGE_009_sec_9",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The breadth and depth of literature on the mecha-",
+    "body_text": "nisms of LTP are far too voluminous to summarize here.\nNonetheless, certain principles are essential and relevant\nto anesthesia studies and can be stated succinctly. The\ninduction of most forms of LTP requires activation of post-\nsynaptic N-methyl-D-aspartate (NMDA) receptors,163\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_010_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "9 • Consciousness, Memory, and Anesthesia\n259\n\nfollowed by i",
+    "body_text": "9 • Consciousness, Memory, and Anesthesia\n259\nfollowed by influx of Na+ and Ca2+. This rise in intracel-\nlular Ca2+ is the critical trigger for LTP. Calcium-calmod-\nulin-dependent kinase II (CaMKII) is then activated and \nautophosphorylated,164,165 leading to cytoskeletal recon-\nfiguration.166 Activation of several other cell-signaling \ncascades also contribute to LTP. The terminal expression \nof LTP is protein synthesis, occurring in both the soma \nand local dendrites, and resulting in enduring structural \nchanges at the synapse.167 Protein synthesis inhibitors \nhave been demonstrated to consistently prevent sustained \nLTP in!vitro and learning in!vivo.168\nthese oscillations supports neural communication by creat-\ning transient and dynamic associations between different \nfunctional brain regions. Phase synchronization appears \nto be fundamental to neural plasticity and memory,134 \nand numerous studies have demonstrated that dynam-\nics of synchrony during memory tasks can be related to \nboth long-term175 and working memory176 performance. \nGamma-band (30-100 Hz) synchrony is believed to sup-\nport an important form of Hebbian plasticity, termed spike-\ntiming-dependent plasticity, in the hippocampus. Both \ncomputational models and experimental data provide evi-\ndence that rapid changes in the frequency and phase of \ngamma rhythms modulate this form of plasticity through \ncoordination of presynaptic spikes in assemblies of neurons, \neffectively classifying which assemblies are interpreted as a \nsingle event.177\nLTP thus proceeds in two phases: early LTP (E-LTP) is \nindependent of protein synthesis and can be sustained \nacross an interval of minutes to a short number of hours, \nwhile late LTP (L-LTP) is dependent on intracellular sig-\nnaling and protein synthesis and can be sustained across \nmany days. The synaptic tagging and capture hypothesis \nprovides a mechanistic explanation for the observation \nthat the persistence of synaptic potentiation (and mem-\nory) is influenced by events surrounding encoding.169 \nIn this model, synapses activated during E-LTP become \ntagged via a protein synthesis-independent mechanism. \nThis tag establishes the potential for sustained L-LTP, \nbut for the cascade to continue the tags must capture \nplasticity-related proteins (PRPs) synthesized in the soma \nor dendrites in response to neural activity. The synaptic \ntagging model explains how the thousands of dendrites of \na single neuron can be engaged in memory stabilization \nprocesses in various states of evolution, because the tag-\nging and PRP capture need not occur as a singular event.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_010_sec_1",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Another property of relevance to memory coding is the",
+    "body_text": "coupling of gamma oscillations to the phase of slower, syn-\nchronized oscillations within the theta-band (4-8 Hz).178\nTheta oscillations, which are prominent in the hippo-\ncampus and entorhinal cortex, undergo phase resetting\nin response to a stimulus. The phase reset involves widely\ndistributed regions, and is thought to serve as an efficient\nmechanism for the optimization of interregional communi-\ncation.179 Theta phase resetting and synchrony in the hip-\npocampal-entorhinal system are implicated in declarative\nmemory,180 and in the amygdala-hippocampal system in\nfear-based memory.181 Coupling between theta phase and\ngamma amplitude is connected to declarative memory for-\nmation,180,182 and, in an elegant model, is proposed to form\na code for representing multiple items and spatial represen-\ntations in an ordered way.183 Coupling between theta phase\nand gamma phase enables a more precise temporal coordi-\nnation of neuronal spikes, and may code for separated rep-\nresentations of multiple items in working memory.184␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_010_sec_2",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "RECONSOLIDATION",
+    "body_text": "A major shift the in understanding of consolidation \noccurred in 2000, when Nader et al. reported that an old \nmemory for auditory fear conditioning, which would nor-\nmally not be sensitive to protein inhibitors, can be made \nnewly sensitive if it is retrieved.170 The implication is that \nretrieval of a memory renders it transiently plastic, after \nwhich it restabilizes. This process is termed reconsolidation, \nand the period of plasticity is termed the reconsolidation \nwindow. The mechanism shares many of the LTP pro-\ncesses that are associated with initial consolidation, but \nalso has features that are quite distinct at both the cellular \nand systems level.171 Reconsolidation serves as a modu-\nlatory process that enables the strengthening of an exist-\ning memory, but it is also clear that it provides a window \nwithin which an existing memory is malleable and can be \nupdated with the addition of novel information, or dimin-\nished through interruption of restabilization processes.172 \nThese latter properties have generated significant transla-\ntional interest because of repeated demonstrations of the \nability to modify or even eliminate fear memory in animals \nthrough pharmacologic and behavioral interventions that \ninterrupt reconsolidation.173 Indeed, the erasure of fear \nmemory in humans can be demonstrated through per-\nformance of a behavioral extinction procedure during the \nreconsolidation window.174␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_010_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Effects of Anesthetic Drugs on",
+    "body_text": "Declarative Memory Function in\nHumans"
+  },
+  {
+    "id": "Millers_9_10_PAGE_010_sec_4",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "There are multiple potential pathways by which anesthetic",
+    "body_text": "drugs could interfere with memory and cause amnesia.\nMost of these cannot be directly assessed in humans, but\nthe plausibility of candidate mechanisms can be indirectly\nexamined by designing experiments that are informed by\nthe characteristics of known memory processes. Studies of\nanesthetic effects on memory are most informative when\nconceptualized and designed with reference to robust meth-\nods and findings taken from the larger body of memory\nresearch."
+  },
+  {
+    "id": "Millers_9_10_PAGE_010_sec_6",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Notwithstanding some isolated case reports, systematic inves-",
+    "body_text": "tigations have found no evidence that anesthetic drugs cause\nretrograde amnesia in humans. There is no retrograde amne-\nsia associated with induction doses of thiopental,185 metho-\nhexital,185 or propofol.186 Adult patients have normal memory\nfor visual stimuli presented 4 minutes before administration of\nmidazolam at doses of 2, 5, and 10 mg.187 Similarly, memory is"
+  },
+  {
+    "id": "Millers_9_10_PAGE_010_sec_8",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The neurons in assemblies and networks undergo oscilla-",
+    "body_text": "tory activation and inhibition. Phase synchronization of\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_011_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "SECTION II • Anesthetic Physiology\n260\n\nwhere λ reflects the",
+    "body_text": "SECTION II • Anesthetic Physiology\n260\nwhere λ reflects the initial memory strength (an index \nof encoding), and ψ expresses the rate of decay (an index \nof consolidation). The drugs are characterized by marked \ndifferences in the way they modulate the two coefficients. \nPropofol is an archetypal amnestic drug—it permits robust \nencoding of material, but the information undergoes acceler-\nated decay because of a failure of consolidation. In contrast, \ndexmedetomidine archetypally causes memory impairment \nbecause of a failure of information to be strongly encoded \nbut has little or no effect on the subsequent consolidation of \nmemories that are encoded. The benzodiazepine midazolam \nbehaves like propofol at lower doses—selectively causing \nconsolidation failure while leaving encoding intact—but \nwith increasing dose a significant encoding impairment \nemerges. Thiopental in contrast causes marked encoding \nfailure but demonstrates minimal effect on consolidation. \nThe discrepant patterns observed imply that nonspecific \nGABAA agonism is not per se sufficient to explain the ability \nof a drug to cause consolidation failure.␣\nnormal for word lists learned in the preoperative holding area \nor operating room immediately before induction.188 Studies \nin pediatric patients have shown normal memory for pictures \npresented immediately before sedation with midazolam,189 \npropofol,190 and dexmedetomidine.191 In controlled labora-\ntory settings using human volunteers and target-controlled \ninfusions, studies have found no impairment of memory for \npictures192 or words193,194 presented before sedative infusions \nof propofol, midazolam, thiopental, or dexmedetomidine."
+  },
+  {
+    "id": "Millers_9_10_PAGE_011_sec_1",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "There is some evidence from controlled studies that anes-",
+    "body_text": "thetic drugs may instead lead to the opposite effect, in which\nmemory for material presented prior to drug administration\nis enhanced—a phenomenon termed retrograde facilitation.\nIn one study using a mildly sedative dose of propofol,195\nmemory for words learned immediately prior to drug admin-\nistration was enhanced throughout the testing period of 24\nhours. Similar effects are described for midazolam and other\nbenzodiazepines in the psychopharmacology literature.196\nThe mechanistic explanation for retrograde facilitation can\nbe framed by an understanding of retrograde interference—the\nobservation that mental exertion inhibits the consolidation of\nrecently formed memories, with the newest memories being\nmost vulnerable.197 The induction of new LTP interferes\nwith recently formed LTP and memory performance, even\nwhen the tasks are unrelated.198 However, when the induc-\ntion of new LTP is blocked by administration of a selective\nNMDA antagonist after learning, interference with recently\nformed LTP does not occur, and memory performance\nimproves.199,200 A parsimonious explanation for the retro-\ngrade facilitation seen with propofol and benzodiazepines is\nthat they similarly modulate the induction of new LTP via\na GABA-ergic pathway, freeing consolidation resources that\nenhance survival of recently formed memory."
+  },
+  {
+    "id": "Millers_9_10_PAGE_011_sec_2",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "ANESTHETIC EFFECTS ON ATTENTION AND",
+    "body_text": "AROUSAL AS MODULATORS OF ENCODING"
+  },
+  {
+    "id": "Millers_9_10_PAGE_011_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The effect of anesthetic drugs on encoding processes is",
+    "body_text": "related to the modulation of attention. Selective attention\nis governed by distinct networks mediating alertness, target\norientation, and executive control205; involves modulation\nof neuronal phase synchrony across short- and long-range\nconnections206; and is necessary for the successful estab-\nlishment of declarative memory.207 The dominant effect\nof most anesthetic drugs on attention is decreased arousal,\nwith the notable exception being the NMDA antagonist\nketamine, which has dominant effects on orienting and\nselection.208 Thiopental mimics the effect of an attentional\nchallenge task in decreasing activation in the left inferior\nprefrontal cortex (LIPFC), an effect that is not seen with\npropofol.209 When tested at 225 minutes, arousal is predic-\ntive of memory for thiopental and dexmedetomidine, while\npropofol causes a significantly greater loss of memory than\nwould be predicted by modulation of arousal alone.194 In\nmathematical modeling of anesthetic amnesia,193 arousal\npredicts the coefficient of encoding strength with precision\nfor a range of sedative concentrations of dexmedetomidine,\nthiopental, midazolam, and propofol. In sum, arousal is pre-\ndictive of subsequent memory for drugs that impair mem-\nory dominantly through causing encoding failure.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_011_sec_4",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The findings of retrograde facilitation and absence of ret-",
+    "body_text": "rograde amnesia are suggestive that the key mechanisms of\nGABA-ergic anesthetic amnesia, at least in humans, involve\nvery early processes in the consolidation cascade. It is more\ndifficult to rationalize that downstream sequences represent\nprincipal targets. Were this the case, the expected effect\nwould be interference with ongoing consolidation of mem-\nory for events occurring in the past, creating a window of\nretrograde amnesia. Nonetheless, an alternate model to the\ninduction hypothesis suggests that GABA-ergic anesthetics\nexert a direct effect on downstream protein transcription\nprocesses,201 based on evidence from rodent studies.202"
+  },
+  {
+    "id": "Millers_9_10_PAGE_011_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The absence of pharmacologic retrograde amnesia does",
+    "body_text": "not dismiss the repeated finding that, in the clinical set-\nting, a percentage of patients will not recall the immediate\npreanesthetic period—an effect that increases with age.203\nAlthough not systematically studied, the complex norad-\nrenergic-mediated effects of acute stress and anxiety on\nmemory may be contributory.204␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_011_sec_6",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "NEUROIMAGING STUDIES OF CORTICAL",
+    "body_text": "ENCODING PROCESSES\nA limited number of functional neuroimaging studies have \nevaluated the effect of anesthetics on cortical regional acti-\nvation during memory encoding. An early PET study inves-\ntigating sedative doses of propofol using a word memory \ntask210 identified that activation in LIPFC—a region associ-\nated with encoding and subsequent memory for language \ntasks—was conserved, suggesting that propofol did not \nblock the processes required to support successful encoding. \nIn contrast, activation in DLPFC—a region most associated \nwith executive control functions and cognitive control of \nmotor planning211—was decreased. In a subsequent investi-\ngation using an auditory depth of processing task, activation"
+  },
+  {
+    "id": "Millers_9_10_PAGE_011_sec_8",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Mathematical modeling of memory decay has been used to",
+    "body_text": "characterize the amnestic effects of multiple intravenous\nanesthetic drugs,193 which are accurately described by a\ntwo-parameter power decay function:\nmt = λt −Ψ\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_012_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "9 • Consciousness, Memory, and Anesthesia\n261\n\nof LIPFC was",
+    "body_text": "9 • Consciousness, Memory, and Anesthesia\n261\nof LIPFC was found to be decreased by sedative doses of thio-\npental, but again was relatively unaffected by propofol.209 \nHowever, other studies have identified decreased activa-\ntion in encoding areas. An fMRI study of sentence com-\nprehension during light sedation with propofol found that \ndecreased memory for sentences was related to decreased \nactivation in the left inferior frontal gyrus (LIFG, within the \nLIPFC) and the middle temporal gyrus.212 Another study \nusing a single-word encoding task showed decreased activa-\ntion in LIFG at levels of propofol sedation causing memory \nloss, but also found intact connectivity between LIFG and \na number of frontoparietal and temporal regions associated \nwith verbal processing and memory tasks, including the \nmiddle temporal gyrus and precuneus.213\nin epileptic patients, but none have been dedicated to \nmemory function. One notable study evaluated the effects \nof mildly sedative concentrations of propofol on hippo-\ncampal spectral coherence and power characteristics \nat rest.221 The main finding was a significant increase \nin hippocampal-rhinal spontaneous coherence in the \ndelta-band, but minimal changes in other bands; cortico- \nhippocampal coherence was not assessed.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_012_sec_1",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "STUDIES OF CORTICAL EVENT-RELATED",
+    "body_text": "POTENTIALS\nA number of memory-dedicated studies have used the \nevent-related potential (ERP)—a small but stereotypic posi-\ntive and negative signal fluctuation in the EEG time-locked \nto a stimulus, and which can be isolated through summa-\ntion over multiple (usually at least 50) identical trials. ERPs \nare thought to emerge not because new oscillations are \ninduced, but because of a stimulus-induced phase resetting \nof ongoing oscillations.222"
+  },
+  {
+    "id": "Millers_9_10_PAGE_012_sec_2",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Some functional neuroimaging studies have used experi-",
+    "body_text": "mental tasks similar to memory encoding tasks while\nevaluating sedative doses of anesthetic drugs, but have not\nassessed memory encoding as a primary aim; these are infor-\nmative, but must be interpreted with caution. An early PET\nstudy of sedative doses of midazolam using a tone detection\nparadigm reported a dose-dependent activation decrease in\nBrodmann areas 9, 10, and 46, which overlap regions of\nboth DLPFC and LIPFC.214 An fMRI study of semantic word\nprocessing during propofol sedation found a dose-dependent\ndecrease in activation of the LIFG, despite intact behavioral\nresponses.215 An fMRI study of low-dose dexmedetomidine\nreported a generalized suppression of bilateral prefrontal\nactivation in Brodmann areas 9 and 10 during an emotional\npicture memory task, but encoding performance was not\nspecifically analyzed.216 A recent study using music stimuli\nfound decreased activation in primary and secondary audi-\ntory processing areas at sedative doses of dexmedetomidine\nand midazolam, but not with propofol.217 Other neuroim-\naging studies evaluating resting state networks, or passive\nactivation in response to stimuli at nonresponsive levels of\nsedation, should not be viewed as memory experiments."
+  },
+  {
+    "id": "Millers_9_10_PAGE_012_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "An early ERP study223 of scopolamine, lorazepam, and",
+    "body_text": "diphenhydramine suggested that drug-induced effects on\narousal and memory may be electrophysiologically dis-\nsociable, although memory was not assessed directly.\nChanges in the P1N1 and N1P2 early complexes, associ-\nated with arousal, were seen for all three drugs. However,\nchanges in later complexes associated with memory, nota-\nbly the P3 and N2P3, were seen only with scopolamine and\nlorazepam, and not with diphenhydramine, an antihista-\nmine that causes sedation but not amnesia. This work is\nextended by a series of studies evaluating intravenous anes-\nthetics and using memory-specific experimental paradigms.\nIn a verbal memory task, propofol amnesia was associated\nwith decreased P300 amplitude at the time of the encod-\ning task.224 In a subsequent study in which multiple drugs\nwere carefully dosed to equivalent levels of sedation,225\nthe true amnestic drugs with memory effects independent\nof sedation—propofol and midazolam—caused decreased\namplitude in the P300 and N2P3 components, with the lat-\nter being the best predictor of subsequent memory perfor-\nmance. Across all drugs studied, the N2 latency was related\nto reaction time, a surrogate measure of sedation."
+  },
+  {
+    "id": "Millers_9_10_PAGE_012_sec_4",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Neuroimaging Studies of Medial Temporal Lobe",
+    "body_text": "Function\nTwo methodologically similar studies used event-related\nfMRI to evaluate MTL activation during low-dose infusions\nof propofol and dexmedetomidine. The degree of amne-\nsia caused by propofol can be linearly related to decreased\nactivation in the hippocampus bilaterally,218 an effect that\nbehaviorally corresponded to a failure of consolidation pro-\ncesses. In contrast, dexmedetomidine does not reduce the\noverall level of hippocampal activity, but the subsequent-\nmemory effect is attenuated, and dynamics of hippocampal\nactivation are less predictive of subsequent memory216;\none interpretation is that this reflects a downstream effect\nfrom weakened cortical encoding processes. An earlier\nstudy of the benzodiazepine lorazepam and the choliner-\ngic antagonist scopolamine found decreased memory to be\ncorrelated with decreased activation in the anterior hip-\npocampus,219 accompanied by decreased activation in the\nencoding-related regions in the fusiform gyrus and inferior\nfrontal cortex. In a largely exploratory investigation, 0.25%\nsevoflurane was found to reduce hippocampal activation in\nresponse to auditory and visual stimuli, but no memory per-\nformance was assessed.220"
+  },
+  {
+    "id": "Millers_9_10_PAGE_012_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Another study examined early- and mid-latency ERPs",
+    "body_text": "originating from the midline parietal precuneal region\n(Pz), and related them to coefficients describing the extent\nof encoding and consolidation failure.226 Across drugs\nfrom multiple classes and at multiple doses, consolida-\ntion failure was closely correlated with the P2 amplitude\nand N2 latency observed at the time of encoding. As the\nvisual P2N2 complex is known to originate from synchro-\nnous theta oscillations,227 one possibility is that a common\nmechanism underlying the effect of anesthetic drugs on\nconsolidation involves changes in theta oscillations across\na distributed cortico-hippocampal network occurring at\nthe time of consolidation induction. Further, the P2N2 and\nmemory decay coefficient were also closely correlated with\nreaction time, which can be related to interregional syn-\nchrony.228 Unfortunately, no direct measures of cortico-\nhippocampal theta synchrony have yet been performed\nin studies of pharmacologic amnesia. Another analysis229\nexamined the old-new effect, a robust phenomenon in the\nparietal ERP that distinguishes the response to initial item\nA few studies have evaluated anesthetic effects using \nelectrocorticography and depth electrodes implanted\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_013_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "SECTION II • Anesthetic Physiology\n262\n\nexposure from subseq",
+    "body_text": "SECTION II • Anesthetic Physiology\n262\nexposure from subsequent exposures as a marker of mem-\nory strength. Propofol and midazolam caused a significant \ndecrease in the old-new effect at 27 seconds, even though \nmemory performance was maintained, demonstrating \nagain an early marker of impaired memory processes that \nprecedes behavioral detection.\nreceptor regulates the induction of LTP in response to a \nnarrow range of frequencies in the theta range.242 These \nobservations have driven a series of anesthesia studies \nusing α5-GABAA-knockout mice. Etomidate blocks LTP \nmeasured in CA1 neurons in wild-type mice, but not in α5 \n–/– mutants, and behaviorally the α5 –/– mutants are resis-\ntant to the amnestic effects of etomidate, but not to its gen-\neral anesthetic effects.243 Further, the effects of etomidate \non LTP and memory behaviors are reversed by the addition \nof L-655,708, which selectively reduces the activity of α5-\nGABAA receptors.244 The behavioral findings were later \nreplicated with exposure to 1 MAC of isoflurane, with mem-\nory deficits observed in wild-type mice, but not in α5 –/– \nmutants or in wild types receiving L-655,708.245,246 The \nincrease in α5-GABAA receptors caused by etomidate and \nisoflurane does not return to baseline for at least 1 week.247"
+  },
+  {
+    "id": "Millers_9_10_PAGE_013_sec_1",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Studies using very different experimental paradigms have",
+    "body_text": "evaluated auditory ERPs at multiple concentrations of propo-\nfol.230,231 Propofol causes a dose-dependent decrease in mis-\nmatch negativity and early right anterior negativity, which\nare elicited in response to specific music signatures and are\nknown to relate to associative memory operations. In con-\ntrast, the P1 complex, which derives from primary auditory\nprocessing, is not affected even at deep levels of sedation.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_013_sec_2",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Nonhuman Studies of Anesthetic",
+    "body_text": "Effects on Memory Processes and\nBehavior in the Medial Temporal\nLobe"
+  },
+  {
+    "id": "Millers_9_10_PAGE_013_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The α5-subunit subtype is not exclusive in its association",
+    "body_text": "with amnesia. α4-GABAA receptors are concentrated in the\ndentate gyrus and dorsal thalamus, and α4 knockouts are\nresistant to the amnestic effects of isoflurane but not to its\ngeneral anesthetic effects.248 More equivocally, β3-GABAA\nreceptor knockout mice have been reported to be resistant to\nthe amnestic effects of isoflurane,249 while in a study using\nβ3-GABAA receptor knock-in mutants, the β3 subtype was\nnot significantly associated with amnesia.250 Similar equiv-\nocacy has been found in studies of the α1 subtype.251,252"
+  },
+  {
+    "id": "Millers_9_10_PAGE_013_sec_4",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "ANESTHETIC EFFECTS ON MEDIAL TEMPORAL",
+    "body_text": "LOBE PLASTICITY\nGABA-ergic interneurons project within and across sub-\nregions of the hippocampus,232 providing an abundant \ndensity of possible targets for anesthetic drugs. In an early \nstudy using tetanic stimulation of the Schaffer collateral-\ncommissural pathway,233 isoflurane blocked the induction \nof LTP, and long-term depression (LTD) by low-frequency \nstimulation. These effects were reversed by the addition \nof the GABAA receptor antagonist picrotoxin, providing \nstrong evidence that the effect of isoflurane on LTP is GABA-\nergically mediated. In a similar protocol, amnestic concen-\ntrations of sevoflurane caused a failure of LTP which was \nprevented by the addition of the GABAA antagonist bicucul-\nline.234 A recent study of sevoflurane exposure in neonatal \nrats found reduced spine density of apical dendrites, synap-\ntic ultrastructure damage, elevated expression of synaptic \nvesicle-associated proteins, and inhibition of LTP but not \nLTD.235 One study of isoflurane, in which the hippocampus \nwas studied 24 hours following anesthetic exposure, some-\nwhat unexpectedly found improvement in cognitive perfor-\nmance, accompanied by evidence of upregulation of the 2B \nsubunit of the NMDA receptor and enhanced LTP.236"
+  },
+  {
+    "id": "Millers_9_10_PAGE_013_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The effects of anesthetics on hippocampal theta oscil-",
+    "body_text": "lations in!vivo have been studied. One study used a fear-\nconditioning paradigm to examine amnestic concentration\nof isoflurane, nitrous oxide, and halothane, and reported\nthat suppression of hippocampal-dependent contextual\nconditioning was proportionate to slowing of theta peak\nfrequency.253 Another study also demonstrated that isoflu-\nrane caused slowing of theta oscillations in the CA1 neu-\nronal bundle without changing absolute power,254 while\nin contrast the nonimmobilizer F6, which causes amnesia\nwithout sedation or a loss of motor activity, caused a loss\nof theta oscillatory power without slowing. Scopolamine\ncauses amnesia at doses associated with acceleration of\ntheta oscillations, which might otherwise be expected to\nimprove learning.255 However, a significant loss of absolute\npower is also observed. Together these findings suggest that\nindividual anesthetics may cause amnesia through distinct\nforms of hippocampal theta disruption.␣\nA series of investigations have demonstrated that propo-\nfol inhibits the induction, but not the maintenance, of LTP, \nand has no effect on LTD. The effect is blocked by the addi-\ntion of picrotoxin, implicating a GABAA receptor-mediated \nmechanism.237,238 Notably, one study found that propofol \ninhibited LTP only at anesthetic, and not at amnestic con-\ncentrations.238 Propofol has also been demonstrated to \ninhibit a number of component subprocesses of LTP.239-241 \nPropofol reduces expression of activity-related cytoskeleton-\nassociated protein (Arc) in the hippocampus in response to \ninhibitory avoidance training but does not appear to reduce \nArc mRNA,202 which is notable because it suggests a post-\ntranscriptional mechanism."
+  },
+  {
+    "id": "Millers_9_10_PAGE_013_sec_6",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Human and Nonhuman Studies",
+    "body_text": "of Anesthetic Effects on Fear\nMemory Systems"
+  },
+  {
+    "id": "Millers_9_10_PAGE_013_sec_8",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The amygdala is a cluster of interconnected nuclei sitting",
+    "body_text": "immediately anterior to the hippocampus, with afferent\nand efferent projections to a wide distribution of cortical\nand subcortical structures. It is critical to fear learning and\nmemory, and the systematic study of amygdala-dependent\nclassical (Pavlovian) fear conditioning has produced much\ninformation regarding the mechanisms and circuitry.145,146\nThe basolateral nucleus of the amygdala (BLA) also mod-\nulates the encoding and consolidation of memory in the"
+  },
+  {
+    "id": "Millers_9_10_PAGE_013_sec_9",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The hippocampal GABAAergic interneuron population",
+    "body_text": "is notable for a high density of the α5-subunit subtype. Of\nknown significance to memory function, the α5-GABAA\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_014_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "9 • Consciousness, Memory, and Anesthesia\n263\n\nhippocampus a",
+    "body_text": "9 • Consciousness, Memory, and Anesthesia\n263\nhippocampus and elsewhere in response to emotion, \narousal, and stress.256 The mechanism is dependent on nor-\nadrenergic projections terminating on both α and β recep-\ntors within the BLA,257 and can be triggered by systemic \nstress mediators—notably glucocorticoids258 and epineph-\nrine.259 Amygdalo-hippocampal connectivity occurs via \ndirect and indirect projections, and is dependent on theta \noscillatory synchrony.181,260 The amygdala contains a \nnumber of rational targets for GABA-ergic anesthetic drugs.␣\nhippocampus is markedly attenuated (see Fig. 9.5 upper panel) \nand correlates with amnesia and loss of the superior memora-\nbility of emotional material.218 This suggests that cortical and \nsubcortical processes serving emotional interpretative func-\ntions and afferent amygdala activation are relatively spared by \namnestic levels of propofol, while efferent processes underly-\ning amygdala-dependent modulation of hippocampal plastic-\nity are interrupted. An fMRI study of dexmedetomidine also \nreported no effect on activation of the amygdala in response to \nnegatively arousing items,216 but in contrast to propofol, emo-\ntional items retained superior memorability, and activation \nin the left amygdala and hippocampus were correlated with \nsubsequent memory. Taken together, these studies imply that \npropofol may have a more targeted effect on the amygdalo-hip-\npocampal modulatory axis. One potential explanation is that \namygdalo-hippocampal connectivity is markedly interrupted \nby a loss of theta oscillatory synchrony caused by propofol, \nwhereas α2A antagonism at the LC causes only limited down-\nstream attenuation of noradrenergic signaling in the BLA.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_014_sec_2",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "As various forms of fear conditioning represent the domi-",
+    "body_text": "nant experimental method for studying memory in animal\nmodels, almost all studies of anesthetic effects on memory\noffer some insight into their effects on fear systems. Beyond\nthe central conclusion from this sizeable body of literature\nthat GABA-ergic anesthetics in general impair the acquisi-\ntion of fear memory, a subset of studies are notable for their\nspecific focus on fear circuitry and behavior."
+  },
+  {
+    "id": "Millers_9_10_PAGE_014_sec_4",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "There is substantial evidence that anesthetic effects on",
+    "body_text": "fear memory are mediated by GABA-ergic mechanisms in\nthe amygdala. Selective injection of the BLA with midazolam\nblocks acquisition and stress enhancement of fear mem-\nory,261 while lesions of the BLA block anterograde amnesia\nfor an inhibitory avoidance task in rats receiving diaze-\npam,262 propofol,263 and sevoflurane.264 Further, injection\nof the BLA with the selective GABAA antagonist bicuculline\nblocks the effect of propofol202 and midazolam.265"
+  },
+  {
+    "id": "Millers_9_10_PAGE_014_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Amygdala reactivity is of importance in a number of fear-",
+    "body_text": "based psychopathologies, including anxiety, phobia, panic\ndisorder, and PTSD.272 The neurohumoral stress response\nto surgery and critical illness can cause complex changes in\nlevels of catecholamines, glucocorticoids, and other poten-\ntial promoters of plasticity in amygdala-dependent fear\nprocesses, occurring within a context that frequently con-\ntains emotional stressors. It is unclear under what specific\nconditions elevated (or depressed) levels of these mediators\nmight contribute to long-term changes in neuropsychologi-\ncal functioning, although multiple studies in the critical care\nsetting relate stress exposure, and exogenous administration\nof catecholamines, to negative long-term outcomes.273 In a\nbroad surgical population, the incidence of PTSD-complex\nsymptoms related to surgery was reported to be 16%5—simi-\nlar to that observed in victims of violence. The effect—or lack\nof effect—of anesthetic drugs on plasticity processes in the\nperioperative or critical care setting thus has a theoretical\npotential to impact long-term psychological sequelae, both\npositively and negatively. However, there is presently insuf-\nficient human data to inform specific recommendations.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_014_sec_6",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "There are certain conditions under which anesthetic",
+    "body_text": "drugs can enhance fear memory. When propofol or ket-\namine is given immediately following conditioning, reten-\ntion is enhanced,266,267 which may represent a form of\nretrograde facilitation as described earlier, but retention is\nreduced when dexmedetomidine is similarly administered.\nIn a rat model of PTSD, propofol and ketamine administered\nimmediately after fear learning enhances long-term fear\nbehavior, while dexmedetomidine has a neutral effect.267\nMidazolam given during extinction training, which nor-\nmally inhibits learned fear expression, blocks the effect of\nextinction,261 and also blocks fear-reducing effects when\ngiven during preconditioning contextual learning.268\nWhen sevoflurane is administered at a very low, nonsedat-\ning dose (0.11%), fear conditioning is enhanced.269,270␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_014_sec_9",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Implicit (nondeclarative) memory processes do not axiom-",
+    "body_text": "atically require a conscious substrate, and are not depen-\ndent on classic hippocampal plasticity. Therefore the effect\nof anesthetic drugs on implicit memory functions may have\nimportant distinction from those on declarative memory,\nand accordingly a number of investigations have sought\nevidence for implicit processing in unconscious subjects.\nMany studies have used auditory adaptations of the word\nstem completion task, or the more rigorous process dissocia-\ntion procedure, in which subjects are asked to exclude items\nthat have been presented; declarative memory will drive\navoidance of the target word, while implicit memory will\nlead to a familiarity response favoring the target word."
+  },
+  {
+    "id": "Millers_9_10_PAGE_014_sec_10",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Three functional neuroimaging studies have directly",
+    "body_text": "addressed anesthetic effects on emotional memory. A study\nusing PET and path analysis (Fig. 9.5 lower panel)271 demon-\nstrated that the superior memorability that negatively arous-\ning emotional items have over neutral items was unaffected\nby 0.1% and 0.2% sevoflurane, but lost at 0.25%, and was\nassociated with decreased effective connectivity projecting\nfrom the right amygdala to hippocampus, and also from the\nright nucleus basalis to hippocampus. Further, sevoflurane\nmodulated emotional perception such that items were rated\nmore neutrally. An fMRI study demonstrated that sedative\ndoses of propofol do not reduce activation of the amygdala in\nresponse to negatively arousing items, but activation of the\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_015_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "SECTION II • Anesthetic Physiology\n264\n\n–36\n–33\n–30\n\n0\n3\n6",
+    "body_text": "SECTION II • Anesthetic Physiology\n264\n–36\n–33\n–30\n0\n3\n6\n–7\n7\n1\n–36\n–33\n–30\n0\n3\n6\n–4\n4\n2"
+  },
+  {
+    "id": "Millers_9_10_PAGE_015_sec_12",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "B",
+    "body_text": "C\nFig. 9.5 Anesthetic effects on emotional memory systems. (upper panel) Functional magnetic resonance imaging scans showing the contrast in \nresponse to negatively arousing items relative to neutral items, with coronal slices through the amygdala (0, 3, 6) and hippocampus (−30, −33, −36). The \ncontrol condition (top row) shows enhanced activation of both the amygdala and hippocampus in response to the added emotional information, while \nin subjects receiving propofol (bottom row) there is enhanced activation of the amygdala, but not of the hippocampus. (lower panel) Path diagrams of \nconnectivity at rest, with positive inﬂuences of one region onto another shown as solid lines, negative inﬂuences shown as dotted lines, and width rep-\nresenting magnitude. In the control condition (A) there is a signiﬁcant positive inﬂuence of the amygdala onto the hippocampus bilaterally. Administra-\ntion of sevoﬂurane 0.25% (B) blocks emotional modulation behaviorally, and removes the positive inﬂuence of the right amygdala and nucleus basalis \nof Meynert on the hippocampus. Numerical differences in path weight (C) show these two paths to signiﬁcantly contribute to the network model more \nin the control than sevoﬂurane state. Amyg, Amygdala; Hipp, hippocampus; LC, locus ceruleus; NBM, nucleus basalis of Meynert; Thal, thalamus. ([A] \nModiﬁed from Pryor KO, Root JC, Mehta M, et al. Effect of propofol on the medial temporal lobe emotional memory system: a functional magnetic resonance \nimaging study in human subjects. Br J Anaesth. 2015;115[suppl 1]:i104–i113, Figure 3; [B] Modiﬁed from Alkire MT, Gruver R, Miller J, et al. Neuroimaging analysis \nof an anesthetic gas that blocks human emotional memory. Proc Natl Acad Sci U S A. 2008;105[5]:1722–1727, Figure 5.)"
+  },
+  {
+    "id": "Millers_9_10_PAGE_015_sec_13",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Two early studies in patients undergoing coronary",
+    "body_text": "artery274 and gynecologic275 procedures showed evi-\ndence of implicit learning using word stem completion\ntasks. Another early study demonstrating implicit recall\nin cardiac surgery patients correlated performance with\npreservation of the midlatency auditory evoked potential,\nand most strongly with the early cortical Pa and Na com-\nplexes.276 Later studies demonstrated implicit memory in\nboth trauma patients277 and patients undergoing an emer-\ngency cesarean section278 using the process dissociation\nprocedure, and further demonstrated that the degree of pro-\ncessing is related to the bispectral index. However, multiple\nmore recent studies using similar procedures have either\nfailed to show significant implicit priming effects or have \nbeen equivocal.279-281 Synthesis of these disparate results \ninto a cohesive conclusion is difficult. Although differences \nin patient populations and anesthetic regimens may be of \nrelevance, methodological challenges may have driven \nboth false positive and false negative results. Investigations \nevaluating implicit memory processes in pediatric patients \nunder anesthesia have also offered conflicting results. One \nstudy reported an increased ability to distinguish a primed \nanimal sound from white noise,282 but other investigations \nfound no evidence of priming.283–285"
+  },
+  {
+    "id": "Millers_9_10_PAGE_016_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "MATTHIAS EIKERMANN and SEBASTIAN ZAREMBA\n10\n\nSleep Medicine",
+    "body_text": "MATTHIAS EIKERMANN and SEBASTIAN ZAREMBA\n10"
+  },
+  {
+    "id": "Millers_9_10_PAGE_016_sec_2",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "KEY POINTS",
+    "body_text": "␣□␣ Sleep is a dynamic neuronal and behavioral state that can be characterized using speciﬁc elec-\ntroencephalographic, electrophysiologic, and behavioral ﬁndings.\n␣□␣ Characteristics of sleep can be quantiﬁed using questionnaires, actigraphy, or respiratory\npolygraphy. However, polysomnography, including electroencephalogram, electrooculogram, \nsubmental electromyogram, and analysis of breathing, is required to describe the cortical char-\nacteristics and immediate physiological consequences.\n␣□␣ Activation of hypothalamic sleep-promoting pathways including the ventrolateral preoptic\nnucleus and the median preoptic nucleus produces the physiological switch from wakefulness \nto sleep.\n␣□␣ Sleep and anesthesia can look similar. Although small doses of anesthetics can induce sleep\nby activating sleep-promoting pathways, surgical anesthesia and immobilization cannot be \ninduced by sleep-promoting pathways.\n␣□␣ Control of breathing is altered during sleep and anesthesia, typically leading to a decreased\ndrive to upper airway dilator and respiratory pump muscles.\n␣□␣ Persistent respiratory depressant effects of anesthetics and neuromuscular blocking drugs in-\ncrease the risk of postoperative respiratory complications, particularly in patients with obstruc-\ntive sleep apnea.\n␣□␣ Anesthesia and surgery, as well as treatment in the intensive care unit and opioids, affect sleep\nduration and sleep architecture, which may lead to impaired outcome."
+  },
+  {
+    "id": "Millers_9_10_PAGE_016_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Probably the earliest mention of “overpowering sleep” as a",
+    "body_text": "metaphor describing what possibly characterizes anesthesia\ncan be found in Genesis 2:21: “And the Eternal God caused\nan overpowering sleep to fall upon the man and he slept.\nHe took one of his ribs and shut in flesh instead thereof.”\nAlthough this “overpowering sleep” allegedly occurred by\ndivine intervention and did not represent the drug-induced\nunconsciousness and immobility that characterizes anes-\nthesia, the basic narrative is an example of antiquarian his-\ntory that implicates the concept that deep sleep may be the\nonly viable condition that allows a surgical procedure to be\ncompleted successfully.1"
+  },
+  {
+    "id": "Millers_9_10_PAGE_016_sec_4",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Therefore, high-quality physiologic sleep is a key domain",
+    "body_text": "of public health that needs to be considered in perioperative\nmedicine from both a provider and a patient perspective."
+  },
+  {
+    "id": "Millers_9_10_PAGE_016_sec_6",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Sleep is the natural periodic suspension of consciousness",
+    "body_text": "during which the powers of the body are restored. A behav-\nioral definition of sleep includes a species-specific posture\nand behavioral quiescence, as well as elevated arousal\nthresholds. However, sleep is much more than an absence\nof activity. The brain is highly active during sleep, especially\nduring rapid eye movement (REM) sleep, during which ato-\nnia, phasic muscle movements (driven by different activa-\ntion levels in distinct areas of the brain), and vivid dreaming\noccur. Sleep is not a simple electrophysiological phenome-\nnon. At different stages of sleep, brain activities can be as\ndistinct from each other as they are from wakefulness.5 In\nhumans and other vertebrates (see “Evolution”), sleep has\ntwo major stages: REM sleep and non-REM (NREM) sleep,\nwith each of these further divided into substates. Most of\nsleep time is spent in NREM sleep, which is characterized by\nrelatively low electroencephalographic (EEG) frequencies\nwith higher amplitudes compared with awake EEG frequen-\ncies (Fig. 10.1). In the transition from wake to NREM sleep,\nthe fast activity of waking disappears (α–θ transition), and\nthen in the deeper stages of NREM large, slow waves (i.e.,\nδ waves) emerge. Thus deep NREM sleep is also referred\nto as slow-wave sleep. NREM sleep is associated with wax-\ning and waning muscle tone, as well as decreased body"
+  },
+  {
+    "id": "Millers_9_10_PAGE_016_sec_7",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "In the 21st century, an increasing body of knowledge has",
+    "body_text": "revealed the common ground between sleep and anesthe-\nsia, as well as their fundamental differences in clinical pic-\nture and underlying mechanisms."
+  },
+  {
+    "id": "Millers_9_10_PAGE_016_sec_8",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Sleep is required for survival. Rats deprived of sleep",
+    "body_text": "will die within 2 to 3 weeks, a time frame similar to death\ndue to starvation.2 In humans, sleepiness can be deadly.\nApproximately 100,000 motor vehicle accidents each\nyear result from drivers who are “asleep at the wheel.” In\na survey of drivers in New York State, approximately 25%\nreported they had fallen asleep at the wheel at some time.3\nIn addition, sleep deprivation impairs the psychomotor\nperformance of night shift workers, specifically surgeons\nand residents. In patients, perioperative sleep deprivation\noccurs frequently, particularly in critically ill patients, and\nthere may be consequences on patients’ outcomes. Among\nsleep disorders, obstructive sleep apnea (OSA) has prob-\nably the most meaningful consequences for perioperative\ntreatment.4\n267\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_017_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "SECTION II • Anesthetic Physiology\n268\n\nW\n\nREM\n\nNREM 1\n\nNREM",
+    "body_text": "SECTION II • Anesthetic Physiology\n268"
+  },
+  {
+    "id": "Millers_9_10_PAGE_017_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "NREM 3",
+    "body_text": "5 sec.\nFig. 10.1 Representative electroencephalogram activity seen during different behavioral states. Electroencephalogram recordings of one patient dur-\ning wakefulness (eyes closed; W), rapid eye movement sleep (REM), and non-REM (NREM) sleep stages 1 to 3.\ntemperature and heart rate. In contrast, REM sleep is char-\nacterized by muscle atonia, loss of slow waves in the EEG, \nand bursts of REMs that give this state its name.6 Other \nprominent features of REM include marked irregularities \nof respiration and heart rate, as well as penile and clitoral \nerection. REM sleep is associated with the high likelihood \nof vivid dreaming. A distinct property of REM sleep is the \noperation of a system that suppresses motor activity, which \nis responsible for baseline atonia and suppression of motor \ncommands that would otherwise result in acting out of \ndreams, a phenomenon known as REM sleep behavior dis-\norder. This REM atonia system is not constant, as it periodi-\ncally allows breakthrough muscle activity that comprises \nREM sleep and twitching of the extremities. REM sleep has \ntherefore been subdivided into tonic REM sleep (i.e., a period \nwith muscle atonia and without eye movements) and phasic \nREM sleep, which is interrupted by short phasic events of \nthe eye and other movements.7 The pattern and amounts \nof NREM sleep, REM sleep, and wakefulness throughout the \nnight are referred to as sleep architecture, and there are many \nphysiologic and pathophysiologic processes that can affect \nsleep architecture. For example, many antidepressant med-\nications, benzodiazepines, and opioids selectively suppress \nREM sleep. A disease example is narcolepsy, in which indi-\nviduals often transition rapidly from wake to REM, whereas \nnormally REM is nearly always entered from a prolonged \nepisode of NREM state.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_017_sec_7",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Species-dependent temporal behavior can be adapted",
+    "body_text": "depending on the environmental conditions: behavior-\nally, anatomically, and physiologically. Circadian rhythms\naffect almost every aspect of the body’s function, including\nactivity and rest patterns, cognitive function (e.g., learning\nand memory), cardiovascular and endocrine physiology\n(e.g., heart rate, metabolism, and hormone secretion), and\ngene expression (15% of the genes in the human body show\ndaily rhythms)."
+  },
+  {
+    "id": "Millers_9_10_PAGE_017_sec_8",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Virtually all species show circadian rhythms that regu-",
+    "body_text": "late periodic changes in behavioral and physiologic param-\neters within a period of approximately 24 hours.10 These\nrhythms can be characterized as a synchronization of activ-\nity to the external light-dark cycle in the majority of living\ncreatures. Bacteria, plants, animals, and humans exhibit\nsuch a behavior that helps them stay in tune with the envi-\nronmental light-dark cycles.11 Our sleep timing preference,\nor chronotype, is a manifestation of our internal biological\nclock. Variation in chronotype has been linked to sleep dis-\norders, cognitive and physical performance, and chronic\ndisease.12"
+  },
+  {
+    "id": "Millers_9_10_PAGE_017_sec_9",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Clock genes generate endogenous clock pulses in most",
+    "body_text": "(if not all) cells of the body, synchronized by regulatory\npathways across the body to a superior rhythm genera-\ntor (a so-called master clock). Desynchronization of these\nrhythms seems to be involved in the pathogenesis of met-\nabolic, psychiatric, and other disorders.11 The superior\nrhythm generator in humans is located in the suprachias-\nmatic nucleus that receives external inputs about light and\ndarkness from the retinal cells and synchronizes inputs of\nmelatonin levels. While this master clock synchronizes the\nbehavioral and biological rhythms of the human body to\nthe changing demands of the environment during the solar\nday, sleep itself entrains circadian rhythms,11,13 and the\ntemporal organization of circadian rhythms and nocturnal\nsleep must be preserved to accomplish a restful and refresh-\ning experience that fulfills the sleep needs produced by the"
+  },
+  {
+    "id": "Millers_9_10_PAGE_017_sec_12",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "It is unknown why we sleep; however, one can imagine",
+    "body_text": "that evolutionary pressure would favor systems that are\noptimized for nature’s rhythms.8,9 In a rhythmic world,\norganisms must adapt to alternating changes in the envi-\nronment, such as daily and seasonal rhythms in light inten-\nsity, ambient temperature, and humidity.␣\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_018_sec_21",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Protophytes",
+    "body_text": "Fig. 10.2 Evolutionary tree. Circadian rhythms are common among all living beings. However, only mammals and birds (red) have integrated sleep with \ndifferent stages. Fish, reptiles, insects, and plants (blue) manifest circadian rhythms as periods of activity and rest.\nsecond major regulatory factor, sleep homeostasis. During \nwaking, “sleep pressure” continuously increases, leading \nto an increased likelihood for the transition from wakeful-\nness to sleep.14 Increasing homeostatic sleep pressure can \nbe partly offset by a sufficient circadian wakening stimulus \nduring the circadian wake phase, but the circadian wake \nstimulus disappears in the presence of an overwhelming \nsleep pressure.15 In this situation, sleep sufficient in quan-\ntity and quality is needed to reestablish proper functioning."
+  },
+  {
+    "id": "Millers_9_10_PAGE_018_sec_22",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "During this state of vigilance, the individuals do not sleep,",
+    "body_text": "and a full level of cognitive function can be established eas-\nily even without a strong sensory stimulus. The transition\nfrom α state to sleep is paralleled by a further decrease in α\nand β activity and an increase of EEG activity in the θ band\n(4.5-7.5 Hz; Fig.10.3)."
+  },
+  {
+    "id": "Millers_9_10_PAGE_018_sec_23",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "This transition from α to θ activity is widely accepted as",
+    "body_text": "the EEG correlate of sleep onset.19 At this transition from\nwakefulness to NREM sleep stage 1, heart rate and heat pro-\nduction decrease, resulting in a slight decrease in body tem-\nperature. Furthermore, respiration is regular and deep. As\nsleep deepens, EEG activity shows low amplitudes and θ\nactivity with intermittent sleep spindles and K-complexes.\nThe latter represents an activation of brainstem and subcor-\ntical brain areas during sleep20,21 for selective processing of\nunexpected sensory inputs (e.g., sounds) that might require\ncomplete arousal and restoration of consciousness to address\na potential threat.22 In accordance with that hypothesis, in\ncomatose patients with brain injury, the presence of K-com-\nplexes in response to an acoustic stimulus during coma seems\nto be a marker of a better outcome compared with comatose\npatients with no evoked K-complexes.23 With increasing\ndepth of sleep, during NREM sleep, electrical activity of the\ncortex measured by EEG is dominated by slower frequencies\nand high amplitudes, also referred to as slow-wave sleep."
+  },
+  {
+    "id": "Millers_9_10_PAGE_018_sec_24",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Although circadian and homeostatic regulation of sleep",
+    "body_text": "can be observed in almost all living organisms,16 differenti-\nation of sleep into NREM and REM sleep (“integrated sleep”)\nprobably has developed during the last 300 to 350 million\nyears because it appears only in birds and the majority of\nterrestrial mammals (Fig. 10.2).17,18"
+  },
+  {
+    "id": "Millers_9_10_PAGE_018_sec_25",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Sleep Stages and Sleep Cycles",
+    "body_text": "Sleep architecture—a structured temporal order of different\nsleep stages—is an important determinant of sleep quality.\nIf tired individuals rest in their individual sleeping postures,\nthe increasing level of drowsiness is paralleled by continu-\nous EEG slowing from that seen during attention and cortical\nactivation (16-30 Hz, “β activity”) to slower frequencies, pre-\ndominantly between (7.5 and 11 Hz, “α activity,” typically\nobserved in subjects with reduced attention and closed eyes).\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_019_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "SECTION II • Anesthetic Physiology\n270\n\nEEG (C3-A1)\n\nEEG (C4",
+    "body_text": "SECTION II • Anesthetic Physiology\n270"
+  },
+  {
+    "id": "Millers_9_10_PAGE_019_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Theta activity",
+    "body_text": "1 sec.\nFig. 10.3 Electroencephalogram recording during sleep onset (arrow). The two top rows show bipolar electroencephalogram (EEG) signals from left \n(C3-A1) and right (C2-A1) frontal leads. Rows 3 to 5 show the relative amount (EEG power) of beta, alpha, and theta activity calculated using fast Fourier transforma-\ntion."
+  },
+  {
+    "id": "Millers_9_10_PAGE_019_sec_6",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "W",
+    "body_text": "REM\n1\n2\n3\n10pm\n11pm\n12pm\n01am\n02am\n03am\n04am\n05am\n06am\nFig. 10.4 Hypnogram of a night of physiologic sleep. During one night (time on x axis) of sleep, humans transition repetitively from one sleep stage to \nanother with short episodes of occasional wakefulness (indicated on y axis). REM, Rapid eye movement sleep; W, awake; 1, non-REM sleep stage 1; 2, \nnon-REM sleep stage 2; 3, non-REM sleep stage 3 (slow wave sleep).\nREM sleep, or paradoxical sleep, is associated with an \nalteration of homeostatic regulation, such as increased \nheart rate variability, irregular respiration, and impaired \nbody temperature control. Brain metabolism increases \nwhile EEG recordings show similarities to wakefulness \nwith low-voltage and mixed-frequency power spectra. \nProminent θ waves generated by the hippocampus occur. \nThese waves are not apparent in the scalp EEG recording \nfrom humans, but in rodents, in which the hippocampus \nis larger and closer to the brain surface, the EEG is domi-\nnated by θ during REM. This sleep state is associated with \na decreased tone in skeletal muscles (except for extraocular \nmuscles that control eye movement). Dreaming is a typical \nexperience during REM sleep,24 but can also happen dur-\ning NREM sleep.25 During physiologic sleep, an individual \ntypically switches back and forth across sleep stages, inter-\nrupted by occasional arousals from sleep (Fig. 10.4).␣\n(Fig. 10.5). It is the balance between these two systems that \ndetermines whether one is awake or asleep."
+  },
+  {
+    "id": "Millers_9_10_PAGE_019_sec_7",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Ascending Arousal System. The ascending arousal sys-",
+    "body_text": "tem (AAS) is the main wakefulness-mediating network\nin the brain. Main pathways within the network receive\ncholinergic, monoaminergic, dopaminergic, and glutama-\ntergic inputs. Cholinergic inputs originate from peduncu-\nlopontine and laterodorsal tegmental nuclei, innervate the\nlateral hypothalamus, prefrontal cortex, basal forebrain,\nand thalamic relay nuclei (i.e., medial and lateral genicu-\nlate nuclei; mediodorsal nucleus; pulvinar; anterior, ven-\ntral, and lateral thalamic cell groups).26,27 Glutamatergic\nneurons that provide inputs to the AAS are mainly located\nwithin a small area just ventral of the locus ceruleus (LC),\nthe preceruleus area, as well as in the parabrachial nuclei\nthat mainly project to the basal forebrain and the lateral\nhypothalamus.28,29 Monoaminergic inputs mainly come\nfrom noradrenergic neurons within the LC, histaminergic\nneurons of the tuberomammillary nuclei (TMN), serotonin-\nergic neurons of the median and dorsal raphe nuclei,30,31\nas well as dopaminergic neurons adjacent to dorsal raphe\nnuclei.24,32 Beside projections to the basal forebrain, multi-\nple inputs are sent to the thalamus, mainly the interlaminar"
+  },
+  {
+    "id": "Millers_9_10_PAGE_019_sec_9",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Sleep-Promoting and Arousal Pathways",
+    "body_text": "Several neuronal pathways have evolved to maintain corti-\ncal activation and behavioral arousal during normal wak-\ning, and others have evolved to promote and maintain sleep\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_020_sec_18",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "A",
+    "body_text": "B\nFig. 10.5 Flip-Flop switch ensuring rapid transitions between wakefulness and sleep. During wakefulness (A), brainstem nuclei of the ascending arousal \nsystem (AAS) directly and indirectly provide excitatory input to the thalamus, basal forebrain, and the cerebral cortex, while they inhibit the ventro-\nlateral (VLPO) and median (MnPO) preoptic nuclei (switch ﬂips to wakefulness). The excitatory, wake-promoting stimulus is enforced by additional \nexcitatory input of orexinergic neurons (OX) to the BF and the AAS. During sleep (B), neurons of VLPO and MnPO inhibit the brainstem and orexinergic \nneurons of the AAS (switch ﬂops to sleep). (Modiﬁed from Saper CB, Scammell TE, Lu J. Hypothalamic regulation of sleep and circadian rhythms. Nature. \n2005;437:1257–1263; and Saper CB, Fuller PM, Pedersen NP, Lu J, Scammell TE. Sleep state switching. Neuron. 2010;68:1023–1042.)\nand reticular nuclei, as well as the amygdala and cerebral \ncortex. Furthermore, noradrenergic neurons of the LC proj-\nect mainly to the posterior part of the lateral hypothalamus. \nIn return, the latter area of the lateral hypothalamus proj-\nects to the LC and to the TMN.\nneurons originating from the ventrolateral preoptic \nnucleus (VLPO). OX2R is expressed exclusively in the his-\ntaminergic TMN, whereas OX1R is expressed preferentially \nin the noradrenergic LC, and both receptors are present in \ncholinergic pedunculopontine and laterodorsal tegmental \nnuclei.38,39 Orexinergic tone at these hypothalamic and \nbrainstem nuclei contributes to cortical arousal.40 TMN, \nthe predominant source of histamine in the brain respon-\nsible for cortical arousal, receives a prominent projection \nfrom orexinergic neurons40,41 mediated predominantly by \nOX2R. Orexin receptor antagonists promote sleep mainly \nvia inhibition of the OX2R receptor.42-45␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_020_sec_19",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Some neurons of the posterior hypothalamus produce",
+    "body_text": "orexin A and B, also known as hypocretin (HCRT) 1 and 2.\nThese neurons project to the basal forebrain and the amyg-\ndala and cerebral cortex and other important arousal areas,\nand they are essential for stabilizing the waking state.32\nOrexin deficiency causes narcolepsy (severe daytime sleepi-\nness) with cataplexy (abrupt loss of muscle tone),33 a dis-\norder showing some characteristics of REM sleep (i.e., REM\nsleep atonia during wakefulness [discussed later]).␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_020_sec_20",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Non-Rapid Eye Movement Sleep-Promoting Pathways.",
+    "body_text": "About 100 years ago during the epidemic of encephalitis\nlethargica, it was observed that lesions in the preoptic region\naround the rostral end of the third ventricle were associ-\nated with profound insomnia,46 which was confirmed in\nneuroanatomic experiments (lesion studies) in rats and\ncats.47,48 Neurons in the preoptic area are active during\nsleep.49-51 Two key nuclei within this area are the VLPO as\nwell as the median preoptic nucleus. VLPO neurons fire at\na higher frequency during sleep compared with wakeful-\nness.52 Anatomically, the VLPO consists of a dense core of\nsleep-active, galanin-positive neurons innervating the TMN\n(which is part of the AAS) while being surrounded dorsally\nand medially by a more diffuse population of sleep-active,\ngalanin-positive neurons that project to the dorsal raphe and\nLC.53 Physiologically, the VLPO neurons constitute a sleep-\npromoting pathway that inhibits many components of the\narousal system during sleep. Likewise, parts of the arousal\nsystem such as the laterodorsal tegmental nucleus and the\npedunculopontine tegmental nucleus, as well as the LC,\nthe parabrachial nucleus, the dorsal raphe nucleus, the PC,"
+  },
+  {
+    "id": "Millers_9_10_PAGE_020_sec_21",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Orexin System. Orexin and its cognate receptors (OX1R",
+    "body_text": "and OX2R) play a key role in sleep/wake regulation. This\nneurotransmitter system has a crucial involvement in the\npathogenesis of narcolepsy, a disorder associated with\nchronic excessive daytime sleepiness, sleep attacks, and\nrapid transitions between vigilance states and sleep in\nhumans.34 Studies in mice recapitulating the narcolepsy\nphenotype by targeted mutagenesis of the HCRT gene\nencoding the prepropeptide precursor of orexin neuropep-\ntides,35 or the less pervasive phenotype of OX2R knockout\nmice,36 not only demonstrated the role of orexin signaling\nin sleep/wake regulation but also demonstrated biologi-\ncal proof of concept for the development of orexin receptor\nantagonists for the treatment of insomnia. In contrast, the\nactivation of orexin pathways, either by exogenous admin-\nistration of orexin receptor agonists or by optogenetic acti-\nvation of orexinergic neurons in the lateral hypothalamus,\nincreases arousal.37,38 Orexinergic neurons are counter-\nacted by inhibitory γ-aminobutyric acid (GABA)-ergic\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_021_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "SECTION II • Anesthetic Physiology\n272\n\nthe ventral periaque",
+    "body_text": "SECTION II • Anesthetic Physiology\n272\nthe ventral periaqueductal gray, and the TMN, are capable \nof inhibiting the VLPO. The mutually inhibitory relationship \nof the arousal and sleep-promoting pathways produces the \nconditions of a flip-flop switch, which can generate rapid and \ncomplete transitions between waking and sleeping states \n(see Fig. 10.5).53,54 It also makes simultaneous activation of \narousal and sleep circuits highly improbable."
+  },
+  {
+    "id": "Millers_9_10_PAGE_021_sec_1",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Within the sublaterodorsal nucleus and PC, glutamatergic",
+    "body_text": "neurons are mixed within the population of REM-on GABA-\nergic neurons. The glutamatergic sublaterodorsal nucleus\nneurons project to the spinal cord and are important for REM\nsleep atonia; the glutamatergic PC neurons activate forebrain\npathways driving EEG desynchronization and hippocampal θ\nrhythms—characteristic EEG signs of REM-sleep.58␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_021_sec_2",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Because animal experiments showed that even large lesions",
+    "body_text": "of the VLPO substantially reduce but do not completely erase\nsleep, other brain areas beside this nucleus are likely involved\nin promoting sleep.55 Several basal forebrain areas,49,51 as well\nas some GABA-ergic interneurons across the cerebral cortex,56\nhave been implicated to function as sleep-active neurons. Nev-\nertheless, the role of these brain regions in the promotion or\nregulation of sleep remains unclear.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_021_sec_4",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The complexity of signs and symptoms of sleep suggests",
+    "body_text": "that different instruments need to be applied to capture all\nthe important elements of sleep."
+  },
+  {
+    "id": "Millers_9_10_PAGE_021_sec_6",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Rapid Eye Movement Sleep-Promoting Pathways",
+    "body_text": "and Non-Rapid Eye Movement–Rapid Eye Movement\nTransition. During normal sleep that presents at onset\nas a sharp α–θ EEG activity transition, a similar sharp\ntransition from NREM to REM sleep can be observed.\nTwo groups of mutually inhibitory neurons located in\nthe pons are involved in mediating the switch between\nNREM and REM sleep.28 The first group consists of REM\nactive inhibitory neurons of the sublaterodorsal nucleus\nand the PC region.29,54,57 These neurons inhibit but are\nalso inhibited by a second group of neurons that are\nlocated in ventrolateral periaqueductal gray and adja-\ncent lateral pontine tegmentum. This mutually inhibi-\ntory relationship produces a REM-NREM flip-flop switch,\npromoting rapid and complete transitions between sleep\nstates.54"
+  },
+  {
+    "id": "Millers_9_10_PAGE_021_sec_7",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Several questionnaires are used for the assessment of",
+    "body_text": "sleep duration, sleep quality, and the related physiologic\nand pathophysiologic consequences. Quality of sleep is a\nfrequent target of generic health surveys for measuring\npatient-reported outcomes. Other questionnaires quan-\ntify the consequences of sleep deprivation, specific sleep\ndisorders, or both (Table 10.1). The most commonly used\ninstrument in sleep medicine is probably the Epworth\nSleepiness Scale, a short questionnaire to assess symptoms\nof daytime sleepiness, expressed as intolerance to monot-\nony. The questionnaire asks the subject to rate the prob-\nability of falling asleep on a scale of increasing probability\nfrom 0 to 3 for eight different situations, such as such as\nwatching TV, reading, lying down in the afternoon, and\nso on.59 Despite the fact that the Epworth Sleepiness Scale\nTABLE 10.1 Sleep Questionnaires: Questionnaires Commonly Used for Clinical and Research Purposes and Their Focus"
+  },
+  {
+    "id": "Millers_9_10_PAGE_021_sec_9",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Pittsburgh Sleep Quality Index (PSQI)",
+    "body_text": "Sleep and sleep disorders\n60,61"
+  },
+  {
+    "id": "Millers_9_10_PAGE_021_sec_11",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Functional Outcome of Sleep Questionnaire (FOSQ)",
+    "body_text": "Impact of daytime sleepiness on daily living\n12,67"
+  },
+  {
+    "id": "Millers_9_10_PAGE_021_sec_15",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Sleep Diaries/Sleep Logs",
+    "body_text": "Sleeping times, sleep duration\n70,71"
+  },
+  {
+    "id": "Millers_9_10_PAGE_021_sec_16",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Morningness-Eveningness Questionnaire",
+    "body_text": "Sleeping times, sleep duration, circadian rhythm\n72"
+  },
+  {
+    "id": "Millers_9_10_PAGE_021_sec_19",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Berlin Questionnaire",
+    "body_text": "SDB in surgical patients\n66\nSTOP/STOP-Bang Questionnaire\nObstructive sleep apnea\n75,76"
+  },
+  {
+    "id": "Millers_9_10_PAGE_021_sec_23",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Richard–Campbell Sleep Questionnaire",
+    "body_text": "Sleep assessment in the ICU\n79\n*Recommended questionnaires are italicized.\nICU, Intensive care unit; SDB, sleep-disordered breathing; STOP, snoring, tiredness, observed apneas, and high blood pressure.\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_022_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "10 • Sleep Medicine\n273\n\nis reliable for detection of daytim",
+    "body_text": "10 • Sleep Medicine\n273\nis reliable for detection of daytime sleepiness,60,61 the \ninstrument does not determine the mechanism of daytime \nsleepiness.62,63\nbut its validity for detecting transitions from wakeful-\nness to sleep has been debated, especially in patients with \nhigh levels of sleep fragmentation.81,82 In the clinical set-\nting, actigraphy has been used to evaluate sleep patterns \nin patients with insomnia, for diagnosis of circadian \nrhythm disorders (including shift work), and in evalu-\nating sleep in individuals who are less likely to tolerate \npolysomnography (PSG), such as infants and demented \nelderly. However, its accuracy is limited for patients with \nreduced mobility, such as nursing home or intensive \ncare unit (ICU) patients. Actigraphy allows for conve-\nnient follow-up measurements to evaluate the effects of \ntreatments designed to improve sleep architecture and \ncircadian rhythm disorders.83 In more recent years, an \nincreasing number of wearable devices for the detection \nand analysis of activity and rest have been marketed. \nAlthough some have claimed to detect sleep accurately, \nas well as some sleep stages (mainly REM sleep),84 none \nof the current models are yet approved or validated for \nclinical use.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_022_sec_1",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Other clinically useful questionnaires that focus on the",
+    "body_text": "detection of signs and symptoms of sleep disorders are\navailable,59-79 which is important because the prevalence\nof sleep pathologies typically varies in a wide range across\npopulations (see Table 10.1)."
+  },
+  {
+    "id": "Millers_9_10_PAGE_022_sec_2",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "An effective process for clinical assessment of sleep-related",
+    "body_text": "diseases is a stepwise assessment using a screening tool first\n(e.g., Epworth Sleepiness Scale), followed by a more specific\nquestionnaire that helps identify individual mechanisms or\nconsequences of sleepiness.\nA special form of sleep questionnaires comes in the form \nof sleep diaries and “morningness-eveningness” question-\nnaires that evaluate daily sleep habits, including sleep time, \nsleep duration, number of nocturnal awakenings, and sub-\njective sleep quality.80"
+  },
+  {
+    "id": "Millers_9_10_PAGE_022_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Although questionnaires allow a quick and easy screen-",
+    "body_text": "ing for daytime symptoms of sleep disturbances, they do\nnot quantify sleep architecture. Subjective methods of\nassessing sleep are influenced by the spectrum of disease\nwithin a tested group, actual clinical change over time, the\ntesting conditions, and recall bias.80 Clearly, a question-\nnaire cannot replace a medical history or objective assess-\nment for sleep disorders. However, sleep questionnaires\nare important tools for measuring health improvement or\ndecline, predicting medical expenses, assessing treatment\neffects, or comparing disease burden across populations.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_022_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Home respiratory polygraphy (RP) can be a cost-effective",
+    "body_text": "alternative to PSG for the diagnosis of sleep apnea-hypop-\nnea syndrome. RP usually calculates airflow through\nnasal pressure changes taken via nasal cannulae. Tho-\nracic and abdominal movements are measured by piezo-\nelectric bands, which also measure body position and\nblood oxygen saturation by pulse oximetry. Using these\nparameters, RP can identify apnea and hypopnea, and\ncategorize the pathophysiology of apnea into obstructive\nversus central. Furthermore, similar to actigraphy, RP\nprovides some analysis of sleep duration and time spent\nawake, using its body position and light sensors. However,\nthe quality of the latter can be more precisely evaluated by\na combination of sleep diary and actigraphy. Nevertheless,\nEEG is required to decide whether a subject was awake or\nsleeping (Table 10.2).␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_022_sec_7",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Actigraphy is used to study sleep-wake patterns by",
+    "body_text": "detecting motion of the wrist with linear accelerometers\nin single or multiple axes. Based on movement-derived\ndata, predictions of the time spent during sleep and\nwakefulness can be made, and even assumptions on sleep\nstaging are made. Actigraphy can be used conveniently\nin a patient’s home for several nights, weeks, or longer,81\nTABLE 10.2 Pros and Cons of Different Methods of Sleep Evaluation"
+  },
+  {
+    "id": "Millers_9_10_PAGE_022_sec_9",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Sleep questionnaire",
+    "body_text": "Low cost\nRecall bias\nShould be combined with interview\nGood compliance\nLimited reliability in some populations\nEasy to use\nLimited validity"
+  },
+  {
+    "id": "Millers_9_10_PAGE_022_sec_10",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Sleep diary",
+    "body_text": "Less recall bias\nLower compliance compared with"
+  },
+  {
+    "id": "Millers_9_10_PAGE_022_sec_11",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Should be combined with other",
+    "body_text": "measurement of sleep duration \n(e.g., actigraphy)\nEasy to administer\nBiased by daily mood and expectations\nother questionnaires\non sleep\nLow cost\nDocumentation of daily variability"
+  },
+  {
+    "id": "Millers_9_10_PAGE_022_sec_12",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Actigraphy",
+    "body_text": "Provides objective information about daily"
+  },
+  {
+    "id": "Millers_9_10_PAGE_022_sec_14",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Should be combined with other",
+    "body_text": "measurement of sleep duration \n(e.g., sleep diary)\nProvides information on sleep habits at home\nHigher cost than questionnaires\nNot inﬂuenced by patient expectations,\nvariability and sleep duration\nand sleep onset latency\nrecall bias, or memory impairments\nLower cost than laboratory polysomnography"
+  },
+  {
+    "id": "Millers_9_10_PAGE_023_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "SECTION II • Anesthetic Physiology\n274\n\nTABLE 10.2 Pros and",
+    "body_text": "SECTION II • Anesthetic Physiology\n274\nTABLE 10.2 Pros and Cons of Different Methods of Sleep Evaluation—cont’d"
+  },
+  {
+    "id": "Millers_9_10_PAGE_023_sec_2",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Polygraphy",
+    "body_text": "Lower cost than laboratory polysomnography\nLimited assessment of sleep\nShould be accompanied by\nquestionnaires and clinical \ninterview\nObjective assessment of respiratory events\nHigher cost than questionnaires\nProvide information on sleep habits at home\nLimited assessment of sleep disorders\nother than sleep-disordered breathing"
+  },
+  {
+    "id": "Millers_9_10_PAGE_023_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "High cost",
+    "body_text": "Should be last step in sleep evalua-\npolysomnography\ntion with previous questionnaires \nand ambulatory screening (e.g., \npolygraphy)\n \nFirst-night effect\n \nLimited capacity\n \nNo information about sleep habits at\nand sleep disorders\nhome"
+  },
+  {
+    "id": "Millers_9_10_PAGE_023_sec_9",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Good patient education mandatory",
+    "body_text": "polysomnography\nand sleep disorders\ndecreased recording quality"
+  },
+  {
+    "id": "Millers_9_10_PAGE_023_sec_10",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Less ﬁrst-night effect",
+    "body_text": "If possible, surveillance recording\npreferred\nLower cost than laboratory polysomnography\n \nCan provide information about sleep habits at\nhome"
+  },
+  {
+    "id": "Millers_9_10_PAGE_023_sec_11",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Adapted in part from Martin JL, Hakim AD. Wrist actigraphy. Chest. 2011;139(6):1514–1527.",
+    "body_text": "left EOG\nright EOG\nleft EEG\nright EEG"
+  },
+  {
+    "id": "Millers_9_10_PAGE_023_sec_17",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Mic.",
+    "body_text": "SpO2\nPulse Wave\n88\n88\n91\n92\n93\n93\n93\n94\n94\n95\n96\n96\n96\n96\n94\n92\n90\n88\n87\n87\n88\n90\n92\n96\n96\n96\n95\n93\n91\n89"
+  },
+  {
+    "id": "Millers_9_10_PAGE_023_sec_18",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "HR",
+    "body_text": "72\n73\n74\n77\n77\n76\n72\n70\n68\n67\n66\n65\n65\n65\n68\n71\n75\n77\n75\n71\n68\n67\n67\n65\n64\n65\n67\n68\n68\n69"
+  },
+  {
+    "id": "Millers_9_10_PAGE_023_sec_20",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "S",
+    "body_text": "S\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS\nS"
+  },
+  {
+    "id": "Millers_9_10_PAGE_023_sec_23",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "N2",
+    "body_text": "N2\nN2\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\nR\n303 304\n304 305\n305 306\n306 307"
+  },
+  {
+    "id": "Millers_9_10_PAGE_023_sec_24",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Time",
+    "body_text": "120°\n90°\n60°\n30°\nFig. 10.6 Polysomnographic recording. Left and right electrooculogram (EOG), two electroencephalogram (EEG) channels, and mental electromyogram \n(Chin EMG) allow scoring of sleep stage (REM sleep [R] with typical eye movements in the electrooculogram channels). Additional channels (e.g., respira-\ntory ﬂow [Flow], respiratory effort of thorax [Thorax] and abdomen [Abdomen], microphone [Mic.] oxygen saturation [SpO2]) allow diagnosis of sleep \ndisordered breathing. In this patient, apneas (yellow boxes) led to oxygen desaturation (blue boxes) and ﬁnally to arousal (far right, brown box)."
+  },
+  {
+    "id": "Millers_9_10_PAGE_023_sec_26",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Sleep Laboratory Testing",
+    "body_text": "For several decades, PSG was performed only within a sleep\nlaboratory. Sleep laboratory PSG is attended by a trained\ntechnician and is analyzed by a clinician trained in sleep\nmedicine according to the published guidelines.87,89-91\nHowever, the high cost and requirement of an overnight\nstay can present socioeconomic challenges that affect the\naccessibility of this method. In-center PSG provides only\na momentary view of the patient’s sleep, and the mea-\nsurements themselves can impair patients’ sleep (the so-\ncalled first-night effect) and does not provide information\nabout sleep at home. Multiple repeated measurements to\ntailor treatment over time are challenging or even impos-\nsible from a logistic and healthcare economics perspective.\nTherefore, an increasing number of out-of-center devices\nPSG is the only method that can precisely determine the \nactual sleep stage and is a reference diagnostic tool (i.e., gold \nstandard) that is required for the diagnosis of several sleep \ndisorders.85 PSG measurements include EEG, electrooculog-\nraphy for the measurement of eye movements, and at least \nelectromyographic measurement of muscle activity of the \nchin.86 These three measurements are typically supple-\nmented by other channels for the detection of sleep-disordered \nbreathing (SDB), such as a nasal sensor to detect apneas and \nhypopneas, oximetry, inductance plethysmography for respi-\nratory effort of the chest and abdomen, and a body position \nsensor and leg electromyogram87 to identify periodic limb \nmovement syndrome or REM sleep behavior disorder, respec-\ntively.88 A typical PSG recording is shown in Fig. 10.6.\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_024_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "10 • Sleep Medicine\n275\n\nTABLE 10.3 Polysomnographic Charact",
+    "body_text": "10 • Sleep Medicine\n275\nTABLE 10.3 Polysomnographic Characteristic of the Different Behavioral States\nEEG and EOG Characteristics\nAASM"
+  },
+  {
+    "id": "Millers_9_10_PAGE_024_sec_1",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Wakefulness",
+    "body_text": "α rhythm (8-13 Hz) present in more than 50% of an epoch\nW"
+  },
+  {
+    "id": "Millers_9_10_PAGE_024_sec_2",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Non-REM sleep stage 1",
+    "body_text": "Lower amplitudes and activity in range of 4-7 Hz (vertex sharp waves,* slow eye movements*)\nN1"
+  },
+  {
+    "id": "Millers_9_10_PAGE_024_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Non-REM sleep stage 2",
+    "body_text": "EEG of sleep stage 1 with additional a sleep spindles and K-complexes; slow waves not fulﬁlling the criteria for"
+  },
+  {
+    "id": "Millers_9_10_PAGE_024_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Non-REM slow wave sleep",
+    "body_text": "20%-50% of slow wave activity (0.5-2 Hz)\nN3\nREM sleep\nEEG of low amplitude and mixed frequencies, low chin electromyogram activity, rapid eye movements\nR\n*Not necessary but may be present.\nAASM, American Academy of Sleep Medicine criteria (see reference 87); EEG, electroencephalography; EOG, electrooculogram; N1, non-REM sleep stage 1; N2,\nsleep stage 2; N3, sleep stage 3; R, REM-sleep; W, wakefulness.\nare now available, offering the possibility of recording PSG \nin almost every environment, such as at the patient’s home, \nwithin the hospital or nursing home room, and even within \nthe recovery room or ICU.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_024_sec_6",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "3.  Respiratory event-related arousal is defined as a series of",
+    "body_text": "breaths not meeting the criteria for apnea or hypopnea \nlasting at least 10 seconds characterized by increas-\ning respiratory effort or flattening of the nasal pressure \nwaveform leading to an arousal from sleep.\n 4.  Hypoventilations are defined as an increase of 10% or"
+  },
+  {
+    "id": "Millers_9_10_PAGE_024_sec_7",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Out-of-Center Testing",
+    "body_text": "Portable out-of-center PSG sleep monitors are a reason-\nable, reliable, and effective method for diagnosing OSA92\ncompared with PSG recording performed within a sleep\nlaboratory, when applied in preselected population at risk\nof moderate-to-severe OSA.92-94 The Portable Monitoring\nTask Force of the American Academy of Sleep Medicine\n(AASM) supports the use of these devices in subjects for\nclinical and research purposes and indicates a comparable\nquality of PSG data.92␣\nmore in arterial carbon dioxide tension (PaCO2)."
+  },
+  {
+    "id": "Millers_9_10_PAGE_024_sec_8",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Although the AASM 2007 criteria87 are commonly used",
+    "body_text": "in many sleep centers for clinical and research purposes all\nover the world, questions about whether the new criteria\nshould be used in children96 and the scoring of some respi-\nratory events are still unanswered.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_024_sec_10",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Scoring of Sleep and Sleep Disordered Breathing",
+    "body_text": "More than 40 years ago, Rechtschaffen and Kales86 stan-\ndardized the method of scoring PSG recordings—the R&K\ncriteria. Since then, major innovations in technology have\ntransformed the science and clinical practice of sleep medi-\ncine. The latest criteria of the AASM87,95 capture the full\npotential of innovations resulting from computerization of\ndata, including automation of sleep scoring, recognition\nof disorders that occur during sleep, and integration with\nother procedures, such as positive airway pressure titration.\nAlthough the R&K criteria are still sufficient for clinical and\nresearch purposes, they are less commonly used in sleep\ncenters around the world."
+  },
+  {
+    "id": "Millers_9_10_PAGE_024_sec_12",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Sleep puts breathing at risk. The upper airway dilator mus-",
+    "body_text": "cle activity is decreased during sleep compared with wake-\nfulness, particularly at sleep onset and during REM sleep.\nFurthermore, the ventilatory response to hypoxia can be\nimpaired, such that critical hypoxia levels can occur during\nsleep that can be offset only by arousal from sleep."
+  },
+  {
+    "id": "Millers_9_10_PAGE_024_sec_13",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The major determinant of minute ventilation during wake-",
+    "body_text": "fulness and sleep is PaCO2. In contrast to wakefulness, where\nPaCO2 is maintained close to 40 mm Hg, the chemo sensitiv-\nity to CO2 decreases during sleep, as does the chemo sensi-\ntivity for oxygen. This leads to PaCO2 values of 45 mm Hg\ncommonly occurring during stable sleep, while ventilatory\ndemand is decreased and the arousal threshold varies with\nsleep stages."
+  },
+  {
+    "id": "Millers_9_10_PAGE_024_sec_14",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "According to these criteria, the arousal states are categorized",
+    "body_text": "based on the EEG activity recorded from three different scalp\nlocations and divided into wakefulness (W), REM sleep (R), and\nthree NREM sleep stages (Table 10.3 and see Fig. 10.1)."
+  },
+  {
+    "id": "Millers_9_10_PAGE_024_sec_16",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Accordingly, the changes in respiratory muscle activity,",
+    "body_text": "ventilatory demand, and arousal threshold observed from\nwakefulness to sleep and across sleep stages challenge ven-\ntilatory control and can lead to instability in breathing. A\nstructured approach to evaluating breathing instabilities is\nthe loop gain. This engineering term is used to describe the\nstability of a feedback-controlled system (in this case, the\nchemical feedback loop controlling an individual’s ventila-\ntion). In the setting of ventilatory control, loop gain reflects\nthe propensity of an individual to develop periodic (unsta-\nble) breathing. Patients with a high loop gain caused by a\nmore sensitive respiratory controller (i.e., high controller\ngain), more effective CO2 excretion (i.e., high plant gain), or"
+  },
+  {
+    "id": "Millers_9_10_PAGE_024_sec_17",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "1.  Apnea with a decrease in respiratory flow of 90% or more",
+    "body_text": "from baseline for at least 10 seconds, whereas a mini-\nmum of 90% of the event duration has to meet the crite-\nria of respiratory flow reduction\n 2.  Hypopneas, in which the signal of respiratory flow mea-\nsurement decreases at least 30%, whereas oxygen satu-\nration (SpO2) decreases by 4% or more compared with \npre-event baseline for at least 90% of the duration (mini-\nmum of 10 seconds). Hypopneas can also be defined as \na decrease in respiratory flow measurement of at least \n40% with a decrease in SpO2 of only 3%.\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_025_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "SECTION II • Anesthetic Physiology\n276\n\nApneas (10 sec witho",
+    "body_text": "SECTION II • Anesthetic Physiology\n276"
+  },
+  {
+    "id": "Millers_9_10_PAGE_025_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "RDI =",
+    "body_text": "Apneas + Hypopneas + Arousals (in EEG) associated respiratory event"
+  },
+  {
+    "id": "Millers_9_10_PAGE_025_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Fig. 10.7 Deﬁnition of apnea hypopnea index (AHI) and respiratory disturbance index (RDI).",
+    "body_text": "an increased delay because of slowed CO2 distribution from \nperipheral tissues to the central chemoreceptors based on, \nfor example, reduced blood circulation (i.e., mixing gain) \nmay be more vulnerable to disturbances of the feedback \nsystem, such as slight hypoventilation that occurs as a con-\nsequence of decreased upper airway dilator muscle activity \nduring the transition from wakefulness to sleep.\nTABLE 10.4 Severity of Sleep Apnea Based on \nRespiratory Disturbance Index or Apnea Hypopnea Index\nAHI (Events Per \nHour)\nRDI (Events Per Hour)"
+  },
+  {
+    "id": "Millers_9_10_PAGE_025_sec_8",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "High loop gain may contribute to severity of OSA. More-",
+    "body_text": "over, subjects with a high loop gain have been shown to\nbe more likely to develop breathing instabilities such as\nCheyne-Stokes respiration (CSR; see “Central Sleep Apnea”).␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_025_sec_10",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Severe sleep apnea",
+    "body_text": "≥30\n≥30\n*Only diagnosed if comorbidities like hypertension, atrial ﬁbrillation of day-\ntime sleepiness are present.\nA respiratory disturbance index (RDI) less than 5 per hour is physiologic and"
+  },
+  {
+    "id": "Millers_9_10_PAGE_025_sec_11",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "SLEEP-DISORDERED BREATHING",
+    "body_text": "found in healthy humans. Sleep apnea is mild with RDI between 5 and \n15 per hour, moderate with RDI between 15 and 30 events per hour, and \nconsidered severe with an RDI of 30 and greater per hour of sleep. Equal \ncutoff values are similar for severity based on the apnea hypopnea index \n(AHI).\nSDB refers to the respiratory signs and symptoms associ-\nated with sleep-associated respiratory dysfunction and is \ndefined by the occurrence of respiratory events, which are \ncessations in breathing rhythm (apneas) or momentary or \nsustained reduction in the amplitude of respiratory flow \n(hypopnea) during the sleeping state, leading to arterial \nhypoxemia.97 They are usually caused either by increases \nin upper-airway resistance due to reduction in intralumi-\nnal airway diameter (obstructive event), marked reduction \nor cessation of brainstem respiratory motor output (central \nevent), or both. A specification of SDB into obstructive or \ncentral sleep apneas (CSA) is made based on the predomi-\nnant type of respiratory events. The severity of SDB is usu-\nally quantified by the number of respiratory events per hour \nof sleep. This is necessary because a low number of short \napneas and hypopneas can occur up to about five times per \nhour in healthy subjects. Two measures can be used for this \npurpose: the apnea hypopnea index (AHI) and the respira-\ntory disturbance index (RDI). Typically the AHI (number of \nhypopneas and apneas per hour of sleep; Fig. 10.7, top) and \nRDI (number of hypopneas, apneas, and arousals related to \nrespiratory events per hour of sleep; see Fig. 10.7, bottom) \nare used to quantify the severity of SDB."
+  },
+  {
+    "id": "Millers_9_10_PAGE_025_sec_12",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Epidemiology. OSA with daytime symptoms affects 0.3%",
+    "body_text": "to 5% of the general population.98,99 As obesity is one of\nthe major risk factors for OSA, the prevalence might con-\ntinue to increase with higher rates of obesity in the general\npopulation.100-102 The prevalence of SDB without daytime\nsymptoms is even higher, with rates of up to 9% in women\nand 24% in men between the ages of 30 and 60 years, and\nis often unrecognized.103,104"
+  },
+  {
+    "id": "Millers_9_10_PAGE_025_sec_13",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Furthermore, the prevalence of OSA varies widely",
+    "body_text": "between different populations. Individuals with a high\nsusceptibility to OSA include the obese, the elderly, and\nthose with specific comorbidities (e.g., stroke, myocardial\ninfarction). Depending on methodology, the rates of OSA in\npatients following surgery is between 45%105 and 75%.106\nA recent study in patients undergoing bariatric surgery\nrevealed an incidence of OSA of as high as 77.5% in this\npopulation,107 while another study showed OSA to be prev-\nalent in 50% of women undergoing gynecologic oncology\nsurgery 108␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_025_sec_14",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Obstructive Sleep Apnea",
+    "body_text": "Definition. OSA is the most common type of SDB and is\ndiagnosed in patients with more than 15 predominantly\nobstructive events per hour of sleep, or with fewer respira-\ntory events (i.e., 5-15 per hour) if daytime symptoms (i.e.,\nsleepiness) or comorbidities such as hypertension or atrial\nfibrillation are present. These cutoff values have been used\nas an indication for treatment by clinicians based on the\nclinical guidelines and the international classification of\nsleep disorders.87,88 The severity of sleep apnea is further\ncharacterized as mild in patients with less than 15 events\nper hour of sleep, as moderate with 15 to 30 or less events\nper hour of sleep, and as severe sleep apnea with 30 or\nmore events per hour of sleep (Table 10.4).88,90␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_025_sec_15",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Clinical Symptoms. Approximately one-third of patients",
+    "body_text": "with OSA complain of typical signs and symptoms occur-\nring during wakefulness. Waking with dry mouth or\nheadache in the morning, daytime sleepiness, falling\nasleep during monotonous situations (e.g., watching\ntelevision), as well as subjective impairment of cognitive\nfunction are frequently reported. This combination of\nOSA with daytime symptoms is usually referred to as OSA\nsyndrome.109,110"
+  },
+  {
+    "id": "Millers_9_10_PAGE_025_sec_16",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Sleep-associated signs and symptoms of OSA include wit-",
+    "body_text": "nessed pauses in breathing or snoring, and a high number of\nnocturnal awakenings, mostly reported as pseudo-nocturia.\nPatients with OSA occasionally complain of tachycardia\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_026_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "10 • Sleep Medicine\n277\n\nor respiratory distress upon noctur",
+    "body_text": "10 • Sleep Medicine\n277\nor respiratory distress upon nocturnal awakening (choking \nsensation) and other symptoms (Box 10.1).␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_026_sec_1",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Given the frequent rate of complications associated with",
+    "body_text": "OSA, it is not surprising that OSA leads to increased socio-\neconomic costs because of significantly more frequent rates\nof health-related contacts and medication use, and even\nhigher rates of unemployment.120␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_026_sec_2",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Consequences and Comorbidities. OSA is associated",
+    "body_text": "with serious medical consequences, such as hyperten-\nsion, myocardial infarction, stroke,109,111,112 diabetes,\ndiabetic neuropathy, as well as cognitive dysfunction\nresulting in occupational difficulties and motor vehicle\naccidents.113,114 The development of cognitive impairment\nin patients with OSA115 is associated with atrophy of brain\nstructures relevant for cognition and memory (hippocam-\npal areas)116 that can be partially reversed by adequate\ntreatment.117 Whether the negative effects of OSA are due\nto impaired sleep architecture or effects of intermittent\nhypoxia remain unclear,118 because data investigating\nthe effect of intermittent hypoxia without other symptoms\nin OSA patients are limited. Nevertheless, recent findings\nsuggest that even asymptomatic OSA might be associated\nwith cardiovascular effects, such as altered daytime auto-\nnomic regulation (i.e., heart rate variability).119"
+  },
+  {
+    "id": "Millers_9_10_PAGE_026_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Risk Factors. Predisposing factors for OSA are obesity,121",
+    "body_text": "age,121,122 male sex,121 factors leading to swelling of the\nsuperficial tissue of the upper airway (smoking),123 allergic\nrhinitis,124 and decreased muscle tone of upper airway dila-\ntor muscles (e.g., central nervous system) caused by respi-\nratory depressants.125␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_026_sec_4",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Pathophysiology. Respiratory events during OSA are",
+    "body_text": "characterized by decreased respiratory flow with persisting\nrespiratory effort due to reduced intraluminal diameter of\nthe upper airway up to complete pharyngeal airway col-\nlapse (see Fig. 10.6). The muscles involved in respiration\nare morphologically and functionally skeletal muscles and\ncan be classified into two groups: upper airway dilator mus-\ncles and respiratory pump muscles."
+  },
+  {
+    "id": "Millers_9_10_PAGE_026_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Upper airway dilator muscles counterbalance the neg-",
+    "body_text": "ative inspiratory pressure generated by the pump muscle\nto permit airflow during inspiration. Respiratory pump\nmuscles are the collection of muscles responsible for gen-\nerating inspiratory and expiratory forces in the thorax\nacross the breathing cycle (Fig. 10.8). The patency of the\nupper airway is maintained by balancing dilating forces\n(generated by the upper airway dilator muscles) and col-\nlapsing forces (i.e., negative intraluminal pressure gen-\nerated by the respiratory pump during inspiration and\ncompressive extraluminal forces from the surrounding\ntissues).126\nBOX 10.1 Symptoms of Obstructive Sleep \nApnea"
+  },
+  {
+    "id": "Millers_9_10_PAGE_026_sec_6",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Nighttime Symptoms",
+    "body_text": "␣□␣ Frequent awakening during the night (e.g., pseudo-nocturia)\n␣□␣ Awaking from own snoring with choking sensation\n␣□␣ Tachycardia\n␣□␣ Sleep that is not restorative␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_026_sec_7",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Daytime Symptoms",
+    "body_text": "␣□␣ Awaking with dry mouth\n␣□␣ Dull headache in the morning\nUPPER AIRWAY DILATOR MUSCLES. The most extensively \nstudied of the upper airway dilating muscles are the \ngenioglossus and the tensor palatini (Table 10.5). The \ngenioglossus receives a variety of inputs, including pha-\nsic (inspiratory) and tonic (noninspiratory) drives, which \nare distributed differentially across the hypoglossal moto-\nneurons.127 In response to negative pharyngeal pressure \ncreated by the respiratory pump during inspiration, the\n␣□␣ Daytime sleepiness\n␣□␣ Falling asleep during monotonic situations (e.g., watching\ntelevision)\n␣□␣ Subjective impairment of cognitive function␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_026_sec_8",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Symptoms Reported by Bed Partner",
+    "body_text": "␣□␣ Snoring, especially when loud and arrhythmic\n␣□␣ Observed pauses in breathing during sleep"
+  },
+  {
+    "id": "Millers_9_10_PAGE_026_sec_16",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "A",
+    "body_text": "B\nFig. 10.8 Relationship of upper airway patency and respiratory pump activation. (A) During wakefulness, the force of the upper airway dilator muscles \n(green balloon, dilating forces) counterbalance the collapsing forces imposed on the upper airway by extraluminal pressures and negative inspiratory \npressure generated by the respiratory pump muscles (represented by the orange counterweight [collapsing forces]). In obstructive sleep apnea, (B) \nsleep onset (blue needle) leads to decreased upper airway patency by reducing the dilating forces. (Modiﬁed from Sasaki N, Meyer MJ, Eikermann M. Post-\noperative respiratory muscle dysfunction: pathophysiology and preventive strategies. Anesthesiology. 2013;118:961–978.)\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_027_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "SECTION II • Anesthetic Physiology\n278\n\nlung inflates and ef",
+    "body_text": "SECTION II • Anesthetic Physiology\n278\nlung inflates and effectively forces the carina into a more cau-\ndal position, creating stretching forces on the fixed trachea.142 \nThese forces are transferred to the side walls of the upper air-\nway.143 Effectively, tracheal traction allows the respiratory \npump muscles to contribute to upper airway opening.␣\nTABLE 10.5 Some Muscles of the Upper Airway \nRelevant for Upper Airway Stability"
+  },
+  {
+    "id": "Millers_9_10_PAGE_027_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Insp.",
+    "body_text": "Exp.\nCOLLAPSING INTRALUMINAL PRESSURE. The respiratory pump \nis the motorized action driving inspiration and expiration. It is \nthe force that broadens the thoracic cavity and creates nega-\ntive intrathoracic pressure to draw a breath in, and when \nneeded, positive intrathoracic pressure to exhale rapidly. \nInspiratory pump muscles are an anatomically diverse group, \nwith the most studied being the intercostal muscles and the \ndiaphragm. The diaphragm accounts for 60% to 70% of lung \nvolume change during quiet respiration.144 During inspira-\ntion, the volume of the thoracic cavity increases as a result \nof contraction of the diaphragm and the external intercostal \nmuscles. The lungs expand secondarily to the increased nega-\ntive intrathoracic pressure generated by these phasic actions \nof the inspiratory pump muscles. The negative intrathoracic \npressure translates into a negative intraluminal pressure in \nthe upper airway, forcing the airway to collapse as soon as this \npressure drops below a critical value.145"
+  },
+  {
+    "id": "Millers_9_10_PAGE_027_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Levator palatine153",
+    "body_text": "+\n+\n–\nGenioglossus154\n+\n+\n–\nGeniohyoid155\n+\n–\n+"
+  },
+  {
+    "id": "Millers_9_10_PAGE_027_sec_6",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Thyrohyoid",
+    "body_text": "X\nX\nX\n+, Present; –, absent; X, insufﬁcient data. Major muscles of the upper airway\nand their activity during breathing. Tonic activity, as well as inspiratory \n(Insp.) and expiratory (Exp.) muscle activity.\ngenioglossus reflexively stabilizes the upper airway in \nanimals and humans.128,129 This reflex is likely a prod-\nuct of signaling from inspiratory modulated motor units. \nWhereas the genioglossus responds to phasic input on top \nof its tonic activation, the tensor palatini is considered a \ntonic muscle with consistent tone throughout the respira-\ntory cycle.130␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_027_sec_7",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Although this critical airway pressure (Pcrit) is typi-",
+    "body_text": "cally negative (approximately −5 cm H2O) in healthy con-\ntrols, the upper airway in patients with OSA during sleep\nmay even collapse at a positive Pcrit. Positive intraluminal\npressure is required for reopening the paralyzed airway in\npatients with OSA.146 Under normal conditions, the two\ncompressing factors, (1) negative intraluminal pressure\nand (2) positive extraluminal pressure, need to be actively\ncompensated by muscular activity of the upper airway dila-\ntor muscles to maintain airway patency.97␣\nANATOMIC VULNERABILITY TO COLLAPSING FORCES. The soft \ntissues of the pharynx are enclosed and stabilized by bony \nstructures, such as the mandible and the spine, and com-\nplete collapse of the pharyngeal airway ordinarily requires \nextraluminal forces, such as hematoma, edema, peripha-\nryngeal masses, or an airway trauma, for instance, as a \nconsequence of prolonged endotracheal intubation.131 \nPharyngeal manifestation of obesity compresses the air-\nway.132 Craniofacial abnormalities can further increase the \ncollapsing effects of excessive pharyngeal extraluminal soft \ntissue in obese patients.133 The extraluminal soft tissue, as \nwell as size and shape of the bony enclosure, are determi-\nnants of the extraluminal pressure that need to be antago-\nnized by the upper airway dilator muscle contraction during \ninspiration, to avoid an upper airway obstruction–related \napnea.133 In addition, the upper airway is more vulnerable \nto collapse in the supine position than in the lateral or sit-\nting positions, due to gravitational effects.134,135\nWAKEFULNESS STIMULUS AND SLEEP. Excitatory inputs to \nthe upper airway motoneurons (e.g., hypoglossal motoneu-\nrons) include those from serotoninergic and noradrenergic \nneurons that fire predominantly during wakefulness,147-150 \nresulting in a “wakefulness stimulus” that increases the \nactivity of upper airway dilator muscles during this arousal \nstate. With onset of sleep, this arousal-dependent neuro-\nnal input (active while awake versus less active, or inactive \nwhen asleep) disappears, leading to a decrease in upper air-\nway muscle activity and causing increased upper airway \nresistance in healthy controls and airway collapse in patients \nwith OSA.151-153 The resulting retropalatal obstruction of \nthe upper airway is reported to be the most common patho-\nphysiological mechanism in OSA.146␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_027_sec_8",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Excessive intravenous fluid administration can affect",
+    "body_text": "upper airway patency. In awake, healthy volunteers, the\ninflation of antishock trousers displaced fluid from the\nlower extremities to increase neck circumference,136 so\nthat the upper airway had a lower threshold to collapse.137\nThis concept is reinforced in studies of subjects with lower\nextremity venous insufficiency138 and congestive heart fail-\nure (CHF).139 These studies have shown nocturnal redis-\ntribution of fluid from the lower extremities into the neck\nincreases upper airway collapsibility138 and the severity of\ncentral apnea and OSA.139 Similar effects may increase the\nrisk for OSA during pregnancy and early after delivery.139\nONE WAY VALVES IN THE UPPER AIRWAY. Observing the respi-\nratory flow tracings in patients with OSA, one can find some \nrespiratory events that do not show the characteristic progres-\nsive flow limitation ultimately resulting in complete upper \nairway occlusion, typically seen as a result of “collapsible tube \npathophysiology” with variable compliance. In these cases, the \nflow tracings show normal expiratory flow and sudden reduc-\ntion/cessation before reaching maximum inspiratory flow. \nThis “rapid obstruction” only during the inspiratory phase \noccurred in approximately 20% to 30% of OSA patients.154 \nRecent findings suggest that there are two one-way valves in \nthe pharynx. While the epiglottic valve closes during inspira-\ntion, the soft palate may function as a second one-way valve \nlimiting flow during expiration.155"
+  },
+  {
+    "id": "Millers_9_10_PAGE_027_sec_9",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Another important component of airway patency is the",
+    "body_text": "interplay between lung volume and upper airway collapsibil-\nity. Higher end-expiratory lung volumes are associated with\na decrease in upper airway resistance to airflow in awake\nhealthy humans,140 and an increase in upper airway lumen\ndimensions in subjects with and without OSA.141 The mecha-\nnism for the interaction between upper airway patency and\nlung volume is thought to lie in the generation of longitudi-\nnal traction forces in the trachea.142,143 Upon inspiration, the"
+  },
+  {
+    "id": "Millers_9_10_PAGE_027_sec_10",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Similar to the epiglottis, the soft palate hangs from the",
+    "body_text": "hard palate like a peninsula in the oropharynx and might\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_028_sec_8",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Sleep",
+    "body_text": "Neurolgical pathologies\n(Delirium, Stroke)\nAnesthetics, Opioids"
+  },
+  {
+    "id": "Millers_9_10_PAGE_028_sec_10",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Respiratory pump muscles",
+    "body_text": "Upper airway dilator muscles\nFig. 10.9 Effects of respiratory arousal on upper airway dilator and respiratory pump muscles. Respiratory arousal is composed of three primary inputs: \ncentral respiratory pattern generator processing peripheral and central chemoreceptor afferents, reﬂex responsiveness to the magnitude of negative \npressure in the airway generated by the respiratory pump muscles, and strength of the wakefulness stimulus. Different factors can impair respiratory \narousal, such as sleep and neurologic pathologies, anesthetics, and opioids. Blue arrows indicate excitatory effect; yellow arrows indicate inhibitory \neffect. MN, Motor neuron. (Modiﬁed from Sasaki N, Meyer MJ, Eikermann M. Postoperative respiratory muscle dysfunction: pathophysiology and preventive \nstrategies. Anesthesiology. 2013;118:961–978.)\nocclude the upper airway during expiration.156 A recent \nstudy found that sudden reduction of expiratory airflow \nimmediately after peak expiratory flow occurs more often in \nOSA patients under positive pressure ventilation.157 Similar \nexpiratory flow limitation pattern was also reported in spon-\ntaneously breathing OSA patients, suggesting that this phe-\nnomenon is not unique to positive pressure ventilation.158\nnot involving cortical arousal.162 For example, hypercarbia \nresulting from sustained hypopnea160 and elevated upper \nairway negative pressure128,129 can independently restore \ntone to the respiratory muscles. The level of drive provided \nto the respiratory muscles depends on the summation of \nstimuli in the central respiratory pattern generator output, \nincluding peripheral and central chemo-responsiveness, \nreflex responsiveness to the negative airway pressure, and \nstrength of the wakefulness drive.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_028_sec_11",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "These findings may point to a second, slightly different",
+    "body_text": "mechanism underlying OSA than the pure collapsible tube\npathophysiology in some OSA patients, which should be\nparticularly important during anesthesia. Correct identifi-\ncation of the closure site in each OSA patient will enable the\nclinician to provide an individualized OSA treatment.155␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_028_sec_12",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Treatment. Adequate treatment of OSA improves noc-",
+    "body_text": "turnal oxygen saturation as well as duration and quality\nof sleep, which translates to reduced daytime sleepiness,\nimprovement of daytime functions, and improved quality\nof life. Successful treatment of OSA reduces cardiovascular\nrisk, improves insulin sensitivity, and increases neurobe-\nhavioral performance.163-165 Therefore, all patients with a\ndiagnosis of OSA should be offered treatment as soon as the\ndiagnosis of OSA has been established and its severity has\nbeen determined by objective testing (i.e., PSG).88 Although\ndifferent treatment options for OSA have been developed\nduring the last decades (Table 10.6), continuous positive\nairway pressure (CPAP) dose dependently increases upper\nairway diameter and is still the most effective treatment for\nOSA of all severities.166-168 However, a recent study has\nquestioned if CPAP treatment is able to prevent the long-\nterm adverse cardiovascular events in OSA.169\nRESPIRATORY AROUSAL. Respiratory arousal is arousal \nfrom sleep owing to cumulative and progressive increases \nin stimuli related to breathing (hypoxia, hypercapnia, and \nrespiratory effort).159"
+  },
+  {
+    "id": "Millers_9_10_PAGE_028_sec_13",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Three primary inputs contribute to arousal-related resto-",
+    "body_text": "ration of breathing following an apnea (Fig. 10.9):\n1.  Peripheral and central chemoreceptors sensitive to\npartial pressures of oxygen and carbon dioxide160\n 2.  Sensors in the upper airway responsive to negative pres-\nsure generated by the respiratory pump128,129\n 3.  Cortical inputs directly related to state of consciousness\nor wakefulness161"
+  },
+  {
+    "id": "Millers_9_10_PAGE_028_sec_14",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Any of these inputs can restore respiratory muscle tone",
+    "body_text": "if the magnitude of stimulation is sufficient. Cortical awak-\nening from sleep, identified by EEG signs of wakefulness, is\nan adequate stimulus for ventilation. However, obstructive\napneas, such as upper airway collapse in OSA, can be ter-\nminated by an increased drive to the respiratory muscles\nPOSITIVE AIRWAY PRESSURE TREATMENT. CPAP as a treat-\nment for SDB is typically applied continuously with a nasal \nor oronasal mask, and can dose dependently reverse any \nsleep-associated upper airway obstruction, as outlined in \nFig. 10.10. The CPAP level needed for treatment of OSA\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_029_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "SECTION II • Anesthetic Physiology\n280\n\nTABLE 10.6 Treatment",
+    "body_text": "SECTION II • Anesthetic Physiology\n280\nTABLE 10.6 Treatment Possibilities for Obstructive Sleep Apnea"
+  },
+  {
+    "id": "Millers_9_10_PAGE_029_sec_1",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Treatment",
+    "body_text": "Procedure/Device\nRecommendation\nReferences"
+  },
+  {
+    "id": "Millers_9_10_PAGE_029_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Weight reduction",
+    "body_text": "Reduction of body weight\nWeight-loss surgery (improves success of weight loss)"
+  },
+  {
+    "id": "Millers_9_10_PAGE_029_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Medication",
+    "body_text": "Drug-based treatment (e.g., tricyclic antidepressants, serotonin\nreuptake inhibitors, cholinergic agonists, carbonic anhydrase  \ninhibitors)"
+  },
+  {
+    "id": "Millers_9_10_PAGE_029_sec_7",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Palatal surgery and implants",
+    "body_text": "Low, MC\nTongue base surgery\nLow, MC"
+  },
+  {
+    "id": "Millers_9_10_PAGE_029_sec_8",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Increase of muscle activity",
+    "body_text": "Muscle training\nID\n174\nHypoglossal nerve stimulation\nID\n175"
+  },
+  {
+    "id": "Millers_9_10_PAGE_029_sec_9",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Nonsurgical",
+    "body_text": "Oral appliance\nPositive airway pressure"
+  },
+  {
+    "id": "Millers_9_10_PAGE_029_sec_10",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "High, AT",
+    "body_text": "High, GS\n175\nAT, Alternative treatment if positive airway pressure is not tolerated; GS, gold standard; ID, data not sufﬁcient for recommendation; MC, may be concerned in\ncarefully selected patients if conservative treatment fails; NR, not recommended; SU, supportive treatment.\na low starting pressure to the prescribed pressure over \na period of 5 to 45 minutes, allowing the patient to fall \nasleep more easily. Some patients report difficulties exhal-\ning against high CPAP. To avoid this problem, bilevel \ntreatment with reduced expiratory positive airway pres-\nsure and a sufficiently high inspiratory positive airway \npressure can be used.\n0 cm H2O\n5 cm H2O"
+  },
+  {
+    "id": "Millers_9_10_PAGE_029_sec_11",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "In some cases, one CPAP pressure level is not sufficient",
+    "body_text": "to treat sleep apnea. CPAP devices with dynamic pres-\nsure levels can improve treatment success, particularly\nin patients with a variable severity of sleep disordered\nbreathing during different sleep stages. These automatic\npositive-airway pressure or auto-titrating devices mea-\nsure different variables associated with hypopnea, such\nas oropharyngeal wall vibration, snoring, and inspiratory\nflow limitation, and increase the airway pressure until\nthese signs and symptoms of hypopnea disappear. In addi-\ntion, it is not entirely clear whether CPAP treatment is\nable to prevent the increased cardiovascular risk inherited\nby OSA.\n10 cm H2O\n15 cm H2O"
+  },
+  {
+    "id": "Millers_9_10_PAGE_029_sec_12",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Fig. 10.10 Magnetic resonance imaging of the human upper air-",
+    "body_text": "way during different levels of continuous positive airway pressure.\nMagnetic resonance imaging of the upper airway during continuous\npositive airway pressure of 0, 5, 10, and 15 cm H2O shows a dose-\ndependent increase in upper airway diameter. (Obtained from Schwab\nRJ, Pack AI, Gupta KB, et al. Upper airway and soft tissue structural changes\ninduced by CPAP in normal subjects. Am J Respir Crit Care Med. 1996;154[4\npt 1]:1106–1116.)\nCPAP is sufficient in the treatment of most patients with \nOSA. However, some patients may need different treat-\nment methods. For example, patients with mixed apneas \n(obstructive and central) or predominantly central apneas \nneed a more controlled (frequency or time controlled), \nnoninvasive ventilation (NIV) with predefined minimal \nrespiratory frequency or respiratory timing that auto-\nmatically induces the next inspiration (ventilation) if the \npatient does not induce the next breath within preset \nparameters.␣\nvaries mostly between 5 and 20 cm H2O. However, home \nRP and titration of CPAP might be similarly effective in \nsome but not all patients with suspected OSA.176,177 After \ntitration, the prescribed treatment pressure is applied con-\ntinuously throughout the night. Although this treatment \nis efficient in reversing the underlying pathology, the \nimpact of CPAP on outcome is limited by patient adher-\nence,112,178 mostly because of local side-effects at the \nnose or face, or discomfort caused by the mask.179 When \napplied with high pressure, the amount of airflow can pre-\nvent the patient from falling asleep while using the treat-\nment device. Some treatment devices offer a ramp or delay \nfunction that gradually increases treatment pressure from\nALTERNATIVE TREATMENT OPTIONS. Oral appliances (OAs) \nare possible treatment options in patients with mild to \nmoderate OSA who do not tolerate CPAP therapy. Two \nmajor designs are currently used clinically: (1) mandibu-\nlar repositioning appliance, which holds the mandible in \nan advanced position (a protrusion of at least 50% of the \nmaximal possible extension is recommended for effective \ntreatment),179 and (2) tongue-retaining devices, leading \nto repositioning of the tongue into a forward position with-\nout any protrusion of the mandible. A multidisciplinary\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_030_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "10 • Sleep Medicine\n281\n\n96\n94\n93\n93\n91\n94\n95\n93\n92\n90\n93\n95",
+    "body_text": "10 • Sleep Medicine\n281\n96\n94\n93\n93\n91\n94\n95\n93\n92\n90\n93\n95\n94\n94\n92\n93\n95\n94\n93\n93\n91\n95\n94\n93\n93\n92\n93\nSaO2 [%]\n92\n92\n92"
+  },
+  {
+    "id": "Millers_9_10_PAGE_030_sec_6",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Abdomen",
+    "body_text": "30 sec.\nFig. 10.11 Polysomnographic recording of an episode of Cheyne-Stokes respiration. CH, Central hypopnea; OA, obstructive apnea.\napproach including a sleep physician and a dental techni-\ncian experienced in OAs has been recommended for this \npurpose, because both factors are crucial for patient adher-\nence and outcome from OA treatment.109 OAs are recom-\nmended in patients with mild to moderate OSA who do not \ntolerate,179 do not respond to, fail, or are not appropriate \ncandidates for CPAP treatment.88"
+  },
+  {
+    "id": "Millers_9_10_PAGE_030_sec_7",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Central Sleep Apnea",
+    "body_text": "CSA impairs quality of life188 and is associated with adverse\noutcome in heart failure patients.189,190 CSA is defined as\ncessation of air flow without respiratory effort,188 which\nseparates it from OSA, where respiratory effort is main-\ntained or even increased during an apnea. In clinical sleep\napnea, considerable overlap between OSA and CSA occur\nthat need to be identified and subsequently treated.191"
+  },
+  {
+    "id": "Millers_9_10_PAGE_030_sec_8",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Historically, surgical treatment methods were the",
+    "body_text": "only approach to treatment of OSA, but the effective-\nness of most of the nasopharyngeal surgical approaches\nfor severe OSA remains unclear. However, tonsillectomy\nis beneficial in adult patients with OSA from tonsillar\nhypertrophy, and adenotonsillectomy is recommended\nin children with OSA and adenotonsillar hypertrophy.180\nRepeated sleep testing before and following surgery is\nrecommended to ensure sufficient long-lasting therapeu-\ntic effects.88,179,181\nCSA can be found in older patients and in patients with \nsevere comorbidities such as CHF, stroke, or other neuro-\nlogic disorders (e.g., amyotrophic lateral sclerosis). In a \nsouthern Pennsylvania cohort, CSA (AHI ≥ 20/hour) was \nfound in 5% of men aged 65 years and older, but it was not \nfound in younger men or in women of any age. For an AHI \nof 2.5 per hour and greater, the prevalence estimates in \nmen younger than 45 years remains negligible, while CSA \nwas found in 1.7% of men between 45 and 64 years, and \n12% in men older than 65 years,192 or 9% in individuals \nbetween 40 and 97 years, respectively.193"
+  },
+  {
+    "id": "Millers_9_10_PAGE_030_sec_9",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Electrical stimulation of the upper airway muscles has",
+    "body_text": "been explored recently as a new approach to treatment of\nOSA. Hypoglossal nerve stimulation induces genioglos-\nsus muscle contractions, which dose dependently increase\ninspiratory airflow during OSA,182 but the invasiveness of\nthe procedure, the cost of the device, and the requirement\nfor preimplantation endoscopy during anesthesia limit its\nuse as a first-line treatment of OSA.149\nCSA mechanisms can be categorized into those with \nhigh and low loop gain. The most common subtype of CSA \nwith an increased loop gain is CSR and is commonly seen in \npatients with CHF and left-ventricular systolic dysfunction. \nCSR is defined as a crescendo-decrescendo pattern of hyper-\nventilation between 20 and 30 seconds in duration, followed \nby 10 to 40 seconds of hypopneas or apneas (Fig. 10.11), \nusually occurring during NREM sleep stage 1 and 2.194 Nev-\nertheless, CSR can also occur during exercise or wakeful-\nness. Nearly one out of two patients with CHF shows CSR.195 \nCSR is more common in men and worse in the supine body \nposition.161"
+  },
+  {
+    "id": "Millers_9_10_PAGE_030_sec_10",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "While pharyngeal fat deposits led to a decrease in",
+    "body_text": "pharyngeal patency, underlining the risk factor of obe-\nsity,183,184 weight loss leads to a reduction in Pcrit and the\nseverity of OSA145,171 and is recommended as adjunctive\ntreatment in all overweight patients with OSA.185 Because\nlong-term weight reduction is more effective when accom-\npanied by weight loss surgery, bariatric surgery may be\nconsidered as an adjunctive therapy in very obese patients\n(body mass index [BMI] ≥ 40 kg/m2), as well as in those\nwith important comorbidities and BMI of 35 kg/m2 or\ngreater and in whom dietary attempts at weight control\nhave been ineffective.88"
+  },
+  {
+    "id": "Millers_9_10_PAGE_030_sec_11",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Potential respiratory therapies of CSR include oxygen,",
+    "body_text": "respiratory stimulants (e.g., CO2, theophylline, and acet-\nazolamide), and NIV such as bilevel positive airway pres-\nsure. The effectiveness of CPAP as therapy is controversial.\nOptimization of medical therapy is the best treatment,\nbecause CSR will often resolve with adequate treatment of\nCHF (cardiac resynchronization therapy and surgical treat-\nment, such as heart transplant).194"
+  },
+  {
+    "id": "Millers_9_10_PAGE_030_sec_12",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Oxygen is currently not recommended as primary treat-",
+    "body_text": "ment of OSA, but may be used as an adjunctive treatment in\nsome patients, particularly in the postoperative period.88,186"
+  },
+  {
+    "id": "Millers_9_10_PAGE_030_sec_13",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Although OSA is more common in the older population,",
+    "body_text": "it occurs in children with a peak in the incidence between 2\nand 5 years of age. Obesity predicts snoring and other signs\nof obstructive respiratory events in children.109 Tonsillar\nand adenoidal hypertrophy is another important cause of\nOSA in children and can be treated surgically.187␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_030_sec_14",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Other Forms of Central Breathing Disorders. The term",
+    "body_text": "periodic breathing refers to altitude-induced breathing insta-\nbility that occurs in subjects transferred to a high altitude,\nwhere ambient hypoxia caused by low barometric pressure\nleads to an increase in controller gain.97 Idiopathic CSA,\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_031_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "SECTION II • Anesthetic Physiology\n282\n\nwhich is a relativel",
+    "body_text": "SECTION II • Anesthetic Physiology\n282\nwhich is a relatively uncommon disorder at sea level, occurs \nmore likely in individuals with an elevated hypercapnic \nventilatory response (high controller gain) that leads to \nhypocapnia and respiratory control instability during sleep. \nPatients with idiopathic CSA tend to have low PaCO2 levels, \neven during wakefulness.196␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_031_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Obesity Hypoventilation Syndrome",
+    "body_text": "Alveolar hypoventilation is defined as insufficient ventilation\nleading to hypercapnia (increased PaCO2). Mechanisms of\nalveolar hypoventilation include central hypoventilation,\nchest wall deformities, neuromuscular disorders, chronic\nobstructive pulmonary disease, as well as severe obesity\n(obesity hypoventilation syndrome [OHS]). OHS is defined as\nthe combination of nocturnal and daytime hypoventilation,\nusually leading to hypercapnia in obese subjects (BMI ≥ 30\nkg/m2), in the absence of other causes of hypoventilation."
+  },
+  {
+    "id": "Millers_9_10_PAGE_031_sec_7",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Fig. 10.12 Electroencephalographic recording during sedation and",
+    "body_text": "loss of consciousness induced by propofol. Compared with physiologic\nsleep (see Fig. 10.1), sedation shows electroencephalographic (EEG)\ntraces comparable to slow wave sleep, indicating the sleep-inducing\neffect of anesthetics. Anesthesia-induced loss of consciousness (lower\nfour traces), shows different EEG activity with reduced amplitudes and\nburst suppression. (Burst suppression is not shown in these traces.)"
+  },
+  {
+    "id": "Millers_9_10_PAGE_031_sec_8",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The prevalence of OHS is estimated to be up to 50% in",
+    "body_text": "obese patients with OSA. It can occur in up to 50% of patients\nwith a BMI of 50 kg/m2 or more,197 compared with 0.15% to\n0.3% in the general adult population. Ninety percent of patients\nwith OHS also suffer from OSA.198,199 OHS often remains\nundiagnosed, and the true prevalence remains unclear."
+  },
+  {
+    "id": "Millers_9_10_PAGE_031_sec_9",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Although there are similarities in the EEG patterns",
+    "body_text": "between slow-wave sleep and anesthesia-induced uncon-\nsciousness, the EEG patterns during sleep and anesthesia\nare different,209 with different frequencies and types of acti-\nvation in EEG recorded during physiologic sleep and the\nuniform EEG picture observed during anesthesia-induced\nunconsciousness (Fig. 10.12).210"
+  },
+  {
+    "id": "Millers_9_10_PAGE_031_sec_10",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Severe obesity is associated with an increase in respira-",
+    "body_text": "tory drive that helps maintain eucapnia in the presence\nof the abnormal chest wall mechanics and high work of\nbreathing.200,201 In OHS, this compensatory mechanism\nis abolished,201,202 which in part might be explained by\nleptin resistance.203-205 Typically, OHS manifests as a\nreduced lung capacity, vital and functional residual capac-\nity, expiratory reserve volume, respiratory system compli-\nance, and inspiratory muscle strength, whereas response to\nCO2 might be reduced or normal. In addition, there is an\nincrease in serum bicarbonate and alveolar PCO2, as well as\nin the work of breathing and leptin levels.205,206"
+  },
+  {
+    "id": "Millers_9_10_PAGE_031_sec_11",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "During anesthesia induction, the level of consciousness",
+    "body_text": "continuously decreases from fully awake through states\nof reduced response to external stimuli up to a completely\nunresponsive state.211 This is in contrast to the sharp α–θ\nEEG transitions seen while an individual proceeds from\nwakefulness to sleep without any transient stages. Indi-\nviduals in a steady state of physiologic sleep can be aroused\nwith sufficient stimulation, whereas drug-induced uncon-\nsciousness needs at least some drug elimination to occur\nbefore individuals can be aroused.212␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_031_sec_12",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Impairment of the effectiveness of respiratory pump mus-",
+    "body_text": "cle function in patients with OHS can be explained by the\neffects of low lung volume because of central fat distribu-\ntion, leading to a cranial displacement of the diaphragm\nwhen lying supine.206,207 In addition, diaphragmatic\nmyopathy might be a contributing factor of OHS.205 Treat-\nment options include weight loss and NIV.207,208␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_031_sec_14",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The role of the endogenous sleep-promoting system in the",
+    "body_text": "mechanism of action of general anesthetics has recently\nreceived much attention. This hypothesis is attractive\nbecause of the similarities of sleep and anesthesia and some\nevidence that anesthetically induced sleep could meet some\nof the homeostatic need for sleep.213,214 It is even more\nattractive because, despite the large database of the molecu-\nlar effects of anesthetics, how loss of consciousness occurs\nis still not explained. An important discovery is that some\nof the neurons that are active during sleep in the VLPO are\nalso activated by certain anesthetics.213-216 A second key\nobservation is the inhibition of the arousal nuclei, the TMN,\ncontributes to anesthesia.215 This effect also implicates\nactivation of VLPO because it provides the major source of\ninhibition of the TMN. The idea has emerged that anesthe-\nsia-induced loss of consciousness is mediated by effects of the\nanesthetics on the flip-flop switch centered in the VLPO that\nis responsible for the sharp transition from wakefulness to\nsleep and back (see earlier section).212,217,218 However, there\nare a number of problems with this theory, including that\nrats and mice with complete lesions of the VLPO can still\nbe anesthetized.216,219 Although lesions of VLPO lead to a"
+  },
+  {
+    "id": "Millers_9_10_PAGE_031_sec_15",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Sleep and Anesthesia: Two",
+    "body_text": "Unequal Twins Influencing\nPerioperative Medicine"
+  },
+  {
+    "id": "Millers_9_10_PAGE_031_sec_17",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Although physiologic sleep and anesthesia share some",
+    "body_text": "clinical features (loss of consciousness and a modulation of\nbrainstem autonomic function), major differences can be\nfound when closer observations of both behavioral states\nare undertaken. In contrast to anesthesia, sleep shows\nspontaneous generation and termination, ready reversibil-\nity by noxious stimuli, and homeostatic regulation. Anes-\nthesia does not share the stage-wise structure seen during\nphysiologic sleep. In addition, functional imaging studies\nunderline the fundamental differences during onset of anes-\nthesia and wakefulness-sleep transition.\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_032_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "10 • Sleep Medicine\n283\n\ntransient resistance to volatile an",
+    "body_text": "10 • Sleep Medicine\n283\ntransient resistance to volatile anesthetics,216 if some time \nelapses following a VLPO lesion, the animals show increased \nsensitivity to isoflurane anesthesia attributable to increased \nhomeostatic sleep drive.216,219-221 Another problem with \nthe VLPO-TMN circuit hypothesis of anesthesia is that direct \ninhibition of the TMN produces sedation but not anesthe-\nsia.215 Animals without VLPO neurons have profound \ninsomnia. Therefore, interaction of anesthetics with these \nsleep-promoting nuclei alone is not sufficient to produce \nunconsciousness during anesthesia. During recent years, \nseveral studies provided evidence to extend the scientific \nframework of general anesthetics modulating sleep-promot-\ning regions by the anesthetic depression of arousal-pro-\nmoting nuclei, including the LC, GABAergic neurons of the \npontine reticular formation, the pedunculopontine and lat-\nerodorsal tegmentum, the ventral tegmental area, as well as \nthe perifornical area, the tuberomammillary nucleus, and \nthe basal forebrain.222,223 This “bottom-up” hypothesis of \nanesthesia-induced unconsciousness may be the result of \nthe simultaneous interaction with the brainstem and dience-\nphalic regions, including the AAS and endogenous sleep cir-\ncuitry. Although, these mechanisms show similarities with \nsleep-promoting neuronal interactions, they are unlikely to \nbe the only correlate of anesthesia-induced unconscious-\nness. Sleep, but not anesthesia, is easily reversed or prevented \nby real or perceived environmental threats. While interac-\ntion with sleep-promoting neurons work by inhibiting these \narousal pathways, other neuronal networks crucial for con-\nsciousness (e.g., thalamocortical networks) remain active \nduring sleep.224 However, the finding that many anesthetics \nengage sleep pathways is still important and meaningful, as \nthis is undoubtedly an important mechanism by which these \nclasses of anesthetics promote sleep. Nevertheless, this effect \ndoes not and cannot prevent arousal to sufficient external \nstimuli. The unique property of anesthesia to do so has to be \nmediated by an additional mechanism.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_032_sec_1",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Anesthetics have strong effects on GABA and NMDA",
+    "body_text": "receptors, both of which are linked with circadian control.\nAs a result, anesthetics may interfere with entrainment of\nthe circadian rhythm; however, preclinical and human\ndata show inconsistent results. A recent trial in honeybees\nsuggested an anesthetically induced circadian shift. Inside\nthe laboratory with no outdoor cues, daytime anesthesia\ndisturbed the usual activity patterns in the hive for the\nnext several days. In addition, cycles of clock gene activity\nshowed a delay,235,236 and inhibition of the period circadian\nprotein (per)-2 gene expression (one of the core clock genes)\nwas observed during anesthesia.237 Of note, psychotropic\nnonanesthetics, such as opioids, have been shown to affect\nmelatonin secretion indirectly, independent of the behav-\nioral state anesthesia in a pig model.238 Previous work in\nhumans has shown that 3 hours of anesthetic exposure\ndoes not affect the circadian phase of the body temperature\nrhythm.239"
+  },
+  {
+    "id": "Millers_9_10_PAGE_032_sec_2",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "In summary, the specific mechanisms of anesthetics",
+    "body_text": "effects on circadian rhythm are unclear. The ability to dis-\ntinguish between effects occurring directly on the circadian\npacemaker and those occurring downstream from the pace-\nmaker on other physiologic control systems requires addi-\ntional research under rigorous experimental conditions."
+  },
+  {
+    "id": "Millers_9_10_PAGE_032_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Surgical treatment itself impairs sleep, expressed as",
+    "body_text": "reduced REM sleep duration even in the absence of general\nanesthesia.229,230 Pain, inflammation, stress immobility,\nand anxiety seem to be contributing factors.240 After sur-\ngery, patients show a significant impairment of sleep quality\nand duration. Eventually, it will be known whether specific\nanesthetics are preferable to avoid the adverse effects of\nsleep deprivation.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_032_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Perioperative complications occur more often in patients",
+    "body_text": "with OSA than in healthy controls,241,242 but the reasons\nfor this observation are unclear. It is challenging to isolate\nthe effect of OSA from the known adverse effects on peri-\noperative outcome of typical OSA comorbidities, such as\nhypertension, diabetes, coronary artery disease, neurovas-\ncular vulnerability, and obesity. Fortunately, severe post-\noperative complications are uncommon. As a consequence,\nlarge trials are needed to isolate the causal relationship\nbetween SDB and perioperative complications, such as\nsevere respiratory failure, thromboembolic complications,\nincreased hospital length of stay, and mortality."
+  },
+  {
+    "id": "Millers_9_10_PAGE_032_sec_7",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Anesthesia and painful surgical procedures affect sleep and",
+    "body_text": "circadian rhythms225-227 for as long as 6 months, depend-\ning on the complexity of the procedure performed.228 A\nsubstantial decrease in REM sleep occurs on the first night\nafter surgery and anesthesia, followed by a profound REM\nrebound phenomenon on the second to fourth postopera-\ntive nights, when REM sleep increases in both intensity and\namount.225,227 Although most anesthetics can lead to an\nimpairment of sleep architecture, such as REM depression\nand reduced sleep quality during the early postoperative\nperiod, the extent of this impairment probably depends on\nthe pharmacokinetics and pharmacodynamics of the anes-\nthetics and opioids used,229,230 which affect the duration of\nREM sleep,231,232 as well as surgery-induced stress."
+  },
+  {
+    "id": "Millers_9_10_PAGE_032_sec_8",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Independent of obesity, OSA is not associated with diffi-",
+    "body_text": "cult tracheal intubation or mask ventilation.243-245 How-\never, recent metaanalyses reported a significantly higher\nrisk of postoperative major cardiac and cerebrovascular\nevents, newly detected postoperative atrial fibrillation and\nacute postoperative respiratory failure, compared with con-\ntrol subjects.246-248 These findings need to be confirmed in\nfuture prospective studies with a larger sample size and a\nmore homogenous population such that confounding fac-\ntors can be controlled. OSA is associated with postoperative\ndelirium,241,249 which is an important perioperative com-\nplication associated with increased costs, morbidity, and\nmortality. However, it is currently unclear if this is due to\nrepetitive hypoxia or sleep fragmentation. In contrast, a"
+  },
+  {
+    "id": "Millers_9_10_PAGE_032_sec_9",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The effect of propofol on sleep architecture and REM",
+    "body_text": "sleep is complex and dose dependent. In long-term ven-\ntilated, critically ill patients, propofol sedation abolishes\nREM sleep and diminishes sleep quality,233 whereas with\nlow-dose propofol, REM sleep is possible. The effects of ket-\namine sedation on sleep architecture have not been studied\nin detail, although it may have rather mild effects on REM\nduration.234\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_033_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "SECTION II • Anesthetic Physiology\n284\n\nHistory of sleep stu",
+    "body_text": "SECTION II • Anesthetic Physiology\n284"
+  },
+  {
+    "id": "Millers_9_10_PAGE_033_sec_9",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "History and standardized validated",
+    "body_text": "questionnaire suggests high risk of SDB"
+  },
+  {
+    "id": "Millers_9_10_PAGE_033_sec_11",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Inspection of device",
+    "body_text": "by respiratory therapist in OR\nwith high morbidity risk"
+  },
+  {
+    "id": "Millers_9_10_PAGE_033_sec_21",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "YES",
+    "body_text": "BGAA or\nduring intubation,\nemergency and PACU care\nduring intubation,\nemergency and PACU care\nconsult prior to surgery\nbicarb."
+  },
+  {
+    "id": "Millers_9_10_PAGE_033_sec_23",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "NO",
+    "body_text": "PAP or NIV follow up by respiratory therapist until hospital discharge\nRelevant airway obstruction"
+  },
+  {
+    "id": "Millers_9_10_PAGE_033_sec_24",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Proceed with case",
+    "body_text": "during mask ventilation or\nfollowing extubation\nFig 10.13 Clinical pathway for perioperative management of patients with sleep disordered breathing. BGAA, Arterial blood gas analysis; bicarb, venous \nbicarbonate level; BMI, body mass index; NIV, noninvasive ventilation; SDB, sleep-disordered breathing; PACU, postanesthesia care unit; PAP, positive \nairway pressure.\nrecent study using the Nationwide Inpatient Sample data-\nbase analyzed data from 1,058,710 patients undergoing \nelective surgery. These authors showed that patients pre-\nviously diagnosed with SDB had significantly higher rates \nof emergent mechanical ventilation, use of NIV, and CPAP, \nas well as increased rates of respiratory failure. Neverthe-\nless, the study also showed that patients with SDB had \nbetter outcomes after emergent intubation and had lower \ncare-associated costs compared with their non-SDB coun-\nterparts.250 Similar findings were reported by the same \ngroup for data from 91,028 patients undergoing bariatric \nsurgery.251 In this study, patients with a previous diagnosis \nof SDB had a shorter hospital length of stay and lower total \ncosts compared with non-SDB patients. The reasons for the \ndifferences are unclear. Patients with a known history of \nsleep apnea may receive more sophisticated perioperative \nmonitoring and more aggressive treatment of their respi-\nratory disease, which might also explain the higher rate of \npostoperative reintubation in SDB patients reported in the \nsame group.250 Another possible explanation relates to the \nconsequences of chronic nocturnal desaturation, which can \nhave preventive effects in terms of the consequences of peri-\noperative acute hypoxia. Most importantly, these findings \nindicate that the association of SDB, and perioperative out-\ncome is likely to be more than a unidirectional relationship. \nMore likely is that SDB could have a dual effect, leading to \nincreased rates of perioperative respiratory complications \nin patients with SDB, but additionally protecting the same \npopulation from the fatal consequences of these complica-\ntions. The mechanism of the potential link between OSA \nand postoperative respiratory failure, as well as postopera-\ntive delirium, is probably multifactorial. Frequent episodes\nof airway collapse in OSA lead to hypoxia, disrupted sleep, \ndaytime sleepiness, and increased arousal threshold from \nsleep, all of which can be considered as potential precipitat-\ning or augmenting factors of postoperative complications. \nIt is intriguing to note that patients with OSA appear to be \nmost vulnerable to hypoxia on postoperative night two or \nthree, the time interval during which postoperative delir-\nium most typically manifests."
+  },
+  {
+    "id": "Millers_9_10_PAGE_033_sec_25",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "One population that might deserve additional attention",
+    "body_text": "in perioperative care is patients with OHS who, compared\nwith obese patients, are more likely to be admitted to a\nhospital and require more healthcare resources.250,252 In\naddition, higher rates of ICU admission, lengthier long-term\ncare requirements at discharge, and higher mechanical\nventilation rates have been reported in patients with OHS\ncompared with severe obese patients without OHS.251-254"
+  },
+  {
+    "id": "Millers_9_10_PAGE_033_sec_26",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "In summary, patients with SDB are more vulnerable to",
+    "body_text": "developing severe perioperative complications. Nevertheless,\nit is currently unclear whether these complications translate\nto a poorer overall postoperative outcome for these patients.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_033_sec_27",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "PERIOPERATIVE MANAGEMENT IN PATIENTS",
+    "body_text": "WITH SLEEP-DISORDERED BREATHING"
+  },
+  {
+    "id": "Millers_9_10_PAGE_033_sec_28",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The standard of care for perioperative management of",
+    "body_text": "patients with SDB depends on the severity of the disease,\ncomorbidities, and the threat associated with the planned\nsurgical procedure. It is probably neither feasible nor nec-\nessary to conduct a sleep study in all obese patients at risk\nfor sleep apnea who are scheduled for surgery; however,\nhigh-risk patients need to be identified and treated peri-\noperatively. Fig. 10.13 shows an algorithm that is being\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_034_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "10 • Sleep Medicine\n285\n\ndeveloped by an interdisciplinary i",
+    "body_text": "10 • Sleep Medicine\n285\ndeveloped by an interdisciplinary international group of \nclinicians. The algorithm is driven by the idea that patients \nwho have been prescribed CPAP preoperatively should con-\ntinue to use CPAP perioperatively. Patients who carry sev-\neral risk factors (procedural and comorbidity-based) may \nneed a preoperative sleep medicine consultation and/or a \nCPAP prescription."
+  },
+  {
+    "id": "Millers_9_10_PAGE_034_sec_1",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Perioperative Management of Patients with",
+    "body_text": "Possible Sleep-Disordered Breathing\nAlthough the data on optimal intraoperative and periop-\nerative management are still limited, and mainly based\non studies with low sample size, the techniques and pro-\ncedures summarized in Box 10.2 might be considered dur-\ning the perioperative management of patients with SDB.258\nPatients with a history of SDB who are undergoing surgery\nand anesthesia with high risk of morbidity should receive\nan “OSA anesthesia bundle” (see Box 10.2) that includes\nspecial procedures and preparations during tracheal intu-\nbation, extubation, pain therapy, and perioperative CPAP\ntherapy."
+  },
+  {
+    "id": "Millers_9_10_PAGE_034_sec_2",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Preoperative Screening",
+    "body_text": "Several strategies need to be considered to identify patients\nwith SDB adequately.94,253,254 Although clinical examina-\ntion is the easiest and most cost-effective method of assess-\nment using predisposing physical characteristics, it has a\npoor sensitivity and specificity of only 50% to 60% to diag-\nnose OSA accurately.255,256 However, the clinical value\nof using questionnaires relates to the fact that they help\nto identify a high-risk perioperative population, indepen-\ndently of the question of whether an individual patient has\nOSA. For example, the STOP-Bang questionnaire basically\nscreens for comorbidities of OSA that we know increase the\nrisk of perioperative complications (hypertension, obesity,\nmale sex, older age) rather than direct breathing disor-\nder–associated characteristics. The Score for Prediction of\nObstructive Sleep Apnea might also be a helpful tool to pre-\ndict patients with OSA and its perioperative outcome based\non comorbidities and easily available clinical data.257"
+  },
+  {
+    "id": "Millers_9_10_PAGE_034_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Tracheal Intubation. Patients with OSA are frequently",
+    "body_text": "obese, and obesity is a risk factor for difficult intuba-\ntion.244,259-261 Patients should be preoxygenated efficiently\nbefore injection of the anesthetic drug. Sniffing and reverse\nTrendelenburg position are preferred before intubation,\nwhich improves maintenance of the passive (i.e., para-\nlyzed) pharyngeal airway in patients with OSA260,262 and\nincreases functional residual capacity. To reduce the dura-\ntion of paralysis, nondepolarizing neuromuscular blocking\ndrugs should be used with caution supported by quantita-\ntive neuromuscular transmission monitoring. Immediately\nafter successful intubation, a lung recruitment maneuver\nand the application of positive end-expiratory pressure\nfor maintaining lung volume during surgery should be\nconsidered.261,263␣\nPSG is required to identify SDB specifically, but it cannot \nbe used for preoperative screening of surgical patients. PSG \nis expensive, may delay surgery, and is inconvenient for the \npatient. A multistep approach of preoperative screening is \nrequired. Preoperative assessment should include a screen-\ning for SDB and for the current use of NIV. OSA might not \nrepresent real risk in patients scheduled for low-risk pro-\ncedures from a surgery and anesthesia point of view. The \nauthors believe that patients with no previously diagnosed \nSDB undergoing a low-risk surgical procedure should \nreceive standard perioperative monitoring and treatment."
+  },
+  {
+    "id": "Millers_9_10_PAGE_034_sec_4",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Intraoperative Treatment. Impaired upper airway",
+    "body_text": "patency is of special concern whenever anesthetics are\nadministered without a device that bypasses the col-\nlapsible upper airway—for example, during sedation for\nendoscopy.264,265 While the overall rate of overt sedation-\nrelated complications for such procedures (e.g., endoscopy)\nappears low,266 patients who are vulnerable to respiratory\ncomplications may suffer from sequelae of increased upper\nairway collapsibility beyond the immediately observable\nafter intervention."
+  },
+  {
+    "id": "Millers_9_10_PAGE_034_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Patients undergoing high-risk surgical procedures",
+    "body_text": "should receive further workup using a clinical examination\ncombined with standardized and validated questionnaires\n(e.g., Berlin).254,258 Although this diagnostic algorithm\nmight be a sufficient screening for OSA, it might be insuf-\nficient to detect OHS.251,253 A blood gas analysis should be\nconsidered as a method to detect hypercapnia as a major\nsymptom of OHS (criterion: awake daytime hypercapnia\nPaCO2 ≥ 45 mm Hg). Alternatively, a venous bicarbon-\nate concentration ≥ 27 mmol/L is highly sensitive (92%)\nfor an increased PaCO2, which combined with hypox-\nemia (SpO2 ≤ 94%) indicates a high risk of OHS in these\npatients.251,253,256,259 Of note, OHS is a diagnosis by exclu-\nsion. Severe obstructive airway diseases, severe interstitial\nlung disease, severe chest wall disorders (e.g., kyphosco-\nliosis), severe hypothyroidism, neuromuscular disease, and\ncongenital central hypoventilation syndrome need to be\nexcluded, and further evaluation of sleep by a sleep medi-\ncine specialist before anesthesia should be considered. In\nthese cases, the sleep specialist should determine the opti-\nmal diagnostic instruments in cooperation with the peri-\noperative team, prescribe the perioperative auto-titrating\nCPAP device, and offer in collaboration with respiratory\ntherapy specialists to improve tolerability of perioperative\nCPAP therapy.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_034_sec_6",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Opioids and GABAergic sedatives/hypnotics impair",
+    "body_text": "upper airway patency without any meaningful difference\nbetween compounds given at an equipotent dose of anal-\ngesics.267-270 Of note, the impairing effects of GABAergic\ndrugs on airway patency can be reversed by the respira-\ntory stimulants (Fig. 10.14).266 Thus it is recommended\nnot to extubate patients at risk of postoperative airway\ncollapse during hypocarbia but rather at mildly hypercar-\nbic conditions."
+  },
+  {
+    "id": "Millers_9_10_PAGE_034_sec_7",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Ketamine abolishes the impairment of upper airway",
+    "body_text": "patency during loss of consciousness and sleep,271 and may\nbe a viable adjunct to achieve postoperative pain therapy in\npatients at high risk of airway collapse."
+  },
+  {
+    "id": "Millers_9_10_PAGE_034_sec_8",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Nondepolarizing neuromuscular blocking drugs should",
+    "body_text": "be titrated optimally by quantitative neuromuscular trans-\nmission monitoring to avoid residual neuromuscular block-\nade, which increases the risk of postoperative respiratory\ncomplications.272-275 The effects of neuromuscular block-\nade should be reversed only when present, because inap-\npropriate reversal can impair upper airway function in\nanimals and humans.274-276␣\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_035_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "SECTION II • Anesthetic Physiology\n286\n\nBOX 10.2 Special Sle",
+    "body_text": "SECTION II • Anesthetic Physiology\n286\nBOX 10.2 Special Sleep-Disordered Breathing Anesthesia Bundle: Special Procedures Performed \nDuring Anesthesia in Patients With Diagnosed Sleep-Disordered Breathing and Positive Airway \nPressure or Noninvasive Ventilation Treatment"
+  },
+  {
+    "id": "Millers_9_10_PAGE_035_sec_1",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Preanesthesia Period",
+    "body_text": "␣□␣ Neuromuscular blockade should be monitored.\n␣□␣ Residual neuromuscular blockade should be reversed.␣\n␣□␣ Consider regional anesthetic techniques that minimize the\nchance of postoperative sedation.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_035_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Induction Strategy",
+    "body_text": "␣□␣ Patient should be able to cooperate before extubation. Consider\npositioning of patients in PACU bed: upper body should be \nelevated by 45 degrees; lateral position preferred to minimize \ngravitational effects on the upper airway.\n␣□␣ Monitoring: capnogram, tidal volume measurement\n␣□␣ Snifﬁng position\n␣□␣ Reverse Trendelenburg position\n␣□␣ In case of impaired respiratory function, a plan needs to be de-\n␣□␣ Consider intubation without nondepolarizing NMBA; consider\nﬁned and documented for monitoring and treatment, including \nthe consideration of noninvasive ventilation.\nsuccinylcholine.\n␣□␣ Triple airway maneuver with two hands\n␣□␣ Patients will be discharged to an unmonitored environment or\n␣□␣ Utilize lung recruitment maneuvers immediately after intubation\nhome when they meet discharge criteria:\nand apply PEEP for maintaining lung volume during surgery.\n␣\n□␣␣Vital signs within 20% from baseline\n␣□␣ PCV with PEEP\n␣\n□␣␣Adequate treatment of nausea\n␣□␣ Short-acting anesthetics and narcotics preferred\n␣\n□␣␣Pain score ≤40%\n␣□␣ Avoid high-dose steroidal NMBA.\n␣\n□␣␣Aldrete-score ≥8\n␣□␣ Use neuromuscular transmission monitoring.␣\n␣\n□␣␣Passed room air challenge test␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_035_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Pain Therapy",
+    "body_text": "␣□␣ Whenever possible, use of sedatives and narcotics should be\n␣□␣ Consider nonsteroidal antiinﬂammatory drugs to reduce opioid\nreduced.\nuse whenever possible, if not contraindicated.\n␣□␣ Agents with reduced impairing effect on upper airway patency\n␣□␣ Use caution when combining opioids with sedatives or hypnotics.\nmight be considered (e.g., ketamine, pentobarbital).\nNMBA, Neuromuscular blocking agents; PACU, postanesthesia care unit; PCV, patient-controlled ventilation; PEEP, positive end-expiratory pressure."
+  },
+  {
+    "id": "Millers_9_10_PAGE_035_sec_6",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Postoperative Care. OSA occurs during sleep and seda-",
+    "body_text": "tion;277,278 therefore, tracheal extubation should be delayed\nuntil complete recovery of consciousness. Patients should\nbe positioned with the upper body elevated by 45 degrees,\nwhich improves airway patency261,262 and functional\nresidual capacity. The lateral body position is an alterna-\ntive for patients who do not tolerate an elevated upper body\nposition. NIV is a viable treatment of postoperative respi-\nratory failure and helps prevent deoxygenation and the\ndevelopment of postoperative negative pressure pulmonary\nedema; it can also prevent the respiratory depressant effects\nof opioids.276,279"
+  },
+  {
+    "id": "Millers_9_10_PAGE_035_sec_7",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Patients with SDB being treated with CPAP at home",
+    "body_text": "should proceed with these treatments throughout the peri-\noperative period. Sufficient functioning of the treatment\ndevice needs to be checked preoperatively (see Box 10.2).␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_035_sec_9",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Although a bold body of evidence on the effect of sleep-dis-",
+    "body_text": "ordered breathing throughout the perioperative period has\nbeen published during the last decades, there are still large\ngaps of knowledge.283,284 Respiratory, cardiovascular, and\nneuropsychological complications, as well as unfavorable\nclinical outcomes, may be more or less common in patients\nwith OSA. However, there are many comorbidities that are\npotential confounders, such as obesity, diabetes, dyslipid-\nemia, coronary artery disease, and increasing age. OSA is\na heterogeneous disease, and detailed physiologic pheno-\ntyping could identify pathophysiologic mechanisms that\nincrease or decrease risk of perioperative complications of\nOSA. Multiple mechanistic pathways that can lead to OSA\n(e.g., compromised anatomy, dilator muscle dysfunction,\nlow arousal threshold, elevated loop gain, inadequate lung\nvolume tethering, and vascular leak) are potentially rel-\nevant in a perioperative setting.125 In-depth physiological\nstudies are required until phenotyping can be accomplished\nwith less time-intensive studies or through PSG. Nonin-\nvasive and readily available physiological studies or clini-\ncal prediction models that can characterize patients who\nhave high-risk phenotypes of OSA are an important area of\nfuture research."
+  },
+  {
+    "id": "Millers_9_10_PAGE_035_sec_10",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Before discharge from the post anesthesia care unit,",
+    "body_text": "a room air-challenge test should be conducted. Several\nnoninvasive monitoring devices have been developed\nfor patients with and without risk for OSA. However,\nit is currently unclear if these devices can help prevent\npostoperative complications, and this requires further\ninvestigation.280,281␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_035_sec_11",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Pain Therapy. Pain treatment is of special concern during",
+    "body_text": "the postoperative period. Opioids dose-dependently reduce\nrespiratory drive, and special caution is recommended when\nopioids are combined with sedatives or hypnotics. If not\ncontraindicated, regional anesthesia and nonopioid anal-\ngesics should be considered to reduce opioid use whenever\npossible. If opioids are used, CPAP treatment throughout\nthe early postoperative period may be beneficial in patients\nwith high risk for OSA.282 Pain intensity typically decreases\nover time following surgery. Decreasing opioid doses are\ntypically required to maintain the balance of decreasing\nand increasing effects on respiratory drive."
+  },
+  {
+    "id": "Millers_9_10_PAGE_035_sec_12",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "In this context, adequate screening tools for OSA dur-",
+    "body_text": "ing the perioperative period need to be identified. As stated\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_036_sec_1",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Some studies found early postoperative monitoring to detect",
+    "body_text": "patients with high risk for such aggravation of OSA severity.\nAdditional research is needed to determine if and how postop-\nerative monitoring is able to help stratify the risk for postop-\nerative OSA. During the last few years, different approaches\nwere made to improve postoperative management of patients\nwith OSA (as discussed previously). However, open questions\nremain: What is the role of supplemental oxygen postop-\neratively? What are the barriers to CPAP adherence in the\nperioperative setting? Can patient adherence and positive\nairway pressure effectiveness be increased with educational\nresources? Should other respiratory support interventions be\nexamined either in isolation or bundled with positive airway\npressure? Is there a role for targeted positive airway pressure\ntherapy, even with CPAP naive patients in very high risk\ngroups? What are the medicolegal liability and patient safety\nfactors to consider when starting CPAP in the hospital?285"
+  },
+  {
+    "id": "Millers_9_10_PAGE_036_sec_15",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Future research should aim to answer these questions to",
+    "body_text": "further improve the perioperative management of patients\nwith sleep disordered breathing.283 Testing a bundled\napproach to care (e.g., an algorithm of care including moni-\ntoring, positive airway pressure, education, and other respi-\nratory supports) rather than each component individually\nmight be more useful in initial clinical trials, as this may be\nmore likely to be effective in improving outcomes."
+  },
+  {
+    "id": "Millers_9_10_PAGE_036_sec_25",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "0.1",
+    "body_text": "0.2\n0.3\n0.4\n0.5\n0.6\n0.7\n0.8\n0.9\n1.0"
+  },
+  {
+    "id": "Millers_9_10_PAGE_036_sec_26",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The incidence of perioperative complications is low, and",
+    "body_text": "collaborative research networks are needed to identify\na sufficient number of patients with OSA and answer the\nimportant research questions on perioperative outcomes.\nPatients with OHS might be at high risk. A minimal set\nof data elements required in prospective cohort studies\nshould be identified to facilitate multisite collaboration and\nmetaanalysis of independent studies. Case-control stud-\nies might also be nested within larger cohort studies. This\nwould facilitate the choice of an appropriate control group.\nThese studies may improve risk stratification and lead to\nnovel targeted therapies. In addition, the identification of\ninterventions that can optimize safety in this population is\nalso important. Initial intervention trials should focus on\npatients at highest risk for sleep disordered breathing.283␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_036_sec_36",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Fig. 10.14 Effect of carbon dioxide (CO2) level on genioglossus activity",
+    "body_text": "and respiratory function during anesthesia. Insufﬂation of CO2 to an\nincreased pCO2 (+4 or +8 mm Hg) increases minute ventilation, peak\ninspiratory ﬂow and upper airway dilating muscle activity (e.g. genio-\nglossus muscle) in a dose-dependent fashion during deep (blue bars)\nand light (red bars) anesthesia. (Modiﬁed from Ruscic KJ, Bøgh Stokholm J,\nPatlak J, et al. Supplemental carbon dioxide stabilizes the upper airway in\nvolunteers anesthetized with propofol. Anesthesiology. 2018;129(1):37–46.)"
+  },
+  {
+    "id": "Millers_9_10_PAGE_036_sec_37",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Impaired sleep is common in patients in the ICU,286 with mul-",
+    "body_text": "tiple contributing factors including noise, light, interruptions\nfor medical procedures, and administration of fluids and nutri-\ntion, as well as endogenous factors such as pain, anxiety, and\ninflammation. Sleep duration in the ICU is variable depending\non environmental conditions and the severity of the patient’s\ndisease.287 Sleep fragmentation occurs consistently during\nsedation and mechanical ventilation.288,289 The duration\nof deep NREM and REM sleep as well as circadian rhythms\nare severely reduced or abolished in ICU patients.290-292\nAbout 50% of sleep in these patients occurs during daytime\nhours.286,287. Altered EEG activity, not fitting into the standard\ncriteria for sleep and wakefulness, was reported to occur in up\nto 70% of ICU patients who were receiving sedatives or being\nmechanically ventilated.293 As a result, alternative classifica-\ntions for sleep in the ICU have been developed;294 however,\nthese scoring classifications have not yet been validated.\npreviously, PSG is often challenging to schedule before sur-\ngery, and ambulatory technologies may be more useful and \nshould be studied. It might even be more important to identify \npatients at increased risk of postoperative complications due \nto specific type of surgery, required mode and depth of anes-\nthesia and opioids, as well as other comorbidities, rather than \nthe presence of SDB per se. It is currently unclear to which \nextent the risk for perioperative complications associated \nwith SDB are due to or modulated by these coexisting fac-\ntors. In addition, more severe OSA may be developed by some \npatients with no or mild OSA prior to anesthesia. Challeng-\ning factors are opioids, body position, or intravenous fluids.\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_037_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "SECTION II • Anesthetic Physiology\n288\n\nTABLE 10.7 List of S",
+    "body_text": "SECTION II • Anesthetic Physiology\n288\nTABLE 10.7 List of Studies Investigating Alteration of Circadian Rhythm and Sleep in Intensive Care Unit Patients"
+  },
+  {
+    "id": "Millers_9_10_PAGE_037_sec_1",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Measurement Method",
+    "body_text": "Interactions\nReference\n292,296\nPSG studies\n␣□␣␣Increased arousal during nighttime and disrupted sleep, due to:\n␣\n□␣␣noise\n␣\n□␣␣dim light\n␣\n□␣␣medical intervention\n302-304\n␣□␣␣Decrease N3- and REM-sleep\n␣□␣␣Increase arousals and awakenings\n287,290,292,294\n␣□␣␣Multiple discrete sleep episodes per 24 h\n␣□␣␣Atypical EEG signal:\n␣\n□␣␣disrupted sleep\n␣\n□␣␣nonphysiologic sleep\n␣\n□␣␣architecture, or evidence of coma\n292,304-312"
+  },
+  {
+    "id": "Millers_9_10_PAGE_037_sec_2",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Melatonin blood levels and urinary",
+    "body_text": "␣□␣␣Increasing chronodisruption with disease severity (rehabilitation patients, ICU\n6-sulfatoxymelatonin urine levels\npatients, ICU patients with severe sepsis)\n␣□␣␣Delayed melatonin peak at night\n305,308,309\n␣□␣␣Reduced physiologic melatonin secretion at night, due to:\n␣\n□␣␣sedation\n␣\n□␣␣mechanical ventilation\n␣\n□␣␣increased arousal\n306,311\n␣□␣␣Increased melatonin levels during the day, due to:\n␣\n□␣␣dim light\n␣\n□␣␣severe sepsis"
+  },
+  {
+    "id": "Millers_9_10_PAGE_037_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Blood pressure variation",
+    "body_text": "␣□␣␣Reduced nocturnal blood pressure dip\n305\n23,305,313"
+  },
+  {
+    "id": "Millers_9_10_PAGE_037_sec_4",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Body temperature variation",
+    "body_text": "␣□␣␣Reduced temperature variation\n␣□␣␣Altered circadian rhythm with nadir dispersed widely across 24 h\n305,310"
+  },
+  {
+    "id": "Millers_9_10_PAGE_037_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Plasma cortisol level",
+    "body_text": "␣□␣␣Abolished circadian rhythm\n␣□␣␣Delayed peak of cortisol levels\nEEG, Electroencephalography; ICU, intensive care unit; N3, sleep stage 3; PSG, polysomnography; REM, rapid eye movement."
+  },
+  {
+    "id": "Millers_9_10_PAGE_037_sec_6",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "These interactive effects of critical illness and ICU",
+    "body_text": "treatment should be acknowledged while caring for ICU\npatients. Reduction of light and noise exposure during the\nnight, and increased light levels during the day are rec-\nommended to improve sleep. In addition, earplugs and\neye masks have been shown consistently to improve sleep\nquality in ICU patients and possibly reduce the risk of\ncomplications.316-319␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_037_sec_7",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "NOISE AND LIGHT EXPOSURE",
+    "body_text": "ICUs are among the most noisy areas in hospitals, with \nsound levels often exceeding those recommended by the \nWorld Health Organization (<45 dB).289,295 Elbaz and \nassociates296 reported an increased incidence of arousals \nat sound levels above >77 dB in stable, mechanically ven-\ntilated ICU patients during the weaning phase. In the ICU \nsetting, alarms from medical and monitoring devices were \nthe most significant source of noise."
+  },
+  {
+    "id": "Millers_9_10_PAGE_037_sec_9",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "In addition to noise, changes in light exposure can alter",
+    "body_text": "sleep patterns and circadian rhythms. ICU patients are often\nexposed to dim light throughout the 24-hour cycle, resulting\nin increased light levels during the night and insufficient light\nexposure during the daytime.297,298 This hinders the align-\nment (photoentrainment) of the internal circadian clock to\nthe external 24-hour rhythm, potentially resulting in the\ndisrupted sleep-wake pattern seen in many ICU patients.299"
+  },
+  {
+    "id": "Millers_9_10_PAGE_037_sec_10",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Interruptions of sleep due to medical or nursing procedures",
+    "body_text": "are environmental factors in the ICU. Studies in different\nICU settings found high numbers of interventions to be per-\nformed during the nighttime, ranging up to 60 interven-\ntions per night.320-322"
+  },
+  {
+    "id": "Millers_9_10_PAGE_037_sec_11",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Both NIV and ventilation via breathing tube impair sleep",
+    "body_text": "architecture and quality.288,323 It is unclear how the issue\nof ICU-associated circadian disruption can be prevented or\ntreated. Data suggest that weaning procedures during the\ndaytime combined with assist control ventilation during\nthe nighttime improve sleep, expressed as reduced numbers\nof arousal in patients requiring long-term ventilation.291␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_037_sec_12",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Impaired rhythmicity in melatonin secretion pattern in",
+    "body_text": "critically ill patients was reported in several studies (Table\n10.7 for overview), and multiple factors influence melatonin\nrhythm in the ICU. Melatonin levels decrease with increas-\ning age,300 making older ICU patients more sensitive to circa-\ndian rhythm disruptions. Opioids increase melatonin levels\nthroughout the 24-hour period.301"
+  },
+  {
+    "id": "Millers_9_10_PAGE_037_sec_14",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Similarly, β-agonists, including vasopressors, positive",
+    "body_text": "inotropes, and aerosolized albuterol, increase melatonin\nlevels, whereas β-blockers decrease melatonin secretion.\nAlso, endogenous production of catecholamines may\ninduce periodic melatonin increases in patients with criti-\ncal illness.305 Benzodiazepines have inconsistent effects on\nmelatonin.314,315"
+  },
+  {
+    "id": "Millers_9_10_PAGE_037_sec_15",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Sedation is frequently required in the ICU to treat excessive",
+    "body_text": "agitation or to fulfill specific therapeutic needs; however,\nheavy sedation is associated with prolonged ICU and hospi-\ntal stays.324 GABA receptor agonists, such as propofol and\nbenzodiazepines, may reduce REM sleep.325,326\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_038_sec_1",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Pain is a common experience for most patients in the",
+    "body_text": "ICU,327 and failure to recognize pain can result in excessive\nadministration of sedatives.324 However, opioids have been\nshown to decrease REM-sleep and worsen sleep disorders,\nsuch as OSA in ICU patients.131,328 Accordingly, an aggres-\nsive approach to managing pain while minimizing opioid\nutilization has been recommended.329␣\neffector to memory T-cells and lengthens survival of the \nT-cell memory cells.351 Prolonged sleep deprivation, as \nmay occur in long term ICU patients, may induce a per-\nsistent production of proinflammatory cytokines, pro-\nducing a chronic low-grade inflammation, as well as \nimmunodeficiency.348"
+  },
+  {
+    "id": "Millers_9_10_PAGE_038_sec_2",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Even short sleep deprivation in otherwise healthy young",
+    "body_text": "subjects has been shown to be associated with impaired\nglucose tolerance and insulin resistance, similar to levels\nusually seen in patients in the early course of diabetes mel-\nlitus.352 In addition, sleep deprivation can induce the onset\nof a catabolic state: increased oxygen consumption, car-\nbon dioxide production, and catecholamine levels, likely as\nsigns of a stress response.353 Changes in the activity of the\nhypothalamo-pituitary-adrenal axis with altered plasma\nlevels of cortisol and thyrotropin,354 as well as increased\nlevels of inflammatory cytokines, are seen during sleep\ndeprivation.355"
+  },
+  {
+    "id": "Millers_9_10_PAGE_038_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "PHARMACOLOGICAL TREATMENT OF SLEEP",
+    "body_text": "DISTURBANCES IN INTENSIVE CARE UNIT\nPATIENTS"
+  },
+  {
+    "id": "Millers_9_10_PAGE_038_sec_4",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Medications currently used for the treatment of insomnia in",
+    "body_text": "the ICU interact with the GABA system. GABAergic neuro-\ntransmission has multiple functions throughout the brain,\nleading to daytime sedation, confusion, anterograde amne-\nsia, and delirium.330-332"
+  },
+  {
+    "id": "Millers_9_10_PAGE_038_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Melatonin has been selected as alternative sleep-promot-",
+    "body_text": "ing medication for critically ill patients in some countries.\nHowever, studies on the use of melatonin for the treatment\nof sleep disturbances and potential complications (e.g.,\ndelirium) in ICU patients have produced conflicting results.\nAdministration of melatonin improved subjective and\nobjective sleep quality in a small number of studies.333-335\nMelatonin may have side-effects such as dizziness, nausea,\ndrowsiness, hypotension, and headache, potentially criti-\ncal in the ICU setting. Recently melatonin receptor agonists\nhave been developed and marketed for patients with circa-\ndian rhythm disorders.336,337 These drugs may have fewer\noff-target effects than melatonin, but studies on their appli-\ncation in the ICU are very limited. It is therefore difficult to\nrecommend treatment with melatonin agonists of any kind\nfor ICU patients.338"
+  },
+  {
+    "id": "Millers_9_10_PAGE_038_sec_6",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "It is likely that postoperative sleep deprivation also affects",
+    "body_text": "respiratory function, characterized as increased vulner-\nability to respiratory muscle fatigue,356 decrease in ventila-\ntory response to hypercapnia,357 and greater upper airway\ncollapsibility.358"
+  },
+  {
+    "id": "Millers_9_10_PAGE_038_sec_7",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Cognitive impairment after even short-term sleep",
+    "body_text": "deprived conditions is intuitive. Sleep deprivation causes\nbidirectional changes in brain activity and connectivity,\nthereby mainly affecting attention and working memory,\nand an increased vulnerability to delirium in critically ill\npatients.359-361"
+  },
+  {
+    "id": "Millers_9_10_PAGE_038_sec_8",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "In addition, recent studies found beneficial effects of",
+    "body_text": "realignment of the sleep-wake cycles by pharmacologic\nand chronotherapeutic methods on the risk for delirium in\nthese patients.362-364 However, sleep-promoting agents per\nse can increase the vulnerability to delirium, and the opti-\nmal sleep-promoting agent that also minimizes the risk of\ndelirium needs to be identified.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_038_sec_9",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The orexin receptor antagonist suvorexant has been",
+    "body_text": "approved by the FDA for the treatment of primary insom-\nnia and might be another promising new approach for\nthe treatment of insomnia in ICU patients. In a 4-week\nstudy in 254 patients with primary insomnia, suvorex-\nant significantly improved sleep efficiency from the first\nnight until the end of the study compared with placebo\nin a dose-dependent manner. In addition, suvorexant sig-\nnificantly improved wake after sleep onset and reduced\nsleep latency,339 without an apparent delirium-promoting\neffect.340 Additional research in the efficacy and safety of\norexin receptor antagonists with critically ill patients is\nneeded.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_038_sec_10",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "PERIOPERATIVE MANAGEMENT OF OTHER",
+    "body_text": "SLEEP DISORDERS\nNarcolepsy\nNarcolepsy is a neurologic sleep disorder with a preva-\nlence of 0.05% to 0.8% in most ethnic groups.365,366 It is\ncharacterized by excessive daytime sleepiness, involun-\ntary daytime sleep episodes, disturbed nocturnal sleep,\nand sleep-associated muscular hypotension. Narcolepsy is\ndivided into narcolepsy with or without cataplexy (sudden\nloss of muscle tone without loss of consciousness).367"
+  },
+  {
+    "id": "Millers_9_10_PAGE_038_sec_12",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "An autoimmune pathology against hypothalamic orexin",
+    "body_text": "neurons may be involved in the pathogenesis of narco-\nlepsy.366 A mutation of the HCRT receptor 2 or loss of HCRT\nneurons have been shown to cause a narcolepsy-like state\nin animals,368 and the deficiency of HCRT has been shown\nto be associated with narcolepsy in humans.34 HCRT is\ninvolved in control of several biological functions such as\nfeeding, cardiovascular regulation, upper airway stability,\npain, locomotion, stress, and addiction.369,370 Environmen-\ntal factors play a key role in the pathogenesis of the disor-\nder, as the disease concordance rate between monozygotic\ntwins is only 20% to 35%."
+  },
+  {
+    "id": "Millers_9_10_PAGE_038_sec_13",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Compelling evidence links good sleep to proper metabolic,",
+    "body_text": "endocrine, immune, and neurobehavioral function.341-345"
+  },
+  {
+    "id": "Millers_9_10_PAGE_038_sec_14",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Regardless of controversies, the importance of a suffi-",
+    "body_text": "cient amount of good quality sleep for proper immuno-\nlogic function, as well as the increased susceptibility for\ninfection due to sleep loss, has gained increased accep-\ntance.346 Sleep deprivation during influenza vaccination\ndelays the increase of antibody titers.347,348 Sleep depri-\nvation and insomnia is associated with decreased phago-\ncytic activity of lymphocytes and natural killer T-cells,\nas well as lower levels of interleukin 2349 and interleu-\nkin 7.350 Interleukin 7 facilitates the transition of CD8þ"
+  },
+  {
+    "id": "Millers_9_10_PAGE_038_sec_15",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Treatment of narcolepsy consists of behavioral treat-",
+    "body_text": "ment, as well as pharmacologic treatment for (1) daytime\nbooksmedicos.org"
+  },
+  {
+    "id": "Millers_9_10_PAGE_039_sec_0",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "SECTION II • Anesthetic Physiology\n290\n\nsleepiness and (2) c",
+    "body_text": "SECTION II • Anesthetic Physiology\n290\nsleepiness and (2) cataplexies. Periodic and regular sleep \ntimes and scheduled daytime naps are recommended. \nPharmaceutical treatments of daytime sleepiness include \namphetamines, methylphenidate, modafinil, or selegiline \n(also effective for treatment of cataplexy), and cataplexies \ncan be treated using tricyclic antidepressants, selective sero-\ntonin reuptake inhibitors, or γ-hydroxybutyrate/sodium \noxybate. Medical treatment should always be accompanied \nby behavioral therapy.\ninhibitors, and tricyclic antidepressants, antihistamines, \ncaffeine, alcohol, and nicotine) should be avoided, if possible."
+  },
+  {
+    "id": "Millers_9_10_PAGE_039_sec_1",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Exacerbation of restless legs syndrome may occur after",
+    "body_text": "general anesthesia,382 and the urge to move the limbs may\nbe misinterpreted as agitation or delirium.383 The first man-\nifestation of restless legs syndrome may occur after spinal\nanesthesia384 or general anesthesia,384 and the prevalence\nof restless legs syndrome after surgery seems to be higher\nthan expected in this population.382 To prevent periopera-\ntive exacerbation of symptoms, patients with restless legs\nsyndrome should be scheduled for surgery early in the day.\nRestless legs syndrome medication should be continued\nuntil the day of surgery, whenever appropriate. Drugs that\nblock the central dopamine transmission, such as neurolep-\ntics, should be avoided. In contrast, ketamine might be the\nsuperior anesthetic drug for patients with restless legs syn-\ndrome.385 In addition, intravenous or subcutaneous opioids\nand benzodiazepines during and after the surgery procedure\nmight be beneficial in patients with restless legs syndrome.\nThe best way to provide symptom relief in patients with\nrestless legs syndrome might be early mobilization after\nsurgery. In patients who are not eligible for mobilization,\ncompression treatment386 or intravenous administration of\nmagnesium387 and physiostigmine388 have been shown to\nlead to relief of restless legs syndrome symptoms. Iron and\nferritin blood levels should be monitored closely before, dur-\ning, and after surgery, especially in surgical cases with iron\nloss (i.e., bleeding), to prevent symptomatic restless legs\nsyndrome symptoms.␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_039_sec_2",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Delayed emergence from anesthesia, postsurgical",
+    "body_text": "hypersomnia, and apneic episodes are in part related to\nan increased sensitivity to anesthetic drugs in narcolepsy\npatients.371-373 Monitoring of anesthetic depth might be\nrecommended in this patient population. Medical treat-\nment of narcolepsy should be maintained during the preop-\nerative period.374,375 The most commonly used treatment\nof daytime sleepiness is modafinil, which acts via dopami-\nnergic pathways and accelerates emergence from anes-\nthesia.376,377 Avoidance of sedative premedication and\nconsideration of regional anesthesia may be indicated.378\nOf note, cataplectic events can also occur during regional\nanesthesia.379␣"
+  },
+  {
+    "id": "Millers_9_10_PAGE_039_sec_3",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Restless Legs Syndrome and Periodic Limb",
+    "body_text": "Movement Disorder\nRestless legs syndrome, or Ekbom syndrome, is a neuro-\nlogic disorder with a prevalence of 2% to 5% as defined by\nfour cardinal features, including (1) the urge to move the\nlimbs, usually associated with paresthesias or dysesthesias,\n(2) aggravating effects of rest, (3) ameliorating effects of\nphysical activity, and (4) symptoms that worsen during the\ncourse of day, with a peak during the evening or at night.\nPatients with restless legs syndrome usually also complain\nabout sensory symptoms in the legs."
+  },
+  {
+    "id": "Millers_9_10_PAGE_039_sec_5",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "The editors, publisher, and Drs. Sebastian Zaremba and",
+    "body_text": "Matthias Eikermann would like to thank Dr. Nancy L.\nChamberlin for her contribution to this chapter in the prior\nedition of this work. It has served as the foundation for the\ncurrent chapter."
+  },
+  {
+    "id": "Millers_9_10_PAGE_039_sec_6",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Isolated periodic limb movement during sleep is a rare",
+    "body_text": "symptom, commonly referred to as periodic limb movement\ndisorder. The characteristic periodic episodes of repeti-\ntive limb movements during sleep occur most often in the\nlower extremities, but occasionally in the upper extremities.\nThese movements can be associated with frequent arous-\nals leading to sleep disruption, causing excessive daytime\nsleepiness, which often is the only symptom reported by the\npatients themselves in most cases.380"
+  },
+  {
+    "id": "Millers_9_10_PAGE_039_sec_9",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "1. Rosner F, et#al. Anesth Analg. 1971;50:298.",
+    "body_text": "2. Rechtschaffen A, et#al. Perspect Biol Med. 1998;41:359.\n3.  Mukherjee S, et#al. Am J Respir Crit Care Med. 2015;191(12):1450.\n4.  Roesslein M, Chung F. Eur J Anaesthesiol. 2018;35(4):245.\n5.  Hobson JA. Nature. 2005;437(7063):1254.\n6. Aserinsky E, Kleitman N. Science. 1953;118(3062):273.\n7. Montgomery SM, et#al. J Neurosci. 2008;28(26):6731.\n8. Kronfeld-Schor N, Einat H. Neuropharmacology. 2012;62(1):101.\n9. Kronfeld-Schor NaTD. Biol Rhythm Res. 2008;39(3):193.\n10. Hastings MH, et#al. J Neuroendocrinol. 2008;20(6):812.\n11. Albrecht U. Neuron. 2012;74(2):246.\n12. Lane JM, et#al. Nat Commun. 2016;7:10889.\n13. Danilenko KV, et#al. J Biol Rhythms. 2003;18(2):170.\n14. Borbely AA. Hum Neurobiol. 1982;1(3):195.\n15. Dijk DJ, von Schantz M. J Biol Rhythms. 2005;20(4):279.\n16. Hartse KM. Handb Clin Neurol. 2011;98:97.\n17. Siegel JM. Nature. 2005;437(7063):1264.\n18. Rial RV, et#al. Neurosci. Biobehav. Rev. 2010;34(8):1144.\n19. De Gennaro L, et#al. Neuroscience. 2001;107(1):1.\n20. Jahnke K, et#al. NeuroImage. 2012;59(2):1631.\n21. Kohsaka S, et#al. Neuroscience. 2012;202:243.\n22. Buckner RL, et#al. Ann N Y Acad Sci. 2008;1124:1.\n23. Alster J, et#al. Brain Inj. 1993;7(3):191."
+  },
+  {
+    "id": "Millers_9_10_PAGE_039_sec_10",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "Symptomatic restless legs syndrome can occur in patients",
+    "body_text": "with iron deficiency and uremia, during pregnancy,381\nor during the use of neurotropic medications (dopamine\nantagonists, neuroleptics, selective serotonin reuptake\ninhibitors, tricyclic antidepressants, antihistamines, caf-\nfeine, alcohol, nicotine). Although daytime symptoms of\nrestless legs syndrome can be sufficiently diagnosed clini-\ncally (clinical examination in combination with standard-\nized questionnaires), a PSG is recommended to rule out\nSDB, especially in patients complaining of daytime sleepi-\nness or sleep fragmentation."
+  },
+  {
+    "id": "Millers_9_10_PAGE_039_sec_11",
+    "chapter_title": "Millers_Anaesthesia_9th_Edition_9_10.pdf",
+    "section_heading": "According to the most recent guidelines of the AASM, the",
+    "body_text": "first-line treatment of restless legs syndrome should consist\nof dopamine agonists (i.e., ropinirole and pramipexole) in\nthe evening. Furthermore, gabapentin enacarbil, levodopa\nwith dopa decarboxylase inhibitor, or opioids can be used.\nMedication impairing the dopaminergic system (dopamine\nantagonists, neuroleptics, selective serotonin reuptake\nbooksmedicos.org"
   }
 ];
 
 export const physiologicalMatrices: readonly MatrixRecord[] = [
   {
-    "id": "FIG_09_01",
+    "id": "FIG_9_1",
+    "archetype": "CONTINUOUS_WAVEFORM_EEG",
+    "caption": "Fig. 9.1 Neurobiology of wakefulness. Multiple neurochemical systems in subcortical regions (shown here in rodent brain) promote arousal and activa-\ntion of the cortex. Monoaminergic neurons (light green) in the rostral brainstem and caudal hypothalamus innervate the cortex as well as many subcor-\ntical regions including the hypothalamus and thalamus. These monoaminergic regions include noradrenergic neurons (locus coeruleus), serotonergic \nneurons (dorsal and median raphe nuclei), dopaminergic neurons (ventral tegmental area), and histaminergic neurons (tuberomammillary nucleus). \nWake-promoting signals also arise from cholinergic regions (dark green with hatching), including the pedunculopontine and laterodorsal tegmental \nnuclei and basal forebrain. General anesthetics have been demonstrated to suppress many of these regions. (Redrawn from Scammell TE, Arrigoni E, \nLipton JO. Neural circuitry of wakefulness and sleep. Neuron. 2017;93[4]:747–765.)",
+    "structured_payload": "{\"channels\":[],\"calibration_keys\":[],\"context_nodes\":[{\"label\":\"Pedunculopontine and\",\"role\":\"Signal context\"},{\"label\":\"laterodorsal tegmental nuclei\",\"role\":\"Signal context\"},{\"label\":\"Parabrachial\",\"role\":\"Signal context\"},{\"label\":\"nucleus\",\"role\":\"Signal context\"},{\"label\":\"Dorsal and\",\"role\":\"Signal context\"},{\"label\":\"median raphe\",\"role\":\"Signal context\"},{\"label\":\"Ventral tegmental area\",\"role\":\"Signal context\"},{\"label\":\"Basal\",\"role\":\"Signal context\"},{\"label\":\"Tuberomammillary\",\"role\":\"Signal context\"},{\"label\":\"forebrain\",\"role\":\"Signal context\"},{\"label\":\"nucleus\",\"role\":\"Signal context\"},{\"label\":\"Hypothalamus\",\"role\":\"Signal context\"}],\"labels\":[\"Pedunculopontine and\",\"laterodorsal tegmental nuclei\",\"Parabrachial\",\"nucleus\",\"Dorsal and\",\"median raphe\",\"Ventral tegmental area\",\"Basal\",\"Tuberomammillary\",\"forebrain\",\"nucleus\",\"Hypothalamus\"]}"
+  },
+  {
+    "id": "FIG_9_2",
+    "archetype": "CONTINUOUS_WAVEFORM_EEG",
+    "caption": "Fig. 9.2 Neurobiology of slow-wave sleep. GABA-ergic neurons in the ventrolateral preoptic area and median preoptic nucleus in the hypothala-\nmus (shown here in rodent brain) promote sleep by inhibiting wake-promoting neurons in the caudal hypothalamus and brainstem. These hypo-\nthalamic nuclei are activated by general anesthetics. (Redrawn from Scammell TE, Arrigoni E, Lipton JO. Neural circuitry of wakefulness and sleep. Neuron. \n2017;93[4]:747–765.)",
+    "structured_payload": "{\"channels\":[],\"calibration_keys\":[],\"context_nodes\":[{\"label\":\"Neuronal nitric\",\"role\":\"Signal context\"},{\"label\":\"_oxide synthase\",\"role\":\"Signal context\"},{\"label\":\"neurons\",\"role\":\"Signal context\"},{\"label\":\"Pedunculopontine and\",\"role\":\"Signal context\"},{\"label\":\"laterodorsal tegmental nuclei\",\"role\":\"Signal context\"},{\"label\":\"Parabrachial\",\"role\":\"Signal context\"},{\"label\":\"Dorsal and\",\"role\":\"Signal context\"},{\"label\":\"nucleus\",\"role\":\"Signal context\"},{\"label\":\"median raphe\",\"role\":\"Signal context\"},{\"label\":\"Pa\",\"role\":\"Signal context\"},{\"label\":\"Thalamus\",\"role\":\"Signal context\"},{\"label\":\"al\",\"role\":\"Signal context\"},{\"label\":\"zone\",\"role\":\"Signal context\"},{\"label\":\"Locus\",\"role\":\"Signal context\"},{\"label\":\"coeruleus\",\"role\":\"Signal context\"},{\"label\":\"Ventral tegmental area\",\"role\":\"Signal context\"},{\"label\":\"Basal\",\"role\":\"Signal context\"},{\"label\":\"Tuberomammillary forebrain\",\"role\":\"Signal context\"},{\"label\":\"nucleus\",\"role\":\"Signal context\"},{\"label\":\"Ventrolateral\",\"role\":\"Signal context\"},{\"label\":\"and median\",\"role\":\"Signal context\"},{\"label\":\"preoptic nuclei\",\"role\":\"Signal context\"}],\"labels\":[\"Neuronal nitric\",\"_oxide synthase\",\"neurons\",\"Pedunculopontine and\",\"laterodorsal tegmental nuclei\",\"Parabrachial\",\"Dorsal and\",\"nucleus\",\"median raphe\",\"Pa\",\"Thalamus\",\"al\",\"zone\",\"Locus\",\"coeruleus\",\"Ventral tegmental area\",\"Basal\",\"Tuberomammillary forebrain\",\"nucleus\",\"Ventrolateral\",\"and median\",\"preoptic nuclei\"]}"
+  },
+  {
+    "id": "FIG_9_3",
+    "archetype": "TIMELINE_STEP_CHART_HYPNOGRAM",
+    "caption": "Fig. 9.3 Schematic summary of the consecutive stages of unconsciousness. Relative to the control state of wakefulness (left column), sedation (middle \npanel) is marked by an increase of local/regional signal synchrony and consequent breakdown of global connectivity. Deep surgical anesthesia or \ndisorders of consciousness (DOC, right column) is associated with collapse of both local/regional synchrony and global connectivity. (From Huang Z, \nLiu X, Mashour GA, Hudetz AG. Timescales of intrinsic BOLD signal dynamics and functional connectivity in pharmacologic and neuropathologic states of \nunconsciousness. J Neurosci. 2018;38[9]:2304–2317.)",
+    "structured_payload": "{\"labels\":[\"Wakefulness\",\"Sedation\",\"Anesthesia & DOC\",\"Voxel level\",\"(0.5-1 million neurons/voxel)\",\"Regional level\",\"(40-60 voxels/area)\",\"Network\",\"vel\",\"10-60 functional areas/network\"],\"y_axis_stages\":[\"W\",\"REM\",\"1\",\"2\",\"3\"],\"x_axis_timestamps\":[\"10pm\",\"11pm\",\"12pm\",\"01am\",\"02am\",\"03am\",\"04am\",\"05am\",\"06am\"]}"
+  },
+  {
+    "id": "FIG_9_4",
+    "archetype": "ANATOMICAL NETWORKS & MICROCIRCUIT MAPS",
+    "caption": "Fig. 9.4 Memory systems in the medial temporal lobe. (A) Representation of unidirectional and bidirectional network connectivity of structures in \nthe medial temporal lobe, diencephalic nuclei, and neocortical association areas. CA, Cornu ammonis; DG, dentate gyrus; EC, entorhinal cortex; MTT, \nmammillothalamic tract. (B) Intrinsic connectivity of the amygdala. BA, Basal nucleus; CeL, central nucleus lateral segment; CeM, central nucleus medial \nsegment; ICML, lateral intercalated cell mass; ICMMD, dorsomedial intercalated cell mass; ICMMV, ventromedial intercalated cell mass; LA, lateral nucleus. \n([A] Modiﬁed from Bartsch T, Butler C. Transient amnesic syndromes. Nat Rev Neurol. 2013;9[2]:86–97, Figure 2. [B] Modiﬁed from Duvarci S, Pare D. Amygdala \nmicrocircuits controlling learned fear. Neuron. 2014;82[5]:966–980, Figure 2.)",
+    "structured_payload": "{\"nodes\":{},\"labels\":[],\"source_target_vectors\":[]}"
+  },
+  {
+    "id": "FIG_9_5",
+    "archetype": "ANATOMICAL NETWORKS & MICROCIRCUIT MAPS",
+    "caption": "Fig. 9.5 Anesthetic effects on emotional memory systems. (upper panel) Functional magnetic resonance imaging scans showing the contrast in \nresponse to negatively arousing items relative to neutral items, with coronal slices through the amygdala (0, 3, 6) and hippocampus (−30, −33, −36). The \ncontrol condition (top row) shows enhanced activation of both the amygdala and hippocampus in response to the added emotional information, while \nin subjects receiving propofol (bottom row) there is enhanced activation of the amygdala, but not of the hippocampus. (lower panel) Path diagrams of \nconnectivity at rest, with positive inﬂuences of one region onto another shown as solid lines, negative inﬂuences shown as dotted lines, and width rep-\nresenting magnitude. In the control condition (A) there is a signiﬁcant positive inﬂuence of the amygdala onto the hippocampus bilaterally. Administra-\ntion of sevoﬂurane 0.25% (B) blocks emotional modulation behaviorally, and removes the positive inﬂuence of the right amygdala and nucleus basalis \nof Meynert on the hippocampus. Numerical differences in path weight (C) show these two paths to signiﬁcantly contribute to the network model more \nin the control than sevoﬂurane state. Amyg, Amygdala; Hipp, hippocampus; LC, locus ceruleus; NBM, nucleus basalis of Meynert; Thal, thalamus. ([A] \nModiﬁed from Pryor KO, Root JC, Mehta M, et al. Effect of propofol on the medial temporal lobe emotional memory system: a functional magnetic resonance \nimaging study in human subjects. Br J Anaesth. 2015;115[suppl 1]:i104–i113, Figure 3; [B] Modiﬁed from Alkire MT, Gruver R, Miller J, et al. Neuroimaging analysis \nof an anesthetic gas that blocks human emotional memory. Proc Natl Acad Sci U S A. 2008;105[5]:1722–1727, Figure 5.)",
+    "structured_payload": "{\"nodes\":{\"NBM\":{\"name\":\"NBM\",\"relational_variants\":[],\"bbox\":[1695,1009,1764,1033]},\"AMYG\":{\"name\":\"Amyg\",\"relational_variants\":[],\"bbox\":[457,1064,539,1116]},\"THAL\":{\"name\":\"Thal\",\"relational_variants\":[],\"bbox\":[1034,1206,1096,1256]},\"LC\":{\"name\":\"LC\",\"relational_variants\":[],\"bbox\":[1048,1459,1086,1484]},\"0_31_0_60\":{\"name\":\"0.31-0.60\",\"relational_variants\":[],\"bbox\":[634,1501,762,1522]}},\"labels\":[\"NBM\",\"NBM\",\"NBM\",\"NBM\",\"Amyg\",\"Thal\",\"LC\",\"LC\",\"0.31-0.60\"],\"source_target_vectors\":[]}"
+  },
+  {
+    "id": "FIG_10_1",
+    "archetype": "TIMELINE_STEP_CHART_HYPNOGRAM",
+    "caption": "Fig. 10.1 Representative electroencephalogram activity seen during different behavioral states. Electroencephalogram recordings of one patient dur-\ning wakefulness (eyes closed; W), rapid eye movement sleep (REM), and non-REM (NREM) sleep stages 1 to 3.",
+    "structured_payload": "{\"labels\":[\"268\",\"Anesthetic Physiology\",\"REM\",\"NREM 1\",\"NREM 2\",\"NREM 3\",\"5 sec.\"],\"y_axis_stages\":[\"REM\"],\"x_axis_timestamps\":[\"10pm\",\"11pm\",\"12pm\",\"01am\",\"02am\",\"03am\",\"04am\",\"05am\",\"06am\"]}"
+  },
+  {
+    "id": "FIG_10_2",
+    "archetype": "TIMELINE_STEP_CHART_HYPNOGRAM",
+    "caption": "Fig. 10.2 Evolutionary tree. Circadian rhythms are common among all living beings. However, only mammals and birds (red) have integrated sleep with \ndifferent stages. Fish, reptiles, insects, and plants (blue) manifest circadian rhythms as periods of activity and rest.",
+    "structured_payload": "{\"labels\":[\"Testudines Crocodilia\",\"Rodents\",\"Other\",\"Sphenodontia Squamata\",\"Land plants\",\"Mammals\",\"Dinosaurs\",\"Insects\",\"Amniotes\",\"Amphibians\",\"Fishes\",\"Bryozoans Brachipod\",\"Worms\",\"Seaweed\",\"Vertebrates\",\"Echinoderms\",\"Sponges\",\"Protozoans\",\"Protophytes\"],\"y_axis_stages\":[\"W\",\"REM\",\"1\",\"2\",\"3\"],\"x_axis_timestamps\":[\"SphenodontiaSquamata\",\"Mammals\"]}"
+  },
+  {
+    "id": "FIG_10_3",
+    "archetype": "CONTINUOUS_WAVEFORM_EEG",
+    "caption": "Fig. 10.3 Electroencephalogram recording during sleep onset (arrow). The two top rows show bipolar electroencephalogram (EEG) signals from left \n(C3-A1) and right (C2-A1) frontal leads. Rows 3 to 5 show the relative amount (EEG power) of beta, alpha, and theta activity calculated using fast Fourier transforma-\ntion.",
+    "structured_payload": "{\"channels\":[{\"source_marker\":\"EEG (C3-A1)\",\"amplitude_range\":\"Mixed amplitude\"},{\"source_marker\":\"EEG (C4-A1)\",\"amplitude_range\":\"Mixed amplitude\"},{\"source_marker\":\"Beta activity\",\"amplitude_range\":\"Low amplitude (10-20 uV)\"},{\"source_marker\":\"Alpha activity\",\"amplitude_range\":\"Mixed amplitude\"},{\"source_marker\":\"Theta activity\",\"amplitude_range\":\"Mixed amplitude\"}],\"calibration_keys\":[\"1 sec.\"],\"context_nodes\":[{\"label\":\"270\",\"role\":\"Signal context\"},{\"label\":\"Anesthetic Physiology\",\"role\":\"Signal context\"}],\"labels\":[\"270\",\"Anesthetic Physiology\",\"EEG (C3-A1)\",\"EEG (C4-A1)\",\"Beta activity\",\"Alpha activity\",\"Theta activity\",\"1 sec.\"]}"
+  },
+  {
+    "id": "FIG_10_4",
+    "archetype": "TIMELINE_STEP_CHART_HYPNOGRAM",
+    "caption": "Fig. 10.4 Hypnogram of a night of physiologic sleep. During one night (time on x axis) of sleep, humans transition repetitively from one sleep stage to \nanother with short episodes of occasional wakefulness (indicated on y axis). REM, Rapid eye movement sleep; W, awake; 1, non-REM sleep stage 1; 2, \nnon-REM sleep stage 2; 3, non-REM sleep stage 3 (slow wave sleep).",
+    "structured_payload": "{\"labels\":[\"REM —\",\"10pm\",\"11pm\",\"12pm\",\"02am\",\"03am\",\"04am\",\"05am\",\"06am\"],\"y_axis_stages\":[\"REM\"],\"x_axis_timestamps\":[\"10pm\",\"11pm\",\"12pm\",\"02am\",\"03am\",\"04am\",\"05am\",\"06am\"]}"
+  },
+  {
+    "id": "FIG_10_5",
+    "archetype": "ANATOMICAL NETWORKS & MICROCIRCUIT MAPS",
+    "caption": "Fig. 10.5 Flip-Flop switch ensuring rapid transitions between wakefulness and sleep. During wakefulness (A), brainstem nuclei of the ascending arousal \nsystem (AAS) directly and indirectly provide excitatory input to the thalamus, basal forebrain, and the cerebral cortex, while they inhibit the ventro-\nlateral (VLPO) and median (MnPO) preoptic nuclei (switch ﬂips to wakefulness). The excitatory, wake-promoting stimulus is enforced by additional \nexcitatory input of orexinergic neurons (OX) to the BF and the AAS. During sleep (B), neurons of VLPO and MnPO inhibit the brainstem and orexinergic \nneurons of the AAS (switch ﬂops to sleep). (Modiﬁed from Saper CB, Scammell TE, Lu J. Hypothalamic regulation of sleep and circadian rhythms. Nature. \n2005;437:1257–1263; and Saper CB, Fuller PM, Pedersen NP, Lu J, Scammell TE. Sleep state switching. Neuron. 2010;68:1023–1042.)",
+    "structured_payload": "{\"nodes\":{\"CORTEX\":{\"name\":\"Cortex\",\"relational_variants\":[],\"bbox\":[44,46,140,72]},\"THALAMUS\":{\"name\":\"Thalamus\",\"relational_variants\":[],\"bbox\":[371,209,516,234]},\"VLPO\":{\"name\":\"VLPO/\",\"relational_variants\":[],\"bbox\":[272,311,373,337]},\"MNPO\":{\"name\":\"MnPO\",\"relational_variants\":[],\"bbox\":[276,348,369,374]},\"BASAL\":{\"name\":\"Basal\",\"relational_variants\":[],\"bbox\":[70,360,149,385]},\"FOREBRAIN\":{\"name\":\"forebrain\",\"relational_variants\":[],\"bbox\":[44,398,173,423]},\"FULNESS\":{\"name\":\"FULNESS\",\"relational_variants\":[],\"bbox\":[8,513,157,539]},\"SLEEP\":{\"name\":\"SLEEP\",\"relational_variants\":[],\"bbox\":[331,513,436,539]},\"BRAINSTEM\":{\"name\":\"Brainstem\",\"relational_variants\":[],\"bbox\":[530,688,689,713]},\"EI\":{\"name\":\"ei\",\"relational_variants\":[],\"bbox\":[0,705,29,749]},\"NUCLEI\":{\"name\":\"nuclei\",\"relational_variants\":[],\"bbox\":[563,726,655,751]}},\"labels\":[\"Cortex\",\"Thalamus\",\"VLPO/\",\"MnPO\",\"Basal\",\"forebrain\",\"FULNESS\",\"SLEEP\",\"Brainstem\",\"ei\",\"nuclei\"],\"source_target_vectors\":[{\"source\":\"Cortex\",\"target\":\"VLPO/\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Cortex\",\"target\":\"MnPO\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Cortex\",\"target\":\"SLEEP\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Cortex\",\"target\":\"Brainstem\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Cortex\",\"target\":\"nuclei\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Cortex\",\"target\":\"TH\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Thalamus\",\"target\":\"VLPO/\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Thalamus\",\"target\":\"MnPO\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Thalamus\",\"target\":\"Basal\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Thalamus\",\"target\":\"forebrain\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Thalamus\",\"target\":\"FULNESS\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Thalamus\",\"target\":\"tem\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Thalamus\",\"target\":\"Brainstem\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Thalamus\",\"target\":\"ei\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Thalamus\",\"target\":\"nuclei\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"VLPO/\",\"target\":\"Cortex\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"VLPO/\",\"target\":\"Thalamus\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"VLPO/\",\"target\":\"MnPO\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"VLPO/\",\"target\":\"Basal\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"VLPO/\",\"target\":\"forebrain\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"VLPO/\",\"target\":\"FULNESS\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"VLPO/\",\"target\":\"SLEEP\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"VLPO/\",\"target\":\"Brainstem\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"VLPO/\",\"target\":\"ei\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"VLPO/\",\"target\":\"nuclei\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"VLPO/\",\"target\":\"NA\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"VLPO/\",\"target\":\"TH\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"MnPO\",\"target\":\"Cortex\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"MnPO\",\"target\":\"Thalamus\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"MnPO\",\"target\":\"VLPO/\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"MnPO\",\"target\":\"Basal\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"MnPO\",\"target\":\"forebrain\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"MnPO\",\"target\":\"FULNESS\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"MnPO\",\"target\":\"SLEEP\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"MnPO\",\"target\":\"Brainstem\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"MnPO\",\"target\":\"nuclei\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"MnPO\",\"target\":\"NA\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"MnPO\",\"target\":\"TH\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Basal\",\"target\":\"Thalamus\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Basal\",\"target\":\"VLPO/\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Basal\",\"target\":\"MnPO\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Basal\",\"target\":\"Brainstem\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Basal\",\"target\":\"nuclei\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Basal\",\"target\":\"NA\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Basal\",\"target\":\"TH\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"forebrain\",\"target\":\"Thalamus\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"forebrain\",\"target\":\"VLPO/\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"forebrain\",\"target\":\"MnPO\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"forebrain\",\"target\":\"Brainstem\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"forebrain\",\"target\":\"ei\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"forebrain\",\"target\":\"nuclei\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"FULNESS\",\"target\":\"Thalamus\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"FULNESS\",\"target\":\"VLPO/\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"FULNESS\",\"target\":\"MnPO\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"FULNESS\",\"target\":\"SLEEP\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"FULNESS\",\"target\":\"Brainstem\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"FULNESS\",\"target\":\"nuclei\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"FULNESS\",\"target\":\"NA\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"SLEEP\",\"target\":\"Cortex\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"SLEEP\",\"target\":\"VLPO/\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"SLEEP\",\"target\":\"MnPO\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"SLEEP\",\"target\":\"FULNESS\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"SLEEP\",\"target\":\"Brainstem\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"SLEEP\",\"target\":\"ei\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"SLEEP\",\"target\":\"nuclei\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"tem\",\"target\":\"Thalamus\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"tem\",\"target\":\"Brainstem\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"tem\",\"target\":\"nuclei\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Brainstem\",\"target\":\"Cortex\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Brainstem\",\"target\":\"Thalamus\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Brainstem\",\"target\":\"VLPO/\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Brainstem\",\"target\":\"MnPO\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Brainstem\",\"target\":\"Basal\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Brainstem\",\"target\":\"forebrain\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Brainstem\",\"target\":\"FULNESS\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Brainstem\",\"target\":\"SLEEP\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Brainstem\",\"target\":\"tem\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Brainstem\",\"target\":\"nuclei\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Brainstem\",\"target\":\"NA\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"Brainstem\",\"target\":\"TH\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"ei\",\"target\":\"Thalamus\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"ei\",\"target\":\"VLPO/\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"ei\",\"target\":\"forebrain\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"ei\",\"target\":\"SLEEP\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"ei\",\"target\":\"nuclei\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"nuclei\",\"target\":\"Cortex\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"nuclei\",\"target\":\"Thalamus\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"nuclei\",\"target\":\"VLPO/\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"nuclei\",\"target\":\"MnPO\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"nuclei\",\"target\":\"Basal\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"nuclei\",\"target\":\"forebrain\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"nuclei\",\"target\":\"FULNESS\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"nuclei\",\"target\":\"SLEEP\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"nuclei\",\"target\":\"tem\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"nuclei\",\"target\":\"Brainstem\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"nuclei\",\"target\":\"ei\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"NA\",\"target\":\"VLPO/\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"NA\",\"target\":\"MnPO\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"NA\",\"target\":\"Basal\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"NA\",\"target\":\"FULNESS\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"NA\",\"target\":\"Brainstem\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"NA\",\"target\":\"TH\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"TH\",\"target\":\"Cortex\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"TH\",\"target\":\"VLPO/\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"TH\",\"target\":\"MnPO\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"TH\",\"target\":\"Basal\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"TH\",\"target\":\"Brainstem\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"},{\"source\":\"TH\",\"target\":\"NA\",\"direction\":\"Unidirectional\",\"sign\":\"Excitatory\",\"status\":\"locally_verified\"}]}"
+  },
+  {
+    "id": "FIG_10_6",
+    "archetype": "TIMELINE_STEP_CHART_HYPNOGRAM",
+    "caption": "Fig. 10.6 Polysomnographic recording. Left and right electrooculogram (EOG), two electroencephalogram (EEG) channels, and mental electromyogram \n(Chin EMG) allow scoring of sleep stage (REM sleep [R] with typical eye movements in the electrooculogram channels). Additional channels (e.g., respira-\ntory ﬂow [Flow], respiratory effort of thorax [Thorax] and abdomen [Abdomen], microphone [Mic.] oxygen saturation [SpO2]) allow diagnosis of sleep \ndisordered breathing. In this patient, apneas (yellow boxes) led to oxygen desaturation (blue boxes) and ﬁnally to arousal (far right, brown box).",
+    "structured_payload": "{\"labels\":[\"EOG\",\"EOG\",\"EEG\",\"EEG\",\"EMG\",\"domen\",\"Sum\",\"02\",\"91\",\"95\",\"96 94\",\"95\",\"se Wave\",\"76 72 70 68\",\"68 67 66\",\"65 67] 68 68\",\"69\",\"Jy position\",\"ep Stage\",\"30°\",\"60°\",\"90°\",\"120°\"],\"y_axis_stages\":[\"W\",\"REM\",\"1\",\"2\",\"3\"],\"x_axis_timestamps\":[\"10pm\",\"11pm\",\"12pm\",\"01am\",\"02am\",\"03am\",\"04am\",\"05am\",\"06am\"]}"
+  },
+  {
+    "id": "FIG_10_7",
     "archetype": "COORDINATE X-Y GRAPHS & COMPLEMENTARY PANELS",
-    "caption": "Dose-response curve of Propofol-induced neural hyperpolarization",
-    "structured_payload": "{\n  \"panels\": [\n    {\n      \"panel_id\": \"A\",\n      \"axes\": {\n        \"x_axis\": {\n          \"label\": \"Propofol concentration\",\n          \"unit\": \"mcg/ml\"\n        },\n        \"y_axis\": {\n          \"label\": \"GABAA Current Enhancement\",\n          \"unit\": \"%\"\n        }\n      },\n      \"mathematical_nature\": \"Sigmoidal/Logarithmic Plateau\",\n      \"curves\": [\n        {\n          \"legend_label\": \"Wildtype GABAA receptors\",\n          \"characteristic_nature\": \"Profound sigmoidal enhancement\"\n        }\n      ],\n      \"coordinate_inflections\": [\n        {\n          \"x_threshold\": \"1.5\",\n          \"y_value_or_change\": \"50%\",\n          \"inflection_description\": \"Half-maximal EC50 enhancement threshold\"\n        }\n      ]\n    }\n  ]\n}"
+    "caption": "Fig. 10.7 Deﬁnition of apnea hypopnea index (AHI) and respiratory disturbance index (RDI).",
+    "structured_payload": "{\"matrix_rows\":[[\"276\",\"Anesthetic Physiology\"],[\"Apneas (10 sec without flow) + Hypopneas (reduced flow with desaturation)\"],[\"AHI =\"],[\"Total sleep time (h)\"],[\"Apneas + Hypopneas + Arousals (in EEG) associated respiratory event\"],[\"RDI =\"],[\"Total sleep time (h)\"]],\"markdown_representation\":\"| 276 | Anesthetic Physiology |\\n| --- | --- |\\n| Apneas (10 sec without flow) + Hypopneas (reduced flow with desaturation) |  |\\n| AHI = |  |\\n| Total sleep time (h) |  |\\n| Apneas + Hypopneas + Arousals (in EEG) associated respiratory event |  |\\n| RDI = |  |\\n| Total sleep time (h) |  |\\n\",\"headers\":[\"276\",\"Anesthetic Physiology\"],\"labels\":[\"276\",\"Anesthetic Physiology\",\"Apneas (10 sec without flow) + Hypopneas (reduced flow with desaturation)\",\"AHI =\",\"Total sleep time (h)\",\"Apneas + Hypopneas + Arousals (in EEG) associated respiratory event\",\"RDI =\",\"Total sleep time (h)\"]}"
+  },
+  {
+    "id": "FIG_10_8",
+    "archetype": "CONTINUOUS_WAVEFORM_EEG",
+    "caption": "Fig. 10.8 Relationship of upper airway patency and respiratory pump activation. (A) During wakefulness, the force of the upper airway dilator muscles \n(green balloon, dilating forces) counterbalance the collapsing forces imposed on the upper airway by extraluminal pressures and negative inspiratory \npressure generated by the respiratory pump muscles (represented by the orange counterweight [collapsing forces]). In obstructive sleep apnea, (B) \nsleep onset (blue needle) leads to decreased upper airway patency by reducing the dilating forces. (Modiﬁed from Sasaki N, Meyer MJ, Eikermann M. Post-\noperative respiratory muscle dysfunction: pathophysiology and preventive strategies. Anesthesiology. 2013;118:961–978.)",
+    "structured_payload": "{\"channels\":[],\"calibration_keys\":[],\"context_nodes\":[],\"labels\":[]}"
+  },
+  {
+    "id": "FIG_10_9",
+    "archetype": "COORDINATE X-Y GRAPHS & COMPLEMENTARY PANELS",
+    "caption": "Fig. 10.9 Effects of respiratory arousal on upper airway dilator and respiratory pump muscles. Respiratory arousal is composed of three primary inputs: \ncentral respiratory pattern generator processing peripheral and central chemoreceptor afferents, reﬂex responsiveness to the magnitude of negative \npressure in the airway generated by the respiratory pump muscles, and strength of the wakefulness stimulus. Different factors can impair respiratory \narousal, such as sleep and neurologic pathologies, anesthetics, and opioids. Blue arrows indicate excitatory effect; yellow arrows indicate inhibitory \neffect. MN, Motor neuron. (Modiﬁed from Sasaki N, Meyer MJ, Eikermann M. Postoperative respiratory muscle dysfunction: pathophysiology and preventive \nstrategies. Anesthesiology. 2013;118:961–978.)",
+    "structured_payload": "{\"matrix_rows\":[[\"10\",\"Sleep Medicine\",\"279\"],[\"Respiratory\"],[\"arousal\"],[\"pressure\"],[\"reflex\"],[\"Sleep\"],[\"Neurolgical pathologies\"],[\"(Delirium, Stroke)\"],[\"Anesthetics, Opioids\"]],\"markdown_representation\":\"| 10 | Sleep Medicine | 279 |\\n| --- | --- | --- |\\n| Respiratory |  |  |\\n| arousal |  |  |\\n| pressure |  |  |\\n| reflex |  |  |\\n| Sleep |  |  |\\n| Neurolgical pathologies |  |  |\\n| (Delirium, Stroke) |  |  |\\n| Anesthetics, Opioids |  |  |\\n\",\"headers\":[\"10\",\"Sleep Medicine\",\"279\"],\"labels\":[\"10\",\"Sleep Medicine\",\"279\",\"Respiratory\",\"arousal\",\"pressure\",\"reflex\",\"Sleep\",\"Neurolgical pathologies\",\"(Delirium, Stroke)\",\"Anesthetics, Opioids\"]}"
+  },
+  {
+    "id": "FIG_10_10",
+    "archetype": "ANATOMICAL NETWORKS & MICROCIRCUIT MAPS",
+    "caption": "Fig. 10.10 Magnetic resonance imaging of the human upper air-\nway during different levels of continuous positive airway pressure. \nMagnetic resonance imaging of the upper airway during continuous \npositive airway pressure of 0, 5, 10, and 15 cm H2O shows a dose-\ndependent increase in upper airway diameter. (Obtained from Schwab \nRJ, Pack AI, Gupta KB, et al. Upper airway and soft tissue structural changes \ninduced by CPAP in normal subjects. Am J Respir Crit Care Med. 1996;154[4 \npt 1]:1106–1116.)",
+    "structured_payload": "{\"nodes\":{},\"labels\":[],\"source_target_vectors\":[]}"
+  },
+  {
+    "id": "FIG_10_11",
+    "archetype": "CONTINUOUS_WAVEFORM_EEG",
+    "caption": "Fig. 10.11 Polysomnographic recording of an episode of Cheyne-Stokes respiration. CH, Central hypopnea; OA, obstructive apnea.",
+    "structured_payload": "{\"channels\":[],\"calibration_keys\":[],\"context_nodes\":[{\"label\":\"Resp\",\"role\":\"Signal context\"},{\"label\":\"Flow\",\"role\":\"Signal context\"},{\"label\":\"Thorax\",\"role\":\"Signal context\"},{\"label\":\"Abdomen\",\"role\":\"Signal context\"}],\"labels\":[\"Resp\",\"Flow\",\"Thorax\",\"Abdomen\"]}"
+  },
+  {
+    "id": "FIG_10_12",
+    "archetype": "CONTINUOUS_WAVEFORM_EEG",
+    "caption": "Fig. 10.12 Electroencephalographic recording during sedation and \nloss of consciousness induced by propofol. Compared with physiologic \nsleep (see Fig. 10.1), sedation shows electroencephalographic (EEG) \ntraces comparable to slow wave sleep, indicating the sleep-inducing \neffect of anesthetics. Anesthesia-induced loss of consciousness (lower \nfour traces), shows different EEG activity with reduced amplitudes and \nburst suppression. (Burst suppression is not shown in these traces.)",
+    "structured_payload": "{\"channels\":[],\"calibration_keys\":[],\"context_nodes\":[],\"labels\":[]}"
+  },
+  {
+    "id": "FIG_10_14",
+    "archetype": "COORDINATE X-Y GRAPHS & COMPLEMENTARY PANELS",
+    "caption": "Fig. 10.14 Effect of carbon dioxide (CO2) level on genioglossus activity \nand respiratory function during anesthesia. Insufﬂation of CO2 to an \nincreased pCO2 (+4 or +8 mm Hg) increases minute ventilation, peak \ninspiratory ﬂow and upper airway dilating muscle activity (e.g. genio-\nglossus muscle) in a dose-dependent fashion during deep (blue bars) \nand light (red bars) anesthesia. (Modiﬁed from Ruscic KJ, Bøgh Stokholm J,  \nPatlak J, et al. Supplemental carbon dioxide stabilizes the upper airway in \nvolunteers anesthetized with propofol. Anesthesiology. 2018;129(1):37–46.)",
+    "structured_payload": "{\"matrix_rows\":[[\"Duty Cycle\"],[\"0.1\"],[\"0.0\"],[\"0.7\"],[\"Peak Inspiratory Flow\"],[\"[Vs]\"],[\"0.0\"],[\"75\"],[\"60\"],[\"Genioglossus EMG\"],[\"[mv]\",\"45\"],[\"30\"],[\"15\"]],\"markdown_representation\":\"| Duty Cycle |\\n| --- |\\n| 0.1 |\\n| 0.0 |\\n| 0.7 |\\n| Peak Inspiratory Flow |\\n| [Vs] |\\n| 0.0 |\\n| 75 |\\n| 60 |\\n| Genioglossus EMG |\\n| [mv] |\\n| 30 |\\n| 15 |\\n\",\"headers\":[\"Duty Cycle\"],\"labels\":[\"Duty Cycle\",\"0.1\",\"0.0\",\"0.7\",\"Peak Inspiratory Flow\",\"[Vs]\",\"0.0\",\"75\",\"60\",\"Genioglossus EMG\",\"[mv]\",\"45\",\"30\",\"15\"]}"
   }
 ];
-

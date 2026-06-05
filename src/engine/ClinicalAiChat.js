@@ -1,10 +1,19 @@
 /**
- * Clinical AI Chat Engine (V2.0 — Senior Attending Refactored)
- * Evaluates free-form natural language queries against the real-time physiological simulator state.
+ * Clinical AI Chat Engine (V3.0 — Knowledge-Augmented Senior Attending)
+ * Evaluates free-form natural language queries against BOTH:
+ *   1. The real-time physiological simulator state (vitals, meds, patient profile)
+ *   2. The ingested textbook knowledge base (Miller's Anesthesia + parsed sources)
+ * 
  * Synthesizes highly nuanced, medically rigorous clinical guidance mimicking a senior anesthesiology attending.
  * Incorporates interactive keywords mapped to CLINICAL_ACTIONS so that recommended treatments are clickable.
- * Strictly Zero Hallucination: recommendations are fully functional buttons in the app.
+ * 
+ * ZERO HALLUCINATION PROTOCOL:
+ *   - State-based responses are grounded in live simulator telemetry.
+ *   - Knowledge-based responses are grounded exclusively in verified textbook records.
+ *   - If no knowledge base match is found, the system triggers a graceful refusal.
  */
+
+import { searchKnowledge, searchMatrices, getKnowledgeStats } from '../knowledge/KnowledgeSearch.js';
 
 function fmt(val, decimals = 0) {
   if (typeof val !== 'number' || !Number.isFinite(val)) {
@@ -472,13 +481,61 @@ Myocardial perfusion has collapsed due to tachycardia or severe hypotension.
     return msg;
   }
 
-  // K. Fallback Attending Clinical Reasoning
-  let fallback = `### Senior Attending Briefing\n`;
-  fallback += `Hello. As the attending anesthesiologist, I am reviewing the live simulation telemetry for ${patient.name || 'our patient'} (ASA ${patient.asaStatus || 'I'}).\n\n`;
-  fallback += `- **Vitals Snapshot**: HR: ${fmt(hr)} bpm, BP: ${fmt(sys)}/${fmt(dia)} mmHg (MAP: ${fmt(map)} mmHg), SpO2: ${fmt(spo2)}%, EtCO2: ${fmt(etco2)} mmHg.\n`;
-  fallback += `- **Anesthetic Depth**: BIS: ${fmt(bis)}, MAC: ${fmt(mac, 2)}.\n`;
-  fallback += `- **Surgical Phase**: ${surgicalPhase}.\n`;
-  fallback += `- **Patient Position**: ${pos}.\n\n`;
-  fallback += `Please ask me specific physiological or pharmacological questions regarding the patient's state, active medications, NPO guidelines, [positioning], or procedural actions (e.g., [laryngoscopy], [suction], [msmaids checklist], [pre-op checklists], [post-intubation check], [extubation check], [cuff leak test], [cpr], [check rhythm], [deliver shock], [order abg], [order vbg], [order cbc], [order cmp], [order coags], [order teg], [review chart], or [live labs]). I will provide high-fidelity clinical reasoning and outline next steps.`;
-  return fallback;
+  // K. KNOWLEDGE BASE RETRIEVAL — Search ingested textbook corpus
+  // This runs AFTER all simulator-state-specific decision branches have been exhausted.
+  // It queries the ingested medical truth database using TF-IDF relevance scoring.
+  const kbResults = searchKnowledge(safeQuery, 5, 0.5);
+  const matrixResults = searchMatrices(safeQuery, 2);
+
+  if (kbResults.length > 0) {
+    let kbResponse = `### 📖 Attending Knowledge Base Consultation\n\n`;
+    kbResponse += `I found the following relevant information in the medical knowledge base for your query:\n\n`;
+
+    // Present top results with source citations
+    for (const result of kbResults) {
+      const { record, score, rank } = result;
+      const confidenceLabel = score > 2.0 ? '🟢 HIGH' : score > 1.0 ? '🟡 MODERATE' : '🟠 PARTIAL';
+      const truncatedBody = record.body_text.length > 800 
+        ? record.body_text.slice(0, 800) + '...' 
+        : record.body_text;
+
+      kbResponse += `---\n`;
+      kbResponse += `**Source ${rank}** — *${record.section_heading || 'Untitled Section'}*\n`;
+      kbResponse += `📄 *[${record.chapter_title}]* | Relevance: ${confidenceLabel} (${score.toFixed(2)})\n\n`;
+      kbResponse += `${truncatedBody}\n\n`;
+    }
+
+    // Append any matching figures
+    if (matrixResults.length > 0) {
+      kbResponse += `---\n`;
+      kbResponse += `**📊 Related Figures & Data:**\n\n`;
+      for (const mr of matrixResults) {
+        kbResponse += `- **${mr.record.caption}** [${mr.record.archetype || 'Figure'}]\n`;
+      }
+      kbResponse += `\n`;
+    }
+
+    // Append current patient context for clinical correlation
+    kbResponse += `---\n`;
+    kbResponse += `**🏥 Current Patient Context**: HR: ${fmt(hr)} bpm, BP: ${fmt(sys)}/${fmt(dia)} mmHg (MAP: ${fmt(map)} mmHg), SpO2: ${fmt(spo2)}%, MAC: ${fmt(mac, 2)}, BIS: ${fmt(bis)}, Phase: ${surgicalPhase}.\n\n`;
+    kbResponse += `> ⚠️ *This information is sourced directly from verified textbook records in the medical knowledge base. Ask me follow-up questions or ask about the current patient's hemodynamics, airway, ventilation, or medications.*`;
+
+    return kbResponse;
+  }
+
+  // L. GRACEFUL REFUSAL PROTOCOL — No state match AND no knowledge base match
+  // This ensures the system never fabricates information.
+  const stats = getKnowledgeStats();
+  let refusal = `### Attending Consultation — Knowledge Limitation\n\n`;
+  refusal += `I do not have specific information about **"${safeQuery}"** in my current knowledge base (${stats.proseRecords} textbook records indexed).\n\n`;
+  refusal += `I will review the literature and follow up with you later.\n\n`;
+  refusal += `---\n`;
+  refusal += `**In the meantime, I can help you with:**\n`;
+  refusal += `- 🏥 **Current patient state**: Ask about *hemodynamics*, *airway*, *ventilation*, *anesthesia depth*, *[positioning]*, *NPO status*, or *potassium level*\n`;
+  refusal += `- 💊 **Active medications**: Ask about *[rocuronium]*, *[propofol]*, *[fentanyl]*, *[sugammadex]*, or any active drug\n`;
+  refusal += `- 🔧 **Procedures**: Click *[laryngoscopy]*, *[suction]*, *[msmaids checklist]*, *[pre-op checklists]*, *[cuff leak test]*, *[extubation check]*\n`;
+  refusal += `- 🧪 **Labs**: Click *[order abg]*, *[order cbc]*, *[order cmp]*, *[order coags]*, *[order teg]*, or *[live labs]*\n`;
+  refusal += `- 🚨 **Emergencies**: Ask about *cardiac arrest*, *ACLS*, *anaphylaxis*, or *bradycardia*\n\n`;
+  refusal += `**Current Vitals**: HR: ${fmt(hr)} bpm, BP: ${fmt(sys)}/${fmt(dia)} mmHg (MAP: ${fmt(map)} mmHg), SpO2: ${fmt(spo2)}%, EtCO2: ${fmt(etco2)} mmHg, BIS: ${fmt(bis)}, MAC: ${fmt(mac, 2)}.`;
+  return refusal;
 }
