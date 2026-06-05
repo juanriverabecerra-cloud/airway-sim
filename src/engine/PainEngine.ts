@@ -151,11 +151,11 @@ export class PainEngine {
     if (lastLineTime >= 0) {
       const dt_line = Math.max(0, safeTime - lastLineTime);
       if (lastLineCat.includes('PIV') || lastLineCat.includes('Peripheral')) {
-        if (dt_line < 10) systemicNociception += 20 * Math.exp(-0.3 * dt_line);
+        if (dt_line < 10) systemicNociception += 8 * Math.exp(-0.3 * dt_line);
       } else if (lastLineCat.includes('Arterial')) {
-        if (dt_line < 10) systemicNociception += 25 * Math.exp(-0.3 * dt_line);
+        if (dt_line < 10) systemicNociception += 12 * Math.exp(-0.3 * dt_line);
       } else if (lastLineCat.includes('CVC') || lastLineCat.includes('Central')) {
-        if (dt_line < 20) systemicNociception += 40 * Math.exp(-0.15 * dt_line);
+        if (dt_line < 20) systemicNociception += 20 * Math.exp(-0.15 * dt_line);
       }
     }
 
@@ -209,8 +209,15 @@ export class PainEngine {
 
     // 4. Catecholamine kinetics pool
     // Clearance: t_1/2 ≈ 90 seconds (k_clearance = 0.0077 s^-1)
+    // Dynamic rate: rapid onset, slow clearance
+    const k_onset = 1.0;
     const k_clear = 0.0077;
-    currentCcat += dt * (totalNociceptiveInflux - k_clear * currentCcat);
+    const targetCcat = totalNociceptiveInflux;
+    if (targetCcat > currentCcat) {
+      currentCcat += dt * k_onset * (targetCcat - currentCcat);
+    } else {
+      currentCcat += dt * k_clear * (targetCcat - currentCcat);
+    }
     
     // Enforce Phenotype boundaries
     const minCcat = isAnxious ? 25.0 : 0.0;
@@ -267,11 +274,11 @@ export class PainEngine {
     }
 
     // β1 chronotropic response
-    const deltaHR_beta1 = 70.0 * (Math.pow(currentCcat, 1.5) / (Math.pow(currentCcat, 1.5) + Math.pow(40.0, 1.5))) * E_beta1_max;
+    const deltaHR_beta1 = 70.0 * (Math.pow(sympatheticDrive, 1.5) / (Math.pow(sympatheticDrive, 1.5) + Math.pow(40.0, 1.5))) * E_beta1_max;
     const hrSpike = deltaHR_beta1 + baroModifier;
 
     // β1 inotropic response
-    const contractilitySpike = 0.5 * (Math.pow(currentCcat, 1.5) / (Math.pow(currentCcat, 1.5) + Math.pow(40.0, 1.5))) * E_beta1_max;
+    const contractilitySpike = 0.5 * (Math.pow(sympatheticDrive, 1.5) / (Math.pow(sympatheticDrive, 1.5) + Math.pow(40.0, 1.5))) * E_beta1_max;
 
     // Alpha-1 (α1) Vasoconstriction
     const phentolamineEff = getDrugEffect('Phentolamine', 0.5, 2.0);
@@ -282,7 +289,7 @@ export class PainEngine {
     const E_alpha1_max = baseE_alpha1_max * (1.0 - alphaBlockade) * (1.0 - volatileVasodilation);
 
     // α1 vasoactive resistance modifier
-    const svrSpike = 1200.0 * (Math.pow(currentCcat, 1.5) / (Math.pow(currentCcat, 1.5) + Math.pow(50.0, 1.5))) * E_alpha1_max;
+    const svrSpike = 1200.0 * (Math.pow(sympatheticDrive, 1.5) / (Math.pow(sympatheticDrive, 1.5) + Math.pow(50.0, 1.5))) * E_alpha1_max;
 
     // 8. Respiratory, Neurological & Somatic Targets
     // Spontaneous respiration (Tachypnea blunted by opioids)
@@ -296,7 +303,7 @@ export class PainEngine {
     const bisSpike = effectivePain * bisGain * (1.0 - totalHypnosis * 0.8);
 
     // Pupillary kinetics
-    let pupilSize = 3.0 + 5.0 * (Math.pow(currentCcat, 1.5) / (Math.pow(currentCcat, 1.5) + Math.pow(40.0, 1.5))) - 2.5 * opioidAnalgesia;
+    let pupilSize = 3.0 + 5.0 * (Math.pow(sympatheticDrive, 1.5) / (Math.pow(sympatheticDrive, 1.5) + Math.pow(40.0, 1.5))) - 2.5 * opioidAnalgesia;
     pupilSize = Math.max(1.0, Math.min(8.0, pupilSize));
 
     // Somatic response (Coughing / Movement)
