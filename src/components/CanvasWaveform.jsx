@@ -132,7 +132,7 @@ export const CanvasWaveform = React.memo(({ color, speed, rrSpeed = 0, active, t
       }
 
       // === RENDER VECTOR ===
-      const eraserWidth = Math.max(20, w * 0.05);
+      const eraserWidth = Math.max(8, w * 0.015);
       ctx.clearRect(newX, 0, eraserWidth, h);
       
       if (!isWrapping && drawState.current.lastY !== null) {
