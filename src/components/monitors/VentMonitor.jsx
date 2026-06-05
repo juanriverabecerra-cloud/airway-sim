@@ -10,7 +10,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
   return (
     <div className="glass-panel glass-emerald crt-monitor p-2 flex flex-col md:grid md:grid-cols-4 gap-2 min-h-[300px] md:min-h-0 md:h-[280px] lg:h-[420px] relative overflow-hidden">
       {/* Waveforms */}
-      <div className="col-span-1 md:col-span-1 flex flex-col justify-between relative z-10 w-full h-[220px] md:h-full gap-1">
+      <div className="col-span-1 md:col-span-3 flex flex-col justify-between relative z-10 w-full h-[220px] md:h-full gap-1">
         <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
           <div className="absolute text-yellow-600/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">Paw cmH2O</div>
           <CanvasWaveform 
@@ -39,7 +39,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
           />
         </div>
         <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
-          <div className="absolute text-cyan-550/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">Vol mL</div>
+          <div className="absolute text-cyan-500/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">Vol mL</div>
           <CanvasWaveform 
             color="#06b6d4" 
             speed={rrSpeed} 
@@ -54,7 +54,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
       </div>
 
       {/* Vent Numericals - Matching High-Legibility numerical styling of Primary Monitor */}
-      <div className="col-span-1 md:col-span-3 grid grid-cols-1 md:grid-cols-3 bg-black/45 backdrop-blur-md p-1.5 rounded-lg h-full border border-slate-800/60 shadow-inner gap-1.5 overflow-hidden z-30">
+      <div className="col-span-1 grid grid-rows-3 bg-black/45 backdrop-blur-md p-1.5 rounded-lg h-full border border-slate-800/60 shadow-inner gap-1.5 overflow-hidden z-30">
         {/* Card 1: Pressures */}
         <div className="bg-slate-900/60 border border-slate-800/80 rounded p-1.5 flex flex-col justify-between hover:border-yellow-500/30 transition-all overflow-hidden">
           <div className="flex justify-between items-center w-full border-b border-slate-900/40 pb-0.5">
