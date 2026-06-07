@@ -1,6 +1,6 @@
 import { CanvasWaveform } from '../CanvasWaveform';
 
-export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSettings }) => {
+export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSettings, activeMeds }) => {
   // If the airway is not secured, the ventilator monitor hides itself.
   if (!patient || !patient.airwaySecured) return null;
 
@@ -41,22 +41,24 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
           />
         </div>
         <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
-          <div className="absolute text-cyan-500/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">Vol mL</div>
+          <div className="absolute text-yellow-400/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">EtCO2</div>
           <CanvasWaveform 
-            color="#06b6d4" 
+            color="#facc15" 
             speed={rrSpeed} 
-            rrSpeed={0} 
-            active={rrSpeed > 0} 
-            type="ventVolume" 
-            morphology={ventMorphology}
-            ieRatio={ventSettings?.ieRatio || 2} 
-            ampScale={Math.min(1, (vitals?.vte || 0) / 1000)} 
+            rrSpeed={rrSpeed} 
+            active={vitals?.etco2 > 5} 
+            type="etco2" 
+            ieRatio={ventSettings?.ieRatio || 2}
+            ampScale={Math.min(1.5, (vitals?.etco2 || 40) / 40)} 
+            patientState={patient}
+            vitals={vitals}
+            activeMeds={activeMeds}
           />
         </div>
       </div>
 
       {/* Vent Numericals - Matching High-Legibility numerical styling of Primary Monitor */}
-      <div className="@container col-span-1 grid grid-rows-3 bg-black/45 backdrop-blur-md p-1.5 rounded-lg h-[300px] md:h-full border border-slate-800/60 shadow-inner gap-1.5 overflow-hidden z-30">
+      <div className="@container col-span-1 grid grid-rows-4 bg-black/45 backdrop-blur-md p-1.5 rounded-lg h-[340px] md:h-full border border-slate-800/60 shadow-inner gap-1.5 overflow-hidden z-30">
         {/* Card 1: Pressures */}
         <div className="bg-slate-900/60 border border-slate-800/80 rounded p-1.5 flex flex-col justify-between hover:border-yellow-500/30 transition-all overflow-hidden">
           <div className="flex justify-between items-center w-full border-b border-slate-900/40 pb-0.5">
@@ -77,7 +79,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
             <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-yellow-500/20 transition-all overflow-hidden">
               <span className="text-[7.5px] lg:text-[8.5px] text-yellow-600 font-bold uppercase tracking-wider leading-none">PLAT</span>
               <div className="flex-1 flex items-center justify-center">
-                <span className={`${ventValClass3} font-black text-slate-300 leading-none`}>
+                <span className={`${ventValClass3} font-black text-slate-300`}>
                   {Math.round(vitals?.pplat || 0)}
                 </span>
               </div>
@@ -87,7 +89,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
             <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-yellow-500/20 transition-all overflow-hidden">
               <span className="text-[7.5px] lg:text-[8.5px] text-yellow-600 font-bold uppercase tracking-wider leading-none">PEEP</span>
               <div className="flex-1 flex items-center justify-center">
-                <span className={`${ventValClass3} font-black text-slate-300 leading-none`}>
+                <span className={`${ventValClass3} font-black text-slate-300`}>
                   {Math.round(vitals?.peep || 0)}
                 </span>
               </div>
@@ -159,24 +161,47 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-1 leading-none border-t border-slate-900/40 pt-1">
-            <span className="text-[8px] text-slate-550 font-bold uppercase">I:E 1:</span>
-            {setVentSettings ? (
-              <select 
-                value={ventSettings?.ieRatio || 2}
-                onChange={(e) => setVentSettings({...ventSettings, ieRatio: parseFloat(e.target.value)})}
-                className="bg-black/50 border border-slate-800 text-[9px] text-slate-300 rounded px-1 py-0.5 outline-none cursor-pointer leading-none h-[18px]"
-              >
-                <option value={1}>1</option>
-                <option value={1.5}>1.5</option>
-                <option value={2}>2</option>
-                <option value={2.5}>2.5</option>
-                <option value={3}>3</option>
-                <option value={4}>4</option>
-              </select>
-            ) : (
-              <span className="text-slate-500 text-[9px] font-bold uppercase">{ventSettings?.ieRatio || 2}</span>
-            )}
+        </div>
+
+        {/* Card 4: EtCO2 & I:E Ratio */}
+        <div className="bg-slate-900/60 border border-slate-800/80 rounded p-1.5 flex flex-col justify-between hover:border-yellow-500/30 transition-all overflow-hidden">
+          <div className="flex justify-between items-center w-full border-b border-slate-900/40 pb-0.5">
+            <span className="text-yellow-500 font-bold text-[9px] lg:text-[10px] leading-none uppercase">Pulmonary Telemetry</span>
+          </div>
+          <div className="flex-1 flex justify-between items-stretch gap-1.5 mt-1">
+            {/* EtCO2 Card */}
+            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-yellow-500/20 transition-all overflow-hidden">
+              <span className="text-[7.5px] lg:text-[8.5px] text-yellow-600 font-bold uppercase tracking-wider leading-none">EtCO2 (mmHg)</span>
+              <div className="flex-1 flex items-center justify-center">
+                <span className={`${ventValClass2} font-black text-yellow-400 leading-none`}>
+                  {vitals?.etco2 ?? '--'}
+                </span>
+              </div>
+            </div>
+
+            {/* I:E Ratio Card */}
+            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-cyan-500/20 transition-all overflow-hidden">
+              <span className="text-[7.5px] lg:text-[8.5px] text-cyan-600 font-bold uppercase tracking-wider leading-none">I:E Ratio</span>
+              <div className="flex-grow flex items-center justify-center gap-1.5 leading-none">
+                <span className="text-xs font-bold text-slate-400">1:</span>
+                {setVentSettings ? (
+                  <select 
+                    value={ventSettings?.ieRatio || 2}
+                    onChange={(e) => setVentSettings({...ventSettings, ieRatio: parseFloat(e.target.value)})}
+                    className="bg-black/50 border border-slate-800 text-[10px] text-slate-200 rounded px-1.5 py-0.5 outline-none cursor-pointer leading-none font-bold"
+                  >
+                    <option value={1}>1.0</option>
+                    <option value={1.5}>1.5</option>
+                    <option value={2}>2.0</option>
+                    <option value={2.5}>2.5</option>
+                    <option value={3}>3.0</option>
+                    <option value={4}>4.0</option>
+                  </select>
+                ) : (
+                  <span className="text-slate-300 text-xs font-bold">{ventSettings?.ieRatio || 2}</span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

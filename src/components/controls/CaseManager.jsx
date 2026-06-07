@@ -191,7 +191,7 @@ const PRESETS = [
   }
 ];
 
-export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSetStagedCase, openPreOpEMR }) => {
+export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSetStagedCase, openPreOpEMR, onStart }) => {
   const [activeTab, setActiveTab] = useState('presets'); 
   const [selectedPresetId, setSelectedPresetId] = useState(PRESETS[0].id);
   const [localStagedCase, localSetStagedCase] = useState(null);
@@ -453,6 +453,7 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
         ebv: finalEbv, ebl: finalEbl, 
         patientBaseSV: data.chf ? Math.round(70 * (data.ef / 60)) : 70, 
         patientBaseSVR: data.septic ? 600 : (data.htn ? 1450 : 1100),
+        patientBaseRR: data.rr || 12,
         shuntFraction: (data?.procedure || '').includes('OLV') ? 0.25 : 0.05,
         npoSolids: data.npoSolids || 8,
         npoLiquids: data.npoLiquids || 4,
@@ -479,6 +480,67 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
       const randPreset = filtered[Math.floor(Math.random() * filtered.length)];
       applyPresetToForm(randPreset);
       handleStageCase(randPreset, null, level);
+    }
+  };
+
+  const handleWingIt = () => {
+    const randPreset = PRESETS[Math.floor(Math.random() * PRESETS.length)];
+    const ibw = calculateIBW(randPreset.height, randPreset.sex);
+    const bmi = randPreset.weight / Math.pow(randPreset.height / 100, 2);
+    const diff = calculateDifficulty(randPreset);
+    const briefing = generateBriefing(randPreset, diff.level);
+
+    const isMale = randPreset.sex.toLowerCase() === 'male';
+    const finalEbv = Math.round(isMale ? randPreset.weight * 75 : randPreset.weight * 65);
+    const finalEbl = randPreset.trauma ? 800 : 0;
+
+    const stagedRenal = randPreset.gfr < 90 ? `stage ${randPreset.gfr < 15 ? '5' : randPreset.gfr < 30 ? '4' : '3'}` : null;
+
+    const newCase = {
+      id: randPreset.id || 'case-' + Date.now(),
+      name: randPreset.name,
+      difficulty: diff.level,
+      description: briefing.hpi,
+      preOpBriefing: briefing,
+      baseVitals: { hr: randPreset.hr, sys: randPreset.sys, dia: randPreset.dia, spo2: randPreset.spo2, etco2: 0, rr: randPreset.rr, temp: randPreset.temp },
+      patient: { 
+        age: randPreset.age, sex: randPreset.sex, weight: Math.round(randPreset.weight), height: randPreset.height, ibw: ibw, bmi: bmi,
+        position: randPreset.position || 'Supine',
+        oxygenBuffer: null, targetBuffer: 21, 
+        airwayBlood: randPreset.airwayBlood, mallampati: randPreset.mallampati, neckMobility: randPreset.neckMobility,
+        isObese: randPreset.obese || bmi > 30, isSeptic: randPreset.septic, trauma: randPreset.trauma, 
+        copd: randPreset.copd || randPreset.asthma, 
+        pulmonaryComorbidity: randPreset.pulmonaryComorbidity || (randPreset.copd ? 'copd gold ii' : (randPreset.asthma ? 'asthma' : null)),
+        chf: randPreset.chf, ef: randPreset.ef || 60,
+        cad: randPreset.cad, afib: randPreset.afib, as: randPreset.as, htn: randPreset.htn,
+        onBetaBlocker: randPreset.betaBlocker,
+        penicillinAllergy: randPreset.penicillinAllergy,
+        renalComorbidity: stagedRenal,
+        gfr: randPreset.gfr || 100,
+        cirrhosis: randPreset.cirrhosis || (randPreset.cp !== 'none'),
+        childPugh: randPreset.cp || 'none',
+        nAChR_state: (randPreset.burns || randPreset.immobility) ? 'upregulated' : 'normal',
+        ebv: finalEbv, ebl: finalEbl, 
+        patientBaseSV: randPreset.chf ? Math.round(70 * (randPreset.ef / 60)) : 70, 
+        patientBaseSVR: randPreset.septic ? 600 : (randPreset.htn ? 1450 : 1100),
+        patientBaseRR: randPreset.rr || 12,
+        shuntFraction: (randPreset?.procedure || '').includes('OLV') ? 0.25 : 0.05,
+        npoSolids: randPreset.npoSolids || 8,
+        npoLiquids: randPreset.npoLiquids || 4,
+        allergies: randPreset.penicillinAllergy ? 'Penicillin' : 'NKDA',
+        pmhx: briefing.pmhx,
+        procedure: randPreset.procedure || 'surgery',
+        emergentRSI: !!randPreset.emergentRSI,
+        anemia: !!randPreset.anemia,
+        thrombocytopenia: !!randPreset.thrombocytopenia,
+        coagulopathy: !!randPreset.coagulopathy,
+        diabetes: !!randPreset.diabetes,
+        insulin: !!randPreset.insulin
+      }
+    };
+    setStagedCase(null);
+    if (onStart) {
+      onStart(newCase);
     }
   };
 
@@ -537,9 +599,16 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
     <div className="glass-panel glass-blue p-6 w-full max-w-6xl flex flex-col gap-6 text-slate-100 font-mono">
       <div className="flex justify-between items-center border-b border-white/5 pb-4">
         <h2 className="text-3xl font-black text-blue-400 flex items-center gap-3 drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]"><Activity size={28}/> Anesthesia Clinical Builder</h2>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
           <button onClick={() => setActiveTab('presets')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${activeTab === 'presets' ? 'glass-button-blue text-white shadow-md' : 'glass-button text-slate-400 hover:text-slate-200'}`}>Clinical Specialty Presets</button>
           <button onClick={() => setActiveTab('custom')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${activeTab === 'custom' ? 'glass-button-blue text-white shadow-md' : 'glass-button text-slate-400 hover:text-slate-200'}`}>High-Fidelity Customizer</button>
+          <button 
+            onClick={handleWingIt} 
+            className="px-4 py-2 text-xs font-extrabold rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-[0_0_15px_rgba(245,158,11,0.35)] transition-all duration-200 hover:scale-[1.05] active:scale-95 cursor-pointer flex items-center gap-1.5 ml-2"
+            title="Bypass EMR and pre-op; jump straight into the simulator with a random case preset"
+          >
+            <Dices size={12}/> WING IT! 🎲
+          </button>
         </div>
       </div>
 

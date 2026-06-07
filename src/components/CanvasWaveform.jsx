@@ -1,6 +1,9 @@
 import React, { useEffect, useRef } from 'react';
 import { WAVEFORMS } from '../engine/WaveformDatabase';
 import { synthesizeEkgLead } from '../engine/EkgModel';
+import { synthesizeArterialLine } from '../engine/ArterialLineModel';
+import { synthesizePleth } from '../engine/PlethModel';
+import { synthesizeEtCo2 } from '../engine/EtCo2Model';
 
 export const CanvasWaveform = React.memo(({ 
   color, 
@@ -15,17 +18,18 @@ export const CanvasWaveform = React.memo(({
   lead = 'II',
   patientState = null,
   electrolytes = null,
-  activeMeds = null
+  activeMeds = null,
+  vitals = null
 }) => {
   const canvasRef = useRef(null);
   
   // Initialize lastTime as null to securely sync with the exact rAF epoch on frame 1
   const drawState = useRef({ x: 0, lastTime: null, lastY: null, tBeat: 0 });
-  const propsRef = useRef({ speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale, lead, patientState, electrolytes, activeMeds });
+  const propsRef = useRef({ speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale, lead, patientState, electrolytes, activeMeds, vitals });
 
   useEffect(() => {
-    propsRef.current = { speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale, lead, patientState, electrolytes, activeMeds };
-  }, [speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale, lead, patientState, electrolytes, activeMeds]);
+    propsRef.current = { speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale, lead, patientState, electrolytes, activeMeds, vitals };
+  }, [speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale, lead, patientState, electrolytes, activeMeds, vitals]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -46,7 +50,7 @@ export const CanvasWaveform = React.memo(({
       // Frame-drop protection (Caps dt to prevent massive beam jumps if tab goes inactive)
       if (dtMs > 100) dtMs = 16; 
 
-      const { speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale, lead, patientState, electrolytes, activeMeds } = propsRef.current;
+      const { speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale, lead, patientState, electrolytes, activeMeds, vitals } = propsRef.current;
       
       // CSS Flexbox Sizing Bridge
       const rect = canvas.parentElement.getBoundingClientRect();
@@ -104,6 +108,30 @@ export const CanvasWaveform = React.memo(({
       const isActiveAndBeating = active && parsedSpeed > 0 && !isNaN(parsedSpeed);
 
       if (isActiveAndBeating) {
+          let tBeatVal;
+          let beatDurationVal = beatDuration;
+          let ampScaleMod = 1.0;
+          
+          if (isCardiac) {
+              // Deterministic phase-locking across all cardiac channels using absolute time
+              let pCardiac = (time / 1000) / beatDuration;
+              if (patientState?.cardiacRhythm === 'afib' || patientState?.afib) {
+                  const tSecs = time / 1000;
+                  const modulation = 0.18 * Math.sin(tSecs * 2.3) + 0.10 * Math.sin(tSecs * 5.7) + 0.05 * Math.sin(tSecs * 11.1);
+                  pCardiac += modulation;
+                  
+                  // Amplitude modulation matching the frequency modulation derivative (longer cycle = larger amplitude)
+                  const modPrime = 0.414 * Math.cos(2.3 * tSecs) + 0.570 * Math.cos(5.7 * tSecs) + 0.555 * Math.cos(11.1 * tSecs);
+                  ampScaleMod = Math.max(0.4, Math.min(1.4, 1.0 - 0.22 * modPrime));
+              }
+              pCardiac = pCardiac % 1.0;
+              if (pCardiac < 0) pCardiac += 1.0;
+              
+              tBeatVal = pCardiac * beatDuration;
+          } else {
+              tBeatVal = tBeat;
+          }
+
           // === TRUE RESPIRATORY VARIATION (Pulse Pressure / Pleth Variability) ===
           // Positive Pressure Ventilation increases intrathoracic pressure, decreasing venous return.
           // This dynamically squeezes the amplitude of the stroke volume (PPV).
@@ -121,27 +149,49 @@ export const CanvasWaveform = React.memo(({
           }
 
           if (type === 'ecg') {
-              y = synthesizeEkgLead(lead, tBeat, beatDuration, h, base, time / 1000, patientState, electrolytes, activeMeds);
+              y = synthesizeEkgLead(lead, tBeatVal, beatDurationVal, h, base, time / 1000, patientState, electrolytes, activeMeds);
+          } else if (type === 'aline') {
+              y = synthesizeArterialLine(tBeatVal, beatDurationVal, h, time / 1000, patientState, vitals, activeMeds);
+              if (patientState?.cardiacRhythm === 'afib' || patientState?.afib) {
+                  const baselineOffset = h * 0.95;
+                  y = baselineOffset - (baselineOffset - y) * ampScaleMod;
+              }
+          } else if (type === 'pleth') {
+              y = synthesizePleth(tBeatVal, beatDurationVal, h, time / 1000, patientState, vitals, activeMeds);
+              if (patientState?.cardiacRhythm === 'afib' || patientState?.afib) {
+                  const baselineOffset = h * 0.95;
+                  y = baselineOffset - (baselineOffset - y) * ampScaleMod;
+              }
+          } else if (type === 'etco2') {
+              y = synthesizeEtCo2(tBeatVal, beatDurationVal, h, time / 1000, patientState, vitals, activeMeds, ieRatio, ampScale, baseScale);
           } else {
               const morphGroup = WAVEFORMS[type] || WAVEFORMS.ecg;
               const morphFn = morphGroup[morphology] || morphGroup.normal || Object.values(morphGroup)[0];
 
               // Unified Morphology Signature for ALL waveforms (Phase-locked via ieRatio)
               const effectiveAmpScale = ampScale * respAmpMod;
-              y = morphFn(tBeat, beatDuration, h, base, time, ieRatio, effectiveAmpScale, baseScale);
+              y = morphFn(tBeatVal, beatDurationVal, h, base, time, ieRatio, effectiveAmpScale, baseScale);
           }
           
-          if (type !== 'etco2' && type !== 'ecg') {
+          if (type !== 'etco2' && type !== 'ecg' && type !== 'aline' && type !== 'pleth') {
               y += respBaseShift;
           }
 
       } else {
           // === ASYSTOLE / INACTIVE PHYSICS ===
-          if (type === 'aline' || type === 'pleth') {
-              y = h * 0.95;
+          if (type === 'aline') {
+              y = synthesizeArterialLine(tBeat, beatDuration, h, time / 1000, patientState, vitals, activeMeds);
+          } else if (type === 'pleth') {
+              y = synthesizePleth(tBeat, beatDuration, h, time / 1000, patientState, vitals, activeMeds);
           } else if (type === 'ecg') {
+              let tBeatVal = tBeat;
+              if (isCardiac) {
+                  let pCardiac = ((time / 1000) / beatDuration) % 1.0;
+                  if (pCardiac < 0) pCardiac += 1.0;
+                  tBeatVal = pCardiac * beatDuration;
+              }
               // Let EkgModel render the flatline or cpr artifacts when inactive/arrest
-              y = synthesizeEkgLead(lead, tBeat, beatDuration, h, base, time / 1000, patientState, electrolytes, activeMeds);
+              y = synthesizeEkgLead(lead, tBeatVal, beatDuration, h, base, time / 1000, patientState, electrolytes, activeMeds);
           } else {
               y = base;
           }

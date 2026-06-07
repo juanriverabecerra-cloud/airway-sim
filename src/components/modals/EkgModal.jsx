@@ -193,15 +193,7 @@ export const EkgModal = ({
               </button>
             </div>
 
-            {/* Grid Theme Selector */}
-            <select 
-              value={gridTheme} 
-              onChange={(e) => setGridTheme(e.target.value)}
-              className="bg-slate-950 border border-slate-800 text-xs text-slate-300 rounded px-2 py-1 outline-none cursor-pointer h-7"
-            >
-              <option value="green">Digital Green</option>
-              <option value="pink">Classic Pink</option>
-            </select>
+
 
             <button 
               onClick={close} 

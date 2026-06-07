@@ -88,27 +88,32 @@ export const PrimaryMonitor = ({
         {patient?.hasALine && (
           <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
             <div className="absolute text-red-500/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">ART</div>
-            <CanvasWaveform color="#ef4444" speed={patient?.cprActive ? 100 : hrSpeed} rrSpeed={rrSpeed} active={vitals?.sys > 20 || patient?.cprActive} type="aline" />
+            <CanvasWaveform 
+              color="#ef4444" 
+              speed={patient?.cprActive ? 100 : hrSpeed} 
+              rrSpeed={rrSpeed} 
+              active={vitals?.sys > 20 || patient?.cprActive} 
+              type="aline" 
+              patientState={patient}
+              vitals={vitals}
+              activeMeds={activeMeds}
+            />
           </div>
         )}
         <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
           <div className="absolute text-cyan-550/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">PLETH</div>
-          <CanvasWaveform color="#06b6d4" speed={patient?.cprActive ? 100 : hrSpeed} rrSpeed={rrSpeed} active={(vitals?.spo2 > 50 && !patient?.isArrest) || patient?.cprActive} type="pleth" />
+          <CanvasWaveform 
+            color="#06b6d4" 
+            speed={patient?.cprActive ? 100 : hrSpeed} 
+            rrSpeed={rrSpeed} 
+            active={true} 
+            type="pleth" 
+            patientState={patient}
+            vitals={vitals}
+            activeMeds={activeMeds}
+          />
         </div>
-        {patient?.airwaySecured && (
-          <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
-            <div className="absolute text-yellow-400/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">EtCO2</div>
-            <CanvasWaveform 
-              color="#facc15" 
-              speed={rrSpeed} 
-              rrSpeed={rrSpeed} 
-              active={vitals?.etco2 > 5} 
-              type="etco2" 
-              ieRatio={ventSettings?.ieRatio || 2}
-              ampScale={Math.min(1.5, (vitals?.etco2 || 40) / 40)} 
-            />
-          </div>
-        )}
+
       </div>
 
       {/* Primary Numerical Vitals - High-Legibility Space-Stretching Layout */}
@@ -231,32 +236,15 @@ export const PrimaryMonitor = ({
           </div>
         </div>
 
-        {/* Row 3: EtCO2 & RR */}
-        <div className="flex gap-1.5 w-full h-full">
-          {/* EtCO2 Card */}
-          <div className="flex-1 bg-slate-900/60 border border-slate-800/80 rounded p-1.5 flex flex-col justify-between hover:border-yellow-500/30 transition-all overflow-hidden">
-            <div className="flex justify-between items-center w-full">
-              <span className="text-yellow-500 font-bold text-[10px] lg:text-xs leading-none uppercase">EtCO2</span>
-            </div>
-            <div className="flex-1 flex items-center justify-center">
-              {patient?.airwaySecured ? (
-                <span className={`${hrSpO2Class} font-black text-yellow-400 leading-none select-all`}>{vitals?.etco2 ?? '--'}</span>
-              ) : (
-                <span className="text-[9px] lg:text-[10px] text-slate-500 font-black uppercase tracking-wider select-none">No Airway</span>
-              )}
-            </div>
+        {/* Row 3: RR Card */}
+        <div className="bg-slate-900/60 border border-slate-800/80 rounded p-1.5 flex flex-col justify-between hover:border-slate-500/30 transition-all overflow-hidden">
+          <div className="flex justify-between items-center w-full">
+            <span className="text-white font-bold text-[10px] lg:text-xs leading-none uppercase">RR</span>
           </div>
-
-          {/* RR Card */}
-          <div className="flex-1 bg-slate-900/60 border border-slate-800/80 rounded p-1.5 flex flex-col justify-between hover:border-slate-500/30 transition-all overflow-hidden">
-            <div className="flex justify-between items-center w-full">
-              <span className="text-white font-bold text-[10px] lg:text-xs leading-none uppercase">RR</span>
-            </div>
-            <div className="flex-1 flex items-center justify-center">
-              <span className={`${hrSpO2Class} font-black leading-none select-all ${ (vitals?.rr || 0) < 8 ? 'text-slate-400 animate-pulse' : 'text-white'}`}>
-                {vitals?.rr ?? '--'}
-              </span>
-            </div>
+          <div className="flex-1 flex items-center justify-center">
+            <span className={`${hrSpO2Class} font-black leading-none select-all ${ (vitals?.rr || 0) < 8 ? 'text-slate-400 animate-pulse' : 'text-white'}`}>
+              {vitals?.rr ?? '--'}
+            </span>
           </div>
         </div>
 

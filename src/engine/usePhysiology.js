@@ -183,6 +183,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           patientBaseSVR: calculatedBaseSVR,
           patientBaseSV: assumedBaseSV,
           patientBaseHR: baseHr,
+          patientBaseRR: safeBaseVitals.rr || 12,
           
           metHb: 0.8,
           coHb: activeCase.id === 'trauma' ? 12.0 : 1.0,

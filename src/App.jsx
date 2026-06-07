@@ -515,7 +515,8 @@ export default function App() {
       currentO2Device: 'Room Air', currentFiO2: 21, currentO2Flow: 0,
       oxygenBuffer: null, // Let engine calculate from FRC
       drugEffects: { sys: 0, hr: 0 }, accessLines: [],
-      patientBaseHR: selectedCase.baseVitals.hr
+      patientBaseHR: selectedCase.baseVitals.hr,
+      patientBaseRR: selectedCase.baseVitals.rr || 12
     });
     if (selectedCase.preOpLabs) {
       setLabs(selectedCase.preOpLabs);
@@ -535,7 +536,11 @@ export default function App() {
 
   const checkCuffLeak = () => {
     saveState();
-    logEvent("💨 Cuff Leak Test performed: ETT cuff deflated. Audible high-volume leak heard around the tube, confirming minimal to no airway/laryngeal edema. Extubation is highly favored.");
+    setPatient(p => {
+      const isDeflated = !p.isCuffDeflated;
+      logEvent(`💨 Cuff Leak Test performed: ETT cuff ${isDeflated ? 'deflated' : 're-inflated'}. ${isDeflated ? 'Audible high-volume leak heard around the tube, confirming minimal to no airway/laryngeal edema. Extubation is highly favored.' : 'Cuff pressure restored to 25 cmH2O.'}`);
+      return { ...p, isCuffDeflated: isDeflated };
+    });
   };
 
   const examineNpoHistory = () => {
@@ -1149,6 +1154,7 @@ export default function App() {
             rrSpeed={rrSpeed} 
             ventSettings={ventSettings} 
             setVentSettings={handleSetVentSettings}
+            activeMeds={activeMeds}
           />
         )}
       </div>

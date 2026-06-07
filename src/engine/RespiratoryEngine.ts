@@ -469,7 +469,10 @@ export class RespiratoryEngine {
     // Ventilation settings and dynamic pressure calculations
     let newPip = 0; let newVte = 0; let newPplat = 0; let newPmean = 0; let newMv = 0; let newPeep = 0;
 
-    let patientDriveRR = isParalyzed ? 0 : Math.max(0, (safeVitals.rr || 12) + compensatoryRR + shiveringRRDrive + safeTotalRrDelta - opioidRRDrop);
+    const baseRR = typeof safePatient.patientBaseRR === 'number' && Number.isFinite(safePatient.patientBaseRR) && safePatient.patientBaseRR > 0
+      ? safePatient.patientBaseRR
+      : (safeVitals.rr || 12);
+    let patientDriveRR = isParalyzed ? 0 : Math.max(0, baseRR + compensatoryRR + shiveringRRDrive + safeTotalRrDelta - opioidRRDrop);
     let targetRR = patientDriveRR;
     targetRR = Math.max(0, targetRR * safeRuleRrScale + safeRuleRrOffset);
 
