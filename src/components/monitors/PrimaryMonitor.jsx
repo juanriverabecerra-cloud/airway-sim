@@ -3,10 +3,10 @@ import { CanvasWaveform } from '../CanvasWaveform';
 
 export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp, hrSpeed, rrSpeed, gasSettings, ventSettings, nibpIntervalMs, setNibpIntervalMs }) => {
   const isSplit = patient?.airwaySecured;
-  const hrSpO2Class = isSplit ? "text-3xl lg:text-3.5xl xl:text-4xl" : "text-4xl lg:text-5xl xl:text-6xl";
-  const bpClass = isSplit ? "text-2xl lg:text-2.5xl xl:text-3xl" : "text-3xl lg:text-4xl xl:text-5xl";
-  const mapClass = isSplit ? "text-base lg:text-lg xl:text-xl" : "text-lg lg:text-xl xl:text-2xl";
-  const advClass = isSplit ? "text-lg lg:text-xl xl:text-2xl" : "text-2xl lg:text-3xl xl:text-4xl";
+  const hrSpO2Class = isSplit ? "text-2xl sm:text-3xl md:text-3.5xl xl:text-4xl" : "text-3xl sm:text-4xl md:text-5xl xl:text-6xl";
+  const bpClass = isSplit ? "text-xl sm:text-2xl md:text-2.5xl xl:text-3xl" : "text-2xl sm:text-3xl md:text-4xl xl:text-5xl";
+  const mapClass = isSplit ? "text-[10px] sm:text-xs md:text-lg xl:text-xl" : "text-xs sm:text-sm md:text-xl xl:text-2xl";
+  const advClass = isSplit ? "text-[10px] sm:text-xs md:text-lg xl:text-2xl" : "text-[11px] sm:text-sm md:text-2xl lg:text-3xl xl:text-4xl";
 
   return (
     <div className="glass-panel glass-emerald p-2 flex flex-col md:grid md:grid-cols-4 gap-2 min-h-[360px] md:min-h-0 md:h-auto lg:h-[420px] relative overflow-hidden">
@@ -60,7 +60,7 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
       </div>
 
       {/* Primary Numerical Vitals - High-Legibility Space-Stretching Layout */}
-      <div className="col-span-1 grid grid-rows-[23%_26%_23%_28%] bg-black/45 backdrop-blur-md p-1.5 rounded-lg h-full border border-slate-800/60 shadow-inner gap-1.5 overflow-hidden">
+      <div className="col-span-1 grid grid-rows-[23%_26%_23%_28%] bg-black/45 backdrop-blur-md p-1.5 rounded-lg h-[340px] md:h-full border border-slate-800/60 shadow-inner gap-1.5 overflow-hidden">
         
         {/* Row 1: HR & SpO2 */}
         <div className="flex gap-1.5 w-full h-full">

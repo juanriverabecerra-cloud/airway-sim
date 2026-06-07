@@ -96,7 +96,7 @@ export const PatientHeader = ({
                    </div>
                 </div>
  
-                <div className="flex items-center justify-between w-full md:w-auto gap-4 min-w-max font-mono">
+                <div className="flex items-center justify-between w-full md:w-auto gap-4 md:min-w-max font-mono">
                    <span className={`font-black text-lg w-12 text-right ${bufferPct < 21 ? 'text-red-500 animate-pulse' : (bufferPct > 88 ? 'text-emerald-400' : 'text-cyan-400')}`}>
                      {Math.round(bufferPct)}%
                    </span>

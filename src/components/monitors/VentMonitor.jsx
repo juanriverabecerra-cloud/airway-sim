@@ -54,7 +54,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
       </div>
 
       {/* Vent Numericals - Matching High-Legibility numerical styling of Primary Monitor */}
-      <div className="col-span-1 grid grid-rows-3 bg-black/45 backdrop-blur-md p-1.5 rounded-lg h-full border border-slate-800/60 shadow-inner gap-1.5 overflow-hidden z-30">
+      <div className="col-span-1 grid grid-rows-3 bg-black/45 backdrop-blur-md p-1.5 rounded-lg h-[260px] md:h-full border border-slate-800/60 shadow-inner gap-1.5 overflow-hidden z-30">
         {/* Card 1: Pressures */}
         <div className="bg-slate-900/60 border border-slate-800/80 rounded p-1.5 flex flex-col justify-between hover:border-yellow-500/30 transition-all overflow-hidden">
           <div className="flex justify-between items-center w-full border-b border-slate-900/40 pb-0.5">
@@ -62,15 +62,15 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
           </div>
           <div className="flex-grow flex justify-between items-center py-0.5">
             <div className="flex flex-col">
-              <span className="text-3xl lg:text-3.5xl xl:text-4xl font-black text-white leading-none">{Math.round(vitals?.pip || 0)}</span>
+              <span className="text-xl sm:text-2xl md:text-3xl lg:text-3.5xl xl:text-4xl font-black text-white leading-none">{Math.round(vitals?.pip || 0)}</span>
               <span className="text-yellow-600 text-[8px] font-bold uppercase mt-0.5 leading-none">Pip</span>
             </div>
             <div className="flex flex-col items-center">
-              <span className="text-xl lg:text-2.5xl font-black text-slate-300 leading-none">{Math.round(vitals?.pplat || 0)}</span>
+              <span className="text-sm sm:text-lg md:text-xl lg:text-2.5xl font-black text-slate-300 leading-none">{Math.round(vitals?.pplat || 0)}</span>
               <span className="text-yellow-600 text-[8px] font-bold uppercase mt-0.5 leading-none">Plat</span>
             </div>
             <div className="flex flex-col items-end">
-              <span className="text-xl lg:text-2.5xl font-black text-slate-300 leading-none">{Math.round(vitals?.peep || 0)}</span>
+              <span className="text-sm sm:text-lg md:text-xl lg:text-2.5xl font-black text-slate-300 leading-none">{Math.round(vitals?.peep || 0)}</span>
               <span className="text-yellow-600 text-[8px] font-bold uppercase mt-0.5 leading-none">PEEP</span>
             </div>
           </div>
@@ -83,11 +83,11 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
           </div>
           <div className="flex-grow flex justify-between items-center py-0.5">
             <div className="flex flex-col">
-              <span className="text-3xl lg:text-3.5xl xl:text-4xl font-black text-green-400 leading-none">{Math.round(vitals?.vte || 0)}</span>
+              <span className="text-xl sm:text-2xl md:text-3xl lg:text-3.5xl xl:text-4xl font-black text-green-400 leading-none">{Math.round(vitals?.vte || 0)}</span>
               <span className="text-green-600 text-[8px] font-bold uppercase mt-0.5 leading-none">VTe (mL)</span>
             </div>
             <div className="flex flex-col items-end">
-              <span className="text-3xl lg:text-3.5xl xl:text-4xl font-black text-green-400 leading-none">{(vitals?.mv || 0).toFixed(1)}</span>
+              <span className="text-xl sm:text-2xl md:text-3xl lg:text-3.5xl xl:text-4xl font-black text-green-400 leading-none">{(vitals?.mv || 0).toFixed(1)}</span>
               <span className="text-green-600 text-[8px] font-bold uppercase mt-0.5 leading-none">MVe (L/min)</span>
             </div>
           </div>
@@ -100,15 +100,15 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
           </div>
           <div className="flex-grow flex justify-between items-center py-1">
             <div className="flex flex-col justify-center">
-              <span className="text-3xl lg:text-3.5xl xl:text-4xl font-black text-white leading-none">{vitals?.rr || 0}</span>
+              <span className="text-xl sm:text-2xl md:text-3xl lg:text-3.5xl xl:text-4xl font-black text-white leading-none">{vitals?.rr || 0}</span>
               <span className="text-blue-400 text-[8px] font-bold uppercase mt-0.5 leading-none">RR /min</span>
             </div>
             <div className="flex flex-col justify-center items-center">
-              <span className="text-xl lg:text-2.5xl font-black text-slate-300 leading-none">{Math.round(vitals?.compl || 60)}</span>
+              <span className="text-sm sm:text-lg md:text-xl lg:text-2.5xl font-black text-slate-300 leading-none">{Math.round(vitals?.compl || 60)}</span>
               <span className="text-slate-500 text-[8px] font-bold uppercase mt-0.5 leading-none">Cdyn</span>
             </div>
             <div className="flex flex-col justify-center items-end">
-              <span className="text-xl lg:text-2.5xl font-black text-slate-300 leading-none">{Math.round(vitals?.res || 5)}</span>
+              <span className="text-sm sm:text-lg md:text-xl lg:text-2.5xl font-black text-slate-300 leading-none">{Math.round(vitals?.res || 5)}</span>
               <span className="text-slate-500 text-[8px] font-bold uppercase mt-0.5 leading-none">Raw</span>
             </div>
           </div>
