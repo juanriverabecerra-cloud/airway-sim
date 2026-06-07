@@ -5,10 +5,12 @@ import { PKPDModel } from '../engine/PKPDEngine.ts';
 import { ProceduralEngine } from '../engine/ProceduralEngine.ts';
 import { extractTextbookRules } from './oracle_query.ts';
 import { textbookProse, physiologicalMatrices } from '../knowledge/medical_truth_snapshot.ts';
+import { ClientDbBridge } from '../knowledge/ClientDbBridge.ts';
 
 describe('AirwaySim OS Dynamic Ingestion Integration Tests', () => {
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    await ClientDbBridge.init();
     // Reset registries before each test
     DynamicMedicationRegistry.reset();
     DynamicProceduralRegistry.reset();

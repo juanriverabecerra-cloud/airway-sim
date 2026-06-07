@@ -2,8 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { getAttendingResponse, resetConversationHistory, verifyResponseGrounding } from '../engine/ClinicalAiChat';
 import { boardQuestions } from '../knowledge/BoardQuestions';
 import { searchKnowledge } from '../knowledge/KnowledgeSearch';
+import { ClientDbBridge } from '../knowledge/ClientDbBridge.ts';
+import { beforeAll } from 'vitest';
 
 describe('Clinical AI Chat Engine (getAttendingResponse)', () => {
+  beforeAll(async () => {
+    await ClientDbBridge.init();
+  });
   describe('Input Sanitization & Parameter Parsing', () => {
     it('should handle null or undefined parameters gracefully without crashing', () => {
       // @ts-ignore - passing empty query/null state

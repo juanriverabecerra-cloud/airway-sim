@@ -220,6 +220,9 @@ export class KnowledgeStore {
    * Saves the in-memory database to disk.
    */
   public static save(): void {
+    if (process.env.VITEST || process.env.NODE_ENV === 'test') {
+      return; // Do not persist to disk during test runs
+    }
     if (this.db) {
       const binaryArray = this.db.export();
       fs.writeFileSync(dbPath, Buffer.from(binaryArray));

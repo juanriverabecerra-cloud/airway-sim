@@ -38,10 +38,10 @@ export class ClientDbBridge {
   private static messageCounter = 0;
 
   // Cache stores populated from worker query results on main thread
-  private static allProse: ProseRecord[] = [];
-  private static allMatrices: MatrixRecord[] = [];
-  private static authProse: ProseRecord[] = [];
-  private static authMatrices: MatrixRecord[] = [];
+  public static allProse: ProseRecord[] = [];
+  public static allMatrices: MatrixRecord[] = [];
+  public static authProse: ProseRecord[] = [];
+  public static authMatrices: MatrixRecord[] = [];
   
   private static isLoaded = false;
   private static loadPromise: Promise<void> | null = null;

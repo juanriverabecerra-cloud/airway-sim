@@ -187,17 +187,10 @@ export class TokenOptimizer {
   }
 
   /**
-   * Serializes the optimized mirror copy, writes to SQLite, precomputes search index with synonyms,
-   * copies to public assets, and updates snapshot wrappers.
+   * Prunes and inserts a parsed document into the database, clearing its existing records first.
    */
-  public static optimizeAndSerialize(
-    doc: ParsedDocument,
-    outputFilePath: string,
-    tokenBudgetCap = 30000
-  ): { paths: string[]; totalTokens: number; partsCount: number } {
+  public static optimizeAndInsert(doc: ParsedDocument): void {
     const prunedDoc = this.prune(doc);
-    const estimatedTotalTokens = this.estimateTokens(prunedDoc);
-
     const chapterTitle = prunedDoc.parse_metadata.source_file || 'Unknown Chapter';
     const metadata = parseTextbookMetadata(chapterTitle);
     const priorityRank = getPriorityRank(chapterTitle);
@@ -268,7 +261,13 @@ export class TokenOptimizer {
     }
 
     console.log(`  ✓ Database Ingested: ${proseInserted} prose sections, ${matricesInserted} matrices stored.`);
+  }
 
+  /**
+   * Performs the global compilation, authority ranking recalculation,
+   * database deployment, search index precomputation, and snapshot generation.
+   */
+  public static compileGlobalDatabaseAndIndex(): void {
     // Recalculate authority mappings (Miller > other, newer > older)
     KnowledgeStore.recalculateAuthority();
 
@@ -428,16 +427,19 @@ export class TokenOptimizer {
       }
 
       // Calculate IDFs
-      const proseIdf: Record<string, number> = {};
       const proseDocCount = allProse.length;
-      for (const [token, postings] of Object.entries(proseIndex)) {
-        proseIdf[token] = Math.log((proseDocCount + 1) / (1 + postings.length));
-      }
-
-      const matrixIdf: Record<string, number> = {};
       const matrixDocCount = allMatrices.length;
+      
+      const proseIdf: Record<string, number> = {};
+      for (const [token, postings] of Object.entries(proseIndex)) {
+        const docFreq = postings.length;
+        proseIdf[token] = Math.log(1 + (proseDocCount - docFreq + 0.5) / (docFreq + 0.5));
+      }
+      
+      const matrixIdf: Record<string, number> = {};
       for (const [token, postings] of Object.entries(matrixIndex)) {
-        matrixIdf[token] = Math.log((matrixDocCount + 1) / (1 + postings.length));
+        const docFreq = postings.length;
+        matrixIdf[token] = Math.log(1 + (matrixDocCount - docFreq + 0.5) / (docFreq + 0.5));
       }
 
       const indexData = {
@@ -475,8 +477,81 @@ import type { ProseRecord, MatrixRecord } from './ClientDbBridge.ts';
 
 export type { ProseRecord, MatrixRecord };
 
-export const textbookProse: ProseRecord[] = ClientDbBridge.getAllProse();
-export const physiologicalMatrices: MatrixRecord[] = ClientDbBridge.getAllMatrices();
+const manuallyPushedProse: ProseRecord[] = [];
+
+export const textbookProse: ProseRecord[] = new Proxy(manuallyPushedProse, {
+  get(target, prop, receiver) {
+    ClientDbBridge.getAllProse();
+    const mutations = new Set(['push', 'pop', 'shift', 'unshift', 'splice', 'reverse', 'sort']);
+    if (typeof prop === 'string' && mutations.has(prop)) {
+      const val = Reflect.get(target, prop);
+      return typeof val === 'function' ? val.bind(target) : val;
+    }
+    const list = [...ClientDbBridge.allProse, ...manuallyPushedProse];
+    const val = Reflect.get(list, prop);
+    return typeof val === 'function' ? val.bind(list) : val;
+  },
+  set(target, prop, value, receiver) {
+    if (prop === 'length') {
+      const dbLength = ClientDbBridge.allProse.length;
+      const val = Number(value);
+      if (!isNaN(val)) {
+        target.length = Math.max(0, val - dbLength);
+        return true;
+      }
+    }
+    const idx = Number(prop);
+    if (!isNaN(idx)) {
+      const dbLength = ClientDbBridge.allProse.length;
+      if (idx >= dbLength) {
+        target[idx - dbLength] = value;
+        return true;
+      } else {
+        ClientDbBridge.allProse[idx] = value;
+        return true;
+      }
+    }
+    return Reflect.set(target, prop, value);
+  }
+}) as any;
+
+const manuallyPushedMatrices: MatrixRecord[] = [];
+
+export const physiologicalMatrices: MatrixRecord[] = new Proxy(manuallyPushedMatrices, {
+  get(target, prop, receiver) {
+    ClientDbBridge.getAllMatrices();
+    const mutations = new Set(['push', 'pop', 'shift', 'unshift', 'splice', 'reverse', 'sort']);
+    if (typeof prop === 'string' && mutations.has(prop)) {
+      const val = Reflect.get(target, prop);
+      return typeof val === 'function' ? val.bind(target) : val;
+    }
+    const list = [...ClientDbBridge.allMatrices, ...manuallyPushedMatrices];
+    const val = Reflect.get(list, prop);
+    return typeof val === 'function' ? val.bind(list) : val;
+  },
+  set(target, prop, value, receiver) {
+    if (prop === 'length') {
+      const dbLength = ClientDbBridge.allMatrices.length;
+      const val = Number(value);
+      if (!isNaN(val)) {
+        target.length = Math.max(0, val - dbLength);
+        return true;
+      }
+    }
+    const idx = Number(prop);
+    if (!isNaN(idx)) {
+      const dbLength = ClientDbBridge.allMatrices.length;
+      if (idx >= dbLength) {
+        target[idx - dbLength] = value;
+        return true;
+      } else {
+        ClientDbBridge.allMatrices[idx] = value;
+        return true;
+      }
+    }
+    return Reflect.set(target, prop, value);
+  }
+}) as any;
 `;
 
       const snapshotPath = path.resolve(dirname, '../medical_truth_snapshot.ts');
@@ -486,11 +561,23 @@ export const physiologicalMatrices: MatrixRecord[] = ClientDbBridge.getAllMatric
       const errMsg = snapErr instanceof Error ? snapErr.message : String(snapErr);
       console.error(`  [SNAPSHOT ERROR] Failed to compile dynamic snapshot: ${errMsg}`);
     }
+  }
 
-    // Return reference for backward compatibility with orchestrator interface
+  /**
+   * Serializes the optimized mirror copy, writes to SQLite, precomputes search index with synonyms,
+   * copies to public assets, and updates snapshot wrappers.
+   */
+  public static optimizeAndSerialize(
+    doc: ParsedDocument,
+    outputFilePath: string,
+    tokenBudgetCap = 30000
+  ): { paths: string[]; totalTokens: number; partsCount: number } {
+    this.optimizeAndInsert(doc);
+    this.compileGlobalDatabaseAndIndex();
+    
     return {
       paths: ['src/knowledge/medical_truth.db'],
-      totalTokens: estimatedTotalTokens,
+      totalTokens: this.estimateTokens(this.prune(doc)),
       partsCount: 1
     };
   }
