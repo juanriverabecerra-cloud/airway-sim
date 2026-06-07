@@ -1,12 +1,28 @@
 import { Activity, Heart, Wind, RefreshCw } from 'lucide-react';
 import { CanvasWaveform } from '../CanvasWaveform';
 
-export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp, hrSpeed, rrSpeed, gasSettings, ventSettings, nibpIntervalMs, setNibpIntervalMs }) => {
+export const PrimaryMonitor = ({ 
+  patient, 
+  vitals, 
+  nibp, 
+  cycleNibp, 
+  isCyclingNibp, 
+  hrSpeed, 
+  rrSpeed, 
+  gasSettings, 
+  ventSettings, 
+  nibpIntervalMs, 
+  setNibpIntervalMs,
+  electrolytes,
+  activeMeds,
+  onEkgClick
+}) => {
   const isSplit = patient?.airwaySecured;
-  const hrSpO2Class = isSplit ? "text-2xl sm:text-3xl md:text-3.5xl xl:text-4xl" : "text-3xl sm:text-4xl md:text-5xl xl:text-6xl";
-  const bpClass = isSplit ? "text-xl sm:text-2xl md:text-2.5xl xl:text-3xl" : "text-2xl sm:text-3xl md:text-4xl xl:text-5xl";
-  const mapClass = isSplit ? "text-[10px] sm:text-xs md:text-lg xl:text-xl" : "text-xs sm:text-sm md:text-xl xl:text-2xl";
-  const advClass = isSplit ? "text-[10px] sm:text-xs md:text-lg xl:text-2xl" : "text-[11px] sm:text-sm md:text-2xl lg:text-3xl xl:text-4xl";
+  const hrSpO2Class = "text-3xl @[200px]:text-4xl @[240px]:text-5xl @[280px]:text-6xl @[345px]:text-7xl @[410px]:text-8xl";
+  const bpClass = "text-2xl @[200px]:text-3xl @[240px]:text-4xl @[280px]:text-5xl @[345px]:text-6xl @[410px]:text-7xl";
+  const mapClass = "text-xs @[200px]:text-sm @[240px]:text-base @[280px]:text-lg @[345px]:text-xl @[410px]:text-2xl";
+  const advClass = "text-sm @[200px]:text-base @[240px]:text-lg @[280px]:text-xl @[345px]:text-2xl @[410px]:text-3xl";
+  const tempBisClass = "text-base @[200px]:text-lg @[240px]:text-xl @[280px]:text-2xl @[345px]:text-3xl @[410px]:text-4xl";
 
   return (
     <div className="glass-panel glass-emerald p-2 flex flex-col md:grid md:grid-cols-4 gap-2 min-h-[360px] md:min-h-0 md:h-auto lg:h-[420px] relative overflow-hidden">
@@ -22,17 +38,53 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
       
       {/* Primary Waveforms */}
       <div className="col-span-1 md:col-span-3 flex flex-col justify-between relative w-full h-[220px] md:h-full gap-1">
-        <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
-          <div className="absolute text-green-500/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">ECG II {patient?.isArrest ? `(${ (patient?.cardiacRhythm || '').toUpperCase() })` : (patient?.ischemicDamage > 400 ? '(ST-ELEV)' : '')}</div>
+        
+        {/* ECG Lead II */}
+        <div 
+          onClick={onEkgClick}
+          className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden cursor-pointer hover:bg-slate-800/20 active:bg-slate-800/40 transition-colors group"
+          title="Click to view Multi-Lead EKG"
+        >
+          <div className="absolute text-green-500/60 text-[10px] md:text-xs top-1 left-1 z-20 font-bold flex items-center gap-1.5 leading-none">
+            <span>ECG II {patient?.isArrest ? `(${ (patient?.cardiacRhythm || '').toUpperCase() })` : (patient?.ischemicDamage > 400 ? '(ST-ELEV)' : '')}</span>
+            <span className="hidden group-hover:inline text-[8px] bg-green-500/25 text-green-400 px-1 py-0.5 rounded uppercase tracking-wider font-extrabold ml-1">Click to Zoom</span>
+          </div>
           <CanvasWaveform 
              color="#22c55e" 
              speed={patient?.isArrest ? (patient?.cardiacRhythm === 'vfib' ? 150 : (patient?.cardiacRhythm === 'asystole' ? 0 : hrSpeed)) : hrSpeed} 
              rrSpeed={rrSpeed} 
              active={true} 
              type="ecg" 
-             morphology={patient?.isArrest ? (patient?.cardiacRhythm === 'vfib' ? 'vfib' : (patient?.cardiacRhythm === 'vtach' ? 'vtach' : 'normal')) : (patient?.ischemicDamage > 400 ? 'st_elevation' : 'normal')} 
+             lead="II"
+             patientState={patient}
+             electrolytes={electrolytes}
+             activeMeds={activeMeds}
           />
         </div>
+
+        {/* ECG Lead V5 */}
+        <div 
+          onClick={onEkgClick}
+          className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden cursor-pointer hover:bg-slate-800/20 active:bg-slate-800/40 transition-colors group"
+          title="Click to view Multi-Lead EKG"
+        >
+          <div className="absolute text-green-400/60 text-[10px] md:text-xs top-1 left-1 z-20 font-bold flex items-center gap-1.5 leading-none">
+            <span>ECG V5</span>
+            <span className="hidden group-hover:inline text-[8px] bg-green-500/25 text-green-400 px-1 py-0.5 rounded uppercase tracking-wider font-extrabold ml-1">Click to Zoom</span>
+          </div>
+          <CanvasWaveform 
+             color="#4ade80" 
+             speed={patient?.isArrest ? (patient?.cardiacRhythm === 'vfib' ? 150 : (patient?.cardiacRhythm === 'asystole' ? 0 : hrSpeed)) : hrSpeed} 
+             rrSpeed={rrSpeed} 
+             active={true} 
+             type="ecg" 
+             lead="V5"
+             patientState={patient}
+             electrolytes={electrolytes}
+             activeMeds={activeMeds}
+          />
+        </div>
+
         {patient?.hasALine && (
           <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
             <div className="absolute text-red-500/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">ART</div>
@@ -60,7 +112,7 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
       </div>
 
       {/* Primary Numerical Vitals - High-Legibility Space-Stretching Layout */}
-      <div className="col-span-1 grid grid-rows-[23%_26%_23%_28%] bg-black/45 backdrop-blur-md p-1.5 rounded-lg h-[340px] md:h-full border border-slate-800/60 shadow-inner gap-1.5 overflow-hidden">
+      <div className="@container col-span-1 grid grid-rows-[23%_26%_23%_28%] bg-black/45 backdrop-blur-md p-1.5 rounded-lg h-[340px] md:h-full border border-slate-800/60 shadow-inner gap-1.5 overflow-hidden">
         
         {/* Row 1: HR & SpO2 */}
         <div className="flex gap-1.5 w-full h-full">
@@ -94,7 +146,8 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
             </div>
             <div className="flex-1 flex items-center justify-center">
               <span className={`${hrSpO2Class} font-black leading-none select-all ${ (vitals?.spo2 || 0) < 88 ? 'text-cyan-600 animate-pulse' : 'text-cyan-400'}`}>
-                {vitals?.spo2 ?? '--'}%
+                {vitals?.spo2 ?? '--'}
+                <span className="text-[0.55em] font-bold ml-0.5">%</span>
               </span>
             </div>
           </div>
@@ -215,9 +268,12 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
             {/* TEMP (Slate) */}
             <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between hover:border-slate-500/20 transition-all overflow-hidden">
               <span className="text-[8px] lg:text-[9.5px] text-slate-400 font-bold uppercase tracking-wider leading-none">TEMP</span>
-              <div className="flex-1 flex items-center justify-center">
-                <span className={`${advClass} font-black text-slate-300 leading-none select-all`}>
-                  {(vitals?.temp || 37.0).toFixed(1)}<span className="text-[10px] lg:text-xs font-normal text-slate-500 ml-0.5">°C</span>
+              <div className="flex-1 flex flex-col items-center justify-center leading-none">
+                <span className={`${tempBisClass} font-black text-slate-300 leading-none select-all`}>
+                  {(vitals?.temp || 37.0).toFixed(1)}
+                </span>
+                <span className="text-[8px] @[240px]:text-[9px] @[280px]:text-[10px] font-bold text-slate-500 mt-0.5 leading-none">
+                  °C
                 </span>
               </div>
             </div>
@@ -244,7 +300,7 @@ export const PrimaryMonitor = ({ patient, vitals, nibp, cycleNibp, isCyclingNibp
               <span className="text-[8px] lg:text-[9.5px] text-purple-400 font-bold uppercase tracking-wider leading-none">BIS</span>
               <div className="flex-1 flex items-center justify-center">
                 {patient?.hasBisMonitor ? (
-                  <span className={`${advClass} font-black text-purple-300 leading-none select-all`}>{vitals?.bis || 98}</span>
+                  <span className={`${tempBisClass} font-black text-purple-300 leading-none select-all`}>{vitals?.bis || 98}</span>
                 ) : (
                   <span className="text-[8px] lg:text-[9.5px] text-slate-655 font-bold uppercase tracking-wider select-none italic text-center">NO EEG</span>
                 )}

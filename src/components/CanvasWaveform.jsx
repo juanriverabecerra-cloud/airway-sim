@@ -1,16 +1,31 @@
 import React, { useEffect, useRef } from 'react';
 import { WAVEFORMS } from '../engine/WaveformDatabase';
+import { synthesizeEkgLead } from '../engine/EkgModel';
 
-export const CanvasWaveform = React.memo(({ color, speed, rrSpeed = 0, active, type = 'ecg', morphology = 'normal', ieRatio = 2, ampScale = 1, baseScale = 0 }) => {
+export const CanvasWaveform = React.memo(({ 
+  color, 
+  speed, 
+  rrSpeed = 0, 
+  active, 
+  type = 'ecg', 
+  morphology = 'normal', 
+  ieRatio = 2, 
+  ampScale = 1, 
+  baseScale = 0,
+  lead = 'II',
+  patientState = null,
+  electrolytes = null,
+  activeMeds = null
+}) => {
   const canvasRef = useRef(null);
   
   // Initialize lastTime as null to securely sync with the exact rAF epoch on frame 1
   const drawState = useRef({ x: 0, lastTime: null, lastY: null, tBeat: 0 });
-  const propsRef = useRef({ speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale });
+  const propsRef = useRef({ speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale, lead, patientState, electrolytes, activeMeds });
 
   useEffect(() => {
-    propsRef.current = { speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale };
-  }, [speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale]);
+    propsRef.current = { speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale, lead, patientState, electrolytes, activeMeds };
+  }, [speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale, lead, patientState, electrolytes, activeMeds]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -31,7 +46,7 @@ export const CanvasWaveform = React.memo(({ color, speed, rrSpeed = 0, active, t
       // Frame-drop protection (Caps dt to prevent massive beam jumps if tab goes inactive)
       if (dtMs > 100) dtMs = 16; 
 
-      const { speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale } = propsRef.current;
+      const { speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale, lead, patientState, electrolytes, activeMeds } = propsRef.current;
       
       // CSS Flexbox Sizing Bridge
       const rect = canvas.parentElement.getBoundingClientRect();
@@ -96,23 +111,27 @@ export const CanvasWaveform = React.memo(({ color, speed, rrSpeed = 0, active, t
           let respBaseShift = 0;
           
           if ((type === 'pleth' || type === 'aline') && parsedRR > 0 && !isNaN(parsedRR)) {
-              // CRITICAL FIX: Convert RPM to standard Hz (cycles per second) for the sine wave
+              // Convert RPM to standard Hz (cycles per second) for the sine wave
               const rrFreq = parsedRR / 60; 
               const totalSecs = time / 1000;
               const respPhase = Math.sin(totalSecs * Math.PI * 2 * rrFreq);
               
-              respBaseShift = respPhase * (h * 0.02); // Minor mechanical baseline wander
-              respAmpMod = Math.max(0.1, 1.0 - (respPhase * 0.12)); // True PPV/PVI amplitude squeeze
+              respBaseShift = respPhase * (h * 0.02); // Minor baseline wander
+              respAmpMod = Math.max(0.1, 1.0 - (respPhase * 0.12)); // True PPV amplitude squeeze
           }
 
-          const morphGroup = WAVEFORMS[type] || WAVEFORMS.ecg;
-          const morphFn = morphGroup[morphology] || morphGroup.normal || Object.values(morphGroup)[0];
+          if (type === 'ecg') {
+              y = synthesizeEkgLead(lead, tBeat, beatDuration, h, base, time / 1000, patientState, electrolytes, activeMeds);
+          } else {
+              const morphGroup = WAVEFORMS[type] || WAVEFORMS.ecg;
+              const morphFn = morphGroup[morphology] || morphGroup.normal || Object.values(morphGroup)[0];
 
-          // Unified Morphology Signature for ALL waveforms (Phase-locked via ieRatio)
-          const effectiveAmpScale = ampScale * respAmpMod;
-          y = morphFn(tBeat, beatDuration, h, base, time, ieRatio, effectiveAmpScale, baseScale);
+              // Unified Morphology Signature for ALL waveforms (Phase-locked via ieRatio)
+              const effectiveAmpScale = ampScale * respAmpMod;
+              y = morphFn(tBeat, beatDuration, h, base, time, ieRatio, effectiveAmpScale, baseScale);
+          }
           
-          if (type !== 'etco2') {
+          if (type !== 'etco2' && type !== 'ecg') {
               y += respBaseShift;
           }
 
@@ -121,7 +140,8 @@ export const CanvasWaveform = React.memo(({ color, speed, rrSpeed = 0, active, t
           if (type === 'aline' || type === 'pleth') {
               y = h * 0.95;
           } else if (type === 'ecg') {
-              y = h / 2;
+              // Let EkgModel render the flatline or cpr artifacts when inactive/arrest
+              y = synthesizeEkgLead(lead, tBeat, beatDuration, h, base, time / 1000, patientState, electrolytes, activeMeds);
           } else {
               y = base;
           }

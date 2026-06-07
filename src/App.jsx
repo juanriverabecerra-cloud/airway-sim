@@ -17,6 +17,7 @@ import { LogPanel } from './components/controls/LogPanel';
 import { LinesResusPanel } from './components/controls/LinesResusPanel';
 import { AccessModal, PocusModal, SetupModal, TubeConfirmModal, AirwayQuizModal, ViewModal, PreopModal, MsmaidsModal, PostIntubationModal, ExtubationModal } from './components/modals/Modals';
 import { PreOpEMR } from './components/modals/PreOpEMR';
+import { EkgModal } from './components/modals/EkgModal';
 
 // Attending Engine & Panel
 import { evaluateAttendingGuidance } from './engine/AttendingEngine';
@@ -116,6 +117,7 @@ export default function App() {
   const [attendingMode, setAttendingMode] = useState('observing');
   const [postIntubationModal, setPostIntubationModal] = useState(false);
   const [extubationModal, setExtubationModal] = useState(false);
+  const [ekgModalOpen, setEkgModalOpen] = useState(false);
   
   const [ventSettings, setVentSettings] = useState({ mode: 'PCV-VG', vt: 500, rr: 12, peep: 5, fio2: 50, pinsp: 20, ieRatio: 2, pmax: 40, ps: 10, air: 0.4, o2: 0.6 });
   const [gasSettings, setGasSettings] = useState({ agent: 'sevoflurane', dial: 0, airFlow: 0.0, o2Flow: 2.0, n2oFlow: 0.0 });
@@ -1122,7 +1124,7 @@ export default function App() {
         setShowFidelityPanel={setShowFidelityPanel}
       />
 
-      <div className={`grid grid-cols-1 ${patient?.airwaySecured ? 'lg:grid-cols-2' : ''} gap-4 mb-4`}>
+      <div className={`grid grid-cols-1 ${patient?.airwaySecured ? 'lg:grid-cols-2' : ''} gap-4`}>
         <PrimaryMonitor 
           patient={patient} 
           vitals={vitals} 
@@ -1135,6 +1137,9 @@ export default function App() {
           rrSpeed={rrSpeed} 
           gasSettings={gasSettings} 
           ventSettings={ventSettings}
+          electrolytes={electrolytes}
+          activeMeds={activeMeds}
+          onEkgClick={() => setEkgModalOpen(true)}
         />
 
         {patient?.airwaySecured && (
@@ -1300,6 +1305,17 @@ export default function App() {
             patient={patient}
             logEvent={logEvent}
             performExtubation={handleExtubation}
+          />
+
+          <EkgModal
+            show={ekgModalOpen}
+            close={() => setEkgModalOpen(false)}
+            patient={patient}
+            vitals={vitals}
+            electrolytes={electrolytes}
+            activeMeds={activeMeds}
+            hrSpeed={hrSpeed}
+            rrSpeed={rrSpeed}
           />
         </>
       )}

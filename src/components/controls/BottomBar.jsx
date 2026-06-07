@@ -54,7 +54,7 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
   };
 
   return (
-    <div className="flex flex-col md:flex-row md:flex-wrap xl:flex-nowrap gap-3 glass-panel glass-cyan p-3 shadow-2xl mt-4">
+    <div className="flex flex-col md:flex-row md:flex-wrap xl:flex-nowrap gap-3 glass-panel glass-cyan p-3 shadow-2xl">
       
       {/* 1. Fresh Gas Flow & Stoichiometry */}
       <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-[1_1_280px]" style={{ minWidth: 0 }}>

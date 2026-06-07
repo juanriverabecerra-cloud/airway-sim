@@ -6,6 +6,8 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
 
   // Derive the morphological shape of the waveform based on the active ventilator mode
   const ventMorphology = ventSettings?.mode === 'VCV' ? 'vcv' : 'pcv';
+  const ventValClass3 = "text-2xl @[200px]:text-3xl @[240px]:text-4xl @[280px]:text-5xl @[345px]:text-6xl @[410px]:text-7xl";
+  const ventValClass2 = "text-3xl @[200px]:text-4xl @[240px]:text-5xl @[280px]:text-6xl @[345px]:text-7xl @[410px]:text-8xl";
 
   return (
     <div className="glass-panel glass-emerald crt-monitor p-2 flex flex-col md:grid md:grid-cols-4 gap-2 min-h-[300px] md:min-h-0 md:h-[280px] lg:h-[420px] relative overflow-hidden">
@@ -54,24 +56,41 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
       </div>
 
       {/* Vent Numericals - Matching High-Legibility numerical styling of Primary Monitor */}
-      <div className="col-span-1 grid grid-rows-3 bg-black/45 backdrop-blur-md p-1.5 rounded-lg h-[260px] md:h-full border border-slate-800/60 shadow-inner gap-1.5 overflow-hidden z-30">
+      <div className="@container col-span-1 grid grid-rows-3 bg-black/45 backdrop-blur-md p-1.5 rounded-lg h-[300px] md:h-full border border-slate-800/60 shadow-inner gap-1.5 overflow-hidden z-30">
         {/* Card 1: Pressures */}
         <div className="bg-slate-900/60 border border-slate-800/80 rounded p-1.5 flex flex-col justify-between hover:border-yellow-500/30 transition-all overflow-hidden">
           <div className="flex justify-between items-center w-full border-b border-slate-900/40 pb-0.5">
             <span className="text-yellow-500 font-bold text-[9px] lg:text-[10px] leading-none uppercase">Pressures (cmH2O)</span>
           </div>
-          <div className="flex-grow flex justify-between items-center py-0.5">
-            <div className="flex flex-col">
-              <span className="text-xl sm:text-2xl md:text-3xl lg:text-3.5xl xl:text-4xl font-black text-white leading-none">{Math.round(vitals?.pip || 0)}</span>
-              <span className="text-yellow-600 text-[8px] font-bold uppercase mt-0.5 leading-none">Pip</span>
+          <div className="flex-1 flex justify-between items-stretch gap-1 mt-1">
+            {/* PIP Card */}
+            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-yellow-500/20 transition-all overflow-hidden">
+              <span className="text-[7.5px] lg:text-[8.5px] text-yellow-600 font-bold uppercase tracking-wider leading-none">PIP</span>
+              <div className="flex-1 flex items-center justify-center">
+                <span className={`${ventValClass3} font-black text-white leading-none`}>
+                  {Math.round(vitals?.pip || 0)}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col items-center">
-              <span className="text-sm sm:text-lg md:text-xl lg:text-2.5xl font-black text-slate-300 leading-none">{Math.round(vitals?.pplat || 0)}</span>
-              <span className="text-yellow-600 text-[8px] font-bold uppercase mt-0.5 leading-none">Plat</span>
+
+            {/* PLAT Card */}
+            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-yellow-500/20 transition-all overflow-hidden">
+              <span className="text-[7.5px] lg:text-[8.5px] text-yellow-600 font-bold uppercase tracking-wider leading-none">PLAT</span>
+              <div className="flex-1 flex items-center justify-center">
+                <span className={`${ventValClass3} font-black text-slate-300 leading-none`}>
+                  {Math.round(vitals?.pplat || 0)}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col items-end">
-              <span className="text-sm sm:text-lg md:text-xl lg:text-2.5xl font-black text-slate-300 leading-none">{Math.round(vitals?.peep || 0)}</span>
-              <span className="text-yellow-600 text-[8px] font-bold uppercase mt-0.5 leading-none">PEEP</span>
+
+            {/* PEEP Card */}
+            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-yellow-500/20 transition-all overflow-hidden">
+              <span className="text-[7.5px] lg:text-[8.5px] text-yellow-600 font-bold uppercase tracking-wider leading-none">PEEP</span>
+              <div className="flex-1 flex items-center justify-center">
+                <span className={`${ventValClass3} font-black text-slate-300 leading-none`}>
+                  {Math.round(vitals?.peep || 0)}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -81,14 +100,25 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
           <div className="flex justify-between items-center w-full border-b border-slate-900/40 pb-0.5">
             <span className="text-green-500 font-bold text-[9px] lg:text-[10px] leading-none uppercase">Volumes</span>
           </div>
-          <div className="flex-grow flex justify-between items-center py-0.5">
-            <div className="flex flex-col">
-              <span className="text-xl sm:text-2xl md:text-3xl lg:text-3.5xl xl:text-4xl font-black text-green-400 leading-none">{Math.round(vitals?.vte || 0)}</span>
-              <span className="text-green-600 text-[8px] font-bold uppercase mt-0.5 leading-none">VTe (mL)</span>
+          <div className="flex-1 flex justify-between items-stretch gap-1.5 mt-1">
+            {/* VTe Card */}
+            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-green-500/20 transition-all overflow-hidden">
+              <span className="text-[7.5px] lg:text-[8.5px] text-green-600 font-bold uppercase tracking-wider leading-none">VTe (mL)</span>
+              <div className="flex-1 flex items-center justify-center">
+                <span className={`${ventValClass2} font-black text-green-400 leading-none`}>
+                  {Math.round(vitals?.vte || 0)}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col items-end">
-              <span className="text-xl sm:text-2xl md:text-3xl lg:text-3.5xl xl:text-4xl font-black text-green-400 leading-none">{(vitals?.mv || 0).toFixed(1)}</span>
-              <span className="text-green-600 text-[8px] font-bold uppercase mt-0.5 leading-none">MVe (L/min)</span>
+
+            {/* MVe Card */}
+            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-green-500/20 transition-all overflow-hidden">
+              <span className="text-[7.5px] lg:text-[8.5px] text-green-600 font-bold uppercase tracking-wider leading-none">MVe (L/min)</span>
+              <div className="flex-1 flex items-center justify-center">
+                <span className={`${ventValClass2} font-black text-green-400 leading-none`}>
+                  {(vitals?.mv || 0).toFixed(1)}
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -98,22 +128,39 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
           <div className="flex justify-between items-center w-full border-b border-slate-900/40 pb-0.5">
             <span className="text-blue-400 font-bold text-[9px] lg:text-[10px] leading-none uppercase">Vent Ventilation</span>
           </div>
-          <div className="flex-grow flex justify-between items-center py-1">
-            <div className="flex flex-col justify-center">
-              <span className="text-xl sm:text-2xl md:text-3xl lg:text-3.5xl xl:text-4xl font-black text-white leading-none">{vitals?.rr || 0}</span>
-              <span className="text-blue-400 text-[8px] font-bold uppercase mt-0.5 leading-none">RR /min</span>
+          <div className="flex-1 flex justify-between items-stretch gap-1 mt-1 mb-1">
+            {/* RR Card */}
+            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-blue-500/20 transition-all overflow-hidden">
+              <span className="text-[7.5px] lg:text-[8.5px] text-blue-400 font-bold uppercase tracking-wider leading-none">RR /min</span>
+              <div className="flex-1 flex items-center justify-center">
+                <span className={`${ventValClass3} font-black text-white`}>
+                  {vitals?.rr || 0}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col justify-center items-center">
-              <span className="text-sm sm:text-lg md:text-xl lg:text-2.5xl font-black text-slate-300 leading-none">{Math.round(vitals?.compl || 60)}</span>
-              <span className="text-slate-500 text-[8px] font-bold uppercase mt-0.5 leading-none">Cdyn</span>
+
+            {/* Cdyn Card */}
+            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-blue-500/20 transition-all overflow-hidden">
+              <span className="text-[7.5px] lg:text-[8.5px] text-slate-400 font-bold uppercase tracking-wider leading-none">Cdyn</span>
+              <div className="flex-1 flex items-center justify-center">
+                <span className={`${ventValClass3} font-black text-slate-300`}>
+                  {Math.round(vitals?.compl || 60)}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col justify-center items-end">
-              <span className="text-sm sm:text-lg md:text-xl lg:text-2.5xl font-black text-slate-300 leading-none">{Math.round(vitals?.res || 5)}</span>
-              <span className="text-slate-500 text-[8px] font-bold uppercase mt-0.5 leading-none">Raw</span>
+
+            {/* Raw Card */}
+            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-blue-500/20 transition-all overflow-hidden">
+              <span className="text-[7.5px] lg:text-[8.5px] text-slate-400 font-bold uppercase tracking-wider leading-none">Raw</span>
+              <div className="flex-1 flex items-center justify-center">
+                <span className={`${ventValClass3} font-black text-slate-300`}>
+                  {Math.round(vitals?.res || 5)}
+                </span>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-1 leading-none border-t border-slate-900/40 pt-1">
-            <span className="text-[8px] text-slate-500 font-bold uppercase">I:E 1:</span>
+            <span className="text-[8px] text-slate-550 font-bold uppercase">I:E 1:</span>
             {setVentSettings ? (
               <select 
                 value={ventSettings?.ieRatio || 2}
