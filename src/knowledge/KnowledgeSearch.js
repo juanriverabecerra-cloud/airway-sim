@@ -1,14 +1,49 @@
 /**
  * KnowledgeSearch — Browser-Safe TF-IDF Search Engine
  * 
- * Builds an inverted index over the medical_truth_snapshot at import time.
+ * Uses a pre-computed inverted index compiled at ingestion time.
  * Enables fast, offline keyword search with TF-IDF relevance scoring.
  * 
- * ZERO EXTERNAL DEPENDENCIES — runs entirely in the browser.
- * ZERO HALLUCINATION — only returns verbatim records from the ingested knowledge base.
+ * ZERO RUNTIME MAIN-THREAD INDEXINGRef — runs entirely lag-free.
+ * ZERO HALLUCINATION — only returns verbatim records from the database.
  */
 
-import { textbookProse, physiologicalMatrices } from './medical_truth_snapshot.ts';
+import { ClientDbBridge } from './ClientDbBridge.ts';
+
+let precomputedIndex = null;
+
+async function loadIndex() {
+  try {
+    if (typeof window === 'undefined') {
+      // Node/Vitest: load synchronously from local file system
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      let dirname = '';
+      try {
+        dirname = __dirname;
+      } catch {
+        const { fileURLToPath } = await import('url');
+        dirname = path.dirname(fileURLToPath(import.meta.url));
+      }
+      
+      const indexPath = path.resolve(dirname, 'precomputed_index.json');
+      precomputedIndex = JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
+    } else {
+      // Browser: fetch over HTTP
+      const response = await fetch('/precomputed_index.json');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch precomputed index: ${response.statusText}`);
+      }
+      precomputedIndex = await response.json();
+    }
+  } catch (err) {
+    console.error('[KnowledgeSearch] Failed to load precomputed index:', err);
+  }
+}
+
+// Start loading index immediately on module import
+const indexLoadedPromise = loadIndex();
 
 // ─── TOKENIZER ───────────────────────────────────────────────────────────────
 
@@ -29,7 +64,9 @@ const STOP_WORDS = new Set([
   'it', 'its', 'they', 'them', 'their', 'theirs', 'also', 'however',
   'therefore', 'thus', 'hence', 'although', 'though', 'even', 'still',
   'already', 'since', 'whether', 'if', 'into', 'upon', 'within', 'without',
-  'fig', 'see', 'e', 'g', 'et', 'al', 'ie', 'eg', 'vs', 'etc'
+  'fig', 'see', 'e', 'g', 'et', 'al', 'ie', 'eg', 'vs', 'etc',
+  'am', 'us', 'an', 'as', 'at', 'be', 'by', 'do', 'go', 'he', 'if', 'in', 
+  'is', 'it', 'me', 'my', 'no', 'of', 'on', 'or', 'so', 'to', 'up', 'we'
 ]);
 
 /**
@@ -44,82 +81,60 @@ function tokenize(text) {
     .replace(/[^a-z0-9\s-]/g, ' ')  // Strip non-alphanumeric (keep hyphens)
     .split(/[\s-]+/)                  // Split on whitespace and hyphens
     .filter(token => 
-      token.length >= 3 &&            // Min 3 chars
+      token.length >= 2 &&            // Min 2 chars (so "bp", "hr" are kept)
       !STOP_WORDS.has(token) &&       // Not a stop word
       !/^\d+$/.test(token)            // Not purely numeric
     );
 }
 
-// ─── INVERTED INDEX ──────────────────────────────────────────────────────────
+// ─── CLINICAL SYNONYM EXPANSION ──────────────────────────────────────────────
+
+const CLINICAL_SYNONYMS = {
+  'bp': ['blood', 'pressure'],
+  'hr': ['heart', 'rate'],
+  'rr': ['respiratory', 'rate'],
+  'co': ['cardiac', 'output'],
+  'svr': ['systemic', 'vascular', 'resistance'],
+  'mac': ['minimum', 'alveolar', 'concentration'],
+  'bis': ['bispectral', 'index'],
+  'rem': ['rapid', 'eye', 'movement'],
+  'nrem': ['non', 'rapid', 'eye', 'movement'],
+  'gaba': ['gamma', 'aminobutyric', 'acid'],
+  'nmda': ['nmda', 'methyl', 'aspartate'],
+  'ach': ['acetylcholine']
+};
 
 /**
- * Inverted index entry: maps token → array of { docIdx, tf }
- * where tf = term frequency in that document
+ * Generates search tokens by tokenizing the query, expanding clinical synonyms,
+ * and generating unigrams and bigrams for matching.
  */
-const proseIndex = new Map();   // token → [{ docIdx, tf }]
-const matrixIndex = new Map();  // token → [{ docIdx, tf }]
-
-// Document frequency counts (for IDF calculation)
-const proseDocCount = textbookProse.length;
-const matrixDocCount = physiologicalMatrices.length;
-
-// Pre-computed document token arrays (for TF lookup)
-const proseTokenCounts = [];    // docIdx → Map<token, count>
-const matrixTokenCounts = [];
-
-/**
- * Builds the inverted index for a given corpus.
- */
-function buildIndex(corpus, textExtractor, index, tokenCountsArray) {
-  for (let docIdx = 0; docIdx < corpus.length; docIdx++) {
-    const text = textExtractor(corpus[docIdx]);
-    const tokens = tokenize(text);
-    
-    // Count term frequencies for this document
-    const tfMap = new Map();
-    for (const token of tokens) {
-      tfMap.set(token, (tfMap.get(token) || 0) + 1);
-    }
-    tokenCountsArray.push(tfMap);
-    
-    // Add to inverted index
-    for (const [token, count] of tfMap) {
-      if (!index.has(token)) {
-        index.set(token, []);
+export function getSearchTokens(query) {
+  const unigrams = tokenize(query);
+  const searchTokensSet = new Set(unigrams);
+  
+  // Apply synonym expansion
+  for (const token of unigrams) {
+    if (CLINICAL_SYNONYMS[token]) {
+      const expanded = CLINICAL_SYNONYMS[token];
+      for (const expToken of expanded) {
+        searchTokensSet.add(expToken);
       }
-      index.get(token).push({ docIdx, tf: count });
+      // Add bigrams for expanded synonyms
+      for (let i = 0; i < expanded.length - 1; i++) {
+        searchTokensSet.add(`${expanded[i]}_${expanded[i+1]}`);
+      }
     }
   }
+  
+  // Add bigrams of the original query unigrams
+  for (let i = 0; i < unigrams.length - 1; i++) {
+    searchTokensSet.add(`${unigrams[i]}_${unigrams[i+1]}`);
+  }
+  
+  return Array.from(searchTokensSet);
 }
-
-// Build prose index (combine heading + body for richer matching)
-buildIndex(
-  textbookProse,
-  (record) => `${record.section_heading} ${record.body_text}`,
-  proseIndex,
-  proseTokenCounts
-);
-
-// Build matrix index (combine caption + archetype + payload text)
-buildIndex(
-  physiologicalMatrices,
-  (record) => `${record.caption} ${record.archetype} ${record.structured_payload}`,
-  matrixIndex,
-  matrixTokenCounts
-);
 
 // ─── TF-IDF SEARCH ───────────────────────────────────────────────────────────
-
-/**
- * Computes IDF (Inverse Document Frequency) for a token.
- * IDF = log(N / (1 + df)) where df = number of documents containing the token
- */
-function computeIDF(token, index, totalDocs) {
-  const postings = index.get(token);
-  if (!postings) return 0;
-  const df = postings.length;
-  return Math.log((totalDocs + 1) / (1 + df));
-}
 
 /**
  * Searches the prose knowledge base using TF-IDF scoring.
@@ -130,43 +145,76 @@ function computeIDF(token, index, totalDocs) {
  * @returns {Array<{record: ProseRecord, score: number, rank: number}>}
  */
 export function searchKnowledge(query, topK = 5, minScore = 0.5) {
-  const queryTokens = tokenize(query);
-  if (queryTokens.length === 0) return [];
+  if (!precomputedIndex) {
+    console.warn('[KnowledgeSearch] Index not loaded yet.');
+    return [];
+  }
+
+  const originalTokens = tokenize(query);
+  if (originalTokens.length === 0) return [];
   
-  // Score each document
-  const scores = new Map(); // docIdx → score
+  const searchTokens = getSearchTokens(query);
+  const scores = new Map(); // docId → score
   
-  for (const token of queryTokens) {
-    const idf = computeIDF(token, proseIndex, proseDocCount);
-    const postings = proseIndex.get(token);
+  for (const token of searchTokens) {
+    const idf = precomputedIndex.proseIdf[token] || 0;
+    const postings = precomputedIndex.proseIndex[token];
     if (!postings) continue;
     
-    for (const { docIdx, tf } of postings) {
+    for (const { id, tf, inHeading } of postings) {
       // TF-IDF with sublinear TF scaling: (1 + log(tf)) * idf
-      const tfidf = (1 + Math.log(tf)) * idf;
-      scores.set(docIdx, (scores.get(docIdx) || 0) + tfidf);
+      let tfidf = (1 + Math.log(tf)) * idf;
+      if (inHeading) {
+        tfidf *= 2.0; // 2x Heading boost
+      }
+      scores.set(id, (scores.get(id) || 0) + tfidf);
     }
   }
   
-  // Normalize scores by query length to prevent long queries from inflating scores
-  const queryNorm = Math.sqrt(queryTokens.length);
+  // Normalize scores by original query length to keep scoring stable
+  const queryNorm = Math.sqrt(originalTokens.length);
   
-  // Sort by score and return top-K above threshold
+  // Sort by score and filter top-K above threshold
   const results = [];
-  for (const [docIdx, rawScore] of scores) {
+  for (const [id, rawScore] of scores) {
     const normalizedScore = rawScore / queryNorm;
     if (normalizedScore >= minScore) {
-      results.push({
-        record: textbookProse[docIdx],
-        score: normalizedScore,
-        rank: 0
-      });
+      results.push({ id, score: normalizedScore });
     }
   }
   
   results.sort((a, b) => b.score - a.score);
   
-  return results.slice(0, topK).map((r, idx) => ({
+  // Resolve full records from ClientDbBridge dynamically
+  const topResults = results.slice(0, topK);
+  const finalized = [];
+  
+  for (const res of topResults) {
+    const dbRecord = ClientDbBridge.queryProseById(res.id);
+    const metaRecord = precomputedIndex.proseMetadata[res.id];
+    
+    if (dbRecord) {
+      finalized.push({
+        record: dbRecord,
+        score: res.score,
+        rank: 0
+      });
+    } else if (metaRecord) {
+      // Return metadata + placeholder body text if database asset is still loading
+      finalized.push({
+        record: {
+          id: res.id,
+          chapter_title: metaRecord.chapter_title,
+          section_heading: metaRecord.section_heading,
+          body_text: "Verbatim content loading from database..."
+        },
+        score: res.score,
+        rank: 0
+      });
+    }
+  }
+  
+  return finalized.map((r, idx) => ({
     ...r,
     rank: idx + 1
   }));
@@ -180,39 +228,73 @@ export function searchKnowledge(query, topK = 5, minScore = 0.5) {
  * @returns {Array<{record: MatrixRecord, score: number, rank: number}>}
  */
 export function searchMatrices(query, topK = 3) {
-  const queryTokens = tokenize(query);
-  if (queryTokens.length === 0) return [];
+  if (!precomputedIndex) {
+    console.warn('[KnowledgeSearch] Index not loaded yet.');
+    return [];
+  }
+
+  const originalTokens = tokenize(query);
+  if (originalTokens.length === 0) return [];
   
-  const scores = new Map();
+  const searchTokens = getSearchTokens(query);
+  const scores = new Map(); // docId -> score
   
-  for (const token of queryTokens) {
-    const idf = computeIDF(token, matrixIndex, matrixDocCount);
-    const postings = matrixIndex.get(token);
+  for (const token of searchTokens) {
+    const idf = precomputedIndex.matrixIdf[token] || 0;
+    const postings = precomputedIndex.matrixIndex[token];
     if (!postings) continue;
     
-    for (const { docIdx, tf } of postings) {
-      const tfidf = (1 + Math.log(tf)) * idf;
-      scores.set(docIdx, (scores.get(docIdx) || 0) + tfidf);
+    for (const { id, tf, inHeading } of postings) {
+      let tfidf = (1 + Math.log(tf)) * idf;
+      if (inHeading) {
+        tfidf *= 2.0; // Heading/Caption boost
+      }
+      scores.set(id, (scores.get(id) || 0) + tfidf);
     }
   }
   
-  const queryNorm = Math.sqrt(queryTokens.length);
+  const queryNorm = Math.sqrt(originalTokens.length);
   const results = [];
   
-  for (const [docIdx, rawScore] of scores) {
+  for (const [id, rawScore] of scores) {
     const normalizedScore = rawScore / queryNorm;
     if (normalizedScore >= 0.3) {
-      results.push({
-        record: physiologicalMatrices[docIdx],
-        score: normalizedScore,
-        rank: 0
-      });
+      results.push({ id, score: normalizedScore });
     }
   }
   
   results.sort((a, b) => b.score - a.score);
   
-  return results.slice(0, topK).map((r, idx) => ({
+  // Resolve full records from ClientDbBridge dynamically
+  const topResults = results.slice(0, topK);
+  const finalized = [];
+  
+  for (const res of topResults) {
+    const dbRecord = ClientDbBridge.queryMatrixById(res.id);
+    const metaRecord = precomputedIndex.matrixMetadata[res.id];
+    
+    if (dbRecord) {
+      finalized.push({
+        record: dbRecord,
+        score: res.score,
+        rank: 0
+      });
+    } else if (metaRecord) {
+      finalized.push({
+        record: {
+          id: res.id,
+          chapter_title: metaRecord.chapter_title,
+          archetype: metaRecord.archetype,
+          caption: metaRecord.caption,
+          structured_payload: "{}"
+        },
+        score: res.score,
+        rank: 0
+      });
+    }
+  }
+  
+  return finalized.map((r, idx) => ({
     ...r,
     rank: idx + 1
   }));
@@ -223,10 +305,18 @@ export function searchMatrices(query, topK = 3) {
  * Useful for diagnostics and UI status displays.
  */
 export function getKnowledgeStats() {
+  if (!precomputedIndex) {
+    return {
+      proseRecords: 0,
+      matrixRecords: 0,
+      uniqueProseTokens: 0,
+      uniqueMatrixTokens: 0
+    };
+  }
   return {
-    proseRecords: textbookProse.length,
-    matrixRecords: physiologicalMatrices.length,
-    uniqueProseTokens: proseIndex.size,
-    uniqueMatrixTokens: matrixIndex.size
+    proseRecords: precomputedIndex.proseDocCount,
+    matrixRecords: precomputedIndex.matrixDocCount,
+    uniqueProseTokens: Object.keys(precomputedIndex.proseIndex).length,
+    uniqueMatrixTokens: Object.keys(precomputedIndex.matrixIndex).length
   };
 }

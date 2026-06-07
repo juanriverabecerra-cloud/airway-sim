@@ -4,7 +4,26 @@ import {
   HelpCircle, Shield, Award, Clock, ArrowRight, BookOpen
 } from 'lucide-react';
 import { parseAndRenderText } from '../../engine/ClinicalActions';
-import { getAttendingResponse } from '../../engine/ClinicalAiChat';
+import { getAttendingResponse, resetConversationHistory, verifyResponseGrounding } from '../../engine/ClinicalAiChat';
+import { getKnowledgeStats, searchKnowledge } from '../../knowledge/KnowledgeSearch';
+import { boardQuestions } from '../../knowledge/BoardQuestions';
+
+function extractSources(text) {
+  const sources = [];
+  // Match "**Source X** — *Title*" followed by "📄 *[Filename]* | Relevance: Label (Score)"
+  const regex = /\*\*Source\s+(\d+)\*\*\s+—\s+\*([^*]+)\*\s*\n📄\s+\*\[([^\]]+)\]\*\s*\|\s*Relevance:\s*([^\n(]+)\(([^)]+)\)/gi;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    sources.push({
+      rank: match[1],
+      title: match[2].trim(),
+      file: match[3].trim(),
+      relevance: match[4].trim(),
+      score: match[5].trim()
+    });
+  }
+  return sources;
+}
 
 export default function AttendingPanel({
   vitals,
@@ -27,12 +46,47 @@ export default function AttendingPanel({
   const [messageHistory, setMessageHistory] = useState([]);
   const [showAuditModal, setShowAuditModal] = useState(false);
 
-  const [activeTab, setActiveTab] = useState('advisor'); // 'advisor' or 'chat'
+  const [activeTab, setActiveTab] = useState('advisor'); // 'advisor' or 'chat' or 'study'
   const [chatMessages, setChatMessages] = useState([]);
   const [userInput, setUserInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const chatEndRef = useRef(null);
+  const conversationHistoryRef = useRef([]);
+  const [expandedSources, setExpandedSources] = useState({});
 
+  const toggleSources = (msgId) => {
+    setExpandedSources(prev => ({
+      ...prev,
+      [msgId]: !prev[msgId]
+    }));
+  };
+
+  const kbStats = getKnowledgeStats();
+
+  // Board Exam Quiz State
+  const [activeQuizQuestionIdx, setActiveQuizQuestionIdx] = useState(0);
+  const [selectedOptionIdx, setSelectedOptionIdx] = useState(null);
+  const [showQuizExplanation, setShowQuizExplanation] = useState(false);
+  const [quizReferenceContext, setQuizReferenceContext] = useState([]);
+  const [quizStats, setQuizStats] = useState({ completed: 0, correct: 0, streak: 0 });
+  const [quizFilter, setQuizFilter] = useState('ALL');
+
+  const filteredQuestions = boardQuestions.filter(q => 
+    quizFilter === 'ALL' || q.category.toUpperCase() === quizFilter.toUpperCase()
+  );
+  const currentQuestion = filteredQuestions[activeQuizQuestionIdx % filteredQuestions.length] || null;
+
+  // Background reference retrieval when active question changes
+  useEffect(() => {
+    if (currentQuestion && currentQuestion.searchQuery) {
+      const results = searchKnowledge(currentQuestion.searchQuery, 3, 0.4);
+      setQuizReferenceContext(results);
+    } else {
+      setQuizReferenceContext([]);
+    }
+    setSelectedOptionIdx(null);
+    setShowQuizExplanation(false);
+  }, [currentQuestion]);
 
   // Initialize and reset chat messages on patient name changes
   useEffect(() => {
@@ -45,6 +99,8 @@ export default function AttendingPanel({
         timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m`
       }
     ]);
+    resetConversationHistory();
+    conversationHistoryRef.current = [];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patient?.name]);
 
@@ -74,7 +130,7 @@ export default function AttendingPanel({
           surgicalPhase,
           time,
           logs
-        });
+        }, conversationHistoryRef.current);
         setChatMessages(prev => {
           const responseMessage = {
             id: `attending-${prev.length}`,
@@ -115,7 +171,7 @@ export default function AttendingPanel({
         surgicalPhase,
         time,
         logs
-      });
+      }, conversationHistoryRef.current);
 
       setChatMessages(prev => {
         const responseMessage = {
@@ -272,7 +328,18 @@ export default function AttendingPanel({
           >
             💬 Direct Chat
           </button>
+          <button
+            onClick={() => setActiveTab('study')}
+            className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-wider transition-all border-b-2 flex items-center justify-center gap-1.5 ${
+              activeTab === 'study'
+                ? 'border-amber-500 text-amber-400 bg-slate-900/40'
+                : 'border-transparent text-slate-500 hover:text-slate-300 hover:bg-slate-900/20'
+            }`}
+          >
+            📚 Board Study
+          </button>
         </div>
+
 
         {activeTab === 'advisor' ? (
           <>
@@ -408,33 +475,124 @@ export default function AttendingPanel({
               </div>
             )}
           </>
-        ) : (
+        ) : activeTab === 'chat' ? (
           /* Direct Chat View */
           <div className="flex-1 flex flex-col min-h-0 bg-slate-950/20">
+            {/* KB Status Bar */}
+            <div className="px-4 py-2 border-b border-white/5 bg-slate-950/45 text-[9px] text-slate-450 flex justify-between items-center shrink-0">
+              <span className="flex items-center gap-1 font-bold text-amber-500">
+                📚 Knowledge Base Active
+              </span>
+              <span className="text-slate-500 font-bold">
+                {kbStats.proseRecords} records | {kbStats.uniqueProseTokens} terms
+              </span>
+            </div>
+            
             {/* Chat Messages */}
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar">
-              {chatMessages.map((msg) => (
-                <div 
-                  key={msg.id} 
-                  className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
-                >
-                  <span className="text-[9px] text-slate-500 font-extrabold uppercase mb-1">
-                    {msg.sender === 'user' ? 'You' : 'Attending'} • {msg.timestamp}
-                  </span>
+              {chatMessages.map((msg) => {
+                const isUser = msg.sender === 'user';
+                
+                // Classify response type
+                const isKbResponse = !isUser && msg.text.includes('### 📖 Attending Knowledge Base');
+                const isRefusal = !isUser && msg.text.includes('Knowledge Limitation');
+                const isRecall = !isUser && (msg.text.includes('Conversation Memory Recall') || msg.text.includes('[Memory Recall]'));
+                
+                // Get display name & header styles
+                let senderLabel = 'You';
+                let labelColor = 'text-slate-500';
+                let cardClass = 'bg-amber-900/40 border border-amber-500/30 text-amber-100 rounded-tr-none shadow-[0_2px_8px_rgba(245,158,11,0.1)]';
+                
+                let isGrounded = false;
+                if (!isUser) {
+                  isGrounded = verifyResponseGrounding(msg.text, { vitals, patient });
+                  
+                  if (isKbResponse) {
+                    senderLabel = '📖 Attending Knowledge Base';
+                    labelColor = 'text-blue-400';
+                    cardClass = 'bg-blue-950/40 border border-blue-500/30 text-blue-100 rounded-tl-none shadow-[0_2px_8px_rgba(59,130,246,0.1)]';
+                  } else if (isRefusal) {
+                    senderLabel = '⚠️ Attending Limitation';
+                    labelColor = 'text-amber-500';
+                    cardClass = 'bg-amber-955/20 border border-amber-500/20 text-amber-200 rounded-tl-none shadow-md';
+                  } else if (isRecall) {
+                    senderLabel = '🕰️ Memory Recall';
+                    labelColor = 'text-purple-400';
+                    cardClass = 'bg-purple-950/30 border border-purple-500/20 text-purple-200 rounded-tl-none shadow-md';
+                  } else {
+                    senderLabel = '🏥 Senior Attending';
+                    labelColor = 'text-emerald-400';
+                    cardClass = 'bg-slate-900/80 border border-white/5 text-slate-205 rounded-tl-none shadow-md';
+                  }
+                }
+                
+                // Extract sources if it's a KB response
+                let sources = [];
+                if (isKbResponse) {
+                  sources = extractSources(msg.text);
+                }
+                
+                return (
                   <div 
-                    className={`px-3.5 py-2.5 rounded-2xl text-[11px] leading-relaxed font-mono ${
-                      msg.sender === 'user' 
-                        ? 'bg-amber-900/40 border border-amber-500/30 text-amber-100 rounded-tr-none shadow-[0_2px_8px_rgba(245,158,11,0.1)]' 
-                        : 'bg-slate-905/80 border border-white/5 text-slate-200 rounded-tl-none shadow-md'
-                    }`}
+                    key={msg.id} 
+                    className={`flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
                   >
-                    {msg.sender === 'user' 
-                      ? msg.text 
-                      : parseAndRenderText(msg.text, handleActionClick)
-                    }
+                    <span className={`text-[9px] font-extrabold uppercase mb-1 flex items-center gap-1 ${labelColor}`}>
+                      {senderLabel} • {msg.timestamp}
+                      {isGrounded && (
+                        <span className="bg-emerald-500/20 text-emerald-450 border border-emerald-500/30 text-[8px] px-1 py-0.5 rounded font-black tracking-wider shadow-sm flex items-center gap-0.5 ml-1">
+                          🛡️ Grounded
+                        </span>
+                      )}
+                    </span>
+                    <div className={`px-3.5 py-2.5 rounded-2xl text-[11px] leading-relaxed font-mono ${cardClass}`}>
+                      {isUser 
+                        ? msg.text 
+                        : parseAndRenderText(msg.text, handleActionClick)
+                      }
+                      
+                      {isKbResponse && sources.length > 0 && (
+                        <div className="mt-3 pt-2 border-t border-blue-500/20 text-[10px] shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => toggleSources(msg.id)}
+                            className="flex items-center gap-1 text-blue-400 hover:text-blue-300 font-bold transition focus:outline-none cursor-pointer"
+                          >
+                            <BookOpen size={10} />
+                            {expandedSources[msg.id] ? 'Hide Source Citations' : `Show Source Citations (${sources.length})`}
+                          </button>
+                          
+                          {expandedSources[msg.id] && (
+                            <div className="mt-2 pl-2 border-l border-blue-500/30 flex flex-col gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                              {sources.map((src, sIdx) => {
+                                const isHigh = src.relevance.includes('HIGH');
+                                const isMod = src.relevance.includes('MODERATE');
+                                const badgeColor = isHigh 
+                                  ? 'bg-emerald-500/20 text-emerald-450 border-emerald-500/30' 
+                                  : isMod 
+                                  ? 'bg-yellow-500/20 text-yellow-450 border-yellow-500/30' 
+                                  : 'bg-orange-500/20 text-orange-450 border-orange-500/30';
+                                  
+                                return (
+                                  <div key={sIdx} className="bg-slate-950/40 p-2 rounded border border-blue-500/10">
+                                    <div className="flex justify-between items-center mb-1">
+                                      <span className="font-extrabold text-blue-300 text-[9.5px]">Source {src.rank}: {src.title}</span>
+                                      <span className={`px-1 rounded border text-[8px] font-bold shrink-0 ${badgeColor}`}>
+                                        {src.relevance} ({src.score})
+                                      </span>
+                                    </div>
+                                    <div className="text-slate-450 font-semibold text-[8.5px]">File: {src.file}</div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               
               {isTyping && (
                 <div className="flex flex-col items-start">
@@ -467,6 +625,169 @@ export default function AttendingPanel({
                 <ChevronRight size={16} />
               </button>
             </form>
+          </div>
+        ) : (
+          /* Board Study View */
+          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar text-[11px] bg-slate-950/20">
+            {/* Quiz Stats */}
+            <div className="flex flex-col gap-3 shrink-0">
+              <div className="flex justify-between items-center bg-slate-950 p-2.5 rounded-lg border border-white/5 text-[9px] text-slate-400">
+                <div>
+                  Completed: <strong className="text-slate-200">{quizStats.completed}</strong>
+                </div>
+                <div>
+                  Correct: <strong className="text-emerald-400">{quizStats.correct}</strong>
+                </div>
+                <div>
+                  Accuracy: <strong className="text-amber-400">{quizStats.completed > 0 ? Math.round((quizStats.correct / quizStats.completed) * 100) : 0}%</strong>
+                </div>
+                <div>
+                  Streak: <strong className="text-indigo-400">{quizStats.streak} 🔥</strong>
+                </div>
+              </div>
+
+              {/* Quiz Filters */}
+              <div className="flex gap-1 bg-slate-950 p-1 rounded-lg border border-white/5 text-[9px]">
+                {['ALL', 'PHYSIOLOGY', 'PHARMACOLOGY'].map(f => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => {
+                      setQuizFilter(f);
+                      setActiveQuizQuestionIdx(0);
+                    }}
+                    className={`flex-1 py-1 font-bold rounded transition-all cursor-pointer ${
+                      quizFilter === f ? 'bg-amber-600 text-white' : 'text-slate-500 hover:text-slate-300'
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Current Question */}
+            {currentQuestion ? (
+              <div className="bg-slate-900/60 border border-white/5 rounded-xl p-4 flex flex-col gap-3 animate-in fade-in duration-200">
+                <div className="flex justify-between items-center text-[9px] font-bold text-amber-500 border-b border-slate-800 pb-2">
+                  <span>TOPIC: {currentQuestion.category.toUpperCase()}</span>
+                  <span>QUESTION {activeQuizQuestionIdx + 1} OF {filteredQuestions.length}</span>
+                </div>
+                
+                <p className="font-bold leading-relaxed text-slate-100 bg-slate-950/20 p-2.5 rounded border border-slate-900/30">
+                  {currentQuestion.vignette}
+                </p>
+                
+                <div className="flex flex-col gap-2 my-1">
+                  {currentQuestion.options.map((opt, oIdx) => {
+                    let optStyle = 'border-slate-850 hover:border-slate-700 bg-slate-950/30 hover:bg-slate-950/50 text-slate-300';
+                    
+                    if (showQuizExplanation) {
+                      if (oIdx === currentQuestion.correctIdx) {
+                        optStyle = 'border-emerald-500 bg-emerald-950/30 text-emerald-200 font-bold';
+                      } else if (selectedOptionIdx === oIdx) {
+                        optStyle = 'border-red-500 bg-red-950/30 text-red-200';
+                      }
+                    } else if (selectedOptionIdx === oIdx) {
+                      optStyle = 'border-amber-500 bg-amber-950/30 text-amber-200';
+                    }
+                    
+                    return (
+                      <button
+                        key={oIdx}
+                        type="button"
+                        onClick={() => {
+                          if (!showQuizExplanation) setSelectedOptionIdx(oIdx);
+                        }}
+                        disabled={showQuizExplanation}
+                        className={`w-full text-left p-2.5 rounded-lg border text-[10px] leading-snug transition-all flex items-start gap-2 focus:outline-none cursor-pointer ${optStyle}`}
+                      >
+                        <span className="font-bold shrink-0">{opt.slice(0, 2)}</span>
+                        <span>{opt.slice(3)}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                {!showQuizExplanation ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedOptionIdx === null) return;
+                      const isCorrect = selectedOptionIdx === currentQuestion.correctIdx;
+                      setQuizStats(prev => ({
+                        completed: prev.completed + 1,
+                        correct: prev.correct + (isCorrect ? 1 : 0),
+                        streak: isCorrect ? prev.streak + 1 : 0
+                      }));
+                      setShowQuizExplanation(true);
+                    }}
+                    disabled={selectedOptionIdx === null}
+                    className="w-full py-2 bg-amber-600 disabled:opacity-50 hover:bg-amber-500 active:scale-98 text-white font-bold rounded-lg transition-all shadow-md font-mono cursor-pointer"
+                  >
+                    SUBMIT ANSWER
+                  </button>
+                ) : (
+                  <div className="flex flex-col gap-3 animate-in fade-in duration-300">
+                    <div className={`p-3 rounded-lg border text-[10px] leading-relaxed ${
+                      selectedOptionIdx === currentQuestion.correctIdx 
+                        ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-200' 
+                        : 'bg-red-950/20 border-red-500/40 text-red-200'
+                    }`}>
+                      <span className="font-bold block mb-1 text-[10.5px]">
+                        {selectedOptionIdx === currentQuestion.correctIdx ? '🎉 CORRECT EXPLANATION' : '❌ INCORRECT EXPLANATION'}
+                      </span>
+                      {currentQuestion.explanation}
+                    </div>
+                    
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveQuizQuestionIdx(prev => prev + 1);
+                      }}
+                      className="w-full py-2 bg-slate-800 hover:bg-slate-700 active:scale-98 text-white font-bold rounded-lg transition-all shadow-md font-mono cursor-pointer"
+                    >
+                      NEXT QUESTION
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-slate-500 italic">No questions found for this topic.</div>
+            )}
+
+            {/* Collapsible Reference Context */}
+            {quizReferenceContext.length > 0 && (
+              <div className="flex flex-col gap-2 mt-2">
+                <span className="text-[9.5px] font-black uppercase text-amber-500 tracking-wider flex items-center gap-1">
+                  📚 Textbook Reference Passages ({quizReferenceContext.length})
+                </span>
+                
+                <div className="flex flex-col gap-2 max-h-52 overflow-y-auto custom-scrollbar pr-1">
+                  {quizReferenceContext.map((res, rIdx) => {
+                    const { record, score } = res;
+                    const chapterNum = record.chapter_title.includes('10') || 
+                                       (record.section_heading && record.section_heading.toLowerCase().includes('sleep')) || 
+                                       (record.section_heading && record.section_heading.toLowerCase().includes('eeg')) 
+                                       ? 'Ch.10' 
+                                       : 'Ch.9';
+                    return (
+                      <details key={rIdx} className="bg-slate-950/45 border border-slate-900 rounded-lg p-2 text-[9.5px] text-slate-300 group focus:outline-none">
+                        <summary className="font-bold text-blue-400 hover:text-blue-300 transition cursor-pointer select-none outline-none flex justify-between items-center">
+                          <span className="truncate max-w-[200px]">{record.section_heading}</span>
+                          <span className="text-slate-500 text-[8px] font-semibold border border-slate-900 px-1 rounded uppercase shrink-0">
+                            Miller {chapterNum} ({score.toFixed(1)})
+                          </span>
+                        </summary>
+                        <p className="mt-1.5 text-slate-400 leading-relaxed pl-1.5 border-l border-blue-500/20 font-sans font-normal text-[9px]">
+                          {record.body_text}
+                        </p>
+                      </details>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

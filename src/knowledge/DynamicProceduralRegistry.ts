@@ -1,4 +1,5 @@
 import { textbookProse, physiologicalMatrices } from './medical_truth_snapshot.ts';
+import { ClientDbBridge } from './ClientDbBridge.ts';
 
 export interface ProceduralStep {
   index: number;
@@ -31,6 +32,7 @@ export class DynamicProceduralRegistry {
 
     // 1. Scan textbook prose for numbered procedural sequences
     for (const prose of textbookProse) {
+      if (prose.is_authoritative !== 1) continue;
       const heading = (prose.section_heading || '').toLowerCase();
       
       // Look for headings describing procedural techniques
@@ -50,6 +52,7 @@ export class DynamicProceduralRegistry {
 
     // 2. Scan timeline step charts
     for (const matrix of physiologicalMatrices) {
+      if (matrix.is_authoritative !== 1) continue;
       if (matrix.archetype === 'TIMELINE_STEP_CHART_HYPNOGRAM' || matrix.caption.toLowerCase().includes('procedure') || matrix.caption.toLowerCase().includes('step') || matrix.caption.toLowerCase().includes('sequence')) {
         try {
           const payload = JSON.parse(matrix.structured_payload);
@@ -275,3 +278,9 @@ export class DynamicProceduralRegistry {
     }
   }
 }
+
+// Register auto-rehydration when database loads in browser
+ClientDbBridge.onLoaded(() => {
+  DynamicProceduralRegistry.reset();
+  DynamicProceduralRegistry.hydrate();
+});

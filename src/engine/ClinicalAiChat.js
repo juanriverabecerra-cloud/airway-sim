@@ -23,7 +23,103 @@ function fmt(val, decimals = 0) {
   return val.toFixed(decimals);
 }
 
-export function getAttendingResponse(query, state) {
+// ─── CONVERSATION MEMORY ─────────────────────────────────────────────────────
+
+let conversationHistory = [];
+
+const TEMPORAL_KEYWORDS = [
+  'earlier',
+  'before',
+  'previous',
+  'last time',
+  'what did you say',
+  'what was that',
+  'can you repeat',
+  'recap',
+  'history',
+  'ago'
+];
+
+function searchHistory(query, history) {
+  if (!history || history.length === 0) return null;
+  
+  const q = query.toLowerCase().trim();
+  const hasTemporal = TEMPORAL_KEYWORDS.some(keyword => q.includes(keyword));
+  if (!hasTemporal) return null;
+  
+  // Clean query: remove question and temporal words to isolate the subject
+  const ignoreWords = new Set([
+    'what', 'why', 'how', 'who', 'whom', 'where', 'when', 'which', 'did', 'do', 'does',
+    'you', 'say', 'about', 'earlier', 'before', 'previous', 'last', 'time', 'recap',
+    'repeat', 'tell', 'me', 'again', 'mentioned', 'discuss', 'discussed', 'what was'
+  ]);
+  
+  const queryWords = q.replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length >= 2 && !ignoreWords.has(w));
+  
+  if (queryWords.length > 0) {
+    // Scan history from newest to oldest
+    for (let i = history.length - 1; i >= 0; i--) {
+      const entry = history[i];
+      const entryText = `${entry.query} ${entry.responseSummary}`.toLowerCase();
+      const match = queryWords.some(word => entryText.includes(word));
+      if (match) {
+        return entry;
+      }
+    }
+  }
+  
+  return history[history.length - 1];
+}
+
+export function resetConversationHistory() {
+  conversationHistory = [];
+}
+
+export function getAttendingResponse(query, state, history) {
+  const safeQuery = typeof query === 'string' ? query : '';
+  const q = safeQuery.toLowerCase().trim();
+  
+  const activeHistory = history || conversationHistory;
+  
+  const historyMatch = searchHistory(safeQuery, activeHistory);
+  if (historyMatch) {
+    let msg = `### 🕰️ Attending Consultation — Conversation Memory Recall\n\n`;
+    msg += `Earlier in this case, we discussed **"${historyMatch.query}"**:\n\n`;
+    msg += `> ${historyMatch.responseSummary}\n\n`;
+    msg += `---\n`;
+    msg += `*Vitals at that time: HR ${historyMatch.vitalSnapshot.hr} bpm, BP ${historyMatch.vitalSnapshot.sys}/${historyMatch.vitalSnapshot.dia} mmHg (MAP ${historyMatch.vitalSnapshot.map} mmHg), SpO2 ${historyMatch.vitalSnapshot.spo2}%.*\n\n`;
+    msg += `*Context Badge: [Memory Recall]*`;
+    return msg;
+  }
+  
+  const response = getAttendingResponseInternal(query, state);
+  
+  if (safeQuery.trim() !== '') {
+    const safeState = state || {};
+    const vitals = safeState.vitals || {};
+    const hr = typeof vitals.hr === 'number' && Number.isFinite(vitals.hr) ? vitals.hr : 0;
+    const sys = typeof vitals.sys === 'number' && Number.isFinite(vitals.sys) ? vitals.sys : 0;
+    const dia = typeof vitals.dia === 'number' && Number.isFinite(vitals.dia) ? vitals.dia : 0;
+    const map = typeof vitals.map === 'number' && Number.isFinite(vitals.map) ? vitals.map : 0;
+    const spo2 = typeof vitals.spo2 === 'number' && Number.isFinite(vitals.spo2) ? vitals.spo2 : 100;
+
+    const entry = {
+      query: safeQuery,
+      responseSummary: response.length > 500 ? response.slice(0, 500) + '...' : response,
+      timestamp: new Date().toLocaleTimeString(),
+      vitalSnapshot: { hr, sys, dia, map, spo2 }
+    };
+    
+    activeHistory.push(entry);
+    if (activeHistory.length > 10) {
+      activeHistory.shift();
+    }
+  }
+  
+  return response;
+}
+
+function getAttendingResponseInternal(query, state) {
   const safeQuery = typeof query === 'string' ? query : '';
   const q = safeQuery.toLowerCase().trim();
 
@@ -443,8 +539,8 @@ Myocardial perfusion has collapsed due to tachycardia or severe hypotension.
   }
 
   // J. Help / General Next Step Directives
-  if (q.includes('help') || q.includes('what should i do') || q.includes('next') || q.includes('advice') || q.includes('guidance') || q.includes('treat')) {
-    let msg = `### Attending Clinical Consultation\n`;
+  if (q === '' || q.includes('help') || q.includes('what should i do') || q.includes('next') || q.includes('advice') || q.includes('guidance') || q.includes('treat')) {
+    let msg = `### Attending Briefing & Clinical Consultation\n`;
     msg += `Looking at the current state, here is my immediate guidance:\n\n`;
 
     if (isArrest) {
@@ -499,10 +595,18 @@ Myocardial perfusion has collapsed due to tachycardia or severe hypotension.
         ? record.body_text.slice(0, 800) + '...' 
         : record.body_text;
 
+      const chapterNum = record.chapter_title.includes('10') || 
+                         (record.section_heading && record.section_heading.toLowerCase().includes('sleep')) || 
+                         (record.section_heading && record.section_heading.toLowerCase().includes('eeg')) 
+                         ? 'Ch.10' 
+                         : 'Ch.9';
+      const citation = ` [Miller ${chapterNum}: ${record.section_heading || 'Untitled Section'}]`;
+      const citedBody = truncatedBody + citation;
+
       kbResponse += `---\n`;
       kbResponse += `**Source ${rank}** — *${record.section_heading || 'Untitled Section'}*\n`;
       kbResponse += `📄 *[${record.chapter_title}]* | Relevance: ${confidenceLabel} (${score.toFixed(2)})\n\n`;
-      kbResponse += `${truncatedBody}\n\n`;
+      kbResponse += `${citedBody}\n\n`;
     }
 
     // Append any matching figures
@@ -538,4 +642,86 @@ Myocardial perfusion has collapsed due to tachycardia or severe hypotension.
   refusal += `- 🚨 **Emergencies**: Ask about *cardiac arrest*, *ACLS*, *anaphylaxis*, or *bradycardia*\n\n`;
   refusal += `**Current Vitals**: HR: ${fmt(hr)} bpm, BP: ${fmt(sys)}/${fmt(dia)} mmHg (MAP: ${fmt(map)} mmHg), SpO2: ${fmt(spo2)}%, EtCO2: ${fmt(etco2)} mmHg, BIS: ${fmt(bis)}, MAC: ${fmt(mac, 2)}.`;
   return refusal;
+}
+
+/**
+ * Validates that any vital measurements or laboratory telemetry cited in a text response
+ * strictly matches the simulator's true current physiology states within safety tolerances.
+ * Stops hallucination of vitals in rule alerts and memory recalls.
+ * 
+ * @param {string} response - The generated response text
+ * @param {object} state - The current simulator state object
+ * @returns {boolean} - true if fully grounded and zero hallucinations detected, false otherwise.
+ */
+export function verifyResponseGrounding(response, state) {
+  if (!response || typeof response !== 'string') return true;
+  if (!state) return true;
+  
+  const vitals = state.vitals || {};
+  const patient = state.patient || {};
+  
+  // 1. Check Heart Rate: e.g. "HR: 75 bpm", "HR: 75", "heart rate of 75"
+  const hrMatch = response.match(/(?:hr|heart\s+rate)(?:\s+|:\s*|\s+of\s+|\s+is\s+)(\d+)/i);
+  if (hrMatch) {
+    const reportedHr = parseInt(hrMatch[1], 10);
+    const actualHr = Math.round(vitals.hr || 0);
+    if (actualHr > 0 && Math.abs(reportedHr - actualHr) > 5) {
+      return false; // Grounding mismatch!
+    }
+  }
+  
+  // 2. Check BP: e.g. "BP: 120/80" or "BP is 120/80"
+  const bpMatch = response.match(/(?:bp|blood\s+pressure)(?:\s+|:\s*|\s+of\s+|\s+is\s+)(\d+)\/(\d+)/i);
+  if (bpMatch) {
+    const reportedSys = parseInt(bpMatch[1], 10);
+    const reportedDia = parseInt(bpMatch[2], 10);
+    const actualSys = Math.round(vitals.sys || 0);
+    const actualDia = Math.round(vitals.dia || 0);
+    if (actualSys > 0 && (Math.abs(reportedSys - actualSys) > 5 || Math.abs(reportedDia - actualDia) > 5)) {
+      return false;
+    }
+  }
+  
+  // 3. Check SpO2: e.g. "SpO2: 95%" or "saturation is 95%"
+  const spo2Match = response.match(/(?:spo2|oxygen\s+saturation|saturation)(?:\s+|:\s*|\s+of\s+|\s+is\s+)(\d+)/i);
+  if (spo2Match) {
+    const reportedSpo2 = parseInt(spo2Match[1], 10);
+    const actualSpo2 = Math.round(vitals.spo2 !== undefined ? vitals.spo2 : 100);
+    if (Math.abs(reportedSpo2 - actualSpo2) > 5) {
+      return false;
+    }
+  }
+
+  // 4. Check MAP: e.g. "MAP: 70", "MAP of 70"
+  const mapMatch = response.match(/(?:map)(?:\s+|:\s*|\s+of\s+|\s+is\s+)(\d+)/i);
+  if (mapMatch) {
+    const reportedMap = parseInt(mapMatch[1], 10);
+    const actualMap = Math.round(vitals.map || 0);
+    if (actualMap > 0 && Math.abs(reportedMap - actualMap) > 5) {
+      return false;
+    }
+  }
+
+  // 5. Check compliance: e.g. "compliance is 60"
+  const complMatch = response.match(/(?:compliance)(?:\s+|:\s*|\s+is\s+)(\d+)/i);
+  if (complMatch) {
+    const reportedCompl = parseInt(complMatch[1], 10);
+    const actualCompl = Math.round(vitals.compl !== undefined ? vitals.compl : 60);
+    if (actualCompl > 0 && Math.abs(reportedCompl - actualCompl) > 5) {
+      return false;
+    }
+  }
+  
+  // 6. Check potassium: e.g. "potassium is 4.0"
+  const kMatch = response.match(/(?:potassium|k\+)(?:\s+|:\s*|\s+of\s+|\s+is\s+)(\d+(?:\.\d+)?)/i);
+  if (kMatch) {
+    const reportedK = parseFloat(kMatch[1]);
+    const basePotassium = typeof patient.potassiumLevel === 'number' && Number.isFinite(patient.potassiumLevel) ? patient.potassiumLevel : 4.0;
+    const actualK = patient.suxPotassiumLeaked ? Math.max(basePotassium, 6.2) : basePotassium;
+    if (Math.abs(reportedK - actualK) > 0.3) {
+      return false;
+    }
+  }
+  
+  return true;
 }

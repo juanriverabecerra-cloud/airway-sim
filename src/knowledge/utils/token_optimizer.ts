@@ -1,9 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import type { ParsedDocument, SourceFragment, VisualDataEngine, ParsedSection } from '../types/index.ts';
+import type { ParsedDocument, SourceFragment, VisualDataEngine } from '../types/index.ts';
 import { KnowledgeStore } from '../store.ts';
-import type { ProseRecord, MatrixRecord } from '../medical_truth_snapshot.ts';
+import { parseTextbookMetadata, getPriorityRank } from './priority_resolver.ts';
 
 let dirname = '';
 try {
@@ -12,10 +12,37 @@ try {
   dirname = path.dirname(fileURLToPath(import.meta.url));
 }
 
+// Clinical Alias Synonym mappings dictionary
+const CLINICAL_ALIASES: Record<string, string[]> = {
+  'versed': ['midazolam'],
+  'midazolam': ['versed'],
+  'succinylcholine': ['sux', 'suxamethonium'],
+  'sux': ['succinylcholine', 'suxamethonium'],
+  'suxamethonium': ['succinylcholine', 'sux'],
+  'propofol': ['diprivan'],
+  'diprivan': ['propofol'],
+  'albuterol': ['salbutamol', 'ventolin'],
+  'salbutamol': ['albuterol', 'ventolin'],
+  'ventolin': ['albuterol', 'salbutamol'],
+  'epinephrine': ['adrenaline'],
+  'adrenaline': ['epinephrine'],
+  'norepinephrine': ['levophed'],
+  'levophed': ['norepinephrine'],
+  'glycopyrrolate': ['robinul'],
+  'robinul': ['glycopyrrolate'],
+  'neostigmine': ['proprostgmin', 'prostigmin'],
+  'prostigmin': ['neostigmine'],
+  'rocuronium': ['zemuron'],
+  'zemuron': ['rocuronium'],
+  'vecuronium': ['norcuron'],
+  'norcuron': ['vecuronium'],
+  'fentanyl': ['sublimaze'],
+  'sublimaze': ['fentanyl']
+};
+
 export class TokenOptimizer {
   /**
    * Estimates the token count of a given object based on the standard 4-characters-per-token heuristic.
-   * Protected with strict safety guards to eliminate potential serializing crashes.
    */
   public static estimateTokens(obj: unknown): number {
     if (obj === undefined || obj === null) {
@@ -37,11 +64,9 @@ export class TokenOptimizer {
       let rawText = frag.rawText;
       let parsedSections = [...frag.parsedSections];
 
-      // A. Bullet Hygiene & List Formatting
-      // Split raw text into lines and clean bullet markers
+      // Bullet Hygiene & List Formatting
       const lines = rawText.split('\n');
       const cleanedLines = lines.map(line => {
-        // Match standard bullet symbols at start of line with potential indentation
         const bulletMatch = line.match(/^(\s*)(?:•|␣|o|▪|\*|\+|-)\s+(.+)$/);
         if (bulletMatch) {
           const indent = bulletMatch[1];
@@ -52,7 +77,6 @@ export class TokenOptimizer {
       });
       rawText = cleanedLines.join('\n');
 
-      // Do the same for parsedSections body text
       parsedSections = parsedSections.map(sec => {
         const secLines = sec.body.split('\n');
         const cleanedSecLines = secLines.map(line => {
@@ -65,7 +89,6 @@ export class TokenOptimizer {
           return line;
         });
 
-        // Detect if section is list
         let category = sec.category;
         if (/^\s*[-*+]\s/m.test(cleanedSecLines.join('\n'))) {
           category = 'list';
@@ -78,8 +101,7 @@ export class TokenOptimizer {
         };
       });
 
-      // B. Native Pipe Table Injection
-      // Find any table engines matching this page number
+      // Native Pipe Table Injection
       const pageTables = doc.visual_data_engines.filter(
         v => v.pageNumber === frag.pageNumber && 
         v.details && 
@@ -89,7 +111,6 @@ export class TokenOptimizer {
       for (const tableEngine of pageTables) {
         let markdownTable = tableEngine.details.markdown_representation || '';
         
-        // If markdown representation is not present but headers exist, build it
         if (!markdownTable && tableEngine.details.matrix_rows) {
           const rows = tableEngine.details.matrix_rows;
           if (rows.length > 0) {
@@ -106,7 +127,6 @@ export class TokenOptimizer {
         }
 
         if (markdownTable) {
-          // Avoid duplicate injection
           if (!rawText.includes(markdownTable.trim())) {
             rawText += `\n\n### [TABLE] ${tableEngine.caption || tableEngine.id}\n\n${markdownTable}\n`;
             
@@ -138,10 +158,8 @@ export class TokenOptimizer {
    * Prunes raw layout diagnostic coordinate geometry to build an LLM-optimized semantic mirror.
    */
   public static prune(doc: ParsedDocument): ParsedDocument {
-    // Sanitize bullets & inject pipe tables first
     const sanitized = this.sanitizeContent(doc);
 
-    // Deep clone doc structure and strip bounding box arrays
     const prunedFragments: SourceFragment[] = sanitized.fragments.map(frag => {
       const { word_bounding_boxes, ...rest } = frag;
       return { ...rest };
@@ -152,7 +170,6 @@ export class TokenOptimizer {
       return { ...rest };
     });
 
-    // Reconstruct full text based on sanitized text
     const fullText = prunedFragments
       .map(f => f.rawText)
       .filter(t => t.length > 0)
@@ -170,24 +187,8 @@ export class TokenOptimizer {
   }
 
   /**
-   * Detects the active top-level textbook header in a fragment.
-   */
-  private static getTopLevelHeader(frag: SourceFragment): string {
-    for (const sec of frag.parsedSections) {
-      const h = sec.heading.trim();
-      if (h.length > 4) {
-        // Detect SECTION, CHAPTER, or uppercase titles
-        if (/^(?:SECTION|CHAPTER)\b/i.test(h) || h.toUpperCase() === h) {
-          return h;
-        }
-      }
-    }
-    return '';
-  }
-
-  /**
-   * Serializes the optimized mirror copy into llm_optimized/ separate files.
-   * Capped safely at 30,000 estimated tokens. Groups consecutive page fragments under the same top-level textbook header.
+   * Serializes the optimized mirror copy, writes to SQLite, precomputes search index with synonyms,
+   * copies to public assets, and updates snapshot wrappers.
    */
   public static optimizeAndSerialize(
     doc: ParsedDocument,
@@ -198,8 +199,10 @@ export class TokenOptimizer {
     const estimatedTotalTokens = this.estimateTokens(prunedDoc);
 
     const chapterTitle = prunedDoc.parse_metadata.source_file || 'Unknown Chapter';
+    const metadata = parseTextbookMetadata(chapterTitle);
+    const priorityRank = getPriorityRank(chapterTitle);
 
-    console.log(`\n  [DATABASE INGESTION] Intercepting processed chunk stream for: ${chapterTitle}`);
+    console.log(`\n  [DATABASE INGESTION] Ingesting: ${chapterTitle} (Edition: ${metadata.edition}, Rank: ${priorityRank})`);
     console.log(`  [DATABASE INGESTION] Writing to internal knowledge store (SQLite)...`);
     
     // Clear existing data for this file to prevent duplicates
@@ -211,20 +214,20 @@ export class TokenOptimizer {
       if (fragment.parsedSections && fragment.parsedSections.length > 0) {
         fragment.parsedSections.forEach((section, idx) => {
           const sectionId = `${chapterTitle}_${fragment.id}_sec_${idx}`;
-          const sectionHeading = section.heading || 'General';
+          const topic = section.heading || 'General';
           const bodyText = section.body || '';
           
           if (bodyText.trim().length > 0) {
-            KnowledgeStore.insertProse(sectionId, chapterTitle, sectionHeading, bodyText);
+            KnowledgeStore.insertProse(sectionId, topic, bodyText, chapterTitle, metadata.edition, priorityRank);
             proseInserted++;
           }
         });
       } else if (fragment.rawText && fragment.rawText.trim().length > 0) {
         const sectionId = `${chapterTitle}_${fragment.id}_full`;
-        const sectionHeading = 'General';
+        const topic = 'General';
         const bodyText = fragment.rawText;
         
-        KnowledgeStore.insertProse(sectionId, chapterTitle, sectionHeading, bodyText);
+        KnowledgeStore.insertProse(sectionId, topic, bodyText, chapterTitle, metadata.edition, priorityRank);
         proseInserted++;
       }
     }
@@ -233,6 +236,7 @@ export class TokenOptimizer {
     let matricesInserted = 0;
     for (const engine of prunedDoc.visual_data_engines) {
       const id = engine.id || `FIG_${chapterTitle}_${engine.pageNumber}_${matricesInserted}`;
+      const topic = engine.caption || engine.id || 'Visual';
       const archetype = engine.archetype || 'UNKNOWN';
       const caption = engine.caption || '';
       
@@ -259,49 +263,228 @@ export class TokenOptimizer {
         }
       }
       
-      KnowledgeStore.insertMatrix(id, archetype, caption, structuredPayload);
+      KnowledgeStore.insertMatrix(id, topic, archetype, caption, structuredPayload, chapterTitle, metadata.edition, priorityRank);
       matricesInserted++;
     }
 
-    console.log(`  ✓ Database Ingestion Complete: ${proseInserted} prose sections, ${matricesInserted} physiological matrices stored.`);
+    console.log(`  ✓ Database Ingested: ${proseInserted} prose sections, ${matricesInserted} matrices stored.`);
 
-    // 3. Compile static, typed ESM snapshot for browser/Vite environment compatibility
-    console.log(`  [DATABASE SNAPSHOT] Compiling in-memory snapshot for browser environment...`);
+    // Recalculate authority mappings (Miller > other, newer > older)
+    KnowledgeStore.recalculateAuthority();
+
+    // 3. Copy SQLite database to public asset directory for client availability
+    console.log(`  [DATABASE DEPLOYMENT] Deploying SQLite database asset to public/ folder...`);
     try {
-      const allProse = KnowledgeStore.getDb().prepare('SELECT * FROM textbook_prose').all() as ProseRecord[];
-      const allMatrices = KnowledgeStore.getDb().prepare('SELECT * FROM physiological_matrices').all() as MatrixRecord[];
+      const dbPath = path.resolve(dirname, '../medical_truth.db');
+      const publicDbPath = path.resolve(dirname, '../../../public/medical_truth.db');
+      const publicDir = path.dirname(publicDbPath);
+      
+      if (!fs.existsSync(publicDir)) {
+        fs.mkdirSync(publicDir, { recursive: true });
+      }
+      
+      fs.copyFileSync(dbPath, publicDbPath);
+      console.log(`  ✓ Database asset deployed to: ${publicDbPath}`);
+    } catch (deployErr: any) {
+      console.error(`  [DEPLOYMENT ERROR] Failed to deploy SQLite asset: ${deployErr.message}`);
+    }
 
+    // 4. Precompute the search index with Clinical Synonym Alias Injection
+    console.log(`  [INDEXING] Precomputing inverted TF-IDF search index with Clinical Alias Injection...`);
+    try {
+      const db = KnowledgeStore.getDb();
+      
+      const stmtProse = db.prepare('SELECT id, source_book, topic, body_text FROM textbook_prose');
+      const allProse: any[] = [];
+      while (stmtProse.step()) {
+        allProse.push(stmtProse.getAsObject());
+      }
+      stmtProse.free();
+
+      const stmtMatrices = db.prepare('SELECT id, source_book, topic, archetype, caption, structured_payload FROM physiological_matrices');
+      const allMatrices: any[] = [];
+      while (stmtMatrices.step()) {
+        allMatrices.push(stmtMatrices.getAsObject());
+      }
+      stmtMatrices.free();
+      
+      const STOP_WORDS = new Set([
+        'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+        'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'shall',
+        'should', 'may', 'might', 'must', 'can', 'could', 'and', 'but', 'or',
+        'nor', 'not', 'so', 'yet', 'both', 'either', 'neither', 'each', 'every',
+        'all', 'any', 'few', 'more', 'most', 'other', 'some', 'such', 'no',
+        'only', 'own', 'same', 'than', 'too', 'very', 'just', 'because',
+        'as', 'until', 'while', 'of', 'at', 'by', 'for', 'with', 'about',
+        'against', 'between', 'through', 'during', 'before', 'after', 'above',
+        'below', 'to', 'from', 'up', 'down', 'in', 'out', 'on', 'off', 'over',
+        'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when',
+        'where', 'why', 'how', 'what', 'which', 'who', 'whom', 'this', 'that',
+        'these', 'those', 'i', 'me', 'my', 'myself', 'we', 'our', 'ours',
+        'you', 'your', 'yours', 'he', 'him', 'his', 'she', 'her', 'hers',
+        'it', 'its', 'they', 'them', 'their', 'theirs', 'also', 'however',
+        'therefore', 'thus', 'hence', 'although', 'though', 'even', 'still',
+        'already', 'since', 'whether', 'if', 'into', 'upon', 'within', 'without',
+        'fig', 'see', 'e', 'g', 'et', 'al', 'ie', 'eg', 'vs', 'etc',
+        'am', 'us', 'an', 'as', 'at', 'be', 'by', 'do', 'go', 'he', 'if', 'in', 
+        'is', 'it', 'me', 'my', 'no', 'of', 'on', 'or', 'so', 'to', 'up', 'we'
+      ]);
+
+      const tokenizeText = (text: string): string[] => {
+        if (!text || typeof text !== 'string') return [];
+        return text
+          .toLowerCase()
+          .replace(/[^a-z0-9\s-]/g, ' ')
+          .split(/[\s-]+/)
+          .filter(token => 
+            token.length >= 2 &&
+            !STOP_WORDS.has(token) &&
+            !/^\d+$/.test(token)
+          );
+      };
+
+      const proseIndex: Record<string, Array<{ id: string, tf: number, inHeading: boolean }>> = {};
+      const matrixIndex: Record<string, Array<{ id: string, tf: number, inHeading: boolean }>> = {};
+      
+      const proseMetadata: Record<string, { id: string, chapter_title: string, section_heading: string }> = {};
+      const matrixMetadata: Record<string, { id: string, archetype: string, caption: string }> = {};
+
+      // Build prose index
+      for (const p of allProse) {
+        proseMetadata[p.id] = { id: p.id, chapter_title: p.source_book, section_heading: p.topic };
+        
+        const unigrams = tokenizeText(`${p.topic} ${p.body_text}`);
+        const bigrams: string[] = [];
+        for (let i = 0; i < unigrams.length - 1; i++) {
+          bigrams.push(`${unigrams[i]}_${unigrams[i+1]}`);
+        }
+        const allTokens = [...unigrams, ...bigrams];
+        
+        const headingUnigrams = tokenizeText(p.topic);
+        const headingBigrams: string[] = [];
+        for (let i = 0; i < headingUnigrams.length - 1; i++) {
+          headingBigrams.push(`${headingUnigrams[i]}_${headingBigrams[i+1]}`);
+        }
+        const headingTokens = new Set([...headingUnigrams, ...headingBigrams]);
+
+        const tfMap: Record<string, number> = {};
+        for (const token of allTokens) {
+          tfMap[token] = (tfMap[token] || 0) + 1;
+        }
+
+        // Intercept tokens and inject synonym/alias keywords
+        for (const [token, tf] of Object.entries(tfMap)) {
+          if (CLINICAL_ALIASES[token]) {
+            const aliases = CLINICAL_ALIASES[token];
+            for (const alias of aliases) {
+              tfMap[alias] = Math.max(tfMap[alias] || 0, tf);
+            }
+          }
+        }
+
+        for (const [token, tf] of Object.entries(tfMap)) {
+          if (!proseIndex[token]) proseIndex[token] = [];
+          proseIndex[token].push({ id: p.id, tf, inHeading: headingTokens.has(token) || (CLINICAL_ALIASES[token]?.some(alias => headingTokens.has(alias)) || false) });
+        }
+      }
+
+      // Build matrix index
+      for (const m of allMatrices) {
+        matrixMetadata[m.id] = { id: m.id, archetype: m.archetype, caption: m.caption };
+        
+        const unigrams = tokenizeText(`${m.caption} ${m.archetype} ${m.structured_payload}`);
+        const bigrams: string[] = [];
+        for (let i = 0; i < unigrams.length - 1; i++) {
+          bigrams.push(`${unigrams[i]}_${unigrams[i+1]}`);
+        }
+        const allTokens = [...unigrams, ...bigrams];
+        
+        const headingUnigrams = tokenizeText(`${m.caption} ${m.archetype}`);
+        const headingBigrams: string[] = [];
+        for (let i = 0; i < headingUnigrams.length - 1; i++) {
+          headingBigrams.push(`${headingUnigrams[i]}_${headingBigrams[i+1]}`);
+        }
+        const headingTokens = new Set([...headingUnigrams, ...headingBigrams]);
+
+        const tfMap: Record<string, number> = {};
+        for (const token of allTokens) {
+          tfMap[token] = (tfMap[token] || 0) + 1;
+        }
+
+        // Intercept tokens and inject synonym/alias keywords
+        for (const [token, tf] of Object.entries(tfMap)) {
+          if (CLINICAL_ALIASES[token]) {
+            const aliases = CLINICAL_ALIASES[token];
+            for (const alias of aliases) {
+              tfMap[alias] = Math.max(tfMap[alias] || 0, tf);
+            }
+          }
+        }
+
+        for (const [token, tf] of Object.entries(tfMap)) {
+          if (!matrixIndex[token]) matrixIndex[token] = [];
+          matrixIndex[token].push({ id: m.id, tf, inHeading: headingTokens.has(token) || (CLINICAL_ALIASES[token]?.some(alias => headingTokens.has(alias)) || false) });
+        }
+      }
+
+      // Calculate IDFs
+      const proseIdf: Record<string, number> = {};
+      const proseDocCount = allProse.length;
+      for (const [token, postings] of Object.entries(proseIndex)) {
+        proseIdf[token] = Math.log((proseDocCount + 1) / (1 + postings.length));
+      }
+
+      const matrixIdf: Record<string, number> = {};
+      const matrixDocCount = allMatrices.length;
+      for (const [token, postings] of Object.entries(matrixIndex)) {
+        matrixIdf[token] = Math.log((matrixDocCount + 1) / (1 + postings.length));
+      }
+
+      const indexData = {
+        proseDocCount,
+        matrixDocCount,
+        proseIndex,
+        matrixIndex,
+        proseIdf,
+        matrixIdf,
+        proseMetadata,
+        matrixMetadata
+      };
+
+      const indexPath = path.resolve(dirname, '../precomputed_index.json');
+      fs.writeFileSync(indexPath, JSON.stringify(indexData, null, 2), 'utf-8');
+      
+      const publicIndexPath = path.resolve(dirname, '../../../public/precomputed_index.json');
+      fs.writeFileSync(publicIndexPath, JSON.stringify(indexData, null, 2), 'utf-8');
+      console.log(`  ✓ Precomputed search index compiled successfully: ${indexPath} and copied to public/`);
+    } catch (indexErr: any) {
+      console.error(`  [INDEX ERROR] Failed to compile precomputed index: ${indexErr.message}`);
+    }
+
+    // 5. Compile static ESM snapshot wrapper for backward compatibility with testing suite
+    console.log(`  [DATABASE SNAPSHOT] Generating dynamic ESM snapshot wrapper...`);
+    try {
       const snapshotContent = `/**
- * AUTO-GENERATED MEDICAL TRUTH DATABASE SNAPSHOT
- * Do not edit this file directly. It is compiled automatically during textbook ingestion.
- * Provides synchronous, lag-free, and browser-safe textbook search lookups.
+ * DYNAMIC MEDICAL TRUTH DATABASE SNAPSHOT WRAPPER
+ * Auto-generated by TokenOptimizer. Maps calls to ClientDbBridge to support
+ * synchronous, lag-free search and tests while avoiding Vite bundle bloat.
  */
 
-export interface ProseRecord {
-  readonly id: string;
-  readonly chapter_title: string;
-  readonly section_heading: string;
-  readonly body_text: string;
-}
+import { ClientDbBridge } from './ClientDbBridge.ts';
+import type { ProseRecord, MatrixRecord } from './ClientDbBridge.ts';
 
-export interface MatrixRecord {
-  readonly id: string;
-  readonly archetype: string;
-  readonly caption: string;
-  readonly structured_payload: string;
-}
+export type { ProseRecord, MatrixRecord };
 
-export const textbookProse: readonly ProseRecord[] = ${JSON.stringify(allProse, null, 2)};
-
-export const physiologicalMatrices: readonly MatrixRecord[] = ${JSON.stringify(allMatrices, null, 2)};
+export const textbookProse: ProseRecord[] = ClientDbBridge.getAllProse();
+export const physiologicalMatrices: MatrixRecord[] = ClientDbBridge.getAllMatrices();
 `;
 
       const snapshotPath = path.resolve(dirname, '../medical_truth_snapshot.ts');
       fs.writeFileSync(snapshotPath, snapshotContent, 'utf-8');
-      console.log(`  ✓ Database Snapshot compiled successfully: ${snapshotPath}`);
+      console.log(`  ✓ Dynamic Snapshot wrapper generated successfully: ${snapshotPath}`);
     } catch (snapErr: unknown) {
       const errMsg = snapErr instanceof Error ? snapErr.message : String(snapErr);
-      console.error(`  [SNAPSHOT ERROR] Failed to compile static snapshot: ${errMsg}`);
+      console.error(`  [SNAPSHOT ERROR] Failed to compile dynamic snapshot: ${errMsg}`);
     }
 
     // Return reference for backward compatibility with orchestrator interface

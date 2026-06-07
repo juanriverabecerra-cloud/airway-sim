@@ -1,5 +1,6 @@
 import { textbookProse, physiologicalMatrices } from '../knowledge/medical_truth_snapshot.ts';
 import { DynamicMedicationRegistry } from '../knowledge/DynamicMedicationRegistry.ts';
+import { comparePriority } from '../knowledge/utils/priority_resolver.ts';
 
 /**
  * Performs a rapid local wildcard match against textbook prose and physiological matrices.
@@ -14,7 +15,7 @@ export function getAnatomicalTruth(subsystemKeyword: string): string[] {
   }
 
   const term = subsystemKeyword.toLowerCase();
-  const results: string[] = [];
+  const matchedEntries: Array<{ text: string; chapter_title: string }> = [];
 
   // 1. Search textbook_prose
   for (const row of textbookProse) {
@@ -24,7 +25,7 @@ export function getAnatomicalTruth(subsystemKeyword: string): string[] {
 
     if (titleMatch || headingMatch || bodyMatch) {
       if (row.body_text && row.body_text.trim().length > 0) {
-        results.push(row.body_text);
+        matchedEntries.push({ text: row.body_text, chapter_title: row.chapter_title });
       }
     }
   }
@@ -37,12 +38,15 @@ export function getAnatomicalTruth(subsystemKeyword: string): string[] {
 
     if (archMatch || capMatch || payloadMatch) {
       if (row.structured_payload && row.structured_payload.trim().length > 0) {
-        results.push(row.structured_payload);
+        matchedEntries.push({ text: row.structured_payload, chapter_title: row.chapter_title });
       }
     }
   }
 
-  return results;
+  // Sort by priority descending (highest priority first)
+  matchedEntries.sort((a, b) => comparePriority(b.chapter_title, a.chapter_title));
+
+  return matchedEntries.map(e => e.text);
 }
 
 /**

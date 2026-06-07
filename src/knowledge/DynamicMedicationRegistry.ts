@@ -1,6 +1,7 @@
 import { textbookProse, physiologicalMatrices } from './medical_truth_snapshot.ts';
 import { MEDICATIONS_CONFIG } from '../engine/config/meds.config.ts';
 import { MEDICATIONS } from '../engine/Pharmacology.js';
+import { ClientDbBridge } from './ClientDbBridge.ts';
 
 export interface PKParameters {
   V1: number;
@@ -116,6 +117,7 @@ export class DynamicMedicationRegistry {
 
     // 1. Scan textbook matrices (structured figure tables)
     for (const matrix of physiologicalMatrices) {
+      if (matrix.is_authoritative !== 1) continue;
       if (matrix.archetype === 'COORDINATE X-Y GRAPHS & COMPLEMENTARY PANELS' || 
           matrix.caption.toLowerCase().includes('pharmacokinetics') || 
           matrix.caption.toLowerCase().includes('pharmacodynamics') ||
@@ -135,6 +137,7 @@ export class DynamicMedicationRegistry {
 
     // 2. Scan textbook prose for raw markdown tables
     for (const prose of textbookProse) {
+      if (prose.is_authoritative !== 1) continue;
       if (prose.body_text && prose.body_text.includes('|')) {
         const rows = this.parseMarkdownTable(prose.body_text);
         if (rows.length > 0) {
@@ -394,3 +397,9 @@ export class DynamicMedicationRegistry {
     };
   }
 }
+
+// Register auto-rehydration when database loads in browser
+ClientDbBridge.onLoaded(() => {
+  DynamicMedicationRegistry.reset();
+  DynamicMedicationRegistry.hydrate();
+});

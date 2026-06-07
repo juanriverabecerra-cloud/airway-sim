@@ -39,7 +39,8 @@ describe('AirwaySim OS Dynamic Ingestion Integration Tests', () => {
       id: 'FIG_TEST_01',
       archetype: 'COORDINATE X-Y GRAPHS & COMPLEMENTARY PANELS',
       caption: 'Pharmacokinetic parameters of Myocordin',
-      structured_payload: JSON.stringify(mockMatrixPayload)
+      structured_payload: JSON.stringify(mockMatrixPayload),
+      is_authoritative: 1
     });
 
     try {
@@ -82,7 +83,8 @@ describe('AirwaySim OS Dynamic Ingestion Integration Tests', () => {
       id: 'PROSE_TEST_01',
       chapter_title: 'test_chapter.pdf',
       section_heading: 'Myocordin hemodynamic rules',
-      body_text: 'Administration of Myocordin increases mean arterial pressure by 15% due to vasoconstriction.'
+      body_text: 'Administration of Myocordin increases mean arterial pressure by 15% due to vasoconstriction.',
+      is_authoritative: 1
     });
 
     // Make sure Myocordin is registered in the registry first
@@ -126,7 +128,8 @@ describe('AirwaySim OS Dynamic Ingestion Integration Tests', () => {
           'Topicalize mucosa with local anesthetic',
           'Advance flexible scope'
         ]
-      })
+      }),
+      is_authoritative: 1
     });
 
     try {
