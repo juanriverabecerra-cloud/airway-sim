@@ -338,7 +338,9 @@ export default function AttendingPanel({
   const [showPimpSection, setShowPimpSection] = useState(false);
   const [pimpTopicInput, setPimpTopicInput] = useState('');
   const [isGeneratingPimp, setIsGeneratingPimp] = useState(false);
-  const [generatedQuestion, setGeneratedQuestion] = useState(null);
+  const [generatedQuestions, setGeneratedQuestions] = useState([]);
+  const [activeGeneratedIdx, setActiveGeneratedIdx] = useState(0);
+  const generatedQuestion = generatedQuestions[activeGeneratedIdx] || null;
   const [generatedSelectedIdx, setGeneratedSelectedIdx] = useState(null);
   const [showGeneratedExplanation, setShowGeneratedExplanation] = useState(false);
   const [showReferences, setShowReferences] = useState(false);
@@ -350,18 +352,46 @@ export default function AttendingPanel({
   );
   const currentQuestion = filteredQuestions[activeQuizQuestionIdx % filteredQuestions.length] || null;
 
-  // Background reference retrieval when active question changes
+  // Background reference retrieval and state resets when active question changes
   useEffect(() => {
-    if (currentQuestion && currentQuestion.searchQuery) {
-      const results = searchKnowledge(currentQuestion.searchQuery, 10, 0.2);
+    if (generatedQuestion) {
+      if (generatedQuestion.reference) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setQuizReferenceContext([{
+          record: {
+            chapter_title: generatedQuestion.reference.chapter || 'Miller Anesthesia',
+            section_heading: generatedQuestion.reference.section || 'General Reference',
+            body_text: generatedQuestion.reference.text || ''
+          },
+          score: 3.0,
+          rank: 1
+        }]);
+      } else {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setQuizReferenceContext([]);
+      }
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setQuizReferenceContext(results);
+      setGeneratedSelectedIdx(null);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowGeneratedExplanation(false);
+    } else if (currentQuestion) {
+      if (currentQuestion.searchQuery) {
+        const results = searchKnowledge(currentQuestion.searchQuery, 10, 0.2);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setQuizReferenceContext(results);
+      } else {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setQuizReferenceContext([]);
+      }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setSelectedOptionIdx(null);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowQuizExplanation(false);
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setQuizReferenceContext([]);
     }
-    setSelectedOptionIdx(null);
-    setShowQuizExplanation(false);
-  }, [currentQuestion]);
+  }, [currentQuestion, generatedQuestion]);
 
   // Initialize and reset chat messages on patient name changes
   useEffect(() => {
@@ -1184,7 +1214,8 @@ export default function AttendingPanel({
                         <button
                           type="button"
                           onClick={() => {
-                            setGeneratedQuestion(null);
+                            setGeneratedQuestions([]);
+                            setActiveGeneratedIdx(0);
                             setGeneratedSelectedIdx(null);
                             setShowGeneratedExplanation(false);
                             setActiveQuizQuestionIdx(Math.floor(Math.random() * filteredQuestions.length));
@@ -1199,39 +1230,57 @@ export default function AttendingPanel({
                             const topic = pimpTopicInput.trim();
                             if (!topic || !apiKey || isGeneratingPimp) return;
                             setIsGeneratingPimp(true);
-                            setGeneratedQuestion(null);
+                            setGeneratedQuestions([]);
+                            setActiveGeneratedIdx(0);
                             setGeneratedSelectedIdx(null);
                             setShowGeneratedExplanation(false);
                             try {
-                              let kbResults = searchKnowledge(topic, 10, 0.12);
-                              if (kbResults.length < 2) {
+                              let kbResults = searchKnowledge(topic, 15, 0.10);
+                              if (kbResults.length < 3) {
                                 const expanded = await expandQueryClinicalKeywords(topic, apiKey);
-                                const expandedResults = searchKnowledge(expanded.join(' '), 10, 0.12);
+                                const expandedResults = searchKnowledge(expanded.join(' '), 15, 0.10);
                                 if (expandedResults.length > 0) kbResults = expandedResults;
                               }
                               if (kbResults.length === 0) {
-                                setGeneratedQuestion({ error: `No textbook content found for "${topic}". Try a different term.` });
+                                setGeneratedQuestions([{ error: `No textbook content found for "${topic}". Try a different term.` }]);
                                 return;
                               }
-                              const sourcesText = kbResults.slice(0, 8).map((src, idx) =>
-                                `[Source ${idx + 1}] Section: ${src.record.section_heading || 'General'}\nText: ${src.record.body_text}`
+                              const sourcesText = kbResults.slice(0, 12).map((src, idx) =>
+                                `[Source ${idx + 1}] Chapter: ${src.record.chapter_title}\nSection: ${src.record.section_heading || 'General'}\nText: ${src.record.body_text}`
                               ).join('\n\n');
                               const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
                                   contents: [{ role: 'user', parts: [{ text: `Topic: ${topic}\n\nTextbook Sources:\n${sourcesText}` }] }],
-                                  system_instruction: { parts: [{ text: `You are a board-exam question writer for anesthesiology residents. Generate exactly ONE high-yield multiple-choice question based STRICTLY on the provided textbook sources about the specified topic.
+                                  system_instruction: { parts: [{ text: `You are a board-exam question writer for anesthesiology residents. Generate exactly 10 high-yield multiple-choice questions based STRICTLY on the provided textbook sources about the specified topic. Each question must test a different clinical fact or concept present in the sources.
 
-Respond ONLY with a single JSON object (no markdown, no code blocks, no explanation) in this exact format:
-{"vignette": "Clinical vignette or stem question", "options": ["A) ...", "B) ...", "C) ...", "D) ..."], "correctIdx": 0, "explanation": "Detailed explanation of the correct answer citing the source material", "category": "topic category"}
+Respond ONLY with a single JSON object containing a "questions" array (no markdown, no code blocks, no explanation) in this exact format:
+{
+  "questions": [
+    {
+      "vignette": "Clinical vignette or stem question",
+      "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
+      "correctIdx": 0,
+      "explanation": "Detailed explanation of the correct answer",
+      "category": "topic category",
+      "reference": {
+        "chapter": "Miller Chapter Title or Number (e.g. Miller Ch.9 or Miller Chapter 10)",
+        "section": "Section Heading (e.g. Ketamine Pharmacology)",
+        "text": "Exact short verbatim passage from the sources that supports the correct answer"
+      }
+    }
+  ]
+}
 
 Rules:
-- The vignette must be a realistic clinical scenario or direct knowledge question
-- Exactly 4 options labeled A) through D)
-- correctIdx is 0-based (0=A, 1=B, 2=C, 3=D)
-- The explanation must be thorough and educational
-- Base everything on the provided textbook sources` }] },
+- Generate exactly 10 questions.
+- The vignette must be a realistic clinical scenario or direct knowledge question.
+- Exactly 4 options labeled A) through D).
+- correctIdx is 0-based (0=A, 1=B, 2=C, 3=D).
+- The explanation must be thorough and educational.
+- The reference object must link directly back to the textbook source that contains the answer.
+- Base everything strictly on the provided textbook sources.` }] },
                                   generationConfig: { temperature: 0.4 }
                                 })
                               });
@@ -1239,11 +1288,19 @@ Rules:
                               let qText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
                               qText = qText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
                               const parsed = JSON.parse(qText);
-                              setGeneratedQuestion(parsed);
-                              setQuizReferenceContext(kbResults);
+                              if (parsed && Array.isArray(parsed.questions) && parsed.questions.length > 0) {
+                                setGeneratedQuestions(parsed.questions);
+                                setActiveGeneratedIdx(0);
+                              } else if (parsed && parsed.vignette) {
+                                setGeneratedQuestions([parsed]);
+                                setActiveGeneratedIdx(0);
+                              } else {
+                                throw new Error('Invalid format returned by AI question writer.');
+                              }
                             } catch (err) {
                               console.error('Pimp question generation failed:', err);
-                              setGeneratedQuestion({ error: `Failed to generate question: ${err.message}` });
+                              setGeneratedQuestions([{ error: `Failed to generate questions: ${err.message}` }]);
+                              setActiveGeneratedIdx(0);
                             } finally {
                               setIsGeneratingPimp(false);
                             }
@@ -1307,7 +1364,7 @@ Rules:
                         <div className="bg-slate-900/60 border border-purple-500/20 rounded-xl p-3 flex flex-col gap-2.5 animate-in fade-in duration-200">
                           <div className="flex justify-between items-center text-[9px] font-bold text-purple-400 border-b border-slate-800 pb-1.5">
                             <span className="flex items-center gap-1"><Sparkles size={10} /> AI-GENERATED: {(generatedQuestion.category || pimpTopicInput).toUpperCase()}</span>
-                            <span className="text-slate-500">CUSTOM</span>
+                            <span className="text-slate-500">Q {activeGeneratedIdx + 1} / {generatedQuestions.length}</span>
                           </div>
                           <p className="font-bold leading-relaxed text-slate-100 bg-slate-950/20 p-2.5 rounded border border-slate-900/30 text-[10.5px]">
                             {generatedQuestion.vignette}
@@ -1355,17 +1412,32 @@ Rules:
                                 <span className="font-bold block mb-1">{generatedSelectedIdx === generatedQuestion.correctIdx ? '🎉 CORRECT' : '❌ INCORRECT'}</span>
                                 {generatedQuestion.explanation}
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setGeneratedQuestion(null);
-                                  setGeneratedSelectedIdx(null);
-                                  setShowGeneratedExplanation(false);
-                                }}
-                                className="w-full py-2 bg-slate-800 hover:bg-slate-700 active:scale-98 text-white font-bold rounded-lg transition-all shadow-md font-mono text-[10px] cursor-pointer"
-                              >
-                                GENERATE ANOTHER
-                              </button>
+                              {activeGeneratedIdx < generatedQuestions.length - 1 ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveGeneratedIdx(prev => prev + 1);
+                                    setGeneratedSelectedIdx(null);
+                                    setShowGeneratedExplanation(false);
+                                  }}
+                                  className="w-full py-2 bg-purple-600 hover:bg-purple-500 active:scale-98 text-white font-bold rounded-lg transition-all shadow-md font-mono text-[10px] cursor-pointer"
+                                >
+                                  NEXT QUESTION
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setGeneratedQuestions([]);
+                                    setActiveGeneratedIdx(0);
+                                    setGeneratedSelectedIdx(null);
+                                    setShowGeneratedExplanation(false);
+                                  }}
+                                  className="w-full py-2 bg-slate-800 hover:bg-slate-700 active:scale-98 text-white font-bold rounded-lg transition-all shadow-md font-mono text-[10px] cursor-pointer"
+                                >
+                                  GENERATE ANOTHER 10
+                                </button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -1444,11 +1516,12 @@ Rules:
                             {quizReferenceContext.map((res, rIdx) => {
                               const { record, score } = res;
                               const chapterNum = record.chapter_title.includes('10') || (record.section_heading && record.section_heading.toLowerCase().includes('sleep')) || (record.section_heading && record.section_heading.toLowerCase().includes('eeg')) ? 'Ch.10' : 'Ch.9';
+                              const chapterDisplay = record.chapter_title.startsWith('Miller') ? record.chapter_title : `Miller ${chapterNum}`;
                               return (
                                 <details key={rIdx} className="bg-slate-950/45 border border-slate-900 rounded-lg p-2 text-[9px] text-slate-300 group">
                                   <summary className="font-bold text-blue-400 hover:text-blue-300 transition cursor-pointer select-none flex justify-between items-center">
                                     <span className="truncate max-w-[180px]">{record.section_heading}</span>
-                                    <span className="text-slate-500 text-[8px] font-semibold border border-slate-900 px-1 rounded uppercase shrink-0">Miller {chapterNum} ({score.toFixed(1)})</span>
+                                    <span className="text-slate-500 text-[8px] font-semibold border border-slate-900 px-1 rounded uppercase shrink-0">{chapterDisplay} ({score.toFixed(1)})</span>
                                   </summary>
                                   <p className="mt-1.5 text-slate-400 leading-relaxed pl-1.5 border-l border-blue-500/20 font-sans font-normal text-[8.5px]">{record.body_text}</p>
                                 </details>
