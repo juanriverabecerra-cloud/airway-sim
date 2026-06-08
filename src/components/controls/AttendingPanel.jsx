@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/refs */
 import { useState, useEffect, useRef } from 'react';
 import { 
   MessageSquare, ChevronRight, X, 
@@ -14,21 +15,44 @@ async function queryGeminiAI(query, sources, apiKey) {
   }).join('\n\n');
 
   const systemInstruction = `You are a knowledge-grounded Senior Anesthesiology Attending teaching residents in the OR.
-Your goal is to provide a highly comprehensive, detailed, and clinically all-encompassing answer to the user's question, grounded strictly in the provided verified textbook sources.
+Your goal is to provide a two-fold answer to the user's question, grounded strictly in the provided verified textbook sources:
+First, a high-yield clinical summary covering all 5 categories.
+Second, a highly comprehensive, detailed, and clinically all-encompassing teaching consult.
+
+You MUST structure your entire response using the exact dividers "=== CLINICAL SUMMARY ===" and "=== DETAILED CONSULTATION ===" as follows:
+
+=== CLINICAL SUMMARY ===
+Provide a concise, high-yield clinical summary of the answer. Address all 5 clinical categories briefly using this exact bullet list format:
+- 🧬 **Mechanism**: [1-2 sentences summarizing mechanism/receptors]
+- 💊 **Dosing**: [1-2 sentences summarizing dosing/onset/duration]
+- 🫁 **Physiology**: [1-2 sentences summarizing physiological effects/indications]
+- ⚠️ **Adverse**: [1-2 sentences summarizing adverse effects/warnings]
+- 📖 **Pearls**: [1-2 sentences summarizing clinical pearls]
+
+=== DETAILED CONSULTATION ===
+Provide a highly detailed, comprehensive, and exhaustive clinical teaching consult, as if you are a senior attending teaching in detail in the OR. Organize this detailed section under these 5 structured markdown category headings (address and output ALL of them):
+### 🧬 Mechanism & Receptor Pharmacology
+[Detailed, exhaustive explanation of mechanisms, receptors, and pathways]
+
+### 💊 Clinical Dosing & Pharmacokinetics
+[Detailed dosing guidelines, onset, duration, and kinetics]
+
+### 🫁 Physiological Effects & Clinical Indications
+[Detailed physiological effects on organ systems and clinical indications]
+
+### ⚠️ Adverse Effects, Warnings & Contraindications
+[Detailed adverse effects, warnings, and contraindications]
+
+### 📖 Clinical Pearls & General Notes
+[Detailed clinical pearls and teaching points]
 
 STRICT GROUNDING & DEPTH RULES:
 1. Your response must be directly based on the provided textbook sources.
-2. You must make the answer as detailed and complete as possible. Provide thorough explanations of physiological mechanisms, receptor pathways, clinical dosing guidelines, physiological effects, warnings, and clinical pearls. Aim for a deep, expert-level clinical teaching consult, as if you are a senior attending teaching in detail in the OR.
-3. Organize your response under these 5 structured markdown category headings. You should address and output ALL of these sections to provide a complete, all-encompassing guide:
-   ### 🧬 Mechanism & Receptor Pharmacology
-   ### 💊 Clinical Dosing & Pharmacokinetics
-   ### 🫁 Physiological Effects & Clinical Indications
-   ### ⚠️ Adverse Effects, Warnings & Contraindications
-   ### 📖 Clinical Pearls & General Notes
-4. If a specific section lacks direct information in the retrieved sources, use your expert clinical logic to extrapolate safe, textbook-aligned principles that apply to the topic, while noting the relationship to the cited facts.
-5. Insert inline citations to the sources using the superscript format: <sup>[X]</sup> where X is the source number (e.g. <sup>[1]</sup> or <sup>[2]</sup>). Place these citations immediately after the facts you cite!
-6. Do NOT include a separate bibliography or dump the raw text of the sources at the bottom. Your response should end with the categorized synthesis.
-7. Mimic the tone of a medically rigorous, highly knowledgeable, and helpful anesthesia professor. Avoid conversational fluff.
+2. In the DETAILED CONSULTATION, make the explanations as thorough and complete as possible.
+3. If a specific section lacks direct information in the retrieved sources, use your expert clinical logic to extrapolate safe, textbook-aligned principles that apply to the topic, while noting the relationship to the cited facts.
+4. Insert inline citations to the sources in the DETAILED CONSULTATION using the superscript format: <sup>[X]</sup> where X is the source number (e.g. <sup>[1]</sup> or <sup>[2]</sup>). Place these citations immediately after the facts you cite!
+5. Do NOT include a separate bibliography or dump the raw text of the sources at the bottom.
+6. Mimic the tone of a medically rigorous, highly knowledgeable, and helpful anesthesia professor. Avoid conversational fluff.
 
 FORMATTING & ORGANIZATION RULES:
 - Use clean Markdown tables (| Header | Header |) ONLY when comparing multiple drugs or when the sources explicitly present structured tabular data. Do NOT output empty tables, tables with no content rows, or single-column tables.
@@ -212,6 +236,39 @@ export default function AttendingPanel({
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '');
   const [showKeyInput, setShowKeyInput] = useState(false);
 
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem('attending_sidebar_width');
+    return saved ? parseInt(saved, 10) : 384;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+  const widthRef = useRef(sidebarWidth);
+
+  useEffect(() => {
+    widthRef.current = sidebarWidth;
+  }, [sidebarWidth]);
+
+  const handleMouseDown = (e) => {
+    e.preventDefault();
+    setIsResizing(true);
+    
+    const handleMouseMove = (moveEvent) => {
+      const newWidth = window.innerWidth - moveEvent.clientX;
+      if (newWidth >= 320 && newWidth <= 800) {
+        setSidebarWidth(newWidth);
+      }
+    };
+    
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      localStorage.setItem('attending_sidebar_width', widthRef.current.toString());
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+    
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+  };
+
   const toggleSources = (msgId) => {
     setExpandedSources(prev => ({
       ...prev,
@@ -238,6 +295,7 @@ export default function AttendingPanel({
   useEffect(() => {
     if (currentQuestion && currentQuestion.searchQuery) {
       const results = searchKnowledge(currentQuestion.searchQuery, 10, 0.2);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setQuizReferenceContext(results);
     } else {
       setQuizReferenceContext([]);
@@ -538,10 +596,25 @@ export default function AttendingPanel({
 
       {/* Sidebar Panel */}
       <div 
-        className={`fixed top-16 right-0 h-[calc(100vh-4rem)] z-40 w-full max-w-sm md:w-96 glass-panel glass-amber text-white font-mono flex flex-col transition-all duration-350 shadow-2xl backdrop-blur-md border-y-0 border-r-0 rounded-none ${
+        className={`fixed top-16 right-0 h-[calc(100vh-4rem)] z-40 glass-panel glass-amber text-white font-mono flex flex-col shadow-2xl backdrop-blur-md border-y-0 border-r-0 rounded-none ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
+        style={{
+          width: window.innerWidth < 768 ? '100%' : `${sidebarWidth}px`,
+          maxWidth: '95vw',
+          transition: isResizing ? 'none' : 'transform 0.35s ease'
+        }}
       >
+        {/* Resize Handle */}
+        {isOpen && window.innerWidth >= 768 && (
+          <div 
+            onMouseDown={handleMouseDown}
+            className="absolute top-0 left-0 w-1.5 h-full cursor-ew-resize hover:bg-amber-500/30 active:bg-amber-500 transition-colors z-50 flex items-center justify-center group"
+            title="Drag to resize sidebar"
+          >
+            <div className="w-[2px] h-8 bg-white/20 rounded-full group-hover:bg-white/45 group-active:bg-amber-305 transition-colors"></div>
+          </div>
+        )}
         {/* Unified Sidebar Header */}
         <div className="flex justify-between items-center px-4 py-3 border-b border-white/5 bg-slate-950/40 shrink-0">
           <div className="flex items-center gap-2">
@@ -643,14 +716,14 @@ export default function AttendingPanel({
                     {primaryGuidance.title}
                   </h4>
                   
-                  <div className="text-[11px] leading-relaxed text-slate-200 bg-slate-950/30 p-3 rounded border border-slate-900/40 font-mono font-medium whitespace-pre-wrap">
+                  <div className="text-[11px] leading-relaxed text-slate-200 bg-slate-950/30 p-3 rounded border border-slate-900/40 font-mono font-medium whitespace-pre-wrap max-w-full break-words">
                     {parseAndRenderText(primaryGuidance.text, handleActionClick)}
                   </div>
  
                   {primaryGuidance.suggestion && (
                     <div className="flex items-start gap-2 bg-slate-950/60 p-2.5 rounded border border-slate-900/80 mt-1">
                       <ArrowRight size={14} className="text-amber-400 shrink-0 mt-0.5" />
-                      <span className="text-[10px] font-bold text-amber-300 leading-snug whitespace-pre-wrap">
+                      <span className="text-[10px] font-bold text-amber-300 leading-snug whitespace-pre-wrap max-w-full break-words">
                         {parseAndRenderText(primaryGuidance.suggestion, handleActionClick)}
                       </span>
                     </div>
@@ -674,7 +747,7 @@ export default function AttendingPanel({
                   <span className="text-[10px] font-extrabold uppercase text-amber-400 tracking-wider flex items-center gap-1.5 font-mono">
                     🔮 Attending Foresight
                   </span>
-                  <div className="text-[10.5px] leading-relaxed text-amber-105 font-mono italic font-medium bg-slate-950/45 p-3 rounded-lg border border-amber-900/40 whitespace-pre-wrap">
+                  <div className="text-[10.5px] leading-relaxed text-amber-105 font-mono italic font-medium bg-slate-950/45 p-3 rounded-lg border border-amber-900/40 whitespace-pre-wrap max-w-full break-words">
                     {parseAndRenderText(nearFutureForecast, handleActionClick)}
                   </div>
                 </div>
@@ -715,7 +788,7 @@ export default function AttendingPanel({
                             </span>
                             <span className="text-slate-500 flex items-center gap-1 text-[9px]"><Clock size={9} /> {msg.timestamp}</span>
                           </div>
-                          <div className="text-slate-200 leading-relaxed font-medium bg-slate-950/20 p-2.5 rounded border border-slate-900/60 whitespace-pre-wrap">
+                          <div className="text-slate-200 leading-relaxed font-medium bg-slate-950/20 p-2.5 rounded border border-slate-900/60 whitespace-pre-wrap max-w-full break-words">
                             {parseAndRenderText(msg.text, handleActionClick)}
                           </div>
                           {msg.suggestion && (
@@ -844,7 +917,7 @@ export default function AttendingPanel({
                         </span>
                       )}
                     </span>
-                    <div className={`px-3.5 py-2.5 rounded-2xl text-[11px] leading-relaxed font-mono whitespace-pre-wrap ${cardClass}`}>
+                    <div className={`px-3.5 py-2.5 rounded-2xl text-[11px] leading-relaxed font-mono whitespace-pre-wrap max-w-full break-words ${cardClass}`}>
                       {isUser ? (
                         msg.text
                       ) : (
@@ -856,6 +929,49 @@ export default function AttendingPanel({
                               displayText = msg.text.slice(0, idx);
                             }
                           }
+                          
+                          const hasTwoFold = displayText.includes('=== CLINICAL SUMMARY ===') && 
+                                             displayText.includes('=== DETAILED CONSULTATION ===');
+                                             
+                          if (hasTwoFold) {
+                            const summaryStart = displayText.indexOf('=== CLINICAL SUMMARY ===') + '=== CLINICAL SUMMARY ==='.length;
+                            const detailedIdx = displayText.indexOf('=== DETAILED CONSULTATION ===');
+                            const summaryPart = displayText.slice(summaryStart, detailedIdx).trim();
+                            const detailedPart = displayText.slice(detailedIdx + '=== DETAILED CONSULTATION ==='.length).trim();
+                            
+                            const isExpanded = !!expandedSources[`msg-detail-${msg.id}`];
+                            
+                            return (
+                              <div className="flex flex-col gap-2">
+                                <div className="text-[10px] uppercase tracking-wider font-extrabold text-amber-400 mb-1 flex items-center gap-1.5 border-b border-amber-500/20 pb-1 select-none">
+                                  <span>📋 Quick Snapshot Summary</span>
+                                </div>
+                                <div className="leading-relaxed">
+                                  {parseAndRenderText(summaryPart, handleActionClick)}
+                                </div>
+                                
+                                <button
+                                  type="button"
+                                  onClick={() => toggleSources(`msg-detail-${msg.id}`)}
+                                  className="mt-2 py-1.5 px-3 bg-slate-950 border border-slate-800 text-[9px] font-black uppercase text-amber-400 rounded-lg hover:bg-slate-900 hover:border-amber-500/35 active:scale-98 transition-all flex items-center gap-1 justify-center self-start select-none shadow-sm cursor-pointer"
+                                >
+                                  {isExpanded ? '📖 Collapse Detailed Consult' : '🔍 Expand Full Detailed Consult'}
+                                </button>
+                                
+                                {isExpanded && (
+                                  <div className="mt-3 pt-3 border-t border-white/5 animate-in fade-in slide-in-from-top-1 duration-200">
+                                    <div className="text-[10px] uppercase tracking-wider font-extrabold text-blue-400 mb-2 flex items-center gap-1.5 border-b border-blue-500/20 pb-1 select-none">
+                                      <span>🧠 Comprehensive Teaching Consult</span>
+                                    </div>
+                                    <div className="leading-relaxed">
+                                      {parseAndRenderText(detailedPart, handleActionClick)}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                          
                           return parseAndRenderText(displayText, handleActionClick);
                         })()
                       )}
