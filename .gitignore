@@ -27,3 +27,6 @@ dist-ssr
 airway_ingest/source_material/
 src/airway_ingest/source_material/
 
+# Local Environment Variables (Secrets)
+.env
+

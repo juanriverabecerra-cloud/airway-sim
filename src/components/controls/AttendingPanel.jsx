@@ -5,8 +5,66 @@ import {
 } from 'lucide-react';
 import { parseAndRenderText } from '../../engine/ClinicalActions';
 import { getAttendingResponse, resetConversationHistory, verifyResponseGrounding } from '../../engine/ClinicalAiChat';
-import { getKnowledgeStats, searchKnowledge } from '../../knowledge/KnowledgeSearch';
+import { getKnowledgeStats, searchKnowledge, searchMatrices } from '../../knowledge/KnowledgeSearch';
 import { boardQuestions } from '../../knowledge/BoardQuestions';
+
+async function queryGeminiAI(query, sources, apiKey) {
+  const sourcesText = sources.map((src, idx) => {
+    return `[Source ${idx + 1}] Section: ${src.record.section_heading || 'General'}\nChapter: ${src.record.chapter_title}\nText: ${src.record.body_text}`;
+  }).join('\n\n');
+
+  const systemInstruction = `You are a knowledge-grounded Senior Anesthesiology Attending teaching residents in the OR.
+Your goal is to answer the user's clinical question using exclusively the provided verified textbook sources.
+
+STRICT GROUNDING RULES:
+1. Your response must be directly based on the provided textbook sources.
+2. If the sources do not contain information relevant to the question, state that clearly and provide the best available clinical reasoning while citing what is in the sources.
+3. Organize your answer under the following structured markdown categories (if applicable, only output sections with content):
+   - 🧬 **Mechanism & Receptor Pharmacology**
+   - 💊 **Clinical Dosing & Pharmacokinetics**
+   - 🫁 **Physiological Effects & Clinical Indications**
+   - ⚠️ **Adverse Effects, Warnings & Contraindications**
+   - 📖 **Clinical Pearls & General Notes**
+4. Insert inline citations to the sources using the superscript format: <sup>[X]</sup> where X is the source number (e.g. <sup>[1]</sup> or <sup>[2]</sup>). Place these citations immediately after the facts you cite!
+5. Do NOT include a separate bibliography or dump the raw text of the sources at the bottom. Your response should end with the categorized synthesis.
+6. Mimic the tone of a medically rigorous, concise, and helpful anesthesia professor. Avoid conversational fluff (like "Here is the response:").`;
+
+  const prompt = `Textbook Sources:\n${sourcesText}\n\nUser Question: ${query}`;
+
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              text: `${systemInstruction}\n\n${prompt}`
+            }
+          ]
+        }
+      ],
+      generationConfig: {
+        temperature: 0.2
+      }
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Gemini API HTTP Error: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!text) {
+    throw new Error('Invalid response format from Gemini API.');
+  }
+
+  return text;
+}
 
 function extractSources(text) {
   const sources = [];
@@ -73,6 +131,8 @@ export default function AttendingPanel({
   const chatEndRef = useRef(null);
   const conversationHistoryRef = useRef([]);
   const [expandedSources, setExpandedSources] = useState({});
+  const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '');
+  const [showKeyInput, setShowKeyInput] = useState(false);
 
   const toggleSources = (msgId) => {
     setExpandedSources(prev => ({
@@ -183,26 +243,93 @@ export default function AttendingPanel({
     setUserInput('');
     setIsTyping(true);
 
-    setTimeout(() => {
-      const attendingReply = getAttendingResponse(currentInput, {
-        vitals,
-        patient,
-        activeMeds,
-        surgicalPhase,
-        time,
-        logs
-      }, conversationHistoryRef.current);
+    setTimeout(async () => {
+      try {
+        let attendingReply = '';
+        
+        // 1. Run local decision trees first
+        const localReply = getAttendingResponse(currentInput, {
+          vitals,
+          patient,
+          activeMeds,
+          surgicalPhase,
+          time,
+          logs
+        }, conversationHistoryRef.current);
+        
+        // Check if response is a state-based decision branch (NOT a textbook search or limitation)
+        const isStateBased = !localReply.includes('### 📖 Attending Knowledge Base') && 
+                             !localReply.includes('Knowledge Limitation');
+                             
+        if (isStateBased) {
+          attendingReply = localReply;
+        } else if (apiKey) {
+          // 2. AI Synthesis Mode: Retrieve sources and query Gemini
+          try {
+            const kbResults = searchKnowledge(currentInput, 15, 0.12);
+            if (kbResults.length > 0) {
+              const geminiText = await queryGeminiAI(currentInput, kbResults, apiKey);
+              
+              attendingReply = `### 📖 Attending Knowledge Base Consultation\n\n`;
+              attendingReply += geminiText.trim() + `\n\n`;
+              
+              // Append standard formatted sources block for collapsible citations UI
+              for (const result of kbResults) {
+                const { record, score, rank } = result;
+                const confidenceLabel = score > 2.0 ? '🟢 HIGH' : score > 1.0 ? '🟡 MODERATE' : '🟠 PARTIAL';
+                const chapterNum = record.chapter_title.includes('10') || 
+                                   (record.section_heading && record.section_heading.toLowerCase().includes('sleep')) || 
+                                   (record.section_heading && record.section_heading.toLowerCase().includes('eeg')) 
+                                   ? 'Ch.10' 
+                                   : 'Ch.9';
+                const citation = ` [Miller ${chapterNum}: ${record.section_heading || 'Untitled Section'}]`;
+                const citedBody = record.body_text + citation;
 
-      setChatMessages(prev => {
-        const responseMessage = {
-          id: `attending-${prev.length}`,
-          sender: 'attending',
-          text: attendingReply,
-          timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m`
-        };
-        return [...prev, responseMessage];
-      });
-      setIsTyping(false);
+                attendingReply += `---\n`;
+                attendingReply += `**Source ${rank}** — *${record.section_heading || 'Untitled Section'}*\n`;
+                attendingReply += `📄 *[${record.chapter_title}]* | Relevance: ${confidenceLabel} (${score.toFixed(2)})\n\n`;
+                
+                if (rank <= 5) {
+                  attendingReply += `${citedBody}\n\n`;
+                } else {
+                  attendingReply += `*Verbatim passage referenced in the synthesis above.*\n\n`;
+                }
+              }
+              
+              const matrixResults = searchMatrices ? searchMatrices(currentInput, 3) : [];
+              if (matrixResults && matrixResults.length > 0) {
+                attendingReply += `---\n`;
+                attendingReply += `**📊 Related Figures & Data:**\n\n`;
+                for (const mr of matrixResults) {
+                  attendingReply += `- **${mr.record.caption}** [${mr.record.archetype || 'Figure'}]\n`;
+                }
+                attendingReply += `\n`;
+              }
+            } else {
+              attendingReply = localReply;
+            }
+          } catch (err) {
+            console.error('Gemini synthesis failed:', err);
+            attendingReply = localReply + `\n\n💡 *Tip: Gemini synthesis failed (${err.message}). Check your API Key or connection.*`;
+          }
+        } else {
+          attendingReply = localReply + `\n\n💡 *Tip: To enable high-fidelity AI-synthesized responses instead of keyword matching, enter a Gemini API Key using the link at the top of the chat panel.*`;
+        }
+
+        setChatMessages(prev => {
+          const responseMessage = {
+            id: `attending-${prev.length}`,
+            sender: 'attending',
+            text: attendingReply,
+            timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m`
+          };
+          return [...prev, responseMessage];
+        });
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsTyping(false);
+      }
     }, 600);
   };
 
@@ -506,6 +633,48 @@ export default function AttendingPanel({
               <span className="text-slate-500 font-bold">
                 {kbStats.proseRecords} records | {kbStats.uniqueProseTokens} terms
               </span>
+            </div>
+            
+            {/* API Key Panel */}
+            <div className="px-4 py-1.5 border-b border-white/5 bg-slate-900/40 text-[9px] text-slate-400 flex flex-col gap-1 shrink-0">
+              <div className="flex justify-between items-center">
+                <span className={`flex items-center gap-1 font-semibold ${apiKey ? 'text-emerald-400' : 'text-amber-500/70'}`}>
+                  {apiKey ? '✨ Gemini AI Synthesis Active' : '🔌 Local Synthesis Mode'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowKeyInput(p => !p)}
+                  className="text-amber-500 hover:text-amber-400 font-bold transition focus:outline-none cursor-pointer"
+                >
+                  {apiKey ? '[Change Key]' : '[Enter Gemini API Key]'}
+                </button>
+              </div>
+              {showKeyInput && (
+                <div className="flex gap-2 mt-1">
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => {
+                      const val = e.target.value.trim();
+                      setApiKey(val);
+                      if (val) {
+                        localStorage.setItem('gemini_api_key', val);
+                      } else {
+                        localStorage.removeItem('gemini_api_key');
+                      }
+                    }}
+                    placeholder="Enter your Gemini API Key (key is saved locally)..."
+                    className="flex-1 bg-slate-955 border border-slate-700/50 rounded px-2 py-1 text-[9px] text-slate-200 focus:outline-none focus:border-amber-500/50 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKeyInput(false)}
+                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-slate-200 font-bold"
+                  >
+                    Save
+                  </button>
+                </div>
+              )}
             </div>
             
             {/* Chat Messages */}
