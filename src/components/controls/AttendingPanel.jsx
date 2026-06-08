@@ -73,6 +73,62 @@ FORMATTING & ORGANIZATION RULES:
   return text;
 }
 
+async function expandQueryClinicalKeywords(query, apiKey) {
+  try {
+    const systemInstruction = `You are a clinical query parser for an anesthesia textbook search index.
+Analyze the user's question and extract 3 to 5 key clinical terms, pharmacological agents, or physiological concepts.
+Focus on standard singular root nouns (e.g. convert 'bronchospasming' to 'bronchospasm', 'intubated' to 'intubation').
+Respond ONLY with a JSON array of strings, for example: ["bronchospasm", "ventilation", "albuterol"].
+Do not include any explanation, introductory text, markdown formatting outside the JSON, or markdown code blocks (do not wrap in \`\`\`json).`;
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              {
+                text: `${systemInstruction}\n\nUser Question: ${query}`
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.0,
+          responseMimeType: 'application/json'
+        }
+      })
+    });
+
+    if (!response.ok) {
+      console.warn(`Query expansion failed: HTTP ${response.status}`);
+      return [query];
+    }
+
+    const data = await response.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) return [query];
+
+    // Strip potential markdown fence wrappers if any (just in case model ignored instruction)
+    let cleanText = text.trim();
+    if (cleanText.startsWith('```')) {
+      cleanText = cleanText.replace(/^```(json)?/, '').replace(/```$/, '').trim();
+    }
+
+    const keywords = JSON.parse(cleanText);
+    if (Array.isArray(keywords) && keywords.length > 0) {
+      return keywords;
+    }
+  } catch (err) {
+    console.error('Failed to expand clinical query keywords:', err);
+  }
+  return [query];
+}
+
 function extractSources(text) {
   const sources = [];
   const blocks = text.split(/\n---\n/);
@@ -273,7 +329,18 @@ export default function AttendingPanel({
         } else if (apiKey) {
           // 2. AI Synthesis Mode: Retrieve sources and query Gemini
           try {
-            const kbResults = searchKnowledge(currentInput, 15, 0.12);
+            // First pass: Query expansion
+            console.log(`[QueryExpansion] Original query: "${currentInput}"`);
+            const expandedKeywords = await expandQueryClinicalKeywords(currentInput, apiKey);
+            const searchQuery = expandedKeywords.join(' ');
+            console.log(`[QueryExpansion] Standardized search keywords: "${searchQuery}"`);
+
+            let kbResults = searchKnowledge(searchQuery, 15, 0.12);
+            if (kbResults.length === 0) {
+              console.log('[QueryExpansion] Expanded search yielded 0 results. Falling back to original query.');
+              kbResults = searchKnowledge(currentInput, 15, 0.12);
+            }
+
             if (kbResults.length > 0) {
               const geminiText = await queryGeminiAI(currentInput, kbResults, apiKey);
               
