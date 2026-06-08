@@ -271,31 +271,52 @@ const regexPattern = new RegExp(`\\b(${keywords.map(k => k.replace(/[-/\\^$*+?.(
 
 export const parseAndRenderText = (text, onActionClick) => {
   if (!text || typeof text !== 'string') return text;
-  if (!onActionClick) return text;
 
-  const parts = text.split(regexPattern);
-  if (parts.length === 1) return text;
+  const supRegex = /(<sup>\[?\d+\]?<\/sup>)/gi;
+  const parts = text.split(supRegex);
 
-  return parts.map((part, index) => {
-    const lowerPart = part.toLowerCase();
-    const actionConfig = CLINICAL_ACTIONS[lowerPart];
-    if (actionConfig) {
+  const rendered = parts.flatMap((part, index) => {
+    const supMatch = part.match(/^<sup>\[?(\d+)\]?<\/sup>$/i);
+    if (supMatch) {
+      const num = supMatch[1];
       return (
-        <button
-          key={index}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            if (typeof onActionClick === 'function') {
-              onActionClick(lowerPart);
-            }
-          }}
-          className={`inline-flex items-center mx-1 px-1.5 py-0.5 rounded text-[10px] font-black border font-mono tracking-wide uppercase transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm ${actionConfig.color}`}
+        <sup 
+          key={`sup-${index}`} 
+          className="text-[8.5px] font-black text-blue-400 ml-0.5 select-none hover:text-blue-300 transition-colors"
+          title={`Source ${num}`}
         >
-          {part}
-        </button>
+          [{num}]
+        </sup>
       );
     }
-    return part;
+
+    if (!onActionClick) return part;
+
+    const actionParts = part.split(regexPattern);
+    if (actionParts.length === 1) return part;
+
+    return actionParts.map((aPart, aIndex) => {
+      const lowerPart = aPart.toLowerCase();
+      const actionConfig = CLINICAL_ACTIONS[lowerPart];
+      if (actionConfig) {
+        return (
+          <button
+            key={`action-${index}-${aIndex}`}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onActionClick(lowerPart);
+            }}
+            className={`inline-flex items-center mx-1 px-1.5 py-0.5 rounded text-[10px] font-black border font-mono tracking-wide uppercase transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm ${actionConfig.color}`}
+          >
+            {aPart}
+          </button>
+        );
+      }
+      return aPart;
+    });
   });
+
+  return rendered.length === 1 && typeof rendered[0] === 'string' ? rendered[0] : rendered;
 };
+

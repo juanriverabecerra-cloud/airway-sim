@@ -75,6 +75,183 @@ export function resetConversationHistory() {
   conversationHistory = [];
 }
 
+function splitIntoSentences(text) {
+  if (!text || typeof text !== 'string') return [];
+  const rawSentences = text.split(/(?<=[.!?])\s+/);
+  const sentences = [];
+  let buffer = '';
+
+  for (let s of rawSentences) {
+    if (buffer) {
+      s = buffer + ' ' + s;
+      buffer = '';
+    }
+    const trimmed = s.trim();
+    const endsWithAbbr = /\b(e\.g|i\.e|ch|fig|vs|mg|kg|mcg|ml|dr|mr|mrs|st|a\.m|p\.m|min|sec|hr|vol|ce|ph)\.$/i.test(trimmed);
+    if (endsWithAbbr) {
+      buffer = s;
+    } else {
+      sentences.push(trimmed);
+    }
+  }
+  if (buffer) {
+    sentences.push(buffer.trim());
+  }
+  return sentences.filter(s => s.length > 0);
+}
+
+function synthesizeClinicalOutline(query, kbResults) {
+  if (!kbResults || kbResults.length === 0) return '';
+
+  const queryTokens = getSearchTokens(query).map(t => t.toLowerCase());
+  const allScoredSentences = [];
+
+  for (const result of kbResults) {
+    const { record, rank } = result;
+    const bodyText = record.body_text || '';
+    const sentences = splitIntoSentences(bodyText);
+
+    for (const sentence of sentences) {
+      if (sentence.length < 25 || sentence.length > 350) continue;
+
+      const sentenceLower = sentence.toLowerCase();
+      let matches = 0;
+      const uniqueMatches = new Set();
+
+      for (const token of queryTokens) {
+        const term = token.includes('_') ? token.replace(/_/g, ' ') : token;
+        if (sentenceLower.includes(term)) {
+          matches++;
+          uniqueMatches.add(token);
+        }
+      }
+
+      if (uniqueMatches.size === 0) continue;
+
+      let score = uniqueMatches.size;
+      const words = sentenceLower.split(/\s+/).filter(Boolean).length;
+      if (words > 0) {
+        score += (uniqueMatches.size / words) * 2.0;
+      }
+      
+      if (sentence.length >= 60 && sentence.length <= 180) {
+        score += 0.5;
+      }
+
+      allScoredSentences.push({
+        text: sentence,
+        rank,
+        score,
+        record
+      });
+    }
+  }
+
+  allScoredSentences.sort((a, b) => b.score - a.score);
+  const uniqueSentences = [];
+
+  for (const s of allScoredSentences) {
+    let isDuplicate = false;
+    const sWords = new Set(s.text.toLowerCase().split(/\s+/).filter(w => w.length > 2));
+    
+    for (const existing of uniqueSentences) {
+      const eWords = new Set(existing.text.toLowerCase().split(/\s+/).filter(w => w.length > 2));
+      
+      let intersection = 0;
+      for (const w of sWords) {
+        if (eWords.has(w)) intersection++;
+      }
+      const union = sWords.size + eWords.size - intersection;
+      const jaccard = union > 0 ? (intersection / union) : 0;
+
+      if (jaccard > 0.65 || s.text.toLowerCase() === existing.text.toLowerCase() || existing.text.toLowerCase().includes(s.text.toLowerCase())) {
+        isDuplicate = true;
+        if (s.score > existing.score) {
+          existing.text = s.text;
+          existing.score = s.score;
+        }
+        existing.rank = Math.min(existing.rank, s.rank);
+        break;
+      }
+    }
+
+    if (!isDuplicate) {
+      uniqueSentences.push(s);
+    }
+  }
+
+  const CATEGORIES = [
+    {
+      id: 'mechanism',
+      title: '🧬 Mechanism & Receptor Pharmacology',
+      keywords: ['mechanism', 'receptor', 'antagonist', 'agonist', 'bind', 'pathway', 'action', 'pharmacology', 'pharmacodynamics', 'gaba', 'nmda', '5-ht', 'acetylcholine', 'muscarinic', 'nicotinic', 'blockade', 'inhibitor', 'stimulate', 'activation', 'inhibit', 'channel', 'neurotransmitter']
+    },
+    {
+      id: 'dosing',
+      title: '💊 Clinical Dosing & Pharmacokinetics',
+      keywords: ['dose', 'dosing', 'mg', 'kg', 'mcg', 'iv', 'po', 'half-life', 'clearance', 'metabolism', 'elimination', 'onset', 'duration', 'concentration', 'administer', 'infusion', 'plasma', 'absorption', 'distribution', 'pharmacokinetics', 'bioavailability', 'potency', 'mg/kg', 'mcg/kg']
+    },
+    {
+      id: 'effects',
+      title: '🫁 Physiological Effects & Clinical Indications',
+      keywords: ['indication', 'effect', 'physiology', 'heart rate', 'blood pressure', 'airway', 'compliance', 'resistance', 'ventilation', 'treatment', 'clinical', 'hemodynamic', 'perfusion', 'cardiovascular', 'pulmonary', 'respire', 'systolic', 'diastolic', 'map', 'spo2', 'vasoconstriction', 'vasodilation', 'bronchoconstriction', 'bronchodilation', 'nausea', 'vomiting', 'pain', 'sedation', 'hypoxia', 'ischemia']
+    },
+    {
+      id: 'adverse',
+      title: '⚠️ Adverse Effects, Warnings & Contraindications',
+      keywords: ['adverse', 'side effect', 'contraindication', 'warning', 'risk', 'caution', 'toxicity', 'toxic', 'allergen', 'allergy', 'anaphylaxis', 'danger', 'complication', 'death', 'arrest', 'injury', 'impair', 'renal', 'hepatic', 'pregnancy', 'elderly', 'qt prolongation', 'arrhythmia', 'bronchospasm', 'apnea', 'laryngospasm', 'contraindicated', 'sensitivity']
+    },
+    {
+      id: 'pearls',
+      title: '📖 Clinical Pearls & General Notes',
+      keywords: []
+    }
+  ];
+
+  for (const s of uniqueSentences) {
+    const sentenceLower = s.text.toLowerCase();
+    let bestCategory = 'pearls';
+    let maxMatches = 0;
+
+    for (const cat of CATEGORIES) {
+      if (cat.id === 'pearls') continue;
+      let matches = 0;
+      for (const kw of cat.keywords) {
+        if (sentenceLower.includes(kw)) {
+          matches++;
+        }
+      }
+      if (matches > maxMatches) {
+        maxMatches = matches;
+        bestCategory = cat.id;
+      }
+    }
+    s.category = bestCategory;
+  }
+
+  let output = `### 🎓 Attending Clinical Synthesis\n\n`;
+  let hasAnyContent = false;
+
+  for (const cat of CATEGORIES) {
+    const catSentences = uniqueSentences
+      .filter(s => s.category === cat.id)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3);
+
+    if (catSentences.length > 0) {
+      hasAnyContent = true;
+      output += `**${cat.title}**\n`;
+      for (const s of catSentences) {
+        let text = s.text.replace(/^[-*•\s\d.]+\s*/, '');
+        output += `- ${text}<sup>[${s.rank}]</sup>\n`;
+      }
+      output += `\n`;
+    }
+  }
+
+  return hasAnyContent ? output : '';
+}
+
 export function getAttendingResponse(query, state, history) {
   const safeQuery = typeof query === 'string' ? query : '';
   const q = safeQuery.toLowerCase().trim();
@@ -584,7 +761,12 @@ Myocardial perfusion has collapsed due to tachycardia or severe hypotension.
   const matrixResults = searchMatrices(safeQuery, 10);
 
   if (kbResults.length > 0) {
+    const clinicalSynthesis = synthesizeClinicalOutline(safeQuery, kbResults);
+
     let kbResponse = `### 📖 Attending Knowledge Base Consultation\n\n`;
+    if (clinicalSynthesis) {
+      kbResponse += clinicalSynthesis + `\n---\n\n`;
+    }
     kbResponse += `I found the following relevant information in the medical knowledge base for your query:\n\n`;
 
     // Present top results with source citations
@@ -603,7 +785,12 @@ Myocardial perfusion has collapsed due to tachycardia or severe hypotension.
       kbResponse += `---\n`;
       kbResponse += `**Source ${rank}** — *${record.section_heading || 'Untitled Section'}*\n`;
       kbResponse += `📄 *[${record.chapter_title}]* | Relevance: ${confidenceLabel} (${score.toFixed(2)})\n\n`;
-      kbResponse += `${citedBody}\n\n`;
+      
+      if (rank <= 5) {
+        kbResponse += `${citedBody}\n\n`;
+      } else {
+        kbResponse += `*Verbatim passage referenced in the synthesis above.*\n\n`;
+      }
     }
 
     // Append any matching figures

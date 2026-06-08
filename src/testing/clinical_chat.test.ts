@@ -160,5 +160,17 @@ describe('Clinical AI Chat Engine (getAttendingResponse)', () => {
       expect(response.length).toBeGreaterThan(2000);
       expect(response).toContain('Attending Knowledge Base Consultation');
     });
+
+    it('should generate a structured clinical synthesis with superscript citations and optimized sources list', () => {
+      const response = getAttendingResponse('consciousness', {});
+      expect(response).toContain('### 🎓 Attending Clinical Synthesis');
+      expect(response).toContain('<sup>[1]</sup>');
+      expect(response).toContain('Mechanism & Receptor Pharmacology');
+      
+      // Verify source list optimization: ranks <= 5 show body text, ranks > 5 do not
+      expect(response).toContain('Source 1');
+      expect(response).toContain('Source 6');
+      expect(response).toContain('Verbatim passage referenced in the synthesis above.');
+    });
   });
 });
