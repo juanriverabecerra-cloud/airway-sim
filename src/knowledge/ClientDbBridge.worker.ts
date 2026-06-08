@@ -15,7 +15,12 @@ self.onmessage = async (e: MessageEvent) => {
   if (type === 'init') {
     try {
       const SQL = await initSqlJs({
-        locateFile: (file: string) => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/${file}`
+        locateFile: (file: string) => {
+          if (file.endsWith('.wasm')) {
+            return `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.wasm`;
+          }
+          return `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/${file}`;
+        }
       });
 
       db = new SQL.Database(new Uint8Array(payload.buffer));
