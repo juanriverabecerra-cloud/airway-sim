@@ -24,8 +24,9 @@ self.onmessage = async (e: MessageEvent) => {
       self.postMessage({ type: 'init_error', error: err.message });
     }
   } else if (type === 'query') {
+    const messageId = e.data.id;
     if (!db) {
-      self.postMessage({ type: 'query_error', error: 'Database not initialized inside worker' });
+      self.postMessage({ type: 'query_error', id: messageId, error: 'Database not initialized inside worker' });
       return;
     }
 
@@ -40,9 +41,9 @@ self.onmessage = async (e: MessageEvent) => {
       }
       stmt.free();
 
-      self.postMessage({ type: 'query_ok', sql, rows });
+      self.postMessage({ type: 'query_ok', id: messageId, sql, rows });
     } catch (err: any) {
-      self.postMessage({ type: 'query_error', error: err.message });
+      self.postMessage({ type: 'query_error', id: messageId, error: err.message });
     }
   }
 };
