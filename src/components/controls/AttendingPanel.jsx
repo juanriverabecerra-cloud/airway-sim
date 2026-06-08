@@ -19,15 +19,22 @@ Your goal is to answer the user's clinical question using exclusively the provid
 STRICT GROUNDING RULES:
 1. Your response must be directly based on the provided textbook sources.
 2. If the sources do not contain information relevant to the question, state that clearly and provide the best available clinical reasoning while citing what is in the sources.
-3. Organize your answer under the following structured markdown categories (if applicable, only output sections with content):
-   - 🧬 **Mechanism & Receptor Pharmacology**
-   - 💊 **Clinical Dosing & Pharmacokinetics**
-   - 🫁 **Physiological Effects & Clinical Indications**
-   - ⚠️ **Adverse Effects, Warnings & Contraindications**
-   - 📖 **Clinical Pearls & General Notes**
+3. Organize your answer under the following structured markdown categories (only output sections with content). Use headings starting with '### ':
+   ### 🧬 Mechanism & Receptor Pharmacology
+   ### 💊 Clinical Dosing & Pharmacokinetics
+   ### 🫁 Physiological Effects & Clinical Indications
+   ### ⚠️ Adverse Effects, Warnings & Contraindications
+   ### 📖 Clinical Pearls & General Notes
 4. Insert inline citations to the sources using the superscript format: <sup>[X]</sup> where X is the source number (e.g. <sup>[1]</sup> or <sup>[2]</sup>). Place these citations immediately after the facts you cite!
 5. Do NOT include a separate bibliography or dump the raw text of the sources at the bottom. Your response should end with the categorized synthesis.
-6. Mimic the tone of a medically rigorous, concise, and helpful anesthesia professor. Avoid conversational fluff (like "Here is the response:").`;
+6. Mimic the tone of a medically rigorous, concise, and helpful anesthesia professor. Avoid conversational fluff (like "Here is the response:").
+
+FORMATTING & ORGANIZATION RULES:
+- Use clean Markdown tables (| Header | Header |) for comparing drugs, dosing details (induction dose, infusion rate), pharmacokinetics (half-life, clearance, volume of distribution), or onset/duration times.
+- For biological or clinical pathways, use text-based flowcharts with arrows (e.g., "Drug -> Receptor Activation -> Signal Transduction").
+- Separate different points using clean bullet points (- ) with an empty line between bullets to make them highly readable.
+- Never use raw asterisks or unspaced/smushed blocks of text.
+- Do NOT use multiple asterisks (e.g., '**') except for standard bolding of keywords. Do not use asterisks as bullet separators.`;
 
   const prompt = `Textbook Sources:\n${sourcesText}\n\nUser Question: ${query}`;
 
@@ -533,14 +540,14 @@ export default function AttendingPanel({
                     {primaryGuidance.title}
                   </h4>
                   
-                  <p className="text-[11px] leading-relaxed text-slate-200 bg-slate-950/30 p-3 rounded border border-slate-900/40 font-mono font-medium">
+                  <div className="text-[11px] leading-relaxed text-slate-200 bg-slate-950/30 p-3 rounded border border-slate-900/40 font-mono font-medium whitespace-pre-wrap">
                     {parseAndRenderText(primaryGuidance.text, handleActionClick)}
-                  </p>
+                  </div>
  
                   {primaryGuidance.suggestion && (
                     <div className="flex items-start gap-2 bg-slate-950/60 p-2.5 rounded border border-slate-900/80 mt-1">
                       <ArrowRight size={14} className="text-amber-400 shrink-0 mt-0.5" />
-                      <span className="text-[10px] font-bold text-amber-300 leading-snug">
+                      <span className="text-[10px] font-bold text-amber-300 leading-snug whitespace-pre-wrap">
                         {parseAndRenderText(primaryGuidance.suggestion, handleActionClick)}
                       </span>
                     </div>
@@ -564,9 +571,9 @@ export default function AttendingPanel({
                   <span className="text-[10px] font-extrabold uppercase text-amber-400 tracking-wider flex items-center gap-1.5 font-mono">
                     🔮 Attending Foresight
                   </span>
-                  <p className="text-[10.5px] leading-relaxed text-amber-105 font-mono italic font-medium bg-slate-950/45 p-3 rounded-lg border border-amber-900/40">
+                  <div className="text-[10.5px] leading-relaxed text-amber-105 font-mono italic font-medium bg-slate-950/45 p-3 rounded-lg border border-amber-900/40 whitespace-pre-wrap">
                     {parseAndRenderText(nearFutureForecast, handleActionClick)}
-                  </p>
+                  </div>
                 </div>
               )}
  
@@ -605,9 +612,9 @@ export default function AttendingPanel({
                             </span>
                             <span className="text-slate-500 flex items-center gap-1 text-[9px]"><Clock size={9} /> {msg.timestamp}</span>
                           </div>
-                          <p className="text-slate-200 leading-relaxed font-medium bg-slate-950/20 p-2.5 rounded border border-slate-900/60">
+                          <div className="text-slate-200 leading-relaxed font-medium bg-slate-950/20 p-2.5 rounded border border-slate-900/60 whitespace-pre-wrap">
                             {parseAndRenderText(msg.text, handleActionClick)}
-                          </p>
+                          </div>
                           {msg.suggestion && (
                             <div className="text-[10px] text-amber-305 font-bold pl-1 flex items-center gap-1.5">
                               <ArrowRight size={10} className="text-amber-400" />
@@ -734,7 +741,7 @@ export default function AttendingPanel({
                         </span>
                       )}
                     </span>
-                    <div className={`px-3.5 py-2.5 rounded-2xl text-[11px] leading-relaxed font-mono ${cardClass}`}>
+                    <div className={`px-3.5 py-2.5 rounded-2xl text-[11px] leading-relaxed font-mono whitespace-pre-wrap ${cardClass}`}>
                       {isUser ? (
                         msg.text
                       ) : (
@@ -1067,7 +1074,7 @@ export default function AttendingPanel({
                         {item.priority}
                       </span>
                     </div>
-                    <p>{parseAndRenderText(item.message, handleActionClick)}</p>
+                    <div className="whitespace-pre-wrap">{parseAndRenderText(item.message, handleActionClick)}</div>
                     {item.action && (
                       <div className="flex items-center gap-1.5 mt-1 border-t border-slate-800/40 pt-1.5 text-amber-300 font-bold text-[10px]">
                         <ArrowRight size={12} className="text-amber-400" />

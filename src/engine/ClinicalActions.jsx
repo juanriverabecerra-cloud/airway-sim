@@ -269,54 +269,285 @@ export const CLINICAL_ACTIONS = {
 const keywords = Object.keys(CLINICAL_ACTIONS).sort((a, b) => b.length - a.length);
 const regexPattern = new RegExp(`\\b(${keywords.map(k => k.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')).join('|')})\\b`, 'gi');
 
-export const parseAndRenderText = (text, onActionClick) => {
+const parseInlineMarkdown = (text, onActionClick) => {
   if (!text || typeof text !== 'string') return text;
 
-  const supRegex = /(<sup>\[?\d+\]?<\/sup>)/gi;
-  const parts = text.split(supRegex);
+  let nodes = [text];
 
-  const rendered = parts.flatMap((part, index) => {
-    const supMatch = part.match(/^<sup>\[?(\d+)\]?<\/sup>$/i);
-    if (supMatch) {
-      const num = supMatch[1];
-      return (
-        <sup 
-          key={`sup-${index}`} 
-          className="text-[8.5px] font-black text-blue-400 ml-0.5 select-none hover:text-blue-300 transition-colors"
-          title={`Source ${num}`}
-        >
-          [{num}]
-        </sup>
-      );
-    }
-
-    if (!onActionClick) return part;
-
-    const actionParts = part.split(regexPattern);
-    if (actionParts.length === 1) return part;
-
-    return actionParts.map((aPart, aIndex) => {
-      const lowerPart = aPart.toLowerCase();
-      const actionConfig = CLINICAL_ACTIONS[lowerPart];
-      if (actionConfig) {
+  // 1. Parse Citations: <sup>[1]</sup> or <sup>1</sup>
+  const supRegex = /(<sup>\[?\d+(?:\s*,\s*\d+)*\]?<\/sup>)/gi;
+  nodes = nodes.flatMap((node, idx) => {
+    if (typeof node !== 'string') return node;
+    const parts = node.split(supRegex);
+    return parts.map((part, pIdx) => {
+      const match = part.match(/^<sup>\[?(\d+(?:\s*,\s*\d+)*)\]?<\/sup>$/i);
+      if (match) {
+        const nums = match[1];
         return (
-          <button
-            key={`action-${index}-${aIndex}`}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              onActionClick(lowerPart);
-            }}
-            className={`inline-flex items-center mx-1 px-1.5 py-0.5 rounded text-[10px] font-black border font-mono tracking-wide uppercase transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm ${actionConfig.color}`}
+          <sup 
+            key={`sup-${idx}-${pIdx}`} 
+            className="text-[8.5px] font-black text-blue-400 ml-0.5 select-none hover:text-blue-300 transition-colors font-mono"
+            title={`Source ${nums}`}
           >
-            {aPart}
-          </button>
+            [{nums}]
+          </sup>
         );
       }
-      return aPart;
+      return part;
     });
   });
 
-  return rendered.length === 1 && typeof rendered[0] === 'string' ? rendered[0] : rendered;
+  // 2. Parse Bold: **text**
+  const boldRegex = /(\*\*[^*]+\*\*)/g;
+  nodes = nodes.flatMap((node, idx) => {
+    if (typeof node !== 'string') return node;
+    const parts = node.split(boldRegex);
+    return parts.map((part, pIdx) => {
+      if (part.startsWith('**') && part.endsWith('**')) {
+        const innerText = part.slice(2, -2);
+        return (
+          <strong key={`bold-${idx}-${pIdx}`} className="text-yellow-300 font-extrabold">
+            {innerText}
+          </strong>
+        );
+      }
+      return part;
+    });
+  });
+
+  // 3. Parse Arrows: -> or -->
+  const arrowRegex = /( -[-]> |-->|->)/g;
+  nodes = nodes.flatMap((node, idx) => {
+    if (typeof node !== 'string') return node;
+    const parts = node.split(arrowRegex);
+    return parts.map((part, pIdx) => {
+      if (part === '->' || part === '-->' || part.trim() === '->' || part.trim() === '-->') {
+        return (
+          <span key={`arrow-${idx}-${pIdx}`} className="text-amber-500 font-black mx-1 select-none font-mono">
+            ➔
+          </span>
+        );
+      }
+      return part;
+    });
+  });
+
+  // 4. Parse Clinical Action Keywords
+  if (onActionClick) {
+    nodes = nodes.flatMap((node, idx) => {
+      if (typeof node !== 'string') return node;
+      const parts = node.split(regexPattern);
+      if (parts.length === 1) return parts[0];
+      return parts.map((aPart, aIndex) => {
+        const lowerPart = aPart.toLowerCase();
+        const actionConfig = CLINICAL_ACTIONS[lowerPart];
+        if (actionConfig) {
+          return (
+            <button
+              key={`action-${idx}-${aIndex}`}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onActionClick(lowerPart);
+              }}
+              className={`inline-flex items-center mx-1 px-1.5 py-0.5 rounded text-[10px] font-black border font-mono tracking-wide uppercase transition-all duration-200 hover:scale-105 active:scale-95 shadow-sm ${actionConfig.color}`}
+            >
+              {aPart}
+            </button>
+          );
+        }
+        return aPart;
+      });
+    });
+  }
+
+  return nodes.length === 1 && typeof nodes[0] === 'string' ? nodes[0] : nodes;
+};
+
+export const parseAndRenderText = (text, onActionClick) => {
+  if (!text || typeof text !== 'string') return text;
+
+  // Let's implement block parsing first.
+  const lines = text.split(/\r?\n/);
+  const blocks = [];
+  let currentBlockType = null;
+  let currentBlockLines = [];
+
+  const flushBlock = () => {
+    if (currentBlockLines.length === 0) return;
+    blocks.push({ type: currentBlockType, lines: currentBlockLines });
+    currentBlockLines = [];
+    currentBlockType = null;
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // 1. Check for headings
+    if (trimmed.startsWith('#')) {
+      flushBlock();
+      const match = trimmed.match(/^(#{1,6})\s+(.*)$/);
+      if (match) {
+        blocks.push({
+          type: 'heading',
+          level: match[1].length,
+          content: match[2]
+        });
+      } else {
+        blocks.push({ type: 'paragraph', lines: [line] });
+      }
+      continue;
+    }
+
+    // 2. Check for horizontal rule
+    if (trimmed === '---') {
+      flushBlock();
+      blocks.push({ type: 'hr' });
+      continue;
+    }
+
+    // 3. Check for table
+    if (trimmed.startsWith('|')) {
+      if (currentBlockType !== 'table') {
+        flushBlock();
+        currentBlockType = 'table';
+      }
+      currentBlockLines.push(line);
+      continue;
+    }
+
+    // 4. Check for list items
+    const listMatch = line.match(/^(\s*)([-*]|\d+\.)\s+(.*)$/);
+    if (listMatch) {
+      if (currentBlockType !== 'list') {
+        flushBlock();
+        currentBlockType = 'list';
+      }
+      currentBlockLines.push({
+        indent: listMatch[1].length,
+        marker: listMatch[2],
+        content: listMatch[3]
+      });
+      continue;
+    }
+
+    // 5. Check for empty lines
+    if (trimmed === '') {
+      flushBlock();
+      continue;
+    }
+
+    // 6. Otherwise, it's a paragraph line
+    if (currentBlockType !== 'paragraph' && currentBlockType !== null) {
+      flushBlock();
+    }
+    currentBlockType = 'paragraph';
+    currentBlockLines.push(line);
+  }
+  flushBlock();
+
+  // Now, render the blocks into React elements
+  const rendered = blocks.map((block, bIdx) => {
+    switch (block.type) {
+      case 'heading': {
+        const level = block.level;
+        const inlineParsed = parseInlineMarkdown(block.content, onActionClick);
+        const headingClasses = 
+          level === 1 ? "text-sm font-black uppercase tracking-wider text-slate-100 border-b border-white/10 pb-1.5 mt-5 mb-3 first:mt-0 font-mono" :
+          level === 2 ? "text-xs font-black uppercase tracking-wider text-slate-200 border-b border-white/5 pb-1 mt-4 mb-2 first:mt-0 font-mono" :
+          "text-[11px] font-black uppercase tracking-wider text-amber-400 border-b border-white/5 pb-1 mt-3 mb-2 first:mt-0 font-mono";
+
+        return (
+          <div key={`heading-${bIdx}`} className={headingClasses}>
+            {inlineParsed}
+          </div>
+        );
+      }
+
+      case 'hr':
+        return <hr key={`hr-${bIdx}`} className="my-3 border-white/5" />;
+
+      case 'table': {
+        const rows = block.lines.map(line => {
+          const cells = line.split('|').map(c => c.trim());
+          if (cells[0] === '') cells.shift();
+          if (cells[cells.length - 1] === '') cells.pop();
+          return cells;
+        });
+
+        if (rows.length === 0) return null;
+
+        const headers = rows[0];
+        let bodyRows = rows.slice(1);
+        if (rows[1] && rows[1].every(cell => cell.match(/^:?-+:?$/))) {
+          bodyRows = rows.slice(2);
+        }
+
+        return (
+          <div key={`table-${bIdx}`} className="overflow-x-auto my-3 border border-white/10 rounded-lg bg-slate-950/40 shadow-inner max-w-full font-mono">
+            <table className="min-w-full divide-y divide-slate-800/80 text-[10px]">
+              <thead>
+                <tr className="bg-slate-900/50">
+                  {headers.map((h, hIdx) => (
+                    <th 
+                      key={`th-${hIdx}`} 
+                      className="px-3 py-1.5 text-left text-[9px] font-black uppercase tracking-wider text-slate-400 border-b border-slate-800/50"
+                    >
+                      {parseInlineMarkdown(h, onActionClick)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-900/40 bg-slate-950/10">
+                {bodyRows.map((row, rIdx) => (
+                  <tr key={`tr-${rIdx}`} className="hover:bg-slate-900/20 transition-colors">
+                    {row.map((cell, cIdx) => (
+                      <td key={`td-${cIdx}`} className="px-3 py-1.5 text-slate-205 align-top leading-normal">
+                        {parseInlineMarkdown(cell, onActionClick)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      }
+
+      case 'list': {
+        return (
+          <ul key={`list-${bIdx}`} className="list-disc pl-4 my-2 flex flex-col gap-1 font-mono">
+            {block.lines.map((item, itemIdx) => {
+              const inlineParsed = parseInlineMarkdown(item.content, onActionClick);
+              return (
+                <li 
+                  key={`li-${itemIdx}`} 
+                  className="text-slate-200 leading-relaxed font-medium text-[11px]"
+                  style={{ marginLeft: `${item.indent * 4}px` }}
+                >
+                  {inlineParsed}
+                </li>
+              );
+            })}
+          </ul>
+        );
+      }
+
+      case 'paragraph':
+      default: {
+        const textContent = block.lines.join('\n');
+        const inlineParsed = parseInlineMarkdown(textContent, onActionClick);
+        return (
+          <div key={`p-${bIdx}`} className="mb-2.5 last:mb-0 leading-relaxed font-medium text-slate-200 font-mono text-[11px] whitespace-pre-wrap">
+            {inlineParsed}
+          </div>
+        );
+      }
+    }
+  });
+
+  return rendered.length === 1 ? rendered[0] : rendered;
 };
 
