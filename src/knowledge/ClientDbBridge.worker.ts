@@ -5,7 +5,7 @@
  */
 
 // Import sql.js browser WASM loader inside worker context
-importScripts('https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/sql-wasm.js');
+import initSqlJs from 'sql.js';
 
 let db: any = null;
 
@@ -14,11 +14,6 @@ self.onmessage = async (e: MessageEvent) => {
 
   if (type === 'init') {
     try {
-      const initSqlJs = (self as any).initSqlJs;
-      if (!initSqlJs) {
-        throw new Error('initSqlJs not defined in worker scope');
-      }
-
       const SQL = await initSqlJs({
         locateFile: (file: string) => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.12.0/${file}`
       });

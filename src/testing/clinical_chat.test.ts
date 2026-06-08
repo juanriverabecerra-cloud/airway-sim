@@ -146,5 +146,19 @@ describe('Clinical AI Chat Engine (getAttendingResponse)', () => {
       expect(results.length).toBeGreaterThan(0);
       expect(results[0].record.body_text).toBeDefined();
     });
+
+    it('should retrieve comprehensive matches and return the full body text without truncation', () => {
+      const query = 'consciousness';
+      const results = searchKnowledge(query, 25, 0.2);
+      
+      // Verify multi-instance matching retrieves more than the old limit of 5
+      expect(results.length).toBeGreaterThan(5);
+      
+      const response = getAttendingResponse(query, {});
+      
+      // Verify response has multiple sources and contains extensive text content (meaning no 800-character truncation per source)
+      expect(response.length).toBeGreaterThan(2000);
+      expect(response).toContain('Attending Knowledge Base Consultation');
+    });
   });
 });

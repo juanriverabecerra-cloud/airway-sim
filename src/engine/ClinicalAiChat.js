@@ -580,8 +580,8 @@ Myocardial perfusion has collapsed due to tachycardia or severe hypotension.
   // K. KNOWLEDGE BASE RETRIEVAL — Search ingested textbook corpus
   // This runs AFTER all simulator-state-specific decision branches have been exhausted.
   // It queries the ingested medical truth database using TF-IDF relevance scoring.
-  const kbResults = searchKnowledge(safeQuery, 5, 0.5);
-  const matrixResults = searchMatrices(safeQuery, 2);
+  const kbResults = searchKnowledge(safeQuery, 30, 0.2);
+  const matrixResults = searchMatrices(safeQuery, 10);
 
   if (kbResults.length > 0) {
     let kbResponse = `### 📖 Attending Knowledge Base Consultation\n\n`;
@@ -591,49 +591,14 @@ Myocardial perfusion has collapsed due to tachycardia or severe hypotension.
     for (const result of kbResults) {
       const { record, score, rank } = result;
       const confidenceLabel = score > 2.0 ? '🟢 HIGH' : score > 1.0 ? '🟡 MODERATE' : '🟠 PARTIAL';
-      // Find where the first match of the search tokens occurs in the body text to construct a relevant snippet.
-      let truncatedBody;
-      const searchTokens = getSearchTokens(safeQuery);
-      let bestMatchIdx = -1;
-      const bodyLower = record.body_text.toLowerCase();
       
-      const phrases = ['rapid eye movement', 'non rapid eye movement'];
-      for (const phrase of phrases) {
-        const idx = bodyLower.indexOf(phrase);
-        if (idx !== -1) {
-          bestMatchIdx = idx;
-          break;
-        }
-      }
-      
-      if (bestMatchIdx === -1) {
-        for (const token of searchTokens) {
-          if (token.length > 3) {
-            const idx = bodyLower.indexOf(token);
-            if (idx !== -1 && (bestMatchIdx === -1 || idx < bestMatchIdx)) {
-              bestMatchIdx = idx;
-            }
-          }
-        }
-      }
-      
-      if (record.body_text.length <= 800) {
-        truncatedBody = record.body_text;
-      } else if (bestMatchIdx !== -1 && bestMatchIdx > 500) {
-        const start = Math.max(0, bestMatchIdx - 200);
-        const end = Math.min(record.body_text.length, bestMatchIdx + 600);
-        truncatedBody = (start > 0 ? '... ' : '') + record.body_text.slice(start, end) + (end < record.body_text.length ? ' ...' : '');
-      } else {
-        truncatedBody = record.body_text.slice(0, 800) + '...';
-      }
-
       const chapterNum = record.chapter_title.includes('10') || 
                          (record.section_heading && record.section_heading.toLowerCase().includes('sleep')) || 
                          (record.section_heading && record.section_heading.toLowerCase().includes('eeg')) 
                          ? 'Ch.10' 
                          : 'Ch.9';
       const citation = ` [Miller ${chapterNum}: ${record.section_heading || 'Untitled Section'}]`;
-      const citedBody = truncatedBody + citation;
+      const citedBody = record.body_text + citation;
 
       kbResponse += `---\n`;
       kbResponse += `**Source ${rank}** — *${record.section_heading || 'Untitled Section'}*\n`;

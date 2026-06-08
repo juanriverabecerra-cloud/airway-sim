@@ -79,7 +79,7 @@ export default function AttendingPanel({
   // Background reference retrieval when active question changes
   useEffect(() => {
     if (currentQuestion && currentQuestion.searchQuery) {
-      const results = searchKnowledge(currentQuestion.searchQuery, 3, 0.4);
+      const results = searchKnowledge(currentQuestion.searchQuery, 10, 0.2);
       setQuizReferenceContext(results);
     } else {
       setQuizReferenceContext([]);
