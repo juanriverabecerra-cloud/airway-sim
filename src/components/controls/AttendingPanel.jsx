@@ -9,6 +9,65 @@ import { getAttendingResponse, resetConversationHistory, verifyResponseGrounding
 import { getKnowledgeStats, searchKnowledge, searchMatrices } from '../../knowledge/KnowledgeSearch';
 import { boardQuestions } from '../../knowledge/BoardQuestions';
 
+function parsePartialQuestions(jsonStr) {
+  const arrayStartIdx = jsonStr.indexOf('"questions":');
+  if (arrayStartIdx === -1) return [];
+  
+  const startBracketIdx = jsonStr.indexOf('[', arrayStartIdx);
+  if (startBracketIdx === -1) return [];
+  
+  const questions = [];
+  let braceCount = 0;
+  let objectStartIdx = -1;
+  let inString = false;
+  let escapeNext = false;
+  
+  for (let i = startBracketIdx + 1; i < jsonStr.length; i++) {
+    const char = jsonStr[i];
+    
+    if (escapeNext) {
+      escapeNext = false;
+      continue;
+    }
+    
+    if (char === '\\') {
+      escapeNext = true;
+      continue;
+    }
+    
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    
+    if (inString) {
+      continue;
+    }
+    
+    if (char === '{') {
+      if (braceCount === 0) {
+        objectStartIdx = i;
+      }
+      braceCount++;
+    } else if (char === '}') {
+      braceCount--;
+      if (braceCount === 0 && objectStartIdx !== -1) {
+        const objectStr = jsonStr.substring(objectStartIdx, i + 1);
+        try {
+          const parsedObj = JSON.parse(objectStr);
+          if (parsedObj.vignette && parsedObj.options && Array.isArray(parsedObj.options) && parsedObj.options.length >= 4) {
+            questions.push(parsedObj);
+          }
+        } catch (err) {
+          // ignore parsing error for incomplete objects
+        }
+      }
+    }
+  }
+  
+  return questions;
+}
+
 async function queryGeminiAI(query, sources, apiKey, onChunk) {
   const sourcesText = sources.map((src, idx) => {
     return `[Source ${idx + 1}] Section: ${src.record.section_heading || 'General'}\nChapter: ${src.record.chapter_title}\nText: ${src.record.body_text}`;
@@ -338,6 +397,7 @@ export default function AttendingPanel({
   const [showPimpSection, setShowPimpSection] = useState(false);
   const [pimpTopicInput, setPimpTopicInput] = useState('');
   const [isGeneratingPimp, setIsGeneratingPimp] = useState(false);
+  const [isPimpLoading, setIsPimpLoading] = useState(false);
   const [generatedQuestions, setGeneratedQuestions] = useState([]);
   const [activeGeneratedIdx, setActiveGeneratedIdx] = useState(0);
   const generatedQuestion = generatedQuestions[activeGeneratedIdx] || null;
@@ -1230,6 +1290,7 @@ export default function AttendingPanel({
                             const topic = pimpTopicInput.trim();
                             if (!topic || !apiKey || isGeneratingPimp) return;
                             setIsGeneratingPimp(true);
+                            setIsPimpLoading(true);
                             setGeneratedQuestions([]);
                             setActiveGeneratedIdx(0);
                             setGeneratedSelectedIdx(null);
@@ -1243,12 +1304,15 @@ export default function AttendingPanel({
                               }
                               if (kbResults.length === 0) {
                                 setGeneratedQuestions([{ error: `No textbook content found for "${topic}". Try a different term.` }]);
+                                setIsGeneratingPimp(false);
+                                setIsPimpLoading(false);
                                 return;
                               }
                               const sourcesText = kbResults.slice(0, 12).map((src, idx) =>
                                 `[Source ${idx + 1}] Chapter: ${src.record.chapter_title}\nSection: ${src.record.section_heading || 'General'}\nText: ${src.record.body_text}`
                               ).join('\n\n');
-                              const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
+                              
+                              const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:streamGenerateContent?key=${apiKey}&alt=sse`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({
@@ -1284,25 +1348,88 @@ Rules:
                                   generationConfig: { temperature: 0.4 }
                                 })
                               });
-                              const data = await resp.json();
-                              let qText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                              qText = qText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
-                              const parsed = JSON.parse(qText);
-                              if (parsed && Array.isArray(parsed.questions) && parsed.questions.length > 0) {
-                                setGeneratedQuestions(parsed.questions);
-                                setActiveGeneratedIdx(0);
-                              } else if (parsed && parsed.vignette) {
-                                setGeneratedQuestions([parsed]);
-                                setActiveGeneratedIdx(0);
-                              } else {
-                                throw new Error('Invalid format returned by AI question writer.');
+
+                              if (!response.ok) {
+                                throw new Error(`Gemini API HTTP Error: ${response.status} ${response.statusText}`);
                               }
+
+                              const reader = response.body.getReader();
+                              const decoder = new TextDecoder();
+                              let buffer = '';
+                              let fullText = '';
+                              let hasFirstQuestion = false;
+
+                              while (true) {
+                                const { done, value } = await reader.read();
+                                if (done) break;
+
+                                buffer += decoder.decode(value, { stream: true });
+                                const lines = buffer.split('\n');
+                                buffer = lines.pop() || '';
+
+                                for (const line of lines) {
+                                  const trimmed = line.trim();
+                                  if (trimmed.startsWith('data: ')) {
+                                    const jsonStr = trimmed.slice(6).trim();
+                                    if (!jsonStr) continue;
+                                    try {
+                                      const parsed = JSON.parse(jsonStr);
+                                      const chunkText = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                                      if (chunkText) {
+                                        fullText += chunkText;
+                                        const questions = parsePartialQuestions(fullText);
+                                        if (questions.length > 0) {
+                                          setGeneratedQuestions(questions);
+                                          if (!hasFirstQuestion) {
+                                            hasFirstQuestion = true;
+                                            setIsGeneratingPimp(false);
+                                          }
+                                        }
+                                      }
+                                    } catch (err) {
+                                      console.warn('JSON chunk parse error:', err);
+                                    }
+                                  }
+                                }
+                              }
+
+                              if (buffer.trim().startsWith('data: ')) {
+                                try {
+                                  const jsonStr = buffer.trim().slice(6).trim();
+                                  const parsed = JSON.parse(jsonStr);
+                                  const chunkText = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                                  if (chunkText) {
+                                    fullText += chunkText;
+                                  }
+                                } catch {}
+                              }
+
+                              const finalQuestions = parsePartialQuestions(fullText);
+                              if (finalQuestions.length > 0) {
+                                setGeneratedQuestions(finalQuestions);
+                              } else {
+                                try {
+                                  let cleanText = fullText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+                                  const parsed = JSON.parse(cleanText);
+                                  if (parsed && Array.isArray(parsed.questions) && parsed.questions.length > 0) {
+                                    setGeneratedQuestions(parsed.questions);
+                                  } else if (parsed && parsed.vignette) {
+                                    setGeneratedQuestions([parsed]);
+                                  }
+                                } catch (err) {
+                                  if (!hasFirstQuestion) {
+                                    throw new Error('Could not parse any generated questions from the AI stream.');
+                                  }
+                                }
+                              }
+
                             } catch (err) {
                               console.error('Pimp question generation failed:', err);
                               setGeneratedQuestions([{ error: `Failed to generate questions: ${err.message}` }]);
                               setActiveGeneratedIdx(0);
                             } finally {
                               setIsGeneratingPimp(false);
+                              setIsPimpLoading(false);
                             }
                           }}
                           disabled={!pimpTopicInput.trim() || isGeneratingPimp || !apiKey}
@@ -1364,7 +1491,15 @@ Rules:
                         <div className="bg-slate-900/60 border border-purple-500/20 rounded-xl p-3 flex flex-col gap-2.5 animate-in fade-in duration-200">
                           <div className="flex justify-between items-center text-[9px] font-bold text-purple-400 border-b border-slate-800 pb-1.5">
                             <span className="flex items-center gap-1"><Sparkles size={10} /> AI-GENERATED: {(generatedQuestion.category || pimpTopicInput).toUpperCase()}</span>
-                            <span className="text-slate-500">Q {activeGeneratedIdx + 1} / {generatedQuestions.length}</span>
+                            <span className="text-slate-500 flex items-center gap-1">
+                              Q {activeGeneratedIdx + 1} / {isPimpLoading ? 10 : generatedQuestions.length}
+                              {isPimpLoading && (
+                                <span className="text-purple-400 font-bold animate-pulse text-[8px] flex items-center gap-0.5 ml-1">
+                                  <Sparkles size={8} className="animate-spin" />
+                                  (STREAMING…)
+                                </span>
+                              )}
+                            </span>
                           </div>
                           <p className="font-bold leading-relaxed text-slate-100 bg-slate-950/20 p-2.5 rounded border border-slate-900/30 text-[10.5px]">
                             {generatedQuestion.vignette}
@@ -1424,6 +1559,11 @@ Rules:
                                 >
                                   NEXT QUESTION
                                 </button>
+                              ) : isPimpLoading ? (
+                                <div className="flex items-center justify-center gap-1.5 text-purple-400 text-[10px] font-bold py-2 border border-purple-500/20 rounded-lg bg-slate-900/60 select-none">
+                                  <Sparkles size={12} className="animate-spin" />
+                                  Generating subsequent questions… ({generatedQuestions.length} ready)
+                                </div>
                               ) : (
                                 <button
                                   type="button"
