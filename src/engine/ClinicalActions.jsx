@@ -433,6 +433,16 @@ export const parseAndRenderText = (text, onActionClick) => {
       continue;
     }
 
+    // 4.5 Check for biological or clinical pathways
+    if (trimmed.includes('->') || trimmed.includes('-->') || trimmed.includes('➔')) {
+      flushBlock();
+      blocks.push({
+        type: 'pathway',
+        content: line
+      });
+      continue;
+    }
+
     // 5. Check for empty lines
     if (trimmed === '') {
       flushBlock();
@@ -532,6 +542,37 @@ export const parseAndRenderText = (text, onActionClick) => {
               );
             })}
           </ul>
+        );
+      }
+
+      case 'pathway': {
+        const steps = block.content.split(/\s*(?:-[-]>|-->|->|➔)\s*/).map(s => s.trim()).filter(Boolean);
+        if (steps.length <= 1) {
+          const inlineParsed = parseInlineMarkdown(block.content, onActionClick);
+          return (
+            <div key={`p-${bIdx}`} className="mb-2.5 last:mb-0 leading-relaxed font-medium text-slate-200 font-mono text-[11px] whitespace-pre-wrap">
+              {inlineParsed}
+            </div>
+          );
+        }
+        return (
+          <div key={`pathway-${bIdx}`} className="flex flex-wrap items-center gap-y-2 gap-x-1 my-3 bg-slate-950/40 p-3 rounded-xl border border-amber-500/20 shadow-md font-mono max-w-full">
+            {steps.map((step, sIdx) => {
+              const inlineParsed = parseInlineMarkdown(step, onActionClick);
+              return (
+                <div key={sIdx} className="flex items-center gap-1">
+                  {sIdx > 0 && (
+                    <span className="text-amber-500 font-black text-xs select-none mx-0.5 animate-pulse shrink-0">
+                      ➔
+                    </span>
+                  )}
+                  <div className="px-2.5 py-1.5 bg-slate-900 border border-slate-800/80 text-slate-205 rounded-lg text-[10px] font-bold shadow-sm hover:border-amber-500/30 transition-all flex items-center gap-1 select-text">
+                    {inlineParsed}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         );
       }
 

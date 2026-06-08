@@ -14,23 +14,24 @@ async function queryGeminiAI(query, sources, apiKey) {
   }).join('\n\n');
 
   const systemInstruction = `You are a knowledge-grounded Senior Anesthesiology Attending teaching residents in the OR.
-Your goal is to answer the user's clinical question using exclusively the provided verified textbook sources.
+Your goal is to provide a highly comprehensive, detailed, and clinically all-encompassing answer to the user's question, grounded strictly in the provided verified textbook sources.
 
-STRICT GROUNDING RULES:
+STRICT GROUNDING & DEPTH RULES:
 1. Your response must be directly based on the provided textbook sources.
-2. If the sources do not contain information relevant to the question, state that clearly and provide the best available clinical reasoning while citing what is in the sources.
-3. Organize your answer under structured markdown category headings (only output sections with content). Use headings starting with '### ':
+2. You must make the answer as detailed and complete as possible. Provide thorough explanations of physiological mechanisms, receptor pathways, clinical dosing guidelines, physiological effects, warnings, and clinical pearls. Aim for a deep, expert-level clinical teaching consult, as if you are a senior attending teaching in detail in the OR.
+3. Organize your response under these 5 structured markdown category headings. You should address and output ALL of these sections to provide a complete, all-encompassing guide:
    ### 🧬 Mechanism & Receptor Pharmacology
    ### 💊 Clinical Dosing & Pharmacokinetics
    ### 🫁 Physiological Effects & Clinical Indications
    ### ⚠️ Adverse Effects, Warnings & Contraindications
    ### 📖 Clinical Pearls & General Notes
-4. Insert inline citations to the sources using the superscript format: <sup>[X]</sup> where X is the source number (e.g. <sup>[1]</sup> or <sup>[2]</sup>). Place these citations immediately after the facts you cite!
-5. Do NOT include a separate bibliography or dump the raw text of the sources at the bottom. Your response should end with the categorized synthesis.
-6. Mimic the tone of a medically rigorous, concise, and helpful anesthesia professor. Avoid conversational fluff.
+4. If a specific section lacks direct information in the retrieved sources, use your expert clinical logic to extrapolate safe, textbook-aligned principles that apply to the topic, while noting the relationship to the cited facts.
+5. Insert inline citations to the sources using the superscript format: <sup>[X]</sup> where X is the source number (e.g. <sup>[1]</sup> or <sup>[2]</sup>). Place these citations immediately after the facts you cite!
+6. Do NOT include a separate bibliography or dump the raw text of the sources at the bottom. Your response should end with the categorized synthesis.
+7. Mimic the tone of a medically rigorous, highly knowledgeable, and helpful anesthesia professor. Avoid conversational fluff.
 
 FORMATTING & ORGANIZATION RULES:
-- Use clean Markdown tables (| Header | Header |) for comparing drugs, dosing details, pharmacokinetics, or onset/duration times.
+- Use clean Markdown tables (| Header | Header |) ONLY when comparing multiple drugs or when the sources explicitly present structured tabular data. Do NOT output empty tables, tables with no content rows, or single-column tables.
 - For biological or clinical pathways, use text-based flowcharts with arrows (e.g., "Drug -> Receptor Activation -> Signal Transduction").
 - Separate different points using clean bullet points (- ) with an empty line between bullets to make them highly readable.
 - Output the response ONCE. Do NOT duplicate the answer, write duplicate sections, or output long strings of dashes/dividers.
@@ -38,7 +39,7 @@ FORMATTING & ORGANIZATION RULES:
 
   const prompt = `Textbook Sources:\n${sourcesText}\n\nUser Question: ${query}`;
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -88,7 +89,7 @@ Focus on standard singular root nouns (e.g. convert 'bronchospasming' to 'bronch
 Respond ONLY with a JSON array of strings, for example: ["bronchospasm", "ventilation", "albuterol"].
 Do not include any explanation, introductory text, markdown formatting outside the JSON, or markdown code blocks.`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -343,30 +344,37 @@ export default function AttendingPanel({
         } else if (apiKey) {
           // 2. AI Synthesis Mode: Retrieve sources and query Gemini
           try {
-            // Check if query expansion is needed (bypass for simple 1-2 word queries)
-            const queryWords = currentInput.trim().split(/\s+/).filter(Boolean);
-            const needsExpansion = queryWords.length > 2 || 
-                                   currentInput.toLowerCase().includes('how') || 
-                                   currentInput.toLowerCase().includes('why') || 
-                                   currentInput.toLowerCase().includes('what') || 
-                                   currentInput.toLowerCase().includes('should') ||
-                                   currentInput.toLowerCase().includes('explain');
+            // Run a fast local search first using the raw user query
+            let kbResults = searchKnowledge(currentInput, 15, 0.12);
 
-            let kbResults = [];
-            if (needsExpansion) {
-              console.log(`[QueryExpansion] Original query: "${currentInput}"`);
-              const expandedKeywords = await expandQueryClinicalKeywords(currentInput, apiKey);
-              const searchQuery = expandedKeywords.join(' ');
-              console.log(`[QueryExpansion] Standardized search keywords: "${searchQuery}"`);
+            // Bypass query expansion if we already have 3 or more high-quality textbook records
+            if (kbResults.length < 3) {
+              // Check if query expansion is needed (bypass for simple 1-2 word queries)
+              const queryWords = currentInput.trim().split(/\s+/).filter(Boolean);
+              const needsExpansion = queryWords.length > 2 || 
+                                     currentInput.toLowerCase().includes('how') || 
+                                     currentInput.toLowerCase().includes('why') || 
+                                     currentInput.toLowerCase().includes('what') || 
+                                     currentInput.toLowerCase().includes('should') ||
+                                     currentInput.toLowerCase().includes('explain');
 
-              kbResults = searchKnowledge(searchQuery, 15, 0.12);
-              if (kbResults.length === 0) {
-                console.log('[QueryExpansion] Expanded search yielded 0 results. Falling back to original query.');
-                kbResults = searchKnowledge(currentInput, 15, 0.12);
+              if (needsExpansion) {
+                console.log(`[QueryExpansion] Direct search yielded ${kbResults.length} results. Running query expansion...`);
+                const expandedKeywords = await expandQueryClinicalKeywords(currentInput, apiKey);
+                const searchQuery = expandedKeywords.join(' ');
+                console.log(`[QueryExpansion] Standardized search keywords: "${searchQuery}"`);
+
+                const expandedResults = searchKnowledge(searchQuery, 15, 0.12);
+                if (expandedResults.length > 0) {
+                  kbResults = expandedResults;
+                } else {
+                  console.log('[QueryExpansion] Expanded search yielded 0 results. Keeping original query results.');
+                }
+              } else {
+                console.log(`[QueryExpansion] Simple query detected. Bypassing expansion pass.`);
               }
             } else {
-              console.log(`[QueryExpansion] Simple query detected. Bypassing expansion pass.`);
-              kbResults = searchKnowledge(currentInput, 15, 0.12);
+              console.log(`[QueryExpansion] Direct search yielded ${kbResults.length} high-quality results. Bypassing expansion pass.`);
             }
 
             if (kbResults.length > 0) {
