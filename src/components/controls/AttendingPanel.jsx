@@ -1,8 +1,8 @@
 /* eslint-disable react-hooks/refs */
 import { useState, useEffect, useRef } from 'react';
 import { 
-  MessageSquare, ChevronRight, X, 
-  HelpCircle, Shield, Award, Clock, ArrowRight, BookOpen
+  MessageSquare, ChevronRight, ChevronDown, ChevronUp, X, 
+  HelpCircle, Shield, Award, Clock, ArrowRight, BookOpen, Shuffle, Target, Sparkles
 } from 'lucide-react';
 import { parseAndRenderText } from '../../engine/ClinicalActions';
 import { getAttendingResponse, resetConversationHistory, verifyResponseGrounding } from '../../engine/ClinicalAiChat';
@@ -287,10 +287,21 @@ export default function AttendingPanel({
 
   // Board Study Inline Ask Attending State
   const [studyInput, setStudyInput] = useState('');
-  const [studyResponse, setStudyResponse] = useState(null); // { question, text }
+  const [studyChatHistory, setStudyChatHistory] = useState([]); // [{id, sender, text, timestamp}]
   const [isStudyTyping, setIsStudyTyping] = useState(false);
-  const [studyDetailExpanded, setStudyDetailExpanded] = useState(false);
+  const [studyExpandedDetails, setStudyExpandedDetails] = useState({}); // {msgId: bool}
   const studyEndRef = useRef(null);
+
+  // Pimp Me Section State
+  const [showPimpSection, setShowPimpSection] = useState(false);
+  const [pimpTopicInput, setPimpTopicInput] = useState('');
+  const [isGeneratingPimp, setIsGeneratingPimp] = useState(false);
+  const [generatedQuestion, setGeneratedQuestion] = useState(null);
+  const [generatedSelectedIdx, setGeneratedSelectedIdx] = useState(null);
+  const [showGeneratedExplanation, setShowGeneratedExplanation] = useState(false);
+  const [showReferences, setShowReferences] = useState(false);
+
+  const toggleStudyDetail = (msgId) => setStudyExpandedDetails(prev => ({ ...prev, [msgId]: !prev[msgId] }));
 
   const filteredQuestions = boardQuestions.filter(q => 
     quizFilter === 'ALL' || q.category.toUpperCase() === quizFilter.toUpperCase()
@@ -1025,243 +1036,379 @@ export default function AttendingPanel({
         ) : (
           /* Board Study View */
           <div className="flex-1 flex flex-col min-h-0 bg-slate-950/20">
-            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar text-[11px]">
-              {/* Quiz Stats */}
-              <div className="flex flex-col gap-3 shrink-0">
-                <div className="flex justify-between items-center bg-slate-950 p-2.5 rounded-lg border border-white/5 text-[9px] text-slate-400">
-                  <div>
-                    Completed: <strong className="text-slate-200">{quizStats.completed}</strong>
-                  </div>
-                  <div>
-                    Correct: <strong className="text-emerald-400">{quizStats.correct}</strong>
-                  </div>
-                  <div>
-                    Accuracy: <strong className="text-amber-400">{quizStats.completed > 0 ? Math.round((quizStats.correct / quizStats.completed) * 100) : 0}%</strong>
-                  </div>
-                  <div>
-                    Streak: <strong className="text-indigo-400">{quizStats.streak} 🔥</strong>
-                  </div>
-                </div>
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 custom-scrollbar text-[11px]">
 
-                {/* Quiz Filters */}
-                <div className="flex gap-1 bg-slate-950 p-1 rounded-lg border border-white/5 text-[9px]">
-                  {['ALL', 'PHYSIOLOGY', 'PHARMACOLOGY'].map(f => (
-                    <button
-                      key={f}
-                      type="button"
-                      onClick={() => {
-                        setQuizFilter(f);
-                        setActiveQuizQuestionIdx(0);
-                      }}
-                      className={`flex-1 py-1 font-bold rounded transition-all cursor-pointer ${
-                        quizFilter === f ? 'bg-amber-600 text-white' : 'text-slate-500 hover:text-slate-300'
-                      }`}
-                    >
-                      {f}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {/* ═══════ Collapsible "Pimp Me" Section ═══════ */}
+              <div className="shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setShowPimpSection(prev => !prev)}
+                  className="w-full flex justify-between items-center bg-gradient-to-r from-indigo-950/60 to-purple-950/40 border border-indigo-500/30 rounded-xl px-3.5 py-2.5 text-[10px] font-black uppercase tracking-wider text-indigo-300 hover:border-indigo-400/50 hover:text-indigo-200 transition-all cursor-pointer group shadow-lg shadow-indigo-950/20"
+                >
+                  <span className="flex items-center gap-2">
+                    <Sparkles size={14} className="text-indigo-400 group-hover:text-indigo-300 transition" />
+                    🎯 Pimp Me — Board Questions
+                    <span className="text-[8px] font-semibold bg-indigo-500/20 border border-indigo-500/30 px-1.5 py-0.5 rounded text-indigo-400">
+                      {quizStats.completed > 0 ? `${quizStats.correct}/${quizStats.completed}` : 'START'}
+                    </span>
+                  </span>
+                  {showPimpSection ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                </button>
 
-              {/* Current Question */}
-              {currentQuestion ? (
-                <div className="bg-slate-900/60 border border-white/5 rounded-xl p-4 flex flex-col gap-3 animate-in fade-in duration-200">
-                  <div className="flex justify-between items-center text-[9px] font-bold text-amber-500 border-b border-slate-800 pb-2">
-                    <span>TOPIC: {currentQuestion.category.toUpperCase()}</span>
-                    <span>QUESTION {activeQuizQuestionIdx + 1} OF {filteredQuestions.length}</span>
-                  </div>
-                  
-                  <p className="font-bold leading-relaxed text-slate-100 bg-slate-950/20 p-2.5 rounded border border-slate-900/30">
-                    {currentQuestion.vignette}
-                  </p>
-                  
-                  <div className="flex flex-col gap-2 my-1">
-                    {currentQuestion.options.map((opt, oIdx) => {
-                      let optStyle = 'border-slate-850 hover:border-slate-700 bg-slate-950/30 hover:bg-slate-950/50 text-slate-300';
-                      
-                      if (showQuizExplanation) {
-                        if (oIdx === currentQuestion.correctIdx) {
-                          optStyle = 'border-emerald-500 bg-emerald-950/30 text-emerald-200 font-bold';
-                        } else if (selectedOptionIdx === oIdx) {
-                          optStyle = 'border-red-500 bg-red-950/30 text-red-200';
-                        }
-                      } else if (selectedOptionIdx === oIdx) {
-                        optStyle = 'border-amber-500 bg-amber-955/30 text-amber-200';
-                      }
-                      
-                      return (
+                {showPimpSection && (
+                  <div className="mt-2 flex flex-col gap-3 bg-slate-900/40 border border-indigo-500/15 rounded-xl p-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                    {/* Pimp Mode Controls */}
+                    <div className="flex flex-col gap-2">
+                      <div className="flex gap-2">
                         <button
-                          key={oIdx}
                           type="button"
                           onClick={() => {
-                            if (!showQuizExplanation) setSelectedOptionIdx(oIdx);
+                            setGeneratedQuestion(null);
+                            setGeneratedSelectedIdx(null);
+                            setShowGeneratedExplanation(false);
+                            setActiveQuizQuestionIdx(Math.floor(Math.random() * filteredQuestions.length));
                           }}
-                          disabled={showQuizExplanation}
-                          className={`w-full text-left p-2.5 rounded-lg border text-[10px] leading-snug transition-all flex items-start gap-2 focus:outline-none cursor-pointer ${optStyle}`}
+                          className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 active:scale-98 text-white font-bold text-[10px] rounded-lg transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
                         >
-                          <span className="font-bold shrink-0">{opt.slice(0, 2)}</span>
-                          <span>{opt.slice(3)}</span>
+                          <Shuffle size={12} /> PIMP ME RANDOMLY
                         </button>
-                      );
-                    })}
-                  </div>
-                  
-                  {!showQuizExplanation ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (selectedOptionIdx === null) return;
-                        const isCorrect = selectedOptionIdx === currentQuestion.correctIdx;
-                        setQuizStats(prev => ({
-                          completed: prev.completed + 1,
-                          correct: prev.correct + (isCorrect ? 1 : 0),
-                          streak: isCorrect ? prev.streak + 1 : 0
-                        }));
-                        setShowQuizExplanation(true);
-                      }}
-                      disabled={selectedOptionIdx === null}
-                      className="w-full py-2 bg-amber-600 disabled:opacity-50 hover:bg-amber-500 active:scale-98 text-white font-bold rounded-lg transition-all shadow-md font-mono cursor-pointer"
-                    >
-                      SUBMIT ANSWER
-                    </button>
-                  ) : (
-                    <div className="flex flex-col gap-3 animate-in fade-in duration-300">
-                      <div className={`p-3 rounded-lg border text-[10px] leading-relaxed ${
-                        selectedOptionIdx === currentQuestion.correctIdx 
-                          ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-200' 
-                          : 'bg-red-950/20 border-red-500/40 text-red-200'
-                      }`}>
-                        <span className="font-bold block mb-1 text-[10.5px]">
-                          {selectedOptionIdx === currentQuestion.correctIdx ? '🎉 CORRECT EXPLANATION' : '❌ INCORRECT EXPLANATION'}
-                        </span>
-                        {currentQuestion.explanation}
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const topic = pimpTopicInput.trim();
+                            if (!topic || !apiKey || isGeneratingPimp) return;
+                            setIsGeneratingPimp(true);
+                            setGeneratedQuestion(null);
+                            setGeneratedSelectedIdx(null);
+                            setShowGeneratedExplanation(false);
+                            try {
+                              let kbResults = searchKnowledge(topic, 10, 0.12);
+                              if (kbResults.length < 2) {
+                                const expanded = await expandQueryClinicalKeywords(topic, apiKey);
+                                const expandedResults = searchKnowledge(expanded.join(' '), 10, 0.12);
+                                if (expandedResults.length > 0) kbResults = expandedResults;
+                              }
+                              if (kbResults.length === 0) {
+                                setGeneratedQuestion({ error: `No textbook content found for "${topic}". Try a different term.` });
+                                return;
+                              }
+                              const sourcesText = kbResults.slice(0, 8).map((src, idx) =>
+                                `[Source ${idx + 1}] Section: ${src.record.section_heading || 'General'}\nText: ${src.record.body_text}`
+                              ).join('\n\n');
+                              const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  contents: [{ role: 'user', parts: [{ text: `Topic: ${topic}\n\nTextbook Sources:\n${sourcesText}` }] }],
+                                  system_instruction: { parts: [{ text: `You are a board-exam question writer for anesthesiology residents. Generate exactly ONE high-yield multiple-choice question based STRICTLY on the provided textbook sources about the specified topic.
+
+Respond ONLY with a single JSON object (no markdown, no code blocks, no explanation) in this exact format:
+{"vignette": "Clinical vignette or stem question", "options": ["A) ...", "B) ...", "C) ...", "D) ..."], "correctIdx": 0, "explanation": "Detailed explanation of the correct answer citing the source material", "category": "topic category"}
+
+Rules:
+- The vignette must be a realistic clinical scenario or direct knowledge question
+- Exactly 4 options labeled A) through D)
+- correctIdx is 0-based (0=A, 1=B, 2=C, 3=D)
+- The explanation must be thorough and educational
+- Base everything on the provided textbook sources` }] },
+                                  generationConfig: { temperature: 0.4 }
+                                })
+                              });
+                              const data = await resp.json();
+                              let qText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                              qText = qText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+                              const parsed = JSON.parse(qText);
+                              setGeneratedQuestion(parsed);
+                              setQuizReferenceContext(kbResults);
+                            } catch (err) {
+                              console.error('Pimp question generation failed:', err);
+                              setGeneratedQuestion({ error: `Failed to generate question: ${err.message}` });
+                            } finally {
+                              setIsGeneratingPimp(false);
+                            }
+                          }}
+                          disabled={!pimpTopicInput.trim() || isGeneratingPimp || !apiKey}
+                          className="flex-1 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 active:scale-98 text-white font-bold text-[10px] rounded-lg transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <Target size={12} /> PIMP ME ON…
+                        </button>
                       </div>
-                      
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveQuizQuestionIdx(prev => prev + 1);
-                        }}
-                        className="w-full py-2 bg-slate-800 hover:bg-slate-700 active:scale-98 text-white font-bold rounded-lg transition-all shadow-md font-mono cursor-pointer"
-                      >
-                        NEXT QUESTION
-                      </button>
+                      <input
+                        type="text"
+                        value={pimpTopicInput}
+                        onChange={(e) => setPimpTopicInput(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter') e.target.closest('div').querySelector('button:last-of-type')?.click(); }}
+                        placeholder="Enter topic (e.g. 'ketamine', 'intubation', 'MAC')…"
+                        className="w-full bg-slate-950/80 border border-slate-700/60 rounded-lg px-3 py-2 text-[10px] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500/60 focus:ring-1 focus:ring-purple-500/20 transition-all font-mono"
+                        disabled={isGeneratingPimp}
+                      />
                     </div>
-                  )}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-slate-500 italic">No questions found for this topic.</div>
-              )}
 
-              {/* Collapsible Reference Context */}
-              {quizReferenceContext.length > 0 && (
-                <div className="flex flex-col gap-2 mt-2">
-                  <span className="text-[9.5px] font-black uppercase text-amber-500 tracking-wider flex items-center gap-1">
-                    📚 Textbook Reference Passages ({quizReferenceContext.length})
-                  </span>
-                  
-                  <div className="flex flex-col gap-2 max-h-52 overflow-y-auto custom-scrollbar pr-1">
-                    {quizReferenceContext.map((res, rIdx) => {
-                      const { record, score } = res;
-                      const chapterNum = record.chapter_title.includes('10') || 
-                                         (record.section_heading && record.section_heading.toLowerCase().includes('sleep')) || 
-                                         (record.section_heading && record.section_heading.toLowerCase().includes('eeg')) 
-                                         ? 'Ch.10' 
-                                         : 'Ch.9';
-                      return (
-                        <details key={rIdx} className="bg-slate-950/45 border border-slate-900 rounded-lg p-2 text-[9.5px] text-slate-300 group focus:outline-none">
-                          <summary className="font-bold text-blue-400 hover:text-blue-300 transition cursor-pointer select-none outline-none flex justify-between items-center">
-                            <span className="truncate max-w-[200px]">{record.section_heading}</span>
-                            <span className="text-slate-500 text-[8px] font-semibold border border-slate-900 px-1 rounded uppercase shrink-0">
-                              Miller {chapterNum} ({score.toFixed(1)})
-                            </span>
-                          </summary>
-                          <p className="mt-1.5 text-slate-400 leading-relaxed pl-1.5 border-l border-blue-500/20 font-sans font-normal text-[9px]">
-                            {record.body_text}
+                    {/* Quiz Stats Bar */}
+                    <div className="flex justify-between items-center bg-slate-950 p-2 rounded-lg border border-white/5 text-[9px] text-slate-400">
+                      <div>Done: <strong className="text-slate-200">{quizStats.completed}</strong></div>
+                      <div>Correct: <strong className="text-emerald-400">{quizStats.correct}</strong></div>
+                      <div>Accuracy: <strong className="text-amber-400">{quizStats.completed > 0 ? Math.round((quizStats.correct / quizStats.completed) * 100) : 0}%</strong></div>
+                      <div>Streak: <strong className="text-indigo-400">{quizStats.streak} 🔥</strong></div>
+                    </div>
+
+                    {/* Quiz Filters (for pre-built questions only) */}
+                    {!generatedQuestion && (
+                      <div className="flex gap-1 bg-slate-950 p-1 rounded-lg border border-white/5 text-[9px]">
+                        {['ALL', 'PHYSIOLOGY', 'PHARMACOLOGY'].map(f => (
+                          <button
+                            key={f}
+                            type="button"
+                            onClick={() => { setQuizFilter(f); setActiveQuizQuestionIdx(0); }}
+                            className={`flex-1 py-1 font-bold rounded transition-all cursor-pointer ${quizFilter === f ? 'bg-amber-600 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+                          >
+                            {f}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Loading Indicator */}
+                    {isGeneratingPimp && (
+                      <div className="flex items-center justify-center py-6 gap-2 text-purple-400 text-[10px] font-bold">
+                        <Sparkles size={14} className="animate-spin" />
+                        Generating question on &ldquo;{pimpTopicInput}&rdquo;…
+                      </div>
+                    )}
+
+                    {/* AI-Generated Question Display */}
+                    {generatedQuestion && !isGeneratingPimp && (
+                      generatedQuestion.error ? (
+                        <div className="text-center py-4 text-red-400 text-[10px] italic bg-red-950/20 border border-red-500/20 rounded-lg p-3">
+                          {generatedQuestion.error}
+                        </div>
+                      ) : (
+                        <div className="bg-slate-900/60 border border-purple-500/20 rounded-xl p-3 flex flex-col gap-2.5 animate-in fade-in duration-200">
+                          <div className="flex justify-between items-center text-[9px] font-bold text-purple-400 border-b border-slate-800 pb-1.5">
+                            <span className="flex items-center gap-1"><Sparkles size={10} /> AI-GENERATED: {(generatedQuestion.category || pimpTopicInput).toUpperCase()}</span>
+                            <span className="text-slate-500">CUSTOM</span>
+                          </div>
+                          <p className="font-bold leading-relaxed text-slate-100 bg-slate-950/20 p-2.5 rounded border border-slate-900/30 text-[10.5px]">
+                            {generatedQuestion.vignette}
                           </p>
-                        </details>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+                          <div className="flex flex-col gap-1.5">
+                            {generatedQuestion.options.map((opt, oIdx) => {
+                              let optStyle = 'border-slate-850 hover:border-slate-700 bg-slate-950/30 hover:bg-slate-950/50 text-slate-300';
+                              if (showGeneratedExplanation) {
+                                if (oIdx === generatedQuestion.correctIdx) optStyle = 'border-emerald-500 bg-emerald-950/30 text-emerald-200 font-bold';
+                                else if (generatedSelectedIdx === oIdx) optStyle = 'border-red-500 bg-red-950/30 text-red-200';
+                              } else if (generatedSelectedIdx === oIdx) {
+                                optStyle = 'border-purple-500 bg-purple-955/30 text-purple-200';
+                              }
+                              return (
+                                <button
+                                  key={oIdx}
+                                  type="button"
+                                  onClick={() => { if (!showGeneratedExplanation) setGeneratedSelectedIdx(oIdx); }}
+                                  disabled={showGeneratedExplanation}
+                                  className={`w-full text-left p-2 rounded-lg border text-[10px] leading-snug transition-all flex items-start gap-2 cursor-pointer ${optStyle}`}
+                                >
+                                  <span className="font-bold shrink-0">{opt.slice(0, 2)}</span>
+                                  <span>{opt.slice(3)}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {!showGeneratedExplanation ? (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (generatedSelectedIdx === null) return;
+                                const isCorrect = generatedSelectedIdx === generatedQuestion.correctIdx;
+                                setQuizStats(prev => ({ completed: prev.completed + 1, correct: prev.correct + (isCorrect ? 1 : 0), streak: isCorrect ? prev.streak + 1 : 0 }));
+                                setShowGeneratedExplanation(true);
+                              }}
+                              disabled={generatedSelectedIdx === null}
+                              className="w-full py-2 bg-purple-600 disabled:opacity-50 hover:bg-purple-500 active:scale-98 text-white font-bold rounded-lg transition-all shadow-md font-mono text-[10px] cursor-pointer"
+                            >
+                              SUBMIT ANSWER
+                            </button>
+                          ) : (
+                            <div className="flex flex-col gap-2 animate-in fade-in duration-300">
+                              <div className={`p-2.5 rounded-lg border text-[10px] leading-relaxed ${generatedSelectedIdx === generatedQuestion.correctIdx ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-200' : 'bg-red-950/20 border-red-500/40 text-red-200'}`}>
+                                <span className="font-bold block mb-1">{generatedSelectedIdx === generatedQuestion.correctIdx ? '🎉 CORRECT' : '❌ INCORRECT'}</span>
+                                {generatedQuestion.explanation}
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setGeneratedQuestion(null);
+                                  setGeneratedSelectedIdx(null);
+                                  setShowGeneratedExplanation(false);
+                                }}
+                                className="w-full py-2 bg-slate-800 hover:bg-slate-700 active:scale-98 text-white font-bold rounded-lg transition-all shadow-md font-mono text-[10px] cursor-pointer"
+                              >
+                                GENERATE ANOTHER
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    )}
 
-              {/* ── Inline Ask Attending Response ── */}
+                    {/* Pre-built Question (when no generated question is active) */}
+                    {!generatedQuestion && !isGeneratingPimp && currentQuestion && (
+                      <div className="bg-slate-900/60 border border-white/5 rounded-xl p-3 flex flex-col gap-2.5 animate-in fade-in duration-200">
+                        <div className="flex justify-between items-center text-[9px] font-bold text-amber-500 border-b border-slate-800 pb-1.5">
+                          <span>TOPIC: {currentQuestion.category.toUpperCase()}</span>
+                          <span>Q {activeQuizQuestionIdx + 1} / {filteredQuestions.length}</span>
+                        </div>
+                        <p className="font-bold leading-relaxed text-slate-100 bg-slate-950/20 p-2.5 rounded border border-slate-900/30 text-[10.5px]">
+                          {currentQuestion.vignette}
+                        </p>
+                        <div className="flex flex-col gap-1.5">
+                          {currentQuestion.options.map((opt, oIdx) => {
+                            let optStyle = 'border-slate-850 hover:border-slate-700 bg-slate-950/30 hover:bg-slate-950/50 text-slate-300';
+                            if (showQuizExplanation) {
+                              if (oIdx === currentQuestion.correctIdx) optStyle = 'border-emerald-500 bg-emerald-950/30 text-emerald-200 font-bold';
+                              else if (selectedOptionIdx === oIdx) optStyle = 'border-red-500 bg-red-950/30 text-red-200';
+                            } else if (selectedOptionIdx === oIdx) {
+                              optStyle = 'border-amber-500 bg-amber-955/30 text-amber-200';
+                            }
+                            return (
+                              <button key={oIdx} type="button" onClick={() => { if (!showQuizExplanation) setSelectedOptionIdx(oIdx); }} disabled={showQuizExplanation}
+                                className={`w-full text-left p-2 rounded-lg border text-[10px] leading-snug transition-all flex items-start gap-2 cursor-pointer ${optStyle}`}>
+                                <span className="font-bold shrink-0">{opt.slice(0, 2)}</span>
+                                <span>{opt.slice(3)}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {!showQuizExplanation ? (
+                          <button type="button" onClick={() => {
+                            if (selectedOptionIdx === null) return;
+                            const isCorrect = selectedOptionIdx === currentQuestion.correctIdx;
+                            setQuizStats(prev => ({ completed: prev.completed + 1, correct: prev.correct + (isCorrect ? 1 : 0), streak: isCorrect ? prev.streak + 1 : 0 }));
+                            setShowQuizExplanation(true);
+                          }} disabled={selectedOptionIdx === null}
+                            className="w-full py-2 bg-amber-600 disabled:opacity-50 hover:bg-amber-500 active:scale-98 text-white font-bold rounded-lg transition-all shadow-md font-mono text-[10px] cursor-pointer">
+                            SUBMIT ANSWER
+                          </button>
+                        ) : (
+                          <div className="flex flex-col gap-2 animate-in fade-in duration-300">
+                            <div className={`p-2.5 rounded-lg border text-[10px] leading-relaxed ${selectedOptionIdx === currentQuestion.correctIdx ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-200' : 'bg-red-950/20 border-red-500/40 text-red-200'}`}>
+                              <span className="font-bold block mb-1">{selectedOptionIdx === currentQuestion.correctIdx ? '🎉 CORRECT' : '❌ INCORRECT'}</span>
+                              {currentQuestion.explanation}
+                            </div>
+                            <button type="button" onClick={() => setActiveQuizQuestionIdx(prev => prev + 1)}
+                              className="w-full py-2 bg-slate-800 hover:bg-slate-700 active:scale-98 text-white font-bold rounded-lg transition-all shadow-md font-mono text-[10px] cursor-pointer">
+                              NEXT QUESTION
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    {!generatedQuestion && !isGeneratingPimp && !currentQuestion && (
+                      <div className="text-center py-4 text-slate-500 italic text-[10px]">No pre-built questions for this filter.</div>
+                    )}
+
+                    {/* Collapsible Textbook Reference Passages */}
+                    {quizReferenceContext.length > 0 && (
+                      <div className="flex flex-col gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setShowReferences(prev => !prev)}
+                          className="flex items-center justify-between w-full text-[9px] font-black uppercase text-blue-400 tracking-wider hover:text-blue-300 transition cursor-pointer py-1"
+                        >
+                          <span className="flex items-center gap-1">📚 Textbook References ({quizReferenceContext.length})</span>
+                          {showReferences ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                        </button>
+                        {showReferences && (
+                          <div className="flex flex-col gap-1.5 max-h-44 overflow-y-auto custom-scrollbar pr-1 animate-in fade-in duration-200">
+                            {quizReferenceContext.map((res, rIdx) => {
+                              const { record, score } = res;
+                              const chapterNum = record.chapter_title.includes('10') || (record.section_heading && record.section_heading.toLowerCase().includes('sleep')) || (record.section_heading && record.section_heading.toLowerCase().includes('eeg')) ? 'Ch.10' : 'Ch.9';
+                              return (
+                                <details key={rIdx} className="bg-slate-950/45 border border-slate-900 rounded-lg p-2 text-[9px] text-slate-300 group">
+                                  <summary className="font-bold text-blue-400 hover:text-blue-300 transition cursor-pointer select-none flex justify-between items-center">
+                                    <span className="truncate max-w-[180px]">{record.section_heading}</span>
+                                    <span className="text-slate-500 text-[8px] font-semibold border border-slate-900 px-1 rounded uppercase shrink-0">Miller {chapterNum} ({score.toFixed(1)})</span>
+                                  </summary>
+                                  <p className="mt-1.5 text-slate-400 leading-relaxed pl-1.5 border-l border-blue-500/20 font-sans font-normal text-[8.5px]">{record.body_text}</p>
+                                </details>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* ═══════ Study Chat History ═══════ */}
+              {studyChatHistory.map((msg) => {
+                const isUser = msg.sender === 'user';
+                return (
+                  <div key={msg.id} className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} animate-in fade-in duration-200`}>
+                    <span className="text-[9px] text-slate-500 font-extrabold uppercase mb-0.5 font-mono">
+                      {isUser ? 'You' : 'Attending'} • {msg.timestamp}
+                    </span>
+                    <div className={`${
+                      isUser
+                        ? 'bg-indigo-900/40 border-indigo-500/30 rounded-2xl rounded-tr-none text-slate-100'
+                        : 'bg-slate-900/60 border-slate-800/40 rounded-2xl rounded-tl-none text-slate-200'
+                    } border px-3.5 py-2.5 shadow-sm text-[10.5px] leading-relaxed max-w-full break-words whitespace-pre-wrap`}>
+                      {isUser ? (
+                        msg.text
+                      ) : (() => {
+                        const text = msg.text;
+                        const summaryDelim = '=== CLINICAL SUMMARY ===';
+                        const detailDelim = '=== DETAILED CONSULTATION ===';
+                        const hasTwoFold = text.includes(summaryDelim) && text.includes(detailDelim);
+
+                        if (hasTwoFold) {
+                          const afterSummary = text.split(summaryDelim)[1] || '';
+                          const summaryPart = afterSummary.split(detailDelim)[0].trim();
+                          const detailedPart = (text.split(detailDelim)[1] || '').trim();
+                          const isExpanded = !!studyExpandedDetails[msg.id];
+
+                          return (
+                            <div className="flex flex-col gap-2">
+                              <div className="text-[10px] uppercase tracking-wider font-extrabold text-amber-400 mb-0.5 flex items-center gap-1 border-b border-amber-500/20 pb-1 select-none">
+                                📋 Quick Snapshot
+                              </div>
+                              <div>{parseAndRenderText(summaryPart, handleActionClick)}</div>
+                              <button
+                                type="button"
+                                onClick={() => toggleStudyDetail(msg.id)}
+                                className="mt-1 py-1 px-2.5 bg-slate-950 border border-slate-800 text-[9px] font-black uppercase text-amber-400 rounded-lg hover:bg-slate-900 hover:border-amber-500/35 active:scale-98 transition-all flex items-center gap-1 self-start cursor-pointer"
+                              >
+                                {isExpanded ? '📖 Collapse Detail' : '🔍 Expand Full Consult'}
+                              </button>
+                              {isExpanded && (
+                                <div className="mt-2 pt-2 border-t border-white/5 animate-in fade-in slide-in-from-top-1 duration-200">
+                                  <div className="text-[10px] uppercase tracking-wider font-extrabold text-blue-400 mb-1.5 flex items-center gap-1 border-b border-blue-500/20 pb-1 select-none">
+                                    🧠 Comprehensive Teaching Consult
+                                  </div>
+                                  <div>{parseAndRenderText(detailedPart, handleActionClick)}</div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+                        return parseAndRenderText(text, handleActionClick);
+                      })()}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Typing Indicator */}
               {isStudyTyping && (
-                <div className="flex flex-col items-start mt-3 animate-in fade-in duration-200">
-                  <span className="text-[9px] text-slate-500 font-extrabold uppercase mb-1 font-mono">Attending • Thinking</span>
-                  <div className="bg-slate-900/60 border border-slate-800/40 rounded-2xl px-3.5 py-2.5 shadow-sm text-[10px] text-slate-400 italic w-full">
+                <div className="flex flex-col items-start animate-in fade-in duration-200">
+                  <span className="text-[9px] text-slate-500 font-extrabold uppercase mb-0.5 font-mono">Attending • Thinking</span>
+                  <div className="bg-slate-900/60 border border-slate-800/40 rounded-2xl rounded-tl-none px-3.5 py-2.5 shadow-sm text-[10px] text-slate-400 italic">
                     <span className="animate-pulse">Attending is formulating a clinical answer…</span>
                   </div>
                 </div>
               )}
 
-              {studyResponse && !isStudyTyping && (
-                <div className="mt-3 flex flex-col gap-2 bg-slate-900/50 border border-amber-500/20 rounded-xl p-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  <div className="flex justify-between items-center border-b border-white/5 pb-1.5">
-                    <span className="text-[9px] font-extrabold uppercase text-amber-400 tracking-wider flex items-center gap-1">🩺 Attending Response</span>
-                    <button
-                      type="button"
-                      onClick={() => setStudyResponse(null)}
-                      className="text-slate-500 hover:text-white p-0.5 rounded hover:bg-white/5 transition cursor-pointer"
-                      title="Dismiss"
-                    >
-                      <X size={12} />
-                    </button>
-                  </div>
-                  <div className="text-[9px] italic text-slate-500 truncate">Q: {studyResponse.question}</div>
-
-                  {/* Two-fold: summary then expandable detail */}
-                  {(() => {
-                    const text = studyResponse.text;
-                    const summaryDelim = '=== CLINICAL SUMMARY ===';
-                    const detailDelim = '=== DETAILED CONSULTATION ===';
-                    const hasTwoFold = text.includes(summaryDelim) && text.includes(detailDelim);
-
-                    if (hasTwoFold) {
-                      const afterSummary = text.split(summaryDelim)[1] || '';
-                      const summaryPart = afterSummary.split(detailDelim)[0].trim();
-                      const detailedPart = (text.split(detailDelim)[1] || '').trim();
-
-                      return (
-                        <div className="flex flex-col gap-2">
-                          <div className="text-[10px] uppercase tracking-wider font-extrabold text-amber-400 mb-0.5 flex items-center gap-1 border-b border-amber-500/20 pb-1 select-none">
-                            📋 Quick Snapshot Summary
-                          </div>
-                          <div className="text-[10.5px] leading-relaxed text-slate-200 max-w-full break-words whitespace-pre-wrap">
-                            {parseAndRenderText(summaryPart, handleActionClick)}
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => setStudyDetailExpanded(prev => !prev)}
-                            className="mt-1 py-1.5 px-3 bg-slate-950 border border-slate-800 text-[9px] font-black uppercase text-amber-400 rounded-lg hover:bg-slate-900 hover:border-amber-500/35 active:scale-98 transition-all flex items-center gap-1 justify-center self-start select-none shadow-sm cursor-pointer"
-                          >
-                            {studyDetailExpanded ? '📖 Collapse Detailed Consult' : '🔍 Expand Full Detailed Consult'}
-                          </button>
-
-                          {studyDetailExpanded && (
-                            <div className="mt-2 pt-2 border-t border-white/5 animate-in fade-in slide-in-from-top-1 duration-200">
-                              <div className="text-[10px] uppercase tracking-wider font-extrabold text-blue-400 mb-1.5 flex items-center gap-1 border-b border-blue-500/20 pb-1 select-none">
-                                🧠 Comprehensive Teaching Consult
-                              </div>
-                              <div className="text-[10.5px] leading-relaxed text-slate-200 max-w-full break-words whitespace-pre-wrap">
-                                {parseAndRenderText(detailedPart, handleActionClick)}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    }
-
-                    return (
-                      <div className="text-[10.5px] leading-relaxed text-slate-200 max-w-full break-words whitespace-pre-wrap">
-                        {parseAndRenderText(text, handleActionClick)}
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
               <div ref={studyEndRef} />
             </div>
             
@@ -1270,10 +1417,11 @@ export default function AttendingPanel({
               e.preventDefault();
               const q = studyInput.trim();
               if (!q || isStudyTyping) return;
+              const userMsg = { id: `study-user-${Date.now()}`, sender: 'user', text: q, timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m` };
+              setStudyChatHistory(prev => [...prev, userMsg]);
               setStudyInput('');
-              setStudyResponse(null);
-              setStudyDetailExpanded(false);
               setIsStudyTyping(true);
+              setTimeout(() => studyEndRef.current?.scrollIntoView?.({ behavior: 'smooth' }), 50);
 
               setTimeout(async () => {
                 try {
@@ -1311,7 +1459,8 @@ export default function AttendingPanel({
                     replyText = localReply;
                   }
 
-                  setStudyResponse({ question: q, text: replyText });
+                  const attendingMsg = { id: `study-att-${Date.now()}`, sender: 'attending', text: replyText, timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m` };
+                  setStudyChatHistory(prev => [...prev, attendingMsg]);
                 } catch (err) {
                   console.error(err);
                 } finally {
@@ -1324,8 +1473,8 @@ export default function AttendingPanel({
                 type="text"
                 value={studyInput}
                 onChange={(e) => setStudyInput(e.target.value)}
-                placeholder="Ask Attending anything (e.g. 'explain MAC')..."
-                className="flex-1 bg-slate-900/90 border border-slate-700/60 rounded-lg px-3 py-2 text-xs text-slate-205 placeholder-slate-500 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/20 transition-all font-mono"
+                placeholder="Ask Attending anything (e.g. 'explain MAC')…"
+                className="flex-1 bg-slate-900/90 border border-slate-700/60 rounded-lg px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/20 transition-all font-mono"
                 disabled={isStudyTyping}
               />
               <button
