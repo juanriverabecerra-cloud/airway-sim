@@ -2,6 +2,10 @@ import { textbookProse, physiologicalMatrices } from '../knowledge/medical_truth
 import { DynamicMedicationRegistry } from '../knowledge/DynamicMedicationRegistry.ts';
 import { comparePriority } from '../knowledge/utils/priority_resolver.ts';
 
+const truthCache = new Map<string, string[]>();
+let lastProseLength = 0;
+let lastMatricesLength = 0;
+
 /**
  * Performs a rapid local wildcard match against textbook prose and physiological matrices.
  * Synchronous and 100% browser-safe (runs in React, Vite, Node.js, and tests).
@@ -14,7 +18,20 @@ export function getAnatomicalTruth(subsystemKeyword: string): string[] {
     return [];
   }
 
+  const pLength = textbookProse.length;
+  const mLength = physiologicalMatrices.length;
+  
+  if (pLength !== lastProseLength || mLength !== lastMatricesLength) {
+    truthCache.clear();
+    lastProseLength = pLength;
+    lastMatricesLength = mLength;
+  }
+
   const term = subsystemKeyword.toLowerCase();
+  if (truthCache.has(term)) {
+    return truthCache.get(term)!;
+  }
+
   const matchedEntries: Array<{ text: string; chapter_title: string }> = [];
 
   // 1. Search textbook_prose
@@ -46,7 +63,9 @@ export function getAnatomicalTruth(subsystemKeyword: string): string[] {
   // Sort by priority descending (highest priority first)
   matchedEntries.sort((a, b) => comparePriority(b.chapter_title, a.chapter_title));
 
-  return matchedEntries.map(e => e.text);
+  const result = matchedEntries.map(e => e.text);
+  truthCache.set(term, result);
+  return result;
 }
 
 /**
@@ -100,8 +119,17 @@ export interface TextbookRule {
   value: number;
 }
 
+let cachedRules: TextbookRule[] | null = null;
+let cachedMedsKey = "";
+let cachedProseLength = 0;
+
 export function extractTextbookRules(): TextbookRule[] {
-  const dynamicMeds = Object.keys(DynamicMedicationRegistry.getMergedMedications());
+  const dynamicMeds = Object.keys(DynamicMedicationRegistry.getMergedMedications()).sort();
+  const medsKey = dynamicMeds.sort().join(',');
+  const pLength = textbookProse.length;
+  if (cachedRules && medsKey === cachedMedsKey && pLength === cachedProseLength) {
+    return cachedRules;
+  }
   const conditionKeywords = [
     ...dynamicMeds,
     // Drugs
@@ -222,7 +250,10 @@ export function extractTextbookRules(): TextbookRule[] {
       }
     }
   }
-
+  
+  cachedMedsKey = medsKey;
+  cachedRules = rules;
+  cachedProseLength = pLength;
   return rules;
 }
 

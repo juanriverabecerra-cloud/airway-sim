@@ -10,17 +10,37 @@ import { boardQuestions } from '../../knowledge/BoardQuestions';
 
 function extractSources(text) {
   const sources = [];
-  // Match "**Source X** — *Title*" followed by "📄 *[Filename]* | Relevance: Label (Score)"
-  const regex = /\*\*Source\s+(\d+)\*\*\s+—\s+\*([^*]+)\*\s*\n📄\s+\*\[([^\]]+)\]\*\s*\|\s*Relevance:\s*([^\n(]+)\(([^)]+)\)/gi;
-  let match;
-  while ((match = regex.exec(text)) !== null) {
-    sources.push({
-      rank: match[1],
-      title: match[2].trim(),
-      file: match[3].trim(),
-      relevance: match[4].trim(),
-      score: match[5].trim()
-    });
+  const blocks = text.split(/\n---\n/);
+  
+  for (const block of blocks) {
+    const trimmed = block.trim();
+    if (!trimmed.startsWith('**Source')) continue;
+    
+    const headerRegex = /\*\*Source\s+(\d+)\*\*\s+—\s+\*([^*]+)\*\s*\n📄\s+\*\[([^\]]+)\]\*\s*\|\s*Relevance:\s*([^\n(]+)\(([^)]+)\)/i;
+    const match = headerRegex.exec(trimmed);
+    if (match) {
+      const rank = match[1];
+      const title = match[2].trim();
+      const file = match[3].trim();
+      const relevance = match[4].trim();
+      const score = match[5].trim();
+      
+      const headerEndIdx = trimmed.indexOf(match[0]) + match[0].length;
+      let body = trimmed.slice(headerEndIdx).trim();
+      
+      if (body.startsWith('*Verbatim passage referenced')) {
+        body = '';
+      }
+      
+      sources.push({
+        rank,
+        title,
+        file,
+        relevance,
+        score,
+        body
+      });
+    }
   }
   return sources;
 }
@@ -546,10 +566,20 @@ export default function AttendingPanel({
                       )}
                     </span>
                     <div className={`px-3.5 py-2.5 rounded-2xl text-[11px] leading-relaxed font-mono ${cardClass}`}>
-                      {isUser 
-                        ? msg.text 
-                        : parseAndRenderText(msg.text, handleActionClick)
-                      }
+                      {isUser ? (
+                        msg.text
+                      ) : (
+                        (() => {
+                          let displayText = msg.text;
+                          if (isKbResponse) {
+                            const idx = msg.text.indexOf('\n---\n**Source');
+                            if (idx !== -1) {
+                              displayText = msg.text.slice(0, idx);
+                            }
+                          }
+                          return parseAndRenderText(displayText, handleActionClick);
+                        })()
+                      )}
                       
                       {isKbResponse && sources.length > 0 && (
                         <div className="mt-3 pt-2 border-t border-blue-500/20 text-[10px] shrink-0">
@@ -563,7 +593,7 @@ export default function AttendingPanel({
                           </button>
                           
                           {expandedSources[msg.id] && (
-                            <div className="mt-2 pl-2 border-l border-blue-500/30 flex flex-col gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                            <div className="mt-2 pl-2 border-l border-blue-500/30 flex flex-col gap-2.5 animate-in fade-in slide-in-from-top-1 duration-200">
                               {sources.map((src, sIdx) => {
                                 const isHigh = src.relevance.includes('HIGH');
                                 const isMod = src.relevance.includes('MODERATE');
@@ -574,14 +604,19 @@ export default function AttendingPanel({
                                   : 'bg-orange-500/20 text-orange-450 border-orange-500/30';
                                   
                                 return (
-                                  <div key={sIdx} className="bg-slate-950/40 p-2 rounded border border-blue-500/10">
-                                    <div className="flex justify-between items-center mb-1">
+                                  <div key={sIdx} className="bg-slate-950/40 p-2.5 rounded border border-blue-500/10 flex flex-col gap-1.5">
+                                    <div className="flex justify-between items-center mb-0.5">
                                       <span className="font-extrabold text-blue-300 text-[9.5px]">Source {src.rank}: {src.title}</span>
                                       <span className={`px-1 rounded border text-[8px] font-bold shrink-0 ${badgeColor}`}>
                                         {src.relevance} ({src.score})
                                       </span>
                                     </div>
                                     <div className="text-slate-450 font-semibold text-[8.5px]">File: {src.file}</div>
+                                    {src.body && (
+                                      <p className="text-slate-300 bg-slate-950/50 p-2 rounded border border-white/5 text-[9px] leading-relaxed italic mt-1 font-medium whitespace-pre-wrap select-text">
+                                        {parseAndRenderText(src.body, handleActionClick)}
+                                      </p>
+                                    )}
                                   </div>
                                 );
                               })}

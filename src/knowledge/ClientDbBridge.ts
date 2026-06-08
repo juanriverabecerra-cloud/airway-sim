@@ -191,7 +191,7 @@ export class ClientDbBridge {
         section_heading: r.topic,
         body_text: r.body_text,
         is_authoritative: r.is_authoritative
-      }));
+      })).sort((a, b) => comparePriority(a.chapter_title, b.chapter_title));
 
       this.allMatrices = matrixRows.map(r => ({
         id: r.id,
@@ -200,7 +200,7 @@ export class ClientDbBridge {
         caption: r.caption,
         structured_payload: r.structured_payload,
         is_authoritative: r.is_authoritative
-      }));
+      })).sort((a, b) => comparePriority(a.chapter_title, b.chapter_title));
 
       this.authProse = this.allProse.filter(p => p.is_authoritative === 1);
       this.authMatrices = this.allMatrices.filter(m => m.is_authoritative === 1);
@@ -223,7 +223,7 @@ export class ClientDbBridge {
         section_heading: row[2],
         body_text: row[3],
         is_authoritative: row[4]
-      }));
+      })).sort((a, b) => comparePriority(a.chapter_title, b.chapter_title));
 
       this.allMatrices = (matrixRes.rows || []).map((row: any[]) => ({
         id: row[0],
@@ -232,7 +232,7 @@ export class ClientDbBridge {
         caption: row[3],
         structured_payload: row[4],
         is_authoritative: row[5]
-      }));
+      })).sort((a, b) => comparePriority(a.chapter_title, b.chapter_title));
 
       this.authProse = this.allProse.filter(p => p.is_authoritative === 1);
       this.authMatrices = this.allMatrices.filter(m => m.is_authoritative === 1);
@@ -257,7 +257,7 @@ export class ClientDbBridge {
     if (!this.isBrowser) {
       this.syncNodeCaches();
     }
-    return [...this.allProse].sort((a, b) => comparePriority(a.chapter_title, b.chapter_title));
+    return this.allProse;
   }
 
   public static getAllMatrices(): MatrixRecord[] {
@@ -265,7 +265,7 @@ export class ClientDbBridge {
     if (!this.isBrowser) {
       this.syncNodeCaches();
     }
-    return [...this.allMatrices].sort((a, b) => comparePriority(a.chapter_title, b.chapter_title));
+    return this.allMatrices;
   }
 
   public static getAuthoritativeProse(): ProseRecord[] {
@@ -273,7 +273,7 @@ export class ClientDbBridge {
     if (!this.isBrowser) {
       this.syncNodeCaches();
     }
-    return [...this.authProse];
+    return this.authProse;
   }
 
   public static getAuthoritativeMatrices(): MatrixRecord[] {
@@ -281,7 +281,7 @@ export class ClientDbBridge {
     if (!this.isBrowser) {
       this.syncNodeCaches();
     }
-    return [...this.authMatrices];
+    return this.authMatrices;
   }
 
   public static queryProseById(id: string): ProseRecord | null {
