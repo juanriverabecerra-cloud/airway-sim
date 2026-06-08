@@ -233,8 +233,7 @@ export default function AttendingPanel({
   const chatEndRef = useRef(null);
   const conversationHistoryRef = useRef([]);
   const [expandedSources, setExpandedSources] = useState({});
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '');
-  const [showKeyInput, setShowKeyInput] = useState(false);
+  const [apiKey] = useState(() => localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '');
 
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem('attending_sidebar_width');
@@ -285,6 +284,13 @@ export default function AttendingPanel({
   const [quizReferenceContext, setQuizReferenceContext] = useState([]);
   const [quizStats, setQuizStats] = useState({ completed: 0, correct: 0, streak: 0 });
   const [quizFilter, setQuizFilter] = useState('ALL');
+
+  // Board Study Inline Ask Attending State
+  const [studyInput, setStudyInput] = useState('');
+  const [studyResponse, setStudyResponse] = useState(null); // { question, text }
+  const [isStudyTyping, setIsStudyTyping] = useState(false);
+  const [studyDetailExpanded, setStudyDetailExpanded] = useState(false);
+  const studyEndRef = useRef(null);
 
   const filteredQuestions = boardQuestions.filter(q => 
     quizFilter === 'ALL' || q.category.toUpperCase() === quizFilter.toUpperCase()
@@ -818,47 +824,7 @@ export default function AttendingPanel({
               </span>
             </div>
             
-            {/* API Key Panel */}
-            <div className="px-4 py-1.5 border-b border-white/5 bg-slate-900/40 text-[9px] text-slate-400 flex flex-col gap-1 shrink-0">
-              <div className="flex justify-between items-center">
-                <span className={`flex items-center gap-1 font-semibold ${apiKey ? 'text-emerald-400' : 'text-amber-500/70'}`}>
-                  {apiKey ? '✨ Gemini AI Synthesis Active' : '🔌 Local Synthesis Mode'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowKeyInput(p => !p)}
-                  className="text-amber-500 hover:text-amber-400 font-bold transition focus:outline-none cursor-pointer"
-                >
-                  {apiKey ? '[Change Key]' : '[Enter Gemini API Key]'}
-                </button>
-              </div>
-              {showKeyInput && (
-                <div className="flex gap-2 mt-1">
-                  <input
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => {
-                      const val = e.target.value.trim();
-                      setApiKey(val);
-                      if (val) {
-                        localStorage.setItem('gemini_api_key', val);
-                      } else {
-                        localStorage.removeItem('gemini_api_key');
-                      }
-                    }}
-                    placeholder="Enter your Gemini API Key (key is saved locally)..."
-                    className="flex-1 bg-slate-955 border border-slate-700/50 rounded px-2 py-1 text-[9px] text-slate-200 focus:outline-none focus:border-amber-500/50 font-mono"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowKeyInput(false)}
-                    className="px-2 py-1 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-slate-200 font-bold"
-                  >
-                    Save
-                  </button>
-                </div>
-              )}
-            </div>
+
             
             {/* Chat Messages */}
             <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar">
@@ -1058,166 +1024,318 @@ export default function AttendingPanel({
           </div>
         ) : (
           /* Board Study View */
-          <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar text-[11px] bg-slate-950/20">
-            {/* Quiz Stats */}
-            <div className="flex flex-col gap-3 shrink-0">
-              <div className="flex justify-between items-center bg-slate-950 p-2.5 rounded-lg border border-white/5 text-[9px] text-slate-400">
-                <div>
-                  Completed: <strong className="text-slate-200">{quizStats.completed}</strong>
+          <div className="flex-1 flex flex-col min-h-0 bg-slate-950/20">
+            <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 custom-scrollbar text-[11px]">
+              {/* Quiz Stats */}
+              <div className="flex flex-col gap-3 shrink-0">
+                <div className="flex justify-between items-center bg-slate-950 p-2.5 rounded-lg border border-white/5 text-[9px] text-slate-400">
+                  <div>
+                    Completed: <strong className="text-slate-200">{quizStats.completed}</strong>
+                  </div>
+                  <div>
+                    Correct: <strong className="text-emerald-400">{quizStats.correct}</strong>
+                  </div>
+                  <div>
+                    Accuracy: <strong className="text-amber-400">{quizStats.completed > 0 ? Math.round((quizStats.correct / quizStats.completed) * 100) : 0}%</strong>
+                  </div>
+                  <div>
+                    Streak: <strong className="text-indigo-400">{quizStats.streak} 🔥</strong>
+                  </div>
                 </div>
-                <div>
-                  Correct: <strong className="text-emerald-400">{quizStats.correct}</strong>
-                </div>
-                <div>
-                  Accuracy: <strong className="text-amber-400">{quizStats.completed > 0 ? Math.round((quizStats.correct / quizStats.completed) * 100) : 0}%</strong>
-                </div>
-                <div>
-                  Streak: <strong className="text-indigo-400">{quizStats.streak} 🔥</strong>
+
+                {/* Quiz Filters */}
+                <div className="flex gap-1 bg-slate-950 p-1 rounded-lg border border-white/5 text-[9px]">
+                  {['ALL', 'PHYSIOLOGY', 'PHARMACOLOGY'].map(f => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => {
+                        setQuizFilter(f);
+                        setActiveQuizQuestionIdx(0);
+                      }}
+                      className={`flex-1 py-1 font-bold rounded transition-all cursor-pointer ${
+                        quizFilter === f ? 'bg-amber-600 text-white' : 'text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Quiz Filters */}
-              <div className="flex gap-1 bg-slate-950 p-1 rounded-lg border border-white/5 text-[9px]">
-                {['ALL', 'PHYSIOLOGY', 'PHARMACOLOGY'].map(f => (
-                  <button
-                    key={f}
-                    type="button"
-                    onClick={() => {
-                      setQuizFilter(f);
-                      setActiveQuizQuestionIdx(0);
-                    }}
-                    className={`flex-1 py-1 font-bold rounded transition-all cursor-pointer ${
-                      quizFilter === f ? 'bg-amber-600 text-white' : 'text-slate-500 hover:text-slate-300'
-                    }`}
-                  >
-                    {f}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Current Question */}
-            {currentQuestion ? (
-              <div className="bg-slate-900/60 border border-white/5 rounded-xl p-4 flex flex-col gap-3 animate-in fade-in duration-200">
-                <div className="flex justify-between items-center text-[9px] font-bold text-amber-500 border-b border-slate-800 pb-2">
-                  <span>TOPIC: {currentQuestion.category.toUpperCase()}</span>
-                  <span>QUESTION {activeQuizQuestionIdx + 1} OF {filteredQuestions.length}</span>
-                </div>
-                
-                <p className="font-bold leading-relaxed text-slate-100 bg-slate-950/20 p-2.5 rounded border border-slate-900/30">
-                  {currentQuestion.vignette}
-                </p>
-                
-                <div className="flex flex-col gap-2 my-1">
-                  {currentQuestion.options.map((opt, oIdx) => {
-                    let optStyle = 'border-slate-850 hover:border-slate-700 bg-slate-950/30 hover:bg-slate-950/50 text-slate-300';
-                    
-                    if (showQuizExplanation) {
-                      if (oIdx === currentQuestion.correctIdx) {
-                        optStyle = 'border-emerald-500 bg-emerald-950/30 text-emerald-200 font-bold';
+              {/* Current Question */}
+              {currentQuestion ? (
+                <div className="bg-slate-900/60 border border-white/5 rounded-xl p-4 flex flex-col gap-3 animate-in fade-in duration-200">
+                  <div className="flex justify-between items-center text-[9px] font-bold text-amber-500 border-b border-slate-800 pb-2">
+                    <span>TOPIC: {currentQuestion.category.toUpperCase()}</span>
+                    <span>QUESTION {activeQuizQuestionIdx + 1} OF {filteredQuestions.length}</span>
+                  </div>
+                  
+                  <p className="font-bold leading-relaxed text-slate-100 bg-slate-950/20 p-2.5 rounded border border-slate-900/30">
+                    {currentQuestion.vignette}
+                  </p>
+                  
+                  <div className="flex flex-col gap-2 my-1">
+                    {currentQuestion.options.map((opt, oIdx) => {
+                      let optStyle = 'border-slate-850 hover:border-slate-700 bg-slate-950/30 hover:bg-slate-950/50 text-slate-300';
+                      
+                      if (showQuizExplanation) {
+                        if (oIdx === currentQuestion.correctIdx) {
+                          optStyle = 'border-emerald-500 bg-emerald-950/30 text-emerald-200 font-bold';
+                        } else if (selectedOptionIdx === oIdx) {
+                          optStyle = 'border-red-500 bg-red-950/30 text-red-200';
+                        }
                       } else if (selectedOptionIdx === oIdx) {
-                        optStyle = 'border-red-500 bg-red-950/30 text-red-200';
+                        optStyle = 'border-amber-500 bg-amber-955/30 text-amber-200';
                       }
-                    } else if (selectedOptionIdx === oIdx) {
-                      optStyle = 'border-amber-500 bg-amber-950/30 text-amber-200';
-                    }
-                    
-                    return (
-                      <button
-                        key={oIdx}
-                        type="button"
-                        onClick={() => {
-                          if (!showQuizExplanation) setSelectedOptionIdx(oIdx);
-                        }}
-                        disabled={showQuizExplanation}
-                        className={`w-full text-left p-2.5 rounded-lg border text-[10px] leading-snug transition-all flex items-start gap-2 focus:outline-none cursor-pointer ${optStyle}`}
-                      >
-                        <span className="font-bold shrink-0">{opt.slice(0, 2)}</span>
-                        <span>{opt.slice(3)}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                
-                {!showQuizExplanation ? (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (selectedOptionIdx === null) return;
-                      const isCorrect = selectedOptionIdx === currentQuestion.correctIdx;
-                      setQuizStats(prev => ({
-                        completed: prev.completed + 1,
-                        correct: prev.correct + (isCorrect ? 1 : 0),
-                        streak: isCorrect ? prev.streak + 1 : 0
-                      }));
-                      setShowQuizExplanation(true);
-                    }}
-                    disabled={selectedOptionIdx === null}
-                    className="w-full py-2 bg-amber-600 disabled:opacity-50 hover:bg-amber-500 active:scale-98 text-white font-bold rounded-lg transition-all shadow-md font-mono cursor-pointer"
-                  >
-                    SUBMIT ANSWER
-                  </button>
-                ) : (
-                  <div className="flex flex-col gap-3 animate-in fade-in duration-300">
-                    <div className={`p-3 rounded-lg border text-[10px] leading-relaxed ${
-                      selectedOptionIdx === currentQuestion.correctIdx 
-                        ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-200' 
-                        : 'bg-red-950/20 border-red-500/40 text-red-200'
-                    }`}>
-                      <span className="font-bold block mb-1 text-[10.5px]">
-                        {selectedOptionIdx === currentQuestion.correctIdx ? '🎉 CORRECT EXPLANATION' : '❌ INCORRECT EXPLANATION'}
-                      </span>
-                      {currentQuestion.explanation}
-                    </div>
-                    
+                      
+                      return (
+                        <button
+                          key={oIdx}
+                          type="button"
+                          onClick={() => {
+                            if (!showQuizExplanation) setSelectedOptionIdx(oIdx);
+                          }}
+                          disabled={showQuizExplanation}
+                          className={`w-full text-left p-2.5 rounded-lg border text-[10px] leading-snug transition-all flex items-start gap-2 focus:outline-none cursor-pointer ${optStyle}`}
+                        >
+                          <span className="font-bold shrink-0">{opt.slice(0, 2)}</span>
+                          <span>{opt.slice(3)}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  {!showQuizExplanation ? (
                     <button
                       type="button"
                       onClick={() => {
-                        setActiveQuizQuestionIdx(prev => prev + 1);
+                        if (selectedOptionIdx === null) return;
+                        const isCorrect = selectedOptionIdx === currentQuestion.correctIdx;
+                        setQuizStats(prev => ({
+                          completed: prev.completed + 1,
+                          correct: prev.correct + (isCorrect ? 1 : 0),
+                          streak: isCorrect ? prev.streak + 1 : 0
+                        }));
+                        setShowQuizExplanation(true);
                       }}
-                      className="w-full py-2 bg-slate-800 hover:bg-slate-700 active:scale-98 text-white font-bold rounded-lg transition-all shadow-md font-mono cursor-pointer"
+                      disabled={selectedOptionIdx === null}
+                      className="w-full py-2 bg-amber-600 disabled:opacity-50 hover:bg-amber-500 active:scale-98 text-white font-bold rounded-lg transition-all shadow-md font-mono cursor-pointer"
                     >
-                      NEXT QUESTION
+                      SUBMIT ANSWER
+                    </button>
+                  ) : (
+                    <div className="flex flex-col gap-3 animate-in fade-in duration-300">
+                      <div className={`p-3 rounded-lg border text-[10px] leading-relaxed ${
+                        selectedOptionIdx === currentQuestion.correctIdx 
+                          ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-200' 
+                          : 'bg-red-950/20 border-red-500/40 text-red-200'
+                      }`}>
+                        <span className="font-bold block mb-1 text-[10.5px]">
+                          {selectedOptionIdx === currentQuestion.correctIdx ? '🎉 CORRECT EXPLANATION' : '❌ INCORRECT EXPLANATION'}
+                        </span>
+                        {currentQuestion.explanation}
+                      </div>
+                      
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveQuizQuestionIdx(prev => prev + 1);
+                        }}
+                        className="w-full py-2 bg-slate-800 hover:bg-slate-700 active:scale-98 text-white font-bold rounded-lg transition-all shadow-md font-mono cursor-pointer"
+                      >
+                        NEXT QUESTION
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-slate-500 italic">No questions found for this topic.</div>
+              )}
+
+              {/* Collapsible Reference Context */}
+              {quizReferenceContext.length > 0 && (
+                <div className="flex flex-col gap-2 mt-2">
+                  <span className="text-[9.5px] font-black uppercase text-amber-500 tracking-wider flex items-center gap-1">
+                    📚 Textbook Reference Passages ({quizReferenceContext.length})
+                  </span>
+                  
+                  <div className="flex flex-col gap-2 max-h-52 overflow-y-auto custom-scrollbar pr-1">
+                    {quizReferenceContext.map((res, rIdx) => {
+                      const { record, score } = res;
+                      const chapterNum = record.chapter_title.includes('10') || 
+                                         (record.section_heading && record.section_heading.toLowerCase().includes('sleep')) || 
+                                         (record.section_heading && record.section_heading.toLowerCase().includes('eeg')) 
+                                         ? 'Ch.10' 
+                                         : 'Ch.9';
+                      return (
+                        <details key={rIdx} className="bg-slate-950/45 border border-slate-900 rounded-lg p-2 text-[9.5px] text-slate-300 group focus:outline-none">
+                          <summary className="font-bold text-blue-400 hover:text-blue-300 transition cursor-pointer select-none outline-none flex justify-between items-center">
+                            <span className="truncate max-w-[200px]">{record.section_heading}</span>
+                            <span className="text-slate-500 text-[8px] font-semibold border border-slate-900 px-1 rounded uppercase shrink-0">
+                              Miller {chapterNum} ({score.toFixed(1)})
+                            </span>
+                          </summary>
+                          <p className="mt-1.5 text-slate-400 leading-relaxed pl-1.5 border-l border-blue-500/20 font-sans font-normal text-[9px]">
+                            {record.body_text}
+                          </p>
+                        </details>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Inline Ask Attending Response ── */}
+              {isStudyTyping && (
+                <div className="flex flex-col items-start mt-3 animate-in fade-in duration-200">
+                  <span className="text-[9px] text-slate-500 font-extrabold uppercase mb-1 font-mono">Attending • Thinking</span>
+                  <div className="bg-slate-900/60 border border-slate-800/40 rounded-2xl px-3.5 py-2.5 shadow-sm text-[10px] text-slate-400 italic w-full">
+                    <span className="animate-pulse">Attending is formulating a clinical answer…</span>
+                  </div>
+                </div>
+              )}
+
+              {studyResponse && !isStudyTyping && (
+                <div className="mt-3 flex flex-col gap-2 bg-slate-900/50 border border-amber-500/20 rounded-xl p-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  <div className="flex justify-between items-center border-b border-white/5 pb-1.5">
+                    <span className="text-[9px] font-extrabold uppercase text-amber-400 tracking-wider flex items-center gap-1">🩺 Attending Response</span>
+                    <button
+                      type="button"
+                      onClick={() => setStudyResponse(null)}
+                      className="text-slate-500 hover:text-white p-0.5 rounded hover:bg-white/5 transition cursor-pointer"
+                      title="Dismiss"
+                    >
+                      <X size={12} />
                     </button>
                   </div>
-                )}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-slate-500 italic">No questions found for this topic.</div>
-            )}
+                  <div className="text-[9px] italic text-slate-500 truncate">Q: {studyResponse.question}</div>
 
-            {/* Collapsible Reference Context */}
-            {quizReferenceContext.length > 0 && (
-              <div className="flex flex-col gap-2 mt-2">
-                <span className="text-[9.5px] font-black uppercase text-amber-500 tracking-wider flex items-center gap-1">
-                  📚 Textbook Reference Passages ({quizReferenceContext.length})
-                </span>
-                
-                <div className="flex flex-col gap-2 max-h-52 overflow-y-auto custom-scrollbar pr-1">
-                  {quizReferenceContext.map((res, rIdx) => {
-                    const { record, score } = res;
-                    const chapterNum = record.chapter_title.includes('10') || 
-                                       (record.section_heading && record.section_heading.toLowerCase().includes('sleep')) || 
-                                       (record.section_heading && record.section_heading.toLowerCase().includes('eeg')) 
-                                       ? 'Ch.10' 
-                                       : 'Ch.9';
+                  {/* Two-fold: summary then expandable detail */}
+                  {(() => {
+                    const text = studyResponse.text;
+                    const summaryDelim = '=== CLINICAL SUMMARY ===';
+                    const detailDelim = '=== DETAILED CONSULTATION ===';
+                    const hasTwoFold = text.includes(summaryDelim) && text.includes(detailDelim);
+
+                    if (hasTwoFold) {
+                      const afterSummary = text.split(summaryDelim)[1] || '';
+                      const summaryPart = afterSummary.split(detailDelim)[0].trim();
+                      const detailedPart = (text.split(detailDelim)[1] || '').trim();
+
+                      return (
+                        <div className="flex flex-col gap-2">
+                          <div className="text-[10px] uppercase tracking-wider font-extrabold text-amber-400 mb-0.5 flex items-center gap-1 border-b border-amber-500/20 pb-1 select-none">
+                            📋 Quick Snapshot Summary
+                          </div>
+                          <div className="text-[10.5px] leading-relaxed text-slate-200 max-w-full break-words whitespace-pre-wrap">
+                            {parseAndRenderText(summaryPart, handleActionClick)}
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => setStudyDetailExpanded(prev => !prev)}
+                            className="mt-1 py-1.5 px-3 bg-slate-950 border border-slate-800 text-[9px] font-black uppercase text-amber-400 rounded-lg hover:bg-slate-900 hover:border-amber-500/35 active:scale-98 transition-all flex items-center gap-1 justify-center self-start select-none shadow-sm cursor-pointer"
+                          >
+                            {studyDetailExpanded ? '📖 Collapse Detailed Consult' : '🔍 Expand Full Detailed Consult'}
+                          </button>
+
+                          {studyDetailExpanded && (
+                            <div className="mt-2 pt-2 border-t border-white/5 animate-in fade-in slide-in-from-top-1 duration-200">
+                              <div className="text-[10px] uppercase tracking-wider font-extrabold text-blue-400 mb-1.5 flex items-center gap-1 border-b border-blue-500/20 pb-1 select-none">
+                                🧠 Comprehensive Teaching Consult
+                              </div>
+                              <div className="text-[10.5px] leading-relaxed text-slate-200 max-w-full break-words whitespace-pre-wrap">
+                                {parseAndRenderText(detailedPart, handleActionClick)}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    }
+
                     return (
-                      <details key={rIdx} className="bg-slate-950/45 border border-slate-900 rounded-lg p-2 text-[9.5px] text-slate-300 group focus:outline-none">
-                        <summary className="font-bold text-blue-400 hover:text-blue-300 transition cursor-pointer select-none outline-none flex justify-between items-center">
-                          <span className="truncate max-w-[200px]">{record.section_heading}</span>
-                          <span className="text-slate-500 text-[8px] font-semibold border border-slate-900 px-1 rounded uppercase shrink-0">
-                            Miller {chapterNum} ({score.toFixed(1)})
-                          </span>
-                        </summary>
-                        <p className="mt-1.5 text-slate-400 leading-relaxed pl-1.5 border-l border-blue-500/20 font-sans font-normal text-[9px]">
-                          {record.body_text}
-                        </p>
-                      </details>
+                      <div className="text-[10.5px] leading-relaxed text-slate-200 max-w-full break-words whitespace-pre-wrap">
+                        {parseAndRenderText(text, handleActionClick)}
+                      </div>
                     );
-                  })}
+                  })()}
                 </div>
-              </div>
-            )}
+              )}
+              <div ref={studyEndRef} />
+            </div>
+            
+            {/* Board Study Ask Attending Input Form */}
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              const q = studyInput.trim();
+              if (!q || isStudyTyping) return;
+              setStudyInput('');
+              setStudyResponse(null);
+              setStudyDetailExpanded(false);
+              setIsStudyTyping(true);
+
+              setTimeout(async () => {
+                try {
+                  let replyText = '';
+                  const localReply = getAttendingResponse(q, {
+                    vitals, patient, activeMeds, surgicalPhase, time, logs
+                  }, conversationHistoryRef.current);
+
+                  const isStateBased = !localReply.includes('### 📖 Attending Knowledge Base') && !localReply.includes('Knowledge Limitation');
+
+                  if (isStateBased) {
+                    replyText = localReply;
+                  } else if (apiKey) {
+                    try {
+                      let kbResults = searchKnowledge(q, 15, 0.12);
+                      if (kbResults.length < 3) {
+                        const queryWords = q.split(/\s+/).filter(Boolean);
+                        const needsExpansion = queryWords.length > 2 || /how|why|what|should|explain/i.test(q);
+                        if (needsExpansion) {
+                          const expandedKeywords = await expandQueryClinicalKeywords(q, apiKey);
+                          const expandedResults = searchKnowledge(expandedKeywords.join(' '), 15, 0.12);
+                          if (expandedResults.length > 0) kbResults = expandedResults;
+                        }
+                      }
+                      if (kbResults.length > 0) {
+                        replyText = await queryGeminiAI(q, kbResults, apiKey);
+                      } else {
+                        replyText = localReply;
+                      }
+                    } catch (err) {
+                      console.error('Board study Gemini synthesis failed:', err);
+                      replyText = localReply + `\n\n💡 *Tip: Gemini synthesis failed (${err.message}).*`;
+                    }
+                  } else {
+                    replyText = localReply;
+                  }
+
+                  setStudyResponse({ question: q, text: replyText });
+                } catch (err) {
+                  console.error(err);
+                } finally {
+                  setIsStudyTyping(false);
+                  setTimeout(() => studyEndRef.current?.scrollIntoView?.({ behavior: 'smooth' }), 100);
+                }
+              }, 300);
+            }} className="p-3 border-t border-white/5 bg-slate-950/60 flex gap-2 shrink-0">
+              <input
+                type="text"
+                value={studyInput}
+                onChange={(e) => setStudyInput(e.target.value)}
+                placeholder="Ask Attending anything (e.g. 'explain MAC')..."
+                className="flex-1 bg-slate-900/90 border border-slate-700/60 rounded-lg px-3 py-2 text-xs text-slate-205 placeholder-slate-500 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/20 transition-all font-mono"
+                disabled={isStudyTyping}
+              />
+              <button
+                type="submit"
+                disabled={isStudyTyping || !studyInput.trim()}
+                className="px-3 py-2 glass-button glass-button-amber disabled:opacity-50 text-white rounded-lg transition-all flex items-center justify-center active:scale-95 shadow-lg shadow-amber-950/20"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </form>
           </div>
         )}
       </div>
