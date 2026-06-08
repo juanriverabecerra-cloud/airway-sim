@@ -19,7 +19,7 @@ Your goal is to answer the user's clinical question using exclusively the provid
 STRICT GROUNDING RULES:
 1. Your response must be directly based on the provided textbook sources.
 2. If the sources do not contain information relevant to the question, state that clearly and provide the best available clinical reasoning while citing what is in the sources.
-3. Organize your answer under the following structured markdown categories (only output sections with content). Use headings starting with '### ':
+3. Organize your answer under structured markdown category headings (only output sections with content). Use headings starting with '### ':
    ### 🧬 Mechanism & Receptor Pharmacology
    ### 💊 Clinical Dosing & Pharmacokinetics
    ### 🫁 Physiological Effects & Clinical Indications
@@ -27,14 +27,14 @@ STRICT GROUNDING RULES:
    ### 📖 Clinical Pearls & General Notes
 4. Insert inline citations to the sources using the superscript format: <sup>[X]</sup> where X is the source number (e.g. <sup>[1]</sup> or <sup>[2]</sup>). Place these citations immediately after the facts you cite!
 5. Do NOT include a separate bibliography or dump the raw text of the sources at the bottom. Your response should end with the categorized synthesis.
-6. Mimic the tone of a medically rigorous, concise, and helpful anesthesia professor. Avoid conversational fluff (like "Here is the response:").
+6. Mimic the tone of a medically rigorous, concise, and helpful anesthesia professor. Avoid conversational fluff.
 
 FORMATTING & ORGANIZATION RULES:
-- Use clean Markdown tables (| Header | Header |) for comparing drugs, dosing details (induction dose, infusion rate), pharmacokinetics (half-life, clearance, volume of distribution), or onset/duration times.
+- Use clean Markdown tables (| Header | Header |) for comparing drugs, dosing details, pharmacokinetics, or onset/duration times.
 - For biological or clinical pathways, use text-based flowcharts with arrows (e.g., "Drug -> Receptor Activation -> Signal Transduction").
 - Separate different points using clean bullet points (- ) with an empty line between bullets to make them highly readable.
-- Never use raw asterisks or unspaced/smushed blocks of text.
-- Do NOT use multiple asterisks (e.g., '**') except for standard bolding of keywords. Do not use asterisks as bullet separators.`;
+- Output the response ONCE. Do NOT duplicate the answer, write duplicate sections, or output long strings of dashes/dividers.
+- Do NOT output JSON, code blocks, or structured schemas. Respond ONLY in standard readable markdown.`;
 
   const prompt = `Textbook Sources:\n${sourcesText}\n\nUser Question: ${query}`;
 
@@ -49,11 +49,18 @@ FORMATTING & ORGANIZATION RULES:
           role: 'user',
           parts: [
             {
-              text: `${systemInstruction}\n\n${prompt}`
+              text: prompt
             }
           ]
         }
       ],
+      system_instruction: {
+        parts: [
+          {
+            text: systemInstruction
+          }
+        ]
+      },
       generationConfig: {
         temperature: 0.2
       }
@@ -79,7 +86,7 @@ async function expandQueryClinicalKeywords(query, apiKey) {
 Analyze the user's question and extract 3 to 5 key clinical terms, pharmacological agents, or physiological concepts.
 Focus on standard singular root nouns (e.g. convert 'bronchospasming' to 'bronchospasm', 'intubated' to 'intubation').
 Respond ONLY with a JSON array of strings, for example: ["bronchospasm", "ventilation", "albuterol"].
-Do not include any explanation, introductory text, markdown formatting outside the JSON, or markdown code blocks (do not wrap in \`\`\`json).`;
+Do not include any explanation, introductory text, markdown formatting outside the JSON, or markdown code blocks.`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
@@ -92,11 +99,18 @@ Do not include any explanation, introductory text, markdown formatting outside t
             role: 'user',
             parts: [
               {
-                text: `${systemInstruction}\n\nUser Question: ${query}`
+                text: `User Question: ${query}`
               }
             ]
           }
         ],
+        system_instruction: {
+          parts: [
+            {
+              text: systemInstruction
+            }
+          ]
+        },
         generationConfig: {
           temperature: 0.0,
           responseMimeType: 'application/json'
@@ -329,15 +343,29 @@ export default function AttendingPanel({
         } else if (apiKey) {
           // 2. AI Synthesis Mode: Retrieve sources and query Gemini
           try {
-            // First pass: Query expansion
-            console.log(`[QueryExpansion] Original query: "${currentInput}"`);
-            const expandedKeywords = await expandQueryClinicalKeywords(currentInput, apiKey);
-            const searchQuery = expandedKeywords.join(' ');
-            console.log(`[QueryExpansion] Standardized search keywords: "${searchQuery}"`);
+            // Check if query expansion is needed (bypass for simple 1-2 word queries)
+            const queryWords = currentInput.trim().split(/\s+/).filter(Boolean);
+            const needsExpansion = queryWords.length > 2 || 
+                                   currentInput.toLowerCase().includes('how') || 
+                                   currentInput.toLowerCase().includes('why') || 
+                                   currentInput.toLowerCase().includes('what') || 
+                                   currentInput.toLowerCase().includes('should') ||
+                                   currentInput.toLowerCase().includes('explain');
 
-            let kbResults = searchKnowledge(searchQuery, 15, 0.12);
-            if (kbResults.length === 0) {
-              console.log('[QueryExpansion] Expanded search yielded 0 results. Falling back to original query.');
+            let kbResults = [];
+            if (needsExpansion) {
+              console.log(`[QueryExpansion] Original query: "${currentInput}"`);
+              const expandedKeywords = await expandQueryClinicalKeywords(currentInput, apiKey);
+              const searchQuery = expandedKeywords.join(' ');
+              console.log(`[QueryExpansion] Standardized search keywords: "${searchQuery}"`);
+
+              kbResults = searchKnowledge(searchQuery, 15, 0.12);
+              if (kbResults.length === 0) {
+                console.log('[QueryExpansion] Expanded search yielded 0 results. Falling back to original query.');
+                kbResults = searchKnowledge(currentInput, 15, 0.12);
+              }
+            } else {
+              console.log(`[QueryExpansion] Simple query detected. Bypassing expansion pass.`);
               kbResults = searchKnowledge(currentInput, 15, 0.12);
             }
 
