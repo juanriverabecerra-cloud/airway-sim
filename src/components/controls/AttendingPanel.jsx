@@ -9,7 +9,7 @@ import { getAttendingResponse, resetConversationHistory, verifyResponseGrounding
 import { getKnowledgeStats, searchKnowledge, searchMatrices } from '../../knowledge/KnowledgeSearch';
 import { boardQuestions } from '../../knowledge/BoardQuestions';
 
-async function queryGeminiAI(query, sources, apiKey) {
+async function queryGeminiAI(query, sources, apiKey, onChunk) {
   const sourcesText = sources.map((src, idx) => {
     return `[Source ${idx + 1}] Section: ${src.record.section_heading || 'General'}\nChapter: ${src.record.chapter_title}\nText: ${src.record.body_text}`;
   }).join('\n\n');
@@ -63,7 +63,7 @@ FORMATTING & ORGANIZATION RULES:
 
   const prompt = `Textbook Sources:\n${sourcesText}\n\nUser Question: ${query}`;
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:streamGenerateContent?key=${apiKey}&alt=sse`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -96,13 +96,55 @@ FORMATTING & ORGANIZATION RULES:
     throw new Error(`Gemini API HTTP Error: ${response.status} ${response.statusText}`);
   }
 
-  const data = await response.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) {
-    throw new Error('Invalid response format from Gemini API.');
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let fullText = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('data: ')) {
+        const jsonStr = trimmed.slice(6).trim();
+        if (!jsonStr) continue;
+        try {
+          const parsed = JSON.parse(jsonStr);
+          const chunkText = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          if (chunkText) {
+            fullText += chunkText;
+            if (onChunk) {
+              onChunk(fullText);
+            }
+          }
+        } catch (err) {
+          console.warn('JSON parse warning:', err);
+        }
+      }
+    }
   }
 
-  return text;
+  if (buffer.trim().startsWith('data: ')) {
+    try {
+      const jsonStr = buffer.trim().slice(6).trim();
+      const parsed = JSON.parse(jsonStr);
+      const chunkText = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      if (chunkText) {
+        fullText += chunkText;
+        if (onChunk) {
+          onChunk(fullText);
+        }
+      }
+    } catch {}
+  }
+
+  return fullText;
 }
 
 async function expandQueryClinicalKeywords(query, apiKey) {
@@ -380,7 +422,7 @@ export default function AttendingPanel({
     }
   };
 
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     if (e) e.preventDefault();
     if (!userInput.trim()) return;
 
@@ -391,131 +433,210 @@ export default function AttendingPanel({
       timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m`
     };
 
-    setChatMessages(prev => [...prev, userMessage]);
     const currentInput = userInput;
     setUserInput('');
     setIsTyping(true);
 
-    setTimeout(async () => {
-      try {
-        let attendingReply = '';
-        
-        // 1. Run local decision trees first
-        const localReply = getAttendingResponse(currentInput, {
-          vitals,
-          patient,
-          activeMeds,
-          surgicalPhase,
-          time,
-          logs
-        }, conversationHistoryRef.current);
-        
-        // Check if response is a state-based decision branch (NOT a textbook search or limitation)
-        const isStateBased = !localReply.includes('### 📖 Attending Knowledge Base') && 
-                             !localReply.includes('Knowledge Limitation');
-                             
-        if (isStateBased) {
-          attendingReply = localReply;
-        } else if (apiKey) {
-          // 2. AI Synthesis Mode: Retrieve sources and query Gemini
-          try {
-            // Run a fast local search first using the raw user query
-            let kbResults = searchKnowledge(currentInput, 15, 0.12);
+    // Append user message immediately
+    setChatMessages(prev => [...prev, userMessage]);
 
-            // Bypass query expansion if we already have 3 or more high-quality textbook records
-            if (kbResults.length < 3) {
-              // Check if query expansion is needed (bypass for simple 1-2 word queries)
-              const queryWords = currentInput.trim().split(/\s+/).filter(Boolean);
-              const needsExpansion = queryWords.length > 2 || 
-                                     currentInput.toLowerCase().includes('how') || 
-                                     currentInput.toLowerCase().includes('why') || 
-                                     currentInput.toLowerCase().includes('what') || 
-                                     currentInput.toLowerCase().includes('should') ||
-                                     currentInput.toLowerCase().includes('explain');
-
-              if (needsExpansion) {
-                console.log(`[QueryExpansion] Direct search yielded ${kbResults.length} results. Running query expansion...`);
-                const expandedKeywords = await expandQueryClinicalKeywords(currentInput, apiKey);
-                const searchQuery = expandedKeywords.join(' ');
-                console.log(`[QueryExpansion] Standardized search keywords: "${searchQuery}"`);
-
-                const expandedResults = searchKnowledge(searchQuery, 15, 0.12);
-                if (expandedResults.length > 0) {
-                  kbResults = expandedResults;
-                } else {
-                  console.log('[QueryExpansion] Expanded search yielded 0 results. Keeping original query results.');
-                }
-              } else {
-                console.log(`[QueryExpansion] Simple query detected. Bypassing expansion pass.`);
-              }
-            } else {
-              console.log(`[QueryExpansion] Direct search yielded ${kbResults.length} high-quality results. Bypassing expansion pass.`);
-            }
-
-            if (kbResults.length > 0) {
-              const geminiText = await queryGeminiAI(currentInput, kbResults, apiKey);
-              
-              attendingReply = `### 📖 Attending Knowledge Base Consultation\n\n`;
-              attendingReply += geminiText.trim() + `\n\n`;
-              
-              // Append standard formatted sources block for collapsible citations UI
-              for (const result of kbResults) {
-                const { record, score, rank } = result;
-                const confidenceLabel = score > 2.0 ? '🟢 HIGH' : score > 1.0 ? '🟡 MODERATE' : '🟠 PARTIAL';
-                const chapterNum = record.chapter_title.includes('10') || 
-                                   (record.section_heading && record.section_heading.toLowerCase().includes('sleep')) || 
-                                   (record.section_heading && record.section_heading.toLowerCase().includes('eeg')) 
-                                   ? 'Ch.10' 
-                                   : 'Ch.9';
-                const citation = ` [Miller ${chapterNum}: ${record.section_heading || 'Untitled Section'}]`;
-                const citedBody = record.body_text + citation;
-
-                attendingReply += `---\n`;
-                attendingReply += `**Source ${rank}** — *${record.section_heading || 'Untitled Section'}*\n`;
-                attendingReply += `📄 *[${record.chapter_title}]* | Relevance: ${confidenceLabel} (${score.toFixed(2)})\n\n`;
-                
-                if (rank <= 5) {
-                  attendingReply += `${citedBody}\n\n`;
-                } else {
-                  attendingReply += `*Verbatim passage referenced in the synthesis above.*\n\n`;
-                }
-              }
-              
-              const matrixResults = searchMatrices ? searchMatrices(currentInput, 3) : [];
-              if (matrixResults && matrixResults.length > 0) {
-                attendingReply += `---\n`;
-                attendingReply += `**📊 Related Figures & Data:**\n\n`;
-                for (const mr of matrixResults) {
-                  attendingReply += `- **${mr.record.caption}** [${mr.record.archetype || 'Figure'}]\n`;
-                }
-                attendingReply += `\n`;
-              }
-            } else {
-              attendingReply = localReply;
-            }
-          } catch (err) {
-            console.error('Gemini synthesis failed:', err);
-            attendingReply = localReply + `\n\n💡 *Tip: Gemini synthesis failed (${err.message}). Check your API Key or connection.*`;
-          }
-        } else {
-          attendingReply = localReply + `\n\n💡 *Tip: To enable high-fidelity AI-synthesized responses instead of keyword matching, enter a Gemini API Key using the link at the top of the chat panel.*`;
-        }
-
+    let localReply = '';
+    try {
+      // 1. Run local decision trees first
+      localReply = getAttendingResponse(currentInput, {
+        vitals,
+        patient,
+        activeMeds,
+        surgicalPhase,
+        time,
+        logs
+      }, conversationHistoryRef.current);
+      
+      // Check if response is a state-based decision branch (NOT a textbook search or limitation)
+      const isStateBased = !localReply.includes('### 📖 Attending Knowledge Base') && 
+                           !localReply.includes('Knowledge Limitation');
+                           
+      if (isStateBased) {
+        setIsTyping(false);
         setChatMessages(prev => {
           const responseMessage = {
             id: `attending-${prev.length}`,
             sender: 'attending',
-            text: attendingReply,
+            text: localReply,
             timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m`
           };
           return [...prev, responseMessage];
         });
-      } catch (err) {
-        console.error(err);
-      } finally {
+      } else if (apiKey) {
+        // 2. AI Synthesis Mode: Retrieve sources and query Gemini
+        try {
+          // Run a fast local search first using the raw user query
+          let kbResults = searchKnowledge(currentInput, 10, 0.12);
+
+          // Bypass query expansion if we already have 3 or more high-quality textbook records
+          if (kbResults.length < 3) {
+            // Check if query expansion is needed (bypass for simple 1-2 word queries)
+            const queryWords = currentInput.trim().split(/\s+/).filter(Boolean);
+            const needsExpansion = queryWords.length > 2 || 
+                                   currentInput.toLowerCase().includes('how') || 
+                                   currentInput.toLowerCase().includes('why') || 
+                                   currentInput.toLowerCase().includes('what') || 
+                                   currentInput.toLowerCase().includes('should') ||
+                                   currentInput.toLowerCase().includes('explain');
+
+            if (needsExpansion) {
+              console.log(`[QueryExpansion] Direct search yielded ${kbResults.length} results. Running query expansion...`);
+              const expandedKeywords = await expandQueryClinicalKeywords(currentInput, apiKey);
+              const searchQuery = expandedKeywords.join(' ');
+              console.log(`[QueryExpansion] Standardized search keywords: "${searchQuery}"`);
+
+              const expandedResults = searchKnowledge(searchQuery, 10, 0.12);
+              if (expandedResults.length > 0) {
+                kbResults = expandedResults;
+              } else {
+                console.log('[QueryExpansion] Expanded search yielded 0 results. Keeping original query results.');
+              }
+            } else {
+              console.log(`[QueryExpansion] Simple query detected. Bypassing expansion pass.`);
+            }
+          } else {
+            console.log(`[QueryExpansion] Direct search yielded ${kbResults.length} high-quality results. Bypassing expansion pass.`);
+          }
+
+          if (kbResults.length > 0) {
+            const attendingMessageId = `attending-${chatMessages.length + 1}`;
+            
+            // Turn off spinner and append streaming message placeholder
+            setIsTyping(false);
+            setChatMessages(prev => [
+              ...prev,
+              {
+                id: attendingMessageId,
+                sender: 'attending',
+                text: `### 📖 Attending Knowledge Base Consultation\n\nFormulating clinical advice…`,
+                timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m`,
+                isStreaming: true
+              }
+            ]);
+
+            let lastText = '';
+            const streamText = await queryGeminiAI(currentInput, kbResults, apiKey, (fullStreamText) => {
+              lastText = fullStreamText;
+
+              // Auto-expand detail section once divider appears in stream
+              if (fullStreamText.includes('=== DETAILED CONSULTATION ===')) {
+                setExpandedSources(prev => {
+                  if (!prev[`msg-detail-${attendingMessageId}`]) {
+                    return { ...prev, [`msg-detail-${attendingMessageId}`]: true };
+                  }
+                  return prev;
+                });
+              }
+
+              setChatMessages(prev => {
+                return prev.map(msg => {
+                  if (msg.id === attendingMessageId) {
+                    return {
+                      ...msg,
+                      text: `### 📖 Attending Knowledge Base Consultation\n\n${fullStreamText}`
+                    };
+                  }
+                  return msg;
+                });
+              });
+            });
+
+            // Final message formulation (append sources block)
+            let attendingReply = `### 📖 Attending Knowledge Base Consultation\n\n`;
+            attendingReply += lastText.trim() + `\n\n`;
+            
+            // Append standard formatted sources block for collapsible citations UI
+            for (const result of kbResults) {
+              const { record, score, rank } = result;
+              const confidenceLabel = score > 2.0 ? '🟢 HIGH' : score > 1.0 ? '🟡 MODERATE' : '🟠 PARTIAL';
+              const chapterNum = record.chapter_title.includes('10') || 
+                                 (record.section_heading && record.section_heading.toLowerCase().includes('sleep')) || 
+                                 (record.section_heading && record.section_heading.toLowerCase().includes('eeg')) 
+                                 ? 'Ch.10' 
+                                 : 'Ch.9';
+              const citation = ` [Miller ${chapterNum}: ${record.section_heading || 'Untitled Section'}]`;
+              const citedBody = record.body_text + citation;
+
+              attendingReply += `---\n`;
+              attendingReply += `**Source ${rank}** — *${record.section_heading || 'Untitled Section'}*\n`;
+              attendingReply += `📄 *[${record.chapter_title}]* | Relevance: ${confidenceLabel} (${score.toFixed(2)})\n\n`;
+              
+              if (rank <= 5) {
+                attendingReply += `${citedBody}\n\n`;
+              } else {
+                attendingReply += `*Verbatim passage referenced in the synthesis above.*\n\n`;
+              }
+            }
+            
+            const matrixResults = searchMatrices ? searchMatrices(currentInput, 3) : [];
+            if (matrixResults && matrixResults.length > 0) {
+              attendingReply += `---\n`;
+              attendingReply += `**📊 Related Figures & Data:**\n\n`;
+              for (const mr of matrixResults) {
+                attendingReply += `- **${mr.record.caption}** [${mr.record.archetype || 'Figure'}]\n`;
+              }
+              attendingReply += `\n`;
+            }
+
+            setChatMessages(prev => {
+              return prev.map(msg => {
+                if (msg.id === attendingMessageId) {
+                  return {
+                    ...msg,
+                    text: attendingReply,
+                    isStreaming: false
+                  };
+                }
+                return msg;
+              });
+            });
+
+          } else {
+            setIsTyping(false);
+            setChatMessages(prev => {
+              const responseMessage = {
+                id: `attending-${prev.length}`,
+                sender: 'attending',
+                text: localReply,
+                timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m`
+              };
+              return [...prev, responseMessage];
+            });
+          }
+        } catch (err) {
+          console.error('Gemini synthesis failed:', err);
+          setIsTyping(false);
+          setChatMessages(prev => {
+            const responseMessage = {
+              id: `attending-${prev.length}`,
+              sender: 'attending',
+              text: localReply + `\n\n💡 *Tip: Gemini synthesis failed (${err.message}). Check your API Key or connection.*`,
+              timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m`
+            };
+            return [...prev, responseMessage];
+          });
+        }
+      } else {
         setIsTyping(false);
+        setChatMessages(prev => {
+          const responseMessage = {
+            id: `attending-${prev.length}`,
+            sender: 'attending',
+            text: localReply + `\n\n💡 *Tip: To enable high-fidelity AI-synthesized responses instead of keyword matching, enter a Gemini API Key using the link at the top of the chat panel.*`,
+            timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m`
+          };
+          return [...prev, responseMessage];
+        });
       }
-    }, 600);
+    } catch (err) {
+      console.error(err);
+      setIsTyping(false);
+    }
   };
 
   // Spirometric FRC and oxygen buffer calculations to prevent ReferenceError crash
@@ -1413,68 +1534,152 @@ Rules:
             </div>
             
             {/* Board Study Ask Attending Input Form */}
-            <form onSubmit={(e) => {
+            <form onSubmit={async (e) => {
               e.preventDefault();
               const q = studyInput.trim();
               if (!q || isStudyTyping) return;
+              
               const userMsg = { id: `study-user-${Date.now()}`, sender: 'user', text: q, timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m` };
               setStudyChatHistory(prev => [...prev, userMsg]);
               setStudyInput('');
               setIsStudyTyping(true);
               setTimeout(() => studyEndRef.current?.scrollIntoView?.({ behavior: 'smooth' }), 50);
 
-              setTimeout(async () => {
-                try {
-                  let replyText = '';
-                  const localReply = getAttendingResponse(q, {
-                    vitals, patient, activeMeds, surgicalPhase, time, logs
-                  }, conversationHistoryRef.current);
+              let localReply = '';
+              try {
+                localReply = getAttendingResponse(q, {
+                  vitals, patient, activeMeds, surgicalPhase, time, logs
+                }, conversationHistoryRef.current);
 
-                  const isStateBased = !localReply.includes('### 📖 Attending Knowledge Base') && !localReply.includes('Knowledge Limitation');
+                const isStateBased = !localReply.includes('### 📖 Attending Knowledge Base') && !localReply.includes('Knowledge Limitation');
 
-                  if (isStateBased) {
-                    replyText = localReply;
-                  } else if (apiKey) {
-                    try {
-                      let kbResults = searchKnowledge(q, 15, 0.12);
-                      if (kbResults.length < 3) {
-                        const queryWords = q.split(/\s+/).filter(Boolean);
-                        const needsExpansion = queryWords.length > 2 || /how|why|what|should|explain/i.test(q);
-                        if (needsExpansion) {
-                          const expandedKeywords = await expandQueryClinicalKeywords(q, apiKey);
-                          const expandedResults = searchKnowledge(expandedKeywords.join(' '), 15, 0.12);
-                          if (expandedResults.length > 0) kbResults = expandedResults;
-                        }
-                      }
-                      if (kbResults.length > 0) {
-                        replyText = await queryGeminiAI(q, kbResults, apiKey);
-                      } else {
-                        replyText = localReply;
-                      }
-                    } catch (err) {
-                      console.error('Board study Gemini synthesis failed:', err);
-                      replyText = localReply + `\n\n💡 *Tip: Gemini synthesis failed (${err.message}).*`;
+                if (isStateBased) {
+                  setIsStudyTyping(false);
+                  setStudyChatHistory(prev => [
+                    ...prev,
+                    { id: `study-att-${Date.now()}`, sender: 'attending', text: localReply, timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m` }
+                  ]);
+                } else if (apiKey) {
+                  // Run a fast local search first using the raw user query
+                  let kbResults = searchKnowledge(q, 10, 0.12);
+                  if (kbResults.length < 3) {
+                    const queryWords = q.split(/\s+/).filter(Boolean);
+                    const needsExpansion = queryWords.length > 2 || /how|why|what|should|explain/i.test(q);
+                    if (needsExpansion) {
+                      const expandedKeywords = await expandQueryClinicalKeywords(q, apiKey);
+                      const expandedResults = searchKnowledge(expandedKeywords.join(' '), 10, 0.12);
+                      if (expandedResults.length > 0) kbResults = expandedResults;
                     }
-                  } else {
-                    replyText = localReply;
                   }
 
-                  const attendingMsg = { id: `study-att-${Date.now()}`, sender: 'attending', text: replyText, timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m` };
-                  setStudyChatHistory(prev => [...prev, attendingMsg]);
-                } catch (err) {
-                  console.error(err);
-                } finally {
+                  if (kbResults.length > 0) {
+                    const attendingMsgId = `study-att-${Date.now()}`;
+                    setIsStudyTyping(false);
+                    setStudyChatHistory(prev => [
+                      ...prev,
+                      { id: attendingMsgId, sender: 'attending', text: 'Formulating clinical answer…', timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m` }
+                    ]);
+
+                    let lastText = '';
+                    await queryGeminiAI(q, kbResults, apiKey, (fullStreamText) => {
+                      lastText = fullStreamText;
+
+                      if (fullStreamText.includes('=== DETAILED CONSULTATION ===')) {
+                        setStudyExpandedDetails(prev => {
+                          if (!prev[attendingMsgId]) {
+                            return { ...prev, [attendingMsgId]: true };
+                          }
+                          return prev;
+                        });
+                      }
+
+                      setStudyChatHistory(prev => {
+                        return prev.map(msg => {
+                          if (msg.id === attendingMsgId) {
+                            return { ...msg, text: fullStreamText };
+                          }
+                          return msg;
+                        });
+                      });
+                      setTimeout(() => studyEndRef.current?.scrollIntoView?.({ behavior: 'smooth' }), 50);
+                    });
+
+                    // Final text update (append standard formatted sources block for collapsible citations UI)
+                    let attendingReply = `### 📖 Attending Knowledge Base Consultation\n\n`;
+                    attendingReply += lastText.trim() + `\n\n`;
+                    
+                    for (const result of kbResults) {
+                      const { record, score, rank } = result;
+                      const confidenceLabel = score > 2.0 ? '🟢 HIGH' : score > 1.0 ? '🟡 MODERATE' : '🟠 PARTIAL';
+                      const chapterNum = record.chapter_title.includes('10') || 
+                                         (record.section_heading && record.section_heading.toLowerCase().includes('sleep')) || 
+                                         (record.section_heading && record.section_heading.toLowerCase().includes('eeg')) 
+                                         ? 'Ch.10' 
+                                         : 'Ch.9';
+                      const citation = ` [Miller ${chapterNum}: ${record.section_heading || 'Untitled Section'}]`;
+                      const citedBody = record.body_text + citation;
+
+                      attendingReply += `---\n`;
+                      attendingReply += `**Source ${rank}** — *${record.section_heading || 'Untitled Section'}*\n`;
+                      attendingReply += `📄 *[${record.chapter_title}]* | Relevance: ${confidenceLabel} (${score.toFixed(2)})\n\n`;
+                      
+                      if (rank <= 5) {
+                        attendingReply += `${citedBody}\n\n`;
+                      } else {
+                        attendingReply += `*Verbatim passage referenced in the synthesis above.*\n\n`;
+                      }
+                    }
+                    
+                    const matrixResults = searchMatrices ? searchMatrices(q, 3) : [];
+                    if (matrixResults && matrixResults.length > 0) {
+                      attendingReply += `---\n`;
+                      attendingReply += `**📊 Related Figures & Data:**\n\n`;
+                      for (const mr of matrixResults) {
+                        attendingReply += `- **${mr.record.caption}** [${mr.record.archetype || 'Figure'}]\n`;
+                      }
+                      attendingReply += `\n`;
+                    }
+
+                    setStudyChatHistory(prev => {
+                      return prev.map(msg => {
+                        if (msg.id === attendingMsgId) {
+                          return { ...msg, text: attendingReply };
+                        }
+                        return msg;
+                      });
+                    });
+
+                  } else {
+                    setIsStudyTyping(false);
+                    setStudyChatHistory(prev => [
+                      ...prev,
+                      { id: `study-att-${Date.now()}`, sender: 'attending', text: localReply, timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m` }
+                    ]);
+                  }
+                } else {
                   setIsStudyTyping(false);
-                  setTimeout(() => studyEndRef.current?.scrollIntoView?.({ behavior: 'smooth' }), 100);
+                  setStudyChatHistory(prev => [
+                    ...prev,
+                    { id: `study-att-${Date.now()}`, sender: 'attending', text: localReply, timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m` }
+                  ]);
                 }
-              }, 300);
+              } catch (err) {
+                console.error('Board study Gemini synthesis failed:', err);
+                setIsStudyTyping(false);
+                setStudyChatHistory(prev => [
+                  ...prev,
+                  { id: `study-att-${Date.now()}`, sender: 'attending', text: localReply + `\n\n💡 *Tip: Gemini synthesis failed (${err.message}).*`, timestamp: formatTime ? formatTime(time) : `${Math.floor(time / 60)}m` }
+                ]);
+              } finally {
+                setTimeout(() => studyEndRef.current?.scrollIntoView?.({ behavior: 'smooth' }), 100);
+              }
             }} className="p-3 border-t border-white/5 bg-slate-950/60 flex gap-2 shrink-0">
               <input
                 type="text"
                 value={studyInput}
                 onChange={(e) => setStudyInput(e.target.value)}
                 placeholder="Ask Attending anything (e.g. 'explain MAC')…"
-                className="flex-1 bg-slate-900/90 border border-slate-700/60 rounded-lg px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/20 transition-all font-mono"
+                className="flex-1 bg-slate-900/90 border border-slate-700/60 rounded-lg px-3 py-2 text-xs text-slate-205 placeholder-slate-500 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/20 transition-all font-mono"
                 disabled={isStudyTyping}
               />
               <button
