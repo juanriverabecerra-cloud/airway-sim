@@ -342,8 +342,16 @@ export class TokenOptimizer {
           );
       };
 
-      const proseIndex: Record<string, Array<{ id: string, tf: number, inHeading: boolean }>> = {};
-      const matrixIndex: Record<string, Array<{ id: string, tf: number, inHeading: boolean }>> = {};
+      // Create document mapping to compress JSON size
+      const proseDocs: string[] = allProse.map(p => p.id);
+      const proseDocIdxMap = new Map<string, number>(proseDocs.map((id, idx) => [id, idx]));
+
+      const matrixDocs: string[] = allMatrices.map(m => m.id);
+      const matrixDocIdxMap = new Map<string, number>(matrixDocs.map((id, idx) => [id, idx]));
+
+      // Postings lists mapped to compact arrays: [docIdx, tf, inHeadingVal]
+      const proseIndex: Record<string, Array<[number, number, number]>> = {};
+      const matrixIndex: Record<string, Array<[number, number, number]>> = {};
       
       const proseMetadata: Record<string, { id: string, chapter_title: string, section_heading: string }> = {};
       const matrixMetadata: Record<string, { id: string, archetype: string, caption: string }> = {};
@@ -352,19 +360,9 @@ export class TokenOptimizer {
       for (const p of allProse) {
         proseMetadata[p.id] = { id: p.id, chapter_title: p.source_book, section_heading: p.topic };
         
-        const unigrams = tokenizeText(`${p.topic} ${p.body_text}`);
-        const bigrams: string[] = [];
-        for (let i = 0; i < unigrams.length - 1; i++) {
-          bigrams.push(`${unigrams[i]}_${unigrams[i+1]}`);
-        }
-        const allTokens = [...unigrams, ...bigrams];
-        
-        const headingUnigrams = tokenizeText(p.topic);
-        const headingBigrams: string[] = [];
-        for (let i = 0; i < headingUnigrams.length - 1; i++) {
-          headingBigrams.push(`${headingUnigrams[i]}_${headingBigrams[i+1]}`);
-        }
-        const headingTokens = new Set([...headingUnigrams, ...headingBigrams]);
+        // ONLY unigrams for search index compilation
+        const allTokens = tokenizeText(`${p.topic} ${p.body_text}`);
+        const headingTokens = new Set(tokenizeText(p.topic));
 
         const tfMap: Record<string, number> = {};
         for (const token of allTokens) {
@@ -381,9 +379,11 @@ export class TokenOptimizer {
           }
         }
 
+        const docIdx = proseDocIdxMap.get(p.id)!;
         for (const [token, tf] of Object.entries(tfMap)) {
           if (!proseIndex[token]) proseIndex[token] = [];
-          proseIndex[token].push({ id: p.id, tf, inHeading: headingTokens.has(token) || (CLINICAL_ALIASES[token]?.some(alias => headingTokens.has(alias)) || false) });
+          const inHeading = headingTokens.has(token) || (CLINICAL_ALIASES[token]?.some(alias => headingTokens.has(alias)) || false);
+          proseIndex[token].push([docIdx, tf, inHeading ? 1 : 0]);
         }
       }
 
@@ -391,19 +391,9 @@ export class TokenOptimizer {
       for (const m of allMatrices) {
         matrixMetadata[m.id] = { id: m.id, archetype: m.archetype, caption: m.caption };
         
-        const unigrams = tokenizeText(`${m.caption} ${m.archetype} ${m.structured_payload}`);
-        const bigrams: string[] = [];
-        for (let i = 0; i < unigrams.length - 1; i++) {
-          bigrams.push(`${unigrams[i]}_${unigrams[i+1]}`);
-        }
-        const allTokens = [...unigrams, ...bigrams];
-        
-        const headingUnigrams = tokenizeText(`${m.caption} ${m.archetype}`);
-        const headingBigrams: string[] = [];
-        for (let i = 0; i < headingUnigrams.length - 1; i++) {
-          headingBigrams.push(`${headingUnigrams[i]}_${headingBigrams[i+1]}`);
-        }
-        const headingTokens = new Set([...headingUnigrams, ...headingBigrams]);
+        // ONLY unigrams for search index compilation
+        const allTokens = tokenizeText(`${m.caption} ${m.archetype} ${m.structured_payload}`);
+        const headingTokens = new Set(tokenizeText(`${m.caption} ${m.archetype}`));
 
         const tfMap: Record<string, number> = {};
         for (const token of allTokens) {
@@ -420,9 +410,11 @@ export class TokenOptimizer {
           }
         }
 
+        const docIdx = matrixDocIdxMap.get(m.id)!;
         for (const [token, tf] of Object.entries(tfMap)) {
           if (!matrixIndex[token]) matrixIndex[token] = [];
-          matrixIndex[token].push({ id: m.id, tf, inHeading: headingTokens.has(token) || (CLINICAL_ALIASES[token]?.some(alias => headingTokens.has(alias)) || false) });
+          const inHeading = headingTokens.has(token) || (CLINICAL_ALIASES[token]?.some(alias => headingTokens.has(alias)) || false);
+          matrixIndex[token].push([docIdx, tf, inHeading ? 1 : 0]);
         }
       }
 
@@ -445,6 +437,8 @@ export class TokenOptimizer {
       const indexData = {
         proseDocCount,
         matrixDocCount,
+        proseDocs,
+        matrixDocs,
         proseIndex,
         matrixIndex,
         proseIdf,
@@ -454,10 +448,10 @@ export class TokenOptimizer {
       };
 
       const indexPath = path.resolve(dirname, '../precomputed_index.json');
-      fs.writeFileSync(indexPath, JSON.stringify(indexData, null, 2), 'utf-8');
+      fs.writeFileSync(indexPath, JSON.stringify(indexData), 'utf-8');
       
       const publicIndexPath = path.resolve(dirname, '../../../public/precomputed_index.json');
-      fs.writeFileSync(publicIndexPath, JSON.stringify(indexData, null, 2), 'utf-8');
+      fs.writeFileSync(publicIndexPath, JSON.stringify(indexData), 'utf-8');
       console.log(`  ✓ Precomputed search index compiled successfully: ${indexPath} and copied to public/`);
     } catch (indexErr: any) {
       console.error(`  [INDEX ERROR] Failed to compile precomputed index: ${indexErr.message}`);

@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Raw PDF Source Materials (Prevent Git Bloat)
+airway_ingest/source_material/
+src/airway_ingest/source_material/
+

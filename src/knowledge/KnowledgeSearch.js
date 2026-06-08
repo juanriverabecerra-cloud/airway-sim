@@ -161,7 +161,18 @@ export function searchKnowledge(query, topK = 5, minScore = 0.5) {
     const postings = precomputedIndex.proseIndex[token];
     if (!postings) continue;
     
-    for (const { id, tf, inHeading } of postings) {
+    for (const entry of postings) {
+      let id, tf, inHeading;
+      if (Array.isArray(entry)) {
+        const docIdx = entry[0];
+        id = precomputedIndex.proseDocs[docIdx];
+        tf = entry[1];
+        inHeading = entry[2] === 1;
+      } else {
+        id = entry.id;
+        tf = entry.tf;
+        inHeading = entry.inHeading;
+      }
       // TF-IDF with sublinear TF scaling: (1 + log(tf)) * idf
       let tfidf = (1 + Math.log(tf)) * idf;
       if (inHeading) {
@@ -244,7 +255,18 @@ export function searchMatrices(query, topK = 3) {
     const postings = precomputedIndex.matrixIndex[token];
     if (!postings) continue;
     
-    for (const { id, tf, inHeading } of postings) {
+    for (const entry of postings) {
+      let id, tf, inHeading;
+      if (Array.isArray(entry)) {
+        const docIdx = entry[0];
+        id = precomputedIndex.matrixDocs[docIdx];
+        tf = entry[1];
+        inHeading = entry[2] === 1;
+      } else {
+        id = entry.id;
+        tf = entry.tf;
+        inHeading = entry.inHeading;
+      }
       let tfidf = (1 + Math.log(tf)) * idf;
       if (inHeading) {
         tfidf *= 2.0; // Heading/Caption boost
