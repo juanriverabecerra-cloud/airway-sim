@@ -555,8 +555,14 @@ export default function AttendingPanel({
       }, conversationHistoryRef.current);
       
       // Check if response is a state-based decision branch (NOT a textbook search or limitation)
+      // IMPORTANT: If the user is asking an educational/knowledge question ("how does X work",
+      // "explain X", "what is X", etc.), always route to the KB + Gemini pipeline for a
+      // comprehensive textbook-grounded answer, even if the local decision tree matched.
+      const educationalPattern = /\b(how\s+(does|do|is|are|did|would|should|can|could)|explain|what\s+(is|are|does|causes?)|why\s+(does|do|is|are|would)|mechanism|pharmacology|pharmacokinetics|pharmacodynamics|teach\s+me|tell\s+me\s+about|describe|work[s]?\b)/i;
+      const isEducationalQuery = educationalPattern.test(currentInput);
       const isStateBased = !localReply.includes('### 📖 Attending Knowledge Base') && 
-                           !localReply.includes('Knowledge Limitation');
+                           !localReply.includes('Knowledge Limitation') &&
+                           !isEducationalQuery;
                            
       if (isStateBased) {
         setIsTyping(false);
@@ -1772,7 +1778,9 @@ Rules:
                   vitals, patient, activeMeds, surgicalPhase, time, logs
                 }, conversationHistoryRef.current);
 
-                const isStateBased = !localReply.includes('### 📖 Attending Knowledge Base') && !localReply.includes('Knowledge Limitation');
+                const educationalPattern = /\b(how\s+(does|do|is|are|did|would|should|can|could)|explain|what\s+(is|are|does|causes?)|why\s+(does|do|is|are|would)|mechanism|pharmacology|pharmacokinetics|pharmacodynamics|teach\s+me|tell\s+me\s+about|describe|work[s]?\b)/i;
+                const isEducationalQuery = educationalPattern.test(q);
+                const isStateBased = !localReply.includes('### 📖 Attending Knowledge Base') && !localReply.includes('Knowledge Limitation') && !isEducationalQuery;
 
                 if (isStateBased) {
                   setIsStudyTyping(false);
