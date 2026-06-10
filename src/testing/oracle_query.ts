@@ -150,18 +150,88 @@ export function extractTextbookRules(): TextbookRule[] {
 
   const rules: TextbookRule[] = [];
 
+  const isPhysiologicallyPlausible = (targetVital: string, operator: string, value: number): boolean => {
+    if (operator === 'scale') {
+      if (value < 0.1 || value > 3.0) return false;
+    } else if (operator === '+' || operator === '-') {
+      if (targetVital === 'temp' && value > 10) return false;
+      if (targetVital === 'k' && value > 6.0) return false;
+      if (targetVital === 'hr' && value > 100) return false;
+      if (targetVital === 'map' && value > 100) return false;
+      if (targetVital === 'rr' && value > 40) return false;
+      if (targetVital === 'compl' && value > 100) return false;
+      if (targetVital === 'pip' && value > 80) return false;
+      if (targetVital === 'spo2' && value > 100) return false;
+    } else if (operator === 'clamp') {
+      if (targetVital === 'hr' && (value < 20 || value > 220)) return false;
+      if (targetVital === 'temp' && (value < 25 || value > 45)) return false;
+      if (targetVital === 'k' && (value < 1.0 || value > 10.0)) return false;
+      if (targetVital === 'map' && (value < 20 || value > 200)) return false;
+    }
+    return true;
+  };
+
   for (const row of textbookProse) {
     if (!row.body_text) continue;
+    // Skip raw markdown tables to prevent parsing coordinates/labels as values
+    if (row.body_text.includes('|')) continue;
+
     // Split sentences using lookbehind for periods followed by spaces
     const sentences = row.body_text.split(/(?<=[.!?])\s+/);
     
     for (const sentence of sentences) {
       const sentenceLower = sentence.toLowerCase();
       
-      // Find matching condition
+      // Skip lists of numbers, figures, multiple references (density check)
+      const numCount = (sentenceLower.match(/\b\d+(?:\.\d+)?\b/g) || []).length;
+      if (numCount > 3) continue;
+
+      // Ensure sentence contains active physiological change verbs
+      if (!sentenceLower.match(/(increase|decrease|drop|rise|fall|reduce|clamp|limit|stabilize|change|depress|elevate|lower)/i)) {
+        continue;
+      }
+
+      // Find target vital first
+      let targetVital: 'hr' | 'rr' | 'map' | 'spo2' | 'k' | 'compl' | 'pip' | 'temp' | null = null;
+      let vitalKeywords: string[] = [];
+      
+      if (sentenceLower.match(/(heart\s*rate|pulse|beats\s*per\s*minute)/i)) {
+        targetVital = 'hr';
+        vitalKeywords = ['heart rate', 'pulse', 'bpm', 'beats'];
+      } else if (sentenceLower.match(/(respiratory\s*rate|breathing\s*rate|breaths\s*per\s*minute)/i)) {
+        targetVital = 'rr';
+        vitalKeywords = ['respiratory rate', 'breathing rate', 'breaths'];
+      } else if (sentenceLower.match(/(mean\s*arterial\s*pressure|map|blood\s*pressure|systolic|diastolic)/i)) {
+        targetVital = 'map';
+        vitalKeywords = ['map', 'blood pressure', 'systolic', 'diastolic', 'pressure'];
+      } else if (sentenceLower.match(/(spo2|oxygen\s*saturation|sao2)/i)) {
+        targetVital = 'spo2';
+        vitalKeywords = ['spo2', 'oxygen saturation', 'saturation', 'sao2'];
+      } else if (sentenceLower.match(/(potassium|k\+)/i)) {
+        targetVital = 'k';
+        vitalKeywords = ['potassium', 'k+'];
+      } else if (sentenceLower.match(/(compliance|lung\s*compliance|chest\s*wall\s*compliance)/i)) {
+        targetVital = 'compl';
+        vitalKeywords = ['compliance'];
+      } else if (sentenceLower.match(/(peak\s*inspiratory\s*pressure|pip|airway\s*pressure)/i)) {
+        targetVital = 'pip';
+        vitalKeywords = ['pip', 'peak inspiratory pressure', 'airway pressure'];
+      } else if (sentenceLower.match(/(temperature|temp|body\s*temperature|core\s*temperature)/i)) {
+        targetVital = 'temp';
+        vitalKeywords = ['temperature', 'temp'];
+      }
+
+      if (!targetVital) continue;
+
+      // Find matching condition using strict word boundaries to prevent substring collisions
       let matchedCond: string | null = null;
       for (const cond of conditionKeywords) {
-        if (sentenceLower.includes(cond)) {
+        // Skip condition if it is identical to the vital keyword to prevent self-referencing rule collisions
+        if (cond === 'potassium' && targetVital === 'k') continue;
+        if (cond === 'k' && targetVital === 'k') continue;
+
+        const condRegex = new RegExp('\\b' + cond + '\\b', 'i');
+        if (condRegex.test(sentenceLower)) {
           matchedCond = canonicalCondition(cond);
           break;
         }
@@ -169,84 +239,87 @@ export function extractTextbookRules(): TextbookRule[] {
       
       if (!matchedCond) continue;
 
-      // Find target vital
-      let targetVital: 'hr' | 'rr' | 'map' | 'spo2' | 'k' | 'compl' | 'pip' | 'temp' | null = null;
-      if (sentenceLower.match(/(heart\s*rate|pulse|beats\s*per\s*minute)/i)) {
-        targetVital = 'hr';
-      } else if (sentenceLower.match(/(respiratory\s*rate|breathing\s*rate|breaths\s*per\s*minute)/i)) {
-        targetVital = 'rr';
-      } else if (sentenceLower.match(/(mean\s*arterial\s*pressure|map|blood\s*pressure|systolic|diastolic)/i)) {
-        targetVital = 'map';
-      } else if (sentenceLower.match(/(spo2|oxygen\s*saturation|sao2)/i)) {
-        targetVital = 'spo2';
-      } else if (sentenceLower.match(/(potassium|k\+)/i)) {
-        targetVital = 'k';
-      } else if (sentenceLower.match(/(compliance|lung\s*compliance|chest\s*wall\s*compliance)/i)) {
-        targetVital = 'compl';
-      } else if (sentenceLower.match(/(peak\s*inspiratory\s*pressure|pip|airway\s*pressure)/i)) {
-        targetVital = 'pip';
-      } else if (sentenceLower.match(/(temperature|temp|body\s*temperature|core\s*temperature)/i)) {
-        targetVital = 'temp';
-      }
-
-      if (!targetVital) continue;
-
       // Extract operator and value
       let operator: '+' | '-' | 'scale' | 'clamp' | null = null;
       let value = 0;
+      let matchedValueStr = '';
 
       // 1. Percentage-based decrease: "decreases compliance by 20%" or "compliance drops by 20%"
-      const decPercentMatch = sentenceLower.match(/(?:reduces?|decreases?|drops?|falls?|declines?|depress(?:es|ed)?|loss|deficit)\s+(?:.*?\s+)?(?:by|of|to)?\s*(\d+(?:\.\d+)?)\s*%/i) ||
+      const decPercentMatch = sentenceLower.match(/(?:reduces?|decreases?|drops?|falls?|declines?|depress(?:es|ed)?|loss|deficit)\s+(?:[^0-9\s]+\s+){0,5}(?:by|of|to)?\s*(\d+(?:\.\d+)?)\s*%/i) ||
                              sentenceLower.match(/(\d+(?:\.\d+)?)\s*%\s*(?:drop|reduction|decrease|fall|decline)/i);
       if (decPercentMatch) {
         operator = 'scale';
         value = 1 - parseFloat(decPercentMatch[1]) / 100;
+        matchedValueStr = decPercentMatch[1];
       }
 
       // 2. Percentage-based increase: "increases heart rate by 15%"
       if (!operator) {
-        const incPercentMatch = sentenceLower.match(/(?:increases?|raises?|elevates?|rises?|goes\s+up|enhances?)\s+(?:.*?\s+)?(?:by|of|to)?\s*(?:\+)?\s*(\d+(?:\.\d+)?)\s*%/i) ||
+        const incPercentMatch = sentenceLower.match(/(?:increases?|raises?|elevates?|rises?|goes\s+up|enhances?)\s+(?:[^0-9\s]+\s+){0,5}(?:by|of|to)?\s*(?:\+)?\s*(\d+(?:\.\d+)?)\s*%/i) ||
                                sentenceLower.match(/(\d+(?:\.\d+)?)\s*%\s*(?:increase|rise|elevation|enhancement)/i);
         if (incPercentMatch) {
           operator = 'scale';
           value = 1 + parseFloat(incPercentMatch[1]) / 100;
+          matchedValueStr = incPercentMatch[1];
         }
       }
 
       // 3. Absolute decrease: "reduces heart rate by 15 bpm"
       if (!operator) {
-        const decAbsMatch = sentenceLower.match(/(?:reduces?|decreases?|drops?|falls?|declines?|depress(?:es|ed)?|loss|deficit)\s+(?:.*?\s+)?(?:by|of|to)?\s*(\d+(?:\.\d+)?)/i);
+        const decAbsMatch = sentenceLower.match(/(?:reduces?|decreases?|drops?|falls?|declines?|depress(?:es|ed)?|loss|deficit)\s+(?:[^0-9\s]+\s+){0,5}(?:by|of|to)?\s*(\d+(?:\.\d+)?)/i);
         if (decAbsMatch) {
           operator = '-';
           value = parseFloat(decAbsMatch[1]);
+          matchedValueStr = decAbsMatch[1];
         }
       }
 
       // 4. Absolute increase: "increases respiratory rate by 8 breaths"
       if (!operator) {
-        const incAbsMatch = sentenceLower.match(/(?:increases?|raises?|elevates?|rises?|goes\s+up|enhances?)\s+(?:.*?\s+)?(?:by|of|to)?\s*(?:\+)?\s*(\d+(?:\.\d+)?)/i);
+        const incAbsMatch = sentenceLower.match(/(?:increases?|raises?|elevates?|rises?|goes\s+up|enhances?)\s+(?:[^0-9\s]+\s+){0,5}(?:by|of|to)?\s*(?:\+)?\s*(\d+(?:\.\d+)?)/i);
         if (incAbsMatch) {
           operator = '+';
           value = parseFloat(incAbsMatch[1]);
+          matchedValueStr = incAbsMatch[1];
         }
       }
 
       // 5. Clamp: "limits heart rate to 40 bpm"
       if (!operator) {
-        const clampMatch = sentenceLower.match(/(?:limits?|clamps?|stabilizes?|holds?|caps?)\s+(?:.*?\s+)?(?:to|at)?\s*(\d+(?:\.\d+)?)/i);
+        const clampMatch = sentenceLower.match(/(?:limits?|clamps?|stabilizes?|holds?|caps?)\s+(?:[^0-9\s]+\s+){0,5}(?:to|at)?\s*(\d+(?:\.\d+)?)/i);
         if (clampMatch) {
           operator = 'clamp';
           value = parseFloat(clampMatch[1]);
+          matchedValueStr = clampMatch[1];
         }
       }
 
-      if (operator !== null) {
-        rules.push({
-          condition: matchedCond,
-          targetVital,
-          operator,
-          value
-        });
+      if (operator !== null && matchedValueStr) {
+        // Enforce proximity constraint: the vital keyword must be within 50 characters of the value in the sentence
+        let closeEnough = false;
+        const valIdx = sentenceLower.indexOf(matchedValueStr);
+        if (valIdx !== -1) {
+          for (const kw of vitalKeywords) {
+            let pos = sentenceLower.indexOf(kw);
+            while (pos !== -1) {
+              if (Math.abs(pos - valIdx) < 50) {
+                closeEnough = true;
+                break;
+              }
+              pos = sentenceLower.indexOf(kw, pos + 1);
+            }
+            if (closeEnough) break;
+          }
+        }
+
+        if (closeEnough && isPhysiologicallyPlausible(targetVital, operator, value)) {
+          rules.push({
+            condition: matchedCond,
+            targetVital,
+            operator,
+            value
+          });
+        }
       }
     }
   }

@@ -125,6 +125,18 @@ function main(): void {
     import("./utils/token_optimizer.ts"),
     import("./store.ts")
   ]).then(async ([{ TokenOptimizer }, { KnowledgeStore }]) => {
+    const dbFile = path.resolve(__dirname, "medical_truth.db");
+    if (fs.existsSync(dbFile)) {
+      console.log(`Clearing legacy database file at ${dbFile} to start a fresh clean build...`);
+      try {
+        fs.unlinkSync(dbFile);
+        if (fs.existsSync(`${dbFile}-wal`)) fs.unlinkSync(`${dbFile}-wal`);
+        if (fs.existsSync(`${dbFile}-shm`)) fs.unlinkSync(`${dbFile}-shm`);
+      } catch (e: any) {
+        console.warn(`Warning clearing legacy database:`, e.message);
+      }
+    }
+    
     await KnowledgeStore.init();
     let successCount = 0;
     

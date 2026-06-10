@@ -186,6 +186,45 @@ export class TokenOptimizer {
     };
   }
 
+  public static extractTopicFromRawText(rawText: string): string {
+    const lines = rawText.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    if (lines.length === 0) return 'General';
+    
+    // Try 1: Markdown headers like "### Heading" or "## Heading"
+    for (const line of lines.slice(0, 3)) {
+      const mdMatch = line.match(/^#{1,6}\s+(.+)$/);
+      if (mdMatch) {
+        return mdMatch[1].trim();
+      }
+    }
+    
+    // Try 2: Figure / Table lines at the start
+    for (const line of lines.slice(0, 2)) {
+      const figMatch = line.match(/^(?:Figure|Fig|Table)\s+\d+[:.]?\s*(.+)$/i);
+      if (figMatch) {
+        const cap = figMatch[1].trim();
+        return cap.length > 40 ? cap.substring(0, 40) + '...' : cap;
+      }
+    }
+    
+    // Try 3: Capitalized or bold-like first line (under 60 chars)
+    const firstLine = lines[0];
+    if (firstLine.length < 60) {
+      if (/^[A-Z0-9\s\-_.,():;'/]+$/i.test(firstLine) && !firstLine.match(/^\d+$/)) {
+        return firstLine;
+      }
+    }
+    
+    // Try 4: Check if any of the first 3 lines is all uppercase and short (under 50 chars)
+    for (const line of lines.slice(0, 3)) {
+      if (line.length > 3 && line.length < 50 && line === line.toUpperCase() && /^[A-Z0-9\s\-_.,()]+$/.test(line)) {
+        return line;
+      }
+    }
+    
+    return 'General';
+  }
+
   /**
    * Prunes and inserts a parsed document into the database, clearing its existing records first.
    */
@@ -217,7 +256,7 @@ export class TokenOptimizer {
         });
       } else if (fragment.rawText && fragment.rawText.trim().length > 0) {
         const sectionId = `${chapterTitle}_${fragment.id}_full`;
-        const topic = 'General';
+        const topic = this.extractTopicFromRawText(fragment.rawText);
         const bodyText = fragment.rawText;
         
         KnowledgeStore.insertProse(sectionId, topic, bodyText, chapterTitle, metadata.edition, priorityRank);

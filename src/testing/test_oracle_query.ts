@@ -1,5 +1,7 @@
 import type { ParsedDocument } from '../knowledge/types/index.ts';
 import { TokenOptimizer } from '../knowledge/utils/token_optimizer.ts';
+import { KnowledgeStore } from '../knowledge/store.ts';
+import { ClientDbBridge } from '../knowledge/ClientDbBridge.ts';
 import { getAnatomicalTruth, getAnatomicalParameter, extractTextbookRules, closeQueryBridge } from './oracle_query.ts';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -123,10 +125,17 @@ async function runTest() {
   console.log('\n[TEST] 1. Triggering Database Ingestion...');
   const fakeOutputPath = path.resolve(dirname, '../knowledge/anesthesia_handbook_chapter_9.json');
   
+  await KnowledgeStore.init();
   try {
     const result = TokenOptimizer.optimizeAndSerialize(mockDoc, fakeOutputPath);
     console.log('  ✓ Ingestion function ran successfully.');
     console.log('  ✓ Result structure:', result);
+    
+    // Reset ClientDbBridge static properties to force cache reload from the new database
+    (ClientDbBridge as any).loadPromise = null;
+    (ClientDbBridge as any).isLoaded = false;
+    (ClientDbBridge as any).nodeDb = null;
+    await ClientDbBridge.init();
   } catch (err: any) {
     console.error('  ✗ Ingestion failed:', err);
     process.exit(1);

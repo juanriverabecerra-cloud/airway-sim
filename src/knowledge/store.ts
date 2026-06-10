@@ -180,7 +180,7 @@ export class KnowledgeStore {
         WHERE id IN (
           SELECT id FROM (
             SELECT id, ROW_NUMBER() OVER (
-              PARTITION BY topic 
+              PARTITION BY (CASE WHEN topic = 'General' OR topic = 'Visual' OR topic = 'Unknown' THEN id ELSE topic END)
               ORDER BY priority_rank DESC, id ASC
             ) as rn
             FROM textbook_prose
@@ -198,7 +198,7 @@ export class KnowledgeStore {
         WHERE id IN (
           SELECT id FROM (
             SELECT id, ROW_NUMBER() OVER (
-              PARTITION BY topic 
+              PARTITION BY (CASE WHEN topic = 'General' OR topic = 'Visual' OR topic = 'Unknown' THEN id ELSE topic END)
               ORDER BY priority_rank DESC, id ASC
             ) as rn
             FROM physiological_matrices
