@@ -232,20 +232,20 @@ export const MemoryPanel = ({ patient, vitals, setPatient, logEvent }) => {
 
           {/* Section: Action Buttons */}
           <div className="border-t border-purple-900/40 pt-3 flex flex-col gap-2">
-            {reconsolidationWindowOpen ? (
+            {patient?.reconsolidationWindowOpen ? (
               <div className="bg-purple-950/30 border border-purple-900/60 rounded p-2.5 flex flex-col gap-1.5">
                 <div className="flex justify-between items-center text-[10px] font-bold text-purple-400">
                   <span className="uppercase">Reconsolidation Window Open</span>
-                  <span>{reconsolidationTimer}s</span>
+                  <span>{patient?.reconsolidationTimer}s</span>
                 </div>
                 <div className="flex justify-between items-center text-[9px] text-slate-400">
                   <span>Fear memory conditioning strength:</span>
-                  <span className="font-extrabold text-purple-300">{(fearConditioning * 100).toFixed(0)}%</span>
+                  <span className="font-extrabold text-purple-300">{((patient?.fearConditioning || 0) * 100).toFixed(0)}%</span>
                 </div>
                 <div className="w-full bg-slate-900 h-1.5 rounded-full overflow-hidden border border-slate-800">
-                  <div className="bg-purple-400 h-full" style={{ width: `${fearConditioning * 100}%` }} />
+                  <div className="bg-purple-400 h-full" style={{ width: `${(patient?.fearConditioning || 0) * 100}%` }} />
                 </div>
-                {fearExtinguished && (
+                {patient?.fearExtinguished && (
                   <div className="flex items-center gap-1.5 text-[9.5px] text-emerald-400 font-black uppercase mt-1 animate-pulse">
                     <Award size={12} />
                     <span>Traumatic Fear Memory Extinguished!</span>
