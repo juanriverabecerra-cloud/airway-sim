@@ -23,6 +23,17 @@ function fmt(val, decimals = 0) {
   return val.toFixed(decimals);
 }
 
+/**
+ * Extracts a clean chapter label from the raw PDF filename stored in chapter_title.
+ * e.g. "Millers_Anaesthesia_9th_Edition_Chapter_31.pdf" → "Ch.31"
+ *      "Millers_Anaesthesia_9th_Edition_Chapter_9.pdf"  → "Ch.9"
+ */
+function extractChapterLabel(chapterTitle) {
+  if (!chapterTitle || typeof chapterTitle !== 'string') return 'Ch.?';
+  const match = chapterTitle.match(/Chapter_(\d+)/i);
+  return match ? `Ch.${match[1]}` : 'Ch.?';
+}
+
 // ─── CONVERSATION MEMORY ─────────────────────────────────────────────────────
 
 let conversationHistory = [];
@@ -774,12 +785,8 @@ Myocardial perfusion has collapsed due to tachycardia or severe hypotension.
       const { record, score, rank } = result;
       const confidenceLabel = score > 2.0 ? '🟢 HIGH' : score > 1.0 ? '🟡 MODERATE' : '🟠 PARTIAL';
       
-      const chapterNum = record.chapter_title.includes('10') || 
-                         (record.section_heading && record.section_heading.toLowerCase().includes('sleep')) || 
-                         (record.section_heading && record.section_heading.toLowerCase().includes('eeg')) 
-                         ? 'Ch.10' 
-                         : 'Ch.9';
-      const citation = ` [Miller ${chapterNum}: ${record.section_heading || 'Untitled Section'}]`;
+      const chapterLabel = extractChapterLabel(record.chapter_title);
+      const citation = ` [Miller ${chapterLabel}: ${record.section_heading || 'Untitled Section'}]`;
       const citedBody = record.body_text + citation;
 
       kbResponse += `---\n`;

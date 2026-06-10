@@ -68,9 +68,20 @@ function parsePartialQuestions(jsonStr) {
   return questions;
 }
 
+/**
+ * Extracts a clean chapter label from the raw PDF filename stored in chapter_title.
+ * e.g. "Millers_Anaesthesia_9th_Edition_Chapter_31.pdf" → "Ch.31"
+ */
+function extractChapterLabel(chapterTitle) {
+  if (!chapterTitle || typeof chapterTitle !== 'string') return 'Ch.?';
+  const match = chapterTitle.match(/Chapter_(\d+)/i);
+  return match ? `Ch.${match[1]}` : 'Ch.?';
+}
+
 async function queryGeminiAI(query, sources, apiKey, onChunk) {
   const sourcesText = sources.map((src, idx) => {
-    return `[Source ${idx + 1}] Section: ${src.record.section_heading || 'General'}\nChapter: ${src.record.chapter_title}\nText: ${src.record.body_text}`;
+    const chapterLabel = extractChapterLabel(src.record.chapter_title);
+    return `[Source ${idx + 1}] Section: ${src.record.section_heading || 'General'}\nChapter: Miller's Anesthesia 9th Ed. ${chapterLabel}\nText: ${src.record.body_text}`;
   }).join('\n\n');
 
   const systemInstruction = `You are a knowledge-grounded Senior Anesthesiology Attending teaching residents in the OR.
@@ -146,7 +157,8 @@ FORMATTING & ORGANIZATION RULES:
         ]
       },
       generationConfig: {
-        temperature: 0.2
+        temperature: 0.2,
+        maxOutputTokens: 16384
       }
     })
   });
@@ -644,12 +656,8 @@ export default function AttendingPanel({
             for (const result of kbResults) {
               const { record, score, rank } = result;
               const confidenceLabel = score > 2.0 ? '🟢 HIGH' : score > 1.0 ? '🟡 MODERATE' : '🟠 PARTIAL';
-              const chapterNum = record.chapter_title.includes('10') || 
-                                 (record.section_heading && record.section_heading.toLowerCase().includes('sleep')) || 
-                                 (record.section_heading && record.section_heading.toLowerCase().includes('eeg')) 
-                                 ? 'Ch.10' 
-                                 : 'Ch.9';
-              const citation = ` [Miller ${chapterNum}: ${record.section_heading || 'Untitled Section'}]`;
+              const chapterLabel = extractChapterLabel(record.chapter_title);
+              const citation = ` [Miller ${chapterLabel}: ${record.section_heading || 'Untitled Section'}]`;
               const citedBody = record.body_text + citation;
 
               attendingReply += `---\n`;
@@ -1655,8 +1663,8 @@ Rules:
                           <div className="flex flex-col gap-1.5 max-h-44 overflow-y-auto custom-scrollbar pr-1 animate-in fade-in duration-200">
                             {quizReferenceContext.map((res, rIdx) => {
                               const { record, score } = res;
-                              const chapterNum = record.chapter_title.includes('10') || (record.section_heading && record.section_heading.toLowerCase().includes('sleep')) || (record.section_heading && record.section_heading.toLowerCase().includes('eeg')) ? 'Ch.10' : 'Ch.9';
-                              const chapterDisplay = record.chapter_title.startsWith('Miller') ? record.chapter_title : `Miller ${chapterNum}`;
+                              const chapterLabel = extractChapterLabel(record.chapter_title);
+                              const chapterDisplay = record.chapter_title.startsWith('Miller') ? record.chapter_title : `Miller's Anesthesia ${chapterLabel}`;
                               return (
                                 <details key={rIdx} className="bg-slate-950/45 border border-slate-900 rounded-lg p-2 text-[9px] text-slate-300 group">
                                   <summary className="font-bold text-blue-400 hover:text-blue-300 transition cursor-pointer select-none flex justify-between items-center">
@@ -1824,12 +1832,8 @@ Rules:
                     for (const result of kbResults) {
                       const { record, score, rank } = result;
                       const confidenceLabel = score > 2.0 ? '🟢 HIGH' : score > 1.0 ? '🟡 MODERATE' : '🟠 PARTIAL';
-                      const chapterNum = record.chapter_title.includes('10') || 
-                                         (record.section_heading && record.section_heading.toLowerCase().includes('sleep')) || 
-                                         (record.section_heading && record.section_heading.toLowerCase().includes('eeg')) 
-                                         ? 'Ch.10' 
-                                         : 'Ch.9';
-                      const citation = ` [Miller ${chapterNum}: ${record.section_heading || 'Untitled Section'}]`;
+                      const chapterLabel = extractChapterLabel(record.chapter_title);
+                      const citation = ` [Miller ${chapterLabel}: ${record.section_heading || 'Untitled Section'}]`;
                       const citedBody = record.body_text + citation;
 
                       attendingReply += `---\n`;
