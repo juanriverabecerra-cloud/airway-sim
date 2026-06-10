@@ -1,0 +1,1569 @@
+=== ID: Millers_Anaesthesia_9th_Edition_Chapter_9.pdf_PAGE_001_full ===
+=== TOPIC: KEY POINTS ===
+
+250
+KEY POINTS
+Consciousness, Memory,
+and Anesthesia
+GEORGE A. MASHOUR and KANE O. PRYOR
+9
+Introduction
+SCIENTIFIC AND CLINICAL IMPORTANCE
+Consciousness and memory are among the most fascinating
+and complex subjects in all of science. The richness of human
+consciousness and memory—and the ability to express this
+richness in language—is a defining characteristic of homo
+sapiens. Consciousness and memory also have clinical rel-
+evance for the anesthesiologist; together, the experience
+and explicit episodic recall of surgical events is known as
+the problem of “intraoperative awareness.” When formally
+assessed, this complication occurs in approximately 1 to 2
+cases per 1000 1-3 and is associated with a high incidence
+of posttraumatic stress disorder (PTSD). 4,5 The incidence of
+intraoperative consciousness without recall is substantially
+higher.6 To advance the field of perioperative brain moni-
+toring, a detailed understanding of the neurobiology of con-
+sciousness, memory, and anesthesia is required.!
+Consciousness
+DEFINITIONS
+The field of consciousness studies has been plagued by the
+indiscriminate use of the term “consciousness.” When we
+refer to consciousness, we mean subjective experience. In
+simple terms, it is what we lose when we have dreamless
+sleep and what we regain again in the morning upon awak-
+ening. There are, however, several important definitions
+and distinctions that should be considered.
+1. Awareness: Cognitive neuroscientists and philoso-
+phers use the term “awareness” to mean only subjective
+experience. In clinical anesthesiology, we (inaccurately)
+use the term “awareness” to include both consciousness
+and explicit episodic memory7 (the taxonomy of memory
+will be discussed in the next major section of the chap-
+ter).
+2. Connected versus disconnected consciousness:
+Connected consciousness is the experience of environ-
+mental stimuli (such as surgery), whereas disconnected
+consciousness is an endogenous experience (such as a
+dream state).8
+3. Consciousness versus responsiveness: An individ-
+ual may fully experience a stimulus (such as the com-
+mand “Open your eyes!”) but not be able to respond (as
+when a patient is paralyzed but conscious during sur-
+gery).9
+There have been a number of theories proposed to
+explain the mechanisms of consciousness and general
+anesthesia. Advances in neuroscience, however, have
+enabled us to move beyond speculative frameworks and
+focus on a systems-based approach to both subjects. 10
+The remainder of this section on consciousness adopts
+such an approach by discussing (1) brainstem and hypo-
+thalamic nuclei regulating the sleep-wake cycle (and
+therefore arousal states) (Figs. 9.1 and 9.2); (2) the role
+of the thalamus in consciousness and anesthesia; (3)
+cortical-subcortical connectivity, with a focus on the
+thalamocortical system, which is thought to mediate the
+experiential component of consciousness; and (4) cortico-
+cortical communication.!
+!□! Mechanisms of consciousness and memory, and their interruption by general anesthetics, are
+important scientific problems that have clinical relevance for the practice of anesthesiology.
+!□! Consciousness is characterized by both wakefulness (i.e., the brain being aroused) and aware-
+ness (i.e., subjective experience).
+!□! Anesthetics act at structures in the brainstem, hypothalamus, and basal forebrain that regulate
+sleep-wake states, which may account for loss of wakefulness.
+!□! Anesthetics disrupt connectivity and communication across cortical and thalamocortical net-
+works, which may account for loss of awareness.
+!□! Memory can be subdivided into explicit (conscious) and implicit (unconscious) recall; an exam-
+ple of explicit episodic recall is remembering a surgical event.
+!□! Suppression of explicit episodic recall is one of the most potent effects of most general anes-
+thetics.
+!□! Effects on the hippocampus, amygdala, and prefrontal cortex—as well as the connectivity of
+these structures—may account for anesthetic-induced amnesia, even before loss of conscious-
+ness.
+
+=== ID: Millers_Anaesthesia_9th_Edition_Chapter_9.pdf_PAGE_002_full ===
+=== TOPIC: SUBCORTICAL NUCLEI REGULATING AROUSAL ===
+
+9 • Consciousness, Memory, and Anesthesia 	251
+SUBCORTICAL NUCLEI REGULATING AROUSAL
+It was hypothesized in the mid-1990s that anesthetics sup-
+press consciousness by actions at the subcortical nuclei that
+evolved to control sleep-wake cycles. 11 The past decades
+have supported the hypothesis that anesthetics interact
+with a number of these sleep-wake centers, 12,13 although
+precise interactions and contributions to the state of gen-
+eral anesthesia have yet to be elucidated. The following is
+a description of select subcortical nuclei in the brainstem
+and hypothalamus that mediate sleep-wake cycles14 and,
+potentially, some traits of anesthesia.
+Brainstem
+Locus ceruleus. Norepinephrine is synthesized in the locus
+ceruleus (LC), which is located in the pons and projects
+widely throughout the cortex.15 Like other monoaminergic
+neuronal populations, LC activity is highest during waking
+consciousness, decreased during nonrapid eye movement
+(NREM) sleep, and at its nadir during rapid eye movement
+(REM) sleep. 16,17 Thus LC is associated with cortical arousal
+only during wakefulness and not with the cortical activa-
+tion during REM sleep. LC neurons are hyperpolarized by
+halothane.18 The role of norepinephrine (generated by LC)
+Fig. 9.1 Neurobiology of wakefulness. Multiple neurochemical systems in subcortical regions (shown here in rodent brain) promote arousal and activa-
+tion of the cortex. Monoaminergic neurons (light green) in the rostral brainstem and caudal hypothalamus innervate the cortex as well as many subcor-
+tical regions including the hypothalamus and thalamus. These monoaminergic regions include noradrenergic neurons (locus coeruleus), serotonergic
+neurons (dorsal and median raphe nuclei), dopaminergic neurons (ventral tegmental area), and histaminergic neurons (tuberomammillary nucleus).
+Wake-promoting signals also arise from cholinergic regions (dark green with hatching), including the pedunculopontine and laterodorsal tegmental
+nuclei and basal forebrain. General anesthetics have been demonstrated to suppress many of these regions. (Redrawn from Scammell TE, Arrigoni E,
+Lipton JO. Neural circuitry of wakefulness and sleep. Neuron. 2017;93[4]:747–765.)
+Fig. 9.2 Neurobiology of slow-wave sleep. GABA-ergic neurons in the ventrolateral preoptic area and median preoptic nucleus in the hypothala-
+mus (shown here in rodent brain) promote sleep by inhibiting wake-promoting neurons in the caudal hypothalamus and brainstem. These hypo-
+thalamic nuclei are activated by general anesthetics. (Redrawn from Scammell TE, Arrigoni E, Lipton JO. Neural circuitry of wakefulness and sleep. Neuron.
+2017;93[4]:747–765.)
+
+=== ID: Millers_Anaesthesia_9th_Edition_Chapter_9.pdf_PAGE_003_full ===
+=== TOPIC: General ===
+
+SECTION II • Anesthetic Physiology	252
+in anesthesia is further supported by studies demonstrating
+that barbiturate anesthesia time is increased by antagoniz-
+ing norepinephrine and reduced by agonizing it. 19,20 Nor-
+epinephrine transmission in the basal forebrain may be
+of particular relevance to anesthetic depth.21 It has been
+found that LC noradrenergic neurons modulate the state
+of isoflurane anesthesia as well as emergence therefrom.22
+Of note, administration of ketamine is associated with an
+increase of activity in the LC 23 and appears to contribute to
+its anesthetic effects.24
+LC and the role of norepinephrine in hypnosis are of par-
+ticular interest due to the role of the α-2 agonist dexmedeto-
+midine in clinical care. Microinjection of dexmedetomidine
+in the LC results in reduced levels of consciousness that
+can be prevented by coadministration of the α-2 antago-
+nist atipamezole. 25 After exposure to dexmedetomidine,
+brain changes somewhat mimic NREM sleep in that the
+LC and tuberomammillary nucleus (TMN) are deactivated,
+whereas the ventrolateral preoptic nucleus (VLPO) is acti-
+vated.26 Data in dopamine-β-hydroxylase knockout mice
+(which lack the ability to synthesize norepinephrine) dem-
+onstrate a hypersensitivity to dexmedetomidine, suggesting
+alternative mechanisms of action. 27 However, selective
+knockdown of α-2A adrenergic receptors from LC pre-
+vent dexmedetomidine-induced loss of righting reflex,28 a
+marker of general anesthesia in rodents.!
+Laterodorsal/pedunculopontine tegmentum. Along
+with the basal forebrain, the laterodorsal tegmentum (LDT)
+and pedunculopontine tegmentum (PPT) in the pons are
+the brain’s source of acetylcholine. 29 There are direct pro-
+jections to the thalamus from LDT/PPT with a known role
+in the generation of slow oscillations and sleep spindles,30
+which together represent a neurophysiologic sign that
+information transfer to the cortex is likely blocked. 31 As
+with the noradrenergic LC, activity of the LDT/PPT is high
+during waking consciousness and decreases during NREM
+sleep.15 However, in contrast to the LC and other mono-
+aminergic neurons, the cholinergic LDT/PPT is also active
+during REM sleep, during which the cortex is aroused. Fur-
+thermore, activation of cholinergic neurons in LDT or PPT
+induces REM sleep.32 Thus, both states of cortical activa-
+tion across the sleep-wake cycle are associated with high
+cholinergic tone. General anesthetics modulate cholinergic
+projections from the LDT/PPT. Sleep spindles occur during
+halothane anesthesia and are associated with decreased
+cholinergic transmission to the medial pontine reticular
+formation (PRF). 33,34 There is evidence that synaptic and
+extrasynaptic γ-aminobutyric acid (GABA) receptors play a
+role in modulating LDT neurons,35 which could provide a
+direct link to molecular mechanisms of numerous general
+anesthetics. However, there has been relatively little study
+of the role of LDT/PPT in anesthetic mechanisms, with a
+greater focus on cholinergic neurons in the basal forebrain.!
+Pontine reticular formation. The PRF is part of the
+reticular activating system, which plays an important role
+in cortical arousal. Although GABA is the primary inhibi-
+tory neurotransmitter in the brain, the actions of GABA in
+the PRF are associated with cortical arousal. 36 For example,
+there is increased time spent in the waking state when the
+GABAA receptor agonist muscimol is microinjected in the
+PRF.37 When the GABA A antagonist bicuculline is micro-
+injected, wakefulness is suppressed, but REM sleep (another
+state of cortical arousal) is triggered. Vanini and colleagues
+found that decreased levels of GABA in the PRF correlated
+with isoflurane-induced unconsciousness, muscular hypo-
+tonia, and decreased respiratory rate. 38 Since the effects of
+anesthetics are normally associated with a potentiation of
+GABA activity, these findings highlight that a specific neu-
+roanatomic and neurochemical milieu can play a unique
+and unexpected role in the mechanisms of consciousness
+and anesthesia. In addition, Vanini and colleagues found
+that GABA-ergic transmission in the rat PRF modulates
+the loss of consciousness induced by isoflurane but does not
+appear to affect emergence,39 providing evidence for asym-
+metry between the two processes.
+The mesopontine tegmental anesthesia area is located in
+the PRF. When pentobarbital is microinjected in this area,
+a reversible state with anesthetic traits is induced.40 More
+recently, this phenomenon has been defined with greater
+spatial resolution, with the identification of around 1900
+neurons in this area that can induce general anesthesia.41!
+Ventral tegmental area. Dopaminergic neurons of the
+ventral tegmental area (VTA) in the midbrain have not
+classically been considered key mediators of the sleep-wake
+cycle because of relatively less evidence of state-dependent
+changes compared with neurons in other brainstem nuclei.
+This view has been challenged in sleep neurobiology.42 A
+dopaminergic pathway regulating sleep-wake states has
+been identified in Drosophila43 and dopaminergic neurons
+of the VTA have more recently been found to play a role in
+mammalian sleep.44 There has been renewed interest in
+the ability of dopaminergic activity to reverse or accelerate
+recovery from general anesthesia. Studies of the dopamine
+agonist methylphenidate have revealed an ability to reverse
+the sedative effects of both isoflurane and propofol.45,46
+VTA appears to be the source of the dopaminergic transmis-
+sion mediating arousal during exposure to anesthesia, as
+evidenced by the fact that electrical stimulation of the VTA
+or selective stimulation of VTA dopaminergic neurons can
+reverse anesthetic-induced unconsciousness.47,48!
+Hypothalamus
+Ventrolateral preoptic nucleus. The anterior hypo-
+thalamus has long been hypothesized to play a role in sleep-
+wake regulation.49 VLPO is a structure in this region that
+transmits GABA and galanin.50 Neurons in VLPO are maxi-
+mally active during NREM and REM sleep; 51,52 the median
+preoptic nucleus (MnPO) is also active during sleep. Of note,
+the activity profile of GABA-ergic neurons in VLPO cor-
+relates with sleep amount, whereas the activity of GABA-
+ergic neurons in MnPO correlates with homeostatic sleep
+pressure or propensity. 53 Importantly, activity of the VLPO
+during sleep is correlated with inhibition of other arousal
+centers in the brainstem and hypothalamus.51,54 Given
+its potentially central role as a mediator of sleep, VLPO
+became an attractive candidate as a mediator of anesthetic-
+induced unconsciousness. Nelson and colleagues demon-
+strated activation of VLPO after systemic administration of
+propofol or pentothal 55; recent studies have examined the
+mechanistic significance of these findings. Eikermann and
+colleagues conducted studies of rats with chronic lesions of
+
+=== ID: Millers_Anaesthesia_9th_Edition_Chapter_9.pdf_PAGE_004_full ===
+=== TOPIC: General ===
+
+9 • Consciousness, Memory, and Anesthesia 	253
+VLPO, finding that ablation of VLPO resulted in sleep depri-
+vation (as expected) but conferred increased sensitivity to the
+effects of isoflurane. 56 This finding would argue against a
+critical role of VLPO in the mechanism of anesthesia. How-
+ever, Moore and colleagues demonstrated that acute lesions
+of VLPO conferred resistance to the effects of isoflurane, an
+effect that appeared to be mediated specifically through the
+sleep-active neurons in VLPO.57 These neurons are actually
+depolarized (i.e., activated) by isoflurane. Taken together,
+these data suggest that VLPO plays a role in anesthetic-
+induced unconsciousness (as evidenced by acute lesion
+data), but that the effects of sleep deprivation associated
+with chronic VLPO lesions could overwhelm this role. Curi-
+ously, direct administration of dexmedetomidine, an α-2-
+adrenergic agonist, to the VLPO can destabilize the state of
+isoflurane anesthesia.58 !
+Orexinergic neurons. Orexinergic neurons are found in
+the lateral hypothalamus and provide an important arousal
+stimulus for the cortex. There are two types of orexin (A and
+B), which are also referred to as hypocretins. Orexinergic
+neurons innervate other arousal centers in the brainstem
+and basal forebrain, and fire maximally in the waking state,
+are suppressed during NREM sleep, and show occasional
+bursts during phasic REM sleep. 59,60 Dysfunction of the
+orexinergic system is associated with narcolepsy in both
+human and animal models.61,62 The often dramatic delay
+of anesthetic emergence in narcoleptic patients 63 has moti-
+vated the study of orexin in anesthetic mechanism. Orexins
+attenuate the effects of isoflurane,64 propofol,65 ketamine,66
+and barbiturates,67 using various measures. Local infusion
+of orexin in the basal forebrain is associated with electro-
+encephalographic (EEG) arousal and decreased emergence
+time in animals anesthetized with sevoflurane68 and isoflu-
+rane.69 Microinjection of propofol in the perifornical region
+of the hypothalamus (the locus of orexinergic neurons) is
+associated with a decrease in cortical acetylcholine, an
+important mediator of arousal.70 Importantly, both genetic
+and pharmacologic studies have demonstrated that orex-
+ins play an important role in emergence from sevoflurane
+and isoflurane anesthesia, but not induction.71 This semi-
+nal study suggested that there is a distinct neurobiology of
+induction and emergence, and formed the basis for a theory
+of “neural inertia” across state transitions.72 Of note, halo-
+thane did not show an effect on orexinergic neurons and
+emergence time was not altered in orexin knockout mice.73
+These findings have been confirmed for propofol anesthesia:
+propofol reduces activity in orexinergic neurons in rats and
+infusion of orexin in the basal forebrain affects emergence
+time, but not induction time. 74 Orexins might facilitate
+emergence from anesthesia through actions in the basal
+forebrain.75!
+Tuberomammillary nucleus. The TMN is located in the
+caudal hypothalamus and is the brain’s source of hista-
+mine, an arousal-promoting transmitter. TMN activity and
+histamine levels are highest during wakefulness and lowest
+during sleep; 76 the TMN is thought to have a relationship
+of reciprocal inhibition with the sleep-promoting GABA-
+ergic neurons of the VLPO. 51,54,77 Histamine release in the
+anterior hypothalamus is depressed during sleep 78 and hal-
+othane anesthesia.79 Systemic administration of propofol,
+pentothal, and the GABA agonist muscimol all result in
+decreased activity in the TMN.55 Microinjection of hista-
+mine in the nucleus basalis magnocellularis of the basal
+forebrain reverses the depressant effects of isoflurane on the
+EEG, an effect likely mediated by H1 histamine receptors. 80
+A recent study in which GABAA receptors were genetically
+removed demonstrated that histaminergic neurons are
+resistant to the effects of propofol. 81 However, at the behav-
+ioral level, there was no effect of propofol on loss-of-righting
+reflex, a surrogate for anesthetic-induced unconsciousness.
+Thus the role of TMN and histaminergic transmission in the
+mechanism of anesthesia is still unclear.!
+ROLE OF THE THALAMUS
+The thalamus is composed of more than 50 nuclei and
+subnuclei that can be grossly classified as relays for sen-
+sory input from the periphery or multimodal, integrative
+regions that receive input from the cortex. Additionally,
+the thalamus is critical for transmitting arousal signals
+from the brainstem and for regulating cortical communi-
+cation. The involvement of the thalamus in arousal, sen-
+sory processing, and cortical computation is likely critical
+for normal consciousness. As such, the thalamus has been
+of continued interest to those investigating mechanisms of
+anesthetic-induced unconsciousness.
+The thalamus has been proposed as an ON/OFF switch
+for anesthetic state transitions.82 This theory was gener-
+ated based on the consistent metabolic depression of the
+thalamus by a number of inhaled and intravenous anes-
+thetics83-85 (with the exception of ketamine), 86 suggesting
+that it could serve as an effective OFF switch. The hyperpo-
+larization of the thalamus would shift tonic firing to burst
+firing that—as with sleep—would prevent afferent sensory
+stimuli from arousing the cortex. Importantly, however,
+sensory nuclei in the thalamus (and their connectivity to
+the cortex) appear to be less involved in anesthetic-induced
+unconsciousness compared to the higher-order or “nonspe-
+cific” nuclei.87,88
+Evidence for the thalamus as an ON switch has been
+derived primarily from animal experiments, in which
+stimulation of the centromedial thalamus by either nico-
+tine or antibodies blocking voltage-gated potassium chan-
+nels could reverse the effects of inhaled anesthetics. 89,90
+Although microinjection of large doses of nicotine into the
+thalamus could precipitate anesthetic emergence, antago-
+nism of nicotinic acetylcholine receptors in the same loca-
+tion did not appear to contribute to anesthetic-induced
+unconsciousness. Central thalamic activation results in
+behavioral improvement in humans with traumatic brain
+injury.91 A study in humans demonstrated that (spontane-
+ous) activation of the thalamus along with other subcorti-
+cal structures is correlated with recovery from anesthesia,
+suggesting the involvement of the thalamus in the primitive
+or “core” consciousness observed at emergence.92
+Nonspecific nuclei of the thalamus have been proposed
+as a computational blackboard for the cortex. 93 Thus if the
+mechanism of anesthetic-induced unconsciousness was
+achieved primarily by a suppression of cortical computa-
+tion, a depressed thalamus should be the result. To address
+this question, Velly and colleagues conducted a neurophys-
+iologic study using scalp EEG (reflecting cortical signals)
+
+=== ID: Millers_Anaesthesia_9th_Edition_Chapter_9.pdf_PAGE_005_full ===
+=== TOPIC: General ===
+
+SECTION II • Anesthetic Physiology	254
+and subthalamic nuclei electrodes (argued to reflect tha-
+lamic activity). 94 Induction of anesthesia with either propo-
+fol or sevoflurane was associated with cortical rather than
+subcortical changes, suggesting that the depression of the
+thalamus identified through neuroimaging studies reflected
+an effect rather than a cause of anesthetic-induced uncon-
+sciousness. Other case studies in humans suggest concur-
+rent suppression of thalamus and cortex during induction
+of propofol. 95 Furthermore, more precise neurophysiologic
+recordings of thalamus and cortex in animal models sug-
+gest that effects of propofol on central thalamic activity
+precede effects on the cortex; interestingly this was found
+during the spontaneous induction of sleep as well.96 Other
+animal studies have found that attenuation of high-fre-
+quency oscillations by propofol is more pronounced in the
+thalamus than the cortex.97
+The prior two possibilities (thalamic switch or compu-
+tational blackboard for the cortex) treat the thalamus as a
+passive player in general anesthesia. However, more recent
+data suggest that it might, instead, play an active role. A
+computational study using human EEG data and modeling
+suggested that the action of propofol on GABA receptors
+in the nucleus reticularis generates a hypersynchronous
+alpha rhythm (8-13 Hz) with the frontal cortex that blocks
+sensory input.98 Hypersynchrony of alpha may block the
+flexible corticocortical communication required for normal
+consciousness.99 A recent animal study identified alpha
+synchronization between thalamus and medial prefrontal
+cortex during propofol induction. 100 The potential role of
+thalamocortical interactions in anesthetic-induced uncon-
+sciousness prompts further discussion of the thalamus and
+its connectivity to the cortex.!
+CORTICAL-SUBCORTICAL CONNECTIVITY
+The closely integrated function of the cortex and thala-
+mus suggests that the two can be treated as a single thala-
+mocortical system. The thalamocortical system undergoes
+state-dependent changes across the sleep-wake cycle, and
+is thought to play a critical role in consciousness. This role
+is defined by its ability to integrate the activities of function-
+ally diverse cognitive modules, a property that is critical for
+subjective experience.101
+Recent studies using functional magnetic resonance
+imaging (fMRI) have refined the role of thalamocortical
+connectivity in anesthesia. One study identified a propofol-
+induced disruption of connectivity between the thalamus
+and lateral frontal-parietal networks.102 Similarly, a study
+of the specific nuclei (linked to particular sensory modali-
+ties) and nonspecific nuclei (linked to integrative functions)
+found that disrupted connectivity between the nonspecific
+nuclei and the cortex best accounted for a reduction in the
+level of consciousness by propofol.87 Recently, the inhaled
+anesthetic sevoflurane has been shown to functionally
+disconnect the thalamus and cortex, especially frontal cor-
+tex.103,104 Notably, a consistent finding of neuroimaging
+studies is that the thalamocortical connectivity of primary
+sensory networks is relatively well preserved despite anes-
+thetic-induced unconsciousness.
+The finding of impaired thalamocortical connectivity in
+association with anesthetic-induced unconsciousness has
+not been universal. An fMRI study of propofol revealed more
+profound functional disconnections between the cortex and
+putamen, a subcortical structure in the basal ganglia. 105
+In contrast, thalamic connectivity was relatively well pre-
+served. The potential role of the striatum (composed of the
+putamen and caudate) in anesthetic-induced unconscious-
+ness has been demonstrated in a study of rats undergoing
+isoflurane anesthesia.106 This study was conducted with
+fMRI and found that the functional connection between the
+frontal cortex and the basal ganglia was disrupted during
+general anesthesia. A functional disconnection of associa-
+tion cortex and subcortical structures has also been shown
+by fMRI in a study of propofol-induced unconsciousness in
+humans.107 With improved spatial resolution of 7T fMRI
+machines and templates for brainstem nuclei,108 future
+studies can focus on identifying with greater precision the
+critical subcortical and cortical interactions or functional
+disconnections 	that 	contribute 	to 	anesthetic-induced
+unconsciousness.109!
+CORTICAL CONNECTIVITY AND DYNAMICS
+The last three sections were organized according to a bot-
+tom-up approach to consciousness and anesthesia, starting
+with the brainstem, and then moving to the diencepha-
+lon and thalamocortical system. Sleep is clearly generated
+through such bottom-up mechanisms 14; however, anes-
+thetics may suppress the level of consciousness through bot-
+tom-up mechanisms and content of consciousness through
+top-down (i.e., cortical) mechanisms.12
+Early 	studies 	using 	positron 	emission 	tomography
+(PET) demonstrated regional depression in cortical areas,
+including lateral and medial frontal-parietal networks.110
+Disruption of fMRI-based functional connectivity in fron-
+tal-parietal networks has been demonstrated during anes-
+thetic-induced unconsciousness induced by drugs with
+distinct molecular mechanisms, including propofol, 102,111
+sevoflurane,103 and ketamine.112 However, the cortex
+is amenable not only to fMRI but also neurophysiologi-
+cal techniques of assessing connectivity, enabling data on
+anesthetic-induced unconsciousness with improved tempo-
+ral resolution. EEG can be used to measure functional con-
+nectivity (the statistical covariation of the activities of brain
+regions), and directional or effective connectivity (the pre-
+sumed causal influence of one brain region on another).113
+Using such techniques applied to EEG (in some cases with
+concomitant fMRI), disruption of frontal-parietal connectiv-
+ity and surrogates of information exchange in humans has
+been consistently observed after administration of a variety
+of anesthetics with diverse molecular targets.104,114-117 It
+has been suggested that such disruption of frontal-parietal
+connectivity, with implications for impaired information
+transfer of relevance to consciousness, might be a com-
+mon mediator and proximate cause of anesthetic-induced
+unconsciousness.118
+The inhibition of frontal-parietal communication is
+likely representative of a more global disruption of corti-
+cal communication. A study using high-density EEG and
+transcranial magnetic stimulation revealed an inhibition
+of cortical-effective connectivity after midazolam-induced
+unconsciousness. 119 After administration of the benzodi-
+azepine, local cortical activation could be observed at the
+site of magnetic stimulation, but robust evoked potentials
+
+=== ID: Millers_Anaesthesia_9th_Edition_Chapter_9.pdf_PAGE_006_full ===
+=== TOPIC: General ===
+
+9 • Consciousness, Memory, and Anesthesia 	255
+were terminated at less than 100 milliseconds, and cor-
+tical communication was limited. Of note, this finding is
+consistent with findings in NREM sleep. 120 This perturba-
+tional approach determined that the complexity of corti-
+cal response to a stimulus decreased during sleep, general
+anesthesia, and disorders of consciousness. 121 The con-
+cordant findings across physiologic (sleep) and pharma-
+cologic (anesthesia) states of unconsciousness may reflect
+a common neurophysiologic mechanism of disrupted cor-
+tical connectivity through slow oscillations, which share
+a number of characteristics in NREM sleep and general
+anesthesia. 122 A study of three epilepsy patients with
+intracranial 	neurophysiologic 	monitoring 123 	revealed
+that, within 5 seconds of propofol-induced unconscious-
+ness, there was a dramatic increase in the power of slow
+oscillations. Although single-unit neuronal activity was
+initially suppressed, it returned to baseline (or above base-
+line) but was fragmented into highly active and quiescent
+periods. Neural firing became coupled with the slow oscil-
+lation. However, the slow oscillations themselves demon-
+strated decay in phase coupling with increased distance
+across the cortex. Thus neuronal spike activity became
+fragmented into “on” and “off” periods, which became
+temporally uncoordinated across the cortex. These neuro-
+physiologic conditions dramatically reduce the probability
+of meaningful corticocortical communication.
+More recent trends of analyzing cortical changes dur-
+ing states of unconsciousness take a dynamic approach
+that reflects not just connectivity configurations but
+the repertoire of states that can be accessed during gen-
+eral anesthesia. For example, there is a contraction of
+dynamic repertoire and neural signal diversity during
+propofol-induced unconsciousness 124,125 that would pre-
+clude the kind of flexibility required for normal conscious
+experience. Dynamic patterns are impaired during general
+anesthesia and cortical dynamics are stabilized during gen-
+eral anesthesia. 126 This is likely a discrete, multistage pro-
+cess with distinct dynamic signatures during sedation and
+general anesthesia (Fig. 9.3).127,128 Relating dynamics to
+connectivity, it appears that the repertoire of functional
+connectivity patterns in the primate brain becomes more
+tethered to structural/anatomical connectivity patterns
+during the anesthetized state.129 Of note, animal studies
+suggest that the return of consciousness after general anes-
+thesia is defined by discrete neural states that reconfigure
+during emergence.130
+In the next section, we discuss memory, the thread that
+links conscious experiences together to form the narrative
+of “self.”!
+Memory
+HISTORY AND TERMINOLOGY
+Modern understanding of the structure, function, and
+organization of human memory is deeply informed by
+the study of amnesia. The most renowned demonstration
+of this principle occurred in 1957, when Brenda Milner
+reported the remarkable case of Henry Gustav Molaison
+(1926–2008),131 an amnesiac who would become known
+famously as H.M., and who would represent the single most
+influential case study in the history of neuroscience. In a
+procedure intended to treat a refractory seizure disorder,
+Neuronal
+Synchronization/
+Temporal
+Autocorrelation
+Wakefulness 	Sedation 	Anesthesia & DOC
+Voxel level
+(0.5-1 million neurons/voxel)
+Regional level
+(40-60 voxels/area)
+Network level
+10-60 functional areas/network
+Regional
+Connectivity
+Long-Range
+Connectivity
+Fig. 9.3 Schematic summary of the consecutive stages of unconsciousness. Relative to the control state of wakefulness (left column), sedation (middle
+panel) is marked by an increase of local/regional signal synchrony and consequent breakdown of global connectivity. Deep surgical anesthesia or
+disorders of consciousness (DOC, right column) is associated with collapse of both local/regional synchrony and global connectivity. (From Huang Z,
+Liu X, Mashour GA, Hudetz AG. Timescales of intrinsic BOLD signal dynamics and functional connectivity in pharmacologic and neuropathologic states of
+unconsciousness. J Neurosci. 2018;38[9]:2304–2317.)
+
+=== ID: Millers_Anaesthesia_9th_Edition_Chapter_9.pdf_PAGE_007_full ===
+=== TOPIC: General ===
+
+SECTION II • Anesthetic Physiology	256
+significant portions of the medial temporal lobe (MTL) were
+removed bilaterally—including the hippocampus, amyg-
+dala, and adjacent parahippocampal gyrus. H.M. developed
+profound and enduring anterograde amnesia, and was
+unable to establish any new conscious memory, irrespec-
+tive of the sensory modality. He also developed a temporally
+graded window of retrograde amnesia, with impaired recall
+of events occurring during the 3 years preceding his sur-
+gery. However, most of his associated cognitive functions—
+perceptual processing, language, attention, access to
+semantic knowledge, and capacity to retain small packages
+of information in constant rehearsal—remained largely
+or entirely intact. Prior to this report, the prevailing the-
+ory—articulated by Canadian neuropsychologist Donald
+Hebb132—was that there was no brain region dedicated to
+memory function. Instead, memory processes were thought
+to be distributed and integrated into region-specific percep-
+tual and cognitive functions. For example, the visual attri-
+bute of a memory would be wholly served within the striate
+and extrastriate cortical regions responsible for visual per-
+ception. The description of H.M. immediately disproved this
+model. It became clear that the MTL was a specialized and
+obligatory structure for the establishment and early mainte-
+nance of all conscious memory, irrespective of the modality.
+The trajectory of memory research was profoundly trans-
+formed. Initially, largely independent branches evolved to
+focus on the structural-functional organization of the MTL
+(Fig. 9.4A) and the nature of cellular-level neuroplastic
+processes—the latter notably marked by the description of
+long-term potentiation (LTP) by Timothy Bliss and Terje
+Lømo in 1973.133 Subsequently, emerging technologies
+enabled the development and investigation of systems-level
+constructs. Examples include the use of EEG and magne-
+toencephalography to assess the role of oscillatory phase
+synchronization in neuronal assemblies,134 fMRI to identify
+large-scale networks associated with specific memory func-
+tions,135 and machine learning to classify complex neural
+network patterns predictive of memory.136
+Amnesia is the term used to describe one of the cardinal
+properties of general anesthesia. As understood by most
+anesthesiologists and laypeople, this description is phenom-
+enological; it states that patients do not recall the events
+that occur to them while receiving anesthesia. However,
+this usage confuses a critical mechanistic and semantic
+distinction. Patients in the deepest states of anesthesia are
+unable to process and bind perceptual elements into an
+integrated conscious experience. From the perspective of
+cognitive neuroscience, the “amnesia” of general anesthe-
+sia is not a primary failure of memory, but rather a failure of
+consciousness. It simply reflects that a conscious experience
+cannot be reconstructed by memory processes when it does
+not exist in the first place. Further confusion is added by the
+frequent use of the term awareness—a synonym for con-
+scious perception—to describe the case in which a patient
+consciously recalls events occurring during the admin-
+istration of an anesthetic. This ignores the fundamental
+principle that memory is functionally dissociable from con-
+sciousness. Awareness is necessary for the establishment of
+memory under anesthesia, but it is not sufficient. Conscious
+recall can occur only if awareness is accompanied by mem-
+ory processes in the MTL and elsewhere that establish and
+preserve a representation that can be reconstructed later.
+These important distinctions establish the axiom that
+patients who form memories while under anesthesia can-
+not have been truly unconscious; they must have possessed
+some conscious substrate from which the memory derives.
+However, the converse inference is not always true: the exis-
+tence of consciousness will not necessarily lead to the exis-
+tence of memory if an anesthetic drug is present. Evidence
+to support this statement is unambiguously encountered in
+everyday anesthetic practice—patients receiving a small
+dose of propofol or midazolam who engage in a cogent con-
+versation that they are later unable to recall, or in patients
+emerging from general anesthesia who follow commands
+to demonstrate that extubation can proceed safely, yet later
+cannot recall anything related to this clearly conscious
+event. Anesthetic drugs must therefore have direct effects
+on memory processes that are dissociable from those on
+consciousness—and it is this observation that provides a
+framework for the systematic study of how anesthetic drugs
+affect memory.!
+Organization and Function of
+Normal Memory
+MULTIPLE MEMORY SYSTEMS
+When the term memory is used in everyday language, it
+almost always refers to declarative memory. Declarative
+memory is the representation of prior events and knowl-
+edge that is accessible to consciousness and can be manipu-
+lated by attention and executive function. It is the form of
+memory referred to in the context of anesthetic amnesia.
+Further important organizational structure exists within
+declarative memory. The first is the distinction between epi-
+sodic and semantic memory. Episodic memory is the recollec-
+tion of events with a clear spatiotemporal context (as when
+recalling autobiographical events with a distinct sense of
+personal experience, time, and place), whereas semantic
+memory is the capacity to recall and apply meaning, facts,
+and knowledge without spatiotemporal context (as when
+recalling that Mount Everest is the tallest mountain in the
+world without any sense of time and place for the acqui-
+sition of that knowledge). The episodic memory system is
+fast-mapping and highly dependent on the MTL as well as
+frontal and parietal structures,137,138 whereas the semantic
+memory system is slower and involves distributed cortical
+regions that closely map to the default mode network, a
+large-scale system that is active during the resting state and
+flow of spontaneous cognition. 135,139 The second organiza-
+tional structure within episodic memory is the distinction
+between recollection and familiarity. Recollection involves
+remembering specific qualitative contextual details about
+a prior event, whereas in a familiarity judgment, there is a
+sense that an item has been encountered previously, but
+beyond that there are no added contextual details. The
+accepted understanding is that recollection and familiarity
+arise from distinct processes and neural architecture within
+the MTL. The perirhinal cortex receives input from sen-
+sory association areas and supports familiarity judgments
+through encoding and retrieval of the identifying qualities
+of an item (the “what” information). The parahippocam-
+pal cortex and entorhinal areas receive input from areas
+
+=== ID: Millers_Anaesthesia_9th_Edition_Chapter_9.pdf_PAGE_008_full ===
+=== TOPIC: General ===
+
+9 • Consciousness, Memory, and Anesthesia 	257
+processing spatial information (the “where” information),
+and support recollection through encoding and retrieval
+of context. The hippocampus links these two, binding item
+and context information, and appears necessary for recol-
+lection, but plays little or no role in familiarity.140,141
+Other forms of memory are dissociable from declarative
+memory. Findings that amnesiacs could learn a hand-eye
+coordination skill even while possessing no memory of the
+task led to the distinction between declarative and proce-
+dural memory, which is dependent on the caudate nucleus.
+Prefrontal cortext 	Cingulum
+Anterior thalamic
+nuclei
+MTT
+Mammillary bodies
+Septal
+nuclei 	Fornix
+Amygdala
+Subiculum
+Hippocampus
+Entorhinal cortex
+Perirhinal
+cortex
+LA
+A
+B
+ICM L
+ICM MD
+ICMMV
+BA
+Brainstem
+(fear effector neurons)
+CeL 	CeM
+Parahippocampal
+cortex
+Neocortical association areas including
+frontal and parietal areas
+Retrosplenial
+cortex
+EC
+DG 	CA3 	CA1
+Perforant path
+Mossy
+fibres
+Schaffer
+collaterals
+To
+subiculum
+Glutamatergic
+GABA-ergic
+Cornu ammonis
+Medial thalamic
+nuclei
+Fig. 9.4 Memory systems in the medial temporal lobe. (A) Representation of unidirectional and bidirectional network connectivity of structures in
+the medial temporal lobe, diencephalic nuclei, and neocortical association areas. CA, Cornu ammonis; DG, dentate gyrus; EC, entorhinal cortex; MTT,
+mammillothalamic tract. (B) Intrinsic connectivity of the amygdala. BA, Basal nucleus; CeL, central nucleus lateral segment; CeM, central nucleus medial
+segment; ICML, lateral intercalated cell mass; ICMMD, dorsomedial intercalated cell mass; ICMMV, ventromedial intercalated cell mass; LA, lateral nucleus.
+([A] Modified from Bartsch T, Butler C. Transient amnesic syndromes. Nat Rev Neurol. 2013;9[2]:86–97, Figure 2. [B] Modified from Duvarci S, Pare D. Amygdala
+microcircuits controlling learned fear. Neuron. 2014;82[5]:966–980, Figure 2.)
+
+=== ID: Millers_Anaesthesia_9th_Edition_Chapter_9.pdf_PAGE_009_full ===
+=== TOPIC: General ===
+
+SECTION II • Anesthetic Physiology	258
+Subsequently, memory-impaired patients were also found
+to have intact priming, 142 which is a nonconscious process
+in which exposure to a stimulus influences the response to a
+later stimulus—for example, amnesiacs can name pictures
+100 milliseconds faster if they have seen them previously,
+despite having no declarative memory of the exposure.143
+The neural bases for priming effects are thought to arise
+within regions serving perceptual and contextual process-
+ing of the stimulus, and so vary with the nature of the
+task.144 Lastly, a large body of work has extensively eluci-
+dated the emotional memory system. The classic experimen-
+tal model is Pavlovian fear conditioning and its variants,
+wherein an emotionally neutral conditioned stimulus is
+paired with an aversive unconditioned stimulus, leading
+to an involuntary associative physiologic and/or behav-
+ioral response to the conditioned stimulus. The circuitry
+involves convergence of afferent information from all sen-
+sory modalities on the lateral nucleus of the amygdala,
+and the basolateral and central nuclei projecting widely to
+modulate processes in cortical and subcortical regions (see
+Fig. 9. 4B).145,146 With the progressive description of these
+and other functional distinctions, the framework for under-
+standing memory eventually shifted to models that con-
+tained multiple memory systems in the brain, distributed
+functionally and anatomically.147
+Working memory refers to the capacity to maintain lim-
+ited amounts of information in the stream of consciousness,
+which can be manipulated to perform complex cognitive
+tasks such as reasoning, comprehension, and learning.148
+The concept evolved from, and has largely replaced, earlier
+ideas about short-term memory, but the terms should not be
+used interchangeably, as working memory implies both a
+short-term memory store and the capacity for manipula-
+tion. The most influential current model, first proposed by
+Baddeley and Hitch in 1974,149 divides working memory
+into capacity-limited component subsystems: a phonological
+loop that maintains information through vocal or subvocal
+rehearsal, such as when one holds a telephone number in
+mind; a visuospatial sketchpad, which holds and manipulates
+spatial, visual, and kinesthetic information; and a central
+executive, which is responsible for regulating selective atten-
+tion and inhibition. A fourth subsystem, the episodic buffer,
+was later added to the model150 and is responsible for the
+temporary storage of multidimensional representations and
+integration with declarative memory.
+Working memory has long been understood to not involve
+the MTL,151 although the belief that it has no role has recently
+been questioned in studies of spatial working memory.152
+Notwithstanding, current understanding of working mem-
+ory suggests that it is served by persistent activity and flexible
+resource allocation in a distributed cortical network, with a
+critical hub in the dorsolateral prefrontal cortex (DLPFC)
+interconnected with parietal cortex, thalamus, caudate, and
+globus pallidus.153 The functional and structural distinc-
+tion between working memory and the MTL does not mean
+that working memory and declarative memory systems
+do not interact. Working memory depends on declarative
+memory representations to provide semantic meaning and
+context. During working memory tasks, cortical perceptual
+areas associated with representations of declarative mem-
+ory become activated and show increased synchrony with
+prefrontal regions.154 Reciprocally, encoding of declarative
+memory is strongly influenced by the nature of processing
+occurring in working memory, with deeper levels of execu-
+tive processing resulting in better learning.155
+The transition of memory from short-term stores through
+to stable long-term stores is experienced as continuous and
+was assumed to reflect sequential transfer across systems.
+However, this model is challenged by rare case examples
+of patients who have a selective short-term memory deficit
+but intact declarative memory function, and recent studies
+have reinforced the view that memories are formed in mul-
+tiple systems in parallel.156!
+LONG-TERM POTENTIATION, SYNAPTIC
+TAGGING, AND THE CONSOLIDATION MODEL
+OF MEMORY
+The consolidation hypothesis of memory was first pro-
+posed by Müller and Pilzecker in 1900.157 They noted that
+memory for new information could be disrupted by learn-
+ing other information shortly after the initial training. This
+effect, called retroactive interference, is temporally graded
+such that the susceptibility of the memory is greatest imme-
+diately after learning and decreases with time. Müller and
+Pilzecker proposed that the memory trace must initially
+exist in a fragile state, but subsequently becomes stable
+through the process of consolidation. The consolidation
+hypothesis remains the framework for understanding the
+temporal course of memory processes and behavior.
+For a memory trace to be consolidated, it must of course
+be created. The term used to describe this process is encoding.
+Encoding implies that the networks mediating the neural
+representation of an event as it is experienced do not immedi-
+ately return to their previous state and are modified in such a
+way that potentiates reactivation of that representation. The
+synaptic plasticity and memory hypothesis states that activity-
+induced synaptic plasticity is both necessary and sufficient for
+the information storage underlying memory,158 and within
+this framework encoding implies that some form of synaptic
+plasticity has been initiated. However, encoding cannot in
+itself assure the propagation of a memory trace. Encoding cre-
+ates the potential for the formation of a long-term memory.
+The minimal events that constitute the neural correlates
+of encoding are incompletely understood. Cellular models
+demonstrate that functional changes in synaptic strength
+can occur in the absence of any structural change in den-
+dritic spines.159 The perpetuation of these initial changes
+through structural and functional remodeling represents the
+neural correlate of memory consolidation. The prevailing
+cellular model for this is LTP,160 which describes a durable
+increase in synaptic transmission efficiency following a stim-
+ulation protocol. It is now recognized that LTP occurs richly
+throughout the hippocampus, as well as in other afferent
+pathways.161 LTP can be induced by nonphysiologic high-
+frequency stimulation, but also by stimulation protocols
+that resemble physiologic activity, the most important being
+bursts in the theta range (4-8 Hz).162 This is of notable rele-
+vance to memory, as synchronized hippocampal theta oscil-
+lations appear critical to successful memory behaviors.134
+The breadth and depth of literature on the mecha-
+nisms of LTP are far too voluminous to summarize here.
+Nonetheless, certain principles are essential and relevant
+to anesthesia studies and can be stated succinctly. The
+induction of most forms of LTP requires activation of post-
+synaptic 	N-methyl-D-aspartate 	(NMDA) 	receptors, 163
+
+=== ID: Millers_Anaesthesia_9th_Edition_Chapter_9.pdf_PAGE_010_full ===
+=== TOPIC: General ===
+
+9 • Consciousness, Memory, and Anesthesia 	259
+followed by influx of Na + and Ca 2+ . This rise in intracel-
+lular Ca 2+ is the critical trigger for LTP. Calcium-calmod-
+ulin-dependent kinase II (CaMKII) is then activated and
+autophosphorylated, 164,165 leading to cytoskeletal recon-
+figuration. 166 Activation of several other cell-signaling
+cascades also contribute to LTP. The terminal expression
+of LTP is protein synthesis, occurring in both the soma
+and local dendrites, and resulting in enduring structural
+changes at the synapse. 167 Protein synthesis inhibitors
+have been demonstrated to consistently prevent sustained
+LTP in!vitro and learning in!vivo. 168
+LTP thus proceeds in two phases: early LTP (E-LTP) is
+independent of protein synthesis and can be sustained
+across an interval of minutes to a short number of hours,
+while late LTP (L-LTP) is dependent on intracellular sig-
+naling and protein synthesis and can be sustained across
+many days. The synaptic tagging and capture hypothesis
+provides a mechanistic explanation for the observation
+that the persistence of synaptic potentiation (and mem-
+ory) is influenced by events surrounding encoding. 169
+In this model, synapses activated during E-LTP become
+tagged via a protein synthesis-independent mechanism.
+This tag establishes the potential for sustained L-LTP,
+but for the cascade to continue the tags must capture
+plasticity-related proteins (PRPs) synthesized in the soma
+or dendrites in response to neural activity. The synaptic
+tagging model explains how the thousands of dendrites of
+a single neuron can be engaged in memory stabilization
+processes in various states of evolution, because the tag-
+ging and PRP capture need not occur as a singular event.!
+RECONSOLIDATION
+A major shift the in understanding of consolidation
+occurred in 2000, when Nader et al. reported that an old
+memory for auditory fear conditioning, which would nor-
+mally not be sensitive to protein inhibitors, can be made
+newly sensitive if it is retrieved. 170 The implication is that
+retrieval of a memory renders it transiently plastic, after
+which it restabilizes. This process is termed reconsolidation,
+and the period of plasticity is termed the reconsolidation
+window. The mechanism shares many of the LTP pro-
+cesses that are associated with initial consolidation, but
+also has features that are quite distinct at both the cellular
+and systems level. 171 Reconsolidation serves as a modu-
+latory process that enables the strengthening of an exist-
+ing memory, but it is also clear that it provides a window
+within which an existing memory is malleable and can be
+updated with the addition of novel information, or dimin-
+ished through interruption of restabilization processes. 172
+These latter properties have generated significant transla-
+tional interest because of repeated demonstrations of the
+ability to modify or even eliminate fear memory in animals
+through pharmacologic and behavioral interventions that
+interrupt reconsolidation. 173 Indeed, the erasure of fear
+memory in humans can be demonstrated through per-
+formance of a behavioral extinction procedure during the
+reconsolidation window. 174 !
+PHASE SYNCHRONIZATION AND COUPLING
+The neurons in assemblies and networks undergo oscilla-
+tory activation and inhibition. Phase synchronization of
+these oscillations supports neural communication by creat-
+ing transient and dynamic associations between different
+functional brain regions. Phase synchronization appears
+to be fundamental to neural plasticity and memory,134
+and numerous studies have demonstrated that dynam-
+ics of synchrony during memory tasks can be related to
+both long-term175 and working memory176 performance.
+Gamma-band (30-100 Hz) synchrony is believed to sup-
+port an important form of Hebbian plasticity, termed spike-
+timing-dependent plasticity, in the hippocampus. Both
+computational models and experimental data provide evi-
+dence that rapid changes in the frequency and phase of
+gamma rhythms modulate this form of plasticity through
+coordination of presynaptic spikes in assemblies of neurons,
+effectively classifying which assemblies are interpreted as a
+single event.177
+Another property of relevance to memory coding is the
+coupling of gamma oscillations to the phase of slower, syn-
+chronized oscillations within the theta-band (4-8 Hz). 178
+Theta oscillations, which are prominent in the hippo-
+campus and entorhinal cortex, undergo phase resetting
+in response to a stimulus. The phase reset involves widely
+distributed regions, and is thought to serve as an efficient
+mechanism for the optimization of interregional communi-
+cation.179 Theta phase resetting and synchrony in the hip-
+pocampal-entorhinal system are implicated in declarative
+memory,180 and in the amygdala-hippocampal system in
+fear-based memory.181 Coupling between theta phase and
+gamma amplitude is connected to declarative memory for-
+mation,180,182 and, in an elegant model, is proposed to form
+a code for representing multiple items and spatial represen-
+tations in an ordered way.183 Coupling between theta phase
+and gamma phase enables a more precise temporal coordi-
+nation of neuronal spikes, and may code for separated rep-
+resentations of multiple items in working memory.184!
+Effects of Anesthetic Drugs on
+Declarative Memory Function in
+Humans
+There are multiple potential pathways by which anesthetic
+drugs could interfere with memory and cause amnesia.
+Most of these cannot be directly assessed in humans, but
+the plausibility of candidate mechanisms can be indirectly
+examined by designing experiments that are informed by
+the characteristics of known memory processes. Studies of
+anesthetic effects on memory are most informative when
+conceptualized and designed with reference to robust meth-
+ods and findings taken from the larger body of memory
+research.
+BEHAVIORAL STUDIES OF RETROGRADE
+MEMORY EFFECTS
+Notwithstanding some isolated case reports, systematic inves-
+tigations have found no evidence that anesthetic drugs cause
+retrograde amnesia in humans. There is no retrograde amne-
+sia associated with induction doses of thiopental,185 metho-
+hexital,185 or propofol.186 Adult patients have normal memory
+for visual stimuli presented 4 minutes before administration of
+midazolam at doses of 2, 5, and 10 mg.187 Similarly, memory is
+
+=== ID: Millers_Anaesthesia_9th_Edition_Chapter_9.pdf_PAGE_011_full ===
+=== TOPIC: General ===
+
+SECTION II • Anesthetic Physiology	260
+normal for word lists learned in the preoperative holding area
+or operating room immediately before induction.188 Studies
+in pediatric patients have shown normal memory for pictures
+presented immediately before sedation with midazolam,189
+propofol,190 and dexmedetomidine.191 In controlled labora-
+tory settings using human volunteers and target-controlled
+infusions, studies have found no impairment of memory for
+pictures192 or words193,194 presented before sedative infusions
+of propofol, midazolam, thiopental, or dexmedetomidine.
+There is some evidence from controlled studies that anes-
+thetic drugs may instead lead to the opposite effect, in which
+memory for material presented prior to drug administration
+is enhanced—a phenomenon termed retrograde facilitation.
+In one study using a mildly sedative dose of propofol,195
+memory for words learned immediately prior to drug admin-
+istration was enhanced throughout the testing period of 24
+hours. Similar effects are described for midazolam and other
+benzodiazepines in the psychopharmacology literature.196
+The mechanistic explanation for retrograde facilitation can
+be framed by an understanding of retrograde interference—the
+observation that mental exertion inhibits the consolidation of
+recently formed memories, with the newest memories being
+most vulnerable.197 The induction of new LTP interferes
+with recently formed LTP and memory performance, even
+when the tasks are unrelated.198 However, when the induc-
+tion of new LTP is blocked by administration of a selective
+NMDA antagonist after learning, interference with recently
+formed LTP does not occur, and memory performance
+improves.199,200 A parsimonious explanation for the retro-
+grade facilitation seen with propofol and benzodiazepines is
+that they similarly modulate the induction of new LTP via
+a GABA-ergic pathway, freeing consolidation resources that
+enhance survival of recently formed memory.
+The findings of retrograde facilitation and absence of ret-
+rograde amnesia are suggestive that the key mechanisms of
+GABA-ergic anesthetic amnesia, at least in humans, involve
+very early processes in the consolidation cascade. It is more
+difficult to rationalize that downstream sequences represent
+principal targets. Were this the case, the expected effect
+would be interference with ongoing consolidation of mem-
+ory for events occurring in the past, creating a window of
+retrograde amnesia. Nonetheless, an alternate model to the
+induction hypothesis suggests that GABA-ergic anesthetics
+exert a direct effect on downstream protein transcription
+processes,201 based on evidence from rodent studies.202
+The absence of pharmacologic retrograde amnesia does
+not dismiss the repeated finding that, in the clinical set-
+ting, a percentage of patients will not recall the immediate
+preanesthetic period—an effect that increases with age. 203
+Although not systematically studied, the complex norad-
+renergic-mediated effects of acute stress and anxiety on
+memory may be contributory.204!
+MATHEMATICAL MODELING OF ANESTHETIC
+AMNESIA
+Mathematical modeling of memory decay has been used to
+characterize the amnestic effects of multiple intravenous
+anesthetic drugs,193 which are accurately described by a
+two-parameter power decay function:
+mt = λt − Ψ
+where λ reflects the initial memory strength (an index
+of encoding), and ψ expresses the rate of decay (an index
+of consolidation). The drugs are characterized by marked
+differences in the way they modulate the two coefficients.
+Propofol is an archetypal amnestic drug—it permits robust
+encoding of material, but the information undergoes acceler-
+ated decay because of a failure of consolidation. In contrast,
+dexmedetomidine archetypally causes memory impairment
+because of a failure of information to be strongly encoded
+but has little or no effect on the subsequent consolidation of
+memories that are encoded. The benzodiazepine midazolam
+behaves like propofol at lower doses—selectively causing
+consolidation failure while leaving encoding intact—but
+with increasing dose a significant encoding impairment
+emerges. Thiopental in contrast causes marked encoding
+failure but demonstrates minimal effect on consolidation.
+The discrepant patterns observed imply that nonspecific
+GABA A agonism is not per se sufficient to explain the ability
+of a drug to cause consolidation failure.!
+ANESTHETIC EFFECTS ON ATTENTION AND
+AROUSAL AS MODULATORS OF ENCODING
+The effect of anesthetic drugs on encoding processes is
+related to the modulation of attention. Selective attention
+is governed by distinct networks mediating alertness, target
+orientation, and executive control205; involves modulation
+of neuronal phase synchrony across short- and long-range
+connections206; and is necessary for the successful estab-
+lishment of declarative memory.207 The dominant effect
+of most anesthetic drugs on attention is decreased arousal,
+with the notable exception being the NMDA antagonist
+ketamine, which has dominant effects on orienting and
+selection.208 Thiopental mimics the effect of an attentional
+challenge task in decreasing activation in the left inferior
+prefrontal cortex (LIPFC), an effect that is not seen with
+propofol.209 When tested at 225 minutes, arousal is predic-
+tive of memory for thiopental and dexmedetomidine, while
+propofol causes a significantly greater loss of memory than
+would be predicted by modulation of arousal alone.194 In
+mathematical modeling of anesthetic amnesia,193 arousal
+predicts the coefficient of encoding strength with precision
+for a range of sedative concentrations of dexmedetomidine,
+thiopental, midazolam, and propofol. In sum, arousal is pre-
+dictive of subsequent memory for drugs that impair mem-
+ory dominantly through causing encoding failure.!
+NEUROIMAGING STUDIES OF CORTICAL
+ENCODING PROCESSES
+A limited number of functional neuroimaging studies have
+evaluated the effect of anesthetics on cortical regional acti-
+vation during memory encoding. An early PET study inves-
+tigating sedative doses of propofol using a word memory
+task210 identified that activation in LIPFC—a region associ-
+ated with encoding and subsequent memory for language
+tasks—was conserved, suggesting that propofol did not
+block the processes required to support successful encoding.
+In contrast, activation in DLPFC—a region most associated
+with executive control functions and cognitive control of
+motor planning211—was decreased. In a subsequent investi-
+gation using an auditory depth of processing task, activation
+
+=== ID: Millers_Anaesthesia_9th_Edition_Chapter_9.pdf_PAGE_012_full ===
+=== TOPIC: General ===
+
+9 • Consciousness, Memory, and Anesthesia 	261
+of LIPFC was found to be decreased by sedative doses of thio-
+pental, but again was relatively unaffected by propofol.209
+However, other studies have identified decreased activa-
+tion in encoding areas. An fMRI study of sentence com-
+prehension during light sedation with propofol found that
+decreased memory for sentences was related to decreased
+activation in the left inferior frontal gyrus (LIFG, within the
+LIPFC) and the middle temporal gyrus.212 Another study
+using a single-word encoding task showed decreased activa-
+tion in LIFG at levels of propofol sedation causing memory
+loss, but also found intact connectivity between LIFG and
+a number of frontoparietal and temporal regions associated
+with verbal processing and memory tasks, including the
+middle temporal gyrus and precuneus.213
+Some functional neuroimaging studies have used experi-
+mental tasks similar to memory encoding tasks while
+evaluating sedative doses of anesthetic drugs, but have not
+assessed memory encoding as a primary aim; these are infor-
+mative, but must be interpreted with caution. An early PET
+study of sedative doses of midazolam using a tone detection
+paradigm reported a dose-dependent activation decrease in
+Brodmann areas 9, 10, and 46, which overlap regions of
+both DLPFC and LIPFC.214 An fMRI study of semantic word
+processing during propofol sedation found a dose-dependent
+decrease in activation of the LIFG, despite intact behavioral
+responses.215 An fMRI study of low-dose dexmedetomidine
+reported a generalized suppression of bilateral prefrontal
+activation in Brodmann areas 9 and 10 during an emotional
+picture memory task, but encoding performance was not
+specifically analyzed.216 A recent study using music stimuli
+found decreased activation in primary and secondary audi-
+tory processing areas at sedative doses of dexmedetomidine
+and midazolam, but not with propofol.217 Other neuroim-
+aging studies evaluating resting state networks, or passive
+activation in response to stimuli at nonresponsive levels of
+sedation, should not be viewed as memory experiments.
+Neuroimaging Studies of Medial Temporal Lobe
+Function
+Two methodologically similar studies used event-related
+fMRI to evaluate MTL activation during low-dose infusions
+of propofol and dexmedetomidine. The degree of amne-
+sia caused by propofol can be linearly related to decreased
+activation in the hippocampus bilaterally,218 an effect that
+behaviorally corresponded to a failure of consolidation pro-
+cesses. In contrast, dexmedetomidine does not reduce the
+overall level of hippocampal activity, but the subsequent-
+memory effect is attenuated, and dynamics of hippocampal
+activation are less predictive of subsequent memory216;
+one interpretation is that this reflects a downstream effect
+from weakened cortical encoding processes. An earlier
+study of the benzodiazepine lorazepam and the choliner-
+gic antagonist scopolamine found decreased memory to be
+correlated with decreased activation in the anterior hip-
+pocampus, 219 accompanied by decreased activation in the
+encoding-related regions in the fusiform gyrus and inferior
+frontal cortex. In a largely exploratory investigation, 0.25%
+sevoflurane was found to reduce hippocampal activation in
+response to auditory and visual stimuli, but no memory per-
+formance was assessed.220
+A few studies have evaluated anesthetic effects using
+electrocorticography and depth electrodes implanted
+in epileptic patients, but none have been dedicated to
+memory function. One notable study evaluated the effects
+of mildly sedative concentrations of propofol on hippo-
+campal spectral coherence and power characteristics
+at rest. 221 The main finding was a significant increase
+in hippocampal-rhinal spontaneous coherence in the
+delta-band, but minimal changes in other bands; cortico-
+hippocampal coherence was not assessed.!
+STUDIES OF CORTICAL EVENT-RELATED
+POTENTIALS
+A number of memory-dedicated studies have used the
+event-related potential (ERP)—a small but stereotypic posi-
+tive and negative signal fluctuation in the EEG time-locked
+to a stimulus, and which can be isolated through summa-
+tion over multiple (usually at least 50) identical trials. ERPs
+are thought to emerge not because new oscillations are
+induced, but because of a stimulus-induced phase resetting
+of ongoing oscillations.222
+An early ERP study223 of scopolamine, lorazepam, and
+diphenhydramine suggested that drug-induced effects on
+arousal and memory may be electrophysiologically dis-
+sociable, although memory was not assessed directly.
+Changes in the P1N1 and N1P2 early complexes, associ-
+ated with arousal, were seen for all three drugs. However,
+changes in later complexes associated with memory, nota-
+bly the P3 and N2P3, were seen only with scopolamine and
+lorazepam, and not with diphenhydramine, an antihista-
+mine that causes sedation but not amnesia. This work is
+extended by a series of studies evaluating intravenous anes-
+thetics and using memory-specific experimental paradigms.
+In a verbal memory task, propofol amnesia was associated
+with decreased P300 amplitude at the time of the encod-
+ing task.224 In a subsequent study in which multiple drugs
+were carefully dosed to equivalent levels of sedation,225
+the true amnestic drugs with memory effects independent
+of sedation—propofol and midazolam—caused decreased
+amplitude in the P300 and N2P3 components, with the lat-
+ter being the best predictor of subsequent memory perfor-
+mance. Across all drugs studied, the N2 latency was related
+to reaction time, a surrogate measure of sedation.
+Another study examined early- and mid-latency ERPs
+originating from the midline parietal precuneal region
+(Pz), and related them to coefficients describing the extent
+of encoding and consolidation failure.226 Across drugs
+from multiple classes and at multiple doses, consolida-
+tion failure was closely correlated with the P2 amplitude
+and N2 latency observed at the time of encoding. As the
+visual P2N2 complex is known to originate from synchro-
+nous theta oscillations, 227 one possibility is that a common
+mechanism underlying the effect of anesthetic drugs on
+consolidation involves changes in theta oscillations across
+a distributed cortico-hippocampal network occurring at
+the time of consolidation induction. Further, the P2N2 and
+memory decay coefficient were also closely correlated with
+reaction time, which can be related to interregional syn-
+chrony.228 Unfortunately, no direct measures of cortico-
+hippocampal theta synchrony have yet been performed
+in studies of pharmacologic amnesia. Another analysis229
+examined the old-new effect, a robust phenomenon in the
+parietal ERP that distinguishes the response to initial item
+
+=== ID: Millers_Anaesthesia_9th_Edition_Chapter_9.pdf_PAGE_013_full ===
+=== TOPIC: General ===
+
+SECTION II • Anesthetic Physiology	262
+exposure from subsequent exposures as a marker of mem-
+ory strength. Propofol and midazolam caused a significant
+decrease in the old-new effect at 27 seconds, even though
+memory performance was maintained, demonstrating
+again an early marker of impaired memory processes that
+precedes behavioral detection.
+Studies using very different experimental paradigms have
+evaluated auditory ERPs at multiple concentrations of propo-
+fol.230,231 Propofol causes a dose-dependent decrease in mis-
+match negativity and early right anterior negativity, which
+are elicited in response to specific music signatures and are
+known to relate to associative memory operations. In con-
+trast, the P1 complex, which derives from primary auditory
+processing, is not affected even at deep levels of sedation.!
+Nonhuman Studies of Anesthetic
+Effects on Memory Processes and
+Behavior in the Medial Temporal
+Lobe
+ANESTHETIC EFFECTS ON MEDIAL TEMPORAL
+LOBE PLASTICITY
+GABA-ergic interneurons project within and across sub-
+regions of the hippocampus,232 providing an abundant
+density of possible targets for anesthetic drugs. In an early
+study using tetanic stimulation of the Schaffer collateral-
+commissural pathway,233 isoflurane blocked the induction
+of LTP, and long-term depression (LTD) by low-frequency
+stimulation. These effects were reversed by the addition
+of the GABAA receptor antagonist picrotoxin, providing
+strong evidence that the effect of isoflurane on LTP is GABA-
+ergically mediated. In a similar protocol, amnestic concen-
+trations of sevoflurane caused a failure of LTP which was
+prevented by the addition of the GABAA antagonist bicucul-
+line.234 A recent study of sevoflurane exposure in neonatal
+rats found reduced spine density of apical dendrites, synap-
+tic ultrastructure damage, elevated expression of synaptic
+vesicle-associated proteins, and inhibition of LTP but not
+LTD.235 One study of isoflurane, in which the hippocampus
+was studied 24 hours following anesthetic exposure, some-
+what unexpectedly found improvement in cognitive perfor-
+mance, accompanied by evidence of upregulation of the 2B
+subunit of the NMDA receptor and enhanced LTP.236
+A series of investigations have demonstrated that propo-
+fol inhibits the induction, but not the maintenance, of LTP,
+and has no effect on LTD. The effect is blocked by the addi-
+tion of picrotoxin, implicating a GABAA receptor-mediated
+mechanism.237,238 Notably, one study found that propofol
+inhibited LTP only at anesthetic, and not at amnestic con-
+centrations.238 Propofol has also been demonstrated to
+inhibit a number of component subprocesses of LTP. 239-241
+Propofol reduces expression of activity-related cytoskeleton-
+associated protein (Arc) in the hippocampus in response to
+inhibitory avoidance training but does not appear to reduce
+Arc mRNA, 202 which is notable because it suggests a post-
+transcriptional mechanism.
+The hippocampal GABA Aergic interneuron population
+is notable for a high density of the α 5-subunit subtype. Of
+known significance to memory function, the α5-GABA A
+receptor regulates the induction of LTP in response to a
+narrow range of frequencies in the theta range.242 These
+observations have driven a series of anesthesia studies
+using α5-GABAA-knockout mice. Etomidate blocks LTP
+measured in CA1 neurons in wild-type mice, but not in α5
+–/– mutants, and behaviorally the α5 –/– mutants are resis-
+tant to the amnestic effects of etomidate, but not to its gen-
+eral anesthetic effects. 243 Further, the effects of etomidate
+on LTP and memory behaviors are reversed by the addition
+of L-655,708, which selectively reduces the activity of α5-
+GABA A receptors. 244 The behavioral findings were later
+replicated with exposure to 1 MAC of isoflurane, with mem-
+ory deficits observed in wild-type mice, but not in α5 –/–
+mutants or in wild types receiving L-655,708.245,246 The
+increase in α5-GABA A receptors caused by etomidate and
+isoflurane does not return to baseline for at least 1 week.247
+The α5-subunit subtype is not exclusive in its association
+with amnesia. α4-GABA A receptors are concentrated in the
+dentate gyrus and dorsal thalamus, and α4 knockouts are
+resistant to the amnestic effects of isoflurane but not to its
+general anesthetic effects.248 More equivocally, β3-GABAA
+receptor knockout mice have been reported to be resistant to
+the amnestic effects of isoflurane,249 while in a study using
+β3-GABA A receptor knock-in mutants, the β 3 subtype was
+not significantly associated with amnesia.250 Similar equiv-
+ocacy has been found in studies of the α1 subtype.251,252
+The effects of anesthetics on hippocampal theta oscil-
+lations in! vivo have been studied. One study used a fear-
+conditioning paradigm to examine amnestic concentration
+of isoflurane, nitrous oxide, and halothane, and reported
+that suppression of hippocampal-dependent contextual
+conditioning was proportionate to slowing of theta peak
+frequency.253 Another study also demonstrated that isoflu-
+rane caused slowing of theta oscillations in the CA1 neu-
+ronal bundle without changing absolute power,254 while
+in contrast the nonimmobilizer F6, which causes amnesia
+without sedation or a loss of motor activity, caused a loss
+of theta oscillatory power without slowing. Scopolamine
+causes amnesia at doses associated with acceleration of
+theta oscillations, which might otherwise be expected to
+improve learning. 255 However, a significant loss of absolute
+power is also observed. Together these findings suggest that
+individual anesthetics may cause amnesia through distinct
+forms of hippocampal theta disruption.!
+Human and Nonhuman Studies
+of Anesthetic Effects on Fear
+Memory Systems
+THE AMYGDALA-DEPENDENT FEAR SYSTEM
+The amygdala is a cluster of interconnected nuclei sitting
+immediately anterior to the hippocampus, with afferent
+and efferent projections to a wide distribution of cortical
+and subcortical structures. It is critical to fear learning and
+memory, and the systematic study of amygdala-dependent
+classical (Pavlovian) fear conditioning has produced much
+information regarding the mechanisms and circuitry.145,146
+The basolateral nucleus of the amygdala (BLA) also mod-
+ulates the encoding and consolidation of memory in the
+
+=== ID: Millers_Anaesthesia_9th_Edition_Chapter_9.pdf_PAGE_014_full ===
+=== TOPIC: General ===
+
+9 • Consciousness, Memory, and Anesthesia 	263
+hippocampus and elsewhere in response to emotion,
+arousal, and stress.256 The mechanism is dependent on nor-
+adrenergic projections terminating on both α and β recep-
+tors within the BLA,257 and can be triggered by systemic
+stress mediators—notably glucocorticoids258 and epineph-
+rine.259 Amygdalo-hippocampal connectivity occurs via
+direct and indirect projections, and is dependent on theta
+oscillatory synchrony.181,260 The amygdala contains a
+number of rational targets for GABA-ergic anesthetic drugs.!
+STUDIES OF ANESTHETIC EFFECTS ON FEAR
+SYSTEMS IN NONHUMANS
+As various forms of fear conditioning represent the domi-
+nant experimental method for studying memory in animal
+models, almost all studies of anesthetic effects on memory
+offer some insight into their effects on fear systems. Beyond
+the central conclusion from this sizeable body of literature
+that GABA-ergic anesthetics in general impair the acquisi-
+tion of fear memory, a subset of studies are notable for their
+specific focus on fear circuitry and behavior.
+There is substantial evidence that anesthetic effects on
+fear memory are mediated by GABA-ergic mechanisms in
+the amygdala. Selective injection of the BLA with midazolam
+blocks acquisition and stress enhancement of fear mem-
+ory,261 while lesions of the BLA block anterograde amnesia
+for an inhibitory avoidance task in rats receiving diaze-
+pam,262 propofol,263 and sevoflurane.264 Further, injection
+of the BLA with the selective GABAA antagonist bicuculline
+blocks the effect of propofol202 and midazolam.265
+There are certain conditions under which anesthetic
+drugs can enhance fear memory. When propofol or ket-
+amine is given immediately following conditioning, reten-
+tion is enhanced,266,267 which may represent a form of
+retrograde facilitation as described earlier, but retention is
+reduced when dexmedetomidine is similarly administered.
+In a rat model of PTSD, propofol and ketamine administered
+immediately after fear learning enhances long-term fear
+behavior, while dexmedetomidine has a neutral effect.267
+Midazolam given during extinction training, which nor-
+mally inhibits learned fear expression, blocks the effect of
+extinction,261 and also blocks fear-reducing effects when
+given 	during 	preconditioning 	contextual 	learning.268
+When sevoflurane is administered at a very low, nonsedat-
+ing dose (0.11%), fear conditioning is enhanced.269,270!
+STUDIES OF ANESTHETIC EFFECTS ON FEAR
+SYSTEMS IN HUMANS
+Three 	functional 	neuroimaging 	studies 	have 	directly
+addressed anesthetic effects on emotional memory. A study
+using PET and path analysis (Fig. 9.5 lower panel)271 demon-
+strated that the superior memorability that negatively arous-
+ing emotional items have over neutral items was unaffected
+by 0.1% and 0.2% sevoflurane, but lost at 0.25%, and was
+associated with decreased effective connectivity projecting
+from the right amygdala to hippocampus, and also from the
+right nucleus basalis to hippocampus. Further, sevoflurane
+modulated emotional perception such that items were rated
+more neutrally. An fMRI study demonstrated that sedative
+doses of propofol do not reduce activation of the amygdala in
+response to negatively arousing items, but activation of the
+hippocampus is markedly attenuated (see Fig. 9.5 upper panel)
+and correlates with amnesia and loss of the superior memora-
+bility of emotional material.218 This suggests that cortical and
+subcortical processes serving emotional interpretative func-
+tions and afferent amygdala activation are relatively spared by
+amnestic levels of propofol, while efferent processes underly-
+ing amygdala-dependent modulation of hippocampal plastic-
+ity are interrupted. An fMRI study of dexmedetomidine also
+reported no effect on activation of the amygdala in response to
+negatively arousing items,216 but in contrast to propofol, emo-
+tional items retained superior memorability, and activation
+in the left amygdala and hippocampus were correlated with
+subsequent memory. Taken together, these studies imply that
+propofol may have a more targeted effect on the amygdalo-hip-
+pocampal modulatory axis. One potential explanation is that
+amygdalo-hippocampal connectivity is markedly interrupted
+by a loss of theta oscillatory synchrony caused by propofol,
+whereas α2A antagonism at the LC causes only limited down-
+stream attenuation of noradrenergic signaling in the BLA.!
+CLINICAL RELEVANCE
+Amygdala reactivity is of importance in a number of fear-
+based psychopathologies, including anxiety, phobia, panic
+disorder, and PTSD.272 The neurohumoral stress response
+to surgery and critical illness can cause complex changes in
+levels of catecholamines, glucocorticoids, and other poten-
+tial promoters of plasticity in amygdala-dependent fear
+processes, occurring within a context that frequently con-
+tains emotional stressors. It is unclear under what specific
+conditions elevated (or depressed) levels of these mediators
+might contribute to long-term changes in neuropsychologi-
+cal functioning, although multiple studies in the critical care
+setting relate stress exposure, and exogenous administration
+of catecholamines, to negative long-term outcomes.273 In a
+broad surgical population, the incidence of PTSD-complex
+symptoms related to surgery was reported to be 16%5—simi-
+lar to that observed in victims of violence. The effect—or lack
+of effect—of anesthetic drugs on plasticity processes in the
+perioperative or critical care setting thus has a theoretical
+potential to impact long-term psychological sequelae, both
+positively and negatively. However, there is presently insuf-
+ficient human data to inform specific recommendations.!
+Anesthetic Effects on Implicit
+Memory Function
+Implicit (nondeclarative) memory processes do not axiom-
+atically require a conscious substrate, and are not depen-
+dent on classic hippocampal plasticity. Therefore the effect
+of anesthetic drugs on implicit memory functions may have
+important distinction from those on declarative memory,
+and accordingly a number of investigations have sought
+evidence for implicit processing in unconscious subjects.
+Many studies have used auditory adaptations of the word
+stem completion task, or the more rigorous process dissocia-
+tion procedure, in which subjects are asked to exclude items
+that have been presented; declarative memory will drive
+avoidance of the target word, while implicit memory will
+lead to a familiarity response favoring the target word.
+
+=== ID: Millers_Anaesthesia_9th_Edition_Chapter_9.pdf_PAGE_015_full ===
+=== TOPIC: General ===
+
+SECTION II • Anesthetic Physiology	264
+Two early studies in patients undergoing coronary
+artery274 and gynecologic 275 procedures showed evi-
+dence of implicit learning using word stem completion
+tasks. Another early study demonstrating implicit recall
+in cardiac surgery patients correlated performance with
+preservation of the midlatency auditory evoked potential,
+and most strongly with the early cortical Pa and Na com-
+plexes.276 Later studies demonstrated implicit memory in
+both trauma patients277 and patients undergoing an emer-
+gency cesarean section278 using the process dissociation
+procedure, and further demonstrated that the degree of pro-
+cessing is related to the bispectral index. However, multiple
+more recent studies using similar procedures have either
+failed to show significant implicit priming effects or have
+been equivocal. 279-281 Synthesis of these disparate results
+into a cohesive conclusion is difficult. Although differences
+in patient populations and anesthetic regimens may be of
+relevance, methodological challenges may have driven
+both false positive and false negative results. Investigations
+evaluating implicit memory processes in pediatric patients
+under anesthesia have also offered conflicting results. One
+study reported an increased ability to distinguish a primed
+animal sound from white noise,282 but other investigations
+found no evidence of priming.283–285
+Complete references available online at expertconsult.com.
+NBM
+L 	R
+–36 	–33 	–30
+–7
+–4
+7
+4
+0 	3 	6
+–36 	–33 	–30 	0 	3 	6
+L 	R 	L 	R
+NBM 	NBM 	NBM 	NBM 	NBM
+Amyg	Amyg	Amyg	Amyg	Amyg	Amyg
+A
+1
+2
+B 	C
+Thal 	Thal 	Thal
+Hipp	Hipp	Hipp	Hipp	Hipp	Hipp
+LC 	LC	0.01–0.30
+0.31–0.60
+0.61–1.00
+LC
+Fig. 9.5 Anesthetic effects on emotional memory systems. (upper panel) Functional magnetic resonance imaging scans showing the contrast in
+response to negatively arousing items relative to neutral items, with coronal slices through the amygdala (0, 3, 6) and hippocampus (−30, −33, −36). The
+control condition (top row) shows enhanced activation of both the amygdala and hippocampus in response to the added emotional information, while
+in subjects receiving propofol (bottom row) there is enhanced activation of the amygdala, but not of the hippocampus. (lower panel) Path diagrams of
+connectivity at rest, with positive influences of one region onto another shown as solid lines, negative influences shown as dotted lines, and width rep-
+resenting magnitude. In the control condition (A) there is a significant positive influence of the amygdala onto the hippocampus bilaterally. Administra-
+tion of sevoflurane 0.25% (B) blocks emotional modulation behaviorally, and removes the positive influence of the right amygdala and nucleus basalis
+of Meynert on the hippocampus. Numerical differences in path weight (C) show these two paths to significantly contribute to the network model more
+in the control than sevoflurane state. Amyg, Amygdala; Hipp, hippocampus; LC, locus ceruleus; NBM, nucleus basalis of Meynert; Thal, thalamus. ([A]
+Modified from Pryor KO, Root JC, Mehta M, et al. Effect of propofol on the medial temporal lobe emotional memory system: a functional magnetic resonance
+imaging study in human subjects. Br J Anaesth. 2015;115[suppl 1]:i104–i113, Figure 3; [B] Modified from Alkire MT, Gruver R, Miller J, et al. Neuroimaging analysis
+of an anesthetic gas that blocks human emotional memory. Proc Natl Acad Sci U S A. 2008;105[5]:1722–1727, Figure 5.)
+

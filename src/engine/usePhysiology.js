@@ -8,6 +8,7 @@ import { FluidicsEngine } from './FluidicsEngine';
 import { CardiovascularEngine } from './CardiovascularEngine';
 import { RespiratoryEngine } from './RespiratoryEngine';
 import { PainEngine } from './PainEngine';
+import { ConsciousnessEngine } from './ConsciousnessEngine';
 
 export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, gasSettings, logEvent, msmaidsComplete }) {
   const [timeVal, setTimeState] = useState(0);
@@ -196,7 +197,57 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           stomach: activeCase.id === 'obese' ? 'full' : (activeCase.id === 'trauma' ? 'full' : 'empty'),
           fluidInfusing: null,
           suxPotassiumLeaked: false,
-          isSeizure: false
+          isSeizure: false,
+
+          // Consciousness & Memory states
+          lcActivity: 1.0,
+          tmnActivity: 1.0,
+          vlpoActivity: 0.0,
+          mnpoActivity: 0.0,
+          ldtPptActivity: 1.0,
+          prfActivity: 1.0,
+          vtaActivity: 1.0,
+          orexinLevel: safePatientObj.narcolepsy ? 0.1 : 1.0,
+          slowOscillationPower: 0.1,
+          thalamocorticalConn: 1.0,
+          frontoparietalFeedback: 1.0,
+          corticocorticalConn: 1.0,
+          basalGangliaConn: 1.0,
+          alpha5GabaaOccupancy: 0.0,
+          alpha4GabaaOccupancy: 0.0,
+          explicitEncoding: 1.0,
+          explicitConsolidation: 0.1,
+          ltpInductionInhibited: false,
+          p300Amplitude: 10.0,
+          n2p3Amplitude: 12.0,
+          p2Amplitude: 8.0,
+          oldNewEffect: 3.0,
+          mismatchNegativity: 3.5,
+          p1Amplitude: 4.0,
+          n2Latency: 200,
+          hippocampalThetaFreq: 7.0,
+          hippocampalThetaPower: 1.0,
+          amygdaloHippocampalConn: 1.0,
+          neuralInertiaLag: 0.0,
+          alpha5Knockout: safePatientObj.alpha5Knockout || false,
+          alpha4Knockout: safePatientObj.alpha4Knockout || false,
+          tmnPropofolResistant: safePatientObj.tmnPropofolResistant || false,
+          narcolepsy: safePatientObj.narcolepsy || false,
+          alpha2AKnockout: safePatientObj.alpha2AKnockout || false,
+          
+          isAwarenessActive: false,
+          ptsdScore: 0.0,
+          hasExplicitRecall: false,
+          hasImplicitRecall: false,
+          isDreaming: false,
+          preopMemoryEncoded: true,
+          retrogradeFacilitationRatio: 1.0,
+          fearMemoryRetrieved: false,
+          reconsolidationWindowOpen: false,
+          reconsolidationTimer: 0,
+          fearConditioning: 0.0,
+          fearExtinguished: false,
+          displayEmergenceLag: false
         });
         
         setTime(0); setActiveMeds([]); setIntravascularVolume(0); setSurgicalPhase('Pre-Op');
@@ -1130,6 +1181,190 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
           const currentMac = brainMac;
 
+          // Consciousness Engine Tick
+          const sevoMac = st.gasModels?.sevoflurane ? st.gasModels.sevoflurane.Fb / calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.sevoflurane.mac40, st.patient.age || 40) : 0;
+          const isoMac = st.gasModels?.isoflurane ? st.gasModels.isoflurane.Fb / calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.isoflurane.mac40, st.patient.age || 40) : 0;
+          const haloMac = st.gasModels?.halothane ? st.gasModels.halothane.Fb / calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.halothane.mac40, st.patient.age || 40) : 0;
+          const n2oMac = st.gasModels?.n2o ? st.gasModels.n2o.Fb / calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.n2o.mac40, st.patient.age || 40) : 0;
+
+          const propofolModel = st.activeMeds?.find(m => m.name === 'Propofol');
+          const propofolCe = propofolModel ? propofolModel.Ce : 0;
+          const dexmedModel = st.activeMeds?.find(m => m.name === 'Dexmedetomidine');
+          const dexmedCe = dexmedModel ? dexmedModel.Ce : 0;
+          const thiopentalModel = st.activeMeds?.find(m => m.name === 'Thiopental');
+          const thiopentalCe = thiopentalModel ? thiopentalModel.Ce : 0;
+          const midazolamModel = st.activeMeds?.find(m => m.name === 'Midazolam');
+          const midazolamCe = midazolamModel ? midazolamModel.Ce : 0;
+          const ketamineModel = st.activeMeds?.find(m => m.name === 'Ketamine');
+          const ketamineCe = ketamineModel ? ketamineModel.Ce : 0;
+          const etomidateModel = st.activeMeds?.find(m => m.name === 'Etomidate');
+          const etomidateCe = etomidateModel ? etomidateModel.Ce : 0;
+          const atipamezoleModel = st.activeMeds?.find(m => m.name === 'Atipamezole');
+          const atipamezoleCe = atipamezoleModel ? atipamezoleModel.Ce : 0;
+          const methylphenidateModel = st.activeMeds?.find(m => m.name === 'Methylphenidate');
+          const methylphenidateCe = methylphenidateModel ? methylphenidateModel.Ce : 0;
+          const scopolamineModel = st.activeMeds?.find(m => m.name === 'Scopolamine');
+          const scopolamineCe = scopolamineModel ? scopolamineModel.Ce : 0;
+
+          const consciousnessOutput = ConsciousnessEngine.tick(1, st.patient, st.vitals, {
+              propofolCe,
+              dexmedCe,
+              thiopentalCe,
+              midazolamCe,
+              ketamineCe,
+              etomidateCe,
+              atipamezoleCe,
+              methylphenidateCe,
+              scopolamineCe,
+              sevoMac,
+              isoMac,
+              haloMac,
+              n2oMac,
+              isSyncShock: false,
+              time: st.time
+          });
+
+          // Merge consciousnessOutput into st.patient and patientAfterFluidics
+          Object.assign(st.patient, consciousnessOutput);
+          Object.assign(patientAfterFluidics, consciousnessOutput);
+
+          // Chapter 9: Clinical Crises & Reflex Loops
+          const isParalyzed = maxNMJOccupancy > 0.90;
+          const isLightAnesthesia = currentMac < 0.4 && (propofolCe < 0.8) && (thiopentalCe < 1.0) && (midazolamCe < 0.05) && (etomidateCe < 0.1);
+          const surgicalStimulus = st.surgicalPhase === 'Incision' || st.surgicalPhase === 'Maintenance';
+          const hasAwarenessTrigger = isParalyzed && isLightAnesthesia && surgicalStimulus;
+
+          let isAwarenessActive = st.patient.isAwarenessActive || false;
+          let ptsdScore = st.patient.ptsdScore || 0.0;
+          let hasExplicitRecall = st.patient.hasExplicitRecall || false;
+          let hasImplicitRecall = st.patient.hasImplicitRecall || false;
+
+          let awarenessHrOffset = 0;
+          let awarenessSvrOffset = 0;
+
+          if (hasAwarenessTrigger) {
+              if (!isAwarenessActive) {
+                  isAwarenessActive = true;
+                  logEvent(`🚨 WARNING: Patient is PARALYZED but experiencing CONNECTED AWARENESS due to inadequate anesthesia!`);
+              }
+              
+              // Severe sympathetic surge: spikes HR by +35, SBP/DBP by +45 (implemented as offsets)
+              awarenessHrOffset = 35;
+              awarenessSvrOffset = 45;
+
+              // Midazolam administration during awareness (Ce > 0.08) prevents explicit memory consolidation
+              // and halts PTSD score accumulation.
+              const midazolamAmnestic = midazolamCe > 0.08;
+              if (midazolamAmnestic) {
+                  if (!st.patient.midazolamAmnesiaLogged) {
+                      logEvent(`ℹ️ CLINICAL UPDATE: Midazolam administered during awareness. Memory consolidation blocked, halting further PTSD risk accumulation.`);
+                      st.patient.midazolamAmnesiaLogged = true;
+                  }
+              } else {
+                  // Accumulate PTSD risk
+                  ptsdScore = Math.min(100.0, ptsdScore + 1.2);
+                  if (ptsdScore > 60.0 && !st.patient.ptsdLogged) {
+                      logEvent(`🚨 CRITICAL ERROR: Patient experienced connected intraoperative awareness during surgery! Sympathetic storm occurred with severe risk of PTSD.`);
+                      st.patient.ptsdLogged = true;
+                  }
+                  
+                  // Consolidate explicit recall if encoding is active and psi is low
+                  if (consciousnessOutput.explicitEncoding > 0.5 && consciousnessOutput.explicitConsolidation < 1.0) {
+                      hasExplicitRecall = true;
+                  }
+              }
+
+              // Nonconscious implicit memory (priming) can occur even in deeper levels (propofolCe < 1.5)
+              if (propofolCe < 1.5 && currentMac < 0.6) {
+                  hasImplicitRecall = true;
+              }
+          }
+
+          // Resolution criteria for Connected Awareness:
+          // Volatile MAC increased to >0.8 OR propofol infusion is started (Ce > 1.5)
+          const restoredDepth = currentMac > 0.8 || propofolCe > 1.5;
+          if (isAwarenessActive && restoredDepth) {
+              isAwarenessActive = false;
+              logEvent(`✅ SUCCESS: Anesthetic depth restored. Connected consciousness suppressed.`);
+          }
+
+          // B. Physiological Loop: Retrograde Facilitation of Pre-induction Memory
+          let retrogradeFacilitationRatio = 1.0;
+          if (st.patient.preopMemoryEncoded) {
+              if ((propofolCe > 0.01 && propofolCe < 0.5) || (midazolamCe > 0.001 && midazolamCe < 0.05)) {
+                  retrogradeFacilitationRatio = 1.3;
+              }
+          }
+
+          // C. Clinical Event: Reconsolidation Window Memory Modulatory Erasure
+          let reconsolidationWindowOpen = st.patient.reconsolidationWindowOpen || false;
+          let reconsolidationTimer = typeof st.patient.reconsolidationTimer === 'number' ? st.patient.reconsolidationTimer : 0;
+          let fearConditioning = typeof st.patient.fearConditioning === 'number' ? st.patient.fearConditioning : 0.0;
+          let fearExtinguished = st.patient.fearExtinguished || false;
+
+          if (st.patient.fearMemoryRetrieved && !st.patient.reconsolidationWindowOpen) {
+              reconsolidationWindowOpen = true;
+              reconsolidationTimer = 600; // 10 minutes in seconds
+              fearConditioning = 1.0; // Initialize fear memory strength
+              logEvent("ℹ️ CLINICAL UPDATE: Fear memory retrieval cue presented. Reconsolidation window open for 600 seconds.");
+          }
+
+          if (reconsolidationWindowOpen) {
+              reconsolidationTimer = Math.max(0, reconsolidationTimer - 1);
+              if (reconsolidationTimer === 0) {
+                  reconsolidationWindowOpen = false;
+                  logEvent("ℹ️ CLINICAL UPDATE: Reconsolidation window closed.");
+              }
+
+              // If midazolam or low-dose sevoflurane is present during this window:
+              const isEraseAgentPresent = midazolamCe > 0.01 || (sevoMac > 0.05 && sevoMac < 0.3);
+              if (isEraseAgentPresent) {
+                  fearConditioning = Math.max(0.0, fearConditioning - 0.005);
+                  if (fearConditioning === 0.0 && !fearExtinguished) {
+                      fearExtinguished = true;
+                      logEvent("✅ SUCCESS: Traumatic fear memory successfully extinguished during the reconsolidation window!");
+                  }
+              }
+          }
+
+          // D. Narcolepsy Emergence Lag (Hysteresis)
+          let displayEmergenceLag = false;
+          if (st.surgicalPhase === 'Emergence' && currentMac < 0.1 && propofolCe < 0.1) {
+              if (consciousnessOutput.neuralInertiaLag > 0.15) {
+                  displayEmergenceLag = true;
+                  if (!st.patient.emergenceLagLogged) {
+                      logEvent(`ℹ️ CLINICAL UPDATE: Patient is in emergence lag. Neural inertia is preventing immediate wakefulness despite clearance of anesthetic agents.`);
+                      st.patient.emergenceLagLogged = true;
+                  }
+              } else if (st.patient.emergenceLagLogged && !st.patient.emergenceLagResolved) {
+                  logEvent(`✅ SUCCESS: Patient has emerged from anesthesia. Neural inertia overcome.`);
+                  st.patient.emergenceLagResolved = true;
+              }
+          }
+
+          // Apply updates to the patient state object
+          st.patient.isAwarenessActive = isAwarenessActive;
+          st.patient.ptsdScore = ptsdScore;
+          st.patient.hasExplicitRecall = hasExplicitRecall;
+          st.patient.hasImplicitRecall = hasImplicitRecall;
+          st.patient.retrogradeFacilitationRatio = retrogradeFacilitationRatio;
+          st.patient.reconsolidationWindowOpen = reconsolidationWindowOpen;
+          st.patient.reconsolidationTimer = reconsolidationTimer;
+          st.patient.fearConditioning = fearConditioning;
+          st.patient.fearExtinguished = fearExtinguished;
+          st.patient.displayEmergenceLag = displayEmergenceLag;
+
+          patientAfterFluidics.isAwarenessActive = isAwarenessActive;
+          patientAfterFluidics.ptsdScore = ptsdScore;
+          patientAfterFluidics.hasExplicitRecall = hasExplicitRecall;
+          patientAfterFluidics.hasImplicitRecall = hasImplicitRecall;
+          patientAfterFluidics.retrogradeFacilitationRatio = retrogradeFacilitationRatio;
+          patientAfterFluidics.reconsolidationWindowOpen = reconsolidationWindowOpen;
+          patientAfterFluidics.reconsolidationTimer = reconsolidationTimer;
+          patientAfterFluidics.fearConditioning = fearConditioning;
+          patientAfterFluidics.fearExtinguished = fearExtinguished;
+          patientAfterFluidics.displayEmergenceLag = displayEmergenceLag;
+
           // Thermoregulation & metabolic multi
           let tempDropRate = 0.0001;
           if (currentMac > 0.5 && st.time < 1800) {
@@ -1205,9 +1440,9 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           patientAfterFluidics.isBucking = painOutput.somaticResponse.isBucking;
 
           const aggregateHypnosis = sedativeEff + opioidEff - (sedativeEff * opioidEff);
-          const hrSympatheticSpike = painOutput.hrSpike;
-          const contractilitySympatheticSpike = painOutput.contractilitySpike;
-          const svrSympatheticSpike = painOutput.svrSpike;
+          const hrSympatheticSpike = painOutput.hrSpike + awarenessHrOffset;
+          const contractilitySympatheticSpike = painOutput.contractilitySpike + (awarenessHrOffset > 0 ? 0.3 : 0.0);
+          const svrSympatheticSpike = painOutput.svrSpike + awarenessSvrOffset;
 
           // Anaphylaxis triggers
           const unasynModel = st.activeMeds?.find(m => m.name === 'Ampicillin/Sulbactam');
@@ -1465,16 +1700,52 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               }
           }
 
-          const burstSuppression = Math.max(0, (currentMac - 1.5) * 40);
-          let targetBis = 98 - (aggregateHypnosis * 55) - burstSuppression;
+          // Processed EEG metrics (SEF95, BSR, and BIS) based on subcortical arousal & pathways
+          let bsrVal = 0;
+          if (displayedMac > 1.5) {
+              bsrVal = (displayedMac - 1.5) * 70;
+          }
+          if (propofolCe > 4.5) {
+              bsrVal = Math.max(bsrVal, (propofolCe - 4.5) * 20);
+          }
+          bsrVal = Math.round(Math.max(0, Math.min(100, bsrVal)));
+
+          let bisBase = 98;
+          if (finalPatient.lcActivity !== undefined) {
+              const pathwayCoherence = (
+                  finalPatient.thalamocorticalConn * 0.4 + 
+                  finalPatient.frontoparietalFeedback * 0.4 + 
+                  ((finalPatient.lcActivity + finalPatient.tmnActivity + finalPatient.orexinLevel) / 3.0) * 0.2
+              );
+              bisBase = 98 * Math.max(0.0, Math.min(1.0, pathwayCoherence));
+          } else {
+              bisBase = 98 - (aggregateHypnosis * 55);
+          }
+
+          if (displayEmergenceLag) {
+              bisBase = Math.min(bisBase, 40 + (1.0 - finalPatient.neuralInertiaLag) * 20);
+          }
+
+          let targetBis = bisBase * (1.0 - bsrVal / 100);
           if (finalVitals.cmap < 50) {
               const ischemicSlowing = (50 - finalVitals.cmap) * 1.5;
               targetBis -= ischemicSlowing;
           }
+
           let finalBis = Math.max(0, Math.min(98, targetBis + painOutput.bisSpike));
           if (finalPatient.isArrest) {
               finalBis = finalPatient.biologicalDeath ? 0 : Math.max(0, (st.vitals.bis || 98) - 5);
           }
+
+          let sefVal = 30.0;
+          if (finalPatient.frontoparietalFeedback !== undefined) {
+              sefVal = Math.max(1.0, 30.0 * (0.8 * finalPatient.frontoparietalFeedback + 0.2 * finalPatient.thalamocorticalConn));
+              sefVal = sefVal * (1.0 - bsrVal / 100);
+              if (finalBis < 5) sefVal = 0;
+          } else {
+              sefVal = 30.0 - (aggregateHypnosis * 25);
+          }
+          sefVal = parseFloat(sefVal.toFixed(1));
 
           let t1 = 1.0; let t4 = 1.0;
           if (maxNMJOccupancy > 0.70) {
@@ -1509,8 +1780,17 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           setVitals({
               ...finalVitals,
               bis: Math.round(finalBis),
+              sef95: sefVal,
+              bsr: bsrVal,
               tofCount: targetTofCount,
-              tofRatio: targetTofRatio
+              tofRatio: targetTofRatio,
+              p300Amplitude: finalPatient.p300Amplitude,
+              n2p3Amplitude: finalPatient.n2p3Amplitude,
+              p2Amplitude: finalPatient.p2Amplitude,
+              oldNewEffect: finalPatient.oldNewEffect,
+              mismatchNegativity: finalPatient.mismatchNegativity,
+              p1Amplitude: finalPatient.p1Amplitude,
+              n2Latency: finalPatient.n2Latency
           });
 
         } catch (error) {

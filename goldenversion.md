@@ -1,14 +1,20 @@
-# Golden Version Ground Truth: Airway Simulator
+# Clinical Anesthesia & Physiological Airway Simulator: Golden Version Ground Truth
+
+This document represents the unified, consolidated, and authoritative system architecture, physiological formulas, database schemas, and codebase blueprints for the Clinical Anesthesia & Physiological Airway Simulator. It serves as the single source of truth for the entire application.
+
+---
 
 ## Table of Contents
-1.  **STAGE 1: SYSTEM ARCHITECTURE & RUNTIME FLOW**
+1.  **STAGE 1: SYSTEM ARCHITECTURE, RUNTIME FLOW & TECH STACK**
     *   [1. High-Level Architecture](#1-high-level-architecture)
         *   [1.1 Technical Stack Specifications](#11-technical-stack-specifications)
-        *   [1.2 Communication Pipelines & Execution Loops](#12-communication-pipelines--execution-loops)
+        *   [1.2 Component Coordination & Data Flow](#12-component-coordination--data-flow)
+        *   [1.3 Communication Pipelines & Execution Loops](#13-communication-pipelines--execution-loops)
+        *   [1.4 State Lifecycle & The Engine Clock Bridge](#14-state-lifecycle--the-engine-clock-bridge)
     *   [2. Component & Runtime Lifecycle](#2-component--runtime-lifecycle)
         *   [2.1 Initialization Sequence (Step-by-Step)](#21-initialization-sequence-step-by-step)
         *   [2.2 User Action Interruption & Loop Injection](#22-user-action-interruption--loop-injection)
-    *   [3. Complete Current Database & Schema Map](#3-complete-current-database--schema-map)
+    *   [3. Complete Database & Schema Map](#3-complete-database--schema-map)
         *   [3.1 SQLite Database Schema Structure](#31-sqlite-database-schema-structure)
         *   [3.2 Representation of Ingested Textbook Data](#32-representation-of-ingested-textbook-data)
 2.  **STAGE 2: THE CORE LOGIC ENGINES & ALGORITHMIC FRAMEWORKS**
@@ -31,39 +37,48 @@
         *   [5.6 Receptor-Level Vasoactive Chronotropic & Vasomotor Coupling](#56-receptor-level-vasoactive-chronotropic--vasomotor-coupling)
         *   [5.7 Neuromuscular Blockade & Fade (TOF Count)](#57-neuromuscular-blockade--fade-tof-count)
         *   [5.8 Drug-Drug Synergism & Chelation Reversal](#58-drug-drug-synergism--chelation-reversal)
-    *   [6. Event Trigger & Clinical Scenarios Engine](#6-event-trigger--clinical-scenarios-engine)
-        *   [6.1 Laryngospasm & Bronchospasm Spasmodic Reflex Loops](#61-laryngospasm--bronchospasm-spasmodic-reflex-loops)
-        *   [6.2 IgE-Mediated Anaphylactic Shock Vasoplegia](#62-ige-mediated-anaphylactic-shock-vasoplegia)
-        *   [6.3 Gastric Aspiration Chemical Pneumonitis](#63-gastric-aspiration-chemical-pneumonitis)
-        *   [6.4 Active Metabolite Accumulation & Neurotoxicity (Seizures)](#64-active-metabolite-accumulation--neurotoxicity-seizures)
-        *   [6.5 Local Anesthetic Systemic Toxicity (LAST) & Cyanide Toxicity](#65-local-anesthetic-systemic-toxicity-last--cyanide-toxicity)
-        *   [6.6 Serotonin Syndrome Hyperpyrexia](#66-serotonin-syndrome-hyperpyrexia)
-        *   [6.7 Belmont IO Blowout & Arterial Injection Safety Interlocks](#67-belmont-io-blowout--arterial-injection-safety-interlocks)
+        *   [5.9 Consciousness, Memory, & Processed EEG Engine](#59-consciousness-memory--processed-eeg-engine)
+        *   [5.10 High-Fidelity Medication Data Table](#510-high-fidelity-medication-data-table)
+    *   [6. Event Trigger, Clinical Scenarios & Workflow Engine](#6-event-trigger-clinical-scenarios--workflow-engine)
+        *   [6.1 Pre-induction Workflow Interlock (MSMAIDS Checklist)](#61-pre-induction-workflow-interlock-msmaids-checklist)
+        *   [6.2 Airway Assessment & Direct Laryngoscopy Glottic Visualization](#62-airway-assessment--direct-laryngoscopy-glottic-visualization)
+        *   [6.3 Laryngospasm & Bronchospasm Spasmodic Reflex Loops](#63-laryngospasm--bronchospasm-spasmodic-reflex-loops)
+        *   [6.4 IgE-Mediated Anaphylactic Shock Vasoplegia](#64-ige-mediated-anaphylactic-shock-vasoplegia)
+        *   [6.5 Gastric Aspiration Chemical Pneumonitis](#65-gastric-aspiration-chemical-pneumonitis)
+        *   [6.6 Active Metabolite Accumulation & Neurotoxicity (Seizures)](#66-active-metabolite-accumulation--neurotoxicity-seizures)
+        *   [6.7 Local Anesthetic Systemic Toxicity (LAST) & Cyanide Toxicity](#67-local-anesthetic-systemic-toxicity-last--cyanide-toxicity)
+        *   [6.8 Serotonin Syndrome Hyperpyrexia](#68-serotonin-syndrome-hyperpyrexia)
+        *   [6.9 Belmont IO Blowout & Arterial Injection Safety Interlocks](#69-belmont-io-blowout--arterial-injection-safety-interlocks)
+        *   [6.10 Connected Intraoperative Awareness & Neuro-Cognitive Crises](#610-connected-intraoperative-awareness--neuro-cognitive-crises)
+    *   [7. Attending Direct Chat, Advisor & NLP Engine](#7-attending-direct-chat-advisor--nlp-engine)
+        *   [7.1 Automated Guidance Evaluator](#71-automated-guidance-evaluator)
+        *   [7.2 Conversational NLP Chat Portal](#72-conversational-nlp-chat-portal)
 3.  **STAGE 3: STATE MANAGEMENT, INGESTION PIPELINES, & BOUNDARY CONDITIONS**
-    *   [7. Full Application State Tree](#7-full-application-state-tree)
-        *   [7.1 Global Application Hooks](#71-global-application-hooks)
-        *   [7.2 Core Physiology Engine State Bridge Ref](#72-core-physiology-engine-state-bridge-ref)
-    *   [8. Data Ingestion & Indexing Pipeline](#8-data-ingestion--indexing-pipeline)
-        *   [8.1 The Ingestion Engine & Cache Hydration](#81-the-ingestion-engine--cache-hydration)
-        *   [8.2 Dynamic Medication Ingestion](#82-dynamic-medication-ingestion)
-        *   [8.3 Dynamic Procedural Ingestion](#83-dynamic-procedural-ingestion)
-        *   [8.4 Dynamic Textbook Rule Indexer](#84-dynamic-textbook-rule-indexer)
-    *   [9. Constraints & Edge Cases](#9-constraints--edge-cases)
-4.  **STAGE 4: COMPREHENSIVE COMPILATION & INTEGRITY CHECK**
-    *   [10. Architectural Dependency Analysis: Hardcoded vs. Dynamic Textbook Data](#10-architectural-dependency-analysis-hardcoded-vs-dynamic-textbook-data)
-    *   [11. Integrity & Compliance Verification Statement](#11-integrity--compliance-verification-statement)
+    *   [8. Full Application State Tree](#8-full-application-state-tree)
+        *   [8.1 Global Application Hooks](#81-global-application-hooks)
+        *   [8.2 Core Physiology Engine State Bridge Ref](#82-core-physiology-engine-state-bridge-ref)
+    *   [9. Data Ingestion & Indexing Pipeline](#9-data-ingestion--indexing-pipeline)
+        *   [9.1 The Ingestion Engine & Cache Hydration](#91-the-ingestion-engine--cache-hydration)
+        *   [9.2 Dynamic Medication Ingestion](#92-dynamic-medication-ingestion)
+        *   [9.3 Dynamic Procedural Ingestion](#93-dynamic-procedural-ingestion)
+        *   [9.4 Dynamic Textbook Rule Indexer](#94-dynamic-textbook-rule-indexer)
+    *   [10. Constraints & Edge Cases](#10-constraints--edge-cases)
+4.  **STAGE 4: COMPREHENSIVE COMPILATION, CODE BLUEPRINT & INTEGRITY CHECK**
+    *   [11. Crucial Code Files & System Responsibilities](#11-crucial-code-files--system-responsibilities)
+    *   [12. Architectural Dependency Analysis: Hardcoded vs. Dynamic Textbook Data](#12-architectural-dependency-analysis-hardcoded-vs-dynamic-textbook-data)
+    *   [13. Integrity & Compliance Verification Statement](#13-integrity--compliance-verification-statement)
 
 ---
 
-## STAGE 1: SYSTEM ARCHITECTURE & RUNTIME FLOW
+## STAGE 1: SYSTEM ARCHITECTURE, RUNTIME FLOW & TECH STACK
 
 ### 1. High-Level Architecture
 
-The simulator is a high-fidelity, real-time clinical training application representing physiological and pharmacological responses during general anesthesia induction.
+The simulator is a high-fidelity, real-time clinical training application representing physiological, pharmacological, and neuro-cognitive responses during general anesthesia induction.
 
 #### 1.1 Technical Stack Specifications
 *   **Frontend Framework**: React 19.2 (using Vite 8.0 as the build system and development server).
-*   **Styling & UI Design**: Vanilla CSS styled with custom flex grids, glassmorphism, and dark-mode variables, integrated with Tailwind CSS 4.2.
+*   **Styling & UI Design**: Glassmorphic, dark-mode medical instrumentation UI styled with Vanilla CSS custom grids and integrated with Tailwind CSS 4.2.
 *   **Database Engines**: 
     *   *Backend / Build Time*: SQLite database (`medical_truth.db`) managed via `better-sqlite3` (v12.10) for raw clinical text/matrix ingestion.
     *   *Client Runtime / Browser*: In-memory WebAssembly-based SQLite interface via `sql.js` (v1.12), ensuring driver and query syntax parity across both environments.
@@ -71,7 +86,23 @@ The simulator is a high-fidelity, real-time clinical training application repres
 *   **State Management**: React component local state hooks (`useState`) coupled with a custom React hook (`usePhysiology.js`) that manages the physics engine state. 
 *   **History & Undo**: A serialization layer built in `App.jsx` deep-copies the application and engine states before executing user actions, maintaining a chronological history stack for undo operations.
 
-#### 1.2 Communication Pipelines & Execution Loops
+#### 1.2 Component Coordination & Data Flow
+```mermaid
+graph TD
+    A[Vite/React Client Application] --> B[App.jsx Main State Coordinator]
+    B --> C[usePhysiology.js Engine Hook]
+    B --> D[PrimaryMonitor.jsx Vital Signs Waveforms]
+    B --> E[AirwayPanel.jsx Direct Visual Laryngoscopy]
+    B --> F[AttendingPanel.jsx NLP Guidance / Live Advisor]
+    B --> G[PreOpEMR.jsx Evidence-Based Guidelines]
+    B --> K[MemoryPanel.jsx Consciousness Diagnostics]
+    C --> H[PKPDEngine.ts Multi-Compartment Curves]
+    C --> I[GasKineticsEngine.ts Alveolar MAC Uptake]
+    C --> J[Pharmacology.js Reference Constants & Lung Models]
+    C --> L[ConsciousnessEngine.ts Sleep-Wake Systems]
+```
+
+#### 1.3 Communication Pipelines & Execution Loops
 The system's data pipeline is split between asynchronous assets loading, user action injection, and a synchronous physiological execution clock:
 
 ```mermaid
@@ -103,17 +134,20 @@ graph TD
     1. During boot, the application fetches the static binary `/medical_truth.db` from the client-facing storage layer.
     2. The binary buffer is transferred directly to the Web Worker via Transferable Objects (`postMessage({ type: 'init', payload: { buffer } }, [buffer])`) to avoid copying memory across threads.
     3. The worker instantiates `sql.js`, loads the buffer, and runs initial queries to extract prose and matrix records.
-    4. Hydrated arrays are returned to the main thread, where `ClientDbBridge.ts` caches them locally and triggers registered callbacks, automatically instantiating the `DynamicMedicationRegistry` and `DynamicProceduralRegistry`.
-*   **The Physics Engine State Bridge (Clock Loop)**:
-    1. The physics engine operates on a synchronous **1-second (1000ms) interval timer** created within `usePhysiology.js`.
-    2. To prevent stale closures in React's async rendering architecture, a **State Bridge Ref Pattern** (`stateRef`) is utilized. This reference object is synchronized with state hooks on every render:
-       ```typescript
-       const stateRef = useRef({ time, vitals, targetVitals, patient, activeMeds, gasModels, intravascularVolume, electrolytes, ventSettings, gasSettings, surgicalPhase, msmaidsComplete });
-       useEffect(() => {
-         stateRef.current = { time, vitals, targetVitals, patient, activeMeds, gasModels, intravascularVolume, electrolytes, ventSettings, gasSettings, surgicalPhase, msmaidsComplete };
-       });
-       ```
-    3. On every clock tick, the simulator accesses `stateRef.current`, executes physiological mathematical differential equations (hemodynamics, respiratory kinetics, fluid dynamics, PK/PD decay), and writes the computed changes back to the state hooks.
+    4. Hydrated arrays are returned to the main thread, where `ClientDbBridge.ts` caches them locally and triggers registered callbacks, automatically instantiating the registries.
+
+#### 1.4 State Lifecycle & The Engine Clock Bridge
+The simulator operates on a synchronous **1-second (1000ms) interval clock** instantiated within the `usePhysiology.js` custom hook. To prevent stale React state closures during rapid physical iterations without forcing interval resets, a specialized **State Bridge Ref Pattern** (`stateRef`) is utilized.
+
+```javascript
+// The Physics Engine State Bridge.
+const stateRef = useRef({ time, vitals, targetVitals, patient, activeMeds, gasModels, intravascularVolume, electrolytes, ventSettings, gasSettings, surgicalPhase, msmaidsComplete });
+
+useEffect(() => {
+  stateRef.current = { time, vitals, targetVitals, patient, activeMeds, gasModels, intravascularVolume, electrolytes, ventSettings, gasSettings, surgicalPhase, msmaidsComplete };
+});
+```
+Every clock tick, the simulator extracts parameters from `stateRef.current`, executes physiological mathematical adjustments, modifies target thresholds, calculates compartmental PK/PD decay, and updates state hooks accordingly.
 
 ---
 
@@ -126,10 +160,10 @@ graph TD
 2.  **Driver Initialization & Hydration**:
     *   *Browser*: Spawns the database worker thread, downloads `medical_truth.db`, initializes the WASM-based SQLite driver, and populates main thread cache structures (`allProse`, `allMatrices`).
     *   *Node/Vitest*: Performs a direct import of `store.ts` and loads `KnowledgeStore` synchronously.
-    *   Caches are sorted using `comparePriority()` (evaluating Miller's priority rules).
-    *   `ClientDbBridge.onLoaded` fires, causing the `DynamicMedicationRegistry` and `DynamicProceduralRegistry` to query the cache and parse textbook schemas to register new medications and procedures.
+    *   Caches are sorted using `comparePriority()`.
+    *   `ClientDbBridge.onLoaded` fires, causing the registries to parse textbook schemas and register medications/procedures.
 3.  **Case Selection**:
-    *   The user picks a case configuration from the UI (e.g., Elective Surgery, Trauma, Septic Shock, Morbid Obesity, or a Custom case).
+    *   The user picks a case configuration from the UI.
     *   The client triggers `startCase(selectedCase)`.
 4.  **Parameter Calculation & Patient Instantiation**:
     *   `startCase` calculates body descriptors based on baseline patient stats:
@@ -159,20 +193,19 @@ When a user executes a clinical action (e.g., injecting a drug, changing mechani
 3.  **Ref Synchronization**:
     *   As soon as React applies the state updates, the `useEffect` hooks trigger and update `stateRef.current` with the new values.
 4.  **Engine Recalculation**:
-    *   On the next 1-second interval tick, the physiology loop reads from `stateRef.current`, incorporating the user-modified parameters (such as the new effect-site concentration of a drug, changed mechanical PEEP, or altered airway patency) directly into the mathematical differential equations.
+    *   On the next 1-second interval tick, the physiology loop reads from `stateRef.current`, incorporating the user-modified parameters directly into the mathematical differential equations.
 
 ---
 
-### 3. Complete Current Database & Schema Map
+### 3. Complete Database & Schema Map
 
 #### 3.1 SQLite Database Schema Structure
 The `medical_truth.db` database contains two primary tables storing prose and structured data parsed from medical textbooks:
 
 ##### Table 1: `textbook_prose`
-Stores raw text descriptions and paragraphs representing clinical protocols, physiological guidelines, and drug rules.
 *   **Columns**:
-    *   `id`: `TEXT PRIMARY KEY` (Unique alphanumeric string identifier, typically a hash of the content or section name).
-    *   `topic`: `TEXT` (The clinical topic or chapter subheading, e.g. "Succinylcholine", "Laryngeal Mask Airway").
+    *   `id`: `TEXT PRIMARY KEY` (Unique alphanumeric string identifier).
+    *   `topic`: `TEXT` (The clinical topic or chapter subheading, e.g. "Succinylcholine").
     *   `body_text`: `TEXT` (Unabridged parsed string containing the raw text content).
     *   `source_book`: `TEXT` (Source filename tracking provenance, e.g. "Millers_Anesthesia_9th_Ed.pdf").
     *   `edition`: `INTEGER` (Textbook edition number).
@@ -183,11 +216,10 @@ Stores raw text descriptions and paragraphs representing clinical protocols, phy
     *   `idx_prose_topic` ON `textbook_prose (topic)`
 
 ##### Table 2: `physiological_matrices`
-Stores structured data, parameters, tables, coordinates, or flowchart steps represented as JSON payloads.
 *   **Columns**:
     *   `id`: `TEXT PRIMARY KEY` (Unique alphanumeric string identifier).
     *   `topic`: `TEXT` (Subsystem or category name).
-    *   `archetype`: `TEXT` (Data format category, e.g. "COORDINATE X-Y GRAPHS & COMPLEMENTARY PANELS", "TIMELINE_STEP_CHART_HYPNOGRAM").
+    *   `archetype`: `TEXT` (Data format category, e.g. "COORDINATE X-Y GRAPHS").
     *   `caption`: `TEXT` (Descriptive legend of the table or chart).
     *   `structured_payload`: `TEXT` (Hierarchical JSON string containing the data array).
     *   `source_book`: `TEXT` (Source filename tracking provenance).
@@ -199,24 +231,13 @@ Stores structured data, parameters, tables, coordinates, or flowchart steps repr
     *   `idx_matrices_topic` ON `physiological_matrices (topic)`
 
 #### 3.2 Representation of Ingested Textbook Data
-Textbook chapters are parsed, split, and structuralized in the database using the following rules:
-
-*   **Textbook Prose Representation**:
-    *   Prose chapters are broken down into logical paragraphs or subheadings.
-    *   Each section is stored as a row in `textbook_prose`. 
-    *   Mathematical rules are extracted dynamically from these rows by `extractTextbookRules()`. The engine scans sentences for target vitals (e.g. "heart rate", "potassium"), conditions ("burns", "sepsis", "propofol"), and verbs of change ("increase", "decrease", "clamp"), extracting rule constraints mapping to dynamic offsets in the physiology loop.
-*   **Tabular & Flowchart Representation**:
-    *   Tables (e.g., drug pharmacokinetic values, airway position factors) are parsed and stored as structured rows inside the JSON `structured_payload` of a `physiological_matrices` record.
-    *   Flowcharts or procedural steps (such as the steps for Awake Fiberoptic Intubation) are stored in `structured_payload` with the `TIMELINE_STEP_CHART_HYPNOGRAM` archetype, mapping a list of step labels. The `DynamicProceduralRegistry` parses these labels and translates them into sequential boolean safety gates verified during simulated laryngoscopy.
+*   **Textbook Prose Representation**: Prose chapters are broken down into logical paragraphs or subheadings. Each section is stored as a row in `textbook_prose`. Mathematical rules are extracted dynamically from these rows by `extractTextbookRules()`.
+*   **Tabular & Flowchart Representation**: Tables are parsed and stored as structured rows inside the JSON `structured_payload` of a `physiological_matrices` record. Flowcharts or procedural steps are stored in `structured_payload` with the `TIMELINE_STEP_CHART_HYPNOGRAM` archetype.
 *   **Textbook Priority Hierarchy & Authority Resolution**:
     To handle conflicts between overlapping sources or editions, the database executes a strict hierarchy resolution query when `recalculateAuthority()` is invoked:
-    1.  *Miller's Anesthesia* always wins over any other textbook.
-    2.  For other books, newer editions win.
-    3.  Alphabetical tie-breakers are applied to filenames.
-    4.  The priority rank is calculated as:
-        $$\text{Rank}_{\text{Miller}} = 1000 + \text{Edition}$$
-        $$\text{Rank}_{\text{Other}} = 100 + \text{Edition}$$
-    5.  A window function groups records by `topic` (or `id` if generic/unknown) and assigns `is_authoritative = 1` to the record with the highest rank within each group. Only authoritative rows are queried at runtime.
+    $$\text{Rank}_{\text{Miller}} = 1000 + \text{Edition}$$
+    $$\text{Rank}_{\text{Other}} = 100 + \text{Edition}$$
+    A window function groups records by `topic` and assigns `is_authoritative = 1` to the record with the highest rank. Only authoritative rows are queried at runtime.
 
 ---
 
@@ -225,24 +246,23 @@ Textbook chapters are parsed, split, and structuralized in the database using th
 ### 4. Pathophysiology & Vital Signs Engine
 
 #### 4.1 Cardiovascular & Hemodynamic Physiology (`CardiovascularEngine.ts`)
-The cardiovascular engine calculates the patient's continuous perfusion status every second. It models cardiac output ($CO$, L/min) and mean arterial pressure ($MAP$, mmHg) using basic physiological fluid loop invariants:
+The cardiovascular engine calculates the patient's continuous perfusion status every second. It models cardiac output ($CO$, L/min) and mean arterial pressure ($MAP$, mmHg):
 
 1.  **Mean Arterial Pressure (MAP)**:
+    $$MAP = DBP + \frac{SBP - DBP}{3}$$
     $$MAP_{\text{exact}} = \frac{CO \cdot SVR}{80} + \Delta P_{\text{intravascular}} + \Delta P_{\text{sepsis}}$$
-    *   *Systemic Vascular Resistance ($SVR$)*: Normal range is $900 - 1400\text{ dyn}\cdot\text{s}\cdot\text{cm}^{-5}$. SVR updates dynamically based on vasodilatory medications (e.g. Propofol, Anaphylaxis) and vasoactive infusions (e.g. Epinephrine, Phenylephrine).
+    *   *Systemic Vascular Resistance ($SVR$)*: Normal range is $900 - 1400\text{ dyn}\cdot\text{s}\cdot\text{cm}^{-5}$. Updates dynamically based on vasodilation and vasoactive infusions.
     *   *Intravascular Volume Pressure Shift ($\Delta P_{\text{intravascular}}$)*:
         $$\Delta P_{\text{intravascular}} = \frac{\text{IntravascularVolume} - EBV}{250} \cdot 8$$
     *   *Sepsis Pressure Shift ($\Delta P_{\text{sepsis}}$)*: Drops SVR and subtracts $33.33\text{ mmHg}$ from MAP due to vasoplegia.
 2.  **Cardiac Output (CO)**:
     $$CO = \frac{HR \cdot SV}{1000} \quad \text{[L/min]}$$
-    *   *Heart Rate ($HR$)*: Recalculated based on chronotropic drugs, autonomic reflexes, and hypovolemia.
-    *   *Stroke Volume ($SV$)*: Derived from preload volume shifts, myocardial contractility, and stunning factors:
+    *   *Stroke Volume ($SV$)*: Derived from preload volume shifts, contractility, and stunning factors:
         $$SV = \min\left(SV_{\text{max}}, SV_{\text{base}} \cdot Preload_{SV} \cdot \max(0.1, Inotropy) \cdot CHF_{\text{penalty}} \cdot AFib_{\text{penalty}}\right)$$
         *   *Preload Stroke Volume ($Preload_{SV}$)*:
             $$Preload_{SV} = \max\left(0.1, 1.0 - 1.2 \cdot \text{BloodLossRatio} + \frac{\text{EffectiveVolume} - EBV}{2500}\right)$$
         *   *Inotropy ($Inotropy$)*:
             $$Inotropy = \max\left(0.01, 1.0 - \frac{\text{Stunning}}{100} + \text{Inotropy}_{\text{drugs}} + \text{Spike}_{\text{contractility}}\right)$$
-        *   *Myocardial Stunning ($Stunning$)*: Accumulates when myocardial oxygen demand exceeds supply.
 3.  **Systolic (SBP) & Diastolic (DBP) Pressures**:
     Systolic and diastolic pressures are derived from MAP and Pulse Pressure ($PP$, mmHg), which scales with stroke volume:
     $$PP = 40 \cdot \frac{SV}{SV_{\text{base}}}$$
@@ -250,124 +270,94 @@ The cardiovascular engine calculates the patient's continuous perfusion status e
     $$DBP = MAP - \frac{1}{3} \cdot PP + \text{Noise}_{\text{dia}}$$
 
 #### 4.2 Oscillations & Homeostatic Waves
-The hemodynamics engine superimposes oscillatory waveforms onto heart rate and blood pressures to represent in-vivo nervous and chest-pressure responses:
+The hemodynamics engine superimposes oscillatory waveforms onto heart rate and blood pressures to represent in-vivo responses:
 *   **Respiratory Sinus Arrhythmia (RSA) & Breathing Fluctuations**:
-    Heart rate and systolic/diastolic pressures oscillate with the patient's respiratory cycle phase ($\theta_{\text{resp}} = \frac{t \cdot 2\pi}{60/RR}$):
-    $$\text{RSA}_{\text{Effect}} = \sin(\theta_{\text{resp}}) \cdot 1.3 \quad \text{[bpm]}$$
+    $$\text{RSA}_{\text{Effect}} = \sin(\theta_{\text{resp}}) \cdot 1.3 \quad \text{[bpm]} \quad \text{where } \theta_{\text{resp}} = \frac{t \cdot 2\pi}{60/RR}$$
     $$\text{RespBp}_{\text{Var}} = \sin(\theta_{\text{resp}}) \cdot 2.2 \quad \text{[mmHg]}$$
 *   **Traube-Hering-Mayer (THM) Waves**:
-    Vasomotor waves reflecting slow sympathetic feedback loops are modeled with a standard 10-second period:
     $$\text{THM}_{\text{Effect}} = \sin\left(\frac{t \cdot 2\pi}{10}\right) \cdot 0.9 \quad \text{[mmHg]}$$
 *   **Micro-Fluctuations (Nervous Noise)**:
-    Random Gaussian-like noise represents normal physiological variability (e.g. pulse rate variability):
-    $$\text{Noise}_{\text{HR\_Micro}} \approx \text{Random}(-0.2, 0.2)$$
-    $$\text{Noise}_{\text{BP\_Micro}} \approx \text{Random}(-0.35, 0.35)$$
+    $$\text{Noise}_{\text{HR\_Micro}} \approx \text{Random}(-0.2, 0.2) \quad \text{Noise}_{\text{BP\_Micro}} \approx \text{Random}(-0.35, 0.35)$$
 
 #### 4.3 Myocardial Ischemia & Metabolic Demand
 Myocardial oxygen supply-demand balance is tracked via the **Rate Pressure Product (RPP)**:
 $$RPP = HR \cdot SBP$$
 *   **Ischemia & Stunning Trigger**: In patients with coronary artery disease (CAD), if $RPP > 14,000$ or Diastolic Blood Pressure ($DBP$) falls below $50\text{ mmHg}$ (limiting coronary perfusion pressure), myocardial stunning increases:
     $$\frac{d(\text{Stunning})}{dt} = +0.5\% \quad \text{[per second]}$$
-*   **Consequences**: Stunning directly restricts inotropy and stroke volume, leading to secondary cardiogenic shock. Stunning decays slowly by $0.2\%$ per second once the stress resolves.
+*   Stunning directly restricts stroke volume and contractility. It decays slowly by $0.2\%$ per second once the stress resolves.
 
 #### 4.4 Cardiac Arrest & Resuscitation Loop
-*   **Arrest Triggers**: Cardiac arrest is initiated if:
+*   **Arrest Triggers**: Initiated if:
     1.  *Hypoxemia*: Arterial oxygen tension ($PaO_2$) remains below $30\text{ mmHg}$ for $>15$ continuous seconds.
     2.  *Severe Acidosis*: Arterial pH drops below $6.9$.
     3.  *Hyperkalemia*: Potassium levels ($K^+$) exceed $10.0\text{ mEq/L}$ (or $9.0\text{ mEq/L}$ if not membrane-stabilized by Calcium).
     4.  *Anomalous shock*: Severe anaphylactic vasoplegia.
-*   **CPR Mechanics**: When CPR chest compressions are active (`cprActive = true`), the engine bypasses standard hemodynamic equations and generates a mechanical survival perfusion pressure:
-    $$SBP_{\text{CPR}} = 80 + \text{Random}(0, 15) \quad [mmHg]$$
-    $$DBP_{\text{CPR}} = 25 + \text{Random}(0, 10) \quad [mmHg]$$
-    $$CO_{\text{CPR}} \approx 1.5\text{ L/min} \quad (\text{slowing lactic acid build-up})$$
-*   **Ischemic Damage Accumulation**: During arrest or severe shock, cellular hypoperfusion and hypoxia accumulate tissue damage:
+*   **CPR Mechanics**: When CPR is active, the engine bypasses standard hemodynamic equations and generates survival perfusion pressure:
+    $$SBP_{\text{CPR}} = 80 + \text{Random}(0, 15) \quad [mmHg] \quad DBP_{\text{CPR}} = 25 + \text{Random}(0, 10) \quad [mmHg]$$
+    $$CO_{\text{CPR}} \approx 1.5\text{ L/min}$$
+*   **Ischemic Damage Accumulation**:
     $$\frac{d(\text{Damage})}{dt} = (90 - SpO_2) \cdot 0.4 + (55 - MAP_{\text{cerebral}}) \cdot 0.7 \quad \text{[per second]}$$
-    *   CPR reduces this damage accumulator by $4.5$ units/s (if $SpO_2 \ge 80\%$) or $1.0$ unit/s (if hypoxemic).
-    *   If $\text{Damage} > 1200$ (default threshold), cardiac arrest is triggered. If $\text{Damage} > 6000$, irreversible **biological death** occurs.
-*   **Spontaneous ROSC**: During PEA or Asystole, a CPR chest compression cycle has a $4\%$ chance per second to trigger spontaneous Return of Spontaneous Circulation (ROSC) if:
-    1.  The oxygen buffer is sufficient ($>50\%$ of FRC capacity).
-    2.  Hemorrhage is restricted ($\text{BloodLossRatio} < 0.2$).
-    3.  Therapeutic levels of Epinephrine are present.
+    CPR reduces this damage accumulator by $4.5$ units/s (if $SpO_2 \ge 80\%$) or $1.0$ unit/s (if hypoxemic).
+    If $\text{Damage} > 1200$, cardiac arrest is triggered. If $\text{Damage} > 6000$, irreversible **biological death** occurs.
+*   **Spontaneous ROSC**: CPR chest compression cycles have a $4\%$ chance per second to trigger spontaneous ROSC if oxygen buffer is sufficient ($>50\%$ of FRC capacity), hemorrhage is restricted ($\text{BloodLossRatio} < 0.2$), and therapeutic levels of Epinephrine are present.
 
 #### 4.5 Defibrillation & Cardioversion Shock Physics
-Delivering a high-energy electric shock to the myocardium clears shockable tachyarrhythmias (VFib, VTach) based on mathematical probability curves:
 *   **Shock Success Probability**:
     $$P_{\text{ROSC}} = \max\left(0.01, 0.70 + \text{Bonus}_{\text{meds}} - \text{Penalty}_{\text{ischemia}} - \text{Penalty}_{\text{hypoxia}} - \text{Penalty}_{\text{hypovolemia}}\right)$$
-    *   $\text{Bonus}_{\text{meds}}$: Amiodarone ($+0.25$), Lidocaine ($+0.20$), Epinephrine ($+0.10$), capped at $+0.40$ combined.
+    *   $\text{Bonus}_{\text{meds}}$: Amiodarone ($+0.25$), Lidocaine ($+0.20$), Epinephrine ($+0.10$).
     *   $\text{Penalty}_{\text{ischemia}}$: $\frac{\text{IschemicDamage}}{5000}$.
     *   $\text{Penalty}_{\text{hypoxia}}$: $0.60$ if $O_2\text{ Buffer} < 40\%\text{ of FRC}$.
     *   $\text{Penalty}_{\text{hypovolemia}}$: $0.60$ if $\text{BloodLossRatio} > 0.30$.
-*   **Rhythm Conversion**:
-    *   If the shock is successful but $\text{IschemicDamage} > 4000$, the rhythm converts to PEA.
-    *   If successful and damage is low, organized Sinus Rhythm (ROSC) is restored, setting myocardial stunning to $60\%$.
-    *   If the user delivers an unsynchronized shock during a perfusing rhythm, it has a $100\%$ chance to induce R-on-T Ventricular Fibrillation (VFib).
+*   **Rhythm Conversion**: Organized Sinus Rhythm is restored if successful, setting myocardial stunning to $60\%$. An unsynchronized shock during a perfusing rhythm has a $100\%$ chance to induce R-on-T Ventricular Fibrillation (VFib).
 
 #### 4.6 Respiratory Volumes & Mechanics (`RespiratoryEngine.ts`)
 *   **Predicted Lung Volumes (ECCS/ERS 1993)**:
-    Volumes (FRC, TLC, RV, FVC, FEV1) are calculated using baseline equations based on Height ($H$, meters) and Age ($A$, years):
     *   *Male Predicted FRC*: $FRC_{\text{pred}} = 2.34 \cdot H + 0.009 \cdot A - 1.09$
     *   *Female Predicted FRC*: $FRC_{\text{pred}} = 2.24 \cdot H + 0.001 \cdot A - 1.00$
 *   **Volume Corrections**:
     $$\text{Volume}_{\text{final}} = \text{Volume}_{\text{pred}} \cdot \text{Disease}_{\text{scale}} \cdot e^{-0.02 \cdot (BMI - 25)} \cdot \text{Position}_{\text{factor}}$$
-    *   $\text{Disease}_{\text{scale}}$: COPD ($FRC \cdot 1.35$), Restrictive ($FRC \cdot 0.52$).
-    *   $\text{Position}_{\text{factor}}$: Supine/Sniffing ($0.80$), Trendelenburg ($0.70$).
+    *   $\text{Position}_{\text{factor}}$: Sitting ($1.0$), Supine/Sniffing ($0.80$), Trendelenburg ($0.70$).
 *   **Pulmonary Compliance & Resistance**:
-    *   *Compliance ($C$, mL/cmH2O)*: Baseline is $65$. It is modified by position (Trendelenburg decreases compliance by $20\%$), obesity ($-25$), sepsis ($-20$), and pulmonary diseases.
-    *   *Resistance ($R$, cmH2O/L/s)*: Baseline is $5$. It is elevated by obesity ($+3$), bronchospasm ($+40$), bucking ($+15$), and laryngospasm ($R = 999$).
+    *   *Compliance ($C$, mL/cmH2O)*: Baseline is $65$. Modified by position (Trendelenburg decreases compliance by $20\%$), obesity ($-25$), and sepsis ($-20$).
+    *   *Resistance ($R$, cmH2O/L/s)*: Baseline is $5$. Elevated by obesity ($+3$), bronchospasm ($+40$), bucking ($+15$), and laryngospasm ($R = 999$).
 *   **Ventilator Pressures & Tidal Volume ($V_{TE}$)**:
     *   *VCV Mode*: $V_{TE} = \text{dialed } V_T$. Peak inspiratory pressure is calculated as:
         $$PIP = P_{\text{plat}} + \left(\text{Flow} \cdot R \cdot 5\right) \quad \text{where } P_{\text{plat}} = PEEP + \frac{V_{TE}}{C}$$
     *   *PCV Mode*: $PIP = PEEP + P_{\text{insp}}$. Tidal volume is calculated as:
         $$V_{TE} = \left(P_{\text{plat}} - PEEP\right) \cdot C \quad \text{where } P_{\text{plat}} = PIP - 2$$
     *   *PCV-VG Mode*: $V_{TE} = \text{dialed } V_T$. Peak pressure converges: $P_{\text{plat}} = PEEP + \frac{V_{TE}}{C}$, $PIP = P_{\text{plat}} + 2$.
-    *   *Pressure Limit ($P_{\text{max}}$)*: If $PIP > P_{\text{max}}$, the ventilator clips pressure and reduces $V_{TE}$ accordingly.
 
 #### 4.7 Alveolar Ventilation & Apnea Kinetics
 *   **Alveolar Ventilation ($V_A$)**:
-    $$V_A = (V_T - V_D) \cdot RR \quad \text{[L/min]}$$
-    *   *Dead space ($V_D$)*: Derived from Ideal Body Weight: $V_D = \frac{IBW_{\text{kg}} \cdot 2.2}{1000}\text{ L}$.
+    $$V_A = (V_T - V_D) \cdot RR \quad \text{[L/min]} \quad \text{where } V_D = \frac{IBW_{\text{kg}} \cdot 2.2}{1000}\text{ L}$$
 *   **Apnea CO2 Accumulation (Eger & Severinghaus)**:
     When tidal exchange is absent ($V_A \le 0.1\text{ L/min}$):
-    *   During the first minute of apnea:
-        $$\frac{d(PaCO_2)}{dt} = +\frac{6}{60}\text{ mmHg/s} \quad (6\text{ mmHg/min})$$
-    *   During subsequent minutes:
-        $$\frac{d(PaCO_2)}{dt} = +\frac{3}{60}\text{ mmHg/s} \quad (3\text{ mmHg/min})$$
+    *   During the first minute of apnea: $\frac{d(PaCO_2)}{dt} = +\frac{6}{60}\text{ mmHg/s}$
+    *   During subsequent minutes: $\frac{d(PaCO_2)}{dt} = +\frac{3}{60}\text{ mmHg/s}$
 *   **Henderson-Hasselbalch Equation**:
-    Arterial pH is derived from bicarbonate concentration ($HCO_3^-$, mEq/L) and partial pressure of carbon dioxide ($PaCO_2$, mmHg):
     $$pH = 6.1 + \log_{10}\left(\frac{HCO_3^-}{0.03 \cdot PaCO_2}\right)$$
 
 #### 4.8 Blood-Gas Exchange & Shunt Mathematics
 *   **Alveolar Oxygen Tension (PAO2)**:
-    $$PAO_2 = \left(FiO_2 \cdot (P_B - P_{H_2O})\right) - \frac{PaCO_2}{R} \quad \text{[mmHg]}$$
-    *   $P_B = 760\text{ mmHg}$, $P_{H_2O} = 47\text{ mmHg}$, respiratory quotient $R = 0.8$.
+    $$PAO_2 = \left(FiO_2 \cdot (P_B - P_{H_2O})\right) - \frac{PaCO_2}{R} \quad \text{[mmHg]} \quad (P_B = 760, P_{H_2O} = 47, R = 0.8)$$
 *   **Apnea Oxygen Buffer Depletion**:
-    During apnea, oxygen in the FRC buffer is consumed by cellular metabolism ($VO_2$, L/min):
     $$\frac{d(\text{O2Buffer})}{dt} = -VO_2 \cdot \text{Temp}_{\text{scale}} \cdot \text{Shivering}_{\text{scale}} + \text{PassiveO2}_{\text{influx}}$$
 *   **Bohr Shift & Hemoglobin Dissociation (Adair-Riley Equation)**:
-    Oxygen saturation ($SaO_2$, %) is derived using an shifted capillary oxygen tension ($PO_{2,\text{eff}}$) that accounts for temperature, pH, volatiles, and DPG levels:
     $$PO_{2,\text{eff}} = PO_2 \cdot 10^{0.48 \cdot (pH - 7.4) - 0.024 \cdot (\text{Temp} - 37) - \text{Shift}_{\text{volatile}}}$$
     $$SaO_2 = \frac{PO_{2,\text{eff}}^3 + 150 \cdot PO_{2,\text{eff}}}{PO_{2,\text{eff}}^3 + 150 \cdot PO_{2,\text{eff}} + 23400} \cdot 100$$
 *   **Mixed Venous Return & Pulmonary Shunt Exchange**:
     *   *Capillary O2 Content ($CcO_2$)*: $CcO_2 = Hb \cdot 1.34 \cdot \frac{SaO_2}{100} + PAO_2 \cdot 0.0031$
-    *   *Mixed Venous O2 Content ($CvO_2$)*: Derived via the Fick equation:
-        $$CvO_2 = CcO_2 - \frac{VO_2}{CO \cdot 10}$$
-    *   *Arterial O2 Content ($CaO_2$)*: Derived from pulmonary shunt fraction ($Q_s/Q_t$):
-        $$CaO_2 = CcO_2 \cdot (1 - Q_s/Q_t) + CvO_2 \cdot Q_s/Q_t$$
-    *   *Arterial O2 Saturation ($SpO_2$)*: Derived from arterial oxygen content:
-        $$SpO_2 = \frac{CaO_2}{Hb \cdot 1.34} \cdot 100$$
+    *   *Mixed Venous O2 Content ($CvO_2$)*: $CvO_2 = CcO_2 - \frac{VO_2}{CO \cdot 10}$
+    *   *Arterial O2 Content ($CaO_2$)*: $CaO_2 = CcO_2 \cdot (1 - Q_s/Q_t) + CvO_2 \cdot Q_s/Q_t$
+    *   *Arterial O2 Saturation ($SpO_2$)*: $SpO_2 = \frac{CaO_2}{Hb \cdot 1.34} \cdot 100$
 
 #### 4.9 Optical Pulse Oximetry Absorption Model
-The simulator models oximeter optical absorption using light extinction at Red ($660\text{ nm}$) and Infrared ($940\text{ nm}$) wavelengths to represent dyshemoglobins:
 *   **Absorbance Equations**:
     $$A_{660} = 0.1 \cdot S_O + 1.0 \cdot S_D + 1.0 \cdot S_M + 0.1 \cdot S_C$$
     $$A_{940} = 1.0 \cdot S_O + 0.1 \cdot S_D + 1.0 \cdot S_M + 1.0 \cdot S_C$$
-    *   $S_O$: Oxyhemoglobin fraction ($S_O = \frac{SaO_2}{100} \cdot (1 - S_M - S_C)$).
-    *   $S_D$: Deoxyhemoglobin fraction ($S_D = (1 - \frac{SaO_2}{100}) \cdot (1 - S_M - S_C)$).
-    *   $S_M$: Methemoglobin fraction.
-    *   $S_C$: Carboxyhemoglobin fraction.
+    *   $S_O = \frac{SaO_2}{100} \cdot (1 - S_M - S_C)$, $S_D = (1 - \frac{SaO_2}{100}) \cdot (1 - S_M - S_C)$, $S_M$ is MetHb, $S_C$ is COHb.
 *   **Oximetry Ratio (R)**:
-    $$R_{\text{ratio}} = \frac{A_{660}}{A_{940}}$$
-    $$SpO_{2,\text{measured}} = 110 - 25 \cdot R_{\text{ratio}} \quad [\%]$$
+    $$R_{\text{ratio}} = \frac{A_{660}}{A_{940}} \quad \text{yielding} \quad SpO_{2,\text{measured}} = 110 - 25 \cdot R_{\text{ratio}} \quad [\%]$$
 
 ---
 
@@ -377,7 +367,7 @@ The simulator models oximeter optical absorption using light extinction at Red (
 Medications are modeled using a mammillary three-compartment model (Central $V_1$, Rapid Peripheral $V_2$, and Slow Peripheral $V_3$), linked to an effect-site compartment ($V_e$):
 
 ```
-       [ Rapid Peripheral V2 ]
+        [ Rapid Peripheral V2 ]
              ^         |
              | k12     | k21
              v         v
@@ -385,17 +375,16 @@ Medications are modeled using a mammillary three-compartment model (Central $V_1
              ^         |
              | k13     | k31
              v         v
-       [ Slow Peripheral V3 ]
+        [ Slow Peripheral V3 ]
                |
                | k1e (ke0)
                v
-       [ Effect Site Ve ]
+        [ Effect Site Ve ]
 ```
 
 *   **Pharmacokinetic Differential Equations**:
     $$\frac{dA_1}{dt} = \text{InfusionRate} - (k_{10} + k_{12} + k_{13}) \cdot A_1 + k_{21} \cdot A_2 + k_{31} \cdot A_3$$
-    $$\frac{dA_2}{dt} = k_{12} \cdot A_1 - k_{21} \cdot A_2$$
-    $$\frac{dA_3}{dt} = k_{13} \cdot A_1 - k_{31} \cdot A_3$$
+    $$\frac{dA_2}{dt} = k_{12} \cdot A_1 - k_{21} \cdot A_2 \quad \text{and} \quad \frac{dA_3}{dt} = k_{13} \cdot A_1 - k_{31} \cdot A_3$$
     $$\frac{dC_e}{dt} = k_{e0} \cdot (C_p - C_e) \quad \text{where } C_p = \frac{A_1}{V_1}$$
 
 #### 5.2 Numerical Integration (Euler Sub-stepping)
@@ -421,325 +410,354 @@ for (let i = 0; i < subSteps; i++) {
 ```
 
 #### 5.3 Flow-Dependent Clearance & Distribution Autoregulation
-Systemic clearance and distribution rates are dynamically scaled by cardiac output, representing altered perfusion during shock:
 *   **Cardiac Output Scaling Modifier ($coMod$)**:
-    $$coMod = \max\left(0, 1.0 + (\text{CoRatio} - 1.0) \cdot CoSensitivity\right)$$
-    *   *CoRatio*: $\frac{CO_{\text{current}}}{CO_{\text{baseline}}}$.
-    *   *CoSensitivity*: Sensitivity modifier (typically $0.5$ for most drugs).
+    $$coMod = \max\left(0, 1.0 + (\text{CoRatio} - 1.0) \cdot CoSensitivity\right) \quad \text{where } \text{CoRatio} = \frac{CO_{\text{current}}}{CO_{\text{baseline}}}$$
     *   *Autoregulated Rates*: $k_{10} = k_{10,\text{baseline}} \cdot coMod$, $k_{12} = k_{12,\text{baseline}} \cdot coMod$, $k_{13} = k_{13,\text{baseline}} \cdot coMod$.
 *   **Effect-Site Equilibration ($ke_0$) Autoregulation**:
     Cerebral autoregulation maintains brain perfusion until severe shock occurs. For sedatives and opioids, $ke_0$ scales as:
     $$ke_0 = ke_{0,\text{baseline}} \cdot \text{BrainFlowMod} \quad \text{where } \text{BrainFlowMod} = \begin{cases} \text{CoRatio} \cdot 2 & \text{if } \text{CoRatio} < 0.5 \\ 1.0 & \text{otherwise} \end{cases}$$
-    For other drugs (e.g. paralytics, vasopressors), peripheral perfusion drops linearly with cardiac output, delaying drug onset:
+    For other peripheral drugs (e.g. paralytics, vasopressors), onset delays linearly with perfusion:
     $$ke_0 = ke_{0,\text{baseline}} \cdot \max(0.1, \text{CoRatio})$$
 
 #### 5.4 Organ Impairment & Protein Binding Corrections
 *   **Organ Clearance Fractions**:
-    Systemic clearance ($k_{10}$) is split into independent, renal, and hepatic pathways:
     $$k_{10,\text{effective}} = k_{10} \cdot (Frac_{\text{independent}} + Frac_{\text{renal}} \cdot \text{renalRatio} + Frac_{\text{hepatic}} \cdot \text{hepaticRatio})$$
-    *   In renal failure, `renalRatio` drops to $0.1$, causing drugs with high renal clearance fractions (e.g. Pancuronium, active drug metabolites) to accumulate.
 *   **Hemodilution & Protein Binding**:
-    Only the unbound ("free") fraction of a drug can cross vascular membranes and bind to effect-site receptors.
     $$Cp_{\text{effective}} = \frac{A_1}{V_1} \cdot FreeFraction_{\text{effective}}$$
-    *   In severe hemodilution (intravascular volume expansion $V_{1,\text{ratio}} > 1.2$), plasma protein levels fall, increasing the free fraction:
-        $$FreeFraction_{\text{effective}} = \min\left(1.0, (1.0 - ProteinBinding) \cdot 1.2\right)$$
+    In severe hemodilution (intravascular volume expansion $V_{1,\text{ratio}} > 1.2$), plasma protein levels fall, increasing the free fraction:
+    $$FreeFraction_{\text{effective}} = \min\left(1.0, (1.0 - ProteinBinding) \cdot 1.2\right)$$
 
 #### 5.5 Receptor-Level Pharmacodynamics (Sigmoid Emax Hill Equation)
 Effect-site concentrations ($C_e$) drive clinical responses using the Hill equation:
-$$Effect = \frac{E_{\max} \cdot C_e^\gamma}{EC_{50}^\gamma + C_e^\gamma}$$
-*   **Synergy Modification**: To avoid mathematical divisions by zero when $C_e \to 0$ or floating-point overflows when raising large concentrations to exponents, the calculation uses a ratio-based approach:
-    $$\text{Ratio} = \frac{C_e}{EC_{50}}$$
-    $$Effect = \frac{\text{Ratio}^\gamma}{1.0 + \text{Ratio}^\gamma}$$
+$$Effect = \frac{E_{\max} \cdot C_e^\gamma}{EC_{50}^\gamma + C_e^\gamma} \quad \text{implemented ratio-wise as} \quad Effect = \frac{\text{Ratio}^\gamma}{1.0 + \text{Ratio}^\gamma} \quad \text{where } \text{Ratio} = \frac{C_e}{EC_{50}}$$
 
 #### 5.6 Receptor-Level Vasoactive Chronotropic & Vasomotor Coupling
-Vasoactive medications (vasopressors and inotropes) act directly on cardiovascular receptors ($\alpha_1, \beta_1, \beta_2, V_1$):
+Vasoactive medications act directly on cardiovascular receptors ($\alpha_1, \beta_1, \beta_2, V_1$):
 *   **Systemic Vascular Resistance (SVR)**:
     $$SVR_{\text{multiplier}} = 1.0 + \left(\alpha_1 \cdot 0.25 \cdot Effect_{\alpha 1} + V_1 \cdot 0.30 \cdot Effect_{V1}\right) - \beta_2 \cdot 0.15 \cdot Effect_{\beta 2}$$
-    *   Beta-2 receptor activation dilates blood vessels, offsetting alpha-1 vasoconstriction.
-*   **Cardiac Contractility (Inotropy)**:
-    $$CO_{\text{multiplier}} = 1.0 + \beta_1 \cdot 0.25 \cdot Effect_{\beta 1}$$
-*   **Chronotropy (Heart Rate)**:
-    $$HR_{\text{delta}} = \beta_1 \cdot 15 \cdot Effect_{\beta 1}$$
-*   **Baroreceptor Reflex Chronotropic Offset**:
-    Pure vasopressors (e.g. Phenylephrine, Vasopressin) vasoconstrict the vasculature without stimulating cardiac beta-1 receptors. This induces a reflex bradycardia offset in heart rate:
+*   **Cardiac Contractility (Inotropy)**: $CO_{\text{multiplier}} = 1.0 + \beta_1 \cdot 0.25 \cdot Effect_{\beta 1}$
+*   **Chronotropy (Heart Rate)**: $HR_{\text{delta}} = \beta_1 \cdot 15 \cdot Effect_{\beta 1}$
+*   **Baroreceptor Reflex Chronotropic Offset**: Pure vasopressors induce a reflex bradycardia offset in heart rate:
     $$HR_{\text{baroreflex\_offset}} = -(\text{Alpha1} \cdot 5 \cdot Effect_{\alpha 1}) - (V_1 \cdot 5 \cdot Effect_{V1})$$
 
 #### 5.7 Neuromuscular Blockade & Fade (TOF Count)
 Neuromuscular blocking agents (NMBAs) block nicotinic acetylcholine receptors ($nAChR$) at the motor endplate:
-*   **Receptor Occupancy ($Occupancy$)**: Models the fraction of receptors blocked by the drug.
-*   **Train-of-Four (TOF) Twitches**:
-    During monitoring, four electrical pulses are delivered to a peripheral nerve, evaluating muscle response:
-    *   If $Occupancy \le 0.75$: All 4 twitches are present, and the TOF ratio is $1.0$.
-    *   If $0.75 < Occupancy \le 0.80$: 4 twitches are present, but the muscle response fades (TOF ratio $< 0.90$).
-    *   If $0.80 < Occupancy \le 0.85$: 3 twitches are present.
-    *   If $0.85 < Occupancy \le 0.90$: 2 twitches are present.
-    *   If $0.90 < Occupancy \le 0.95$: 1 twitch is present.
-    *   If $Occupancy > 0.95$: 0 twitches are present (profound paralysis).
+*   *Receptor Occupancy ($Occupancy$)*: fraction of receptors blocked.
+*   *Train-of-Four (TOF) Twitches*:
+    *   If $Occupancy \le 0.75$: All 4 twitches present, TOF ratio is $1.0$.
+    *   If $0.75 < Occupancy \le 0.80$: 4 twitches present, muscle response fades (TOF ratio $< 0.90$).
+    *   If $0.80 < Occupancy \le 0.85$: 3 twitches present.
+    *   If $0.85 < Occupancy \le 0.90$: 2 twitches present.
+    *   If $0.90 < Occupancy \le 0.95$: 1 twitch present.
+    *   If $Occupancy > 0.95$: 0 twitches present (profound paralysis).
 
 #### 5.8 Drug-Drug Synergism & Chelation Reversal
 *   **MAC-BAR Suppression Synergy (Minto/Greco concept)**:
-    Opioids shift the concentration curves of volatiles and hypnotics required to suppress the somatic and autonomic response to painful stimuli:
-    $$MAC_{\text{BAR,50}} = 1.2 \cdot e^{-3.0 \cdot Effect_{\text{opioid}}}$$
-    $$Hypnotic_{\text{BAR,50}} = 1.5 \cdot e^{-3.0 \cdot Effect_{\text{opioid}}}$$
+    Opioids shift the concentration curves of volatiles and hypnotics required to suppress the somatic response to pain:
+    $$MAC_{\text{BAR,50}} = 1.2 \cdot e^{-3.0 \cdot Effect_{\text{opioid}}} \quad Hypnotic_{\text{BAR,50}} = 1.5 \cdot e^{-3.0 \cdot Effect_{\text{opioid}}}$$
     $$BAR_{\text{suppression}} = 1.0 - (1.0 - Effect_{\text{volatile}}) \cdot (1.0 - Effect_{\text{hypnotic}})$$
-    *   *Sympathetic Surge Outflow*: Reduced by BAR suppression:
-        $$\text{Surge}_{\text{sympathetic}} = C_{\text{cat}} \cdot (1.0 - BAR_{\text{suppression}})$$
+    $$\text{Surge}_{\text{sympathetic}} = C_{\text{cat}} \cdot (1.0 - BAR_{\text{suppression}})$$
 *   **Drug Chelation Reversal (Sugammadex)**:
     Sugammadex encapsulates steroidal NMBAs (Rocuronium, Vecuronium) in the plasma ($V_1$), removing active drug molecules from circulation:
     $$A_{1,\text{effective}} = A_{1,\text{initial}} \cdot (1 - ChelateRatio)$$
-    *   This creates a steep concentration gradient that pulls drug molecules out of the effect-site ($V_e$) and peripheral tissues back into $V_1$ to be cleared, rapidly reversing paralysis.
+    This creates a steep concentration gradient that pulls drug molecules out of the effect-site ($V_e$) and peripheral tissues back into $V_1$ to be cleared, rapidly reversing paralysis.
+
+#### 5.9 Consciousness, Memory, & Processed EEG Engine (`ConsciousnessEngine.ts`)
+This engine models the sleep-wake network of the brain as affected by general anesthesia. Highly volatile kinetics (such as receptor dynamics and nuclei interactions) are solved using 10x Euler sub-stepping ($dt_{\text{sub}} = 0.1\text{ s}$).
+
+##### 1. Subcortical Sleep-Wake Nuclei
+*   **Locus Ceruleus (LC)**: Noradrenergic wake-promoting core. Active at baseline ($1.0$). Hyperpolarized by dexmedetomidine, propofol, thiopental, halothane, and sleep-active inputs from VLPO.
+    $$\text{LC}_{\text{target}} = \max\left(0, 1.0 - 0.9 \cdot \text{Dex}_{\text{effective}} - 0.5 \cdot \text{Propofol}_{Ce} - 0.4 \cdot \text{Thiopental}_{Ce} - 0.4 \cdot \text{Halo}_{\text{MAC}} + 0.3 \cdot \text{Ketamine}_{Ce} - 0.8 \cdot \text{VLPO}\right)$$
+    *Atipamezole blocks Dexmedetomidine competitively at Alpha-2 receptors:* $\text{Dex}_{\text{effective}} = \text{dexmedCe} / (1.0 + \text{atipamezoleCe} \cdot 8.0)$.
+*   **Tuberomammillary Nucleus (TMN)**: Histaminergic wake-promoting center. Inhibited by propofol (unless TMN-propofol resistant comorbidity), thiopental, halothane, and VLPO.
+    $$\text{TMN}_{\text{target}} = \max\left(0, 1.0 - \text{PropEffect}_{\text{TMN}} - 0.7 \cdot \text{Thiopental}_{Ce} - 0.6 \cdot \text{Halo}_{\text{MAC}} - 0.8 \cdot \text{VLPO}\right)$$
+*   **Ventrolateral Preoptic Nucleus (VLPO)**: GABA/galanin sleep-active center. Activated by propofol, thiopental, dexmedetomidine, and isoflurane.
+    $$\text{VLPO}_{\text{target}} = \min\left(1.0, 0.8 \cdot \text{Propofol}_{Ce} + 0.7 \cdot \text{Thiopental}_{Ce} + 0.9 \cdot \text{Dex}_{\text{effective}} + 0.5 \cdot \text{Iso}_{\text{MAC}}\right)$$
+*   **Orexinergic Neurons (Lateral Hypothalamus)**: Wake-promoting orexin A/B pathway. Inhibited by propofol, sevoflurane, and isoflurane (spared by halothane). A baseline deficiency models narcolepsy.
+    $$\text{Orexin}_{\text{target}} = \max\left(0, \text{Orexin}_{\text{base}} - 0.8 \cdot \text{Propofol}_{Ce} - 0.6 \cdot \text{Sevo}_{\text{MAC}} - 0.6 \cdot \text{Iso}_{\text{MAC}}\right)$$
+
+##### 2. Thalamocortical & Cortico-cortical Connectivity
+*   **Thalamocortical Connectivity ($TC$)**: Models nonspecific thalamic relay integration. Disrupted by propofol, sevoflurane, isoflurane, and midazolam. Spared/enhanced by ketamine.
+    $$TC = \max\left(0, \min\left(1.0, 1.0 - 0.9 \cdot \text{Propofol}_{Ce} - 0.85 \cdot \text{Sevo}_{\text{MAC}} - 0.8 \cdot \text{Iso}_{\text{MAC}} - 0.7 \cdot \text{Midaz}_{Ce} + 0.15 \cdot \text{Ketamine}_{Ce}\right)\right)$$
+*   **Frontoparietal Feedback ($FP$)**: Causal top-down feedback connectivity, preferentially disrupted by all anesthetics.
+    $$FP = \max\left(0, \min\left(1.0, 1.0 - 0.95 \cdot \text{Propofol}_{Ce} - 0.9 \cdot \text{Sevo}_{\text{MAC}} - 0.85 \cdot \text{Iso}_{\text{MAC}} - 0.85 \cdot \text{Midaz}_{Ce} - 0.8 \cdot \text{Thio}_{Ce} - 0.7 \cdot \text{Ket}_{Ce}\right)\right)$$
+*   **Global Corticocortical Coherence ($CC$)**: Derived from top-down connectivity modulated by slow delta-wave power fragmentation.
+    $$CC = FP \cdot (1.0 - \min(0.8, \text{soPower} \cdot 0.1))$$
+
+##### 3. Receptor Binding & Memory Decay (Power-Law Model)
+*   **Receptor Occupancies**: Models hippocampal $\alpha_5$-GABA_A and dentate/thalamic $\alpha_4$-GABA_A receptor activation driving amnesia (blocked in knockouts).
+    $$\text{Occupancy}_{\alpha 5} = \frac{\text{Etomidate}_{\text{effective}} + \text{Iso}_{\text{MAC}}}{K_d + \text{Etomidate}_{\text{effective}} + \text{Iso}_{\text{MAC}}} \quad (K_d = 0.5)$$
+*   **Memory Encoding Strength ($\lambda$)**: Encodes new episodic traces. Driven by subcortical arousal levels, and depressed by thiopental, dexmedetomidine, midazolam, propofol, and scopolamine.
+    $$\lambda = \max\left(0, \text{Arousal}_{\text{base}} \cdot (1.0 - 0.85 \cdot \text{Thio}_{Ce} - 0.9 \cdot \text{Dex}_{Ce} - 0.75 \cdot \text{Midaz}_{\text{eff}} - 0.25 \cdot \text{Prop}_{Ce} - 0.85 \cdot \text{Scopo}_{Ce})\right)$$
+*   **Consolidation Failure Rate ($\psi$)**: Coefficient governing the power law decay of episodic memory ($m(t) = \lambda \cdot t^{-\psi}$). Controlled by GABAA receptor subunits.
+    $$\psi = 0.1 + 0.85 \cdot \text{Prop}_{Ce} + 0.8 \cdot \text{Midaz}_{\text{active}} + 0.4 \cdot \text{Sevo}_{\text{MAC}} + 0.4 \cdot \text{Iso}_{\text{MAC}}$$
+    *   *LTP Blockade*: If $\alpha_5$ or $\alpha_4$ GABAA activation is high, or propofol concentration is high ($C_e > 0.5$), Long-Term Potentiation is blocked, causing memory decay to accelerate instantly ($\psi \ge 3.5$).
+
+##### 4. Electrophysiology & Processed EEG Metrics
+*   **Event-Related Potentials (ERPs)**: Models voltage amplitudes of cortical responses.
+    *   *P300 / N2P3*: Depressed dose-dependently by propofol, midazolam, and dexmedetomidine.
+    *   *Primary Sensory P1*: Robustly spared ($4.0\text{ }\mu\text{V}$) across all anesthetic levels.
+*   **Processed EEG Parameters**:
+    *   *BIS (Bispectral Index)*: Approximated dynamically from pathway connectivities.
+        $$BIS = \text{bisBase} \cdot \left(1.0 - \frac{BSR}{100}\right) \quad \text{where } \text{bisBase} = 98 \cdot (TC \cdot 0.4 + FP \cdot 0.4 + \text{Arousal}_{\text{sub}} \cdot 0.2)$$
+    *   *SEF95 (Spectral Edge Frequency)*: Shifts from baseline wake ($30\text{ Hz}$) down to delta range as connectivity falls:
+        $$\text{SEF95} = \max\left(1.0, 30.0 \cdot \left(0.8 \cdot FP + 0.2 \cdot TC\right)\right) \cdot \left(1.0 - \frac{BSR}{100}\right)$$
+    *   *BSR (Burst Suppression Ratio)*: Active when MAC or drug concentration is extremely high, representing isoelectric flatline intervals alternating with delta burst waveforms.
+        $$BSR = \max\left(0, \min\left(100, \max\left((\text{MAC} - 1.5) \cdot 70, (\text{Prop}_{Ce} - 4.5) \cdot 20\right)\right)\right)$$
+
+#### 5.10 High-Fidelity Medication Data Table
+
+| Drug Name | Class / Type | PK Parameters ($V_1, k_{10}, ke_0$) | PD Parameters ($EC_{50}, \gamma$) | Primary Clinical Effect | Secondary Side Effects |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Propofol** | Sedative / Hypnotic | $V_1: 4.27\text{ L}$<br>$k_{10}: 0.443$<br>$ke_0: 1.2$ | $EC_{50}: 2.5\text{ mcg/mL}$<br>$\gamma: 2.0$ | GABA-A agonist. Triggers deep hypnosis, suppresses BIS to $<40$. | Direct venodilator. Decreases SVR (up to $-40\%$) and MAP. Induces apnea at $C_e \ge 2.5$. |
+| **Fentanyl** | Opioid Analgesic | $V_1: 13.0\text{ L}$<br>$k_{10}: 0.05$<br>$ke_0: 0.15$ | $EC_{50}: 0.002\text{ mcg/mL}$<br>$\gamma: 1.5$ | Mu-Opioid agonist. Robust analgesia, blunts laryngoscopy stress response. | Respiratory depressant. Blunts ventilatory drive. Induces apnea at $C_e \ge 0.003$. |
+| **Succinylcholine** | Depolarizing NMB | $V_1: 4.00\text{ L}$<br>$k_{10}: 0.80$<br>$ke_0: 1.6$ | $EC_{50}: 0.8\text{ mcg/mL}$<br>$\gamma: 3.0$ | Nicotinic AChR agonist. Ultra-rapid paralysis. TOF twitches fall to $0/4$ within 45s. | **Upregulated AChR Danger**: Triggers massive hyperkalemic potassium leak and cardiac arrest. |
+| **Rocuronium** | Non-Depolarizing NMB | $V_1: 5.50\text{ L}$<br>$k_{10}: 0.09$<br>$ke_0: 0.18$ | $EC_{50}: 1.2\text{ mcg/mL}$<br>$\gamma: 2.5$ | Competitive Nicotinic antagonist. Safe alternative to Sux. TOF twitches to $0/4$ in 90s. | Prolonged paralysis ($C_e > 1.2$ blocks twitches). Reversible with Sugammadex. |
+| **Epinephrine** | Vasopressor / Inotrope | $V_1: 5.00\text{ L}$<br>$k_{10}: 0.90$<br>$ke_0: 2.0$ | $EC_{50}: 0.08\text{ ng/mL}$<br>$\gamma: 1.5$ | $\alpha_1$, $\beta_1$, $\beta_2$ agonist. Profound raise in SVR ($+120\%$) and HR ($+60\%$). | Tachycardia, risks myocardial ischemia under high coronary demand. |
+| **Phenylephrine** | Pure Vasopressor | $V_1: 6.00\text{ L}$<br>$k_{10}: 0.30$<br>$ke_0: 0.8$ | $EC_{50}: 0.15\text{ ng/mL}$<br>$\gamma: 1.2$ | Pure $\alpha_1$ agonist. Raises SVR ($+80\%$). Treats vasoplegia. | Reflex bradycardia due to carotid baroreceptor trigger (HR drops up to $-25\%$). |
+| **Glycopyrrolate** | Anticholinergic | $V_1: 8.00\text{ L}$<br>$k_{10}: 0.12$<br>$ke_0: 0.4$ | $EC_{50}: 0.5\text{ mcg/mL}$<br>$\gamma: 1.5$ | Muscarinic antagonist. Increases HR, resolves hypoxemic bradycardia. | Mild tachycardia, xerostomia (dry mouth). |
+| **Calcium Chloride** | Electrolyte | Instant distribution | $EC_{50}: N/A$<br>$\gamma: N/A$ | Myocardial membrane stabilizer. Counteracts potassium hyperkalemia danger. | Negligible at therapeutic doses. |
+| **Methylphenidate** | Dopamine Agonist / CNS Stimulant | $V_1: 15.00\text{ L}$<br>$k_{10}: 0.08$<br>$ke_0: 1.0$ | $EC_{50}: 2.0\text{ ng/mL}$<br>$\gamma: 1.5$ | Dopamine/norepinephrine reuptake inhibitor. Reverses/accelerates emergence via VTA activation. | Tachycardia, hypertension (systolic/diastolic elevations). |
+| **Atipamezole** | Alpha-2 Antagonist | $V_1: 10.00\text{ L}$<br>$k_{10}: 0.10$<br>$ke_0: 1.0$ | $EC_{50}: 1.0\text{ ng/mL}$<br>$\gamma: 1.0$ | Specific competitive $\alpha_2$ antagonist. Specifically reverses sedation and cardiovascular actions of dexmedetomidine. | Mild tachycardia, transient hypertension. |
+| **Scopolamine** | Anticholinergic / Amnestic | $V_1: 15.00\text{ L}$<br>$k_{10}: 0.04$<br>$ke_0: 0.5$ | $EC_{50}: 0.05\text{ ng/mL}$<br>$\gamma: 1.5$ | Muscarinic antagonist. Crosses blood-brain barrier. Induces profound anterograde amnesia. | Mild tachycardia, accelerates hippocampal theta frequency while decreasing power. |
 
 ---
 
-### 6. Event Trigger & Clinical Scenarios Engine
+### 6. Event Trigger, Clinical Scenarios & Workflow Engine
 
-#### 6.1 Laryngospasm & Bronchospasm Spasmodic Reflex Loops
-*   **Trigger Conditions**: Airway manipulation (e.g. laryngoscopy, suctioning, or extubation) under inadequate anesthesia ($BAR_{\text{suppression}} < 0.50$) without muscle relaxation ($isParalyzed = false$) has a $5\%$ chance per second to trigger laryngospasm or bronchospasm.
+#### 6.1 Pre-induction Workflow Interlock (MSMAIDS Checklist)
+A strict, high-fidelity safety interlock prevents entry into the **Induction** phase unless all preparation criteria are met.
+
+```mermaid
+graph TD
+    A[Request Induction Phase] --> B{Emergent RSI Case?}
+    B -->|Yes| C[Bypass Interlock: Transition Active]
+    B -->|No| D{MSMAIDS 100% Completed?}
+    D -->|Yes| E[Allow Transition: Induction Initiated]
+    D -->|No| F[Block Transition: Warning Logged + Open Checklist Modal]
+```
+
+*   **Standard Elective Rule**: Transition to the "Induction" surgical phase is **locked** unless the MSMAIDS checklist is 100% complete.
+*   **The MSMAIDS Checklist Structure**:
+    *   **M**achine: Check anesthesia ventilator, circuit, and $O_2$ cylinders.
+    *   **S**uction: Ensure working suction catheter is accessible at head of bed.
+    *   **M**onitor: Apply ECG, NIBP, and Pulse Oximetry.
+    *   **A**irway: Verify blade size, ETT cuff, stylet, and adjuncts are checked.
+    *   **I**V: Ensure working large-bore intravenous access is flushed.
+    *   **D**rugs: Confirm labeled induction agents, paralytics, and emergency vasopressors are drawn.
+    *   **S**afety / Special: Confirm active case context, consent, and airway plan.
+*   **Emergent RSI Exception Bypass**: If the case is flagged as an emergent **Rapid Sequence Intubation (RSI)** (e.g. trauma, emergent C-section presets), the safety interlock is automatically bypassed.
+
+#### 6.2 Airway Assessment & Direct Laryngoscopy Glottic Visualization
+*   **Airway Assessment Metrics**:
+    *   *Mallampati Score*: Grade I to IV (Grade IV significantly reduces glottic exposure).
+    *   *Neck Mobility*: Normal or Reduced (limits extension, worsening Cormack-Lehane visual grades).
+    *   *Airway Blood*: Traumatic hemorrhage obscures visualization unless actively suctioned.
+*   **Glottic Exposure (Cormack-Lehane Grade)**:
+    *   **Grade 1**: Full view of vocal cords (easy intubation).
+    *   **Grade 2**: Partial view of cords/arytenoids.
+    *   **Grade 3**: Epiglottis only visible (requires airway adjunct like Bougie or Stylet).
+    *   **Grade 4**: No airway structures visible (requires rescue ventilation or surgical cricothyroidotomy).
+*   **Tracheal Intubation Verification**:
+    1.  **End-Tidal Capnography ($EtCO_2$)**: Positive, sustained capnogram waveform over multiple breaths.
+    2.  **Auscultation**: Bilateral breath sounds present, gastric sounds absent.
+    3.  **Inspection**: Symmetrical chest rise, visible condensation misting in the tube.
+
+#### 6.3 Laryngospasm & Bronchospasm Spasmodic Reflex Loops
+*   **Trigger Conditions**: Airway manipulation under inadequate anesthesia ($BAR_{\text{suppression}} < 0.50$) without muscle relaxation ($isParalyzed = false$) has a $5\%$ chance per second to trigger laryngospasm or bronchospasm.
 *   **Physiological Impact**:
     *   *Laryngospasm*: Vocal cords snap shut. Compliance falls to $2\text{ mL/cmH2O}$, and resistance rises to $999\text{ cmH2O/L/s}$ (complete airway obstruction).
     *   *Bronchospasm*: Airway smooth muscle constricts. Compliance is halved, and resistance increases by $40\text{ cmH2O/L/s}$.
 *   **Resolution Criteria**:
-    *   *Laryngospasm*: Resolves if the patient is paralyzed ($Occupancy > 0.90$), anesthetized deeply ($MAC > 1.2$), or if a Larson's jaw-thrust maneuver is performed.
-    *   *Bronchospasm*: Resolves if the patient is anesthetized deeply ($MAC > 1.2$) or if Epinephrine is administered ($Ce > 0.01$).
+    *   *Laryngospasm*: Resolves if paralyzed ($Occupancy > 0.90$), anesthetized deeply ($MAC > 1.2$), or Larson's jaw-thrust maneuver performed.
+    *   *Bronchospasm*: Resolves if anesthetized deeply ($MAC > 1.2$) or Epinephrine administered ($Ce > 0.01$).
 
-#### 6.2 IgE-Mediated Anaphylactic Shock Vasoplegia
+#### 6.4 IgE-Mediated Anaphylactic Shock Vasoplegia
 *   **Trigger Condition**: Administering a penicillin-containing drug (Ampicillin/Sulbactam) to a patient with a documented penicillin allergy.
 *   **Physiological Impact**: Triggers immediate anaphylaxis, causing vasoplegia and bronchospasm:
     *   *Vasoplegia*: SVR is severely reduced:
         $$SVR_{\text{multiplier}} = 0.25 + 0.75 \cdot e^{-0.05 \cdot dt_{\text{anaphylaxis}}}$$
-    *   *Bronchospasm & Tachycardia*: Compliance falls, airway resistance rises, and heart rate increases:
+    *   *Bronchospasm & Tachycardia*: Compliance falls, resistance rises, and heart rate increases:
         $$\text{Compliance}_{\text{penalty}} = 45 \cdot (1 - e^{-0.08 \cdot dt_{\text{anaphylaxis}}})$$
         $$\text{Resistance}_{\text{penalty}} = 45 \cdot (1 - e^{-0.08 \cdot dt_{\text{anaphylaxis}}})$$
         $$HR_{\text{penalty}} = 40 \cdot (1 - e^{-0.08 \cdot dt_{\text{anaphylaxis}}})$$
-*   **Treatment**: Epinephrine resolves the reaction:
-    $$Recovery = \min(1.0, Ce_{\text{Epi}} \cdot 12)$$
-    Penalties are reduced by $(1 - Recovery)$. Once $Recovery > 0.80$, the reaction resolves.
+*   **Treatment**: Epinephrine resolves the reaction ($Recovery = \min(1.0, Ce_{\text{Epi}} \cdot 12)$). Penalties are reduced by $(1 - Recovery)$. Once $Recovery > 0.80$, the reaction resolves.
 
-#### 6.3 Gastric Aspiration Chemical Pneumonitis
-*   **Trigger Condition**: Delivering positive pressure ventilation (PPV, such as mechanical breaths or bag ventilation with $PIP > 15\text{ cmH2O}$) to a patient with a full stomach before the airway is secured.
-*   **Physiological Impact**: Positive pressure forces gas into the esophagus, causing gastric regurgitation and aspiration of acidic stomach contents:
+#### 6.5 Gastric Aspiration Chemical Pneumonitis
+*   **Trigger Condition**: Delivering positive pressure ventilation ($PIP > 15\text{ cmH2O}$) to a patient with a full stomach before the airway is secured.
+*   **Physiological Impact**: Forces gas into the esophagus, causing gastric regurgitation and aspiration of acidic stomach contents:
     *   Triggers immediate chemical pneumonitis and bronchospasm.
     *   Compliance falls by $30\text{ mL/cmH2O}$, and resistance increases by $25\text{ cmH2O/L/s}$.
-*   **Mitigation**: Suctioning the pharynx while the patient is in the Trendelenburg position (head-down) clears aspirated fluids, reducing the compliance penalty to $10$ and the resistance penalty to $8$.
+*   **Mitigation**: Suctioning the pharynx while the patient is in the Trendelenburg position (head-down) clears aspirated fluids, reducing compliance penalty to $10$ and resistance penalty to $8$.
 
-#### 6.4 Active Metabolite Accumulation & Neurotoxicity (Seizures)
+#### 6.6 Active Metabolite Accumulation & Neurotoxicity (Seizures)
 *   **Active Metabolite Kinetics**: Primary medications undergo hepatic metabolism to form active metabolites, which are cleared by the kidneys:
-    $$\frac{d(\text{Metabolite})}{dt} = Ce_{\text{parent}} \cdot 0.01 - 0.002 \cdot \text{renalMult}$$
-    *   *Renal Failure Modifier ($renalMult$)*: Standard is $1.0$. In renal failure, this falls to $0.1$, causing metabolites to accumulate.
+    $$\frac{d(\text{Metabolite})}{dt} = Ce_{\text{parent}} \cdot 0.01 - 0.002 \cdot \text{renalMult} \quad \text{where } \text{renalMult} = 0.1 \text{ in renal failure}$$
 *   **Metabolite Pathways**:
     1.  *Vecuronium* metabolism yields **3-desacetylvecuronium (3-OH-vecuronium)**, which retains $80\%$ of the parent drug's paralytic potency. Accumulation prolongs paralysis.
-    2.  *Morphine* metabolism yields **Morphine-6-glucuronide (M6G)**. If $M6G > 0.8\text{ mcg/mL}$, it triggers central respiratory depression, reducing respiratory rate:
-        $$RR_{\text{offset}} = -10 \quad \text{[breaths/min]}$$
-    3.  *Meperidine* metabolism yields **Normeperidine**. If $Normeperidine > 1.2\text{ mcg/mL}$, it causes central nervous system hyper-excitation, triggering tonic-clonic seizures (`isSeizure = true`) and multiplying the metabolic rate by $8.0$ ($seizureMultiplier = 8.0$).
+    2.  *Morphine* metabolism yields **Morphine-6-glucuronide (M6G)**. If $M6G > 0.8\text{ mcg/mL}$, it triggers central respiratory depression, reducing respiratory rate: $RR_{\text{offset}} = -10$ bpm.
+    3.  *Meperidine* metabolism yields **Normeperidine**. If $Normeperidine > 1.2\text{ mcg/mL}$, it causes central nervous system hyper-excitation, triggering tonic-clonic seizures (`isSeizure = true`) and multiplying the metabolic rate by $8.0$.
 
-#### 6.5 Local Anesthetic Systemic Toxicity (LAST) & Cyanide Toxicity
-*   **LAST**: Lidocaine infusion at high doses carries a risk of Local Anesthetic Systemic Toxicity. It blocks cardiac sodium channels, causing central nervous system excitation (seizures) followed by cardiac depression (bradycardia, conduction blocks, and asystole).
+#### 6.7 Local Anesthetic Systemic Toxicity (LAST) & Cyanide Toxicity
+*   **LAST**: Lidocaine infusion at high doses blocks cardiac sodium channels, causing central nervous system excitation (seizures) followed by cardiac depression (bradycardia, conduction blocks, and asystole).
 *   **Cyanide Toxicity**: Nitroprusside infusion at high rates ($Ce > 1.5$) causes cyanide ions to accumulate:
     $$\frac{d(\text{Cyanide})}{dt} = +Ce_{\text{Nip}} \cdot 0.002 \quad (\text{clears by } 0.005\text{ units/s if infusion stopped})$$
-    *   Cyanide binds to cytochrome c oxidase, disabling aerobic metabolism. Oxygen consumption falls ($cyanideVO2Mod = \max(0.1, 1.0 - \text{Cyanide} \cdot 2.0)$), causing severe lactic acidosis. SpO2 remains locked at $100\%$ because oxygen cannot be extracted from hemoglobin.
+    Cyanide binds to cytochrome c oxidase, disabling aerobic metabolism. Oxygen consumption falls ($cyanideVO2Mod = \max(0.1, 1.0 - \text{Cyanide} \cdot 2.0)$), causing severe lactic acidosis. SpO2 remains locked at $100\%$ because oxygen cannot be extracted from hemoglobin.
 
-#### 6.6 Serotonin Syndrome Hyperpyrexia
-*   **Trigger Condition**: Co-administration of Meperidine (a weak serotonin reuptake inhibitor) and a Monoamine Oxidase Inhibitor (MAOI, e.g. Phenelzine, Selegiline).
-*   **Physiological Impact**: Triggers fatal hyperpyrexic Serotonin Syndrome:
-    *   Core body temperature rises rapidly:
-        $$\frac{d(\text{Temp})}{dt} = +0.05^{\circ}\text{C/s} \quad (3.0^{\circ}\text{C/min})$$
+#### 6.8 Serotonin Syndrome Hyperpyrexia
+*   **Trigger Condition**: Co-administration of Meperidine (a weak serotonin reuptake inhibitor) and a Monoamine Oxidase Inhibitor (MAOI).
+*   **Physiological Impact**: Triggers hyperpyrexic Serotonin Syndrome:
+    *   Core body temperature rises rapidly: $\frac{d(\text{Temp})}{dt} = +0.05^{\circ}\text{C/s}$ ($3.0^{\circ}\text{C/min}$).
     *   Once core temperature exceeds $42.0^{\circ}\text{C}$, the myocardium fails, triggering cardiac arrest (Asystole).
 
-#### 6.7 Belmont IO Blowout & Arterial Injection Safety Interlocks
+#### 6.9 Belmont IO Blowout & Arterial Injection Safety Interlocks
 *   **Belmont IO Blowout**: Connecting a Belmont Rapid Infuser to an Intraosseous (IO) line or narrow peripheral IV ($\le 20\text{G}$) causes a pressure blowout. The Belmont infuser generates high pressures ($300\text{ mmHg}$) and flows ($500\text{ mL/min}$). Pushing this volume into a rigid bone cavity or small vein causes immediate vascular blowout, extravasation, and loss of access.
 *   **Arterial Injection Block**: Injecting resuscitation fluids or medications into an arterial line is blocked by safety loops. Arterial lines are used strictly for blood pressure monitoring and blood draws. Direct arterial injection triggers severe arterial vasospasm, endothelial damage, and distal limb ischemia/necrosis.
+
+#### 6.10 Connected Intraoperative Awareness & Neuro-Cognitive Crises
+*   **Connected Intraoperative Awareness**:
+    *   *Trigger Conditions*: Patient is fully paralyzed ($\text{NMB Occupancy} > 90\%$), under-anesthetized ($\text{MAC} < 0.4$ and $\text{Propofol } C_e < 0.8$), and exposed to surgical incision/stimulus.
+    *   *Physiological Impact*: Triggers a profound sympathetic storm (heart rate increases by $+35\text{ bpm}$, SBP/DBP increases by $+45\text{ mmHg}$). Catecholamines surge, and a PTSD risk score accumulates (`ptsdScore` increases by $1.2$ units/second).
+    *   *Mitigation / Resolution*: Raising anesthetic depth (MAC $> 0.8$ or Propofol $C_e > 1.5$) deactivates awareness. Administering midazolam ($C_e > 0.08$) blocks memory consolidation ($\psi > 3.0$), stopping explicit memory formation and freezing PTSD risk score progression.
+*   **Retrograde Facilitation**:
+    *   *Trigger Conditions*: Episodic memory items encoded in pre-op, followed by low-dose sedatives (propofol $C_e < 0.5$ or midazolam $C_e < 0.05$).
+    *   *Physiological Impact*: Blockade of new LTP prevents retroactive interference, freeing consolidation resources and increasing memory retention of pre-induction items by $+30\%$ (`retrogradeFacilitationRatio = 1.3`).
+*   **Reconsolidation Window Memory Modulatory Erasure**:
+    *   *Trigger Conditions*: Presentation of a fear memory retrieval cue opens a 10-minute (600s) reconsolidation window.
+    *   *Physiological Impact*: Administration of low-dose sevoflurane or midazolam during this window disrupts protein synthesis required for restabilization, causing gradual decay of fear memory strength (`fearConditioning` decreases by $0.005$ units/second).
+*   **Emergence Lag & Hysteresis**:
+    *   *Trigger Conditions*: A sleep-promoting pressure (orexin deficiency/narcolepsy or high residual drug levels) induces a neural inertia emergence lag.
+    *   *Resolution*: Emergence is accelerated by administering methylphenidate (dopaminergic stimulation of VTA) or by normal drug clearance.
+
+---
+
+### 7. Attending Direct Chat, Advisor & NLP Engine
+
+The simulator incorporates an interactive **Attending Physician AI Engine** combining real-time physiological diagnostics with an active natural language processing (NLP) chat portal.
+
+#### 7.1 Automated Guidance Evaluator (`AttendingEngine.js`)
+Every clock tick, the advisor checks the simulator parameters to offer actionable suggestions:
+*   *Vitals Watch*: Flags severe hypotension ($MAP < 60\text{ mmHg}$), severe hypoxemia ($SpO_2 < 90\%$), or profound bradycardia.
+*   *Timeline Compliance*: Checks if MSMAIDS is bypassed or incomplete under non-emergent timelines.
+*   *NMB Monitoring*: Flags attempting intubation without muscle relaxation (TOF 4/4) or warning of succinylcholine hyperkalemia risks.
+
+#### 7.2 Conversational NLP Chat Portal (`ClinicalAiChat.js`)
+The chat panel exposes a premium chat interface where users submit free-form questions. The response generator uses active simulator state values to formulate advice:
+1.  **State-Driven Diagnostics**: Querying *"Why is the blood pressure low?"* evaluates current active vasoactive medications, Propofol effect-site concentration, and systemic vascular resistance ($SVR$), identifying if the hypotension is venodilative (Propofol-induced) or hemorrhagic.
+2.  **Click-to-Execute Action Badges**: Attending responses are parsed by `parseAndRenderText` which extracts specific keywords (e.g. `epinephrine`, `rocuronium`, `suction airway`, `review chart`, `live labs`) and transforms them into active clinical button badges. Clicking a badge executes the procedure or panel transition directly in the UI.
 
 ---
 
 ## STAGE 3: STATE MANAGEMENT, INGESTION PIPELINES, & BOUNDARY CONDITIONS
 
-### 7. Full Application State Tree
+### 8. Full Application State Tree
 
 The following lists the exact variables, structures, and data types stored in the active React coordinate state hooks and ref state bridge memory during a simulation session:
 
-#### 7.1 Global Application Hooks (`App.jsx`)
+#### 8.1 Global Application Hooks (`App.jsx`)
 *   `activeCase`: `Object | null` (Active scenario config properties, including baseline vitals, patient descriptions).
 *   `isRunning`: `boolean` (Active simulation execution clock running state).
 *   `nibp`: `Object` (Last measured cuff blood pressure and timestamp):
-    *   `sys`: `number` (Systolic pressure in mmHg)
-    *   `dia`: `number` (Diastolic pressure in mmHg)
-    *   `time`: `number` (Simulation time clock second)
+    *   `sys`: `number`, `dia`: `number`, `time`: `number`
 *   `nibpIntervalMs`: `number` (Periodic automatic cuff cycle frequency in ms, e.g. $60000$ for 1 minute).
 *   `logs`: `string[]` (Chronological console notifications log history).
 *   `history`: `Object[]` (Chronological stack of snapshot objects for the undo history stack). Each entry contains:
     *   `appState`: `Object` (Vitals, vent settings, logs)
     *   `engineSnapshot`: `Object` (Serialized snapshot of the physiology engine states)
-*   `labs`: `Record<string, Record<string, { val: string; ref: string; unit: string }>>` (Ordered diagnostic panels, e.g. ABG, CBC, CMP, TEG with current values and normal reference limits).
+*   `labs`: `Record<string, Record<string, { val: string; ref: string; unit: string }>>` (ABG, CBC, CMP, TEG).
 *   `showLabPanel`: `boolean` (Diagnostic panel visibility overlay).
 *   `showFidelityPanel`: `boolean` (Fidelity Auditor overlay visibility).
 *   `airwayQuizModal`: `Object` (Airway Mallampati diagnostic quiz state):
-    *   `show`: `boolean`
-    *   `description`: `string`
-    *   `trueMallampati`: `number` (1 to 4)
+    *   `show`: `boolean`, `description`: `string`, `trueMallampati`: `number` (1 to 4)
 *   `accessModal`: `Object` (Vascular access line placement UI modal category state):
-    *   `show`: `boolean`
-    *   `category`: `string` ('Peripheral IV', 'Central Line', 'Intraosseous (IO)', 'Arterial Line')
+    *   `show`: `boolean`, `category`: `string` ('Peripheral IV', 'Central Line', 'Intraosseous (IO)', 'Arterial Line')
 *   `tubeConfirmModal`: `Object` (Auscultation confirmation box state):
-    *   `show`: `boolean`
-    *   `result`: `string`
+    *   `show`: `boolean`, `result`: `string`
 *   `viewModal`: `Object` (Glottic laryngoscopy video overlay state):
-    *   `show`: `boolean`
-    *   `blade`: `string`
-    *   `bladeSize`: `string`
-    *   `tubeSize`: `string`
-    *   `adjunct`: `string`
-    *   `description`: `string`
-    *   `trueGrade`: `number` (Cormack-Lehane Grade 1 to 4)
+    *   `show`: `boolean`, `blade`: `string`, `bladeSize`: `string`, `tubeSize`: `string`, `adjunct`: `string`, `description`: `string`, `trueGrade`: `number` (Cormack-Lehane Grade 1 to 4)
 *   `setupModal`: `boolean` (Laryngoscopy blade setup overlay toggle).
 *   `pocusModal`: `Object` (POCUS ultrasound display):
-    *   `show`: `boolean`
-    *   `title`: `string`
-    *   `finding`: `string`
+    *   `show`: `boolean`, `title`: `string`, `finding`: `string`
 *   `isCyclingNibp`: `boolean` (Indicates active 15s non-invasive cuff cycle).
 *   `isAirwayCollapsed`: `boolean` (Indicates complete soft tissue upper airway obstruction).
-*   `preopModal`: `boolean` (Preoperative assessment summary modal).
-*   `preOpEMR`: `boolean` (Clinical electronic medical chart summary modal).
-*   `showPreOp`: `boolean` (Preoperative chart panel visibility).
+*   `preopModal`: `boolean`, `preOpEMR`: `boolean`, `showPreOp`: `boolean`
 *   `stagedCase`: `Object | null` (Config staged for initialization).
-*   `msmaidsModal`: `boolean` (Pre-induction safety checklist modal).
-*   `msmaidsComplete`: `boolean` (State indicating MSMAIDS check verification).
+*   `msmaidsModal`: `boolean`, `msmaidsComplete`: `boolean`
 *   `attendingMode`: `string` ('observing' | 'coaching' | 'teaching').
-*   `postIntubationModal`: `boolean` (Ventilator connection and tube check modal).
-*   `extubationModal`: `boolean` (Extubation sequence modal).
-*   `ekgModalOpen`: `boolean` (Multi-lead ECG layout selector modal).
+*   `postIntubationModal`: `boolean`, `extubationModal`: `boolean`, `ekgModalOpen`: `boolean`
 *   `ventSettings`: `Object` (Ventilator manifold dial values):
     *   `mode`: `string` ('PCV-VG', 'VCV', 'PCV', 'PSV')
-    *   `vt`: `number` (Tidal volume in mL)
-    *   `rr`: `number` (Mechanical rate in breaths/min)
-    *   `peep`: `number` (Positive End-Expiratory Pressure in cmH2O)
-    *   `fio2`: `number` (Inspired oxygen fraction 21 to 100)
-    *   `pinsp`: `number` (Inspiratory pressure driving limit in cmH2O)
-    *   `ieRatio`: `number` (Inspiratory to expiratory time ratio denominator)
-    *   `pmax`: `number` (High pressure ventilator relief limit)
-    *   `ps`: `number` (Pressure support elevation in cmH2O)
-    *   `air`: `number` (Air flow liters)
-    *   `o2`: `number` (Oxygen flow liters)
+    *   `vt`: `number`, `rr`: `number`, `peep`: `number`, `fio2`: `number`, `pinsp`: `number`, `ieRatio`: `number`, `pmax`: `number`, `ps`: `number`, `air`: `number`, `o2`: `number`
 *   `gasSettings`: `Object` (Anesthetic vaporizer manifold dials):
-    *   `agent`: `string` ('sevoflurane', 'isoflurane', 'desflurane')
-    *   `dial`: `number` (Vaporizer dial percentage)
-    *   `airFlow`: `number` (Air fresh gas flow in L/min)
-    *   `o2Flow`: `number` (Oxygen fresh gas flow in L/min)
-    *   `n2oFlow`: `number` (Nitrous oxide fresh gas flow in L/min)
+    *   `agent`: `string`, `dial`: `number`, `airFlow`: `number`, `o2Flow`: `number`, `n2oFlow`: `number`
 *   `defibSettings`: `Object` (ACLS shock configurations):
-    *   `joules`: `number` (Defibrillator charge level 50 to 360)
-    *   `sync`: `boolean` (Cardioversion R-wave sync toggle)
+    *   `joules`: `number`, `sync`: `boolean`
 
-#### 7.2 Core Physiology Engine State Bridge Ref (`stateRef.current`)
+#### 8.2 Core Physiology Engine State Bridge Ref (`stateRef.current`)
 *   `time`: `number` (Running simulation second).
 *   `vitals`: `Object` (Primary vital signs parameters updated by loops):
-    *   `hr`: `number` (Heart rate in bpm)
-    *   `sys`: `number` (Systolic arterial blood pressure in mmHg)
-    *   `dia`: `number` (Diastolic arterial blood pressure in mmHg)
-    *   `map`: `number` (Mean arterial blood pressure in mmHg)
-    *   `co`: `number` (Cardiac Output in L/min)
-    *   `svr`: `number` (Systemic Vascular Resistance in dynes)
-    *   `cmap`: `number` (Cerebral hydrostatic MAP in mmHg)
-    *   `bis`: `number` (Bispectral index brain arousal level 0 to 100)
-    *   `temp`: `number` (Core body temperature in °C)
-    *   `spo2`: `number` (Pulse oximeter arterial saturation in %)
-    *   `paco2`: `number` (Arterial CO2 partial pressure in mmHg)
-    *   `etco2`: `number` (End-tidal expired CO2 in mmHg)
-    *   `pip`: `number` (Peak airway pressure in cmH2O)
-    *   `pplat`: `number` (Plateau airway pressure in cmH2O)
-    *   `vte`: `number` (Exhaled tidal volume in mL)
-    *   `pmean`: `number` (Mean airway pressure in cmH2O)
-    *   `mv`: `number` (Minute ventilation in L/min)
-    *   `peep`: `number` (Mechanical PEEP level in cmH2O)
-    *   `tofCount`: `number` (TOF count twitches 0 to 4)
-    *   `tofRatio`: `number` (TOF fading ratio fraction 0.0 to 1.0)
-    *   `mac`: `number` (Alveolar minimum alveolar concentration sum)
-    *   `etAgent`: `number` (End-tidal volatile concentration %)
-    *   `etN2O`: `number` (End-tidal nitrous oxide concentration %)
-    *   `pao2`: `number` (Arterial oxygen partial pressure in mmHg)
-    *   `metHb`: `number` (Methemoglobin percentage %)
-    *   `coHb`: `number` (Carboxyhemoglobin percentage %)
-    *   `cyanide`: `number` (Cyanide ion concentration in mcg/mL)
-    *   `lacticAcid`: `number` (Serum lactic acid in mmol/L)
-    *   `cao2`: `number` (Arterial oxygen content in mL O2 / dL blood)
-    *   `cvo2`: `number` (Mixed venous oxygen content in mL O2 / dL blood)
-    *   `p50`: `number` (Hemoglobin p50 affinity value, standard $26.6$)
-    *   `r_ratio`: `number` (Pulse oximeter absorbance ratio)
+    *   `hr`: `number`, `sys`: `number`, `dia`: `number`, `map`: `number`, `co`: `number`, `svr`: `number`, `cmap`: `number`, `bis`: `number`, `temp`: `number`, `spo2`: `number`, `paco2`: `number`, `etco2`: `number`, `pip`: `number`, `pplat`: `number`, `vte`: `number`, `pmean`: `number`, `mv`: `number`, `peep`: `number`, `tofCount`: `number`, `tofRatio`: `number`, `mac`: `number`, `etAgent`: `number`, `etN2O`: `number`, `pao2`: `number`, `metHb`: `number`, `coHb`: `number`, `cyanide`: `number`, `lacticAcid`: `number`, `cao2`: `number`, `cvo2`: `number`, `p50`: `number`, `r_ratio`: `number`
+    *   `sef95`: `number` (Spectral edge frequency in Hz)
+    *   `bsr`: `number` (Burst suppression ratio percentage 0 to 100)
+    *   `p300Amplitude`: `number`, `n2p3Amplitude`: `number`, `p2Amplitude`: `number`, `oldNewEffect`: `number`, `mismatchNegativity`: `number`, `p1Amplitude`: `number`, `n2Latency`: `number` (EEG ERP parameters)
 *   `targetVitals`: `Object` (Physiological target attractor baseline values).
 *   `patient`: `Object` (State flags, clinical modifiers, and anthropometric data):
     *   `age`: `number`, `sex`: `string`, `weight`: `number`, `height`: `number`
-    *   `ibw`: `number` (Ideal body weight in kg)
-    *   `bmi`: `number` (Body mass index)
-    *   `ebv`: `number` (Estimated blood volume in mL)
-    *   `ebl`: `number` (Estimated blood loss in mL)
-    *   `bleedRate`: `number` (Passive blood loss rate in mL/s)
-    *   `oxygenBuffer`: `number | null` (Active FRC oxygen volume in Liters)
-    *   `airwayBlood`: `boolean` (Active blood in airway obscuring laryngoscopy)
-    *   `isObese`: `boolean` (Morbid obesity FRC penalty modifier)
-    *   `isSeptic`: `boolean` (Vasodilatory shock modifier)
-    *   `hasCCollar`: `boolean` (Cervical spine collar restriction)
-    *   `stomach`: `string` ('empty' | 'full')
-    *   `limitedMouth`: `boolean` (Temporomandibular joint restriction)
-    *   `trauma`: `boolean` (Trauma case context)
-    *   `chronicBetaBlockade`: `boolean` (Blocks compensatory tachycardia reflex)
-    *   `chronicHTN`: `boolean` (Raises baseline setpoint of baroreceptors)
-    *   `highAnxiety`: `boolean` (Increases baseline catecholamines)
-    *   `hasALine`: `boolean` (Active arterial line vascular access)
-    *   `hasCVC`: `boolean` (Active central line venous access)
-    *   `hasIV`: `boolean` (Active peripheral venous access)
-    *   `currentO2Device`: `string` (Active oxygen administration device)
-    *   `currentFiO2`: `number` (Delivered oxygen percentage)
-    *   `currentO2Flow`: `number` (Oxygen flow in L/min)
-    *   `isApneic`: `boolean`, `isParalyzed`: `boolean`, `isTopicalized`: `boolean`
-    *   `airwaySecured`: `boolean`, `airwayExamined`: `boolean`
-    *   `ventilationStatus`: `string` ('none' | 'assisted' | 'successful' | 'failed' | 'spontaneous')
-    *   `tubePosition`: `string | null` ('trachea' | 'right_mainstem' | 'left_mainstem' | 'esophagus' | `null`)
-    *   `isCuffDeflated`: `boolean` (ETT cuff pressure state)
-    *   `bmvOptimized`: `boolean` (Airway airway adjuncts applied)
-    *   `vec3oh`: `number` (Accumulated 3-OH-vecuronium metabolite concentration)
-    *   `normep`: `number` (Accumulated Normeperidine metabolite concentration)
-    *   `m6g`: `number` (Accumulated Morphine-6-glucuronide metabolite concentration)
-    *   `isSeizure`: `boolean` (Active seizure state)
-    *   `calciumStabilized`: `boolean` (Cardiac membrane stabilized flag)
-    *   `calciumStabilizedTime`: `number` (Timestamp of calcium administration)
-    *   `bradycardiaTriggered`: `boolean` (Muscarinic bradycardia activation)
-    *   `bradycardiaTime`: `number` (Timestamp of bradycardia onset)
-    *   `laryngospasm`: `boolean`, `bronchospasm`: `boolean`, `isBucking`: `boolean`
-    *   `C_cat`: `number` (Endogenous catecholamine level)
-    *   `MAP_set`: `number` (Baroreceptor MAP attractor setpoint)
-    *   `bloodBank`: `Object` (Blood bank dispatch tracker):
-        *   `status`: `string` ('none' | 'ordered' | 'available')
-        *   `unitsInOR`: `number` (PRBC units cooler count)
-        *   `deliveryCountdown`: `number` (ETA seconds remaining)
-        *   `totalDeliveryTime`: `number` (Initial ETA limit)
-        *   `pendingUnits`: `number` (Units dispatched)
-        *   `preOpWorkup`: `string` ('crossmatch' | 'screen' | 'none')
-    *   `accessLines`: `Object[]` (Installed lines). Each entry contains:
-        *   `id`: `string`, `name`: `string`, `category`: `string`, `type`: `string`, `location`: `string`
-        *   `radius`: `number` (catheter internal radius in mm)
-        *   `length`: `number` (catheter length in mm)
-        *   `venousPressure`: `number` (venous back-pressure in mmHg)
-        *   `veinResistance`: `number` (venous outflow resistance)
-        *   `fluidLine`: `string` ('gravity' | 'ranger' | 'belmont')
-        *   `failed`: `boolean` (Blown access line indicator)
-        *   `activeInfusions`: `Object[]` (Infusions running). Each entry contains:
-            *   `id`: `string`, `name`: `string`, `remainingVolume`: `number` (mL), `startingVolume`: `number` (mL), `userRate`: `number | undefined` (mL/hr pump cap), `currentRate`: `number` (mL/hr)
-        *   `activeMedInfusions`: `Object[]` (Medication infusions running). Each entry contains:
-            *   `medId`: `string`, `rate`: `number`, `unit`: `string`
+    *   `ibw`: `number`, `bmi`: `number`, `ebv`: `number`, `ebl`: `number`, `bleedRate`: `number`
+    *   `oxygenBuffer`: `number | null`, `airwayBlood`: `boolean`, `isObese`: `boolean`, `isSeptic`: `boolean`, `hasCCollar`: `boolean`, `stomach`: `string` ('empty' | 'full'), `limitedMouth`: `boolean`, `trauma`: `boolean`, `chronicBetaBlockade`: `boolean`, `chronicHTN`: `boolean`, `highAnxiety`: `boolean`, `hasALine`: `boolean`, `hasCVC`: `boolean`, `hasIV`: `boolean`, `currentO2Device`: `string`, `currentFiO2`: `number`, `currentO2Flow`: `number`
+    *   `isApneic`: `boolean`, `isParalyzed`: `boolean`, `isTopicalized`: `boolean`, `airwaySecured`: `boolean`, `airwayExamined`: `boolean`, `ventilationStatus`: `string` ('none' | 'assisted' | 'successful' | 'failed' | 'spontaneous'), `tubePosition`: `string | null` ('trachea' | 'right_mainstem' | 'left_mainstem' | 'esophagus' | `null`), `isCuffDeflated`: `boolean`, `bmvOptimized`: `boolean`
+    *   `vec3oh`: `number`, `normep`: `number`, `m6g`: `number`, `isSeizure`: `boolean`, `calciumStabilized`: `boolean`, `calciumStabilizedTime`: `number`, `bradycardiaTriggered`: `boolean`, `bradycardiaTime`: `number`, `laryngospasm`: `boolean`, `bronchospasm`: `boolean`, `isBucking`: `boolean`
+    *   `C_cat`: `number` (Endogenous catecholamine level), `MAP_set`: `number` (Baroreceptor MAP attractor setpoint)
+    *   `bloodBank`: `Object` (status, unitsInOR, deliveryCountdown, totalDeliveryTime, pendingUnits, preOpWorkup)
+    *   `accessLines`: `Object[]` (id, name, category, type, location, radius, length, venousPressure, veinResistance, fluidLine, failed, activeInfusions, activeMedInfusions)
+    *   `lcActivity`: `number` (Locus Ceruleus noradrenergic activity 0.0-1.0)
+    *   `tmnActivity`: `number` (Tuberomammillary Nucleus histaminergic activity 0.0-1.0)
+    *   `vlpoActivity`: `number` (Ventrolateral Preoptic sleep-active GABA/galanin activity 0.0-1.0)
+    *   `mnpoActivity`: `number` (Median Preoptic sleep-pressure activity 0.0-1.0)
+    *   `ldtPptActivity`: `number` (Laterodorsal/pedunculopontine tegmentum cholinergic activity 0.0-1.0)
+    *   `prfActivity`: `number` (Pontine Reticular Formation activity 0.0-1.0)
+    *   `vtaActivity`: `number` (Ventral Tegmental Area dopaminergic activity 0.0-1.0)
+    *   `orexinLevel`: `number` (Hypothalamic orexin A/B level 0.0-1.0)
+    *   `slowOscillationPower`: `number` (Delta slow-wave power 0.0-10.0)
+    *   `thalamocorticalConn`: `number` (Nonspecific thalamocortical connectivity 0.0-1.0)
+    *   `frontoparietalFeedback`: `number` (Top-down FP directional connectivity 0.0-1.0)
+    *   `corticocorticalConn`: `number` (Global corticocortical connectivity 0.0-1.0)
+    *   `basalGangliaConn`: `number` (Basal ganglia pathway connectivity 0.0-1.0)
+    *   `alpha5GabaaOccupancy`: `number` (Hippocampal alpha-5 GABA-A occupancy 0.0-1.0)
+    *   `alpha4GabaaOccupancy`: `number` (Dentate gyrus/thalamus alpha-4 GABA-A occupancy 0.0-1.0)
+    *   `explicitEncoding`: `number` (Explicit memory encoding strength lambda 0.0-1.0)
+    *   `explicitConsolidation`: `number` (Explicit memory consolidation decay rate psi 0.1-5.0)
+    *   `ltpInductionInhibited`: `boolean` (Long-Term Potentiation induction blockade flag)
+    *   `p300Amplitude`: `number`, `n2p3Amplitude`: `number`, `p2Amplitude`: `number`, `oldNewEffect`: `number`, `mismatchNegativity`: `number`, `p1Amplitude`: `number`, `n2Latency`: `number` (ERP waveforms)
+    *   `hippocampalThetaFreq`: `number` (Theta wave frequency in Hz)
+    *   `hippocampalThetaPower`: `number` (Theta wave power 0.0-1.2)
+    *   `amygdaloHippocampalConn`: `number` (Basolateral amygdala-hippocampal coupling 0.0-1.0)
+    *   `neuralInertiaLag`: `number` (Hysteresis emergence lag tracker 0.0-1.0)
+    *   `alpha5Knockout`: `boolean` (Genetic alpha-5 GABA-A mutation comorbidity)
+    *   `alpha4Knockout`: `boolean` (Genetic alpha-4 GABA-A mutation comorbidity)
+    *   `tmnPropofolResistant`: `boolean` (TMN histaminergic propofol resistance)
+    *   `narcolepsy`: `boolean` (Orexin deficiency comorbidity)
+    *   `alpha2AKnockout`: `boolean` (Alpha-2A receptor knockout comorbidity)
+    *   `isAwarenessActive`: `boolean` (Intraoperative awareness active indicator)
+    *   `ptsdScore`: `number` (Cumulative trauma/PTSD risk score 0.0-100.0)
+    *   `hasExplicitRecall`: `boolean` (Patient consolidated explicit memory of surgery)
+    *   `hasImplicitRecall`: `boolean` (Patient consolidated implicit memory familiarity)
+    *   `isDreaming`: `boolean` (Disconnected consciousness active flag)
+    *   `preopMemoryEncoded`: `boolean` (Indicates memory items encoded in pre-op)
+    *   `retrogradeFacilitationRatio`: `number` (Pre-induction memory facilitation scaling factor)
+    *   `fearMemoryRetrieved`: `boolean` (Fear memory retrieval cue presented indicator)
+    *   `reconsolidationWindowOpen`: `boolean` (Reconsolidation window active state)
+    *   `reconsolidationTimer`: `number` (Seconds remaining in the reconsolidation window)
+    *   `fearConditioning`: `number` (Amygdala fear memory associative strength 0.0-1.0)
+    *   `fearExtinguished`: `boolean` (Fear memory successfully erased indicator)
+    *   `displayEmergenceLag`: `boolean` (Indicates emergence delay is active)
 *   `activeMeds`: `PKPDModel[]` (Instantiated pharmacology models tracking compartment amounts $A_1, A_2, A_3$ and effect site $C_e$ values).
-*   `electrolytes`: `Object` (Serum values):
-    *   `na`: `number` (Sodium level in mEq/L)
-    *   `k`: `number` (Potassium level in mEq/L)
-    *   `cl`: `number` (Chloride level in mEq/L)
-    *   `ca`: `number` (Calcium level in mEq/L)
-    *   `ph`: `number` (Blood pH value)
-*   `coags`: `Object` (Serum coagulation offsets for TEG overlays):
-    *   `r_offset`: `number` (TEG Reaction Time R offset in seconds)
-    *   `ma_offset`: `number` (TEG Maximum Amplitude MA offset in mm)
-    *   `angle_offset`: `number` (TEG Alpha Angle offset in degrees)
+*   `electrolytes`: `Object` (na, k, cl, ca, ph)
+*   `coags`: `Object` (r_offset, ma_offset, angle_offset)
 
 ---
 
-### 8. Data Ingestion & Indexing Pipeline
+### 9. Data Ingestion & Indexing Pipeline
 
 The simulator parses clinical textbooks into runtime rules and profiles during boot, using three indexers:
 
@@ -757,62 +775,65 @@ The simulator parses clinical textbooks into runtime rules and profiles during b
   - Hydrates static & dynamic medications                     - Hydrates active rule offsets
 ```
 
-#### 8.1 The Ingestion Engine & Cache Hydration
-1.  **Binary Asset Loading**: During boot, `ClientDbBridge.ts` fetches `/medical_truth.db` from the client-facing storage layer.
-2.  **Worker Transfer**: The buffer is transferred to the background worker (`ClientDbBridge.worker.ts`). The worker initializes `sql.js`, loads the buffer, and runs initial queries to extract all prose and matrix records.
-3.  **Caches Hydration**: The worker posts the records back to the main thread, hydra-caching them in `ClientDbBridge.allProse` and `ClientDbBridge.allMatrices`.
-4.  **Priority Sorting**: The caches are sorted by `comparePriority()`. Miller's Anesthesia takes priority, followed by newer editions and alphabetical fallbacks:
-    $$\text{Rank}_{\text{Miller}} = 1000 + \text{Edition}$$
-    $$\text{Rank}_{\text{Other}} = 100 + \text{Edition}$$
-5.  **Re-hydration Trigger**: `ClientDbBridge.onLoaded` fires, initiating the dynamic registries.
+#### 9.1 The Ingestion Engine & Cache Hydration
+1.  **Binary Asset Loading**: `ClientDbBridge.ts` fetches `/medical_truth.db` from the client-facing storage layer.
+2.  **Worker Transfer**: The buffer is transferred to `ClientDbBridge.worker.ts`. The worker initializes `sql.js`, loads the buffer, and runs initial queries to extract all prose and matrix records.
+3.  **Caches Hydration**: Cached in `ClientDbBridge.allProse` and `ClientDbBridge.allMatrices`.
+4.  **Priority Sorting**: Sorted by `comparePriority()`. Miller's Anesthesia takes priority:
+    $$\text{Rank}_{\text{Miller}} = 1000 + \text{Edition} \quad \text{Rank}_{\text{Other}} = 100 + \text{Edition}$$
+5.  `ClientDbBridge.onLoaded` fires, initiating the dynamic registries.
 
-#### 8.2 Dynamic Medication Ingestion (`DynamicMedicationRegistry.ts`)
+#### 9.2 Dynamic Medication Ingestion (`DynamicMedicationRegistry.ts`)
 1.  **Matrix Table Scanner**: Scans `physiologicalMatrices` records with `is_authoritative === 1` that contain keywords like `pharmacokinetics` or `dosing`.
-    *   It parses the `structured_payload` JSON, looking for row/column patterns containing drug names and PK/PD parameters.
-2.  **Prose Markdown Scanner**: Scans `textbookProse` records with `is_authoritative === 1`.
-    *   It parses markdown tables (`|`) using regex to extract drug rows.
-3.  **Profile Builder**: Builds `MedicationProfile` objects. If any parameter is missing, it fills it in using average templates for classes (`sedative`, `opioid`, `ndmr`, `paralytic`, `vasopressor`).
+2.  **Prose Markdown Scanner**: Scans `textbookProse` records with `is_authoritative === 1` and parses markdown tables (`|`) using regex to extract drug rows.
+3.  **Profile Builder**: Builds `MedicationProfile` objects. If any parameter is missing, it fills it in using average templates for classes.
 4.  **Pharmacopoeia Hydration**: Pushes the profiles to `Pharmacology.MEDICATIONS` and `meds.config.MEDICATIONS_CONFIG`, updating the UI and drug engines.
 
-#### 8.3 Dynamic Procedural Ingestion (`DynamicProceduralRegistry.ts`)
-1.  **Numbered Step Extraction**: Scans `textbookProse` for paragraphs containing numbered procedural steps (matching `Step \d+:` or `\d+\.`) under headings like `intubation`, `rsi`, or `awake`.
+#### 9.3 Dynamic Procedural Ingestion (`DynamicProceduralRegistry.ts`)
+1.  **Numbered Step Extraction**: Scans `textbookProse` for paragraphs containing numbered procedural steps under headings like `intubation`, `rsi`, or `awake`.
 2.  **Timeline Step Chart Ingestion**: Scans `physiologicalMatrices` for `TIMELINE_STEP_CHART_HYPNOGRAM` archetypes.
-3.  **Programmatic Constraint Binding**: Translates steps into programmatic validation gates based on vocabulary mapping:
-    *   `topicalize` / `local anesthetic` $\to$ binds to `isTopicalized = true`
-    *   `paralyze` / `neuromuscular blocker` $\to$ binds to `isParalyzed = true`
-    *   `pre-oxygenate` / `fio2` $\to$ binds to `isApneic = false`
-4.  **Procedural Gates**: When a user attempts a procedure (like laryngoscopy), `validateState(pathwayKey, patientState)` is called, which evaluates the patient's current state fields against these validation constraints.
+3.  **Programmatic Constraint Binding**: Translates steps into programmatic validation gates based on vocabulary mapping (e.g. `topicalize` $\to$ `isTopicalized = true`).
+4.  **Procedural Gates**: When a user attempts a procedure, `validateState(pathwayKey, patientState)` is called, which evaluates the patient's current state fields.
 
-#### 8.4 Dynamic Textbook Rule Indexer (`oracle_query.ts`)
-1.  **Sentence Splitting**: Scans all `textbookProse` records (excluding markdown tables) and splits the text into individual sentences.
+#### 9.4 Dynamic Textbook Rule Indexer (`oracle_query.ts`)
+1.  **Sentence Splitting**: Scans all `textbookProse` records and splits the text into sentences.
 2.  **Verb Filtering**: Filters for sentences containing physiological verbs of change.
-3.  **Target Vitals Matching**: Identifies the target vital sign (`hr`, `rr`, `map`, `spo2`, `k`, `compl`, `pip`, `temp`) and a matching condition (drug name, position, or pathology keyword).
-4.  **Operator & Value Extraction**: Extracts operators (`+`, `-`, `scale`, `clamp`) and values using regex patterns matching percentage shifts or unit counts (e.g. "+5.2 mEq/L", "drop by 20%").
+3.  **Target Vitals Matching**: Identifies target vital signs and matching conditions (drug name, position, or pathology).
+4.  **Operator & Value Extraction**: Extracts operators (`+`, `-`, `scale`, `clamp`) and values using regex patterns.
 5.  **Proximity Constraint**: Enforces that the vital keyword must be within 50 characters of the parsed value.
 6.  **Physiological Plausibility Check**: Asserts physiological plausibility bounds to discard erratic values.
-7.  **Hydration**: Hydrates a cached array of rules which `usePhysiology.js` runs every second to inject dynamic offsets into the mathematical equations.
+7.  **Hydration**: Hydrates a cached array of rules which `usePhysiology.js` runs every second to inject dynamic offsets.
 
 ---
 
-### 9. Constraints & Edge Cases
+### 10. Constraints & Edge Cases
 
-1.  **1-Second Tick Resolution**:
-    *   The physics engine ticks at 1Hz. Events that require finer time divisions (like drug distribution peaks or rapid shock conversions) are handled using internal sub-stepping (10 steps per second).
-    *   However, high-frequency graphical vitals (ECG waveforms, arterial line pulse curves) are completely decoupled from this 1-second clock; they run on a high-frequency browser `<canvas>` requestAnimationFrame render loop (60Hz or higher) that reads the current numbers from the vitals hooks and draws continuous waves using mathematical sine/cosine oscillators and damping functions.
-2.  **Memory Limits on History Stack**:
-    *   Every user action calls `saveState()` which deep-copies the entire state tree. Over long training sessions (e.g. >1 hour, >3600 steps), the history array grows linearly in memory, which could cause browser tab slow-downs or out-of-memory crashes due to massive reference accumulation.
-3.  **Textbook Rule Ambiguities**:
-    *   The natural language parser (`extractTextbookRules()`) uses regex patterns to extract mathematical relationships. This is prone to false positives if the textbook description is metaphorical or references a different species (e.g. "dogs showed a 50% drop..."). The system mitigates this with a strict physiological check (`isPhysiologicallyPlausible`), but highly complex clinical sentences might be parsed incorrectly or missed.
-4.  **Unsupported Clinical Complications**:
-    *   High-frequency pathology waveforms like malignant hyperthermia, pulmonary embolism, tension pneumothorax, or severe valvular stenoses (except for basic fixed stroke volume in aortic stenosis) are currently either unmodeled or modeled purely as static text alerts rather than dynamic closed-loop hydraulic systems.
-5.  **Unary Chelation Limitations**:
-    *   Sugammadex chelation resolves muscle relaxant concentrations by scaling down A1 in a single step, rather than modeling binding affinity curves over time. This makes the reversal instantaneous in Cp, though the effect-site concentration decay ($C_e$) still lags due to $ke_0$ transport.
+1.  **1-Second Tick Resolution**: The physics engine ticks at 1Hz. Events that require finer time divisions are handled using internal sub-stepping (10 steps per second). Decoupled graphical waveforms (60Hz) read from hooks.
+2.  **Memory Limits on History Stack**: Every user action calls `saveState()` which deep-copies the entire state tree. Over long training sessions, the history array grows linearly in memory, which could cause browser tab slow-downs.
+3.  **Textbook Rule Ambiguities**: The natural language parser uses regex patterns to extract relationships. This is prone to false positives if descriptions are metaphorical. Strictly validated via `isPhysiologicallyPlausible`.
+4.  **Unsupported Clinical Complications**: High-frequency pathology waveforms like malignant hyperthermia or severe valvular stenoses are currently either unmodeled or modeled purely as static text alerts.
+5.  **Unary Chelation Limitations**: Sugammadex chelation resolves muscle relaxant concentrations by scaling down A1 in a single step, rather than modeling binding affinity curves over time.
 
 ---
 
-## STAGE 4: COMPREHENSIVE COMPILATION & INTEGRITY CHECK
+## STAGE 4: COMPREHENSIVE COMPILATION, CODE BLUEPRINT & INTEGRITY CHECK
 
-### 10. Architectural Dependency Analysis: Hardcoded vs. Dynamic Textbook Data
+### 11. Crucial Code Files & System Responsibilities
+
+1.  [`App.jsx`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/App.jsx): Main coordinator of state. Orchestrates modal toggles, snap/restore, pre-op staging, and timeline phase locks.
+2.  [`usePhysiology.js`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/usePhysiology.js): Central mathematical simulation thread. Drives gas kinetics, fluid volumes, hemodynamic changes, and timeline auto-advancements.
+3.  [`ConsciousnessEngine.ts`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/ConsciousnessEngine.ts): Specialized sleep-wake nuclei, connectivity pathway, receptor binding, and memory system sub-engine.
+4.  [`Pharmacology.js`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/Pharmacology.js): Library defining all reference data, predicted lung capacities, and drug metabolic rates.
+5.  [`ClinicalAiChat.js`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/ClinicalAiChat.js): Natural language state evaluator and response compiler for the Attending chat window.
+6.  [`CaseManager.jsx`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/components/controls/CaseManager.jsx): Controls preset clinical scenarios and hosts the customized physiology builder interface.
+7.  [`ActionPanel.jsx`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/components/controls/ActionPanel.jsx): Primary intervention console hosting surgical timeline locks, positioning, and ACLS maneuvers.
+8.  [`AirwayPanel.jsx`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/components/controls/AirwayPanel.jsx): Renders glottic laryngoscopy viewpoints and handles direct mechanical instrumentation.
+9.  [`MemoryPanel.jsx`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/components/controls/MemoryPanel.jsx): Overlay panel showing subcortical activities, connectivities, memory states, and fear memory retrieval triggers.
+10. [`AttendingPanel.jsx`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/components/controls/AttendingPanel.jsx): Dual-tab sidebar panel hosting the automatic clinical monitor and conversational chat.
+
+---
+
+### 12. Architectural Dependency Analysis: Hardcoded vs. Dynamic Textbook Data
 
 To establish clinical enhancements, it is necessary to identify where the current codebase bypasses the ingested textbook database in favor of hardcoded defaults or static approximations. The following highlights these functional dependencies:
 
@@ -827,7 +848,7 @@ To establish clinical enhancements, it is necessary to identify where the curren
 
 ---
 
-### 11. Integrity & Compliance Verification Statement
+### 13. Integrity & Compliance Verification Statement
 
 This document, `goldenversion.md`, has been compiled sequentially and audited against the active airway simulator codebase. All equations, state variables, database schemas, and trigger pathways represent the actual, current operational code of the application. 
 

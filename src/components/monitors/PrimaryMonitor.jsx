@@ -110,9 +110,27 @@ export const PrimaryMonitor = ({
             type="pleth" 
             patientState={patient}
             vitals={vitals}
-            activeMeds={activeMeds}
           />
         </div>
+
+        {patient?.hasBisMonitor && (
+          <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
+            <div className="absolute text-purple-400/60 text-[10px] md:text-xs top-1 left-1 z-20 font-bold flex justify-between items-center w-[95%] leading-none pointer-events-none">
+              <span>EEG</span>
+              <span className="text-[8.5px] font-mono">SEF95: {vitals?.sef95 ?? '--'} Hz | BSR: {vitals?.bsr ?? '0'}%</span>
+            </div>
+            <CanvasWaveform 
+              color="#c084fc" 
+              speed={patient?.isArrest ? 0 : 25} 
+              rrSpeed={0} 
+              active={true} 
+              type="eeg" 
+              patientState={patient}
+              vitals={vitals}
+              activeMeds={activeMeds}
+            />
+          </div>
+        )}
 
       </div>
 

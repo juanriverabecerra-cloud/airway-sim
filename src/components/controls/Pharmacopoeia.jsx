@@ -58,7 +58,7 @@ export const getMedColor = (medId) => {
     };
   }
   // Anticholinergics / Reversals -> Green
-  if (['atropine', 'sugammadex', 'neostigmine', 'glycopyrrolate'].some(k => id.includes(k))) {
+  if (['atropine', 'sugammadex', 'neostigmine', 'glycopyrrolate', 'atipamezole', 'methylphenidate', 'scopolamine'].some(k => id.includes(k))) {
     return {
       active: 'border-emerald-500/80 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)] bg-emerald-950/10 font-bold',
       btn: 'glass-button-emerald',
@@ -181,7 +181,7 @@ export const Pharmacopoeia = ({
     induction: ['propofol', 'etomidate', 'ketamine', 'midazolam', 'dexmedetomidine'],
     analgesia: ['fentanyl', 'sufentanil', 'remifentanil', 'hydromorphone', 'morphine', 'rocuronium', 'succinylcholine', 'vecuronium', 'cisatracurium'],
     hemodynamics: ['norepinephrine', 'epinephrine', 'phenylephrine', 'vasopressin', 'ephedrine', 'atropine', 'esmolol', 'labetalol', 'metoprolol', 'nicardipine', 'clevidipine', 'nitroglycerin'],
-    other: ['sugammadex', 'neostigmine', 'glycopyrrolate', 'unasyn', 'albuterol', 'calcium', 'magnesium', 'bicarbonate', 'lidocaine', 'adenosine', 'amiodarone', 'furosemide'],
+    other: ['sugammadex', 'neostigmine', 'glycopyrrolate', 'unasyn', 'albuterol', 'calcium', 'magnesium', 'bicarbonate', 'lidocaine', 'adenosine', 'amiodarone', 'furosemide', 'methylphenidate', 'atipamezole', 'scopolamine'],
     fluids: ['Lactated Ringers (LR)', 'Normal Saline (0.9% NS)', 'Plasmalyte', 'Albumin 5%', 'Packed Red Blood Cells (PRBC)', 'Fresh Frozen Plasma (FFP)', 'Platelets', 'Cryoprecipitate', 'Fibrinogen Concentrate']
   };
 

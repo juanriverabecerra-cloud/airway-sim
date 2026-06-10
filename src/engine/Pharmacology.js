@@ -582,6 +582,30 @@ export const MEDICATIONS = {
     pk: { V1: 12.0, V2: 18.0, V3: 0, k10: 0.05, k12: 0.04, k21: 0.04, k13: 0, k31: 0, ke0: 0.1 }, 
     pd: { c50: 0.1, gamma: 1, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
     notes: 'Penicillin antibiotic with beta-lactamase inhibitor. Highly effective for intra-abdominal and soft-tissue prophylaxis. Pushing this bolus in patients with documented severe penicillin allergy triggers life-threatening Penicillin Anaphylaxis (IgE-mediated severe vasodilation, hypotension, bradycardia, and severe bronchospasm/apnea).'
+  },
+  methylphenidate: {
+    name: 'Methylphenidate', classes: ['Dopamine Agonist', 'CNS Stimulant'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic', proteinBinding: 0.15, targetReceptor: 'DAT / NET',
+    indications: { 'Emergence Reversal': { dose: '10', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 30.0, V3: 0, k10: 0.08, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.2 },
+    pd: { c50: 2.0, gamma: 1.5, sysMax: 15, diaMax: 10, hrMax: 20, rrMax: 2 },
+    notes: 'CNS stimulant. Inhibits dopamine and norepinephrine reuptake. Reverses/accelerates emergence from general anesthetics (propofol, isoflurane) via VTA activation.'
+  },
+  atipamezole: {
+    name: 'Atipamezole', classes: ['Alpha-2 Antagonist', 'Reversal'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic', proteinBinding: 0.50, targetReceptor: 'Alpha-2',
+    indications: { 'Dexmedetomidine Reversal': { dose: '5', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 10.0, V2: 20.0, V3: 0, k10: 0.1, k12: 0.08, k21: 0.05, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.1 },
+    pd: { c50: 1.0, gamma: 1.0, sysMax: 5, diaMax: 5, hrMax: 10, rrMax: 0 },
+    notes: 'Specific alpha-2 adrenergic receptor antagonist. Specifically reverses the sedative and cardiovascular effects of dexmedetomidine.'
+  },
+  scopolamine: {
+    name: 'Scopolamine', classes: ['Anticholinergic', 'Amnestic'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic', proteinBinding: 0.0, targetReceptor: 'Muscarinic',
+    indications: { 'Pre-op Amnesia': { dose: '0.4', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 30.0, V3: 0, k10: 0.04, k12: 0.05, k21: 0.04, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 },
+    pd: { c50: 0.05, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 15, rrMax: 0 },
+    notes: 'Tertiary amine anticholinergic. Crosses the blood-brain barrier. Causes marked anterograde amnesia and sedation. Accelerates hippocampal theta oscillations while reducing absolute power.'
   }
 };
 

@@ -15,6 +15,7 @@ import { Pharmacopoeia } from './components/controls/Pharmacopoeia';
 import { AirwayPanel } from './components/controls/AirwayPanel';
 import { LogPanel } from './components/controls/LogPanel';
 import { LinesResusPanel } from './components/controls/LinesResusPanel';
+import { MemoryPanel } from './components/controls/MemoryPanel';
 import { AccessModal, PocusModal, SetupModal, TubeConfirmModal, AirwayQuizModal, ViewModal, PreopModal, MsmaidsModal, PostIntubationModal, ExtubationModal } from './components/modals/Modals';
 import { PreOpEMR } from './components/modals/PreOpEMR';
 import { EkgModal } from './components/modals/EkgModal';
@@ -1237,11 +1238,19 @@ export default function App() {
           />
         </div>
         
-        <LogPanel 
-           logs={logs} 
-           formatTime={formatTime} 
-           onActionClick={handleExecuteClinicalAction}
-        />
+        <div className="col-span-1 flex flex-col gap-4">
+          <MemoryPanel 
+             patient={patient}
+             vitals={vitals}
+             setPatient={setPatient}
+             logEvent={logEvent}
+          />
+          <LogPanel 
+             logs={logs} 
+             formatTime={formatTime} 
+             onActionClick={handleExecuteClinicalAction}
+          />
+        </div>
       </div>
 
       {!patient?.isFuzzing && (
