@@ -1189,7 +1189,6 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
           const propofolModel = st.activeMeds?.find(m => m.name === 'Propofol');
           const propofolCe = propofolModel ? propofolModel.Ce : 0;
-          const dexmedModel = st.activeMeds?.find(m => m.name === 'Dexmedetomidine');
           const dexmedCe = dexmedModel ? dexmedModel.Ce : 0;
           const thiopentalModel = st.activeMeds?.find(m => m.name === 'Thiopental');
           const thiopentalCe = thiopentalModel ? thiopentalModel.Ce : 0;
