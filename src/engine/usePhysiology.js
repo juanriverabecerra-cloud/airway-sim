@@ -184,6 +184,9 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           patientBaseSVR: calculatedBaseSVR,
           patientBaseSV: assumedBaseSV,
           patientBaseHR: baseHr,
+          patientBaseSBP: safeBaseVitals.sys || 120,
+          patientBaseDBP: safeBaseVitals.dia || 80,
+          oculocardiacTriggered: false,
           patientBaseRR: safeBaseVitals.rr || 12,
           
           metHb: 0.8,
@@ -1634,7 +1637,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               newTemp,
               newPaCO2: respOutput.newPaCO2,
               activeMeds: st.activeMeds || [],
-              getAnatomicalParameter
+              getAnatomicalParameter,
+              currentHb
           });
 
           // Log CV events

@@ -37,6 +37,9 @@ export interface PatientState {
   calciumStabilizedTime?: number;
   serotoninSyndromeTriggered?: boolean;
   intravascularVolume?: number;
+  patientBaseSBP?: number;
+  patientBaseDBP?: number;
+  oculocardiacTriggered?: boolean;
 }
 
 export interface VitalsState {
@@ -52,6 +55,12 @@ export interface VitalsState {
   spo2: number;
   paco2: number;
   etco2: number;
+  pao2?: number;
+  lvedp?: number;
+  cpp_coronary?: number;
+  diastoleTimeRatio?: number;
+  mvo2?: number;
+  mvo2Supply?: number;
 }
 
 export interface CardiovascularDrugEffects {
@@ -104,6 +113,7 @@ export class CardiovascularEngine {
       newPaCO2: number;
       activeMeds: { name: string; A1: number }[];
       getAnatomicalParameter: (keyword: string, defaultValue: number) => number;
+      currentHb?: number;
     }
   ): ResuscitationOutput {
     const events: string[] = [];
@@ -142,10 +152,20 @@ export class CardiovascularEngine {
 
     let totalHrDelta = typeof drugEffects.totalHrDelta === 'number' && Number.isFinite(drugEffects.totalHrDelta) ? drugEffects.totalHrDelta : 0;
 
-    // Autonomic reflexes
-    let autonomicHrMod = 0;
-    if (safeDrugSvrMod > 1.5 && safeCurrentMac < 0.5) autonomicHrMod = -20; // Reflex bradycardia
-    else if (safeDrugSvrMod < 0.7 && safeCurrentMac < 0.5) autonomicHrMod = 25; // Reflex tachycardia
+    // Autonomic reflexes: Baroreceptor Reflex
+    let baroreflexGain = Math.max(0, 1.0 - safeCurrentMac * 0.67);
+    if (patient.isAwarenessActive) {
+      baroreflexGain = 0; // Overridden by central sympathetic surge during awareness crisis
+    }
+    const baseSBP_set = patient.patientBaseSBP || 120;
+    const baseDBP_set = patient.patientBaseDBP || 80;
+    const MAP_set = baseDBP_set + (baseSBP_set - baseDBP_set) / 3.0;
+    const errorBaro = safeMap - MAP_set;
+    let autonomicHrMod = Math.max(-25, Math.min(30, -0.5 * errorBaro * baroreflexGain));
+
+    if (autonomicHrMod < 0 && totalHrDelta > 15) {
+      autonomicHrMod = 0; // Vagal tone blocked by antimuscarinics (Atropine/Glycopyrrolate)
+    }
 
     let isArrestState = patient.isArrest;
     let currentRhythm = patient.cardiacRhythm;
@@ -164,23 +184,56 @@ export class CardiovascularEngine {
       }
     }
 
-    // Myocardial Ischemia due to high RPP (CAD patients)
+    // Preload & Contractility Calculus
+    const safeEbv = typeof patient.ebv === 'number' && Number.isFinite(patient.ebv) && patient.ebv > 0 ? patient.ebv : 5000;
+    const volumeOffset = (patient.intravascularVolume || 0) > 2000 && patient.isAwarenessActive
+      ? (patient.intravascularVolume || 0) - safeEbv 
+      : (patient.intravascularVolume || 0);
+    const effectiveIntravascularVolume = Math.max(100, safeEbv - safeCurrentEbl + safePreloadMod + volumeOffset);
     let newStunning = typeof patient.myocardialStunning === 'number' && Number.isFinite(patient.myocardialStunning) ? patient.myocardialStunning : 0;
-    if ((patient.cad || patient.hasCAD) && !isArrestState) {
-      const doubleProduct = safeSys * safeHR;
-      if (doubleProduct > 14000 || safeDia < 50) {
-        newStunning = Math.min(60, Math.max(0, newStunning + 0.5));
-        if (Math.random() < 0.05) { // 5% chance per second to log
-          events.push(`⚠️ CORONARY ISCHEMIA: High myocardial O2 demand (Double Product ${doubleProduct}) or low coronary perfusion (DBP ${Math.round(safeDia)}) in patient with CAD is causing progressive myocardial stunning!`);
-        }
+    const inotropyInitial = Math.max(0.01, 1.0 - (newStunning / 100) + safeContractilitySympatheticSpike + (safeDrugInotropyMod - 1.0));
+
+    // Left Ventricular End-Diastolic Pressure (LVEDP)
+    const baseLVEDP = 8.0;
+    const lvedpVal = Math.max(2.0, Math.min(40.0, baseLVEDP + 4.0 * ((effectiveIntravascularVolume - safeEbv) / 250) + 5.0 / inotropyInitial));
+
+    // Coronary Perfusion Pressure (CPP_coronary = DBP - LVEDP)
+    const cppCoronaryVal = Math.max(5.0, safeDia - lvedpVal);
+
+    // Diastolic Time Ratio (DiastoleTimeRatio = (60 - 0.2 * HR) / 60)
+    const diastoleTimeRatioVal = Math.max(0.20, Math.min(0.85, (60.0 - 0.2 * safeHR) / 60.0));
+
+    // Radius Modifier (RadiusMod = 1.0 + max(0, (LVEDP - 12) / 15))
+    const radiusModVal = 1.0 + Math.max(0, (lvedpVal - 12.0) / 15.0);
+
+    // Myocardial Oxygen Demand (MVO2 = HR * SBP * Inotropy * RadiusMod)
+    const mvo2Val = safeHR * safeSys * inotropyInitial * radiusModVal;
+
+    // Myocardial Oxygen Supply (Supply_myo = CPP_coronary * DiastoleTimeRatio * CaO2 * coronaryStenosisMod * 8.5)
+    const safeCurrentHb = typeof inputs.currentHb === 'number' && Number.isFinite(inputs.currentHb) ? inputs.currentHb : 14.0;
+    const safePaO2 = typeof vitals.pao2 === 'number' && Number.isFinite(vitals.pao2) ? vitals.pao2 : 100;
+    const safeCurrentSpo2 = typeof vitals.spo2 === 'number' && Number.isFinite(vitals.spo2) ? vitals.spo2 : 98;
+    const safeRuleSpo2Offset = typeof drugEffects.ruleSpo2Offset === 'number' && Number.isFinite(drugEffects.ruleSpo2Offset) ? drugEffects.ruleSpo2Offset : 0;
+    const newSpo2 = Math.max(0, Math.min(100, safeCurrentSpo2 + safeRuleSpo2Offset));
+    const caO2Val = safeCurrentHb * 1.34 * (newSpo2 / 100) + safePaO2 * 0.0031;
+    const coronaryStenosisModVal = (patient.cad || patient.hasCAD) ? 0.40 : 1.0;
+    const supplyVal = cppCoronaryVal * diastoleTimeRatioVal * caO2Val * coronaryStenosisModVal * 8.5;
+
+    // Ischemia & Stunning Loop
+    let stunningIncrease = 0;
+    if (supplyVal < mvo2Val && !isArrestState) {
+      stunningIncrease = Math.round((mvo2Val - supplyVal) * 0.0000381 * 10) / 10;
+      newStunning = Math.min(60, Math.max(0, newStunning + stunningIncrease));
+      if (Math.random() < 0.05) {
+        events.push(`⚠️ MYOCARDIAL ISCHEMIA: Supply (${Math.round(supplyVal)}) fails to meet Demand (${Math.round(mvo2Val)})! Stunning is increasing (Stunning: ${newStunning.toFixed(1)}%).`);
       }
     }
 
-    // Preload & Contractility Calculus
-    const safeEbv = typeof patient.ebv === 'number' && Number.isFinite(patient.ebv) && patient.ebv > 0 ? patient.ebv : 5000;
-    const effectiveIntravascularVolume = Math.max(100, safeEbv - safeCurrentEbl + safePreloadMod + (patient.intravascularVolume || 0));
     const inotropyFinal = Math.max(0.01, 1.0 - (newStunning / 100) + safeContractilitySympatheticSpike + (safeDrugInotropyMod - 1.0));
-    const preloadSV = Math.max(0.1, 1.0 - (safeBloodLossRatio * 1.2) + ((effectiveIntravascularVolume - safeEbv) / 2500));
+
+    // Frank-Starling stroke volume preload factor
+    const starlingPreloadSV = 1.2 * (1.0 - Math.exp(-0.15 * lvedpVal));
+    const preloadSV = Math.max(0.1, starlingPreloadSV * (1.0 - safeBloodLossRatio * 1.2));
 
     const shiveringHRDriveVal = (safeShiveringMultiplier > 1.0) ? ((safeShiveringMultiplier - 1.0) * 15) : 0;
 
@@ -188,6 +241,29 @@ export class CardiovascularEngine {
     let afibHRFlutter = 0;
     if (patient.afib || patient.hasAFib || patient.cardiacRhythm === 'afib') {
       afibHRFlutter = (Math.random() - 0.5) * 12;
+    }
+
+    // Bezold-Jarisch Reflex
+    let bjActive = false;
+    if (newStunning > 25.0 || safeBloodLossRatio > 0.35) {
+      bjActive = true;
+      totalHrDelta -= 20; // Bradycardia efferent response
+    }
+
+    // Bainbridge Reflex
+    let bainbridgeActive = false;
+    let hrBainbridge = 0;
+    if (lvedpVal > 18.0 && !bjActive) {
+      bainbridgeActive = true;
+      hrBainbridge = Math.max(0, Math.min(20, 1.5 * (lvedpVal - 18.0)));
+    }
+
+    // Oculocardiac Reflex
+    const hasAntimuscarinic = inputs.activeMeds.some(m => (m.name === 'Atropine' || m.name === 'Glycopyrrolate') && m.A1 > 0.1);
+    let oculocardiacActive = false;
+    if (patient.oculocardiacTriggered && !hasAntimuscarinic) {
+      oculocardiacActive = true;
+      totalHrDelta -= 35;
     }
 
     // Beta-blocker compensatory tachycardia blunting
@@ -199,7 +275,7 @@ export class CardiovascularEngine {
     }
 
     const baseHR = typeof patient.patientBaseHR === 'number' && Number.isFinite(patient.patientBaseHR) && patient.patientBaseHR > 0 ? patient.patientBaseHR : 70;
-    let targetHR = Math.max(0, baseHR + totalHrDelta + adjustedAutonomicHrMod + adjustedHypovolemicTachy + safeHrSympatheticSpike + shiveringHRDriveVal + afibHRFlutter + safeAnaphylaxisHrMod);
+    let targetHR = Math.max(0, baseHR + totalHrDelta + adjustedAutonomicHrMod + adjustedHypovolemicTachy + safeHrSympatheticSpike + shiveringHRDriveVal + afibHRFlutter + safeAnaphylaxisHrMod + hrBainbridge);
     const safeRuleHrScale = typeof drugEffects.ruleHrScale === 'number' && Number.isFinite(drugEffects.ruleHrScale) ? drugEffects.ruleHrScale : 1.0;
     const safeRuleHrOffset = typeof drugEffects.ruleHrOffset === 'number' && Number.isFinite(drugEffects.ruleHrOffset) ? drugEffects.ruleHrOffset : 0;
     targetHR = targetHR * safeRuleHrScale + safeRuleHrOffset;
@@ -224,7 +300,7 @@ export class CardiovascularEngine {
 
     // SVR computation
     const baseSVR = typeof patient.patientBaseSVR === 'number' && Number.isFinite(patient.patientBaseSVR) && patient.patientBaseSVR > 0 ? patient.patientBaseSVR : 1200;
-    let targetSVR = (baseSVR * safeDrugSvrMod * (patient.isSeptic ? 0.6 : 1.0) * safeAnaphylaxisSvrMod) + safeSvrSympatheticSpike;
+    let targetSVR = (baseSVR * safeDrugSvrMod * (patient.isSeptic ? 0.6 : 1.0) * safeAnaphylaxisSvrMod * (bjActive ? 0.75 : 1.0)) + safeSvrSympatheticSpike;
     targetSVR = Math.max(50, targetSVR);
 
     const targetCO = Math.max(0, Math.min(30.0, (targetHR * currentSV) / 1000));
@@ -333,9 +409,6 @@ export class CardiovascularEngine {
     }
 
     // Ischemic Damage Accumulation
-    const currentVitalsSpo2 = typeof vitals.spo2 === 'number' && Number.isFinite(vitals.spo2) ? vitals.spo2 : 98;
-    const safeRuleSpo2Offset = typeof drugEffects.ruleSpo2Offset === 'number' && Number.isFinite(drugEffects.ruleSpo2Offset) ? drugEffects.ruleSpo2Offset : 0;
-    const newSpo2 = Math.max(0, Math.min(100, currentVitalsSpo2 + safeRuleSpo2Offset));
     const hypoxiaSeverity = Math.max(0, 90 - newSpo2);
     const hypoPerfusionSeverity = Math.max(0, 55 - newCmap);
 
@@ -401,6 +474,11 @@ export class CardiovascularEngine {
     vitals.dia = roundedDia;
     vitals.map = newMap;
     vitals.cmap = newCmap;
+    vitals.lvedp = lvedpVal;
+    vitals.cpp_coronary = cppCoronaryVal;
+    vitals.diastoleTimeRatio = diastoleTimeRatioVal;
+    vitals.mvo2 = mvo2Val;
+    vitals.mvo2Supply = supplyVal;
 
     // Update patient states
     patient.isArrest = isArrestState;

@@ -261,6 +261,101 @@ describe('Cardiovascular & Resuscitation Engine Regression Tests', () => {
     }
   });
 
+  it('should verify Chapter 14 cardiac variables: LVEDP, Coronary Perfusion Pressure, and Diastolic Time Ratio', () => {
+    const state = createBaselineState();
+    const drugEffects = createBaselineDrugEffects();
+    const inputs = baselineInputs(state);
+
+    const out = CardiovascularEngine.tick(1, { ...state, time: 10 }, drugEffects, inputs);
+    expect(out.vitals.lvedp).toBeDefined();
+    expect(out.vitals.lvedp).toBeGreaterThanOrEqual(2.0);
+    expect(out.vitals.lvedp).toBeLessThanOrEqual(40.0);
+
+    expect(out.vitals.cpp_coronary).toBeDefined();
+    expect(out.vitals.cpp_coronary).toBe(state.vitals.dia - out.vitals.lvedp!);
+
+    expect(out.vitals.diastoleTimeRatio).toBeDefined();
+    expect(out.vitals.diastoleTimeRatio).toBeCloseTo((60.0 - 0.2 * state.vitals.hr) / 60.0, 4);
+
+    // If heart rate increases, diastolic time ratio should decrease
+    const stateHighHR = createBaselineState();
+    stateHighHR.vitals.hr = 120;
+    const outHighHR = CardiovascularEngine.tick(1, { ...stateHighHR, time: 10 }, drugEffects, inputs);
+    expect(outHighHR.vitals.diastoleTimeRatio).toBeLessThan(out.vitals.diastoleTimeRatio!);
+  });
+
+  it('should verify myocardial supply-demand calculations and stunning accumulation', () => {
+    const state = createBaselineState();
+    // Set up high demand and low supply (e.g. coronary artery disease + low blood pressure)
+    state.patient.cad = true;
+    state.vitals.hr = 130;
+    state.vitals.sys = 170;
+    state.vitals.dia = 40; // low diastolic BP reduces coronary perfusion pressure
+
+    const drugEffects = createBaselineDrugEffects();
+    const inputs = baselineInputs(state);
+    inputs.currentHb = 8.0; // low Hb reduces oxygen content
+
+    const out = CardiovascularEngine.tick(1, { ...state, time: 10 }, drugEffects, inputs);
+    expect(out.vitals.mvo2).toBeDefined();
+    expect(out.vitals.mvo2Supply).toBeDefined();
+    // Stunning increase check
+    expect(out.patient.myocardialStunning).toBeGreaterThan(0);
+  });
+
+  it('should verify autonomic reflexes: Bezold-Jarisch and Bainbridge reflex loops', () => {
+    // 1. Bezold-Jarisch reflex (active on myocardial stunning > 25)
+    const stateBJ = createBaselineState();
+    stateBJ.patient.myocardialStunning = 26;
+    stateBJ.vitals.hr = 80;
+    stateBJ.vitals.svr = 1200;
+
+    const drugEffects = createBaselineDrugEffects();
+    const inputs = baselineInputs(stateBJ);
+
+    const outBJ = CardiovascularEngine.tick(1, { ...stateBJ, time: 10 }, drugEffects, inputs);
+    // BJ reflex triggers bradycardia (totalHrDelta -= 20) and vasodilation (targetSVR *= 0.75)
+    // Let's check that SVR decreases
+    expect(outBJ.vitals.svr).toBeLessThan(1200);
+
+    // 2. Bainbridge reflex (tachycardia when LVEDP > 18 and BJ inactive)
+    const stateBain = createBaselineState();
+    // LVEDP scales with volume offset. Let's increase intravascular volume to make LVEDP > 18
+    stateBain.patient.intravascularVolume = 6000; // base ebv is 5000, +1000 mL volume
+    stateBain.vitals.hr = 70;
+
+    const outBain = CardiovascularEngine.tick(1, { ...stateBain, time: 10 }, drugEffects, inputs);
+    expect(outBain.vitals.lvedp).toBeGreaterThan(18.0);
+    // Bainbridge active -> HR should be higher than base HR (70)
+    expect(outBain.vitals.hr).toBeGreaterThan(70);
+  });
+
+  it('should verify Oculocardiac reflex triggers vagal bradycardia and can be blocked by antimuscarinics', () => {
+    // 1. Oculocardiac trigger active without antimuscarinics
+    const stateOC = createBaselineState();
+    stateOC.patient.oculocardiacTriggered = true;
+    stateOC.vitals.hr = 70;
+
+    const drugEffects = createBaselineDrugEffects();
+    const inputs = baselineInputs(stateOC);
+
+    const outOC = CardiovascularEngine.tick(1, { ...stateOC, time: 10 }, drugEffects, inputs);
+    // OC triggers totalHrDelta -= 35, leading to heart rate reduction
+    expect(outOC.vitals.hr).toBeLessThan(70);
+
+    // 2. Oculocardiac trigger active with antimuscarinics (Atropine) present
+    const stateOCBlocked = createBaselineState();
+    stateOCBlocked.patient.oculocardiacTriggered = true;
+    stateOCBlocked.vitals.hr = 70;
+
+    const inputsOCBlocked = baselineInputs(stateOCBlocked);
+    inputsOCBlocked.activeMeds = [{ name: 'Atropine', A1: 0.5 }]; // Atropine is active
+
+    const outOCBlocked = CardiovascularEngine.tick(1, { ...stateOCBlocked, time: 10 }, drugEffects, inputsOCBlocked);
+    // Heart rate should not drop under Atropine blocking
+    expect(outOCBlocked.vitals.hr).toBeGreaterThanOrEqual(70);
+  });
+
   describe('Boundary and Mathematical Safety Guards', () => {
     it('should handle NaN, Infinity, and zero-value base parameters without crashing or propagating NaN', () => {
       const state = createBaselineState();
