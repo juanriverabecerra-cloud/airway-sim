@@ -193,7 +193,16 @@ FORMATTING & ORGANIZATION RULES:
         if (!jsonStr) continue;
         try {
           const parsed = JSON.parse(jsonStr);
-          const chunkText = parsed.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          // Check for API-level errors inside the SSE stream (quota, blocked, safety, etc.)
+          if (parsed.error) {
+            console.error('[Gemini SSE] API error in stream:', parsed.error.message || JSON.stringify(parsed.error));
+            continue;
+          }
+          const candidate = parsed.candidates?.[0];
+          if (candidate?.finishReason && candidate.finishReason !== 'STOP' && candidate.finishReason !== 'MAX_TOKENS') {
+            console.warn(`[Gemini SSE] Non-standard finish reason: ${candidate.finishReason}`);
+          }
+          const chunkText = candidate?.content?.parts?.[0]?.text || '';
           if (chunkText) {
             fullText += chunkText;
             if (onChunk) {
@@ -201,7 +210,10 @@ FORMATTING & ORGANIZATION RULES:
             }
           }
         } catch (err) {
-          console.warn('JSON parse warning:', err);
+          // Only warn for actual parse failures, not for SSE keepalive/control lines
+          if (jsonStr && jsonStr !== '[DONE]') {
+            console.warn('[Gemini SSE] JSON parse warning:', err.message, 'Raw:', jsonStr.slice(0, 200));
+          }
         }
       }
     }
@@ -663,6 +675,22 @@ export default function AttendingPanel({
 
             // Final message formulation (append sources block)
             let attendingReply = `### 📖 Attending Knowledge Base Consultation\n\n`;
+
+            // FALLBACK: If Gemini returned empty (API error, quota, timeout),
+            // build a local synthesis directly from the textbook sources.
+            if (!lastText.trim()) {
+              console.warn('[Attending] Gemini returned empty response. Building local KB fallback.');
+              let fallback = '> ⚡ *Direct textbook synthesis (AI synthesis unavailable)*\n\n';
+              for (const result of kbResults.slice(0, 5)) {
+                const { record, score } = result;
+                const chLabel = extractChapterLabel(record.chapter_title);
+                fallback += `**${record.section_heading || 'General'}** *(Miller\'s ${chLabel}, relevance: ${score.toFixed(1)})*\n\n`;
+                const bodySnippet = (record.body_text || '').slice(0, 1500);
+                fallback += `${bodySnippet}\n\n---\n\n`;
+              }
+              lastText = fallback;
+            }
+
             attendingReply += lastText.trim() + `\n\n`;
             
             // Append standard formatted sources block for collapsible citations UI
@@ -1840,8 +1868,23 @@ Rules:
                       setTimeout(() => studyEndRef.current?.scrollIntoView?.({ behavior: 'smooth' }), 50);
                     });
 
-                    // Final text update (append standard formatted sources block for collapsible citations UI)
+                    // Final text update
                     let attendingReply = `### 📖 Attending Knowledge Base Consultation\n\n`;
+
+                    // FALLBACK: If Gemini returned empty, build local KB synthesis
+                    if (!lastText.trim()) {
+                      console.warn('[Study] Gemini returned empty response. Building local KB fallback.');
+                      let fallback = '> ⚡ *Direct textbook synthesis (AI synthesis unavailable)*\n\n';
+                      for (const result of kbResults.slice(0, 5)) {
+                        const { record, score } = result;
+                        const chLabel = extractChapterLabel(record.chapter_title);
+                        fallback += `**${record.section_heading || 'General'}** *(Miller\'s ${chLabel}, relevance: ${score.toFixed(1)})*\n\n`;
+                        const bodySnippet = (record.body_text || '').slice(0, 1500);
+                        fallback += `${bodySnippet}\n\n---\n\n`;
+                      }
+                      lastText = fallback;
+                    }
+
                     attendingReply += lastText.trim() + `\n\n`;
                     
                     for (const result of kbResults) {
