@@ -650,14 +650,22 @@ export default function AttendingPanel({
             const streamText = await queryGeminiAI(currentInput, kbResults, apiKey, (fullStreamText) => {
               lastText = fullStreamText;
 
-              // Auto-expand detail section once divider appears in stream
-              if (fullStreamText.includes('=== DETAILED CONSULTATION ===')) {
-                setExpandedSources(prev => {
-                  if (!prev[`msg-detail-${attendingMessageId}`]) {
-                    return { ...prev, [`msg-detail-${attendingMessageId}`]: true };
-                  }
-                  return prev;
-                });
+              // During streaming: only show the Clinical Summary portion.
+              // The Detailed Consultation stays hidden until streaming is fully complete.
+              let displayDuringStream = fullStreamText;
+              const summaryDelim = '=== CLINICAL SUMMARY ===';
+              const detailDelim = '=== DETAILED CONSULTATION ===';
+              
+              if (fullStreamText.includes(summaryDelim)) {
+                const afterSummary = fullStreamText.split(summaryDelim)[1] || '';
+                if (fullStreamText.includes(detailDelim)) {
+                  // Summary is complete — show only summary part during stream
+                  const summaryOnly = afterSummary.split(detailDelim)[0].trim();
+                  displayDuringStream = `${summaryDelim}\n${summaryOnly}\n\n_⏳ Generating comprehensive detailed consult…_`;
+                } else {
+                  // Summary is still streaming in
+                  displayDuringStream = `${summaryDelim}\n${afterSummary}`;
+                }
               }
 
               setChatMessages(prev => {
@@ -665,7 +673,7 @@ export default function AttendingPanel({
                   if (msg.id === attendingMessageId) {
                     return {
                       ...msg,
-                      text: `### 📖 Attending Knowledge Base Consultation\n\n${fullStreamText}`
+                      text: `### 📖 Attending Knowledge Base Consultation\n\n${displayDuringStream}`
                     };
                   }
                   return msg;
@@ -1848,19 +1856,25 @@ Rules:
                     await queryGeminiAI(q, kbResults, apiKey, (fullStreamText) => {
                       lastText = fullStreamText;
 
-                      if (fullStreamText.includes('=== DETAILED CONSULTATION ===')) {
-                        setStudyExpandedDetails(prev => {
-                          if (!prev[attendingMsgId]) {
-                            return { ...prev, [attendingMsgId]: true };
-                          }
-                          return prev;
-                        });
+                      // During streaming: only show the Clinical Summary portion
+                      let displayDuringStream = fullStreamText;
+                      const summaryDelim = '=== CLINICAL SUMMARY ===';
+                      const detailDelim = '=== DETAILED CONSULTATION ===';
+                      
+                      if (fullStreamText.includes(summaryDelim)) {
+                        const afterSummary = fullStreamText.split(summaryDelim)[1] || '';
+                        if (fullStreamText.includes(detailDelim)) {
+                          const summaryOnly = afterSummary.split(detailDelim)[0].trim();
+                          displayDuringStream = `${summaryDelim}\n${summaryOnly}\n\n_⏳ Generating comprehensive detailed consult…_`;
+                        } else {
+                          displayDuringStream = `${summaryDelim}\n${afterSummary}`;
+                        }
                       }
 
                       setStudyChatHistory(prev => {
                         return prev.map(msg => {
                           if (msg.id === attendingMsgId) {
-                            return { ...msg, text: fullStreamText };
+                            return { ...msg, text: displayDuringStream };
                           }
                           return msg;
                         });
