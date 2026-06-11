@@ -5,15 +5,15 @@
 [functions]
   directory = "netlify/functions"
 
-# SPA fallback — serve index.html for all routes
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-  conditions = {Role = ["admin", "visitor"]}
-
-# Keep the SPA fallback but ensure static assets and functions are served first
+# 1. API proxy redirect (more specific, must be evaluated first!)
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200
+
+# 2. SPA fallback (catch-all, must be evaluated last!)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+

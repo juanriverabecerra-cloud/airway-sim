@@ -86,10 +86,37 @@ function extractChapterLabel(chapterTitle) {
  */
 const IS_PRODUCTION = typeof window !== 'undefined' && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1');
 
+/**
+ * Extracts details from Netlify proxy/Gemini API error responses.
+ */
+async function handleFetchError(response) {
+  let errorMsg = `HTTP ${response.status} ${response.statusText}`;
+  try {
+    const errJson = await response.json();
+    if (errJson && errJson.details) {
+      try {
+        const detailObj = JSON.parse(errJson.details);
+        if (detailObj.error?.message) {
+          errorMsg = detailObj.error.message;
+        } else {
+          errorMsg = errJson.details;
+        }
+      } catch {
+        errorMsg = errJson.details;
+      }
+    } else if (errJson && errJson.error) {
+      errorMsg = errJson.error;
+    }
+  } catch (e) {
+    // Body is not JSON or couldn't be parsed
+  }
+  return new Error(errorMsg);
+}
+
 function geminiApiFetch({ streaming = false, apiKey = '', model = 'gemini-3.5-flash', body }) {
   if (IS_PRODUCTION) {
-    // Production: proxy through Netlify function (API key is server-side)
-    return fetch('/.netlify/functions/gemini-proxy', {
+    // Production: proxy through Netlify function redirect
+    return fetch('/api/gemini-proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ streaming, model, ...body })
@@ -197,7 +224,7 @@ FORMATTING & ORGANIZATION RULES:
   });
 
   if (!response.ok) {
-    throw new Error(`Gemini API HTTP Error: ${response.status} ${response.statusText}`);
+    throw await handleFetchError(response);
   }
 
   const reader = response.body.getReader();
@@ -300,7 +327,8 @@ Do not include any explanation, introductory text, markdown formatting outside t
     });
 
     if (!response.ok) {
-      console.warn(`Query expansion failed: HTTP ${response.status}`);
+      const err = await handleFetchError(response);
+      console.warn(`Query expansion failed: ${err.message}`);
       return [query];
     }
 
@@ -1433,7 +1461,7 @@ Rules:
                               });
 
                               if (!response.ok) {
-                                throw new Error(`Gemini API HTTP Error: ${response.status} ${response.statusText}`);
+                                throw await handleFetchError(response);
                               }
 
                               const reader = response.body.getReader();
