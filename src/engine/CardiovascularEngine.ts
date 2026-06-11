@@ -40,6 +40,8 @@ export interface PatientState {
   patientBaseSBP?: number;
   patientBaseDBP?: number;
   oculocardiacTriggered?: boolean;
+  epiduralBlockActive?: boolean;
+  celiacBlockActive?: boolean;
 }
 
 export interface VitalsState {
@@ -189,7 +191,16 @@ export class CardiovascularEngine {
     const volumeOffset = (patient.intravascularVolume || 0) > 2000 && patient.isAwarenessActive
       ? (patient.intravascularVolume || 0) - safeEbv 
       : (patient.intravascularVolume || 0);
-    const effectiveIntravascularVolume = Math.max(100, safeEbv - safeCurrentEbl + safePreloadMod + volumeOffset);
+
+    const sympatheticBlock = (patient.epiduralBlockActive || patient.celiacBlockActive) ? 1.0 : 0.0;
+    const hasNeoSynephrine = inputs.activeMeds.some(m => m.name === 'Phenylephrine' && m.A1 > 0.1);
+    const hasNorepi = inputs.activeMeds.some(m => m.name === 'Norepinephrine' && m.A1 > 0.1);
+    const hasEpi = inputs.activeMeds.some(m => m.name === 'Epinephrine' && m.A1 > 0.1);
+    const alphaAgonistEffect = (hasNeoSynephrine || hasNorepi || hasEpi) ? 1.0 : 0.0;
+    const splanchnicVol = 1.0 + 0.3 * sympatheticBlock * (1.0 - alphaAgonistEffect);
+    const splanchnicPoolingOffset = 1000 * (splanchnicVol - 1.0);
+
+    const effectiveIntravascularVolume = Math.max(100, safeEbv - safeCurrentEbl + safePreloadMod + volumeOffset - splanchnicPoolingOffset);
     let newStunning = typeof patient.myocardialStunning === 'number' && Number.isFinite(patient.myocardialStunning) ? patient.myocardialStunning : 0;
     const inotropyInitial = Math.max(0.01, 1.0 - (newStunning / 100) + safeContractilitySympatheticSpike + (safeDrugInotropyMod - 1.0));
 
@@ -300,7 +311,7 @@ export class CardiovascularEngine {
 
     // SVR computation
     const baseSVR = typeof patient.patientBaseSVR === 'number' && Number.isFinite(patient.patientBaseSVR) && patient.patientBaseSVR > 0 ? patient.patientBaseSVR : 1200;
-    let targetSVR = (baseSVR * safeDrugSvrMod * (patient.isSeptic ? 0.6 : 1.0) * safeAnaphylaxisSvrMod * (bjActive ? 0.75 : 1.0)) + safeSvrSympatheticSpike;
+    let targetSVR = (baseSVR * safeDrugSvrMod * (patient.isSeptic ? 0.6 : 1.0) * safeAnaphylaxisSvrMod * (bjActive ? 0.75 : 1.0) * (1.0 - 0.15 * sympatheticBlock)) + safeSvrSympatheticSpike;
     targetSVR = Math.max(50, targetSVR);
 
     const targetCO = Math.max(0, Math.min(30.0, (targetHR * currentSV) / 1000));

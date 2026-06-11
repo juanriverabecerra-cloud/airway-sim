@@ -34,6 +34,7 @@ export interface RespiratoryPatientState {
   bronchospasm?: boolean;
   isBucking?: boolean;
   C_cat?: number;
+  swallowingActive?: boolean;
 }
 
 export interface RespiratoryVitalsState {
@@ -55,6 +56,7 @@ export interface RespiratoryVitalsState {
   pmean?: number;
   mv?: number;
   peep?: number;
+  bowelGasVolume?: number;
 }
 
 export interface VentSettings {
@@ -312,7 +314,7 @@ export class RespiratoryEngine {
     const safeRuleSpo2Offset = typeof safeDrugEffects.ruleSpo2Offset === 'number' && Number.isFinite(safeDrugEffects.ruleSpo2Offset) ? safeDrugEffects.ruleSpo2Offset : 0;
 
     const isParalyzed = maxNMJOccupancy > 0.90;
-    const isApneic = isParalyzed || (safeVitals.rr !== undefined && Number.isFinite(safeVitals.rr) ? safeVitals.rr < 1 : false);
+    const isApneic = isParalyzed || safePatient.swallowingActive || (safeVitals.rr !== undefined && Number.isFinite(safeVitals.rr) ? safeVitals.rr < 1 : false);
 
     // Calculate current volumes
     const currentLungVols = this.calculateLungVolumes(
@@ -442,6 +444,10 @@ export class RespiratoryEngine {
     currentCompliance -= anaphylaxisCompliancePenalty;
     currentCompliance *= safeRuleComplScale;
 
+    const bowelGasVol = typeof safeVitals.bowelGasVolume === 'number' && Number.isFinite(safeVitals.bowelGasVolume) ? safeVitals.bowelGasVolume : 1.0;
+    const complianceModBowel = 1.0 / (1.0 + 0.3 * Math.max(0, bowelGasVol - 1.0));
+    currentCompliance *= complianceModBowel;
+
     if (safePatient.bronchospasm) {
       currentCompliance *= 0.5;
     }
@@ -472,8 +478,11 @@ export class RespiratoryEngine {
     const baseRR = typeof safePatient.patientBaseRR === 'number' && Number.isFinite(safePatient.patientBaseRR) && safePatient.patientBaseRR > 0
       ? safePatient.patientBaseRR
       : (safeVitals.rr || 12);
-    let patientDriveRR = isParalyzed ? 0 : Math.max(0, baseRR + compensatoryRR + shiveringRRDrive + safeTotalRrDelta - opioidRRDrop);
+    let patientDriveRR = (isParalyzed || safePatient.swallowingActive) ? 0 : Math.max(0, baseRR + compensatoryRR + shiveringRRDrive + safeTotalRrDelta - opioidRRDrop);
     let targetRR = patientDriveRR;
+    if (safePatient.swallowingActive) {
+      targetRR = 0;
+    }
     targetRR = Math.max(0, targetRR * safeRuleRrScale + safeRuleRrOffset);
 
     // Irregular gasping breathing pattern under high C_cat (pain/stress)
@@ -530,6 +539,15 @@ export class RespiratoryEngine {
       newMv = (newVte * targetRR) / 1000;
     }
     if (newPip > 0) newPip = Math.max(0, newPip + safeRulePipOffset);
+
+    if (safePatient.swallowingActive) {
+      targetRR = 0;
+      newVte = 0;
+      newMv = 0;
+      newPip = newPeep;
+      newPplat = newPeep;
+      newPmean = newPeep;
+    }
 
     // Alveolar Ventilation
     let ibwVal = Number(safePatient.ibw);
@@ -630,6 +648,10 @@ export class RespiratoryEngine {
     if (Math.abs(measuredSpo2 - (safeVitals.spo2 || 100)) < 1.5) newSpo2 = measuredSpo2;
     if (Math.abs(targetRR - (safeVitals.rr || 12)) < 1.5) newRr = targetRR;
     if (Math.abs(targetEtco2 - (safeVitals.etco2 || 40)) < 1.5) newEtco2 = targetEtco2;
+
+    if (safePatient.swallowingActive) {
+      newRr = 0;
+    }
 
     const outVitals = {
       ...safeVitals,

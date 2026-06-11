@@ -9,6 +9,7 @@ import { CardiovascularEngine } from './CardiovascularEngine';
 import { RespiratoryEngine } from './RespiratoryEngine';
 import { PainEngine } from './PainEngine';
 import { ConsciousnessEngine } from './ConsciousnessEngine';
+import { GastrointestinalEngine } from './GastrointestinalEngine';
 
 export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, gasSettings, logEvent, msmaidsComplete }) {
   const [timeVal, setTimeState] = useState(0);
@@ -145,7 +146,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           ph: safePatientObj.isSeptic ? 7.22 : (safePatientObj.isObese ? 7.36 : 7.4), 
           co: initialCO, svr: calculatedBaseSVR, map: Math.round(initialMap), cmap: Math.round(initialMap), 
           metHb: 0.8, coHb: activeCase.id === 'trauma' ? 12.0 : 1.0, cyanide: 0.0, lacticAcid: safePatientObj.isSeptic ? 4.5 : 1.0,
-          cao2: 20.0, cvo2: 15.0, p50: 26.6, r_ratio: 0.90
+          cao2: 20.0, cvo2: 15.0, p50: 26.6, r_ratio: 0.90,
+          lesTone: 25.0, gastricPressure: 7.0, bowelGasVolume: 1.0, gutMotility: 1.0, inflammatoryIleus: 0.0, postoperativeIleus: 0.0
         });
         setTargetVitals({ ...safeBaseVitals });
         
@@ -201,6 +203,12 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           fluidInfusing: null,
           suxPotassiumLeaked: false,
           isSeizure: false,
+          celiacBlockActive: safePatientObj.celiacBlockActive || false,
+          epiduralBlockActive: safePatientObj.epiduralBlockActive || false,
+          swallowingActive: safePatientObj.swallowingActive || false,
+          manipulationIndex: typeof safePatientObj.manipulationIndex === 'number' ? safePatientObj.manipulationIndex : 0.0,
+          hasRegurgitated: false,
+          hasAspirated: false,
 
           // Consciousness & Memory states
           lcActivity: 1.0,
@@ -1485,13 +1493,47 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               }
           }
 
+          // Gastrointestinal Engine Tick
+          const isParalyzedCurrent = maxNMJOccupancy > 0.90;
+          const isApneicCurrent = isParalyzedCurrent || (st.vitals.rr !== undefined && Number.isFinite(st.vitals.rr) ? st.vitals.rr < 1 : false);
+          const spontaneousBreathingActive = !isParalyzedCurrent && !isApneicCurrent;
+          const isVentilatingPPV = st.patient.ventilationStatus === 'mechanical' || (st.ventSettings && st.ventSettings.mode !== 'spontaneous') || (st.vitals.pip && st.vitals.pip > 15);
+
+          const giOutput = GastrointestinalEngine.tick(1, {
+              patient: {
+                  ...st.patient,
+                  hasAspirated: st.patient.hasAspirated || false
+              },
+              vitals: {
+                  ...st.vitals,
+                  bowelGasVolume: st.vitals.bowelGasVolume,
+                  inflammatoryIleus: st.vitals.inflammatoryIleus,
+                  postoperativeIleus: st.vitals.postoperativeIleus
+              },
+              time: st.time
+          }, st.activeMeds || [], {
+              EtN_2O: currentEtN2O,
+              currentMac,
+              C_cat: painOutput.C_cat || 0,
+              positivePressureVentilationActive: isVentilatingPPV,
+              spontaneousBreathingActive
+          });
+
+          if (giOutput.events && giOutput.events.length > 0) {
+              giOutput.events.forEach(evt => logEvent(evt));
+          }
+
+          if (giOutput.hasRegurgitated && !st.patient.hasRegurgitated) {
+              logEvent("⚠️ WARNING: Gastric regurgitation detected! Acidic stomach contents are rising into the pharynx.");
+              st.patient.hasRegurgitated = true;
+          }
+
           // Gastric Aspiration triggers
-          let hasAspirated = st.patient.hasAspirated || false;
+          let hasAspirated = st.patient.hasAspirated || giOutput.hasAspirated || false;
           let aspirationCompliancePenalty = 0;
           let aspirationResistancePenalty = 0;
           
           if (!st.patient.airwaySecured && st.patient.stomach === 'full') {
-              const isVentilatingPPV = st.patient.ventilationStatus === 'mechanical' || (st.ventSettings && st.ventSettings.mode !== 'spontaneous') || (st.vitals.pip && st.vitals.pip > 15);
               if (isVentilatingPPV && !hasAspirated) {
                   hasAspirated = true;
                   logEvent(`🚨 CRITICAL EMERGENCY: Positive Pressure Ventilation delivered on a full stomach without a secured airway! Mass aspiration of acidic gastric contents occurred, causing chemical pneumonitis and severe bronchospasm!`);
@@ -1546,11 +1588,13 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               patient: {
                   ...patientAfterFluidics,
                   isApneic: st.patient.isApneic,
-                  isParalyzed: st.patient.isParalyzed
+                  isParalyzed: st.patient.isParalyzed,
+                  swallowingActive: !!st.patient.swallowingActive
               },
               vitals: {
                   ...st.vitals,
-                  temp: newTemp
+                  temp: newTemp,
+                  bowelGasVolume: giOutput.bowelGasVolume
               },
               time: st.time
           }, st.ventSettings, deliveredFiO2, {
@@ -1654,7 +1698,13 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               isApneic: respOutput.isApneic,
               isParalyzed: respOutput.isParalyzed,
               lungVolumes: respOutput.lungVolumes,
-              isSeizure: isSeizure
+              isSeizure: isSeizure,
+              hasRegurgitated: giOutput.hasRegurgitated || st.patient.hasRegurgitated || false,
+              hasAspirated: hasAspirated,
+              celiacBlockActive: !!st.patient.celiacBlockActive,
+              epiduralBlockActive: !!st.patient.epiduralBlockActive,
+              swallowingActive: !!st.patient.swallowingActive,
+              manipulationIndex: typeof st.patient.manipulationIndex === 'number' ? st.patient.manipulationIndex : 0.0
           };
 
           const finalVitals = {
@@ -1678,7 +1728,13 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               temp: newTemp,
               etAgent: currentEtAgent,
               etN2O: currentEtN2O,
-              mac: displayedMac
+              mac: displayedMac,
+              lesTone: giOutput.lesTone,
+              gastricPressure: giOutput.gastricPressure,
+              bowelGasVolume: giOutput.bowelGasVolume,
+              gutMotility: giOutput.gutMotility,
+              inflammatoryIleus: giOutput.inflammatoryIleus,
+              postoperativeIleus: giOutput.postoperativeIleus
           };
 
           // Apply natural wave-like fluctuations in non-arrest states

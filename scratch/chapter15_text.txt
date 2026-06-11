@@ -1,0 +1,1582 @@
+=== SECTION 1: General ===
+SECTION II • Anesthetic Physiology	404
+From outermost to innermost these layers are the serosa,
+longitudinal muscle layer, circular muscle layer, sub-
+mucosa, and mucosa. Within the mucosa is (outermost
+to innermost) the muscularis mucosae, lamina propria,
+and epithelium. The serosa is a smooth membrane of thin
+connective tissue and cells that secrete serous fluid that
+serves to enclose the cavity and reduce friction between
+muscle movements. The longitudinal muscle layer con-
+tracts in order to shorten the length of the intestinal
+segment whereas the circular muscle layer contracts to
+decrease the diameter of the intestinal lumen. These two
+layers work together to allow for gut motility. Between
+these smooth muscle layers is the myenteric (Auerbach)
+plexus, which regulates the gut smooth muscle. The
+submucosa contains the submucosal (Meissner) plexus,
+which transmits information from the epithelium to the
+enteric and central nervous systems (CNS). The mucosa
+is composed of a thin layer of smooth muscle called the
+muscularis mucosa, which functions to move the villi; the
+lamina propria, which contains blood vessels, nerve end-
+ings, and immune and inflammatory cells; and the epithe-
+lium, which is where the GI contents are sensed and where
+secretion of enzymes, absorption of nutrients, and excre-
+tion of waste products occur.
+The GI tract is innervated by the autonomic nervous
+system. This is composed of the extrinsic nervous system,
+which has sympathetic and parasympathetic components,
+and the enteric nervous system. The extrinsic sympathetic
+nervous system is primarily inhibitory as stimulation can
+decrease or cease GI motility. The preganglionic fibers
+originate at the T5 to L2 segments of the spinal cord. They
+travel to the sympathetic chain of ganglia and synapse with
+postganglionic neurons. Then they travel to the gut where
+they terminate at the enteric nervous system. The primary
+neurotransmitter is norepinephrine. Vasoactive intestinal
+polypeptide (VIP) also transmits sympathetic signals. The
+extrinsic parasympathetic nervous system is primarily
+excitatory as it activates GI motility and function. Parasym-
+pathetic preganglionic fibers originate in the medulla and
+sacral region of the spinal cord. Vagus nerve fibers inner-
+vate the esophagus, stomach, pancreas, small intestine,
+and the first half of the large intestine. Pelvic nerve fibers
+innervate the second half of the large intestine, sigmoid,
+rectal, and anal regions. The primary neurotransmitter is
+acetylcholine.
+The enteric nervous system is the independent nervous
+system of the GI tract, which controls motility, secre-
+tion, and blood flow. Two plexuses constitute the enteric
+nervous system: the myenteric (Auerbach) plexus and
+the submucosal (Meissner) plexus. The myenteric plexus
+controls motility, which is carried out by enteric neurons,
+interstitial cells of Cajal (pacemaker cells that generate
+intrinsic electrical activity of the GI tract), and smooth
+muscle cells. The submucosal plexus controls absorption,
+secretion, and mucosal blood flow. Both of these plexuses
+respond to sympathetic and parasympathetic stimulation.
+Sympathetic stimulation is inhibitory so it will increase
+the tone of the intestinal wall whereas parasympathetic
+stimulation is excitatory and will induce intestinal con-
+tractions and movement. Additionally, there are a vari-
+ety of reflexes in the enteric nervous system. For example,
+when there is sympathetic stimulation the tone of the wall
+increases, the sphincters contract, and, reflexively, the
+amount of excitatory acetylcholine released is reduced.
+The mechanism is via α-2 activation, which inhibits the
+release of acetylcholine and through β activation which
+contracts sphincter muscles and relaxes intestinal mus-
+cles. These two actions work together to slow the transit of
+contents through the GI tract.
+This next section serves to briefly discuss the anatomy
+and function of the various components of the GI tract. Only
+the esophagus, stomach, small intestine, and large intestine
+are covered. See Table 15.1 for an overview of GI tract anat-
+omy and function.
+The esophagus is a muscular tube that connects the
+pharynx to the stomach. It is the first passageway for
+food entry into the digestive system. It is approximately
+18 to 25 cm in length and extends from the level of the
+hypopharynx at the C6 vertebrae down to the gastro-
+esophageal (GE) junction at the T11 level. 1 The esopha-
+gus has three regions: cervical, thoracic, and abdominal.
+The cervical esophagus is approximately 4 to 5 cm long
+and is surrounded by the trachea anteriorly, the verte-
+bral column posteriorly, and the carotid sheaths and
+thyroid gland laterally. The thoracic esophagus spans
+from the suprasternal notch to the diaphragmatic hia-
+tus and lies posterior to the trachea. At the level of the
+carina, it deviates right to allow room for the aortic arch
+and runs posteriorly and underneath the left mainstem
+bronchus. From T8 to the diaphragmatic hiatus (T10)
+the esophagus runs anterior to the aorta. The abdomi-
+nal esophagus extends from the diaphragmatic hiatus
+to the cardia of the stomach. The upper one-third of
+the esophagus is composed of striated muscle and the
+remaining two-thirds is smooth muscle. There are two
+areas of high pressure: the upper esophageal sphincter
+(UES) and the lower esophageal sphincter (LES). The UES
+lies at the level of the cricoid cartilage and is made up
+of the cricopharyngeal, inferior constrictor, and circular
+esophageal muscles. Resting tone ranges from 30–200
+mm Hg. Opening and closing of the UES is coordinated
+with the pharyngeal pushing of food downstream. The
+LES is formed intrinsically by circular esophageal muscle
+and extrinsically by the diaphragm muscle. It has both
+sympathetic and parasympathetic innervation. Resting
+tone is 10–45 mm Hg. 2
+The stomach is a J-shaped dilation of the alimentary
+tract. It is divided into four regions: the cardia, fundus,
+body or corpus, and antrum. The stomach has three
+main functions: store large quantities of food (up to 1.5–2
+liters), mix food with gastric secretions to form chyme
+and break down particle size, and slow emptying into the
+small intestine. The proximal stomach is the reservoir
+for undigested food and produces smooth, tonic contrac-
+tions. The distal stomach grinds, mixes, and sieves food
+particles via high-amplitude contractions. Notable cell
+types in the stomach that aid in digestion are the mucous
+cells, which protect against harsh hydrochloric acid;
+parietal cells, which secrete hydrochloric acid; chief cells,
+which secrete pepsin; and G cells, which secrete gastrin.
+Together these cells’ secretions break down and partially
+digest the food into chyme as well as reduce particle
+dimension to an appropriate size (2 mm or less) before it
+enters the small intestine. 2
+
+=== SECTION 2: General ===
+15 • Gastrointestinal Physiology and Pathophysiology 	405
+The duodenum is the first and smallest section of the
+small intestine. It is between 25 and 30 cm long and it forms
+a C-shaped loop around the pancreas. Its main function is
+to chemically digest the chyme received from the stomach
+in preparation for absorption. The pancreas, liver, and gall-
+bladder secrete digestive enzymes through the ampulla of
+Vater into the middle portion of the duodenum.2
+The jejunum is the second section of the small intestine
+and its primary function is to absorb nutrients. The digested
+chyme from the duodenum enters the jejunum where it is
+mixed and circulated for exposure to the jejunal walls for
+nutrient absorption. The walls of the jejunum are folded
+many times over to increase its surface area and allow
+for maximal absorption of nutrients. By the time chyme
+enters the ileum, almost 90% of all available nutrients are
+absorbed.2
+The ileum is the final section of the small intestine. It
+serves to absorb vitamin B12 and other products of diges-
+tion that were not previously absorbed in the jejunum. It
+ends at the ileocecal valve—a circular muscle that serves to
+prevent reflux of colonic contents into the small intestine.
+It contracts in response to colonic dilation and relaxes in
+response to ileal dilation.2
+The large intestine is composed of the cecum, appen-
+dix, ascending colon, transverse colon, descending
+colon, sigmoid colon, and rectum. Briefly, the cecum
+is a pouch at the beginning of the large intestine that
+allows for mixing of the chyme from the small intestine
+with bacteria to form fecal matter. The ascending colon
+transports the fecal matter superiorly along the right side
+up to the transverse colon. Along the way the ascending
+colonic wall absorbs water, nutrients, and vitamins. The
+transverse colon, the longest portion of the large intes-
+tine, crosses the abdominal cavity. Its contractions serve
+to mix the feces and allow bacteria to ferment the waste.
+Further absorption of water and nutrients also take
+place. The feces then enter the descending colon, which
+stores the feces until it is ready for transport, inferiorly
+and along the left side of the abdominal cavity to the
+sigmoid colon. Again, the walls of the descending colon
+allow for further absorption of water and nutrients. The
+sigmoid colon is an S-shaped, curved region that stores
+then transports fecal matter from the descending colon
+to the rectum and anus for elimination. The final por-
+tion of the large intestine is the rectum where feces are
+stored until elimination. As fecal matter accumulates it
+exerts pressure on the walls of the rectum. This activates
+stretch receptors and leads to relaxation of the internal
+anal sphincter allowing for elimination. 2 !
+Transit Time in Health and
+Disease
+This section serves to discuss motility in the esophagus,
+stomach, small intestine, and large intestine. Emphasis is
+placed on mechanism, how motility and transit are altered
+by various disease states, and methods for evaluating
+motility.
+Mixing movements and propulsive movements are the
+two primary movements within and along the GI tract.
+Mixing movements keep the contents of the intestine appro-
+priately and thoroughly mixed throughout, while the pro-
+pulsive movements, consisting of periodic contractions of
+certain GI tract segments (peristalsis), move the contents of
+the intestine along the tract.
+Transit through the esophagus starts with swallowing.
+Swallowing starts with the oropharynx pushing food back-
+ward and downward while the muscles of the nasopharynx
+prevent food from entering the nasal passages. When ready
+TABLE 15.1 	Table of Gastrointestinal Components, Locations, and Functions
+Component 	Location 	Function
+Esophagus 	Extends from C6 to T11 	Propels food from the pharynx to the stomach
+Stomach 	Left upper abdominal cavity. Diaphragm along the top,
+pancreas posteriorly, greater omentum laterally
+Receives food from the esophagus and initiates digestion.
+Breaks down food into chyme through physical and chemi-
+cal mechanisms
+Duodenum 	Inferior to stomach, approximately 25–30 cm long 	Chemically digests chyme for absorption in the small intestine
+Jejunum 	Between duodenum and ileum 	Absorption of nutrients from chyme
+Ileum 	Between jejunum and cecum 	Further nutrient absorption
+Cecum 	Lower right quadrant of abdominal cavity, inferior and
+lateral to the ileum
+A space for mixing of chyme with bacteria to form fecal matter
+Ascending colon 	Runs superiorly from the cecum to the right inferior
+border of the liver where it turns 90 degrees to become
+the transverse colon
+Peristaltic waves move the feces superiorly where bacteria
+digest the waste and further nutrients, water, and vitamins
+are absorbed
+Transverse colon 	Crosses abdominal cavity right to left just below the
+stomach
+Fecal formation
+Descending colon 	Runs inferiorly along the left side of the abdominal cavity 	Stores fecal matter prior to elimination. Further absorbs water,
+nutrients, vitamins
+Sigmoid colon 	Lower left quadrant of the abdominal cavity 	Stores fecal matter prior to elimination
+Rectum 	Posterior pelvic cavity. Along the anterior surface of the
+sacrum and coccyx
+Stores fecal matter prior to elimination. Distention will activate
+stretch receptors allowing the internal anal sphincter to relax
+and allow for defecation.
+
+=== SECTION 3: General ===
+SECTION II • Anesthetic Physiology	406
+to be swallowed the food is squeezed and rolled into the pos-
+terior pharynx by the tongue. The epiglottis moves upward
+in a protective mechanism over the larynx and trachea to
+prevent aspiration. The act of swallowing inhibits the respi-
+ratory center to protect from aspiration but it is so short-
+lived it is unnoticeable. Food enters the esophagus through
+the UES, which then constricts to prevent reflux back into
+the pharynx. The UES produces pressures around 30–200
+mm Hg. Two waves of peristalsis move the food into the
+stomach through the LES, which also produces pressures
+between 20 and 60 mm Hg. Afferent nerve fibers transmit
+to the dorsal vagal complex activating efferent fibers that
+terminate either on the striated muscle of the esophagus or
+on the nerves of the enteric nervous system. Release of ace-
+tylcholine contracts the muscle while VIP and nitric oxide
+(NO) relax it. The LES responds to esophageal distention via
+myogenic and neurohormonal mechanisms.
+Diseases of the esophagus are varied. Etiologies can be
+grouped into anatomical, mechanical, and neurologic,
+although many disease states involve overlap between two
+or all three. Anatomical etiologies include the presence of
+diverticula, hiatal hernia, and changes associated with
+chronic acid reflux. These anatomical abnormalities inter-
+rupt the normal pathway of food as it travels to the stom-
+ach which, in turn, changes many of the pressure zones of
+the esophagus. This can have dangerous sequelae as the
+luminal pressures may increase enough to overcome the
+resting pressures of the UES and LES allowing for reflux.
+Mechanical etiologies include achalasia, diffuse esophageal
+spasm, and hypertensive LES. There is also a neurologic
+component to these diseases but the result is the same—
+the esophagus is unable to relax properly for food travel. In
+achalasia the smooth muscles are unable to relax and move
+food down and the increased tone of the LES does not allow
+for complete relaxation. This results in dysphagia, regur-
+gitation, and significant pain. In diffuse esophageal spasm
+the muscle contractions are uncoordinated and, as a result,
+food does not properly move downward. A hypertensive
+LES is defined as an LES with a mean pressure of 45 mm Hg
+or higher leading to dysphagia and chest pain. Neurologic
+disorders such as stroke, vagotomy, or hormone deficien-
+cies will alter the nerve pathways such that the appropri-
+ate sensing and feedback are disrupted. A common result of
+neurologic disorders in the esophagus is dysphagia.
+In evaluating esophageal function, it is important to
+select a study with an appropriate clinical correlation—is it
+a problem with motility or is it an anatomical abnormality?
+If it is a questionable motility problem, then an esophageal
+manometry study is best. A special catheter detects changes
+in pressure in the esophagus at various levels. First the pres-
+sure of the LES is recorded. The catheter is then pulled back
+into the esophagus and pressure measurements are made at
+different levels. Esophageal motor function between swal-
+lows is also evaluated. Finally the motor function of the UES
+is recorded and then the catheter is pulled out. Question-
+able anatomical problems are best studied using an upper
+GI series and ingested barium. These evaluate the act of
+swallowing and visualize the lining of the esophagus for
+anatomic abnormalities.
+Before discussing the transit of food through the stom-
+ach and small intestine it is important to understand their
+actions during the fasting state. The migrating motor
+complex (MMC) occurs only during fasting, and is com-
+posed of waves of electrical activity in regular cycles origi-
+nating in the stomach and terminating in the distal ileum.3
+Vagal stimulation releases motilin, which triggers an MMC
+leading to peristaltic waves. They occur every 45 to 180
+minutes and are composed of four phases. Phase I is a period
+of quiescence. Phase II is composed of increased action
+potentials and low-amplitude smooth muscle contractility.
+Phase III is the most active as it is the time of peak electrical
+and mechanical activity producing bursts of regular, high-
+amplitude contractions. Phase IV demonstrates declining
+activity and will merge into the following MMC’s phase
+I. The MMC is significant because it moves residual undi-
+gested food through the GI tract and also moves bacteria
+from the small intestine to the large intestine. Feeding inter-
+rupts it, and this is discussed next.
+As described previously, the stomach is a J-shaped sac
+that serves as a reservoir for large volumes of food, mixes
+and breaks down food to form chyme, and slows emptying
+into the small intestine. Solids must be broken down into 1
+to 2 mm particles before entering the duodenum, and they
+take approximately 3 to 4 hours to empty from the stomach.
+Liquids empty faster than solids. The motility of the stomach
+is controlled by intrinsic and extrinsic neural regulation.
+Parasympathetic stimulation to the vagus nerve increases
+the number and force of contractions whereas sympathetic
+stimulation inhibits these contractions via the splanchnic
+nerve. The intrinsic nervous system provides the coordi-
+nation for motility. Neurohormonal control is also at play
+in that gastrin and motilin will increase the strength and
+frequency of contractions and the gastric inhibitory peptide
+will inhibit them.
+Emptying of the stomach is controlled by neural and hor-
+monal mechanisms as well as the composition of ingested
+food. Gastric distention, gastrin, and NO will promote emp-
+tying. Duodenal distention decreases the gastric tone to slow
+emptying, and increased fat content triggers the release of
+cholecystokinin to further inhibit stomach motility.
+Gastric motility disorders that slow its emptying can
+increase the incidence of GE reflux disease. These disorders
+can be drug-induced, neurologic, or a result of critical ill-
+ness. Drug-induced conditions include the administration
+of opioids (to be discussed later in the chapter), and the
+use of vasoactive agents. Vasoactive drugs increase cat-
+echolamine concentrations leading to sympathetic stimu-
+lation and, therefore, decreased motility. These drugs are
+often given intraoperatively or to critically ill patients for
+blood pressure control. Neurologic disorders resulting
+in decreased gastric motility include vagal neuropathies
+and gastroparesis. Finally, conditions that are commonly
+present in severely compromised patients, such as those
+with hyperglycemia, increased intracranial pressure, and
+mechanical ventilation can decrease gastric motility. Efforts
+to increase motility using drugs like erythromycin and
+metoclopramide have been used with some success.
+The most prevailing test to evaluate gastric motility is the
+gastric emptying study. The patient fasts for at least 4 hours
+prior to the study then consumes a meal with a tightly
+bound radiotracer, commonly egg albumin. Continuous
+or frequent imaging occurs for the next 60 to 120 minutes
+and the measurement of time for 50% of the ingested meal
+to empty is determined. It is important to note that while
+
+=== SECTION 4: General ===
+15 • Gastrointestinal Physiology and Pathophysiology 	407
+gastric emptying scintigraphy has long been the standard
+study, it is affected by multiple factors including meal com-
+position and data acquisition parameters. 4 Gastric motil-
+ity studies can also be paired with small intestinal motility
+studies such as the small bowel manometry test. This will
+be discussed later.
+Small intestinal motility mixes the contents of the stom-
+ach with digestive enzymes, further reducing particle size
+and increasing solubility. However, the major function of
+the small intestine is to circulate the contents and expose
+them to the mucosal wall in order to maximize absorption
+of water, nutrients, and vitamins before entering the large
+intestine. Again, there are mixing contractions and propul-
+sive contractions. The circular and longitudinal muscle lay-
+ers work in a coordinated fashion to achieve segmentation.
+Segmentation occurs when two nearby areas contract and
+thereby isolate a segment of intestine. Then a contraction
+occurs in the middle of that isolated segment, further divid-
+ing it. Contractions in the middle of those segments con-
+tinue to occur and the process ensues. Segmentation allows
+the contents to remain in the intestine long enough for the
+essential substances to be absorbed into the circulation. It is
+controlled mainly by the enteric nervous system with mod-
+ulation of motility by the extrinsic nervous system.
+When considering small bowel dysmotility it is helpful
+to distinguish etiologies based on reversible and nonrevers-
+ible causes. For reversible causes, mechanical obstruction
+should be the first to come to mind. In this case, there is a
+physical obstruction the muscles of the intestine cannot
+overcome. Hernias, malignancy, adhesions, and volvuluses
+are all examples. Bacterial overgrowth should be another
+consideration. Although the large intestine is rich with bac-
+teria, the small intestine usually has fewer than 100,000
+organisms per milliliter. Disrupting this condition with bac-
+terial overgrowth leads to alterations in absorptive func-
+tion leading to diarrhea. It is treated with antibiotics. Other
+reversible causes include ileus, electrolyte abnormalities,
+and critical illness. Nonreversible causes can be classified
+as structural or neuropathic. In structural causes there
+may be abnormalities with the intestinal smooth muscle, in
+which it cannot produce proper contractions. This occurs
+in diseases such as scleroderma and connective tissue disor-
+ders. In patients with an inflammatory bowel disease (IBD),
+there is a structural abnormality in the mucosa leading to
+decreased absorption of nutrients. Short bowel syndrome
+can be considered a structural etiology in that a large por-
+tion of the small intestinal structure is simply not present.
+In patients who have had a section of their small bowel
+resected, the remaining portion may not provide sufficient
+functional compensation, resulting in diarrhea, malnutri-
+tion, and weight loss. Neuropathic etiologies can produce
+a pseudo-obstruction in which the intrinsic and extrinsic
+nervous systems are altered in such a way that the intes-
+tines can only produce weak or uncoordinated contrac-
+tions. This leads to symptoms of bloating, nausea, vomiting,
+and abdominal pain. Regardless of etiology, small intestinal
+dysmotility adversely affects nutrient absorption leading to
+malnutrition.
+The most common test used to evaluate small intestine
+motility is small bowel manometry. This test is useful in
+patients with unexplained nausea, vomiting, abdominal
+pain, and manifested signs of obstruction without a clear
+obstructive cause. Similar to esophageal manometry, this
+test uses a small catheter with pressure sensors to evalu-
+ate the contractions of the intestine. The study evaluates
+contractions during three periods: fasting, during a meal,
+and postprandial. Normally the recording time is four hours
+for fasting, followed by ingestion of a meal, and two hours
+postprandial. Abnormal results are grouped into myopathic
+and neuropathic causes. In myopathic results, the MMC is
+absent or phase III exhibits very low amplitudes (normal
+phase III amplitude is 40 mm Hg). In neuropathic results,
+the contraction amplitude is adequate but either the con-
+tractions are uncoordinated (enteric neuropathy) or there
+is an inappropriate postprandial response, meaning post-
+prandial antral hypomotility is present (extrinsic neuropa-
+thy). This manometry test is reported to result in a change
+of diagnosis in 8% to 15% of patients with unexplained nau-
+sea, vomiting, and abdominal pain.5
+The large intestine acts as a reservoir for waste and
+indigestible material before elimination and extracts any
+remaining electrolytes and water. It plays an essential role
+in regulating defecation and consistency of stools. Dis-
+tention of the ileum will relax the ileocecal valve to allow
+intestinal contents to enter the colon and subsequent cecal
+distention will contract it. The contractions of the colon are
+different from the rest of the gut. While there are still mix-
+ing and propulsive movements by the circular and longi-
+tudinal muscles, respectively, the colon also exhibits giant
+migrating complexes. The giant migrating complexes serve
+to produce mass movements across the large intestine. In
+the healthy state, these complexes occur approximately 6
+to 10 times within 24 hours with mean amplitude of 115
+mm Hg at a distance of about 1 cm/s for approximately 20
+seconds each.6 These complexes, as well as the mixing and
+propulsive movements, serve to transfer contents to the
+rectum. The giant migrating complexes that originate in
+the sigmoid colon will produce the urge to defecate. Rectal
+distention as well as VIP and NO release will promote relax-
+ation of the internal anal sphincter and allow for defecation.
+Colonic dysmotility manifests with two primary symp-
+toms: altered bowel habits and intermittent abdominal
+cramping. The most common diseases associated with
+colonic dysmotility are irritable bowel syndrome (IBS) and
+IBD, both of which are clinical diagnoses. Rome II crite-
+ria define IBS as having abdominal pain/discomfort along
+with at least two of the following three features: defecation
+relieves pain or discomfort, onset of pain is associated with
+an abnormal frequency of stools (more than three times
+per day or fewer than three times per week), and onset of
+pain is associated with a change in the form of the stool.7
+In IBS with predominantly diarrheal symptoms, there is an
+increase in the frequency and amplitude of spontaneous
+giant migrating complexes, and this increase is directly pro-
+portional to the severity of symptoms. In IBS with predomi-
+nantly constipation, there is a decreased amplitude and
+frequency of giant migrating complexes. In severe cases the
+giant migrating complexes may be completely absent. In
+addition, there is a depression of overall contractile activity
+in the colon leading to colonic distention and the sensation
+of pain. This phenomenon is exacerbated by stress in which
+there is significant motor dysfunction and visceral hyper-
+sensitivity as well as an increase in plasma norepineph-
+rine stimulating the sympathetic nervous system. In IBD
+
+=== SECTION 5: General ===
+SECTION II • Anesthetic Physiology	408
+the mixing and propulsive movements as well as the tonic
+contractions are suppressed due to colonic wall compres-
+sion by the inflamed mucosa, but the giant migrating com-
+plexes remain. There is an increased frequency of the giant
+migrating complexes and their large pressure effect further
+compresses the inflamed mucosa, which can lead to hemor-
+rhage, thick mucus secretion, and significant erosions.!
+Methods of Evaluating Colonic
+Motility
+Studies evaluating giant migrating complexes in patients
+with IBS and IBD are not routine but are performed only on
+patients with known diagnoses to help understand the phys-
+iology and mechanism causing them. There are, however,
+tests to evaluate the function and anatomy of the large intes-
+tine. The lower GI series, for example, involves the adminis-
+tration of a barium enema to a patient. The barium outlines
+the intestine and it is visible on radiograph. This allows for
+detection of colon and rectal anatomical abnormalities.!
+The Effects of General Anesthesia
+on Bowel Function
+GI effects of the anesthetics are multifaceted and encompass
+a wide array of hemodynamic and physiological changes.
+This section is broken down into the various components
+that make up a general anesthetic and the GI effects of each
+of these components. Emphasis is placed on the effects of
+preoperative sedation, induction of anesthesia, hypnotic
+agents, volatile agents, paralysis, and reversal. Opioids will
+be discussed in another section. Please note that this discus-
+sion applies to the healthy state.
+In the preoperative setting patients are often nervous and
+sympathetic stimulation is high. Inhibition of GI tract activ-
+ity is directly proportional to the amount of norepinephrine
+secreted from sympathetic stimulation, so the higher the
+anxiety the higher the inhibition. Even though a good bed-
+side manner and the use of behavioral approaches are benefi-
+cial, these may not be sufficient and patients are often given
+premedication with a benzodiazepine, usually midazolam,
+to alleviate anxiety. Midazolam acts by enhancing the effect
+of neurotransmitter, GABA, on GABA-A receptors. A study
+by Castedal and associates looked at the effect of midazolam
+on small bowel motility using antroduodenojejunal manom-
+etry.8 The vast majority of the studied variables were not
+affected by the use of midazolam, but one significant change
+was noted—an increased duration of phase III of the MMC in
+the proximal and distal parts of the duodenum, which short-
+ened the MMC by 27%. A clear explanation for this is not
+evident but there are a couple of considerations. One, the sed-
+ative effect of midazolam may be the reason for the change in
+MMC activity because MMC activity differs between awake
+and sleep states. Another consideration is that the resultant
+reduced anxiety decreases sympathetic stimulation allowing
+for less inhibition and higher activity. However, when applied
+clinically, there was no real difference seen in small intestinal
+motility patterns. Of the premedications, midazolam is widely
+used and considered well tolerated.
+General anesthesia causes a loss of all protective reflexes.
+This is achieved with a variety of medications including
+opioids, hypnotics, and neuromuscular blocking agents. As
+mentioned, the effect of opioids will be discussed in a later
+section. Volatile anesthetics affect bowel function through
+various mechanisms including depression of spontane-
+ous activity and changes in intestinal tissue oxygenation.
+Volatile anesthetics depress the spontaneous, electrical,
+contractile, and propulsive activity in the stomach, small
+intestine, and colon as demonstrated in many animal and
+human studies. The small intestine is the first part of the
+GI tract to recover, followed by the stomach in approxi-
+mately 24 hours and then the colon 30 to 40 hours post-
+operatively. Between the various volatile anesthetics there
+are minor differences. One difference worth noting is that
+rapid increases in the concentration of desflurane induces
+greater sympathetic activation, as compared to other vola-
+tile agents, which coupled with sympathetic nervous sys-
+tem hyperactivity during surgical procedures can inhibit
+GI function and motility. In a study comparing desflurane
+and isoflurane, rapid increases in desflurane caused signifi-
+cantly greater effects on sympathetic and renin-angiotensin
+system activity as well as increases in blood pressure and
+heart rate as compared to isoflurane. However, this effect
+is short-lived as it is only seen with rapid increases in con-
+centration and the surge in sympathetic stimulation tapers
+off quickly. This transient phenomenon is unlikely to have
+a lasting effect on bowel function. 9 The volatile anesthet-
+ics also affect splanchnic circulation and oxygenation in a
+dose-dependent manner, which is known to have an effect
+on bowel function. In horses receiving isoflurane for main-
+tenance of anesthesia, microperfusion and intestinal tissue
+oxygenation decreased when isoflurane reached 2%. 10 In a
+human study by Muller and associates, the effects of desflu-
+rane and isoflurane on intestinal tissue oxygenation during
+colorectal surgery were evaluated. It was found that des-
+flurane and isoflurane had comparable effects on intestinal
+tissue oxygenation. However, during periods of ischemia
+for resection and anastomosis, reactive hyperemia was bet-
+ter preserved in the patients given isoflurane. 11 This may
+have important implications in regaining coordinated and
+appropriate bowel function postoperatively and may deter-
+mine maintenance with volatile versus total intravenous
+anesthesia. Whereas the volatile anesthetics depress spon-
+taneous activity and affect blood flow, there is no clear-cut
+relationship between adverse GI effects and the use of vola-
+tile anesthetics. Also, when considering their use in clinical
+practice, there is very little difference between desflurane,
+isoflurane, and sevoflurane’s effects on bowel function.
+An alternative to maintenance with volatile anesthetics is
+total intravenous anesthesia. Propofol is the most common
+drug used for this purpose. When used intraoperatively,
+propofol-remifentanil anesthetic produced increased intes-
+tinal motility as compared to sevoflurane-remifentanil.12
+No adverse GI effects were reported, but it did cause a higher
+degree of surgeon dissatisfaction. A study by Jensen and col-
+leagues looked at bowel recovery after open procedures and
+did not find a difference in overall recovery and bowel func-
+tion when comparing isoflurane/nitrous oxide, propofol/
+air, and propofol/nitrous oxide.13 Even in colorectal cancer
+patients there was no difference in inflammatory response
+among patients receiving either total intravenous anesthe-
+sia with propofol and remifentanil or inhalational anesthe-
+sia with sevoflurane and fentanyl. 14,15 There are few data
+on the effect of propofol on GI smooth muscle and many of
+
+=== SECTION 6: General ===
+15 • Gastrointestinal Physiology and Pathophysiology 	409
+the established studies show various and conflicting results
+when it comes to the recovery of bowel functions.
+Nitrous oxide is 30 times more soluble than nitrogen in
+the blood and as such will diffuse into gas-containing cavi-
+ties from the blood faster than the nitrogen already present
+in those cavities can diffuse out. This is especially impor-
+tant in the bowels as gut distention is correlated with the
+amount of gas already present in the bowel, the duration
+of nitrous oxide administration, and the concentration of
+nitrous oxide administered. Although it has been estab-
+lished that nitrous oxide causes bowel distention and it is
+prudent to avoid nitrous oxide in lengthy abdominal sur-
+geries or when the bowel is already distended, the most
+recent ENIGMA trial did not relate the use of nitrous oxide
+to any significant adverse outcomes.16
+Paralysis to achieve favorable surgical conditions is pro-
+duced by administration of neuromuscular blocking agents.
+Neuromuscular blocking drugs only affect skeletal muscle
+so GI motility remains intact. However, special mention of
+the depolarizing neuromuscular blocker succinylcholine
+should be made. Succinylcholine mimics acetylcholine in
+that it produces an initial muscle contraction, which is visi-
+ble as fasciculations. This contraction increases intragastric
+pressure, which may be so strong as to overcome the tone
+of the LES and allow reflux of gastric contents. Aspiration
+is certainly a concern, but this should not necessarily pre-
+clude the use of succinylcholine. Patient condition, includ-
+ing body habitus, technical difficulty of intubation, nothing
+by mouth (NPO) status, and comorbidities should be the
+determining factors in assessing the risk of aspiration.
+Reversal of paralysis using the anticholinesterase, neo-
+stigmine, will increase parasympathetic activity and bowel
+peristalsis by increasing the frequency and intensity of con-
+tractions. In cases of fresh bowel anastomoses, this can be
+of concern as the increase in activity could result in dehis-
+cence. This is partially offset by simultaneous administra-
+tion of the anticholinergic medications, glycopyrrolate or
+atropine, which are used to attenuate the bradycardia from
+neostigmine. This effect is not seen with sugammadex,
+which may be a more prudent choice for reversal in situ-
+ations of tenuous bowel anastomoses. There is some data
+to support the use of neostigmine in treating postoperative
+ileus but the adverse effects of bradycardia, vomiting, and
+abdominal cramps may preclude its use.
+Surgical procedures on the GI tract produce an exagger-
+ated stress response that may predispose to postoperative
+bowel dysfunction. Goals of anesthetic care should be to
+attenuate the stress response, optimize hemodynamic and
+fluid status, and maintain normothermia. 17,18 At present
+there is no evidence for recommendations on specific anes-
+thetic and analgesic agents to avoid adverse GI effects.!
+Effect of Opioids on Bowel Function
+Much attention has been given to the use and effects (benefi-
+cial and adverse) of opioid administration. There is a desire to
+only use adjunct techniques and nonopioid medications; how-
+ever, opioids are often necessary to control perioperative pain.
+A major adverse effect, and one that is not associated with the
+development of opioid tolerance, is reduced GI motility and
+constipation. Opioids exert their function on both central and
+peripheral receptors, namely mu, delta, and kappa. It is the
+central effects that primarily mediate analgesia and produce
+the favorable effects. The peripheral effects are the adverse
+effects. There is a high density of peripheral mu-opioid recep-
+tors in the myenteric and submucosal plexuses. Activation of
+these mu-opioid receptors in the myenteric plexus has a dual
+effect on the neural pathways controlling motility—it inhibits
+excitatory pathways that depress peristaltic contraction and it
+also inhibits inhibitory pathways. These inhibitions increase
+GI muscular activity and increase resting muscle tone includ-
+ing tone in the ileocecal valve and internal anal sphincters.
+This produces spasm and nonrhythmic or propulsive motility.
+Activation of these receptors is also linked to the inhibition of
+acetylcholine release and promotion of nitrous oxide release
+that inhibits propulsive motility.19 Together these effects will
+delay gastric emptying and slow transit through the intes-
+tine. Activation of these receptors in the submucosal plexus
+decreases nutrient secretion and increases fluid absorption.
+Coupled with reduced motility the stool will remain in the gut
+for a longer period of time and as more water is absorbed the
+stool becomes hard and dry leading to constipation.20 Other
+adverse sequelae include nausea, anorexia, delayed diges-
+tion, abdominal pain, excessive straining during bowel move-
+ments, and incomplete evacuation.
+Many efforts have been made and are currently under-
+way to attenuate or avoid opioid-induced bowel dysfunc-
+tion. The use of laxatives, stool softeners, and prokinetic
+agents, such as metoclopramide and neostigmine, have
+shown some success in alleviating opioid-induced constipa-
+tion. Potentially switching to a different opioid is also offered
+as a treatment option. Tassinari and associates performed
+a meta-analysis demonstrating strong evidence support-
+ing opioid switch in alleviating constipation, most strongly
+for morphine to transdermal fentanyl. 21 Another option is
+combining opioids with enteral opioid receptor antagonists.
+Naloxone was the first used. It is a nonselective, competitive
+opioid receptor antagonist. While its effect on the peripheral
+receptors in the gut produced favorable results of reversing
+gut motility inhibition, its nonselective profile meant it also
+worked on the central receptors and reversed the beneficial
+analgesic effect of opioids. Therefore, new attention is given
+to pure peripherally acting opioid receptor antagonists.
+Methylnaltrexone is a peripheral mu-opioid receptor antag-
+onist and does not cross the blood-brain barrier. In healthy
+volunteers, the use of methylnaltrexone prevented delay
+in orocecal transit time after morphine administration.22
+Subsequent systematic reviews demonstrated that meth-
+ylnaltrexone and alvimopan were better than placebo in
+reversing opioid-induced increased GI transit time and con-
+stipation.23–25 However, long-term efficacy and safety have
+not been clearly established. Further studies are underway.!
+Effect of Open Abdominal Surgery,
+Ischemia, Stomas, and Bowel
+Anastomosis on Gastrointestinal
+Physiology and Function
+The surgical procedure itself, even with purposes of correcting
+GI pathology, significantly affects GI physiology and function
+and predisposes to postoperative ileus. Recently, a standard-
+ized definition of postoperative ileus was established as “a
+
+=== SECTION 7: General ===
+SECTION II • Anesthetic Physiology	410
+transient cessation of coordinated bowel motility after surgi-
+cal intervention, which prevents effective transit of intestinal
+contents and/or tolerance of oral intake.”26 Manipulation
+of the intestines is the main factor that initiates postopera-
+tive ileus. Additional contributors include immobility, elec-
+trolyte imbalance from fluid shifts and insensible losses, and
+intestinal wall swelling from excessive fluid administration.
+In open abdominal procedures, the surgical manipulation of
+the bowel induces a degree of trauma that sets in motion the
+whole process of postoperative ileus. There are two phases
+to uncomplicated postoperative ileus (i.e., in the absence of
+complications, such as perforation, bleeding, peritonitis). The
+first phase is an early neurogenic phase and the second is an
+inflammatory phase. In total, an uncomplicated postopera-
+tive ileus lasts about 3 to 4 days.26
+The early neurogenic phase results when the intestine is
+manipulated, which is more extensive in open procedures
+than laparoscopic ones. This manipulation activates the
+sympathetic nervous system, increasing the inhibitory neu-
+ral input that leads to decreased propulsive movements and
+almost complete cessation of GI motility. This lasts about 3
+to 4 hours after surgery.
+The late inflammatory phase also begins with surgi-
+cal manipulation of the intestines. Surgical manipulation
+increases sympathetic stimulation of the myenteric plexus,
+which promotes the influx of leukocytes into the “traumatized”
+areas of the gut. Further release of cytokines, chemokines, and
+leukocytes as well as phagocytosis in the traumatized area
+occurs and eventually spreads through the entire GI tract.
+This inflammatory cascade increases permeability and allows
+for translocation of intraluminal bacteria, which further exac-
+erbates the inflammatory process. However, peritonitis does
+not always develop because the mast cells and neutrophils
+are very effective in eliminating the translocated bacteria
+in the peritoneal cavity. This process occurs about 3 hours
+after intestinal manipulation and continues throughout the
+manipulated segment and the rest of the GI tract for the next
+24 hours. It eventually subsides and within 3 to 4 days this
+uncomplicated ileus is usually resolved.27,28
+Mesenteric ischemia, if left untreated, will lead to 100%
+mortality. This occurs when the supply of oxygen is insuffi-
+cient to meet the oxygen demand of the intestines. It affects
+the small and large intestine and is classified as occlusive
+or nonocclusive. Etiologies of mesenteric ischemia include:
+strangulation, emboli (seen commonly in patients with
+atrial fibrillation), complications of aortic surgery or during
+cross-clamping, trauma, drug-induced, atherosclerosis, and
+inflammatory diseases. There are four stages of mesenteric
+ischemia. The first is the hyperactive stage when blood flow
+to the intestine is abruptly occluded. This produces severe
+pain and overactive peristalsis. There may be passage of
+loose stool with blood. The second stage is a paralytic stage
+that spreads diffusely across the intestines. The third stage
+involves leakage of fluid, proteins, and electrolytes through
+the bowel wall into the peritoneum. If the bowel becomes
+necrotic then peritonitis develops. The fourth stage is shock.
+End-organ damage is apparent and contributes to altered
+hemodynamics and critical illness. Treatment involves reper-
+fusion of the occluded vessel through revascularization and
+possibly bowel resection.29
+Bowel resections vary in terms of their effect on the
+remaining bowel. The degree of GI dysfunction depends on
+the portion of bowel resected. The colon primarily absorbs
+water and a full colonic resection is compatible with life.
+However, when the small intestine is resected the effect on
+the GI system is much more pronounced. The small intes-
+tine is responsible for absorbing vitamins and nutrients.
+This can be properly maintained if at least a third of the
+small bowel remains. The jejunum is the primary site for
+digestion and absorption of nutrients. After a jejunal resec-
+tion, the ileum is usually able to adapt to fulfill its functions.
+The ileum absorbs vitamin B12 and bile salts. If the ileum
+is resected (especially more than 100 cm), the remaining
+small intestine cannot compensate for the loss of its func-
+tion and severe malabsorption and diarrhea will result.
+The unabsorbed bile salts enter the colon and stimulate fat
+and water secretion. Small intestinal resection will increase
+gastric motility but this depends on the site and amount
+resected. If the terminal ileum and ileocecal valve are
+resected then intestinal content transit speeds up.30
+Bowel anastomoses can significantly alter bowel function
+in that they disrupt normal motor activity. Partial transec-
+tion usually preserves the wave of activity, though complete
+transection will interrupt it. There is a loss in myogenic con-
+tinuity in that the intestine distal to the transection will no
+longer receive signals or respond to the pacemaker in the
+proximal duodenum. Now the part distal to transection has
+to rely on its own intrinsic slow-wave transmission. This
+can be attenuated by close approximation of the muscle
+layers. There is motor asynchrony across the anastomotic
+site but long-term studies report reasonable MMC activity is
+ultimately achieved with time. The mechanism explaining
+why this recovery occurs remains uncertain. The transec-
+tion and anastomosis have little effect on intestinal homeo-
+stasis and are not associated with significant digestion or
+absorption side effects.2!
+Gastrointestinal System
+Nociception
+Abdominal visceral pain and its associated symptoms are
+common in the GI perioperative period. For an understand-
+ing of GI nociception, a detailed knowledge of the anat-
+omy and physiology of abdominal visceral innervation is
+essential.
+ABDOMINAL VISCERA INNERVATION
+Abdominal visceral pain signals are carried in both sympa-
+thetic and parasympathetic autonomic fibers. 31,32 Innerva-
+tion of the parietal peritoneum, abdominal wall muscles,
+and skin is supplied by the ventral rami of thoracoabdomi-
+nal nerves, which are part of the somatosensory system.
+Sympathetic fibers for the upper abdomen, including
+the liver, stomach, pancreas, small bowel, and proximal
+part of the colon, originate from spinal cord segments T5
+to L2. Those preganglionic fibers exit the cord as gray rami
+communicants to enter the sympathetic chain in the para-
+vertebral region. These fibers terminate in the prevertebral
+(subdiaphragmatic) ganglia through splanchnic nerves
+and generate the celiac plexus, where they synapse with a
+large number of postganglionic, predominantly unmyelin-
+ated fibers. Postganglionic fibers will then innervate the
+
+=== SECTION 8: General ===
+15 • Gastrointestinal Physiology and Pathophysiology 	411
+organs (see Fig. 15.5). 33 Innervation of the lower abdomen
+including the descending colon, sigmoid and rectum, blad-
+der, and lower ureter originates from T9 to L3 and forms
+the inferior mesenteric and hypogastric ganglia and plexus.
+Sympathetic 	afferent 	fibers 	transmit 	visceral 	pain,
+whereas sympathetic efferent nerves inhibit peristalsis and
+gastric distention as well as cause GI vasoconstriction.33
+The parasympathetic nervous system supplies the abdomi-
+nal viscera proximal to the splenic flexure of the colon via the
+vagus nerve. Some of the vagal fibers pass through the prever-
+tebral fibers (celiac plexus). The parasympathetic postgangli-
+onic neurons are located in the myenteric and submucosal
+plexuses. Visceral afferent parasympathetic nerve fibers trans-
+mit the sensations of satiety, nausea, and distention, whereas
+efferent parasympathetic nerve fibers increase functions such
+as secretion, sphincter relaxation, and peristalsis.34–36
+The colon, rectum, internal and external genitalia, and
+bladder are innervated by fibers from spinal cord segments
+S2 to S4, which run with the pelvic nerves (Fig. 15.1). 37–40
+Some of the characteristics of abdominal visceral inner-
+vation are: (1) they are almost exclusively myelinated
+A-delta and unmyelinated C fibers; (2) they have “dual-
+function” properties (sensory that carry sensory evoked
+potentials and afferent that regulate autonomic flow);42
+Parasympathetic
+innervation
+Sympathetic
+innervation
+Cardioaccelerator
+nerve
+Splanchnic
+nerve
+Splanchnic
+nerve
+Celiac
+ganglion
+III
+Pons
+Spinal cord
+Pelvic
+nerve
+Medulla
+Cervical
+Thoracic
+Lumbar
+Sacral
+VII
+IX
+X
+Kidneys
+Proximal
+colon
+Small intestine
+Stomach
+Respiratory
+tract
+Heart
+Salivary glands
+Lacrimal glands
+Eye
+(circular muscles,
+iris)
+Eye
+(radial muscle, iris)
+Ureters
+Bladder
+Distal colon
+Rectum
+Genitals
+Adrenal gland
+Sweat glands
+Blood vessels
+(trunk)
+Blood vessels,
+(head and neck)
+Small intestine
+Stomach
+Liver
+Spleen
+Respiratory
+tract
+Heart
+Colon
+Salivary gland
+Paraverteral sympathetic ganglion chain	Paraverteral sympathetic ganglion chain	Paraverteral sympathetic ganglion chain	Paravertebral sympathetic ganglion chain
+Superior
+Middle
+Inferior
+Cervical
+ganglion
+Kidneys
+Blood vessels
+lower
+extremities
+Bladder
+Rectum
+Genitals
+Superior
+mesenteric
+ganglion
+Inferior
+mesenteric
+ganglion
+Hypogastric
+nerve
+Fig. 15.1 Schematic diagram of sympathetic and parasympathetic innervation to the gastrointestinal (GI) tract. Sympathetic innervation of majority
+of the GI tract up to the rectum is supplied by the celiac plexus. (From Glick DB. The autonomic nervous system. In: Miller RD, ed. Miller’s Anesthesia. 7th ed.
+Philadelphia: Elsevier; 2010.)
+
+=== SECTION 9: General ===
+SECTION II • Anesthetic Physiology	412
+(3) there are an abundance of connections between nerves,
+ganglia, and plexuses; (4) there is not a fine and distinct
+nerve; (5) considerable variation in anatomy can be found;
+(6) visceral innervation anatomy is affected by intraabdom-
+inal pathology; and (7) visceral innervation distribution
+is diffuse and capable of amplification. Once stimulated, it
+could be difficult to stop (self-aggravation).41–46
+In summary, the innervation of the GI organs up to the
+proximal transverse colon is supplied by the celiac plexus,
+and innervation of the descending colon and distal GI tract
+comes from the inferior hypogastric plexus. Although each
+organ looks like it is innervated from specific cord segments,
+the fibers frequently communicate with each other (Table
+15.2).!
+CELIAC PLEXUS ANATOMY
+The celiac plexus is normally composed of two or three
+splanchnic nerves:
+The greater (superior thoracic) splanchnic nerve comes
+from T5 to T9 (fibers can arise as high as T1 and as low as
+T11). The greater splanchnic nerve is usually anterolateral
+to the T12 vertebral body. It perforates the crura of the dia-
+phragm and enters the retroperitoneal space where it joins the
+celiac plexus.
+The lesser splanchnic nerve is formed from T9 to T11. In 30%
+of cases this nerve is not present. Two or more celiac ganglia are
+generated, which lie ventrolaterally to the aorta between the
+origin of the celiac arterial trunk and the renal arteries.
+The celiac ganglia can vary considerably in size and
+number on each side. Usually they are oval shaped and can
+vary from 0.5 to 4.5 cm in width.
+Fusion of these ganglia form a fine nerve plexus that may
+extend to the inferior border of the T12 vertebra and lower
+border of L2. They are mostly located close to the celiac
+artery trunk.46
+The plexus and related nervous structures are contained in
+the prevertebral retroperitoneal space along with the aorta,
+inferior vena cava (IVC), veins of azygos system, lymph nodes,
+the cisterna chyli, and diaphragmatic crura (Fig. 15.2).!
+ABDOMINAL VISCERAL PAIN
+Despite the fact that abdominal pain of visceral origin is a very
+common finding during the perioperative period, our knowl-
+edge and practice to control this pain are very limited.47
+Visceral pain is different from somatic pain in many aspects;
+not all organs respond similarly to stimuli, some organs are
+more sensitive. For example, the pancreas is more sensitive
+than the stomach. Tissue destruction, ischemia, and inflam-
+mation will not always cause pain.48 The most remarkable
+difference between visceral and superficial structures is the
+fact that visceral pain is poorly localized, produces strong
+affective responses, and refers to other locations with intense
+regional or muscle spasms and autonomic instability.49–51
+The referral properties of visceral pain have been attributed
+to the conjunction of visceral and somatic inputs to the spinal
+cord and CNS. For the same reason, visceral pain can have
+somatic components. Merging of these inputs can modify
+pain sensation distal to the site of visceral inflammation, or
+pain from one intraabdominal organ can refer to another.40
+Visceral pain is fervently associated with emotional fluc-
+tuation. IBS is thought to be related to gut-brain interaction
+and autonomic dysregulation.52
+It was found that induced sadness was attenuated by
+fatty acid infusion, and increased neural activity in the
+part of the brain processing emotions was also observed. 53
+Probiotic bacteria are beneficial in stress-related disorders,
+such as anxiety and depression, and during the course of
+common comorbidities and some bowel disorders. 54 !
+VISCERAL PAIN TREATMENT
+Opioids are still the mainstay of visceral pain treatment,
+although their usage has been limited by many side effects
+such as decreased gut motility and constipation, sedation,
+nausea, and vomiting. In addition, prolonged usage of
+narcotics is associated with opioid-induced hyperalgesia
+and tolerance. 55 Usage of acetaminophen, nonsteroidal
+anti-inflammatory drugs, and serotonin components have
+been suggested, but the results are not specific. 56 !
+VISCERAL PAIN BLOCK TECHNIQUES
+Noxious pain impulses originating from abdominal viscera
+can be blocked by the following regional anesthesia tech-
+niques (Fig. 15.3)
+1. Spinal anesthesia extending to at least the level of T5
+2. Epidural anesthesia covering T5 to Tl2 dermatomes
+3. Paravertebral blocks comprising T5 to L2 spinal segments
+4. Selective T5 to L2 sympathetic chain block
+5. Celiac/splanchnic nerve block
+TABLE 15.2 	Summary of Visceral Innervation on Gastrointestinal Tract47
+Organ 	Sympathetic Sensory Supply 	Parasympathetic Sensory Supply
+Liver and biliary tract 	T5-T10 via Celiac plexus 	Vagus nerve
+Stomach 	T7-T9 via Celiac plexus 	Vagus nerve
+Pancreas 	T6-T10 via Celiac plexus 	Vagus nerve
+Small bowel 	T9-L1 via Celiac plexus 	Vagus nerve
+Cecum, ascending and transverse colon 	T9-L1 via Celiac plexus 	Vagus nerve
+Descending colon 	T9-T12 via Celiac plexus 	S2-S4 via Pelvic nerves
+Sigmoid, rectum 	T11-L1 via Inferior hypogastric plexus 	S2-S4 via Pelvic nerves
+
+=== SECTION 10: General ===
+15 • Gastrointestinal Physiology and Pathophysiology 	413
+Suprarenal gland Left celiac ganglion
+Superior mesenteric
+artery
+Inferior mesenteric
+artery
+Superior mesenteric
+ganglion
+Inferior mesenteric
+ganglion
+Sacrovertebral angle
+Common iliac vein
+Common iliac artery
+Greater splanchnic
+nerve 	Greater splanchnic
+nerve
+Lesser splanchnic
+nerve
+Lower splanchnic
+nerve
+Right celiac
+ganglion
+Aorticorenal
+ganglion Aorticorenal
+ganglion	Renal artery
+Renal artery
+Communicating
+branch
+Branch to
+aortic plexus
+Branch to
+aortic plexus
+Sympathetic
+trunk
+Fig. 15.2 Anatomy of the abdominal sympathetic trunk. (Redrawn from http://commons.wikimedia.org/wiki/File:Gray847.png#mediaviewer.)
+Brainstem
+From spinal cord,
+medulla, hypothalamus
+Spinal nerves
+T1-L3
+Cranial nerves-
+III, VII, IX, X
+Sacral nerves
+S2-S4
+Sacral outflow
+Cranial outflow
+Parasympathetic division	Sympathetic division
+Pre
+Pre
+Pre
+Post
+Post
+Viscus
+Viscus 	Collateral ganglion
+White
+RC
+Gray ramus
+communicans
+Post
+Sympathetic ganglion
+To blood vessels,
+sweat glands
+Fig. 15.3 Regional anesthetic techniques on gastrointestinal (GI) visceral sympathetic innervation: different regional techniques which can block sym-
+pathetic innervation of the GI tract at different levels. (From Glick DB. The autonomic nervous system. In: Miller RD, ed. Miller’s Anesthesia. 7th ed. Philadelphia:
+Elsevier; 2010.)
+
+=== SECTION 11: General ===
+SECTION II • Anesthetic Physiology	414
+Based on the type and extent of the regional technique, its
+effect on the GI physiology is different. Of note, the aforemen-
+tioned regional anesthesia techniques are associated with
+the blockade of the sympathetic nervous system, whereas the
+parasympathetic system usually remains intact.!
+VISCERAL/CELIAC PLEXUS BLOCK
+Blockage 	of 	the 	splanchnic/celiac 	plexus 	has 	been
+approached in many ways:
+Intraperitoneal Regional Anesthesia or Peritoneal
+Lavage
+Abdominal visceral pain can be blocked simply by instilling
+local anesthetic into the peritoneal cavity. A recent meta-
+analysis by Boddy and associates of intraperitoneal regional
+anesthesia in laparoscopic surgeries found an overall ben-
+efit, although there was no consistent analgesia, but also a
+remarkable absence of complications and side effects.57!
+Celiac Plexus Block—Posterior and Trans-Crural
+Approach
+Radiography, fluoroscopy, or computed tomography scan
+is usually needed to perform this block safely, especially in
+lytic blocks.
+This approach requires a special needle, usually a 15-cm,
+20- or 22-G Chiba needle. The patient is in the prone or lat-
+eral position and the needle is inserted below the tip of the
+12th rib on the left side. The needle is aimed at a 45-degree
+angle to touch the lateral side of the L1 vertebral body at a
+depth of 7 to 9 cm. Subsequently, the needle is nearly fully
+redirected 5 to 10 degrees and advanced to a depth of 11
+to 14 cm. In this situation the pulsation of the aorta on the
+needle can sometimes be felt (Fig. 15.4).
+Determination of the correct vertebral level is imprecise in
+patients with absence of the 12th rib, a markedly downslop-
+ing of the rib, or in other congenital abnormalities.!
+Celiac Plexus Block—Anterior Approach
+The abdomen is opened and the left lobe of the liver is
+retracted upward. The stomach is pulled gently down-
+ward and to the left thereby exposing and stretching
+the lesser omentum. The index finger of the operator is
+then inserted at the highest possible point of the incision,
+palpating the pulsating aorta through the lesser omen-
+tum. The aorta is pushed aside to the left by passing the
+tip of the finger to the vertebrae whereby it is separated
+from the vena cava. A fine 22-G spinal needle is inserted
+alongside the finger and in the loose, retroperitoneal, pre-
+vertebral tissue between the IVC and aorta. Diluted local
+anesthetic is injected in this area after careful aspiration.
+The tip of the needle should be close to the diaphragm,
+above the origin of the celiac trunk, in the midline. A
+similar approach was described by Lillemoe in 1992 for
+postoperative pain control in pancreatic cancer patients:
+after lesser omentum exposure, the left index and middle
+fingers are placed on either side of the aorta and pulled
+caudad until the upper border of the pancreas is identi-
+fied and 20 mL of solution is injected on either side of the
+aorta (Fig. 15.5). 58
+Endoscopic Ultrasound-Guided Celiac Plexus Block
+Recent recognition that the celiac ganglia can be visual-
+ized and accessed by endoscopic ultrasound (EUS) now
+allows for a direct injection into the celiac plexus. The
+patient is placed in the left lateral decubitus position and
+under conscious sedation. From the posterior side of the
+lesser curvature of the gastric fundus EUS can visual-
+ize the aorta in a longitudinal plane. The aorta is traced
+distally to the celiac trunk, and the injection delivered
+around the celiac trunk. Meta-analysis has shown that
+EUS-guided celiac plexus blocks are safe and efficient
+(Fig. 15.6). 59 !
+A
+B	Kidney
+A 	IVC
+45°
+7–8
+cm
+Fig. 15.4 (A) Schematic view of the posterior approach. Celiac plexus can be blocked by insertion of a 20- to 22-gauge 15-cm spinal needle (Chiba
+needle) at the level of T12. (B) Positioning and surface landmarks. (From Wedel DJ, Horlocker TT. Nerve blocks. In: Miller RD, ed. Miller’s Anesthesia. 7th ed.
+Philadelphia: Elsevier; 2010.)
+
+=== SECTION 12: TECHNICAL ASPECTS OF VISCERAL PLEXUS ===
+15 • Gastrointestinal Physiology and Pathophysiology 	415
+TECHNICAL ASPECTS OF VISCERAL PLEXUS
+BLOCKS
+There is no established standard technique. It is important
+to completely disrupt all of the impulse traffic in the visceral
+innervation, as these impulses are widely spread and can be
+reinstated via very fine nerves.
+Unfortunately, the success of splanchnic nerve and celiac
+plexus blocks cannot be verified by any objective signs. Hypo-
+tension is not a regular finding. If patients do have upper
+abdominal pain, analgesia typically results within a few min-
+utes after the block. Failure of pain to subside is not only due
+to inappropriate technique but also due to the involvement of
+visceral plexuses, such as the hypogastric plexus.
+Bilateral injections of
+50% alcohol into
+celiac ganglia
+Celiac
+axis
+IVC
+Ao
+Fig. 15.5 Celiac plexus block (anterior approach): intraoperative celiac plexus block is performed using a 20- to 22-gauge spinal needle. Injection is
+performed at each side of the aorta and the level of celiac axis. (Redrawn from Lillemoe KD, Cameron JL, Kaufman HS, et al. Chemical splancnicectomy in
+patients with unresectable pancreatic cancer. A prospective randomized trial. Ann Surg. 1993;217:447–457.)
+A 	B
+Fig. 15.6 Endoscopic ultrasound-guided celiac plexus block: (A) Ultrasound beams use lesser curvature of the gastric fundus as media to visualize the
+celiac trunk. (B) Ultrasonic image of celiac ganglia and needle during performance of endoscopic ultrasound-guided celiac plexus block. CT, Celiac trunk.
+(From Levy M, Wiersema M. EUS-guided celiac plexus neurolysis and celiac plexus block. Gastrointest Endosc. 2003;57(7):923–930.)
+
+=== SECTION 13: General ===
+SECTION II • Anesthetic Physiology	416
+There is little information about the duration of a suc-
+cessful block induced by local anesthetics. Most of the
+blocks have been a combination of local anesthetic and lytic
+therapy for chronic pain. In order to avoid toxic side effects,
+local anesthetic doses must be reduced when the block is
+combined with another major regional anesthetic tech-
+nique such as abdominal wall blocks.!
+COMPLICATIONS OF VISCERAL PAIN BLOCKS
+The complication rate is between 0.5% and 32%, depend-
+ing on the method, as radiologic methods are associated
+with a reduced rate of complications (Box 15.1).
+Dilation of the capacitance vessels in the splanchnic area
+will cause hypotension. Subarachnoid injection happens
+mostly with a posterior approach, and an alcohol injection
+can cause paraplegia.
+A chylothorax can result from damage of the retroperito-
+neal lymph nodes.
+The most devastating complication occurs with vascu-
+lar trauma, thrombosis, and retroperitoneal hematoma. 60!
+INDICATIONS FOR A VISCERAL PAIN BLOCK
+Post-Laparatomy Pain Relief
+Visceral pain blocks are usually associated with somato-
+sensory pain controls using central neuroaxial regional
+anesthesia techniques, such as epidural analgesia or para-
+vertebral analgesia. A combination of a celiac plexus block
+with any other regional anesthesia technique is rarely used.!
+Cancer Pain
+Splanchnic/celiac plexus blocks have been used for biliary
+and pancreatic cancers. The details of this indication of vis-
+ceral pain control are discussed in the chronic pain man-
+agement chapter (Chapter 51).!
+EFFECTS OF REGIONAL ANESTHESIA ON
+GASTROINTESTINAL PHYSIOLOGY
+The degree to which the GI tract is affected by regional anes-
+thesia depends on the type and extent of the block. Epidural
+analgesia, especially thoracic epidural analgesia (TEA),
+has been used extensively for a wide variety of GI surger-
+ies. The clinical outcome of TEA after GI surgeries has been
+reviewed extensively in the literature; the focus of this chap-
+ter is its effect on GI physiology.
+Effect on Gastrointestinal Motility and
+Postoperative Ileus
+As described, postoperative ileus is a very common phe-
+nomenon in patients who undergo major abdominal sur-
+gery. Postoperative ileus is a temporary state of GI motor
+dysfunction that occurs after surgery in the abdominal
+cavity. This includes disruption of normal coordinated
+movements of the GI tract, 61 nonmechanical obstruction
+of the bowel, activation of the inhibitory reflexes, inflam-
+matory 	mediators, 	bowel 	manipulation, 	electrolyte
+disturbances, opioid administration, sympathetic over-
+activity with surgical pain, and postoperative pain. 62–66
+Transit time of the stomach may extend 24 to 48 hours
+and colon transfer time may increase 48 to 72 hours.
+Some of these effects may continue for up to 3 to 4 days
+after surgery. 67,68
+The main pathophysiologic event in postoperative ileus
+is neuroimmune interaction, which is based on the bidirec-
+tional communication between the immune system within
+and outside the GI tract and the autonomic nervous system.69
+Manipulation of the intestines and the stress response
+associated with postoperative pain are the key fac-
+tors initiating postoperative ileus. The surgical stress
+response is a multifaceted, neurohumoral response to
+a surgical stimulation and can be associated with con-
+siderable morbidity, including a systemic inflammatory
+response syndrome, which is associated with the release
+of systemic inflammatory response and adrenaline and
+noradrenaline hormones. This sympathetic overactivity
+will constrain mobility and directly inhibit gut smooth
+muscle via activation of α- and β-adrenergic receptors
+resulting in postoperative ileus. 70 Epidural administra-
+tion of local anesthetic or opioids has been shown to sup-
+press these responses. 71–73
+Epidural block with deposition of local anesthetic within
+the epidural space results in blockade of the afferent and
+efferent sympathetic-mediated GI reflexes, but parasympa-
+thetic innervation is left intact. The effect of an imbalanced
+sympathetic and parasympathetic nervous system has been
+associated with improved GI blood flow and anastomotic
+mucosal perfusion. This controls pain and decreases the
+need for opioids.74–78
+However, it should be noted that severe hypotension
+(>50% reduction in systolic blood pressure) may be associ-
+ated with worsened local perfusion.79,80 Vasoactive drugs,
+such as norepinephrine, can attenuate this effect and
+improve colonic perfusion.81
+In general, epidural analgesia can effectively decrease the
+incidence of postoperative ileus. A Cochrane review showed
+that epidural usage reduces postoperative ileus by 36 hours
+when a local anesthetic regimen was used as compared to
+an opioid-based regimen.82!
+Effect on Enteric Anastomosis Dehiscence
+Unopposed parasympathetic activity with blockage of sym-
+pathetic fibers has increased concerns among clinicians
+that the increased mobility and intraluminal pressures will
+lead to anastomotic leaks and possibly rupture.83 However,
+animal studies have failed to show any difference in anasto-
+motic bursting pressure when epidural anesthesia is com-
+pared to general anesthesia.84 In fact, it could be argued
+Hypotension
+Diarrhea
+Intravascular injection and vascular trauma
+Subarachnoid or epidural injection and paraplegia
+Renal injury
+Pneumothorax
+Chylothorax
+Damage to surrounding structures and retroperitoneal hematoma
+Peritonitis and abscess
+BOX 15.1 	Complications of Celiac Plexus
+Blocks
+
+=== SECTION 14: General ===
+15 • Gastrointestinal Physiology and Pathophysiology 	417
+that with improvement of GI blood flow and tissue oxygen-
+ation the neuroaxial block can actually reduce the risk of
+anastomotic breakdown. However, the effect of neuroaxial
+blocks after GI procedures and laparotomies on enteric
+anastomotic leakage is not supported in the literature.81,85!
+Effect on Nutrition
+The early postoperative period after GI surgery is character-
+ized by a systemic stress response and catabolic activity. This
+effect, in conjunction with a lack of nutrition, results in post-
+operative weakness and muscle wasting. As discussed previ-
+ously, epidural analgesia has been shown to decrease opioid
+requirements and reduce postoperative ileus. This, in turn,
+enhances enteral feeding.86 Therefore, blockade of afferent
+stimuli and the endocrine metabolic responses, as well as the
+improvement in catabolism seen with epidural analgesia, are
+part of an enhanced recovery after surgery (ERAS) protocol
+for major GI surgeries to facilitate oral nutrition.87!
+Effect on Postoperative Nausea and Vomiting
+Pain management plays a large role in postoperative nau-
+sea and vomiting therapy. 88 Avoiding systemic opioids and
+the use of epidural analgesia helps to reduce the incidence
+of nausea and vomiting. However, in the setting of regional
+anesthesia, attention should be paid to unopposed vagal
+activity, local anesthetic systemic toxicity, hypotension,
+and medication administration.
+Spinal anesthesia poses the highest risk for the develop-
+ment of nausea and vomiting and is seen in 20% of patients.
+The effects of spinal anesthesia, especially with T6 to L1
+blockade, include sympathetic innervation and unopposed
+vagal activity and result in GI hyperperistalsis, nausea,
+and vomiting. 89 In addition, TEA or spinal anesthesia that
+results in systemic hypotension severe enough to cause
+cerebral ischemia can cause nausea and vomiting.90
+Effect on Gastrointestinal Blood Flow and Volume
+The degree of arterial hypotension induced by spinal or
+epidural anesthesia is directly related to the extent of the
+blockade, the dose of local anesthetic used, and baseline
+hemodynamics.91 Lumbar epidural anesthesia leads to
+arterial and venous dilation at the segments affected by
+the anesthetic. The constriction of the proximal part of
+the splanchnic vasculature shifts blood volume from the
+splanchnic system into the systemic circulation and usually
+results in preservation of stressed volume and blood pres-
+sure. TEA is associated with pronounced mesenteric vaso-
+dilation and arterial hypotension, while intestinal blood
+flow and oxygen consumption are maintained. A study
+using labeled red cells demonstrated that epidural anesthe-
+sia with sensory block at T4 to T5 increased blood volume
+in both the intrathoracic and splanchnic vasculature. The
+addition of a vasoconstrictor decreased volume within the
+splanchnic region, but increased volume within the thorax.
+The authors estimated that the use of a vasoconstrictor dur-
+ing TEA led to a shift of approximately 1 L of blood from the
+splanchnic area into the thoracic and systemic circulation.92
+Infusion of fluid or the use of adrenergic agonists apparently
+increases stressed volume. Infusion of fluid increases total
+(stressed and unstressed) blood volume, whereas adrener-
+gic agonists move existing blood volume from unstressed
+to stressed.93 In many situations, the use of α-adrenergic
+agonists might be more beneficial than infusion of fluid.
+Because veins are much more sensitive to adrenergic stimu-
+lation than arteries are, small doses of α-adrenergic agonists
+in normovolemic patients would constrict veins (increasing
+stressed volume) without affecting arteries or jeopardizing
+tissue perfusion.!
+ENHANCED RECOVERY AFTER SURGERY
+FOR GASTROINTESTINAL PROCEDURES—
+PHYSIOLOGIC BASIS
+ERAS is an interdisciplinary, multimodal concept aimed
+at accelerating postoperative convalescence and reduc-
+ing general morbidity by simultaneously applying several
+interventions. ERAS represents a paradigm shift in periop-
+erative care. It reexamines traditional practice by replacing
+it with evidence-based practices.94
+ERAS for GI procedures highlights a perioperative regi-
+men with emphasis on95,96:
+1. Regional anesthesia
+2. Avoidance of opioids
+3. Multimodal analgesia
+4. Nutrition and preoperative carbohydrates
+5. Selective bowel preparation
+6. Fluid optimization
+7. Temperature control
+8. Early removal of drains and tubes
+9. Early mobilization
+10. Early oral intake
+The use of ERAS protocols has been associated with
+shorter hospitalizations.97!
+PHYSIOLOGIC BASIS OF ERAS
+Perioperative Pain Control
+Many aspects of regional anesthesia, opioid-sparing anes-
+thesia, and multimodal analgesia have already been dis-
+cussed. The effect of pain control on postoperative outcomes
+has also been evaluated in multiple studies and is an insepa-
+rable part of ERAS protocols for many surgeries including
+GI procedures.98–100 The favorable physiologic effects on
+the respiratory and cardiovascular systems by epidural
+analgesia may serve as yet another reason as to why epi-
+dural analgesia is a devoted part of ERAS protocols.101–102!
+Preoperative Carbohydrate Loading and Early
+Postoperative Feeding
+There is strong evidence in animal studies demonstrating
+that fed animals tolerate stress much better than fasted
+animals. Perioperative oral carbohydrates raise insulin
+sensitivity by 50%. This means there is 50% less insulin
+resistance in the postoperative period, which also amelio-
+rates ilium barrier failure. There is also less risk of devel-
+opment of hyperglycemic events and an improvement
+in retention of protein and lean body mass.103,105 Enteric
+feeding is associated with prevention of bacterial transloca-
+tion104 or gut barrier failure.105 Carbohydrate loading shifts
+the cellular metabolism to an anabolic state that will sup-
+port postoperative nutrition.106–108
+Most of the national and international societies now
+recommend a 6-hour preoperative fast for solids and a
+
+=== SECTION 15: General ===
+SECTION II • Anesthetic Physiology	418
+2-hour fast for clear fluids, which includes carbohydrate
+drinks.109–112
+In order to maintain metabolic and nutritional homoeo-
+stasis, early postoperative feeding has been suggested.
+A small study on patients after major colorectal surgery
+showed that immediate postoperative enteral feeding does
+not result in a net loss of body nitrogen.113 !
+Temperature Control
+In addition to the adverse effects of hypothermia (<35°C)
+on coagulation, cardiac, respiratory, and neurologic func-
+tion, hypothermia triggers a whole-body thermoregulatory
+vasoconstriction response. Consequently, it reduces cuta-
+neous flow and can result in tissue hypoxia and failure of
+the humoral immune defense system. 114–116 Hypothermia
+is associated with a threefold increase in the incidence of
+surgical site infection.117 !
+Nasogastric Tubes
+Regular use of nasogastric tubes following major
+intraabdominal surgery is for gastric decompression,
+thereby preventing anastomotic leakage and promot-
+ing early return of bowel function. However, routine
+use has been questioned as it is very uncomfortable for
+the patient and there is an associated risk of develop-
+ing pulmonary complications, delays in the return of
+bowel function, and increasing the rate of wound infec-
+tions. 118 In addition, the presence of gastric tubes is
+associated with increased gastric secretion and motil-
+ity—a physiologic response to the presence of a foreign
+body.!
+Bowel Preparation
+Bowel preparation for major GI procedures has been
+implemented in order to reduce postoperative compli-
+cations related to infected bowel content, 119 with poly-
+ethylene glycol a most popular preparation. Adverse
+physiologic effects of this bowel preparation include
+decreased exercise capacity, lower weight, increased
+plasma osmolality, decreased urea and phosphate, and
+reduced plasma calcium and potassium. 120 These effects
+along with fasting can produce a very unpleasant experi-
+ence for the patient.
+The routine use of bowel preparation has been ques-
+tioned repeatedly. In fact, recent studies have shown that
+mechanical bowel preparation can be safely omitted before
+elective colorectal surgery.121,122!
+Drains
+Intraabdominal drains are placed to prevent accumula-
+tions of intraabdominal collections, to quickly discover
+postoperative bleeding, to diagnose anastomotic leakage,
+and to drain intraabdominal abscesses. However, routine
+use of drains simply placed prophylactically after major
+abdominal surgeries has recently been questioned. These
+drains are not innocuous as they can be associated with
+bacterial contamination, wound infection, incisional
+hernia, intestinal obstruction and fistula formation, and
+bleeding. 123 There is insufficient evidence to support the
+notion that routine use of drainage after colorectal anas-
+tomoses can prevent anastomotic leakage or any other
+related complications. 124 !
+Fluid Management
+All patients having elective surgery undergo a preoperative
+starvation period that results in a fluid deficit. Typically, it is
+not enough to produce major fluid shifts, but it may stimu-
+late the production of antidiuretic hormone, atrial natri-
+uretic peptide, the renin-angiotensin-aldosterone system,
+and an increase in sympathetic activity. This relative hypo-
+volemia is also more pronounced in patients who receive
+bowel preparation, experience diarrhea or vomiting, are
+exposed to high temperatures, or have high nasogastric
+tube output.
+Recent NPO guidelines allow patients to have clear flu-
+ids up to 2 hours prior to surgery. 125 Intraoperative fluid
+management takes into account the preoperative fluid
+deficit, the presence of a regional anesthesia technique,
+hemorrhage, and third-space losses. However, prudent
+administration of intravenous fluids is necessary as free and
+rapid administration of salt and water will increase capil-
+lary hydrostatic pressure, cause tissue and bowel edema,
+and adversely affect anastomotic integrity. Optimizing fluid
+administration should focus on increasing tissue perfusion
+and oxygen delivery, and modulation of the hormonal and
+inflammatory response.126!
+Mobilization and Early Ambulation
+Early postoperative ambulation is recommended for pre-
+vention and treatment of postoperative ileus. 127,128 It is
+believed that early ambulation helps with the restoration
+of normal bowel function. However, studies demonstrate
+that GI myoelectrical activity patterns are not always
+expedited by early postoperative ambulation; at least there
+is no correlation with the extent of ambulation. 129 Yet,
+early ambulation confers many other advantages, specifi-
+cally prevention of postoperative thromboembolism and
+pulmonary complications. 130,131
+Acknowledgment
+The editors and publisher would like to thank Drs. Matthias
+F. Stopfkuchen-Evans and Simon Gelman for contributing a
+chapter on this topic in the prior edition of this work. It has
+served as the foundation for the current chapter.
+Complete references available online at expertconsult.com.
+References
+1. Agur A, et al. Grant’s Atlas of Anatomy. Baltimore: Lippincott
+Williams & Wilkins; 2005.
+2. Andreoli TE, Carpenter CCJ, Cecil RL. Andreoli and Carpenter’s Cecil
+Essentials of Medicine. Philadelphia: Saunders; 2007. Print.
+3. Quiqley EM, et al. Braz J Med Biol Res. 1998;31:889–900.
+4. Seok JW. J Neurogastroenterol Motil. 2011;17(2):189–191.
+5. Patcharatrakul T, Gonlachanvit S. J Neurogastroenterol Motil.
+2013;19(3):395–404.
+6. Sarna SK. Colonic Motility: From Bench to Bedside. San Rafael: Mor-
+gan & Claypool Life Sciences; 2010.
+7. Thompson W, et al. Gut. 1999;45(suppl 2):1143–1147.
+8. Castedal M, et al. Aliment Pharmacol Ther. 2000;14(5):571–577.
+9. Weiskopf RB, et al. Anesthesiology. 1994;80(5):1035–1045.
+10. Hopster K, et al. Vet J. 2015;205(1):62–68.
+11. Muller M, et al. Anaesthesia. 2002;57(2):110–115.
+12. Desmet M, et al. Acta Anaesthesiologica Scandinavica. 2016.
+13. Jensen AG, et al. Can J Anaesth. 1992;39(9):938–943.
+
