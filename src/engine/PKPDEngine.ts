@@ -33,6 +33,10 @@ export class PKPDModel {
   
   Ce: number = 0; // Effect-site concentration (mg/L)
   currentInfusionRate: number = 0; // mg/sec
+  Cp: number = 0; // Plasma concentration (mg/L)
+  dynamicV1: number = 0; // Dynamic central volume of distribution (L)
+  infusionDurationSeconds: number = 0; // Cumulative duration of active infusion (seconds)
+  csht: number = 0; // Context-sensitive half-time (minutes)
 
   constructor(med: MedicationProfileInput, weight: number) {
     this.name = med.name || 'Unknown';
@@ -200,8 +204,30 @@ export class PKPDModel {
     }
     const ke0 = ((this.pk.ke0 || 0.1) / 60) * ke0Mod;
 
-    // Dynamic V1 based on hemorrhage / massive fluid resuscitation
-    const dynamicV1 = Math.max(0.1, this.pk.V1 * safeV1VolumeRatio);
+    // Track active infusion time (seconds)
+    if (this.currentInfusionRate > 0) {
+      this.infusionDurationSeconds += safeDt;
+    }
+
+    // Calculate Context-Sensitive Half-Time (CSHT) in minutes
+    const tInf = this.infusionDurationSeconds / 60; // in minutes
+    if (this.name === 'Remifentanil') {
+      this.csht = 3.5;
+    } else if (this.name === 'Propofol') {
+      this.csht = 3.0 + 37.0 * tInf / (tInf + 80.0);
+    } else if (this.name === 'Fentanyl') {
+      this.csht = 5.0 + 300.0 * Math.pow(tInf, 1.2) / (Math.pow(tInf, 1.2) + 120.0);
+    } else if (this.name === 'Sufentanil') {
+      this.csht = 4.0 + 80.0 * tInf / (tInf + 240.0);
+    } else if (this.name === 'Midazolam') {
+      this.csht = 5.0 + 150.0 * tInf / (tInf + 180.0);
+    } else {
+      this.csht = 0;
+    }
+
+    // Dynamic V1 based on hemorrhage / massive fluid resuscitation and cardiac output (front-end recirculatory model)
+    const dynamicV1 = Math.max(0.1, this.pk.V1 * safeV1VolumeRatio * (0.6 + 0.4 * safeCoRatio));
+    this.dynamicV1 = dynamicV1;
 
     // Protein Binding & Free Fraction
     const proteinBinding = this.pk.proteinBinding || 0;
@@ -227,6 +253,7 @@ export class PKPDModel {
 
       // 4. Update Effect-Site Concentration (Ce) driven by Unbound Plasma Concentration
       const Cp = (this.A1 / dynamicV1) * effectiveFreeFraction;
+      this.Cp = Cp;
       this.Ce += ke0 * (Cp - this.Ce) * subDt;
       this.Ce = Math.max(0, Math.min(1e9, this.Ce));
     }

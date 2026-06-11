@@ -1,0 +1,345 @@
+[AGE_001_full | KEY POINTS]: !□! !A primary determinant of glomerular filtration rate (GFR) is glomerular filtration pressure, which
+[AGE_001_full | KEY POINTS]: depends on renal artery perfusion pressure and the balance between afferent and efferent
+[AGE_001_full | KEY POINTS]: arteriolar tone. With decreases in afferent arteriolar pressure or blood flow, mediators such as
+[AGE_001_full | KEY POINTS]: catecholamines, angiotensin II, and arginine vasopressin (AVP) constrict efferent arterioles to
+[AGE_001_full | KEY POINTS]: maintain glomerular filtration pressure. This is reflected by an increase in GFR .
+[AGE_001_full | KEY POINTS]: !□! !Tubuloglomerular feedback is a critical mechanism for renal autoregulation. When GFR is
+[AGE_001_full | KEY POINTS]: is sensed by the macula densa to trigger the renin-angiotensin cascade. The result is afferent!
+[AGE_001_full | KEY POINTS]: arteriolar vaso!constriction as efferent arteriolar vasoconstriction increases GFR..Autoregulation
+[AGE_001_full | KEY POINTS]: enables the kidney to maintain solute and water regulation independently of wide fluctua-
+[AGE_001_full | KEY POINTS]: tions in arterial blood pressure. Tubular water reabsorption determines urinary flow rate and
+[AGE_001_full | KEY POINTS]: !□! !The tubule has an enormous capacity for reabsorption of water and NaCl. Each day, 180 L of
+[AGE_001_full | KEY POINTS]: protein-free glomerular ultrafiltrate is formed, of which almost 99% of the water and 99% of
+[AGE_001_full | KEY POINTS]: the sodium is reabsorbed. The ability of the kidney to concentrate urine is dependent on the
+[AGE_001_full | KEY POINTS]: in increasing water permeability in the last part of the distal tubule and collecting ducts. The
+[AGE_001_full | KEY POINTS]: salt, and water homeostasis.
+[AGE_001_full | KEY POINTS]: !□! !The interactions of the sympathoadrenal axis, renin-angiotensin-aldosterone system, and AVP
+[AGE_001_full | KEY POINTS]: of salt and water. Prostaglandins and natriuretic peptides facilitate vasodilation and the excre-
+[AGE_001_full | KEY POINTS]: tion of salt and water excretion when there is hypertension and hypervolemia.
+[AGE_001_full | KEY POINTS]: between 280 and 290 mOsm/kg. Even mild dehydration results in rapid antidiuresis, and urine
+[AGE_001_full | KEY POINTS]: □ Serum creatinine reflects the balance between creatinine production from muscle and creati-
+[AGE_001_full | KEY POINTS]: nine excretion by the kidney, which is dependent on GFR. Creatinine generation rate varies
+[AGE_001_full | KEY POINTS]: cesses are in equilibrium and renal function is stable, serum creatinine is a useful marker of GFR.
+[AGE_001_full | KEY POINTS]: The relationship between serum creatinine and GFR is inverse and exponential. A doubling of
+[AGE_001_full | KEY POINTS]: the serum creatinine implies a halving of GFR.
+[AGE_002_full | General]: functions that empty into collecting ducts to form urine.
+[AGE_002_full | General]: body weight. 2 Afferent arterioles from the renal arteries
+[AGE_002_full | General]: these vascular, glomerular, and tubular components (see
+[AGE_002_full | General]: ies originating from afferent arterioles. The glomerular
+[AGE_002_full | General]: interlobar arteries (1), arcuate arteries (2), and interlobular arteries (3). The afferent arterioles (5) branch off laterally and provide the capillary tufts of the
+[AGE_002_full | General]: renal glomeruli in the outer cortex (7a), whose efferent arterioles (6) supply the cortical capillary network (not shown). In the juxtamedullary zone (7b),
+[AGE_002_full | General]: the efferent arterioles become the vasa recta, which are closely applied to the long loops of Henle (8, 8a, 9). The venous drainage consists of stellate
+[AGE_003_full | General]: SECTION II • Anesthetic Physiology	446
+[AGE_003_full | General]: capillary beds. Upon leaving the glomerulus, the glomerular
+[AGE_003_full | General]: capillary then forms the efferent artery that in turn leads to
+[AGE_003_full | General]: Efferent
+[AGE_003_full | General]: Afferent
+[AGE_003_full | General]: Fig. 17.3 Glomerulus. An afferent arteriole (A) enters the glomerulus
+[AGE_003_full | General]: and divides into numerous capillaries (C) adjacent to the glomerular
+[AGE_004_full | General]: (by virtue of light microscopic image), cells of the afferent
+[AGE_004_full | General]: glomerular arteriole, and mesangial cells (Fig. 17.7). The
+[AGE_004_full | General]: FORMATION OF URINE
+[AGE_004_full | General]: Urine is formed by the interaction of three processes: glomer-
+[AGE_004_full | General]: ular filtration, tubular reabsorption, and tubular secretion.
+[AGE_004_full | General]: Glomerular Filtration
+[AGE_004_full | General]: The formation of the glomerular filtrate is dependent on
+[AGE_004_full | General]: sure difference between the afferent and efferent arteries
+[AGE_004_full | General]: (Fig. 17.8). The hydrostatic pressure in the glomerular
+[AGE_004_full | General]: cytes (P) give rise to foot processes (P1, P 2) that rest on the glomerular
+[AGE_004_full | General]: Fig. 17.5 (A) Scanning electron micrograph of podocytes (P) and their processes. (B) Electron micrograph of podocyte processes (P), the glomerular
+[AGE_004_full | General]: basement membrane, and glomerular capillaries. Slit diaphragms (arrow) span the podocyte processes. Large arrow points to the lamina densa of the
+[AGE_004_full | General]: glomerular basement membrane. BS, Bowman space; CL, glomerular capillary lumen. (Modified from Gartner LP. Urinary system. In: Textbook of Histology.
+[AGE_005_full | 1 	Distribution of Renal Blood]: SECTION II • Anesthetic Physiology	448
+[AGE_005_full | 1 	Distribution of Renal Blood]: glomerular filtration rate (GFR) depends upon the glomer-
+[AGE_005_full | 1 	Distribution of Renal Blood]: within the glomerular capillaries (Figs. 17.8 and 17.9). In
+[AGE_006_full | General]: Mediator Control of the Glomerular Filtration Rate
+[AGE_006_full | General]: Control of this glomerular capillary pressure is exquisite. Hor-
+[AGE_006_full | General]: ent and efferent arterioles have the pressure-dependent
+[AGE_006_full | General]: constricts the efferent arteriole that preserves GFR (Fig.
+[AGE_006_full | General]: tion fraction by constricting the afferent and efferent arte-
+[AGE_006_full | General]: Glomerular
+[AGE_006_full | General]: Glomerular
+[AGE_006_full | General]: Afferent
+[AGE_006_full | General]: Efferent
+[AGE_006_full | General]: Glomerular
+[AGE_006_full | General]: Glomerular
+[AGE_006_full | General]: Fig. 17.8 Summary of forces causing filtration by the glomerular
+[AGE_006_full | General]: Afferent arteriole 	85 	60 	≈26
+[AGE_006_full | General]: Glomerular
+[AGE_006_full | General]: Efferent arteriole 	59 	18 	≈43
+[AGE_006_full | General]: Glomerular hydrostatic
+[AGE_006_full | General]: reabsorption
+[AGE_006_full | General]: Efferent
+[AGE_006_full | General]: Afferent
+[AGE_006_full | General]: Fig. 17.9 Macula densa feedback mechanism for autoregulation of glo-
+[AGE_006_full | General]: merular hydrostatic pressure and glomerular filtration rate (GFR) during
+[AGE_006_full | General]: Aldosterone
+[AGE_006_full | General]: Antidiuretic hormone (ADH)
+[AGE_006_full | General]: Urine flow
+[AGE_006_full | General]: Urine flow
+[AGE_006_full | General]: ular filtration rate; Na, sodium; RBF, renal blood flow; ↓, decreased; ↑,
+[AGE_007_full | General]: SECTION II • Anesthetic Physiology	450
+[AGE_007_full | General]: glomerular apparatus releases the enzyme renin from the
+[AGE_007_full | General]: anisms to reabsorb sodium and water.14,15,19 The binding
+[AGE_007_full | General]: Angiotensin II is a potent vasoconstrictor of efferent
+[AGE_007_full | General]: enhances filtration.18 This maintains the glomerular filtra-
+[AGE_007_full | General]: diuresis, or sodium loss/restriction and by reductions in per-
+[AGE_007_full | General]: rine, angiotensin II, and arginine vasopressin (AVP). Thus,
+[AGE_007_full | General]: angiotensin II on the afferent arteriole and mesangial cells.
+[AGE_007_full | General]: Glomerular
+[AGE_007_full | General]: Glomerular filtration
+[AGE_007_full | General]: Glomerular filtration
+[AGE_007_full | General]: Glomerular
+[AGE_007_full | General]: Efferent arteriolar resistance
+[AGE_007_full | General]: Afferent arteriolar resistance
+[AGE_007_full | General]: Fig. 17.11 Effect of change in afferent arteriolar resistance or efferent
+[AGE_007_full | General]: arteriolar resistance on glomerular filtration rate and renal blood flow.
+[AGE_007_full | General]: mal tubular sodium reabsorption. Ang II stimulates sodium-hydrogen
+[AGE_007_full | General]: exchange (NHE) on the luminal membrane and the sodium-potassium
+[AGE_007_full | General]: ATPase transporter and sodium-bicarbonate co-transport on the baso-
+[AGE_008_full | General]: Arginine Vasopressin. AVP, also known as antidiuretic
+[AGE_008_full | General]: hormone (ADH), is produced by the posterior pituitary,
+[AGE_008_full | General]: lar smooth muscle, glomerular mesangial cells, and the
+[AGE_008_full | General]: glomerular filtration pressure because it is an extremely
+[AGE_008_full | General]: potent constrictor of the efferent arteriole, and unlike cate-
+[AGE_008_full | General]: rin-2 channels of the principal cells to increase water reab-
+[AGE_008_full | General]: sorption (Fig. 17.13). 24,27 Anesthetics have little direct
+[AGE_008_full | General]: in GFR and glomerular filtration fractions even when RBF is
+[AGE_008_full | General]: promote afferent arteriolar dilatation with or without efferent
+[AGE_008_full | General]: ulated aldosterone. These peptides also inhibit the release of
+[AGE_008_full | General]: aldosterone in the adrenal cortex and block its actions at the
+[AGE_008_full | General]: and chronic renal failure) to increase urine output.!
+[AGE_008_full | General]: Aldosterone. Aldosterone is a steroid hormone secreted
+[AGE_008_full | General]: increase active absorption of sodium and passive absorp-
+[AGE_008_full | General]: tion of water, culminating in an expanded blood volume.
+[AGE_008_full | General]: Sodium retention in vessel walls appears to enhance their
+[AGE_008_full | General]: response to vasoconstrictor agents. In contrast to the imme-
+[AGE_008_full | General]: aldosterone to its action on sodium reabsorption.
+[AGE_008_full | General]: Aldosterone forms a complex with a receptor at the
+[AGE_008_full | General]: (Fig. 17.14). The aldosterone-receptor complex travels to
+[AGE_008_full | General]: of proteins that form sodium channels in the apical cell
+[AGE_008_full | General]: basolateral cell membrane. 31 Sodium is transported from
+[AGE_008_full | General]: for potassium. Long-standing stimulation of aldosterone
+[AGE_008_full | General]: Dopamine inhibits the sodium-hydrogen antiporter system
+[AGE_008_full | General]: Fig. 17.13 Mechanism of action of arginine vasopressin. Arginine
+[AGE_008_full | General]: vasopressin (AVP) binds to receptors (V2) that are coupled to G pro-
+[AGE_008_full | General]: aquaporin-2 (AQP-2) to form water channels at the luminal side of the
+[AGE_008_full | General]: AVP allow water to exit the cell at the basolateral cell membrane. ATP,
+[AGE_009_full | General]: SECTION II • Anesthetic Physiology	452
+[AGE_009_full | General]: NaCl reabsorption.
+[AGE_009_full | General]: Na+/K+-ATPase activity, especially when sodium intake is
+[AGE_009_full | General]: nephrine, angiotensin II, and aldosterone. Endogenous ANP
+[AGE_009_full | General]: and water in the upright position. There is evidence that the
+[AGE_009_full | General]: cirrhosis and helps to maintain renal sodium excretion.32,33!
+[AGE_009_full | General]: acute kidney injury (AKI) from ischemia.35!
+[AGE_009_full | General]: inhibits sodium reabsorption in the mTAL by blocking the
+[AGE_009_full | General]: sodium channels of the cortical collecting ducts to inhibit
+[AGE_009_full | General]: sodium transport.36,37 NO produced in the epithelial cells of
+[AGE_009_full | General]: excreted as urine. The tubules also conserve and regulate mol-
+[AGE_009_full | General]: Approximately 65% of filtered sodium, chloride, and water is
+[AGE_009_full | General]: PCT, sodium moves across the apical lumen by cotransport
+[AGE_009_full | General]: port mechanisms (Fig. 17.16). This reabsorption increases the
+[AGE_009_full | General]: ecules are cleared by the PCT. This clearance has additional
+[AGE_009_full | General]: Aldosterone
+[AGE_009_full | General]: Aldosterone
+[AGE_009_full | General]: Fig. 17.14 Action of aldosterone. Aldosterone enters the distal tubu-
+[AGE_009_full | General]: permeability of the apical (luminal) membrane to sodium and potas-
+[AGE_009_full | General]: sium. The reabsorption of sodium stimulates the basolateral mem-
+[AGE_009_full | General]: brane Na-K-ATPase pump, the intracellular concentration of potassium
+[AGE_009_full | General]: net effect of aldosterone’s action is sodium reabsorption and potas-
+[AGE_009_full | General]: sium loss. Cl−, Chloride; CO, cotransporter (= symporter); K+ , potassium;
+[AGE_009_full | General]: Na+, sodium; P, sodium-potassium ATPase pump; R, receptor. (From
+[AGE_009_full | General]: tion of water and electrolytes. In: Wingard LB, Brody TM, Larner J, et al.,
+[AGE_010_full | 3 	Filtration, Reabsorption, a]: TABLE 17.3 	Filtration, Reabsorption, and Excretion Rates of Different Substances by the Kidneys
+[AGE_010_full | 3 	Filtration, Reabsorption, a]: Sodium (mEq/day) 	25,560 	25,410 	150 	99.4
+[AGE_010_full | 3 	Filtration, Reabsorption, a]: Potassium (mEq/day) 	756 	664 	92 	87.8
+[AGE_010_full | 3 	Filtration, Reabsorption, a]: Creatinine (g/day) 	1.8 	0 	1.8 	0
+[AGE_010_full | 3 	Filtration, Reabsorption, a]: (ADH+)
+[AGE_010_full | 3 	Filtration, Reabsorption, a]: (ADH+) In presence of ADH
+[AGE_010_full | 3 	Filtration, Reabsorption, a]: (ADH+)
+[AGE_010_full | 3 	Filtration, Reabsorption, a]: (ADH+)
+[AGE_010_full | 3 	Filtration, Reabsorption, a]: Fig. 17.15 Summary of major activities of different parts of the renal tubule. The ability of the tubule to produce concentrated urine is dependent
+[AGE_010_full | 3 	Filtration, Reabsorption, a]: in the water-impermeable thick ascending limb of the loop of Henle NaCl, the action of arginine vasopressin (antidiuretic hormone, ADH) on the col-
+[AGE_010_full | 3 	Filtration, Reabsorption, a]: lecting tubule and duct, the high concentration of urea created by passive diffusion, and the reabsorption of water reabsorbed into the hyperosmolar
+[AGE_011_full | General]: SECTION II • Anesthetic Physiology	454
+[AGE_011_full | General]: the concentration in plasma and the glomerular filtrate.!
+[AGE_011_full | General]: resorption of 40% of the filtered sodium and 25% of filtered
+[AGE_011_full | General]: water (see later).39 Differential permeability to water, trans-
+[AGE_011_full | General]: ment to concentrate urine (see Fig. 17.15). The tubules of the
+[AGE_011_full | General]: descending loop of Henle are freely permeable to water and
+[AGE_011_full | General]: allow for the reabsorption of about 20% of the filtered water.
+[AGE_011_full | General]: able to water and function to concentrate urine. Urea, which
+[AGE_011_full | General]: kg. Since the tubules are less permeable to urea than water,
+[AGE_011_full | General]: most of the urea is excreted into the urine.
+[AGE_011_full | General]: stitium allows the paracellular reabsorption of magnesium
+[AGE_011_full | General]: and calcium in addition to sodium and potassium. ATPase-
+[AGE_011_full | General]: reabsorb 25% of the filtered sodium and potassium.!
+[AGE_011_full | General]: sodium is reabsorbed in the first part of the distal tubule
+[AGE_011_full | General]: by a sodium chloride cotransporter that moves ions from
+[AGE_011_full | General]: passive. The permeability to water of the distal tubules, as
+[AGE_011_full | General]: more permeable and water is absorbed.!
+[AGE_011_full | General]: of sodium ions into the cell is down an electrochemical gradient estab-
+[AGE_011_full | General]: lished by the sodium-potassium pump at the basolateral membrane and
+[AGE_011_full | General]: glucose transporter; NHE, sodium hydrogen exchanger; SGLT, sodium-
+[AGE_011_full | General]: Tubular fluid/glomerular filtrate concentration
+[AGE_011_full | General]: Creatinine
+[AGE_011_full | General]: tration of that substance in the plasma and in the glomerular filtrate. A
+[AGE_011_full | General]: reabsorbed more avidly than water, while values greater than 1.0 indi-
+[AGE_011_full | General]: cate that the substance is reabsorbed to a lesser extent than water or
+[AGE_012_full | General]: sites of action for the potassium-sparing diuretics such as
+[AGE_012_full | General]: spironolactone, a competitor of aldosterone. An additional
+[AGE_012_full | General]: brane. In contrast, the Type B intercalated cells transport
+[AGE_012_full | General]: critical to the maintenance of acid-base balance, sodium
+[AGE_012_full | General]: reabsorption, and intravascular volume.41 !
+[AGE_012_full | General]: sition of urine. The principal cell of the collecting duct is a
+[AGE_012_full | General]: highly regulated epithelial cell. AVP controls water resorp-
+[AGE_012_full | General]: the concentration of urine. Hydrogen can also be secreted
+[AGE_012_full | General]: RENAL AUTOREGULATION
+[AGE_012_full | General]: The formation of urine is tightly controlled by complex auto-
+[AGE_012_full | General]: lar flow. This autoregulation protects the kidney from injury
+[AGE_012_full | General]: autoregulation of RBF and tubuloglomerular feedback.42
+[AGE_012_full | General]: Autoregulation of Renal Blood Flow
+[AGE_012_full | General]: The smooth muscles of the afferent arterioles, as in other
+[AGE_012_full | General]: Autoregulation
+[AGE_012_full | General]: afferent arteriole. This trigger is sent by the macula densa
+[AGE_012_full | General]: than 99% of water and most of the solutes are absorbed,
+[AGE_012_full | General]: Fig. 17.18 Effect of arginine vasopressin on the formation of urine. (A) With low levels of arginine vasopressin (AVP), fluid in the ascending limb of
+[AGE_012_full | General]: the loop of Henle is dilute and becomes further diluted in the distal and collecting tubules by continued reabsorption of solutes (indicated as millimoles
+[AGE_012_full | General]: per liter) while water is not resorbed. (B) Urine is concentrated when AVP is high. Fluid leaving the loop of Henle becomes more concentrated as water
+[AGE_012_full | General]: is absorbed from the distal and collecting tubules. With high AVP levels, the osmolality of the urine (indicated as milliosmoles) is the same as in the renal
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: SECTION II • Anesthetic Physiology	456
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: is affected by changes in water content, temperature, and
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: mmol/L] + BUN mg/dL/2.8 + glucose mg/dL/18) is in units
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: symptoms and death as the result of water movement in the
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: brain. Normal patients can dilute and concentrate urine
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: of plasma osmolality is linked to the regulation of sodium
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: concentration and water balance by the tubular system
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: permeability to water and the control of sodium transport
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: water permeability in the last part of the distal tubule and
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: the proximal tubule. Proximal tubule solutes and water
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: isosmotic with plasma. In contrast, the organization of
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: water to the interstitium. This allows for a concentration
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: mechanism is by the combination of NaCl reabsorption and
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: water impermeability in the ascending limb. The descend-
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: ing limb is freely permeable to water, which diffuses into the
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: Water entering the distal convoluted tubule after leav-
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: reabsorption
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: Decreased reabsorption
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: reabsorption
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: Fig. 17.19 Proximal and peritubular capillary reabsorption under nor-
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: colloid osmotic pressure (πc). As peritubular capillary reabsorption
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: decreases, the net reabsorption of solutes and water is lowered by the
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: increase in solutes and water that leak back into the tubular lumen
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: Urine
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: Effect of ADH
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: presence of high and low levels of arginine vasopressin (indicated here
+[AGE_013_full | MAINTENANCE OF PLASMA OSMOLALI]: as the alternative term antidiuretic hormone [ADH]). (Redrawn from Hall
+[AGE_014_full | General]: ing tubule, resorption of water is dependent upon the action
+[AGE_014_full | General]: of AVP (ADH), since the epithelium is normally impermeable
+[AGE_014_full | General]: to water. With the action of AVP, large amounts of water are
+[AGE_014_full | General]: facilitates the entry of water from the ascending tubules.
+[AGE_014_full | General]: ducts have little permeability to urea (Fig. 17.23). As water
+[AGE_014_full | General]: AVP. The simultaneous movement of urea and water out of
+[AGE_014_full | General]: filtered load of sodium decrease. Sodium reabsorption in
+[AGE_014_full | General]: more hyperosmotic (in millimoles per liter) as water diffuses out of the
+[AGE_014_full | General]: ascending limb, solutes diffuse back to the interstitial fluid and water
+[AGE_015_full | General]: SECTION II • Anesthetic Physiology	458
+[AGE_015_full | General]: vasoconstriction. Sodium delivery to the thick ascending
+[AGE_015_full | General]: but aldosterone promotes reabsorption of sodium at these
+[AGE_015_full | General]: sites. Under the influence of AVP, water is also avidly reab-
+[AGE_015_full | General]: sorbed in the collecting duct so that the urine becomes
+[AGE_015_full | General]: virtually no sodium (10 mEq/L).!
+[AGE_015_full | General]: countered by an increase in the GFR and filtered sodium load
+[AGE_015_full | General]: these responses cause sodium reabsorption in the proximal
+[AGE_015_full | General]: aldosterone decreases sodium absorption from the thick
+[AGE_015_full | General]: of ANP and absence of AVP impairs water absorption at the
+[AGE_015_full | General]: collecting duct so that a dilute urine (osmolality 300 mOsm/
+[AGE_015_full | General]: kg) with abundant sodium (80 mEq/L) is produced.!
+[AGE_015_full | General]: Urine Output
+[AGE_015_full | General]: The measurement of urine output is simple and has been the
+[AGE_015_full | General]: consensus, oliguria is defined as a urine flow rate less than
+[AGE_015_full | General]: between 100 and 200 AD. Urine output was listed as one
+[AGE_015_full | General]: that low urine output was not necessarily associated with
+[AGE_015_full | General]: Although traditionally oliguria is taken as a sign of hypovo-
+[AGE_015_full | General]: operative oliguria is not always abnormal, especially when
+[AGE_015_full | General]: modest oliguria is necessary when considering the rela-
+[AGE_015_full | General]: ery after surgery protocols.52 Targeting urine output does
+[AGE_015_full | General]: not affect 30-day mortality, and oliguria is not a modifiable
+[AGE_015_full | General]: risk factor for mortality. 53 Oliguria has been correlated with
+[AGE_015_full | General]: AKI and may be a better threshold for the guidance of fluid
+[AGE_015_full | General]: In the perioperative period, transient oliguria is almost
+[AGE_015_full | General]: urine flow, and it may bear little, if any, relationship to GFR.
+[AGE_015_full | General]: resume. Complete, often abrupt, cessation of urine flow
+[AGE_015_full | General]: Creatinine
+[AGE_015_full | General]: creatine. Creatinine results from the metabolism of creatine
+[AGE_015_full | General]: in the liver. Serum creatinine is a reasonable approxima-
+[AGE_015_full | General]: soluble, distributes through the total body water, and is not
+[AGE_015_full | General]: reabsorbed by the tubules. Creatinine varies with muscle
+[AGE_015_full | General]: little creatinine is secreted. The relationship between serum
+[AGE_015_full | General]: creatinine and GFR is inverse and exponential; that is, a
+[AGE_015_full | General]: doubling of serum creatinine implies a halving of GFR. The
+[AGE_015_full | General]: normal serum creatinine range is 0.5 to 1.2 mg/dL. Mus-
+[AGE_015_full | General]: creatinine in a malnourished, cachectic patient may reflect
+[AGE_016_full | General]: (BUN), whereas malnutrition or liver disease might result
+[AGE_016_full | General]: in its decrease. The normal ratio of BUN to serum creatinine
+[AGE_016_full | General]: ratio is between 10 and 15 to 1. The BUN to creatinine ratio
+[AGE_016_full | General]: RENAL CLEARANCE TECHNIQUES
+[AGE_016_full | General]: Clearance is the pharmacokinetic measurement of the
+[AGE_016_full | General]: clearance. 56
+[AGE_016_full | General]: In routine clinical practice, GFR [urine creatinine
+[AGE_016_full | General]: (mg/dL) × volume of urine (mL)/plasma creatinine
+[AGE_016_full | General]: period is 24 hours but since the collection of urine can
+[AGE_016_full | General]: for estimations. A volume of urine is carefully collected
+[AGE_016_full | General]: over a defined time period and the creatinine concen-
+[AGE_016_full | General]: blood sample that is taken during the midpoint of urine
+[AGE_016_full | General]: flow to determine the creatinine. The GFR may decrease
+[AGE_016_full | General]: significantly before serum creatinine increases above
+[AGE_016_full | General]: based on a stable steady-state production of creatinine and
+[AGE_016_full | General]: are not accurate with AKI when creatinine clearance is in
+[AGE_016_full | General]: in eGFR. Creatinine clearance is more accurate when drugs
+[AGE_016_full | General]: When oliguria is present, tests of renal tubular function may
+[AGE_016_full | General]: function normally to retain Na+ and water to maintain the
+[AGE_016_full | General]: kg but with dehydration, the urine osmolality can increase
+[AGE_016_full | General]: ing ability of the tubules is defective. Sodium and water may
+[AGE_016_full | General]: be lost in the urine if nonoliguric.
+[AGE_016_full | General]: centration ability is the fractional excretion of sodium (FE Na),
+[AGE_016_full | General]: which is a measure of sodium clearance as a percentage of
+[AGE_016_full | General]: creatine clearance. FE Na is calculated by the following from
+[AGE_016_full | General]: simultaneous samples of blood and urine collection:
+[AGE_016_full | General]: FENa = (urine Na/plasma Na) / (urine creatinine/
+[AGE_016_full | General]: plasma creatinine) × 100 	!
+[AGE_016_full | General]: Effect of Anesthetics on Renal Function
+[AGE_016_full | General]: All general anesthetics tend to decrease GFR and intraop-
+[AGE_016_full | General]: erative urine flow as a consequence of decreased cardiac
+[AGE_016_full | General]: which implies that angiotensin-induced efferent arteriolar
+[AGE_016_full | General]: emergence from anesthesia. Any anesthetic technique that
+[AGE_016_full | General]: induces hypotension will result in decreased urine flow
+[AGE_016_full | General]: dients, even if renal autoregulation is preserved. Injury to
+[AGE_016_full | General]: anesthetics induce mild to moderate reductions in RBF and
+[AGE_016_full | General]: venous hydration. Opioid-based anesthetics are consider-
+[AGE_016_full | General]: ably more effective than volatile anesthetics in suppressing
+[AGE_016_full | General]: the release of catecholamines, angiotensin II, aldosterone,
+[AGE_016_full | General]: and AVP. Ketamine increases RBF but decreases urine flow
+[AGE_016_full | General]: The potential for AKI after the breakdown of volatile
+[AGE_016_full | General]: anesthetics to free fluoride ions causing tubular lesions
+[AGE_016_full | General]: There is growing evidence to support anesthetics as
+[AGE_016_full | General]: kidney and other organs. 67 The volatile anesthetics desflu-
+[AGE_016_full | General]: increase in serum creatinine compared with pentobarbital
+[AGE_016_full | General]: EFFECTS OF MECHANICAL VENTILATION ON
+[AGE_016_full | General]: Mechanical ventilation and positive end-expiratory pres-
+[AGE_016_full | General]: sure (PEEP) may cause decreases in RBF, GFR, sodium
+[AGE_016_full | General]: excretion, and urine flow rate through changes in hemody-
+[AGE_017_full | General]: SECTION II • Anesthetic Physiology	460
+[AGE_017_full | General]: sure to increase tubular sodium reabsorption. The decrease
+[AGE_017_full | General]: The renin-angiotensin-aldosterone system undoubtedly
+[AGE_017_full | General]: tion. An increase in PEEP can depress cardiac output, RBF,
+[AGE_017_full | General]: GFR, and urine volume, and increase renin and aldosterone.
+[AGE_017_full | General]: atinine clearance and FENa between volume-controlled and
+[AGE_017_full | General]: reduction of GFR and urine flow rate is common. Although
+[AGE_017_full | General]: sodium nitroprusside decreases renal vascular resistance
+[AGE_017_full | General]: discontinued. Nitroglycerin decreases RBF less than sodium
+[AGE_017_full | General]: fenoldopam is capable of providing induced hypotension
+[AGE_017_full | General]: increased creatinine clearance and attenuated the increase
+[AGE_017_full | General]: 13. Koeppen BM, Stanton BA. Glomerular filtration and renal blood flow.
+[AGE_017_full | General]: programs/nkdep/laboratory-evaluation/glomerular-filtration-
+[AGE_017_full | General]: 59. Priano LL. Effects of anesthetic agents on renal function. In: Barash

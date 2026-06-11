@@ -281,6 +281,7 @@ export class RespiratoryEngine {
       aspirationCompliancePenalty: number;
       aspirationResistancePenalty: number;
       hpsShunt?: number;
+      fluidOverloadCompliancePenalty?: number;
     }
   ): RespiratoryOutput {
     const { patient, vitals } = st || { patient: {} as any, vitals: {} as any };
@@ -305,6 +306,7 @@ export class RespiratoryEngine {
     const anaphylaxisResistancePenalty = typeof safeInputs.anaphylaxisResistancePenalty === 'number' && Number.isFinite(safeInputs.anaphylaxisResistancePenalty) ? safeInputs.anaphylaxisResistancePenalty : 0;
     const aspirationCompliancePenalty = typeof safeInputs.aspirationCompliancePenalty === 'number' && Number.isFinite(safeInputs.aspirationCompliancePenalty) ? safeInputs.aspirationCompliancePenalty : 0;
     const aspirationResistancePenalty = typeof safeInputs.aspirationResistancePenalty === 'number' && Number.isFinite(safeInputs.aspirationResistancePenalty) ? safeInputs.aspirationResistancePenalty : 0;
+    const fluidOverloadCompliancePenalty = typeof safeInputs.fluidOverloadCompliancePenalty === 'number' && Number.isFinite(safeInputs.fluidOverloadCompliancePenalty) ? safeInputs.fluidOverloadCompliancePenalty : 0;
 
     const safeDrugEffects = drugEffects || {} as any;
     const maxNMJOccupancy = typeof safeDrugEffects.maxNMJOccupancy === 'number' && Number.isFinite(safeDrugEffects.maxNMJOccupancy) ? safeDrugEffects.maxNMJOccupancy : 0;
@@ -444,6 +446,7 @@ export class RespiratoryEngine {
     }
     currentCompliance -= aspirationCompliancePenalty;
     currentCompliance -= anaphylaxisCompliancePenalty;
+    currentCompliance -= fluidOverloadCompliancePenalty;
     currentCompliance *= safeRuleComplScale;
 
     const bowelGasVol = typeof safeVitals.bowelGasVolume === 'number' && Number.isFinite(safeVitals.bowelGasVolume) ? safeVitals.bowelGasVolume : 1.0;

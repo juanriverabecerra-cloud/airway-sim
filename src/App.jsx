@@ -876,17 +876,19 @@ export default function App() {
         const currentNa = electrolytes.na || 138;
         const currentK = electrolytes.k || 4.1;
         const currentCl = electrolytes.cl || 102;
-        const bunVal = patient.ckd ? 48 : (patient.isSeptic ? 28 : 12);
-        const crVal = (patient.startingCreatinine || (patient.ckd ? 2.8 : 0.85)) + (patient.isSeptic ? 0.8 : 0);
+        const bunVal = patient.bun !== undefined ? patient.bun : (patient.ckd ? 48.0 : (patient.isSeptic ? 28.0 : 12.0));
+        const crVal = patient.creatinine !== undefined ? patient.creatinine : ((patient.startingCreatinine || (patient.ckd ? 2.8 : 0.85)) + (patient.isSeptic ? 0.8 : 0));
         const glucVal = (patient.startingGlucose || (patient.diabetes ? 195 : 98)) + (patient.isSeptic ? 60 : 0);
+        const gfrVal = patient.gfr !== undefined ? patient.gfr : (patient.renalComorbidity ? (patient.renalComorbidity.includes('stage 5') ? 12.5 : 45.0) : 125.0);
         
         results = {
           'Sodium (Na)': { val: Math.round(currentNa), range: '135 - 145 mEq/L', alert: currentNa < 135 || currentNa > 145 },
           'Potassium (K)': { val: currentK.toFixed(1), range: '3.5 - 5.1 mEq/L', alert: currentK < 3.5 || currentK > 5.1 },
           'Chloride (Cl)': { val: Math.round(currentCl), range: '96 - 106 mEq/L', alert: false },
           'CO2 (Bicarbonate)': { val: currentHco3.toFixed(1), range: '22 - 29 mEq/L', alert: currentHco3 < 22 },
-          'BUN': { val: bunVal, range: '7 - 20 mg/dL', alert: bunVal > 20 },
-          'Creatinine (Cr)': { val: crVal.toFixed(2), range: '0.70 - 1.30 mg/dL', alert: crVal > 1.3 },
+          'BUN': { val: Math.round(bunVal), range: '7 - 20 mg/dL', alert: bunVal > 20 },
+          'Creatinine (Cr)': { val: crVal.toFixed(2), range: '0.70 - 1.30 mg/dL', alert: crVal > (patient.sex === 'female' ? 1.10 : 1.30) },
+          'eGFR': { val: Math.round(gfrVal), range: '> 90 mL/min/1.73m²', alert: gfrVal < 60 },
           'Glucose': { val: Math.round(glucVal), range: '70 - 100 mg/dL', alert: glucVal > 100 }
         };
       } else if (type === 'Coagulation') {
@@ -1217,6 +1219,7 @@ export default function App() {
              removeFluid={handleRemoveFluid}
              logEvent={logEvent}
              processMed={handleProcessMed}
+             activeMeds={activeMeds}
           />
           <AirwayPanel 
              patient={patient} 

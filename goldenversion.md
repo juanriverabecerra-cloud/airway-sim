@@ -31,15 +31,16 @@ This document represents the unified, consolidated, and authoritative system arc
         *   [4.10 Cerebral Physiology & Intracranial Mechanics](#410-cerebral-physiology--intracranial-mechanics)
         *   [4.11 Gastrointestinal Physiology & Lower Esophageal Barrier Pressure](#411-gastrointestinal-physiology--lower-esophageal-barrier-pressure)
         *   [4.12 Hepatic Physiology, Pathophysiology, and Anesthetic Considerations](#412-hepatic-physiology-pathophysiology-and-anesthetic-considerations)
+        *   [4.13 Renal Physiology, Pathophysiology, and Anesthetic Considerations](#413-renal-physiology-pathophysiology-and-anesthetic-considerations)
     *   [5. Pharmacology (PK/PD) Engine](#5-pharmacology-pkpd-engine)
         *   [5.1 Mammillary Multi-Compartment PK Model](#51-mammillary-multi-compartment-pk-model)
         *   [5.2 Numerical Integration (Euler Sub-stepping)](#52-numerical-integration-euler-sub-stepping)
-        *   [5.3 Flow-Dependent Clearance & Distribution Autoregulation](#53-flow-dependent-clearance--distribution-autoregulation)
+        *   [5.3 Flow-Dependent Clearance, Distribution Autoregulation & Front-End Recirculatory Kinetics](#53-flow-dependent-clearance-distribution-autoregulation--front-end-recirculatory-kinetics)
         *   [5.4 Organ Impairment & Protein Binding Corrections](#54-organ-impairment--protein-binding-corrections)
         *   [5.5 Receptor-Level Pharmacodynamics](#55-receptor-level-pharmacodynamics)
         *   [5.6 Receptor-Level Vasoactive Chronotropic & Vasomotor Coupling](#56-receptor-level-vasoactive-chronotropic--vasomotor-coupling)
         *   [5.7 Neuromuscular Blockade, Receptor Subtypes & Fade (TOF Count)](#57-neuromuscular-blockade-receptor-subtypes--fade-tof-count)
-        *   [5.8 Drug-Drug Synergism, Chelation Reversal & Anticholinesterase ceiling](#58-drug-drug-synergism-chelation-reversal--anticholinesterase-ceiling)
+        *   [5.8 Drug-Drug Synergism, Chelation Reversal, Anticholinesterase ceiling, & Back-End CSHT decrement curves](#58-drug-drug-synergism-chelation-reversal-anticholinesterase-ceiling--back-end-csht-decrement-curves)
         *   [5.9 Consciousness, Sleep Stages, Memory, & Processed EEG Engine](#59-consciousness-sleep-stages-memory--processed-eeg-engine)
         *   [5.10 High-Fidelity Medication Data Table](#510-high-fidelity-medication-data-table)
     *   [6. Event Trigger, Clinical Scenarios & Workflow Engine](#6-event-trigger-clinical-scenarios--workflow-engine)
@@ -74,6 +75,9 @@ This document represents the unified, consolidated, and authoritative system arc
     *   [6.29 Portopulmonary Hypertension (PoPH) Right Ventricular PEA Collapse](#629-portopulmonary-hypertension-poph-right-ventricular-pea-collapse)
     *   [6.30 Hepatopulmonary Syndrome (HPS) Right-to-Left Shunt](#630-hepatopulmonary-syndrome-hps-right-to-left-shunt)
     *   [6.31 Low Central Venous Pressure (CVP) Surgical Resection Bleeding Guidelines](#631-low-central-venous-pressure-cvp-surgical-resection-bleeding-guidelines)
+    *   [6.32 Prerenal Oliguria Loop](#632-prerenal-oliguria-loop)
+    *   [6.33 Intrinsic Acute Kidney Injury (AKI) & Acute Tubular Necrosis (ATN)](#633-intrinsic-acute-kidney-injury-aki--acute-tubular-necrosis-atn)
+    *   [6.34 Fluid Overload Pulmonary Edema Crisis](#634-fluid-overload-pulmonary-edema-crisis)
     *   [7. Attending Direct Chat, Advisor & NLP Engine](#7-attending-direct-chat-advisor--nlp-engine)
         *   [7.1 Automated Guidance Evaluator](#71-automated-guidance-evaluator)
         *   [7.2 Conversational NLP Chat Portal](#72-conversational-nlp-chat-portal)
@@ -546,6 +550,62 @@ The hepatic physiological engine simulates liver perfusion, portal blood flow, h
     $$MELD = 3.78 \cdot \ln(\max(1.0, \text{bilirubin})) + 11.2 \cdot \ln(\max(1.0, \text{INR})) + 9.57 \cdot \ln(\max(1.0, \text{creatinine})) + 6.43$$
     clamped to integer values between $6$ and $40$.
 
+#### 4.13 Renal Physiology, Pathophysiology, and Anesthetic Considerations (`RenalEngine.ts`)
+The renal physiological engine simulates renal perfusion, glomerular filtration, tubular function, ADH (vasopressin) and Aldosterone feedback loops, biochemical marker kinetics (BUN and creatinine), and acute kidney injury (AKI) development.
+
+1.  **Renal Perfusion Pressure (RPP)**:
+    Governed by Mean Arterial Pressure ($MAP$), Central Venous Pressure ($CVP$), and Positive End-Expiratory Pressure ($PEEP$) transmitting backpressure through the renal veins ($RVP$):
+    $$RVP = CVP + 0.5 \cdot PEEP \quad \text{[mmHg]}$$
+    $$RPP = \max(0.0, MAP - RVP) \quad \text{[mmHg]}$$
+
+2.  **Renal Blood Flow (RBF) Autoregulation**:
+    RBF is maintained relatively constant ($1100\text{ mL/min}$ baseline) between $RPP$ of $80$ and $180\text{ mmHg}$. Below $80\text{ mmHg}$, RBF drops rapidly and becomes pressure-passive:
+    $$\text{If } RPP < 80.0 \rightarrow RBF_{\text{auto}} = \max(0.1, 0.1 + 0.9 \cdot \frac{RPP - 40.0}{40.0})$$
+    $$\text{If } RPP \ge 80.0 \land RPP \le 180.0 \rightarrow RBF_{\text{auto}} = 1.0$$
+    $$\text{If } RPP > 180.0 \rightarrow RBF_{\text{auto}} = \min\left(1.5, 1.0 + \frac{RPP - 180.0}{180.0} \cdot 0.2\right)$$
+    - *Volatile Blunting*: Volatile agents ($>1\text{ MAC}$) blunt the autoregulatory response dose-dependently, shifting RBF towards passive dependence on perfusion pressure:
+      $$RBF_{\text{auto, final}} = (1.0 - 0.5 \cdot \text{Volatile}_{\text{MAC}}) \cdot RBF_{\text{auto}} + 0.5 \cdot \text{Volatile}_{\text{MAC}} \cdot \left(\frac{RPP}{90.0}\right)$$
+    - *Vasoactive Constriction*: Stress catecholamines, vasopressors, or alpha-adrenergic stimulants scale down RBF:
+      $$VasoScale = \max(0.4, 1.0 - 0.35 \cdot \text{Symp} - 0.25 \cdot \min(1.0, \text{PressorCe} \cdot 5.0))$$
+      where Fenoldopam (DA1 agonist) dilates the renal vasculature to offset constriction:
+      $$VasoScale_{\text{final}} = \min(1.35, VasoScale + 2.5 \cdot \text{Fenoldopam}_{\text{Ce}})$$
+      $$RBF = \max\left(30.0, \min(1600.0, 1100.0 \cdot CO_{\text{ratio}} \cdot RBF_{\text{auto, final}} \cdot VasoScale_{\text{final}} \cdot (1.0 - 0.4 \cdot \text{akiDamage}))\right)$$
+
+3.  **Glomerular Filtration Rate (GFR)**:
+    Filtration is driven by hydrostatic pressure and ceases below $RPP$ of $45\text{ mmHg}$ (MAP ~50 mmHg):
+    $$\text{If } RPP < 80.0 \rightarrow GFR_{\text{auto}} = \max\left(0.0, \frac{RPP - 45.0}{35.0}\right)$$
+    $$\text{If } RPP \ge 80.0 \land RPP \le 180.0 \rightarrow GFR_{\text{auto}} = 1.0$$
+    $$\text{If } RPP > 180.0 \rightarrow GFR_{\text{auto}} = \min\left(1.3, 1.0 + \frac{RPP - 180.0}{180.0} \cdot 0.1\right)$$
+    - *PEEP transmission penalty*: $GFR_{\text{PEEP}} = \max(0.55, 1.0 - 0.018 \cdot PEEP)$
+    - *Anesthetic MAC penalty*: $GFR_{\text{MAC}} = \max(0.4, 1.0 - 0.25 \cdot \text{Volatile}_{\text{MAC}})$
+    - *Efferent Vasoconstriction (AVP / Ang II)*: Constriction of the efferent arteriole preserves filtration pressure:
+      $$GFR_{\text{efferentMod}} = 1.0 + \min(0.25, (\text{Vasopressin}_{\text{Ce}} \cdot 5.0 + \text{Symp} \cdot 0.4) \cdot (1.0 - 0.5 \cdot \text{Volatile}_{\text{MAC}}))$$
+      $$GFR = \max\left(0.0, \min(180.0, 125.0 \cdot GFR_{\text{auto}} \cdot GFR_{\text{PEEP}} \cdot GFR_{\text{MAC}} \cdot GFR_{\text{efferentMod}} \cdot (1.0 - \text{akiDamage}))\right)$$
+
+4.  **Urine Output (UOP) and Water Balance**:
+    Urine flow rates scale with GFR and are regulated by ADH (vasopressin) water absorption and loops diuretics:
+    $$UOP_{\text{mL/min}} = (GFR \cdot 0.01) \cdot (1.0 - 0.92 \cdot AVP_{\text{level}} \cdot (1.0 - \text{Diuretic}_{\text{effect}})) \cdot Diuretic_{\text{multiplier}}$$
+    where $Diuretic_{\text{effect}}$ is determined by loop diuretics (Furosemide, Bumetanide) or osmotic agents (Mannitol):
+    $$\text{Diuretic}_{\text{effect}} = \max\left(0.0, \min\left(0.92, \frac{loopDiureticCe + 0.15 \cdot MannitolCe}{loopDiureticCe + 0.15 \cdot MannitolCe + 1.2}
+ight)\right)$$
+    $$Diuretic_{\text{multiplier}} = 1.0 + 8.5 \cdot \text{Diuretic}_{\text{effect}}$$
+    - ADH (AVP) levels ($AVP_{\text{level}}$) respond to plasma osmolality ($Osm$) and blood volume depletion:
+      $$Osm = 2.0 \cdot [Na^+] + 2.0 \cdot [K^+] + \frac{BUN}{2.8} + \frac{Glucose}{18.0}$$
+      $$AVP_{\text{level}} = \max\left(0.05, \min\left(1.0, 0.1 + \frac{Osm - 280.0}{20.0} + avpVol + avpStress\right)\right)$$
+      where $avpVol$ scales with blood loss ratio and $avpStress$ scales with sympathetic activation.
+
+5.  **Biochemical Marker Kinetics (BUN and Creatinine)**:
+    - *Serum Creatinine ($Cr$)*: Accumulates at a rate dependent on GFR clearance relative to muscle production:
+      $$\frac{d(Cr)}{dt} = 0.000018 \cdot \left(1.0 - \frac{GFR}{125.0} \cdot \frac{Cr}{Cr_{\text{baseline}}}\right) \quad \text{[mg/dL/s]}$$
+    - *Blood Urea Nitrogen ($BUN$)*: Accumulates based on filtration clearance and urea reabsorption scaling:
+      $$\frac{d(BUN)}{dt} = 0.00025 \cdot \left(1.0 - \frac{GFR}{125.0} \cdot \frac{BUN}{BUN_{\text{baseline}}} \cdot \left(1.0 - 0.35 \cdot \left(1.0 - \frac{GFR}{125.0}\right)\right)\right) \quad \text{[mg/dL/s]}$$
+
+6.  **KDIGO Acute Kidney Injury (AKI) Staging**:
+    AKI is staged according to serum creatinine fold-rise and the duration of oliguria ($UOP < 0.5\text{ mL/kg/h}$) or anuria ($UOP < 0.1\text{ mL/kg/h}$):
+    - **Stage 1**: Creatinine rise $\ge 1.5\text{x}$ baseline OR oliguria duration $\ge 6\text{ hours}$.
+    - **Stage 2**: Creatinine rise $\ge 2.0\text{x}$ baseline OR oliguria duration $\ge 12\text{ hours}$.
+    - **Stage 3**: Creatinine rise $\ge 3.0\text{x}$ baseline OR creatinine $\ge 4.0\text{ mg/dL}$ OR oliguria $\ge 24\text{ hours}$ OR anuria $\ge 12\text{ hours}$.
+
 ---
 
 ### 5. Pharmacology (PK/PD) Engine
@@ -596,7 +656,7 @@ for (let i = 0; i < subSteps; i++) {
 }
 ```
 
-#### 5.3 Flow-Dependent Clearance & Distribution Autoregulation
+#### 5.3 Flow-Dependent Clearance, Distribution Autoregulation & Front-End Recirculatory Kinetics
 *   **Cardiac Output Scaling Modifier ($coMod$)**:
     $$coMod = \max\left(0, 1.0 + (\text{CoRatio} - 1.0) \cdot CoSensitivity\right) \quad \text{where } \text{CoRatio} = \frac{CO_{\text{current}}}{CO_{\text{baseline}}}$$
     *   *Autoregulated Rates*: $k_{10} = k_{10,\text{baseline}} \cdot coMod$, $k_{12} = k_{12,\text{baseline}} \cdot coMod$, $k_{13} = k_{13,\text{baseline}} \cdot coMod$.
@@ -605,6 +665,10 @@ for (let i = 0; i < subSteps; i++) {
     $$ke_0 = ke_{0,\text{baseline}} \cdot \text{BrainFlowMod} \quad \text{where } \text{BrainFlowMod} = \begin{cases} \text{CoRatio} \cdot 2 & \text{if } \text{CoRatio} < 0.5 \\ 1.0 & \text{otherwise} \end{cases}$$
     For other peripheral drugs (e.g. paralytics, vasopressors), onset delays linearly with perfusion:
     $$ke_0 = ke_{0,\text{baseline}} \cdot \max(0.1, \text{CoRatio})$$
+*   **Front-End Recirculatory Volume ($dynamicV_1$)**:
+    To model how low cardiac output states reduce mixing volume and elevate peak concentrations, the central volume $V_1$ scales dynamically:
+    $$dynamicV_1 = \max\left(0.1, V_1 \cdot v_1VolumeRatio \cdot (0.6 + 0.4 \cdot coRatio)\right)$$
+    where $v_1VolumeRatio$ is the ratio of current blood volume to baseline estimated blood volume, and $coRatio$ is the ratio of current cardiac output to baseline.
 
 #### 5.4 Organ Impairment & Protein Binding Corrections
 *   **Organ Clearance Fractions**:
@@ -650,12 +714,22 @@ Neuromuscular blocking agents (NMBAs) block nicotinic acetylcholine receptors ($
     - *Succinylcholine Phase II*: Under high cumulative doses ($>4\text{ mg/kg}$ or $>300\text{ mg}$), receptors undergo desensitization. The block transitions to exhibit fade:
       $$nAChR_{\text{presynaptic\_occupancy}} = suxOccupancy \cdot 0.85$$
 
-#### 5.8 Drug-Drug Synergism, Chelation Reversal & Anticholinesterase ceiling
+#### 5.8 Drug-Drug Synergism, Chelation Reversal, Anticholinesterase ceiling, & Back-End CSHT decrement curves
 *   **MAC-BAR Suppression Synergy (Minto/Greco concept)**:
     Opioids shift the concentration curves of volatiles and hypnotics required to suppress the somatic response to pain:
     $$MAC_{\text{BAR,50}} = 1.2 \cdot e^{-3.0 \cdot Effect_{\text{opioid}}} \quad Hypnotic_{\text{BAR,50}} = 1.5 \cdot e^{-3.0 \cdot Effect_{\text{opioid}}}$$
     $$BAR_{\text{suppression}} = 1.0 - (1.0 - Effect_{\text{volatile}}) \cdot (1.0 - Effect_{\text{hypnotic}})$$
     $$\text{Surge}_{\text{sympathetic}} = C_{\text{cat}} \cdot (1.0 - BAR_{\text{suppression}})$$
+*   **GABA-Opioid Synergistic Hypnosis (Inward-Bowing Isoboles)**:
+    Instead of simple independent probability, the simulator models GABA-opioid synergistic hypnosis (inward-bowing isoboles representing Figure 18.30) for processed EEG metrics (BIS and SEF95):
+    $$aggregateHypnosis = \min\left(1.0, sedativeEff + opioidEff + 1.8 \cdot sedativeEff \cdot opioidEff\right)$$
+*   **Back-End Decrement Times / Context-Sensitive Half-Times (CSHT)**:
+    Cumulative active infusion durations ($t_{\text{inf}}$ in minutes) are tracked continuously. Context-sensitive half-times (CSHT, in minutes) are calculated at runtime using empirical rational fits matching Figure 18.16:
+    - *Remifentanil*: $CSHT = 3.5\text{ minutes}$ (constant/context-insensitive due to blood/tissue esterase clearance).
+    - *Propofol*: $CSHT = 3.0 + 37.0 \cdot \frac{t_{\text{inf}}}{t_{\text{inf}} + 80.0}\text{ minutes}$
+    - *Fentanyl*: $CSHT = 5.0 + 300.0 \cdot \frac{t_{\text{inf}}^{1.2}}{t_{\text{inf}}^{1.2} + 120.0}\text{ minutes}$
+    - *Sufentanil*: $CSHT = 4.0 + 80.0 \cdot \frac{t_{\text{inf}}}{t_{\text{inf}} + 240.0}\text{ minutes}$
+    - *Midazolam*: $CSHT = 5.0 + 150.0 \cdot \frac{t_{\text{inf}}}{t_{\text{inf}} + 180.0}\text{ minutes}$
 *   **Drug Chelation Reversal (Sugammadex)**:
     Sugammadex encapsulates steroidal NMBAs (Rocuronium, Vecuronium) in the plasma ($V_1$), removing active drug molecules from circulation:
     $$A_{1,\text{effective}} = A_{1,\text{initial}} \cdot (1 - ChelateRatio)$$
@@ -983,6 +1057,57 @@ Postoperative ileus is a multifactorial bowel motility dysfunction governed by s
     - Overrides and halts active mechanical ventilation breath delivery.
 *   **Resolution Criteria**: Resolves within $1 - 2\text{ seconds}$ once the swallow phase is complete, restoring baseline ventilatory drive and parameters.
 
+#### 6.27 Acute Variceal Bleeding Emergency
+*   **Trigger Conditions**: Sudden arterial/portal hypertensive pressure surge ($SBP \ge 160\text{ mmHg}$ or $HVPG \ge 12\text{ mmHg}$) in a patient with severe cirrhosis and pre-existing gastroesophageal varices.
+*   **Physiological Impact**: Initiates active massive upper gastrointestinal hemorrhage ($BleedRate = 2.0 - 5.0\text{ mL/s}$). Rapid blood loss causes hypovolemia, falling CVP, drop in cardiac output, systemic hypotension, and subsequent profound tissue ischemia.
+*   **Resolution Criteria**: Requires splanchnic vasoconstrictor therapy (Terlipressin infusion or high-dose Octreotide, reducing portal pressure) maintained for $\ge 60\text{ seconds}$ combined with aggressive volume resuscitation to terminate the hemorrhage.
+
+#### 6.28 Hepatorenal Syndrome (HRS) Loop
+*   **Trigger Conditions**: Severe portal hypertension ($HVPG \ge 10\text{ mmHg}$) causing splanchnic arterial vasodilation and relative arterial underfilling, which triggers intense renal afferent arteriolar vasoconstriction.
+*   **Physiological Impact**: Renomedullary hypoperfusion elevates renal artery resistance:
+    $$R_{\text{renal}} = 1.0 + 3.0 \cdot \text{cirrhosisFactor} \cdot (1.0 - \text{Terlipressin}_{\text{Ce}})$$
+    This drops renal perfusion pressure, blunts GFR, and initiates progressive accumulation of serum creatinine and BUN, leading to functional AKI in the absence of primary kidney pathology.
+*   **Resolution Criteria**: Managed via portal decompression (TIPS placement) or splanchnic vasoconstrictor therapy (Terlipressin) to restore effective arterial blood volume and normalize renal artery resistance.
+
+#### 6.29 Portopulmonary Hypertension (PoPH) Right Ventricular PEA Collapse
+*   **Trigger Conditions**: Severe liver cirrhosis ($cirrhosisFactor \ge 0.8$) elevates baseline mean pulmonary artery pressure ($mPAP > 25\text{ mmHg}$). Under acute physiologic stressors like hypoxia ($SpO_2 < 85\%$), hypercapnia ($PaCO_2 > 50\text{ mmHg}$), or severe acidosis ($pH < 7.15$), pulmonary vascular resistance spikes.
+*   **Physiological Impact**: The right ventricle, unaccustomed to high afterload, undergoes acute dilatation and failure. Cardiac output drops to near-zero, inducing pulseless electrical activity (PEA) cardiac arrest.
+*   **Resolution Criteria**: Emergency resuscitation requires immediate relief of pulmonary vasoconstriction (high $FiO_2$, hyperventilation to induce hypocapnic alkalosis) coupled with CPR chest compressions and epinephrine to restore coronary perfusion.
+
+#### 6.30 Hepatopulmonary Syndrome (HPS) Right-to-Left Shunt
+*   **Trigger Conditions**: Severe cirrhosis causes pulmonary capillary vasodilatation (loss of capillary tone), leading to functional right-to-left shunting of blood due to poor oxygen diffusion across dilated vessels.
+*   **Physiological Impact**: Increases the alveolar-arterial oxygen gradient ($A-a$ gradient) and creates a significant right-to-left shunt:
+    $$Shunt_{\text{HPS}} = 0.25 \cdot \text{cirrhosisFactor} \cdot (1.0 - 0.2 \cdot FiO_2)$$
+    This induces progressive arterial hypoxemia ($SpO_2 < 90\%$) which is only partially responsive to oxygen therapy.
+*   **Resolution Criteria**: Requires liver transplantation for long-term resolution; acute management relies on high inspired oxygen fractions ($FiO_2 \ge 0.60$) and optimization of ventilation-perfusion matching.
+
+#### 6.31 Low Central Venous Pressure (CVP) Surgical Resection Bleeding Guidelines
+*   **Trigger Conditions**: Active parenchymal transection phase during major hepatic resection surgery.
+*   **Physiological Impact**: Surgical bleeding from the hepatic veins is directly proportional to the venous pressure gradient. High CVP ($CVP \ge 8\text{ mmHg}$) drives severe retrograde back-bleeding:
+    $$BleedRate_{\text{resection}} = 2.5 + 1.5 \cdot (CVP - 5.0) \quad \text{[mL/s]}$$
+    Maintaining a low CVP ($CVP < 5\text{ mmHg}$) restricts the bleeding rate to a baseline of $0.5\text{ mL/s}$.
+*   **Resolution Criteria**: Controlled by anesthetic fluid restriction, head-down tilt (Trendelenburg), or vasodilator therapy to target CVP $< 5\text{ mmHg}$ during parenchymal transection.
+
+#### 6.32 Prerenal Oliguria Loop
+*   **Trigger Conditions**: Reduced renal perfusion pressure ($RPP < 65\text{ mmHg}$) driven by systemic arterial hypotension ($MAP < 70\text{ mmHg}$), elevated systemic venous backpressure ($CVP$), or high mechanical ventilator positive end-expiratory pressure ($PEEP$).
+*   **Physiological Impact**: Drops GFR and urine flow rate ($UOP < 0.5\text{ mL/kg/h}$). Hypovolemia and hyperosmolality stimulate maximal vasopressin (ADH) release, resulting in concentrated urine ($U_{\text{osm}} > 500\text{ mOsm/kg}$) and avid tubular sodium reabsorption ($FENa < 1\%$).
+*   **Resolution Criteria**: Restoration of systemic perfusion pressure ($MAP \ge 75\text{ mmHg}$ or $RPP \ge 70\text{ mmHg}$) via fluid resuscitation or vasopressor support.
+
+#### 6.33 Intrinsic Acute Kidney Injury (AKI) & Acute Tubular Necrosis (ATN)
+*   **Trigger Conditions**: Prolonged severe renal ischemia ($MAP < 55\text{ mmHg}$ for $>10\text{ minutes}$) or exposure to direct nephrotoxins (myoglobin from rhabdomyolysis, mismatched blood transfusion hemolysis, iodinated contrast agents, or fluoride metabolites from prolonged Sevoflurane).
+*   **Physiological Impact**: Accumulates direct tubular cell damage ($akiDamage > 0.35$). Normal tubular concentration and reabsorption mechanisms fail:
+    - Urine osmolality is fixed close to plasma ($U_{\text{osm}} \approx 300\text{ mOsm/kg}$, isosthenuria).
+    - Fractional excretion of sodium rises ($FENa > 2\%$) due to impaired tubular sodium transport.
+    - Serum creatinine and BUN accumulate progressively.
+*   **Resolution Criteria**: Avoidance of further nephrotoxic insults, fluid optimization, and supportive renal replacement therapy if severe uremia or volume overload develops.
+
+#### 6.34 Fluid Overload Pulmonary Edema Crisis
+*   **Trigger Conditions**: Aggressive intravenous fluid resuscitation ($netFluidBalance > 2000\text{ mL}$) administered in the presence of severe oliguria/AKI ($UOP < 15\text{ mL/h}$).
+*   **Physiological Impact**: Hydrostatic pressure drives fluid extravasation into the pulmonary interstitium and alveoli. This causes a severe drop in lung compliance:
+    $$Compliance_{\text{overload}} = Compliance_{\text{baseline}} - 25.0 \quad \text{[mL/cmH2O]}$$ 
+    In volume-controlled ventilation, this spikes peak inspiratory pressure ($PIP$) and impairs blood-gas exchange, resulting in progressive hypoxemia ($SpO_2 < 90\%$).
+*   **Resolution Criteria**: Requires urgent loop diuretic therapy (Furosemide) or renal replacement therapy to remove excess volume, combined with positive airway pressure (PEEP/CPAP) to recruit flooded alveoli.
+
 ### 7. Attending Direct Chat, Advisor & NLP Engine
 
 The simulator incorporates an interactive **Attending Physician AI Engine** combining real-time physiological diagnostics with an active natural language processing (NLP) chat portal.
@@ -1086,6 +1211,21 @@ The following lists the exact variables, structures, and data types stored in th
     *   `habf`: `number` (Hepatic Arterial Blood Flow, mL/min)
     *   `thbf`: `number` (Total Hepatic Blood Flow, mL/min)
     *   `renalArteryResistance`: `number` (Renal Artery Resistance index)
+    *   `gfr`: `number` (Glomerular Filtration Rate, mL/min)
+    *   `rbf`: `number` (Renal Blood Flow, mL/min)
+    *   `bun`: `number` (Blood Urea Nitrogen, mg/dL)
+    *   `creatinine`: `number` (Serum Creatinine, mg/dL)
+    *   `urineOutput`: `number` (Total cumulative urine output, mL)
+    *   `urineOutputRate`: `number` (Urine output rate, mL/h)
+    *   `urineOsmolality`: `number` (Urine osmolality, mOsm/kg)
+    *   `feNa`: `number` (Fractional excretion of sodium, %)
+    *   `akiStage`: `number` (KDIGO AKI stage, 0 - 3)
+    *   `akiDamage`: `number` (Tubular cellular damage index, 0.0 - 1.0)
+    *   `uopOliguriaTimer`: `number` (Oliguria duration timer, seconds)
+    *   `uopAnuriaTimer`: `number` (Anuria duration timer, seconds)
+    *   `vasopressinLevel`: `number` (Circulating ADH level, 0.0 - 1.0)
+    *   `aldosteroneLevel`: `number` (Circulating Aldosterone level, 0.0 - 1.0)
+    *   `osm`: `number` (Calculated plasma osmolality, mOsm/kg)
     *   `sleepArousalThreshold`: `number` (Vigilance threshold for sensory arousal)
     *   `loopGain`: `number` (Respiratory feedback instability factor)
     *   `controllerGain`: `number` (Chemoreceptor sensitivity multiplier)
@@ -1126,6 +1266,27 @@ The following lists the exact variables, structures, and data types stored in th
     *   `varicealBleedTime`: `number | null` (Timestamp of variceal rupture initiation)
     *   `hasPoPHCollapse`: `boolean` (Portopulmonary acute RV collapse flag)
     *   `hasTIPS`: `boolean` (Presence of Transjugular Intrahepatic Portosystemic Shunt)
+    *   `gfr`: `number` (Glomerular Filtration Rate, mL/min)
+    *   `rbf`: `number` (Renal Blood Flow, mL/min)
+    *   `bun`: `number` (Blood Urea Nitrogen, mg/dL)
+    *   `creatinine`: `number` (Serum Creatinine, mg/dL)
+    *   `urineOutput`: `number` (Total cumulative urine output, mL)
+    *   `urineOutputRate`: `number` (Urine output rate, mL/h)
+    *   `urineOsmolality`: `number` (Urine osmolality, mOsm/kg)
+    *   `feNa`: `number` (Fractional excretion of sodium, %)
+    *   `akiStage`: `number` (KDIGO AKI stage, 0 - 3)
+    *   `akiDamage`: `number` (Tubular cellular damage index, 0.0 - 1.0)
+    *   `uopOliguriaTimer`: `number` (Oliguria duration timer, seconds)
+    *   `uopAnuriaTimer`: `number` (Anuria duration timer, seconds)
+    *   `baselineCreatinine`: `number` (Baseline serum creatinine reference, mg/dL)
+    *   `baselineBun`: `number` (Baseline BUN reference, mg/dL)
+    *   `glucose`: `number` (Patient serum glucose level, mg/dL)
+    *   `vasopressinLevel`: `number` (Circulating ADH level, 0.0 - 1.0)
+    *   `aldosteroneLevel`: `number` (Circulating Aldosterone level, 0.0 - 1.0)
+    *   `osm`: `number` (Calculated plasma osmolality, mOsm/kg)
+    *   `hasAki`: `boolean` (Presence of acute kidney injury flag)
+    *   `hasPrerenalOliguria`: `boolean` (Active prerenal oliguria state flag)
+    *   `hasFluidOverloadEdema`: `boolean` (Active fluid overload pulmonary edema flag)
     *   `nAChR_state`: `'normal' | 'upregulated' | 'downregulated'` (Nicotinic receptor expression state)
     *   `suxPhaseII`: `boolean` (Active Succinylcholine Phase II block flag)
     *   `suxCumulativeDose`: `number` (Cumulative succinylcholine dose, mg)
@@ -1174,7 +1335,7 @@ The following lists the exact variables, structures, and data types stored in th
     *   `fearConditioning`: `number` (Amygdala fear memory associative strength 0.0-1.0)
     *   `fearExtinguished`: `boolean` (Fear memory successfully erased indicator)
     *   `displayEmergenceLag`: `boolean` (Indicates emergence delay is active)
-*   `activeMeds`: `PKPDModel[]` (Instantiated pharmacology models tracking compartment amounts $A_1, A_2, A_3$ and effect site $C_e$ values).
+*   `activeMeds`: `PKPDModel[]` (Instantiated pharmacology models tracking compartment amounts $A_1, A_2, A_3$, effect site $C_e$, plasma concentration $C_p$, dynamic central volume `dynamicV1`, active infusion duration `infusionDurationSeconds`, and context-sensitive half-times `csht`).
 *   `electrolytes`: `Object` (na, k, cl, ca, ph)
 *   `coags`: `Object` (r_offset, ma_offset, angle_offset)
 
@@ -1269,6 +1430,7 @@ The simulator parses clinical textbooks into runtime rules and profiles during b
 9.  [`MemoryPanel.jsx`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/components/controls/MemoryPanel.jsx): Overlay panel showing subcortical activities, connectivities, memory states, and fear memory retrieval triggers.
 10. [`AttendingPanel.jsx`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/components/controls/AttendingPanel.jsx): Dual-tab sidebar panel hosting the automatic clinical monitor and conversational chat.
 11. [`HepaticEngine.ts`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts): Pure physical sub-engine coordinating liver perfusion, portal blood flow, HVPG dynamics, hepatorenal AKI, and PoPH-induced right heart overload.
+12. [`RenalEngine.ts`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RenalEngine.ts): Pure physical sub-engine coordinating renal perfusion pressure, GFR/RBF autoregulation, ADH/aldosterone loops, loop/osmotic diuretics, BUN/creatinine kinetics, and KDIGO AKI staging.
 
 ---
 
@@ -1309,6 +1471,10 @@ To establish clinical enhancements, it is necessary to identify where the curren
 | **Portopulmonary Hypertension (PoPH)** | Cirrhosis raises mPAP; hypoxia/hypercapnia/acidosis stressors trigger acute RV failure and PEA arrest in [HepaticEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts) and [CardiovascularEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/CardiovascularEngine.ts). | None. | Portopulmonary hypertension and stressful triggers of right ventricular failure/PEA cardiac arrest are unmodeled. |
 | **Hepatopulmonary Syndrome (HPS)** | Cirrhosis induces intrapulmonary vascular dilations creating right-to-left shunt, blunted by oxygen in [HepaticEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts) and [RespiratoryEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RespiratoryEngine.ts). | None. | Liver-induced intrapulmonary shunts and their responsive hypoxemia are unmodeled. |
 | **Low-CVP Hepatic Resection** | Venous back-bleeding scales with CVP; low-CVP fluid restriction reduces surgical blood loss in [HepaticEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts). | None. | Hepatic parenchymal bleeding rate is constant and independent of central venous pressure. |
+| **Renal Blood Flow & GFR Autoregulation** | RBF and GFR are dynamically calculated based on RPP (incorporating CVP and PEEP backpressure). Autoregulation blunted by MAC and volatiles in [RenalEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RenalEngine.ts). | None. | Renal blood flow and glomerular filtration are hardcoded constants or unmodeled. |
+| **KDIGO AKI Staging & Diuresis** | Staging is computed dynamically from creatinine ratios and oliguria/anuria timers. Loop diuretics (Furosemide) and osmotic agents (Mannitol) stimulate diuresis in [RenalEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RenalEngine.ts). | None. | AKI staging is unmodeled; UOP does not scale with GFR or diuretics. |
+| **Front-End & Back-End Kinetics** | Dynamic V1 scaling is driven by cardiac output and blood volume ratios; cumulative active infusion time is tracked in seconds to calculate context-sensitive half-times (CSHT) in [PKPDEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/PKPDEngine.ts). | None. | Central volume V1 is constant (or scales only with hemodilution); infusion durations and context-sensitive half-times are unmodeled. |
+| **GABA-Opioid Synergistic Hypnosis** | Sedative and opioid effects are combined synergistically using an inward-bowing isobologram interaction formula to calculate aggregate hypnosis in [usePhysiology.js](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/usePhysiology.js). | None. | Medication hypnosis levels are combined using an independent probability formula. |
 
 ---
 

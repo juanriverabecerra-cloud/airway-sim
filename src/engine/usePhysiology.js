@@ -11,6 +11,7 @@ import { PainEngine } from './PainEngine';
 import { ConsciousnessEngine } from './ConsciousnessEngine';
 import { GastrointestinalEngine } from './GastrointestinalEngine';
 import { HepaticEngine } from './HepaticEngine';
+import { RenalEngine } from './RenalEngine';
 
 export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, gasSettings, logEvent, msmaidsComplete }) {
   const [timeVal, setTimeState] = useState(0);
@@ -216,7 +217,18 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           cirrhosisFactor: safePatientObj.cirrhosisFactor || 0.0,
           bilirubin: safePatientObj.bilirubin || 1.0,
           inr: safePatientObj.inr || 1.0,
-          creatinine: safePatientObj.creatinine || 1.0,
+          creatinine: (() => {
+              if (safePatientObj.creatinine !== undefined) return safePatientObj.creatinine;
+              if (safePatientObj.renalComorbidity) {
+                  const ren = safePatientObj.renalComorbidity.toLowerCase();
+                  if (ren.includes('stage 5') || ren.includes('dialysis')) return 5.2;
+                  if (ren.includes('stage 4')) return 2.8;
+                  if (ren.includes('stage 3')) return 1.8;
+                  if (ren.includes('stage 2')) return 1.3;
+                  if (ren.includes('aki')) return 2.2;
+              }
+              return 0.85;
+          })(),
           albumin: safePatientObj.albumin || 4.0,
           encephalopathyGrade: safePatientObj.encephalopathyGrade || 0,
           ascitesDegree: safePatientObj.ascitesDegree || 0,
@@ -225,6 +237,74 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           varicealBleedTime: null,
           hasPoPHCollapse: false,
           hasTIPS: safePatientObj.hasTIPS || false,
+
+          // Renal states
+          gfr: (() => {
+              if (safePatientObj.gfr !== undefined) return safePatientObj.gfr;
+              if (safePatientObj.renalComorbidity) {
+                  const ren = safePatientObj.renalComorbidity.toLowerCase();
+                  if (ren.includes('stage 5') || ren.includes('dialysis')) return 12.5;
+                  if (ren.includes('stage 4')) return 25.0;
+                  if (ren.includes('stage 3')) return 45.0;
+                  if (ren.includes('stage 2')) return 75.0;
+                  if (ren.includes('aki')) return 35.0;
+              }
+              return 125.0;
+          })(),
+          rbf: 1100.0,
+          bun: (() => {
+              if (safePatientObj.bun !== undefined) return safePatientObj.bun;
+              if (safePatientObj.renalComorbidity) {
+                  const ren = safePatientObj.renalComorbidity.toLowerCase();
+                  if (ren.includes('stage 5') || ren.includes('dialysis')) return 74.0;
+                  if (ren.includes('stage 4')) return 42.0;
+                  if (ren.includes('stage 3')) return 28.0;
+                  if (ren.includes('stage 2')) return 18.0;
+                  if (ren.includes('aki')) return 32.0;
+              }
+              return 12.0;
+          })(),
+          urineOutput: 0.0,
+          urineOutputRate: 70.0,
+          urineOsmolality: 350.0,
+          feNa: 1.0,
+          akiStage: 0,
+          akiDamage: 0.0,
+          uopOliguriaTimer: 0,
+          uopAnuriaTimer: 0,
+          baselineCreatinine: (() => {
+              if (safePatientObj.baselineCreatinine !== undefined) return safePatientObj.baselineCreatinine;
+              if (safePatientObj.creatinine !== undefined) return safePatientObj.creatinine;
+              if (safePatientObj.renalComorbidity) {
+                  const ren = safePatientObj.renalComorbidity.toLowerCase();
+                  if (ren.includes('stage 5') || ren.includes('dialysis')) return 5.2;
+                  if (ren.includes('stage 4')) return 2.8;
+                  if (ren.includes('stage 3')) return 1.8;
+                  if (ren.includes('stage 2')) return 1.3;
+                  if (ren.includes('aki')) return 2.2;
+              }
+              return 0.85;
+          })(),
+          baselineBun: (() => {
+              if (safePatientObj.baselineBun !== undefined) return safePatientObj.baselineBun;
+              if (safePatientObj.bun !== undefined) return safePatientObj.bun;
+              if (safePatientObj.renalComorbidity) {
+                  const ren = safePatientObj.renalComorbidity.toLowerCase();
+                  if (ren.includes('stage 5') || ren.includes('dialysis')) return 74.0;
+                  if (ren.includes('stage 4')) return 42.0;
+                  if (ren.includes('stage 3')) return 28.0;
+                  if (ren.includes('stage 2')) return 18.0;
+                  if (ren.includes('aki')) return 32.0;
+              }
+              return 12.0;
+          })(),
+          vasopressinLevel: 0.1,
+          aldosteroneLevel: 0.1,
+          osm: 285.0,
+          hasAki: false,
+          hasPrerenalOliguria: false,
+          hasFluidOverloadEdema: false,
+          netFluidBalance: 0.0,
 
           // Consciousness & Memory states
           lcActivity: 1.0,
@@ -909,15 +989,15 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const v1VolumeRatio = Math.max(0.4, Math.min(10.0, currentBloodVolume / safeEbv));
 
           let renalRatio = 1.0;
-          if (st.patient.renalComorbidity) {
+          if (st.patient.gfr !== undefined) {
+              renalRatio = Math.max(0.05, Math.min(1.0, st.patient.gfr / 100));
+          } else if (st.patient.renalComorbidity) {
               const ren = st.patient.renalComorbidity.toLowerCase();
               if (ren.includes('stage 5') || ren.includes('dialysis')) renalRatio = 0.1;
               else if (ren.includes('stage 4')) renalRatio = 0.25;
               else if (ren.includes('stage 3')) renalRatio = 0.5;
               else if (ren.includes('stage 2')) renalRatio = 0.75;
               else if (ren.includes('aki')) renalRatio = 0.3;
-          } else if (st.patient.gfr !== undefined) {
-              renalRatio = Math.max(0.05, Math.min(1.0, st.patient.gfr / 100));
           }
 
           let hepaticRatio = 1.0;
@@ -1466,7 +1546,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           patientAfterFluidics.bronchospasm = finalBronchospasm;
           patientAfterFluidics.isBucking = painOutput.somaticResponse.isBucking;
 
-          const aggregateHypnosis = sedativeEff + opioidEff - (sedativeEff * opioidEff);
+          const aggregateHypnosis = Math.min(1.0, sedativeEff + opioidEff + 1.8 * sedativeEff * opioidEff);
           const hrSympatheticSpike = painOutput.hrSpike + awarenessHrOffset;
           const contractilitySympatheticSpike = painOutput.contractilitySpike + (awarenessHrOffset > 0 ? 0.3 : 0.0);
           const svrSympatheticSpike = painOutput.svrSpike + awarenessSvrOffset;
@@ -1619,6 +1699,98 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           patientAfterFluidics.meldScore = hepaticOutput.meldScore;
           patientAfterFluidics.hpsShunt = hepaticOutput.hpsShunt;
 
+          // Renal Engine Tick
+          const netFluidBalance = (st.patient.netFluidBalance || 0.0) + fluidicsOutput.intravascularVolumeAdded_mL - (st.patient.urineOutputRate || 70.0) * (1.0 / 3600.0);
+          
+          const hasFluorideNephrotoxicity = (st.patient.sevoLowFlowTime || 0) > 600;
+          const hasMismatchedTransfusion = st.patient.hasTransfusionReaction || false;
+          const hasRhabdomyolysis = st.patient.suxUpregulatedPotassiumLeakActive || false;
+          const hasContrastNephropathy = st.patient.contrastAdministered || false;
+
+          const renalOutput = RenalEngine.tick(1, {
+              patient: st.patient,
+              vitals: {
+                  gfr: st.vitals.gfr,
+                  rbf: st.vitals.rbf,
+                  bun: st.vitals.bun,
+                  creatinine: st.patient.creatinine, // Use the post-hepatic creatinine value
+                  urineOutput: st.vitals.urineOutput,
+                  urineOutputRate: st.vitals.urineOutputRate,
+                  urineOsmolality: st.vitals.urineOsmolality,
+                  feNa: st.vitals.feNa,
+                  akiStage: st.vitals.akiStage,
+                  akiDamage: st.vitals.akiDamage,
+                  uopOliguriaTimer: st.vitals.uopOliguriaTimer,
+                  uopAnuriaTimer: st.vitals.uopAnuriaTimer,
+                  vasopressinLevel: st.vitals.vasopressinLevel,
+                  aldosteroneLevel: st.vitals.aldosteroneLevel,
+                  osm: st.vitals.osm
+              },
+              time: st.time,
+              electrolytes: st.electrolytes
+          }, st.activeMeds || [], {
+              coRatio: coRatio,
+              map: st.vitals.map || 90.0,
+              sys: st.vitals.sys || 120.0,
+              cvp: cvp,
+              peep: peepValCvp,
+              temp: newTemp,
+              currentMac: currentMac,
+              C_cat: painOutput.C_cat || 0.0,
+              ebl: safeEblForCvp,
+              ebv: safeEbvForCvp,
+              netFluidBalance: netFluidBalance,
+              hasFluorideNephrotoxicity,
+              hasMismatchedTransfusion,
+              hasRhabdomyolysis,
+              hasContrastNephropathy
+          });
+
+          if (renalOutput.events && renalOutput.events.length > 0) {
+              renalOutput.events.forEach(evt => logEvent(evt));
+          }
+
+          // Propagate renal values to patient and vitals state
+          st.patient.gfr = renalOutput.gfr;
+          st.patient.rbf = renalOutput.rbf;
+          st.patient.bun = renalOutput.bun;
+          st.patient.creatinine = renalOutput.creatinine;
+          st.patient.urineOutput = renalOutput.urineOutput;
+          st.patient.urineOutputRate = renalOutput.urineOutputRate;
+          st.patient.urineOsmolality = renalOutput.urineOsmolality;
+          st.patient.feNa = renalOutput.feNa;
+          st.patient.akiStage = renalOutput.akiStage;
+          st.patient.akiDamage = renalOutput.akiDamage;
+          st.patient.uopOliguriaTimer = renalOutput.uopOliguriaTimer;
+          st.patient.uopAnuriaTimer = renalOutput.uopAnuriaTimer;
+          st.patient.vasopressinLevel = renalOutput.vasopressinLevel;
+          st.patient.aldosteroneLevel = renalOutput.aldosteroneLevel;
+          st.patient.osm = renalOutput.osm;
+          st.patient.hasAki = renalOutput.hasAki;
+          st.patient.hasPrerenalOliguria = renalOutput.hasPrerenalOliguria;
+          st.patient.hasFluidOverloadEdema = renalOutput.hasFluidOverloadEdema;
+          st.patient.netFluidBalance = netFluidBalance;
+
+          patientAfterFluidics.gfr = renalOutput.gfr;
+          patientAfterFluidics.rbf = renalOutput.rbf;
+          patientAfterFluidics.bun = renalOutput.bun;
+          patientAfterFluidics.creatinine = renalOutput.creatinine;
+          patientAfterFluidics.urineOutput = renalOutput.urineOutput;
+          patientAfterFluidics.urineOutputRate = renalOutput.urineOutputRate;
+          patientAfterFluidics.urineOsmolality = renalOutput.urineOsmolality;
+          patientAfterFluidics.feNa = renalOutput.feNa;
+          patientAfterFluidics.akiStage = renalOutput.akiStage;
+          patientAfterFluidics.akiDamage = renalOutput.akiDamage;
+          patientAfterFluidics.uopOliguriaTimer = renalOutput.uopOliguriaTimer;
+          patientAfterFluidics.uopAnuriaTimer = renalOutput.uopAnuriaTimer;
+          patientAfterFluidics.vasopressinLevel = renalOutput.vasopressinLevel;
+          patientAfterFluidics.aldosteroneLevel = renalOutput.aldosteroneLevel;
+          patientAfterFluidics.osm = renalOutput.osm;
+          patientAfterFluidics.hasAki = renalOutput.hasAki;
+          patientAfterFluidics.hasPrerenalOliguria = renalOutput.hasPrerenalOliguria;
+          patientAfterFluidics.hasFluidOverloadEdema = renalOutput.hasFluidOverloadEdema;
+          patientAfterFluidics.netFluidBalance = netFluidBalance;
+
           // Gastric Aspiration triggers
           let hasAspirated = st.patient.hasAspirated || giOutput.hasAspirated || false;
           let aspirationCompliancePenalty = 0;
@@ -1699,7 +1871,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               anaphylaxisResistancePenalty,
               aspirationCompliancePenalty,
               aspirationResistancePenalty,
-              hpsShunt: st.patient.hpsShunt || 0.0
+              hpsShunt: st.patient.hpsShunt || 0.0,
+              fluidOverloadCompliancePenalty: st.patient.hasFluidOverloadEdema ? 25 : 0
           });
 
           // 5. CardiovascularEngine Tick

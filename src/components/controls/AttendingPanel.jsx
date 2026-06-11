@@ -117,25 +117,77 @@ async function handleFetchError(response) {
   return new Error(errorMsg);
 }
 
-function geminiApiFetch({ streaming = false, apiKey = '', model = 'gemini-3.5-flash', body }) {
-  if (IS_PRODUCTION) {
-    // Production: proxy through Netlify function redirect
-    return fetch('/api/gemini-proxy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ streaming, model, ...body })
-    });
-  } else {
-    // Development: direct API call with local .env key
-    const endpoint = streaming
-      ? `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${apiKey}&alt=sse`
-      : `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-    return fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
+async function geminiApiFetch({ streaming = false, apiKey = '', model = 'gemini-3.5-flash', body }) {
+  const modelPriority = [
+    model, // try the requested model first
+    'gemini-3.5-flash',
+    'gemini-2.5-flash',
+    'gemini-2.5-pro',
+    'gemini-1.5-flash'
+  ];
+  
+  // De-duplicate priority list while preserving order
+  const modelsToTry = [...new Set(modelPriority)];
+  
+  let lastResponse = null;
+  let lastError = null;
+
+  for (let i = 0; i < modelsToTry.length; i++) {
+    const currentModel = modelsToTry[i];
+    console.log(`[GeminiAPI] Attempting request using model: ${currentModel}`);
+    
+    try {
+      let endpoint;
+      let options;
+      
+      if (IS_PRODUCTION) {
+        // Production: proxy through Netlify function redirect
+        endpoint = '/api/gemini-proxy';
+        options = {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ streaming, model: currentModel, ...body })
+        };
+      } else {
+        // Development: direct API call with local .env key
+        endpoint = streaming
+          ? `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:streamGenerateContent?key=${apiKey}&alt=sse`
+          : `https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:generateContent?key=${apiKey}`;
+        options = {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        };
+      }
+      
+      const response = await fetch(endpoint, options);
+      
+      if (response.ok) {
+        console.log(`[GeminiAPI] Success with model: ${currentModel}`);
+        return response;
+      }
+      
+      // If we get rate limited (429), service unavailable (503), or internal server error (500)
+      if (response.status === 429 || response.status === 503 || response.status === 500) {
+        console.warn(`[GeminiAPI] Model ${currentModel} returned status ${response.status} (transient overload). Trying fallback...`);
+        lastResponse = response;
+        continue;
+      }
+      
+      // For non-transient failures, return the response immediately
+      return response;
+      
+    } catch (err) {
+      console.error(`[GeminiAPI] Fetch error with model ${currentModel}:`, err);
+      lastError = err;
+      continue;
+    }
   }
+  
+  if (lastResponse) {
+    return lastResponse;
+  }
+  throw lastError || new Error("All fallback models failed.");
 }
 
 async function queryGeminiAI(query, sources, apiKey, onChunk) {

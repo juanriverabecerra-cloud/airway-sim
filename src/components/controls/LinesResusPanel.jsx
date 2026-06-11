@@ -9,7 +9,8 @@ export const LinesResusPanel = ({
   updateFluidRate,
   removeFluid,
   logEvent,
-  processMed
+  processMed,
+  activeMeds = []
 }) => {
   const [editInfusionDose, setEditInfusionDose] = useState({});
   const [bolusInfusionDose, setBolusInfusionDose] = useState({});
@@ -273,6 +274,8 @@ export const LinesResusPanel = ({
                               ? 'text-rose-455'
                               : 'text-purple-400';
 
+                    const activeMedModel = activeMeds.find(m => m.name.toLowerCase() === (medData?.name || medInf.medId).toLowerCase());
+
                     return (
                       <div key={resolvedId} className="bg-slate-950/60 border border-white/5 rounded-lg p-2 flex flex-col gap-1.5 font-mono mt-0.5">
                         <div className="flex justify-between items-center text-[9px]">
@@ -281,6 +284,15 @@ export const LinesResusPanel = ({
                             {medInf.rate} {medInf.unit || 'mcg/kg/min'}
                           </span>
                         </div>
+                        {activeMedModel && (
+                          <div className="flex justify-between text-[8.5px] text-slate-400 border-b border-white/5 pb-1 mt-0.5">
+                            <span>Cp: <span className="text-slate-300 font-bold">{activeMedModel.Cp ? activeMedModel.Cp.toFixed(3) : '0.000'}</span></span>
+                            <span>Ce: <span className="text-slate-300 font-bold">{activeMedModel.Ce ? activeMedModel.Ce.toFixed(3) : '0.000'}</span></span>
+                            {activeMedModel.csht > 0 && (
+                              <span>CSHT: <span className="text-slate-300 font-bold">{activeMedModel.csht.toFixed(1)}m</span></span>
+                            )}
+                          </div>
+                        )}
                         
                         <div className="flex gap-1.5 mt-0.5">
                           <input 
@@ -329,6 +341,53 @@ export const LinesResusPanel = ({
             );
           })
         )}
+      </div>
+
+      {/* Renal Status & Fluid Balance Dashboard */}
+      <div className="border-t border-white/5 pt-3 mt-1 flex flex-col gap-2 shrink-0 bg-black/25 p-2 rounded-xl border border-white/[0.03] font-mono">
+        <span className="text-[8.5px] text-purple-400 font-black tracking-widest uppercase mb-1 flex justify-between items-center">
+          <span>Renal Status & Fluid Output</span>
+          {patient?.akiStage > 0 && (
+            <span className="bg-red-950/80 border border-red-800 text-red-400 font-extrabold text-[7.5px] px-1.5 py-0.5 rounded animate-pulse">
+              AKI STAGE {patient.akiStage}
+            </span>
+          )}
+        </span>
+        <div className="grid grid-cols-3 gap-2">
+          {/* UOP Cumulative */}
+          <div className="bg-slate-950/60 border border-white/5 rounded-lg p-1.5 flex flex-col justify-between items-center text-center">
+            <span className="text-[7.5px] text-slate-500 font-bold uppercase">UOP Vol</span>
+            <span className={`text-xs font-mono font-black ${patient?.urineOutputRate < ((patient?.weight || 70.0) * 0.5) ? 'text-orange-400 animate-pulse' : 'text-purple-300'}`}>
+              {(patient?.urineOutput || 0.0).toFixed(1)} <span className="text-[8px] font-bold">mL</span>
+            </span>
+            <span className="text-[7px] text-slate-500">{(patient?.urineOutputRate || 0.0).toFixed(1)} mL/h</span>
+          </div>
+
+          {/* eGFR */}
+          <div className="bg-slate-950/60 border border-white/5 rounded-lg p-1.5 flex flex-col justify-between items-center text-center">
+            <span className="text-[7.5px] text-slate-500 font-bold uppercase">eGFR</span>
+            <span className={`text-xs font-mono font-black ${patient?.gfr < 60 ? 'text-red-400' : 'text-purple-300'}`}>
+              {Math.round(patient?.gfr || 125.0)}
+            </span>
+            <span className="text-[7px] text-slate-500">mL/min</span>
+          </div>
+
+          {/* Creatinine / BUN */}
+          <div className="bg-slate-950/60 border border-white/5 rounded-lg p-1.5 flex flex-col justify-between items-center text-center">
+            <span className="text-[7.5px] text-slate-500 font-bold uppercase">Cr / BUN</span>
+            <span className={`text-xs font-mono font-black ${patient?.creatinine > 1.3 ? 'text-red-400' : 'text-purple-300'}`}>
+              {(patient?.creatinine || 0.85).toFixed(2)}
+            </span>
+            <span className="text-[7px] text-slate-500">BUN: {Math.round(patient?.bun || 12.0)}</span>
+          </div>
+        </div>
+        
+        {/* Additional metrics */}
+        <div className="flex justify-between items-center text-[7.5px] text-slate-400 px-1 font-mono">
+          <span>Osm: <span className="text-purple-300">{Math.round(patient?.osm || 285.0)} mOsm</span></span>
+          <span>FE_Na: <span className="text-purple-300">{(patient?.feNa || 1.0).toFixed(2)}%</span></span>
+          <span>U_Osm: <span className="text-purple-300">{Math.round(patient?.urineOsmolality || 350.0)}</span></span>
+        </div>
       </div>
     </div>
   );
