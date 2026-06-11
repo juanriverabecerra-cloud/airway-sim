@@ -30,7 +30,7 @@ export default async (request) => {
     const body = await request.json();
     const { streaming, model, ...requestBody } = body;
 
-    const modelName = model || 'gemini-3.5-flash';
+    const modelName = model || 'gemini-1.5-flash';
     const endpoint = streaming
       ? `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:streamGenerateContent?key=${apiKey}&alt=sse`
       : `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
