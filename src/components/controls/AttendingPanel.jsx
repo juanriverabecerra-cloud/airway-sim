@@ -113,7 +113,7 @@ async function handleFetchError(response) {
   return new Error(errorMsg);
 }
 
-function geminiApiFetch({ streaming = false, apiKey = '', model = 'gemini-1.5-flash', body }) {
+function geminiApiFetch({ streaming = false, apiKey = '', model = 'gemini-3.5-flash', body }) {
   if (IS_PRODUCTION) {
     // Production: proxy through Netlify function redirect
     return fetch('/api/gemini-proxy', {
