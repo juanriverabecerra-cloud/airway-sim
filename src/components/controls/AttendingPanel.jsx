@@ -79,9 +79,15 @@ function extractChapterLabel(chapterTitle) {
 }
 
 async function queryGeminiAI(query, sources, apiKey, onChunk) {
+  // Truncate source body text to cap input tokens — full pages are wasteful
+  const MAX_SOURCE_CHARS = 2000;
   const sourcesText = sources.map((src, idx) => {
     const chapterLabel = extractChapterLabel(src.record.chapter_title);
-    return `[Source ${idx + 1}] Section: ${src.record.section_heading || 'General'}\nChapter: Miller's Anesthesia 9th Ed. ${chapterLabel}\nText: ${src.record.body_text}`;
+    const bodyText = src.record.body_text || '';
+    const truncatedBody = bodyText.length > MAX_SOURCE_CHARS
+      ? bodyText.slice(0, MAX_SOURCE_CHARS) + ' [… truncated]'
+      : bodyText;
+    return `[Source ${idx + 1}] Section: ${src.record.section_heading || 'General'}\nChapter: Miller's Anesthesia 9th Ed. ${chapterLabel}\nText: ${truncatedBody}`;
   }).join('\n\n');
 
   const systemInstruction = `You are a knowledge-grounded Senior Anesthesiology Attending teaching residents in the OR.
@@ -579,10 +585,11 @@ export default function AttendingPanel({
         // 2. AI Synthesis Mode: Retrieve sources and query Gemini
         try {
           // Run a fast local search first using the raw user query
-          let kbResults = searchKnowledge(currentInput, 10, 0.12);
+          let kbResults = searchKnowledge(currentInput, 5, 0.12);
 
-          // Bypass query expansion if we already have 3 or more high-quality textbook records
-          if (kbResults.length < 3) {
+          // Bypass query expansion if we already have at least 1 high-quality textbook record
+          // (the expanded synonym dictionary makes the first-pass search much more effective)
+          if (kbResults.length < 1) {
             // Check if query expansion is needed (bypass for simple 1-2 word queries)
             const queryWords = currentInput.trim().split(/\s+/).filter(Boolean);
             const needsExpansion = queryWords.length > 2 || 
@@ -598,7 +605,7 @@ export default function AttendingPanel({
               const searchQuery = expandedKeywords.join(' ');
               console.log(`[QueryExpansion] Standardized search keywords: "${searchQuery}"`);
 
-              const expandedResults = searchKnowledge(searchQuery, 10, 0.12);
+              const expandedResults = searchKnowledge(searchQuery, 5, 0.12);
               if (expandedResults.length > 0) {
                 kbResults = expandedResults;
               } else {
@@ -1790,13 +1797,13 @@ Rules:
                   ]);
                 } else if (apiKey) {
                   // Run a fast local search first using the raw user query
-                  let kbResults = searchKnowledge(q, 10, 0.12);
-                  if (kbResults.length < 3) {
+                  let kbResults = searchKnowledge(q, 5, 0.12);
+                  if (kbResults.length < 1) {
                     const queryWords = q.split(/\s+/).filter(Boolean);
                     const needsExpansion = queryWords.length > 2 || /how|why|what|should|explain/i.test(q);
                     if (needsExpansion) {
                       const expandedKeywords = await expandQueryClinicalKeywords(q, apiKey);
-                      const expandedResults = searchKnowledge(expandedKeywords.join(' '), 10, 0.12);
+                      const expandedResults = searchKnowledge(expandedKeywords.join(' '), 5, 0.12);
                       if (expandedResults.length > 0) kbResults = expandedResults;
                     }
                   }

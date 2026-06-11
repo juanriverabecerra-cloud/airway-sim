@@ -88,20 +88,167 @@ function tokenize(text) {
 }
 
 // ─── CLINICAL SYNONYM EXPANSION ──────────────────────────────────────────────
+// Comprehensive synonym dictionary that eliminates the need for the expensive
+// Gemini query-expansion API call. When the user types a drug name, abbreviation,
+// or clinical concept, the local TF-IDF index will find matches on the first pass.
 
 const CLINICAL_SYNONYMS = {
-  'bp': ['blood', 'pressure'],
-  'hr': ['heart', 'rate'],
-  'rr': ['respiratory', 'rate'],
+  // ── Vital Sign Abbreviations ──
+  'bp': ['blood', 'pressure', 'hemodynamic', 'hypotension', 'hypertension'],
+  'hr': ['heart', 'rate', 'pulse', 'tachycardia', 'bradycardia'],
+  'rr': ['respiratory', 'rate', 'ventilation', 'breathing'],
   'co': ['cardiac', 'output'],
-  'svr': ['systemic', 'vascular', 'resistance'],
-  'mac': ['minimum', 'alveolar', 'concentration'],
-  'bis': ['bispectral', 'index'],
-  'rem': ['rapid', 'eye', 'movement'],
-  'nrem': ['non', 'rapid', 'eye', 'movement'],
-  'gaba': ['gamma', 'aminobutyric', 'acid'],
-  'nmda': ['nmda', 'methyl', 'aspartate'],
-  'ach': ['acetylcholine']
+  'ci': ['cardiac', 'index'],
+  'svr': ['systemic', 'vascular', 'resistance', 'afterload'],
+  'pvr': ['pulmonary', 'vascular', 'resistance'],
+  'cvp': ['central', 'venous', 'pressure', 'preload'],
+  'map': ['mean', 'arterial', 'pressure'],
+  'sbp': ['systolic', 'blood', 'pressure'],
+  'dbp': ['diastolic', 'blood', 'pressure'],
+  'spo2': ['oxygen', 'saturation', 'oximetry', 'pulse', 'oximeter'],
+  'etco2': ['end', 'tidal', 'carbon', 'dioxide', 'capnography'],
+  'paco2': ['arterial', 'carbon', 'dioxide', 'partial', 'pressure'],
+  'pao2': ['arterial', 'oxygen', 'partial', 'pressure'],
+  'fio2': ['fraction', 'inspired', 'oxygen'],
+  'abg': ['arterial', 'blood', 'gas'],
+
+  // ── Anesthetic Depth & Monitoring ──
+  'mac': ['minimum', 'alveolar', 'concentration', 'volatile', 'anesthetic'],
+  'bis': ['bispectral', 'index', 'depth', 'anesthesia', 'awareness'],
+  'tof': ['train', 'four', 'neuromuscular', 'blockade', 'twitch'],
+  'eeg': ['electroencephalogram', 'electroencephalography', 'brainwave'],
+
+  // ── Neuroscience & Receptors ──
+  'gaba': ['gamma', 'aminobutyric', 'acid', 'inhibitory', 'receptor'],
+  'nmda': ['nmda', 'methyl', 'aspartate', 'glutamate', 'excitatory'],
+  'ach': ['acetylcholine', 'cholinergic', 'muscarinic', 'nicotinic'],
+  'rem': ['rapid', 'eye', 'movement', 'sleep'],
+  'nrem': ['non', 'rapid', 'eye', 'movement', 'sleep'],
+
+  // ── Induction Agents ──
+  'propofol': ['diprivan', 'induction', 'sedation', 'hypnotic', 'gaba'],
+  'diprivan': ['propofol', 'induction', 'hypnotic'],
+  'etomidate': ['amidate', 'induction', 'hemodynamic', 'stable'],
+  'amidate': ['etomidate', 'induction'],
+  'ketamine': ['dissociative', 'nmda', 'analgesia', 'induction'],
+  'midazolam': ['versed', 'benzodiazepine', 'anxiolysis', 'sedation', 'gaba'],
+  'versed': ['midazolam', 'benzodiazepine'],
+  'thiopental': ['pentothal', 'barbiturate', 'induction'],
+
+  // ── Volatile Anesthetics ──
+  'sevoflurane': ['volatile', 'inhalational', 'anesthetic', 'mac', 'vaporizer'],
+  'desflurane': ['volatile', 'inhalational', 'anesthetic', 'mac', 'airway', 'irritant'],
+  'isoflurane': ['volatile', 'inhalational', 'anesthetic', 'mac'],
+  'nitrous': ['nitrous', 'oxide', 'inhalational', 'analgesic', 'diffusion'],
+
+  // ── Opioids ──
+  'fentanyl': ['sublimaze', 'opioid', 'analgesic', 'nociception', 'mu'],
+  'sublimaze': ['fentanyl', 'opioid'],
+  'remifentanil': ['ultiva', 'opioid', 'analgesic', 'esterase'],
+  'ultiva': ['remifentanil', 'opioid'],
+  'morphine': ['opioid', 'analgesic', 'histamine', 'mu'],
+  'hydromorphone': ['dilaudid', 'opioid', 'analgesic'],
+  'dilaudid': ['hydromorphone', 'opioid'],
+  'sufentanil': ['sufenta', 'opioid', 'potent'],
+  'alfentanil': ['alfenta', 'opioid'],
+  'meperidine': ['demerol', 'opioid'],
+  'naloxone': ['narcan', 'opioid', 'antagonist', 'reversal'],
+  'narcan': ['naloxone', 'opioid', 'antagonist'],
+
+  // ── Muscle Relaxants ──
+  'rocuronium': ['zemuron', 'neuromuscular', 'blockade', 'nondepolarizing', 'paralysis', 'relaxant', 'aminosteroid', 'intubation'],
+  'zemuron': ['rocuronium', 'neuromuscular', 'blockade'],
+  'vecuronium': ['norcuron', 'neuromuscular', 'blockade', 'nondepolarizing', 'paralysis', 'relaxant', 'aminosteroid'],
+  'norcuron': ['vecuronium', 'neuromuscular', 'blockade'],
+  'succinylcholine': ['suxamethonium', 'sux', 'depolarizing', 'neuromuscular', 'fasciculation', 'paralysis', 'relaxant'],
+  'sux': ['succinylcholine', 'depolarizing', 'neuromuscular'],
+  'cisatracurium': ['nimbex', 'neuromuscular', 'blockade', 'nondepolarizing', 'hofmann'],
+  'pancuronium': ['pavulon', 'neuromuscular', 'blockade', 'nondepolarizing'],
+  'atracurium': ['tracrium', 'neuromuscular', 'blockade', 'nondepolarizing', 'hofmann', 'laudanosine'],
+
+  // ── Reversal Agents ──
+  'sugammadex': ['bridion', 'reversal', 'encapsulation', 'rocuronium', 'cyclodextrin'],
+  'bridion': ['sugammadex', 'reversal'],
+  'neostigmine': ['prostigmin', 'anticholinesterase', 'reversal', 'acetylcholinesterase'],
+  'prostigmin': ['neostigmine', 'anticholinesterase'],
+  'flumazenil': ['romazicon', 'benzodiazepine', 'antagonist', 'reversal'],
+
+  // ── Anticholinergics ──
+  'glycopyrrolate': ['robinul', 'anticholinergic', 'muscarinic', 'antisialagogue', 'bradycardia'],
+  'robinul': ['glycopyrrolate', 'anticholinergic'],
+  'atropine': ['anticholinergic', 'muscarinic', 'bradycardia', 'vagolytic'],
+
+  // ── Vasopressors & Inotropes ──
+  'epinephrine': ['adrenaline', 'vasopressor', 'catecholamine', 'alpha', 'beta', 'anaphylaxis'],
+  'adrenaline': ['epinephrine', 'vasopressor', 'catecholamine'],
+  'norepinephrine': ['levophed', 'vasopressor', 'catecholamine', 'alpha'],
+  'levophed': ['norepinephrine', 'vasopressor'],
+  'phenylephrine': ['neosynephrine', 'vasopressor', 'alpha', 'agonist', 'svr'],
+  'neosynephrine': ['phenylephrine', 'vasopressor'],
+  'vasopressin': ['antidiuretic', 'vasopressor', 'adh'],
+  'ephedrine': ['vasopressor', 'indirect', 'sympathomimetic'],
+  'dobutamine': ['dobutrex', 'inotrope', 'beta', 'agonist'],
+  'dopamine': ['intropin', 'inotrope', 'vasopressor', 'catecholamine'],
+  'milrinone': ['primacor', 'phosphodiesterase', 'inotrope', 'inotropy'],
+
+  // ── Beta Blockers & Antiarrhythmics ──
+  'esmolol': ['brevibloc', 'beta', 'blocker', 'antiarrhythmic', 'tachycardia'],
+  'labetalol': ['trandate', 'beta', 'blocker', 'alpha', 'hypertension'],
+  'metoprolol': ['lopressor', 'beta', 'blocker'],
+  'amiodarone': ['cordarone', 'antiarrhythmic', 'ventricular', 'tachycardia'],
+  'lidocaine': ['xylocaine', 'antiarrhythmic', 'local', 'anesthetic', 'sodium', 'channel'],
+  'adenosine': ['adenocard', 'supraventricular', 'tachycardia', 'svt'],
+
+  // ── Pulmonary & Bronchodilators ──
+  'albuterol': ['salbutamol', 'ventolin', 'bronchodilator', 'beta', 'agonist', 'bronchospasm'],
+  'salbutamol': ['albuterol', 'ventolin', 'bronchodilator'],
+
+  // ── Local Anesthetics ──
+  'bupivacaine': ['marcaine', 'sensorcaine', 'local', 'anesthetic', 'amide', 'sodium', 'channel'],
+  'ropivacaine': ['naropin', 'local', 'anesthetic', 'amide'],
+  'chloroprocaine': ['nesacaine', 'local', 'anesthetic', 'ester'],
+
+  // ── Clinical Conditions ──
+  'mh': ['malignant', 'hyperthermia', 'dantrolene', 'ryanodine'],
+  'bronchospasm': ['wheezing', 'airway', 'resistance', 'bronchial', 'constriction'],
+  'laryngospasm': ['vocal', 'cord', 'spasm', 'airway', 'obstruction'],
+  'anaphylaxis': ['allergic', 'hypersensitivity', 'histamine', 'shock', 'epinephrine'],
+  'sepsis': ['infection', 'systemic', 'inflammatory', 'shock', 'vasodilatory'],
+  'ards': ['acute', 'respiratory', 'distress', 'syndrome', 'lung', 'injury'],
+  'pe': ['pulmonary', 'embolism', 'thrombosis'],
+  'dvt': ['deep', 'vein', 'thrombosis'],
+  'mi': ['myocardial', 'infarction', 'ischemia', 'coronary'],
+  'chf': ['congestive', 'heart', 'failure', 'ventricular'],
+  'copd': ['chronic', 'obstructive', 'pulmonary', 'disease'],
+  'osa': ['obstructive', 'sleep', 'apnea'],
+  'icp': ['intracranial', 'pressure'],
+  'tbi': ['traumatic', 'brain', 'injury'],
+
+  // ── Airway & Procedures ──
+  'ett': ['endotracheal', 'tube', 'intubation'],
+  'lma': ['laryngeal', 'mask', 'airway', 'supraglottic'],
+  'rsi': ['rapid', 'sequence', 'induction', 'intubation', 'aspiration'],
+  'dlt': ['double', 'lumen', 'tube', 'lung', 'isolation'],
+  'frc': ['functional', 'residual', 'capacity', 'lung', 'volume'],
+  'tv': ['tidal', 'volume'],
+  'peep': ['positive', 'end', 'expiratory', 'pressure'],
+  'pip': ['peak', 'inspiratory', 'pressure'],
+
+  // ── Pharmacokinetic Terms ──
+  'pkpd': ['pharmacokinetics', 'pharmacodynamics'],
+  'pk': ['pharmacokinetics', 'absorption', 'distribution', 'metabolism', 'elimination'],
+  'pd': ['pharmacodynamics', 'receptor', 'effect', 'potency', 'efficacy'],
+  'vd': ['volume', 'distribution'],
+  'css': ['steady', 'state', 'concentration'],
+  'tiva': ['total', 'intravenous', 'anesthesia'],
+
+  // ── Labs ──
+  'cbc': ['complete', 'blood', 'count', 'hemoglobin', 'hematocrit', 'platelet'],
+  'cmp': ['comprehensive', 'metabolic', 'panel', 'electrolyte'],
+  'pt': ['prothrombin', 'time', 'coagulation'],
+  'inr': ['international', 'normalized', 'ratio', 'coagulation'],
+  'ptt': ['partial', 'thromboplastin', 'time', 'coagulation'],
+  'teg': ['thromboelastography', 'coagulation', 'viscoelastic']
 };
 
 /**
