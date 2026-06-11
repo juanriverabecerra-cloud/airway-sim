@@ -78,6 +78,35 @@ function extractChapterLabel(chapterTitle) {
   return match ? `Ch.${match[1]}` : 'Ch.?';
 }
 
+/**
+ * Gemini API routing layer.
+ * - In production (Netlify): routes through /.netlify/functions/gemini-proxy
+ *   so the API key stays server-side and is never exposed in the browser bundle.
+ * - In development (localhost): calls the Gemini API directly using the local .env key.
+ */
+const IS_PRODUCTION = typeof window !== 'undefined' && !window.location.hostname.includes('localhost') && !window.location.hostname.includes('127.0.0.1');
+
+function geminiApiFetch({ streaming = false, apiKey = '', model = 'gemini-3.5-flash', body }) {
+  if (IS_PRODUCTION) {
+    // Production: proxy through Netlify function (API key is server-side)
+    return fetch('/.netlify/functions/gemini-proxy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ streaming, model, ...body })
+    });
+  } else {
+    // Development: direct API call with local .env key
+    const endpoint = streaming
+      ? `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${apiKey}&alt=sse`
+      : `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+    return fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+  }
+}
+
 async function queryGeminiAI(query, sources, apiKey, onChunk) {
   // Truncate source body text to cap input tokens — full pages are wasteful
   const MAX_SOURCE_CHARS = 2000;
@@ -139,12 +168,10 @@ FORMATTING & ORGANIZATION RULES:
 
   const prompt = `Textbook Sources:\n${sourcesText}\n\nUser Question: ${query}`;
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:streamGenerateContent?key=${apiKey}&alt=sse`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
+  const response = await geminiApiFetch({
+    streaming: true,
+    apiKey,
+    body: {
       contents: [
         {
           role: 'user',
@@ -166,7 +193,7 @@ FORMATTING & ORGANIZATION RULES:
         temperature: 0.2,
         maxOutputTokens: 16384
       }
-    })
+    }
   });
 
   if (!response.ok) {
@@ -244,12 +271,10 @@ Focus on standard singular root nouns (e.g. convert 'bronchospasming' to 'bronch
 Respond ONLY with a JSON array of strings, for example: ["bronchospasm", "ventilation", "albuterol"].
 Do not include any explanation, introductory text, markdown formatting outside the JSON, or markdown code blocks.`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
+    const response = await geminiApiFetch({
+      streaming: false,
+      apiKey,
+      body: {
         contents: [
           {
             role: 'user',
@@ -271,7 +296,7 @@ Do not include any explanation, introductory text, markdown formatting outside t
           temperature: 0.0,
           responseMimeType: 'application/json'
         }
-      })
+      }
     });
 
     if (!response.ok) {
@@ -364,7 +389,8 @@ export default function AttendingPanel({
   const chatEndRef = useRef(null);
   const conversationHistoryRef = useRef([]);
   const [expandedSources, setExpandedSources] = useState({});
-  const [apiKey] = useState(() => localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '');
+  // In production, the proxy handles the API key so we always have access
+  const [apiKey] = useState(() => IS_PRODUCTION ? 'PROXY' : (localStorage.getItem('gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || ''));
 
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem('attending_sidebar_width');
@@ -1369,10 +1395,10 @@ export default function AttendingPanel({
                                 `[Source ${idx + 1}] Chapter: ${src.record.chapter_title}\nSection: ${src.record.section_heading || 'General'}\nText: ${src.record.body_text}`
                               ).join('\n\n');
                               
-                              const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:streamGenerateContent?key=${apiKey}&alt=sse`, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({
+                              const response = await geminiApiFetch({
+                                streaming: true,
+                                apiKey,
+                                body: {
                                   contents: [{ role: 'user', parts: [{ text: `Topic: ${topic}\n\nTextbook Sources:\n${sourcesText}` }] }],
                                   system_instruction: { parts: [{ text: `You are a board-exam question writer for anesthesiology residents. Generate exactly 10 high-yield multiple-choice questions based STRICTLY on the provided textbook sources about the specified topic. Each question must test a different clinical fact or concept present in the sources.
 
@@ -1403,7 +1429,7 @@ Rules:
 - The reference object must link directly back to the textbook source that contains the answer.
 - Base everything strictly on the provided textbook sources.` }] },
                                   generationConfig: { temperature: 0.4 }
-                                })
+                                }
                               });
 
                               if (!response.ok) {
