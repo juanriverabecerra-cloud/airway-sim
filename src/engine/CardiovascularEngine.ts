@@ -42,6 +42,7 @@ export interface PatientState {
   oculocardiacTriggered?: boolean;
   epiduralBlockActive?: boolean;
   celiacBlockActive?: boolean;
+  hasPoPHCollapse?: boolean;
 }
 
 export interface VitalsState {
@@ -184,6 +185,13 @@ export class CardiovascularEngine {
         currentRhythm = 'asystole';
         events.push('🚨 CRITICAL EMERGENCY: Neostigmine-induced profound vagal bradycardia led to cardiac arrest (Asystole)!');
       }
+    }
+
+    // Portopulmonary Hypertension (PoPH) Right Ventricular Failure Arrest Trigger
+    if (patient.hasPoPHCollapse && !isArrestState) {
+      isArrestState = true;
+      currentRhythm = 'pea';
+      events.push('🚨 CRITICAL EMERGENCY: Acute right ventricular failure from Portopulmonary Hypertension (PoPH) triggered PEA cardiac arrest!');
     }
 
     // Preload & Contractility Calculus

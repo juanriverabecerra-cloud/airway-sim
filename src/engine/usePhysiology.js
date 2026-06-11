@@ -10,6 +10,7 @@ import { RespiratoryEngine } from './RespiratoryEngine';
 import { PainEngine } from './PainEngine';
 import { ConsciousnessEngine } from './ConsciousnessEngine';
 import { GastrointestinalEngine } from './GastrointestinalEngine';
+import { HepaticEngine } from './HepaticEngine';
 
 export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, gasSettings, logEvent, msmaidsComplete }) {
   const [timeVal, setTimeState] = useState(0);
@@ -147,7 +148,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           co: initialCO, svr: calculatedBaseSVR, map: Math.round(initialMap), cmap: Math.round(initialMap), 
           metHb: 0.8, coHb: activeCase.id === 'trauma' ? 12.0 : 1.0, cyanide: 0.0, lacticAcid: safePatientObj.isSeptic ? 4.5 : 1.0,
           cao2: 20.0, cvo2: 15.0, p50: 26.6, r_ratio: 0.90,
-          lesTone: 25.0, gastricPressure: 7.0, bowelGasVolume: 1.0, gutMotility: 1.0, inflammatoryIleus: 0.0, postoperativeIleus: 0.0
+          lesTone: 25.0, gastricPressure: 7.0, bowelGasVolume: 1.0, gutMotility: 1.0, inflammatoryIleus: 0.0, postoperativeIleus: 0.0,
+          mPAP: 15.0, HVPG: 5.0, pbf: 1000.0, habf: 300.0, thbf: 1300.0, renalArteryResistance: 1.0, cvp: 5.0
         });
         setTargetVitals({ ...safeBaseVitals });
         
@@ -209,6 +211,20 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           manipulationIndex: typeof safePatientObj.manipulationIndex === 'number' ? safePatientObj.manipulationIndex : 0.0,
           hasRegurgitated: false,
           hasAspirated: false,
+
+          // Hepatic states
+          cirrhosisFactor: safePatientObj.cirrhosisFactor || 0.0,
+          bilirubin: safePatientObj.bilirubin || 1.0,
+          inr: safePatientObj.inr || 1.0,
+          creatinine: safePatientObj.creatinine || 1.0,
+          albumin: safePatientObj.albumin || 4.0,
+          encephalopathyGrade: safePatientObj.encephalopathyGrade || 0,
+          ascitesDegree: safePatientObj.ascitesDegree || 0,
+          surgicalProcedure: safePatientObj.surgicalProcedure || '',
+          varicealBleedingActive: false,
+          varicealBleedTime: null,
+          hasPoPHCollapse: false,
+          hasTIPS: safePatientObj.hasTIPS || false,
 
           // Consciousness & Memory states
           lcActivity: 1.0,
@@ -922,11 +938,11 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let opioidEff = 0;
           let maxNMJOccupancy = 0;
 
-          const esmololModel = st.activeMeds?.find(m => m.name === 'Esmolol');
-          const labetalolModel = st.activeMeds?.find(m => m.name === 'Labetalol');
-          const metoprololModel = st.activeMeds?.find(m => m.name === 'Metoprolol');
+          // const esmololModel = st.activeMeds?.find(m => m.name === 'Esmolol');
+          // const labetalolModel = st.activeMeds?.find(m => m.name === 'Labetalol');
+          // const metoprololModel = st.activeMeds?.find(m => m.name === 'Metoprolol');
           const dexmedModel = st.activeMeds?.find(m => m.name === 'Dexmedetomidine');
-          const lidoModel = st.activeMeds?.find(m => m.name === 'Lidocaine');
+          // const lidoModel = st.activeMeds?.find(m => m.name === 'Lidocaine');
 
           if (st.activeMeds) {
               st.activeMeds.forEach(model => {
@@ -1098,6 +1114,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           } else if (st.surgicalPhase === 'Incision' || st.surgicalPhase === 'Maintenance') {
               activeBleedRate = st.patient.bleedRate !== undefined ? st.patient.bleedRate : 0.05;
           }
+          activeBleedRate += st.patient.activeHepaticBleedRate || 0.0;
           const safeCurrentEbl = typeof st.patient.ebl === 'number' && Number.isFinite(st.patient.ebl) ? st.patient.ebl : 0;
           const currentEbl = safeCurrentEbl + activeBleedRate;
           let bloodLossRatio = currentEbl / safeEbv;
@@ -1493,6 +1510,22 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               }
           }
 
+          // Position modifiers
+          let positionPreloadMod = 0;
+          let positionHydrostaticMod = 0; 
+          const pos = st.patient.position || 'Supine';
+          if (pos === 'Ramped' || pos === 'Rev Trendelenburg') {
+              positionPreloadMod = -200; positionHydrostaticMod = -14.8; 
+          } else if (pos === 'Sitting' || pos === 'Beach Chair') {
+              positionPreloadMod = -400; positionHydrostaticMod = -29.6; 
+          } else if (pos === 'Trendelenburg') {
+              positionPreloadMod = 300; positionHydrostaticMod = +14.8; 
+          } else if (pos === 'Lithotomy') {
+              positionPreloadMod = 400; 
+          } else if (pos === 'Prone') {
+              positionPreloadMod = -100; 
+          }
+
           // Gastrointestinal Engine Tick
           const isParalyzedCurrent = maxNMJOccupancy > 0.90;
           const isApneicCurrent = isParalyzedCurrent || (st.vitals.rr !== undefined && Number.isFinite(st.vitals.rr) ? st.vitals.rr < 1 : false);
@@ -1528,6 +1561,64 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               st.patient.hasRegurgitated = true;
           }
 
+          // Hepatic Engine Tick
+          const safeEbvForCvp = st.patient.ebv || 5000;
+          const safeEblForCvp = st.patient.ebl || 0;
+          const safeAddedForCvp = fluidicsOutput.intravascularVolumeAdded_mL || 0;
+          const safeVolForCvp = safeEbvForCvp - safeEblForCvp + safeIntravascularVolume + safeAddedForCvp + positionPreloadMod;
+          const peepValCvp = (st.ventSettings && st.ventSettings.peep) ? st.ventSettings.peep : 0;
+          const calculatedCVP = 4.0 + 3.0 * ((safeVolForCvp - safeEbvForCvp) / 250) + peepValCvp;
+          const cvp = Math.max(0.0, Math.min(25.0, calculatedCVP));
+
+          const hepaticOutput = HepaticEngine.tick(1, {
+              patient: st.patient,
+              vitals: {
+                  mPAP: st.vitals.mPAP,
+                  HVPG: st.vitals.HVPG,
+                  pbf: st.vitals.pbf,
+                  habf: st.vitals.habf,
+                  thbf: st.vitals.thbf,
+                  renalArteryResistance: st.vitals.renalArteryResistance
+              },
+              time: st.time
+          }, st.activeMeds || [], {
+              coRatio: coRatio,
+              map: st.vitals.map || 90.0,
+              sys: st.vitals.sys || 120.0,
+              spo2: st.vitals.spo2 || 98.0,
+              paco2: st.vitals.paco2 || 40.0,
+              temp: newTemp,
+              cvp: cvp,
+              surgicalPhase: st.surgicalPhase,
+              renalRatio: renalRatio,
+              FiO2: deliveredFiO2
+          });
+
+          if (hepaticOutput.events && hepaticOutput.events.length > 0) {
+              hepaticOutput.events.forEach(evt => logEvent(evt));
+          }
+
+          // Propagate hepatic values to patient states
+          st.patient.creatinine = hepaticOutput.creatinine;
+          st.patient.varicealBleedingActive = hepaticOutput.varicealBleedingActive;
+          st.patient.varicealBleedTime = hepaticOutput.varicealBleedTime;
+          st.patient.hasPoPHCollapse = hepaticOutput.hasPoPHCollapse;
+          st.patient.activeHepaticBleedRate = hepaticOutput.activeBleedRate;
+          st.patient.childPughScore = hepaticOutput.childPughScore;
+          st.patient.childPughClass = hepaticOutput.childPughClass;
+          st.patient.meldScore = hepaticOutput.meldScore;
+          st.patient.hpsShunt = hepaticOutput.hpsShunt;
+
+          patientAfterFluidics.creatinine = hepaticOutput.creatinine;
+          patientAfterFluidics.varicealBleedingActive = hepaticOutput.varicealBleedingActive;
+          patientAfterFluidics.varicealBleedTime = hepaticOutput.varicealBleedTime;
+          patientAfterFluidics.hasPoPHCollapse = hepaticOutput.hasPoPHCollapse;
+          patientAfterFluidics.activeHepaticBleedRate = hepaticOutput.activeBleedRate;
+          patientAfterFluidics.childPughScore = hepaticOutput.childPughScore;
+          patientAfterFluidics.childPughClass = hepaticOutput.childPughClass;
+          patientAfterFluidics.meldScore = hepaticOutput.meldScore;
+          patientAfterFluidics.hpsShunt = hepaticOutput.hpsShunt;
+
           // Gastric Aspiration triggers
           let hasAspirated = st.patient.hasAspirated || giOutput.hasAspirated || false;
           let aspirationCompliancePenalty = 0;
@@ -1553,22 +1644,6 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               }
               aspirationCompliancePenalty = complPenalty;
               aspirationResistancePenalty = resPenalty;
-          }
-
-          // Position modifiers
-          let positionPreloadMod = 0;
-          let positionHydrostaticMod = 0; 
-          const pos = st.patient.position || 'Supine';
-          if (pos === 'Ramped' || pos === 'Rev Trendelenburg') {
-              positionPreloadMod = -200; positionHydrostaticMod = -14.8; 
-          } else if (pos === 'Sitting' || pos === 'Beach Chair') {
-              positionPreloadMod = -400; positionHydrostaticMod = -29.6; 
-          } else if (pos === 'Trendelenburg') {
-              positionPreloadMod = 300; positionHydrostaticMod = +14.8; 
-          } else if (pos === 'Lithotomy') {
-              positionPreloadMod = 400; 
-          } else if (pos === 'Prone') {
-              positionPreloadMod = -100; 
           }
 
           // 4. RespiratoryEngine Tick
@@ -1623,7 +1698,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               anaphylaxisCompliancePenalty,
               anaphylaxisResistancePenalty,
               aspirationCompliancePenalty,
-              aspirationResistancePenalty
+              aspirationResistancePenalty,
+              hpsShunt: st.patient.hpsShunt || 0.0
           });
 
           // 5. CardiovascularEngine Tick
@@ -1704,7 +1780,25 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               celiacBlockActive: !!st.patient.celiacBlockActive,
               epiduralBlockActive: !!st.patient.epiduralBlockActive,
               swallowingActive: !!st.patient.swallowingActive,
-              manipulationIndex: typeof st.patient.manipulationIndex === 'number' ? st.patient.manipulationIndex : 0.0
+              manipulationIndex: typeof st.patient.manipulationIndex === 'number' ? st.patient.manipulationIndex : 0.0,
+              
+              // Hepatic states
+              cirrhosisFactor: st.patient.cirrhosisFactor,
+              bilirubin: st.patient.bilirubin,
+              inr: st.patient.inr,
+              creatinine: st.patient.creatinine,
+              albumin: st.patient.albumin,
+              encephalopathyGrade: st.patient.encephalopathyGrade,
+              ascitesDegree: st.patient.ascitesDegree,
+              varicealBleedingActive: st.patient.varicealBleedingActive,
+              varicealBleedTime: st.patient.varicealBleedTime,
+              hasPoPHCollapse: st.patient.hasPoPHCollapse,
+              activeHepaticBleedRate: st.patient.activeHepaticBleedRate,
+              childPughScore: st.patient.childPughScore,
+              childPughClass: st.patient.childPughClass,
+              meldScore: st.patient.meldScore,
+              hpsShunt: st.patient.hpsShunt,
+              hasTIPS: st.patient.hasTIPS
           };
 
           const finalVitals = {
@@ -1734,7 +1828,14 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               bowelGasVolume: giOutput.bowelGasVolume,
               gutMotility: giOutput.gutMotility,
               inflammatoryIleus: giOutput.inflammatoryIleus,
-              postoperativeIleus: giOutput.postoperativeIleus
+              postoperativeIleus: giOutput.postoperativeIleus,
+              mPAP: hepaticOutput.mPAP,
+              HVPG: hepaticOutput.HVPG,
+              pbf: hepaticOutput.pbf,
+              habf: hepaticOutput.habf,
+              thbf: hepaticOutput.thbf,
+              renalArteryResistance: hepaticOutput.renalArteryResistance,
+              cvp: cvp
           };
 
           // Apply natural wave-like fluctuations in non-arrest states

@@ -1,0 +1,2541 @@
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_001_full | TOPIC: KEY POINTS
+================================================================================
+420
+KEY POINTS
+Hepatic Physiology,
+Pathophysiology, and
+Anesthetic Considerations
+DOLORES B. NJOKU, HOVIG V. CHITILIAN, and KATE KRONISH
+16
+Anatomy of the Liver
+The liver is the second largest organ in the human body and
+is responsible for a host of functions to maintain homeosta-
+sis. The liver acts as the interface between the gastrointes-
+tinal tract and remainder of the body. It is responsible for
+metabolic, synthetic, immunologic, and hemodynamic
+functions. As a result, hepatic dysfunction has profound
+effects on all organ systems and introduces significant chal-
+lenges to anesthetic management. It is therefore essential
+for the anesthesiologist to have a firm grasp of the anatomy,
+physiology, and pathophysiology of the liver.
+!□! The liver is the largest abdominal organ and carries out a number of vital functions including
+metabolism and detoxification.
+!□! The liver receives approximately 25% of the resting cardiac output. The hepatic artery is respon-
+sible for 25% to 30% of the blood supply to the liver while the portal vein is responsible for 70%
+to 75%. They each deliver 50% of the total oxygen to the liver.
+!□! For the purpose of hepatic resection, the liver can be divided into eight segments based on
+independent blood supply and drainage of blood and bile. A segment can be resected without
+compromising the blood flow and biliary drainage of other segments.
+!□! The acinus is the basic functional unit of the liver. It is organized around the flow of blood from
+the portal triad to the central vein through the sinusoids. Hepatocytes in the acinus are organ-
+ized into zones based on their proximity to the portal triad or central vein. Zone 1 or periportal
+hepatocytes are closer to the portal triads and receive oxygen and nutrient-rich blood. Zone
+3 or perivenous hepatocytes are closer to the central veins and receive oxygen-poor blood.
+Hepatocytes in different zones serve different anatomic functions.
+!□! The liver plays an integral role in carbohydrate, protein, lipid, and bile metabolism. It is also
+responsible for protein synthesis. Albumin is the most abundant plasma protein produced by
+the liver.
+!□! Drug and toxin excretion is carried out by the hepatocytes by first polarizing the molecules then
+conjugating them to make them more hydrophilic. Drugs excreted in the bile may be reab-
+sorbed through enterohepatic circulation leading to prolonged effects.
+!□! Standard laboratory panels used to evaluate the hepatobiliary system help define broad cat-
+egories of hepatobiliary pathology: hepatitis, hepatobiliary dysfunction, or insufficient protein
+synthesis. Specific diagnoses often require clinical context and radiologic studies.
+!□! Cirrhosis is the result of chronic hepatic disease and can ultimately result in portal hypertension
+and liver failure. Liver failure can lead to significant dysfunction in all organ systems, giving rise
+to coagulopathy, thrombocytopenia, hyperdynamic circulation, esophageal varices, hepatic
+encephalopathy, hepatopulmonary syndrome, portopulmonary hypertension, and hepatorenal
+syndrome. The definitive treatment for hepatic failure is liver transplantation.
+!□! Volatile anesthetics reduce mean arterial pressure and cardiac output, leading to a reduc-
+tion in portal blood flow in a dose-dependent manner. The hepatic arterial buffer response is
+preserved with isoflurane, sevoflurane, and desflurane leading to the preservation total hepatic
+blood flow, but not with halothane.
+!□! Advanced liver disease impairs the elimination of many drugs including vecuronium, rocuro-
+nium, morphine, meperidine, and benzodiazepines. Dosing should be adjusted in the setting of
+liver failure.
+!□! Elective surgery is contraindicated in patients with acute hepatitis or liver failure. Patients with
+chronic hepatitis can safely undergo elective surgery. Hepatotoxic drugs should be avoided and
+hepatic perfusion maintained. Child-Turcotte-Pugh class and Model for End-Stage Liver Disease
+score can be used to predict risk of perioperative mortality.
+
+
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_002_full | TOPIC: SURGICAL ANATOMY, HEPATIC BLOOD FLOW,
+================================================================================
+16 • Hepatic Physiology, Pathophysiology, and Anesthetic Considerations 	421
+SURGICAL ANATOMY, HEPATIC BLOOD FLOW,
+AND THE BILIARY TREE
+The adult liver can range from around 600 to over 1800 g
+making the liver one of the heaviest organs in the body. In
+healthy females the liver ranges in size from 603 to 1767
+g,1 while in healthy males, the liver ranges in size from 968
+to 1860 g. 2 In newborns, infants, and children, the liver
+is also one of the largest organs and the contribution of its
+weight to total body weight decreases with age. Thus the
+liver in a term 3 to 3.5 kg newborn can weigh 150 to 170
+g,3 which represents around 5% of the total body weight. In
+sharp contrast the adult liver represents 2% to 2.5% of the
+total body weight.
+The liver receives approximately 25% of the resting
+cardiac output (CO).4 The blood supply is through both
+the arterial and venous systems in the form of the hepatic
+artery and the portal vein (Fig. 16.1). The hepatic artery is
+responsible for 25% to 30% of the blood supply to the liver
+whereas the portal vein is responsible for 70% to 75%. The
+hepatic artery arises from the celiac trunk in 80% of the
+population. In the remainder, it arises from the superior
+mesenteric artery. After giving rise to the gastroduodenal
+artery, the common hepatic artery enters the hilum of the
+liver (porta hepatis) where it further branches into the right
+and left hepatic arteries, supplying the right and left sides of
+the liver, respectively. The right hepatic artery gives rise to
+the cystic artery that supplies the gallbladder. 4 The arteries
+continue to branch throughout the liver ultimately running
+through the portal tracts and terminating in the hepatic
+sinusoids (capillaries). Although part of the venous system,
+the portal vein is the primary source of oxygenated blood
+to the liver. The portal vein carries blood from the gastroin-
+testinal tract, pancreas, and spleen to the liver. It drains the
+superior mesenteric, splenic, and inferior mesenteric veins.
+It also drains the gastric, cystic, and pancreaticoduodenal
+veins. The portal vein enters the hilum and, like the hepatic
+artery, branches into the right and left portal veins, supply-
+ing the respective sides of the liver. 4 The portal veins con-
+tinue to branch throughout the liver in conjunction with
+the hepatic arteries. As with the arteries, they terminate in
+the hepatic sinusoids.
+Venous drainage of the liver is through the hepatic veins
+directly into the inferior vena cava (IVC). The right and
+middle hepatic veins serve the right half and middle por-
+tions of the liver, respectively, while the left hepatic vein
+drains the left half of the liver. The biliary system removes
+bile from the liver and delivers it to the duodenum through
+the ampulla of Vater. The intrahepatic bile ducts typically
+travel with the portal veins, draining into right and left col-
+lections systems that ultimately form the common bile duct
+(CBD; see Fig. 16.1).4
+From a historical perspective, the description of the gross
+anatomy of the liver has evolved from being rooted in the
+surface anatomy of the organ to its functional organization.
+Traditionally, the liver was divided into four lobes based on its
+surface features: right lobe, left lobe, quadrate, and caudate.
+The right and left lobes were divided by the falciform liga-
+ment, when viewed anteriorly. When viewed from below,
+the quadrate lobe was bounded by the porta hepatis posteri-
+orly, the gallbladder fossa on the right, and the ligamentum
+teres on the left.4 The caudate lobe was bounded by the porta
+hepatis anteriorly, the IVC on the right, and the ligamen-
+tum venosum fissure on the left. In the late 1800s, Sir James
+Cantlie demonstrated that the right and left hemilivers were
+defined by independent portal circulations and thus the func-
+tional midline of the liver was at the bifurcation of the portal
+vein, along a line connecting the gallbladder bed and the IVC
+(“Cantlie’s line”), lateral to the falciform ligament. Cantlie
+recognized that the line defined a vascular watershed and
+described its implications for surgical resection of the liver.5
+With advances in hepatic surgery, anatomic descriptions of
+the liver were developed that further divided the hemilivers
+into segments based on the vascular distribution and biliary
+drainage. Each segment has its own independent vascular
+inflow and outflow, and biliary drainage. As a result, sur-
+gical resection of a segment does not compromise adjacent
+segments. The most commonly used organizational system
+was developed by Couinaud (see Fig. 16.1).6 In the Couin-
+aud model, the liver is divided into eight segments. The right
+and left hemilivers are divided at the bifurcation of the portal
+vein, along the middle hepatic vein. The right, middle, and
+left hepatic veins divide the liver vertically into four sectors:
+right posterior, right anterior, left medial, and left lateral
+sectors. The four sectors are divided in the horizontal plane
+by the branches of the portal vein, giving rise to the eight
+segments. In this system, the caudate lobe is referred to as
+segment 1 and the remainder of the segments are numbered
+in a clockwise fashion. Segments 2 and 3 are medial to the
+left hepatic vein, with segment 2 superior to segment 3. Seg-
+ment 4 lies between the middle and left hepatic vein and is
+subdivided into 4a (superior) and 4b (inferior) subsegments.
+Segments 8 (superior) and 5 (inferior) are located between
+Hepatic vein 	Middle hepatic vein
+Left hepatic vein
+Umbilical vein (remnant)
+Hepatic duct
+Inferior vena cava
+Hepatic artery
+Portal vein
+Bile duct
+Cystic
+duct
+Gallbladder
+Right hepatectomy
+Extended right hepatectomy (right trisegmentectomy)
+Left hepatectomy
+Extended left hepatectomy (left trisegmentectomy)
+VII
+VIII
+V
+	VI
+IVb
+IVa
+II
+III
+I
+Right
+posterior section
+Right
+anterior section
+Left
+medial section
+Left
+lateral section
+Fig. 16.1 Schematic depiction of Couinaud segmental liver anatomy
+and the normal portal venous structures. Bracketed text shows hepatic
+segments resected during partial hepatectomies. (Modified from
+Venook AP, Curley SA. Management of potentially resectable colorectal
+cancer liver metastases. http://www.uptodate.com/contents/manage-
+ment–of–potentially–resectable–colorectal–cancer–liver–metastases.)
+
+
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_003_full | TOPIC: General
+================================================================================
+SECTION II • Anesthetic Physiology	422
+the middle and right hepatic veins. Segments 6 (inferior) and
+7 (superior) are located between the right hepatic vein and
+the edge of the liver.6 In clinical practice, contrast-enhanced
+computed tomography (CT) scanning and intraoperative
+ultrasound are used to define the anatomy unique to each
+individual and plan for the appropriate resection. To stan-
+dardize the nomenclature used to describe hepatic resec-
+tions, the International Hepatopancreatobiliary Association
+published consensus terminology in 2000 based on the
+Couinaud segments, known as the Brisbane 2000 terminol-
+ogy.7 This system of terminology has gained traction but has
+not yet been uniformly adopted.8,9!
+CELLULAR ANATOMY
+Liver Lobule and Acinus
+The cellular architecture of the liver supports its functions of
+detoxifying the blood and metabolizing nutrients. Histologi-
+cally, the liver parenchyma can be organized into anatomic
+units (liver lobules) or functional units (liver acinus). The
+liver lobule is the basic structural unit of the hepatic paren-
+chyma (Fig. 16.2). The lobule typically appears hexagonal
+in shape with a portal canal at each corner and a hepatic
+venule (central vein) located in the center. Through each
+portal canal run the lymphatics, nerve fibers, and a portal
+triad. Each portal triad consists of a bile ductule, hepatic
+arteriole, and portal venule. From a functional standpoint,
+the acinus is the smallest unit of the liver (Fig. 16.3A). It is
+comprised of a portal tract at the center with central vein
+at the periphery. Oxygenated and nutrient-rich blood flows
+from the portal triads to the central hepatic veins through
+the hepatic sinusoids (see Fig. 16.3B). The walls of the sinu-
+soids are composed of sinusoidal endothelial cells (SECs) that
+are separated by fenestrations of 50 to 150 nm in diameter.
+The fenestrations allow the passage of metabolites, plasma
+proteins, pharmaceutical molecules, lipoproteins, and
+other solutes into the space of Disse (SD) surrounding the
+sinusoids while retaining blood cells in the vessels. Larger
+macromolecules and potentially immunogenic peptides
+enter the SD by transcytosis through the SECs.10 Once in
+the SD, the molecules are taken up by hepatocytes.!
+Hepatocytes
+Hepatocytes make up 75% to 80% of the total cellular vol-
+ume of the liver.11 They are responsible for drug, protein,
+carbohydrate, lipid, and heme metabolism in addition to the
+synthesis of a variety of proteins necessary for the mainte-
+nance of homeostasis at baseline and in response to acute
+insults secondary to ischemia-reperfusion, viral and bacte-
+rial infections, and toxins. Hepatocytes are polarized with
+heterogenous plasma membranes to facilitate their varied
+functions. The basolateral (sinusoidal) portion of the mem-
+brane is in direct contact with the SD while the apical por-
+tion of the membrane makes up the bile canaliculus that
+drains bile to the ductules. 12 Hepatocytes are divided into
+different zones based on their proximity to the portal triad.
+Zone 1 is periportal, zone 3 is around the central vein (peri-
+venous or pericentral), and zone 2 is in between (midzone).
+Zone 3 hepatocytes are furthest away from the portal tracts
+and thus receive blood with a lower oxygen tension and
+nutrient content.13 The metabolic functions of the hepa-
+tocytes differ based on the zone in which they are located
+(see Fig. 16.3C). This metabolic zonation increases the effi-
+ciency of carbohydrate, amino acid, lipid, and xenobiotic
+metabolism. Periportal (zone 1) hepatocytes are the major
+sites of aerobic metabolism, and process such as glycogen
+synthesis and sulfation whereas perivenous (zone 3) hepa-
+tocytes are the major sites of anaerobic metabolism, glycol-
+ysis, and glucuronidation. By virtue of their location, zone
+3 hepatocytes are most sensitive to hypoxia.13!
+Hepatic Stellate Cells
+Hepatic stellate cells (HSCs) make up 8% to 10% of all resident
+liver cells.14 These specialized cells reside in the SD between
+liver sinusoidal endothelial cells (LSECs) and the hepatocytes.
+In the normal liver, HSCs are believed to be in a quiescent
+state. In the setting of liver injury, these cells become acti-
+vated in response to cytokines and chemokines generated by
+hepatocytes, LSECs, as well as leukocytes and Kupffer cells.
+The stellate cells proliferate and differentiate into myofibro-
+blasts participating in hepatic inflammation and fibrosis.15!
+MYELOID CELLS
+The myeloid cells that can be found in the liver consist primar-
+ily of Kupffer cells (20%-30%) also known as resident tissue
+macrophages, in addition to dendritic cells and myeloid-
+derived suppressor cells. At first glance, it may seem that
+these cells have a less important role than hepatocytes and
+LSEC. However, while Kupffer cells constitute around 20% to
+30% of nonparenchymal cells, they constitute 80% to 90%
+of all tissue macrophages.16 Kupffer cells reside in the portal
+and lobular liver sinusoids where they engulf both infectious
+and noninfectious particles by phagocytosis. Once phagocy-
+tosed, these particles are unable to induce proinflammatory
+responses in the liver. Thus by prevalence and location, these
+cells serve critical roles in innate and adaptive immunity by
+detoxification where they down-regulate potentially proin-
+flammatory triggers that could disrupt hepatic homeostasis.17
+Dendritic cells and myeloid-derived suppressor cells are
+the least abundant of myeloid cells. Hepatic dendritic cells
+are present in the normal liver and reside in the portal area
+and are believed to promote tolerance to phagocytosed
+Interlobular
+connective issue
+Central vein
+Hepatocyte cords
+Portal traid
+in portal
+tract
+Fig. 16.2 Hepatic lobule. Liver arranged as a series of hexagonal lob-
+ules, each composed of a series of hepatocyte cords (plates) inter-
+spersed with sinusoids. Each lobule surrounds a central vein and is
+bounded by six peripheral portal triads (low magnification).
+
+
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_004_full | TOPIC: General
+================================================================================
+16 • Hepatic Physiology, Pathophysiology, and Anesthetic Considerations 	423
+particles.18 Hepatic myeloid-derived supressor cells suppress
+immune response in the liver. In acute hepatitis they reduce
+inflammation and limit tissue injury. Their immune sup-
+pressive function has been associated with adverse effects in
+certain pathologic conditions. In chronic viral hepatitis, they
+may promote viral persistence. They have also been associated
+with suppression of immune response to hepatic tumors.17!
+LYMPHOCYTES
+Cells of lymphatic origin that can be detected in the liver
+include natural killer (NK) cells, NK T cells (NKT), muco-
+sal-associated invariant T cells, and γδ T cells in addition
+to major histocompatibility restricted CD4+ T cells, CD8+T
+cells, and B cells. These cells are distributed throughout
+the liver parenchyma and serve critical roles in the innate
+(NK, NKT, mucosal-associated invariant T cells, and γδ
+T cells) and adaptive (major histocompatibility restricted
+CD4+ T cells, CD8+T cells, and B cells) immune responses.
+These cells work primarily to maintain hepatic homeosta-
+sis by promoting tolerance to foreign substances. How-
+ever, when necessary, these MHC-restricted cells can
+promote the clearance of foreign substances by expanding
+in response to them while recruiting additional cells from
+extrahepatic sources such as the lymph nodes and the
+spleen. 17 !
+BD
+PV
+HA
+CV
+CV
+3
+3
+3
+2
+2
+1
+1
+2
+1
+A
+pv
+Oxygen gradient
+Space of Disse
+CV
+EC 	HSC HC 	BC KC
+TPV
+THA
+BD
+60-65 mm Hg	30-35 mm Hg
+pp
+O2 uptake
+Glucose delivery
+Fatty acid oxidation
+Gluconeogenesis
+Ggn from Lac, AA	Glycolysis
+Ggn from glucose
+Lipo- and ketogenesis
+Bile acid synthesis
+Glucuronidation
+GST
+CYPs
+Sulfation
+GSH + GPX
+Cho
+GS 	Urea synthesis
+Glucose uptake
+B
+C
+Fig. 16.3 (A) Blood supply of a liver acinus. Schematic representation of the acinus and hepatocyte zones. Hepatocytes can be divided into three zones
+based on their location along the sinusoid from the portal triad (PT) to the central vein (CV). Zone 1—Periportal zone—hepatocytes are closest to the
+portal triad; Zone 3—perivenous, pericentral, or perilobular zone—hepatocytes are closest to the central vein. Zone 2 (intermediary) hepatocytes are
+in between. (B) Diagram of the sinusoid. The sinusoid is lined with sinusoidal epithelial cells (EC) separated by fenestrations that control the passage of
+solutes into the space of Disse. The space of Disse contains hepatic stellate cells (HSC) and is bound by the basolateral (sinusoidal) portion of the plasma
+membranes of the hepatocytes (HC). The apical portion of the plasma membranes makes up the bile canaliculus (BC). Oxygen and nutrient-rich blood
+flows from the terminal hepatic artery (THA) and portal vein (TPV) through the sinusoid to the central vein (CV). There is an oxygen gradient along the
+length of the sinusoid. Kupffer cells (KC) are resident hepatic macrophages and found in the sinusoids. (C) Hepatocyte zonation. The major metabolic
+pathways in the hepatocytes along the sinusoid differ based on their proximity to the portal triad or the central vein. Predominant metabolic pathways
+are listed for the periportal (pp) hepatocytes and the perivenous (pv) hepatocytes. AA, Amino acid; Cho, cholesterol synthesis; CYPs, cytochrome P450
+enzymes; Ggn, glycogen; GPX, glutathione peroxidase; GS, glutamine synthesis; GST, glutathione transferase; Lac, lactate. ([B and C] From Kietzmann T.
+Metabolic zonation of the liver: the oxygen gradient revisited. Redox Biol. 2017;11:622–630.)
+
+
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_005_full | TOPIC: DRUG METABOLISM
+================================================================================
+SECTION II • Anesthetic Physiology	424
+Hepatic Physiology
+DRUG METABOLISM
+The vast majority of drugs used in the conduct of anesthesia
+are metabolized in the liver. A variety of enzymes convert drug
+molecules into more water-soluble (hydrophilic) molecules
+or compounds to facilitate their excretion. These enzymes are
+designated as being either part of the Phase I pathway or Phase
+II pathway based on the types of reactions they mediate. Phase
+I enzymes consist of the cytochrome P450 family of enzymes
+that convert lipophilic drug molecules to hydrophilic mol-
+ecules primarily through oxidation, reduction, or hydrolysis.
+Non-CYP450 enzymes include monoamine oxidases, alcohol
+dehydrogenases, and aldo-keto reductase. The phase II path-
+way consists of the conjugation of the products of the phase I
+pathway with hydrophilic endogenous moieties to make them
+more water-soluble. Polar molecules may undergo Phase II
+metabolism without having undergone Phase I metabolism.
+The most common Phase II reaction is glucuronidation, which
+is the conjugation of the drug compound to glucuronic acid.
+This reaction is carried out by a family of enzymes known as
+uridine 5′-diphospho-glucuronosyltransferases. Other Phase
+II enzymes include sulfotransferases (SULT), glutathione
+S-transferases (GST), and catechol O-methyltransferases.19
+The phase III pathway involves the excretion of compounds
+into the sinusoids or canalicular bile by molecular transporters
+that are transmembrane proteins which facilitate the move-
+ment of large or ionized molecules across cell membranes.
+The majority of these transmembrane proteins are part of
+a superfamily of ATP-binding cassette (ABC) transporters
+that use ATP to actively transport molecules. Common ABC-
+transporters include multidrug resistance protein (MDR),
+cystic fibrosis transmembrane conductance regulator, and
+multidrug resistance–related protein (MRP).
+Some orally administered medications undergo extensive
+metabolism in the gut or liver prior to entering the systemic
+circulation. This metabolism is termed the first-pass effect
+and is responsible for the lower oral bioavailability of these
+medications.20
+Drug metabolism is affected by a number of factors includ-
+ing genetic polymorphisms of metabolic enzymes, age,
+gender, pregnancy, liver disease, and concomitantly admin-
+istered medications. The expression and function of Phase I
+and Phase II enzymes are reduced in neonates. The activi-
+ties of some CYP450 enzymes are increased in women com-
+pared to men. Genetic polymorphisms in drug metabolizing
+enzymes and transporters can lead to wide variations in the
+pharmacokinetics of some drugs such as warfarin, with some
+patients having lower rates of metabolism based on the specific
+CYP450 polymorphism they carry. The concomitant admin-
+istration of medications may also influence drug metabolism.
+A number of commonly encountered medications can serve
+as inducers or inhibitors of the enzymes involved in the differ-
+ent phases of drug metabolism.20 Table 16.1 lists some of the
+commonly used drugs, which are metabolized and excreted
+by each of the three phases along with drugs that may serve
+as inhibitors or inducers for each phase.
+TABLE 16.1 	List of Well-Known Substrates, Inhibitors, and Inducers for Phase I, II, and III Metabolism Pathways
+Enzymes Substrates 	Inhibitors 	Inducers
+PHASE I
+CYP3A 	Midazolam, buspirone, felodipine,
+lovastatin, eletriptan, sildenafil,
+simvastatin, triazolam
+Ketoconazole, clarithromycin, itraconazole,
+saquinavir, fluconazole, grapefruit juice,
+tipranavir/ritonavir
+Phenytoin, rifampin, St. John’s wort,
+efavirenz, etravirine, nafcillin,
+prednisone
+1A2 	Alosetron, caffeine, duloxetine, melatonin,
+ramelteon, tacrine, tizanidine
+Ciprofloxacin, enoxacin, fluvoxamine, oral
+contraceptives, phenylpropanolamine,
+Montelukast, phenytoin, smoking
+components of cigarettes
+2C8 	Repaglinide, paclitaxel 	Gemfibrozil, fluvoxamine, ketoconazole,
+trimethoprim
+Rifampin
+2C9 	Celecoxib, warfarin, phenytoin 	Amiodarone, fluconazole, miconazole, oxan-
+drolone, capecitabine, etravirine, fluvastatin,
+metronidazole, sulfinpyrazone, tigecycline
+Carbamazepine, rifampin, aprepitant,
+bosentan, phenobarbital, St. John’s
+wort
+PHASE II
+UGTs 	Bilirubin, phenols, estradiols, opiates, and
+carboxylic acids
+Paclitaxel, midazolam, cyclosporine A, ketocon-
+azole, phenobarbital, and phenytoin
+Bilirubin, phenobarbitone, rifampin
+SULTs 	Phenols, alcohols, and amines 	Flavonoids, mefenamic acids, salicylic acids,
+clomiphene, and danazol
+Retinoic acid, methotrexate
+NATs 	Para-aminobenzoic acid, para-aminosalicylic
+acids, para-aminoglutamate, sulfa-
+methazine, isoniazid, hydralazine, and
+sulfonamides
+Caffeic acid, esculetin, quercetin, genistein,
+scopoletin, and coumarin
+Androgens, aminophylline
+GSTs 	Epoxides, quinone, sulfoxides, esters, and
+peroxides
+Phenols, quinone, vitamin C derivatives, dopa-
+mine, and transretinoic acid
+Extracts of broccoli, cabbage, Brussels
+sprouts, and grapefruit
+PHASE III
+P-gp 	Digoxin, loperamide, vinblastine, talinolol 	Amiodarone, azithromycin, cyclosporine, diltia-
+zem, dronedarone, erythromycin, itraconazole,
+ketoconazole, lopinavir/ritonavir, quinidine,
+verapamil
+Avasimibe, carbamazepine, phenytoin,
+rifampin, St John’s wort, tipranavir/
+ritonavir
+From Almazroo OA, Miah MK, Venkataramanan R. Drug metabolism in the liver. Clin Liver Dis. 2017;21:1–20. Elsevier.
+
+
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_006_full | TOPIC: General
+================================================================================
+16 • Hepatic Physiology, Pathophysiology, and Anesthetic Considerations 	425
+See the pharmacokinetics chapter for further discussion
+of hepatic extraction ratio.!
+PROTEIN METABOLISM
+The liver is responsible for the synthesis and catabolism
+of proteins, amino acids, and peptides. It is the site of syn-
+thesis for 80% to 90% of the circulating proteins including
+hormones, coagulant factors, cytokines, and chemokines.
+As such it plays a significant role in the functioning of the
+body. Albumin is the predominant protein produced by the
+liver, accounting for over 50% of total plasma protein. It
+functions to transport lipids and hormones and maintain
+blood volume. The liver plays a central role in protein deg-
+radation. Amino acids are catabolized through one of two
+reactions: deamination or transamination. Both reactions
+lead to the production of ammonia, which the liver converts
+to urea through the urea cycle. Urea is then excreted by the
+kidneys in the urine.21 !
+CARBOHYDRATE METABOLISM
+The liver is primarily responsible for storing and releasing
+glucose to meet the body’s needs. In the postprandial state,
+the liver stores glucose through glycogenesis. Once the gly-
+cogen stores are complete, the liver converts excess glucose
+into fat through lipogenesis. In the fasting state, the liver
+provides the body with glucose by breaking down glycogen
+(glycogenolysis) or by generating glucose from carbohy-
+drate precursors (gluconeogenesis).22!
+LIPID METABOLISM
+The liver plays an important role in lipid metabolism. Non-
+esterified fatty acids can arise from the lipase-mediated
+breakdown of complex lipids, or from thioesterase-mediated
+hydrolysis of fatty acid-CoA.23 These fatty acids can enter the
+liver following oral intake or they can enter the liver following
+the breakdown of adipose tissue. In the liver, fatty acid oxida-
+tion is regulated by two main factors: the supply of fatty acids
+to the liver (via lipolysis), and the amount of microsomal ester-
+ification that occurs.23 Lipid metabolism is also influenced by
+the carbohydrate metabolism, as the acetyl-CoA formed dur-
+ing carbohydrate metabolism can be utilized to synthesize
+fatty acids. Fatty acids can undergo biotransformation to sup-
+ply energy for the needs of the body. Alternatively, the liver
+can convert amino acids and intermediate products of carbo-
+hydrates into fats and transport them to the adipose tissues.!
+BILE AND ENTEROHEPATIC CIRCULATION
+The adult liver produces approximately 400 to 600 mL of
+bile each day. Bile facilitates the excretion of toxins as well
+as the absorption of dietary fats. It is the mechanism of
+excretion for compounds with molecular weights greater
+than 300 to 500 Daltons that are not readily excreted by
+the kidneys. It is used to excrete a host of endogenous and
+exogenous compounds, including bile acids, bilirubin, phos-
+pholipids, cholesterol, drugs, toxins, steroid hormones, and
+water-insoluble porphyrins. Box 16.1 lists drugs, chemi-
+cals, and their metabolites that are excreted in the bile. The
+other major function of bile is to assist in the digestion and
+absorption of dietary fats, cholesterol, and vitamins.24 Bile
+is 95% water by volume, with the remainder consisting
+of bile acids, phospholipids, cholesterol, bilirubin, as well
+as other exogenous and endogenous substances. The two
+primary bile acids are cholic acid and chenodeoxycholic
+acid. Bile acids are synthesized by hepatocytes from cho-
+lesterol. They are then conjugated to reduce hepatotoxicity
+and increase solubility and secreted into the canaliculi. The
+canaliculi drain into the biliary ductules, which connect to
+form hepatic ducts. The walls of the intrahepatic bile ducts
+are made up of cholangiocytes that modify the volume and
+composition of the bile. The ducts ultimately form the left
+and right hepatic ducts, which join into the common
+hepatic duct. Bile is stored and concentrated in the gallblad-
+der, which connects to the biliary tree through the cystic
+duct. The common hepatic duct and cystic duct join to form
+the CBD, which connects to the duodenum through the
+sphincter of Oddi (hepatopancreatic sphincter).24 Following
+the ingestion of food, fatty acids in the duodenum stimulate
+the release of cholecystokinin (CCK) which causes the gall-
+bladder to contract and the sphincter of Oddi to relax lead-
+ing to the release of bile into the duodenum. The bile acids
+Amiodarone114 	Estrone115 	Phenol red 113
+Ampicillin113,116 	Ezetimibe 110 	Phenolphthalein117
+Benzylpenicillin118 	2-Fluoro-β-
+alanine119
+Phenytoin117
+Bilirubin120 	Gentamycin118 	Pivampicillin118
+Bromocresol green121 	Glibenclamide
+(glyburide) 5
+Rifamide113
+Bromosulfophthalein122 	Gliclazide123 	Rifamycin 113
+Cefixime124 	Imipramine125 	Roquinimex126
+Ceftriaxone127 	Indocyanine
+green122
+Rose bengal121
+Cefatzidime128 	Indomethacin125 	Spironolactone125
+Cephaloridine113 	Irinotecan129 	Sulfamethoxazole113
+Cephamandole118 	Lanatoside C118 	Sulindac125
+Cephazolin118 	Lorazepam 130 	Sulbactam 116
+Chenodeoxycholic
+acid 122,125
+Lomnetazepam6 	Temafloxacin131
+Chloramphenicol118 	Methotrexate113 	Testosterone125
+Chlortetracycline118 	Metronidazole117 	Tetracycline113,118
+Clindamycin117 	Mezlocillin132 	Thiamphenicol113
+Demethylchlortetracy-
+cline 118
+Morphine133 	Tolfenamic acid134
+Diazepam113 	Mycophenolic
+acid 135
+Toremifene136
+Digitoxin113 	Mycophenolate
+mofetil137,138
+Troglitazone139
+Digoxin113 	Nortriptyline131 	Trovafloxacin7
+Doxycycline118 	Novobiocin131 	Ursodeoxycholic
+acid 122,125
+Erythromycin113 	Oltiprazl 140 	Valproic acid125
+Estradiol125 	Pethidine
+(meperidine)113
+Warfarin133
+BOX 16.1 	Drugs, Foreign Chemicals, and
+Their Metabolites That Are Excreted in the
+Bile
+Roberts MS, Magnusson BM, Bruczynski FJ. Enterohepatic circulation. Clin
+Pharmacokinet. 2002;41:751–790, Table II, page 767.
+
+
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_007_full | TOPIC: General
+================================================================================
+SECTION II • Anesthetic Physiology	426
+emulsify dietary fats and facilitate their absorption. The
+vast majority (95%) of the bile acids released into the duo-
+denum are reabsorbed in the terminal ileum and returned
+to the liver to be reused. This pathway for recycling bile
+acids is known as the enterohepatic circulation (EHC). 25
+Enterohepatic cycling can impact the pharmacokinet-
+ics and pharmacodynamics of drugs that undergo biliary
+excretion by increasing their bioavailability, reducing their
+elimination, as well as altering their plasma concentration
+curves. The effect of EHC on the properties of a drug depends
+on the physiologic activity of the excreted form of the drug
+(i.e., prodrug or activated form), the ease with which the
+excreted form is reabsorbed through the intestines, and
+whether it is recycled through the liver into the bile or the
+systemic circulation. In the case of some drugs, EHC can
+lead to secondary and tertiary peaks in plasma concentra-
+tion as the drug is recycled into the system.26!
+ROLE OF THE LIVER IN COAGULATION
+The liver plays a significant role in the coagulation sys-
+tem. It synthesizes all coagulation factors except factors III
+(thromboplastin), IV (calcium), and VIII (von Willebrand
+factor [vWF]). It also synthesizes proteins that regulate
+coagulation and fibrinolysis such as protein S, protein C,
+plasminogen activator inhibitor, and antithrombin III.
+Furthermore, it removes activated clotting and fibrinolysis
+products through the hepatic reticuloendothelial system. A
+number of factors require vitamin K to become active. Coag-
+ulation factors II, VII, IX, X, as well as protein C and protein
+S undergo posttranslational modification with vitamin K to
+become active. Briefly, glutamic acid in the amino terminus
+of these proteins is converted to gamma-carboxyglutamic
+acid. These gamma-carboxylated procoagulants can then
+bind calcium ions and form bridges to phospholipid surfaces
+that are essential for the formation of activation complexes. 27
+Warfarin acts by inhibition gamma-carboxylation. In addi-
+tion to these vitamin K–dependent factors, hepatocytes also
+synthesize factor V, XIII, fibrinogen, antithrombin, α2 plas-
+min inhibitor, and plasminogen.28 Thrombomodulin, tissue
+plasminogen activator, tissue factor plasma inhibitor, vWF,
+and urokinase are not synthesized in the liver. Instead these
+proteins are synthesized in endothelial cells, whereas uro-
+kinase is expressed by endothelial cells, macrophages, and
+renal epithelial cells. Tissue plasminogen activator is pri-
+marily removed from the bloodstream through the hepatic
+reticuloendothelial system.29!
+HEME METABOLISM, BILIRUBIN, AND
+PORPHYRIAS
+The liver is involved in both heme synthesis and metabo-
+lism. Eighty to 90% of heme synthesis takes place in the
+bone marrow with the resultant heme used to produce
+hemoglobin. Most of the remainder of the heme is produced
+in the liver and used primarily to synthesize cytochrome
+P450 enzymes. Whereas the rate of heme synthesis in the
+bone marrow is a function of the availability of iron, the
+rate of synthesis in the liver is a function of the available
+free heme pool in the body.30 Heme is synthesized through
+an eight-step enzymatic cascade known as the Shemin
+pathway. Synthesis begins with glycine and succinyl CoA
+and proceeds through porphyrinogen intermediaries. A
+deficiency in any of the enzymes involved in heme syn-
+thesis leads to the development of porphyria. The specific
+type of porphyria and its clinical manifestations depend on
+the specific enzyme that is deficient and the substrate that
+accumulates as a result. The most common porphyria is
+acute intermittent porphyria with an estimated incidence
+of 5 to 10 per 100,000. It is caused by a deficiency in por-
+phobilinogen deaminase, which catalyzes the conversion
+of porphobilinogen to hydroxymethylbilane. Patients typi-
+cally have adequate levels of the enzyme for heme homeo-
+stasis; however, in response to endogenous or exogenous
+triggers that induce the Shemin pathway, the capacity of
+the system is exceeded and they accumulate precursors
+leading to symptoms. Common triggers include erythromy-
+cin, trimethoprim, rifampicin, phenytoin, and barbiturates.
+Clinical symptoms of an attack include severe, poorly local-
+ized abdominal pain (in >90% of cases), nausea, vomiting,
+agitation, and confusion. Hyponatremia occurs in 40% of
+attacks. Change in urine color to dark red (especially on
+exposure to light) is a common finding. Treatment consists
+of discontinuing the triggering agent, administering pain
+medication, carbohydrates, and hematin.30
+Bilirubin is a product of heme catabolism. The primary
+source is senescent erythrocytes that are phagocytosed by
+macrophages in the spleen, liver, and bone marrow. The
+released heme is metabolized by heme oxygenase into bili-
+rubin, yielding carbon monoxide and iron in the process.
+Unconjugated bilirubin is water insoluble and thus tightly
+bound to albumin in the circulation. Hepatocytes convert
+bilirubin into a water-soluble form by conjugating it to gluc-
+uronic acid via the enzyme glucuronyl transferase. Conju-
+gated bilirubin is then transported across bile canaliculi and
+excreted in the bile. In the colon, bilirubin is deconjugated,
+metabolized by bacteria, and converted into urobilinogen.
+Urobilinogens are either reabsorbed through the EHC or
+excreted in the urine and stool, giving urine and stool their
+characteristic colors.31!
+HEPATIC REGULATION OF HORMONES
+The liver can participate in endocrine functions through
+hormone synthesis or hormone degradation. Hepatocytes
+synthesize hormones or prohormones such as hepcidin,
+insulin-like growth factor, and angiotensinogen, respec-
+tively. In addition to these hormones, thrombopoietin is also
+synthesized by hepatocytes and LSECs. These hormones
+and prohormones have specialized roles in the human
+body. Thus hepcidin is responsible for iron homeostasis and
+regulates intestinal iron absorption, plasma iron concentra-
+tions, and tissue iron distribution by inducing degradation
+of the hepcidin receptor, ferroportin.32 Insulin-like growth
+factor promotes systemic growth, especially bone growth in
+children.33 Angiotensinogen, the precursor of all angioten-
+sin proteins, regulates the systemic blood pressure as well as
+the water and sodium composition of the body.34 Thrombo-
+poietin regulates platelet production by stimulating produc-
+tion and differentiation of megakaryocytes. 35 In addition to
+hormone synthesis, the liver participates in endocrine func-
+tion by inactivating many hormones, including thyroxine,
+aldosterone, antidiuretic hormone, estrogens, androgens,
+and insulin.!
+
+
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_008_full | TOPIC: CLINICAL ASSESSMENT
+================================================================================
+16 • Hepatic Physiology, Pathophysiology, and Anesthetic Considerations 	427
+Evaluation of the Liver
+CLINICAL ASSESSMENT
+There are often no signs or symptoms of liver disease until
+it is quite advanced. Even then, the only clues may be mild
+or nonspecific symptoms such as loss of appetite, fatigabil-
+ity, malaise, disrupted sleep patterns, or subtle cognitive
+changes. Major risk factors for liver disease include: alcohol
+use; illicit drug use; sexual promiscuity; blood transfusions;
+exposure to hepatotoxins; prior bouts of jaundice; and a
+family history of genetic diseases such as hemochromato-
+sis, α1-antitrypsin deficiency, and Wilson disease. Patients
+with advanced liver disease may have these nonspecific
+symptoms, as well as pruritus, easy bruising, and changes
+in urine or stool color. In advanced liver disease physical
+examination findings include jaundice, scleral icterus, asci-
+tes, spider angiomas, xanthelasma, asterixis, and palmar
+erythema.!
+STANDARD LABORATORY TESTS
+Standard panels used to evaluate the hepatobiliary system
+are often called “liver function tests” (Table 16.2).36 In fact,
+these tests do not measure specific liver functions. Instead,
+they help define broad categories of hepatobiliary pathol-
+ogy: hepatitis, hepatobiliary dysfunction, or insufficient
+protein synthesis.!
+DETECTION OF HEPATOCELLULAR INJURY
+Aminotransferases
+Serum alanine aminotransferase (ALT) and aspartate amin-
+otransferase (AST), formerly named serum glutamic-pyruvic
+transaminase and serum glutamic-oxaloacetic transami-
+nase, respectively, are most commonly elevated because of
+hepatocellular injury. Both are aminotransferases, enzymes
+involved in gluconeogenesis. ALT is mainly a cytoplasmic
+liver enzyme. In contrast, cytoplasmic and mitochondrial
+isozymes of AST are found in many extrahepatic tissues,
+including the heart, skeletal muscle, brain, kidney, pan-
+creas, adipose, and blood. Therefore isolated elevations of
+AST likely represent non-liver sources, but concomitant
+elevations in AST and ALT usually represent liver injury.
+Rarely, elevations in AST and ALT levels may result from
+muscle injury.37
+Practice guidelines provide recommendations for the
+evaluation of abnormal liver enzymes, based on the com-
+bination of clinical picture and degree of elevation of AST
+and ALT. Establishing normal reference ranges for AST
+and ALT have been complicated by studies with heteroge-
+neous populations, since normal ranges differ with gender
+and body mass index (BMI). Nevertheless, multiple studies
+show that even mild elevations of AST and ALT above the
+upper limit of normal are associated with increased mortal-
+ity. Some clinicians therefore argue that the normal limits
+should be lowered.38
+Elevated ALT and AST levels are sometimes described
+in qualitative terms, ranging from mild (>100 IU/L), to
+extreme (>2000 IU/L). The extent of aminotransferase ele-
+vation can sometimes aid in the differential diagnosis. Mild
+elevations in AST and ALT can arise from any hepatocyte
+injury. Large elevations often reflect acute hepatocyte isch-
+emia. Extreme elevations signify massive hepatic necrosis,
+such as from fulminant viral hepatitis, severe drug-induced
+liver injury, or shock liver.51 However, aminotransferase
+levels do not reliably represent the extent of liver damage.
+Patients with so called “burnt out” livers, such as from
+chronic hepatitis, have insufficient functioning hepatocytes
+to bring about a transaminase increase.
+The ratio of AST to ALT may help identify the cause of
+liver disease. Most causes of hepatic injury are associated
+with higher ALT than AST levels. However, Wilson disease
+and alcoholic liver disease are classically associated with an
+TABLE 16.2 	Liver Blood Tests and the Differential Diagnosis of Hepatobiliary Disorders
+Blood Test
+PREDOMINANT ABNORMALITY
+Bilirubin Overload (Hemolysis) 	Hepatocellular Injury 	Cholestasis
+Aminotransferases 	Normal 	Increased: May be normal or decreased
+in advanced stages
+Normal: May be increased
+in advanced stages
+Serum albumin 	Normal 	Decreased: May be normal in acute
+fulminant hepatic failure
+Normal: May be decreased
+in advanced stages
+Prothrombin time* 	Normal 	Prolonged 	Normal: May be pro-
+longed in advanced
+stages
+Bilirubin (main form present) Unconjugated (also mild
+increase in conjugates)
+Conjugated 	Conjugated
+Alkaline phosphatase 	Normal 	Normal: May be increased by hepatic
+infiltrative disease
+Increased
+γ-Glutamyl transpeptidase
+5′-nucleotidase
+Normal 	Normal 	Increased
+Blood urea nitrogen 	Normal: May be increased by
+renal dysfunction
+Normal: May be decreased by severe liver
+disease and normal kidney function
+Normal
+BSP/ICG (dye) 	Normal 	Retention of dye 	Normal or retention of dye
+*Used interchangeably with the international normalized ratio.
+BSP/ICG, Bromsulphalein and indocyanine green.
+
+
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_009_full | TOPIC: General
+================================================================================
+SECTION II • Anesthetic Physiology	428
+AST-ALT ratio greater than 1; in some cases, a ratio of 4 has
+been documented. Chronic hepatitis with minimal fibrosis
+has a low AST-ALT ratio; however when cirrhosis develops
+the ratio is greater than 1. Although the AST-ALT ratio may
+have insufficient predictive value as a sole marker, it can be
+used in combination with other noninvasive tests to predict
+the degree of fibrosis in patients with chronic hepatitis.39!
+Lactate Dehydrogenase
+Lactate dehydrogenase (LDH) is a nonspecific marker of
+hepatocellular injury. Extremely elevated LDH signifies
+massive hepatocyte damage, usually from ischemia or
+drug-induced hepatotoxicity (such as acetaminophen over-
+dose). These patients will also have extreme elevations in
+AST and ALT. Elevated LDH concomitant with elevated
+alkaline phosphatase (AP) suggests malignant infiltration
+of the liver. Extrahepatic disorders that cause LDH elevation
+include hemolysis, rhabdomyolysis, tumor necrosis, renal
+infarction, acute stroke, and myocardial infarction.37!
+Glutathione-S-Transferase
+GST is a sensitive test for liver injury, with a half-life
+(60-90 minutes) much shorter than AST or ALT. Fol-
+lowing hepatocyte damage, serum GST rises quickly and
+serial GST measurements can help monitor for disease
+recovery. 40 The enzymes AST and ALT are found primar-
+ily in periportal hepatocytes (acinar zone 1), whereas GST
+is present in hepatocytes throughout the acinar zones. 41
+Since centrilobular/perivenous hepatocytes are most
+susceptible to hypoxic injury and acetaminophen toxic-
+ity, GST is a useful marker particularly in early stages of
+injury.!
+DETECTION OF CHOLESTATIC DISORDERS
+Alkaline Phosphatase
+AP isoenzymes are present in many tissues, including liver,
+bone, intestine, and placenta. In the liver, AP is present in
+the canalicular membranes of the hepatocytes. Mild eleva-
+tions in AP may be normal, as AP varies with gender, age,
+blood type, and smoking status.42 Nonhepatic causes of
+AP elevation include bone disorders such as Paget disease,
+osteomalacia, and tumors of the bone; normal growth
+spurts in children; the third trimester of pregnancy; sepsis;
+renal failure; and some medications. Elevated AP from a
+hepatobiliary source is most commonly due to cholestatic
+disease and typically manifests as an increase to 2 to 4 times
+the upper limit of normal. Rarely, patients with cholestasis
+can have extreme elevations in AP (10 times the upper limit
+of normal).51 AP will also be elevated to a lesser extent in
+hepatocellular disease such as hepatitis. The ALT to AP ratio
+helps differentiate hepatocellular injury (ALT:AP > 5) from
+cholestatic disease (ALT:AP < 2) from a mixed picture.38
+AP elevation from cholestasis could be a result of either
+intrahepatic or extrahepatic biliary obstruction. Common
+causes include primary biliary cirrhosis, choledocholithia-
+sis, and hepatic malignancy compressing small intrahe-
+patic bile ducts. With a half-life of about 1 week, AP will
+be normal immediately after the onset of biliary obstruc-
+tion, and it will remain elevated for days after resolution of
+obstruction.37
+The source of AP isoenzyme elevation can be determined
+by electrophoresis, but this test is expensive and not routinely
+available. More commonly clinicians confirm the hepatic
+origin of the AP elevation with other tests that indicate cho-
+lestatic disease. The enzymes 5′-nucleotidase and gamma-
+glutamyl transpeptidase are also elevated in cholestatic
+disorders, coincident with AP. Simultaneous elevation of
+these enzymes help identify liver as the source of AP elevation.!
+Serum Bilirubin
+Serum bilirubin is the most commonly used test to moni-
+tor for excretory dysfunction of the liver. Bilirubin is mea-
+sured in serum assays as either direct or indirect bilirubin.
+Direct bilirubin measures the water-soluble form, which
+interacts directly with the assay’s reagents. While direct
+bilirubin correlates with conjugated bilirubin levels, and
+indirect with unconjugated levels, the two terms are not
+synonymous. The level of unconjugated bilirubin is typi-
+cally underestimated by the indirect bilirubin test. Distin-
+guishing conjugated from unconjugated bilirubin is key to
+the differential diagnosis. The presence of bilirubin in the
+urine can also help differentiate the clinical cause. Bilirubi-
+nuria usually reflects conjugated hyperbilirubinemia, since
+only the water-soluble conjugated form is excreted by the
+kidney (Fig.16.4).37
+Jaundice
+Bilirubin
+in urine
+No bilirubin
+in urine
+Genetic defects
+in excretion
+Hepatobiliary
+disease Overproduction 	Impaired
+conjugation
+Impaired
+hepatic uptake
+Extrahepatic
+cholestasis
+Intrahepatic
+cholestasis
+Fig. 16.4 Differential diagnosis of jaundice depending on whether bilirubin is or is not present in the urine.
+
+
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_010_full | TOPIC: General
+================================================================================
+16 • Hepatic Physiology, Pathophysiology, and Anesthetic Considerations 	429
+Elevation in the concentration of unconjugated bilirubin
+is either due to excessive heme breakdown, or the inabil-
+ity of the liver to conjugate bilirubin. One major cause is
+hemolysis, in which increased erythrocyte breakdown cre-
+ates more unconjugated bilirubin than the liver is able to
+conjugate. Massive hemolysis will cause elevations in both
+forms of bilirubin, but with unconjugated predominance.
+Gilbert syndrome is a benign condition with genetically low
+levels of the hepatic enzyme glucuronyl transferase, asso-
+ciated with mild or intermittent elevation in unconjugated
+bilirubin. Various drugs may also produce unconjugated
+hyperbilirubinemia. High levels of unconjugated bilirubin
+are neurotoxic, particularly in infants.
+Conjugated hyperbilirubinemia occurs due to either
+problems with the secretion of conjugated bilirubin from
+hepatocytes into canalicular bile or to the blockage of bile
+flow within the hepatobiliary tree. This can be due to a
+genetic defect in the excretion of bilirubin, or cholestasis
+(either intrahepatic or extrahepatic). Intrahepatic cho-
+lestasis is caused by an inflammatory or infiltrative process
+compressing small intrahepatic bile ducts, while extrahe-
+patic cholestasis is due to biliary obstruction such as from
+stones or a pancreatic mass. Primary sclerosing cholan-
+gitis (PSC) can involve both intra- and extrahepatic bile
+ducts. 43 !
+ASSESSMENT OF HEPATIC PROTEIN SYNTHESIS
+Serum Albumin
+The serum albumin concentration is used to evaluate
+chronic liver disease and hepatocellular function (protein
+synthesis). However, it has poor specificity. Hypoalbumin-
+emia has many other causes besides decreased protein syn-
+thesis, including increased catabolism, expansion of the
+plasma volume, renal losses, and maldistribution of total
+body albumin. The half-life of albumin in the serum is 20
+days. As a result, changes in the synthetic function of the
+liver are not acutely reflected by the serum albumin con-
+centration. Prealbumin is another protein synthesized in
+the liver that is also involved in transport and binding. It
+has a much shorter half-life than albumin. However, the
+level of prealbumin reflects the status of protein nutrition to
+a greater degree than liver synthetic function given its high
+percentage of essential amino acids.37 !
+Prothrombin Time
+Hepatic synthetic function can also be assessed by mea-
+suring the levels of liver-derived coagulation factors. The
+liver synthesizes coagulation factors in great excess, thus
+the prothrombin time (PT) will remain normal until sig-
+nificant hepatic impairment occurs. Coagulation factors
+have shorter half-lives than albumin, ranging from 4 hours
+for factor VII to 4 days for fibrinogen. Thus when severe
+liver dysfunction occurs, PT (or the international normal-
+ized ratio [INR]) can reflect acute liver failure more quickly
+than can albumin. It is also used to monitor for restoration
+of hepatic function, often improving before other clinical
+signs of improvement occur. However, prolonged PT/INR is
+not specific for liver disease. It may also represent vitamin K
+deficiency, warfarin effect, or a genetic factor deficiency.37!
+TESTING FOR DIAGNOSIS OF SPECIFIC DISEASES
+In addition to the above standard laboratory tests, targeted
+testing can aid in the diagnosis of specific hepatobiliary dis-
+eases. Such testing includes serologic testing for viral and
+autoimmune diseases, genetic testing, and tumor marker
+assays. Viral markers, including antibodies, antigens,
+and genetic material, are used to diagnose hepatitis from
+hepatotropic viruses (A, B, C, D, and E) and herpesviruses
+such as cytomegalovirus and Epstein-Barr virus. Patients
+with acute or chronic hepatitis B infection and those with
+immunity due to resolved infection or vaccination can be
+distinguished based on measurements of hepatitis B surface
+antigens and surface and core antibodies (Table 16.3). HBV
+DNA testing has also emerged to monitor treatment effect
+and the development of chronic hepatitis B after resolution
+of acute hepatitis.44
+Testing for hepatitis C is recommended for those with
+various risk behaviors and exposures (such as history of
+intravenous drug use, long term hemodialysis, or HIV
+100
+% 3-month survival
+80
+60
+40
+20
+0
+0 	10 	20 	30
+MELD score
+40 	50
+Fig. 16.5 Estimated 3-month survival as a function of the Model for
+End-Stage Liver Disease (MELD) score.
+TABLE 16.3 	Interpretation of Hepatitis B Viral
+Serologies
+Hepatitis B Virus Serologies 	Interpretation
+Hepatitis B surface antigen (HBsAg) 	Acute or chronic infection
+Antibody to hepatitis B surface
+antigen (Anti-HBs)
+Immunity due to recovery from
+infection or vaccination
+IgM antibody to hepatitis B core
+antigen (Anti-HBc IgM)
+Previous or ongoing infection
+IgG antibody to hepatitis B core
+antigen (Anti-HBc IgG)
+Acute infection
+INTERPRETATION OF CONSTELLATION OF RESULTS
+HBsAg NEG
+Anti-HBs POS
+Anti-HBc IgG POS
+Immune due to recovery
+HBsAg NEG
+Anti-HBs POS
+Anti-HBc IgG NEG
+Immune by vaccination
+HBsAg POS
+Anti-HBs NEG
+Anti-HBc IgM POS
+Acute hepatitis B infection
+HBsAg POS
+Anti-HBs NEG
+Anti-HBc IgG POS
+Anti-HBc IgM NEG
+Chronic hepatitis B infection
+HBsAg NEG
+Anti-HBs NEG
+Anti-HBc IgG NEG
+Not immune, potentially sus-
+ceptible
+
+
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_011_full | TOPIC: General
+================================================================================
+SECTION II • Anesthetic Physiology	430
+infection) and as part of an evaluation for unexplained liver
+disease. American guidelines also recommend one-time
+screening for hepatitis C in all persons in the United States
+born between 1945 and 1965, as this birth cohort has the
+highest prevalence of hepatitis C. Screening entails testing
+for antibodies to HCV; a positive screen indicates exposure
+to the virus. Active infection can then be confirmed with
+nucleic acid testing for HCV RNA. Sustained viral response
+to treatment is defined as the absence of HCV RNA detected
+at least 12 weeks after the completion of therapy. 45 Cur-
+rently, patients also receive HCV genotype testing prior to
+the initiation of treatment. New direct antiviral agents are
+highly effective in achieving sustained viral response for
+most genotypes and most clinical conditions. Therefore gen-
+otype testing may soon no longer be routinely required.46
+Rapid HCV antibody testing and point of care RNA tests
+are useful in community-based settings serving high-risk
+populations and remote settings without access to central-
+ized laboratories. The measurement of HCV core antigen
+(HCVcAg) can diagnose active hepatitis C infection with
+high sensitivity and specificity as a single test, although it is
+currently not the standard of care. HCVcAg measurement
+is particularly useful as a rapid, single test for diagnosis in
+populations who are at high risk of loss to follow-up. How-
+ever, it is not yet available as a point of care test.47
+Markers of hepatic malignancy include alpha fetoprotein
+(AFP) and protein induced by vitamin K absence or antag-
+onist-II (PIVKA-II). 48-50 AFP is a glycoprotein synthesized
+in the liver, fetal yolk sac, and GI tract. The normal value
+of AFP is less than 20 ng/mL. A significantly elevated con-
+centration of AFP, often greater than 1000 ng/mL, is com-
+mon in patients with hepatocellular carcinoma (HCC). AFP
+is also elevated in testicular germ cell tumors, and less fre-
+quently in prostate and other gastrointestinal cancers. The
+concentration of AFP is used to monitor HCC disease pro-
+gression and response to treatment. It is also widely used to
+screen for HCC in high-risk patients, along with ultrasound.
+However, AFP’s role in HCC surveillance has recently been
+debated, as studies suggest that AFP has insufficient sen-
+sitivity as a screening tool for HCC, particularly for small
+and solitary tumors. AFP may be normal in 40% of HCC
+patients.51,52 PIVKA-II, also known as des-γ-carboxylated
+prothrombin, is a biomarker for HCC with high specific-
+ity.48,50 With a shorter half-life than AFP, PIVKA-II is
+useful in monitoring for treatment response and recur-
+rence. PIVKA-II is also associated with worse survival. AFP
+and PIVKA-II combined can diagnose HCC with further
+increased sensitivity and specificity.53!
+TESTING IN MANAGEMENT AND PROGNOSIS OF
+LIVER DISEASE
+Laboratory tests can help define the type of liver dysfunction,
+and even identify specific causes. In addition, some of these
+markers are used to assess disease severity, monitor disease
+progression and treatment, and predict mortality. Taken
+alone, thrombocytopenia is the earliest sign of cirrhosis
+among the routine serum tests, indicating both decreased
+hepatic function and splenic sequestration from portal
+hypertension.54 Some markers are combined to create scor-
+ing systems, thereby improving the sensitivity and speci-
+ficity of single tests. For example, the Model for End-Stage
+Liver Disease (MELD) score (a calculation that combines
+INR, bilirubin, and creatinine) was created to assess risk
+of mortality in cirrhotic patients undergoing transjugular
+intrahepatic portosystemic shunt (TIPS) procedures. The
+MELD score now is used for liver transplant listing, as it cor-
+relates with wait-list mortality. Standard tests such as INR,
+lactate and platelet count, as well as novel quantitative tests
+have been used to predict short-term outcome after liver
+transplantation.55 The HCC-MELD score, which combines
+AFP, MELD, and tumor size, can predict survival after liver
+transplantation in HCC patients.56 Elevated bilirubin pre-
+dicts poor prognosis in acute or chronic liver disease, and
+AP and bilirubin together predict poor outcome in primary
+biliary cirrhosis.
+Noninvasive Serum Testing for Fibrosis
+Multiple models combining noninvasive measurements
+have been used to assess the severity of fibrosis. The goal of
+these models is to allow for disease staging (from mild fibro-
+sis to cirrhosis) without requiring liver biopsy. Although
+liver biopsy remains the diagnostic gold standard, limita-
+tions include sampling error, subjectivity in interpretation,
+pain, bleeding, and cost.54 These models include various
+combinations of standard tests such as aminotransferases,
+platelet count, and INR; as well serum markers of extra-
+cellular matrix turnover such as alpha-2-macroglobulin,
+apolipoprotein A1, and hyaluronic acid. New commercial
+panels test an array of direct markers of collagen turnover,
+which correlate with fibrosis.39,57,58!
+Quantitative Liver Tests
+Quantitative liver function tests can estimate hepatocellular
+function by measuring the clearance of various substances
+metabolized by the liver. Two such substances are indocya-
+nine green (ICG) and bromsulphalein. However, clearance
+techniques are imperfect tests, potentially influenced by
+extrahepatic uptake or clearance of the substance, changes
+in blood flow including portosystemic shunting, and other
+unknown factors. ICG is avidly extracted by the liver and
+undergoes minimal extrahepatic uptake and metabolism.
+Its elimination kinetics are expressed in the ICG plasma dis-
+appearance rate (PDR). It can be measured noninvasively
+by a transcutaneous method. The test is even sensitive to
+early changes in liver function, and it may be used to guide
+clinical management. By estimating functional hepatocel-
+lular mass, it may help predict outcomes after partial liver
+resections. It is also used as an early test of graft function
+following liver transplantation. However, like other highly
+extracted substances, ICG clearance is dependent on hepatic
+blood flow, and therefore reflects changes in both hepatic
+blood flow and hepatocyte function. In fact, ICG is also used
+specifically to test hepatic blood flow as discussed below. A
+drop in the ICG PDR may represent a reduction in hepato-
+cellular function, a decrease in hepatic blood flow, or both.
+Bromsulphalein is another highly extracted substance that
+can be used to measure hepatic clearance. Bromsulphalein
+has been associated with severe systemic reactions, and
+therefore is largely no longer used.59
+The capacity of the liver to metabolize drugs can also
+be measured by caffeine clearance, galactose elimina-
+tion, aminopyrine breath test, and monoethylglycinex-
+ylidide (MEGX).37,60-62 Caffeine clearance can be measured
+
+
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_012_full | TOPIC: General
+================================================================================
+16 • Hepatic Physiology, Pathophysiology, and Anesthetic Considerations 	431
+noninvasively through metabolites present in the saliva up
+to 24 hours after oral caffeine intake. MEGX is the primary
+metabolite of lidocaine and is measured in the serum after
+intravenous injection of lidocaine. MEGX concentration
+may be used to estimate liver function after partial hepatec-
+tomy and may have prognostic value in intensive care unit
+patients with liver dysfunction. MEGX was found to inde-
+pendently predict poor outcomes in patients with chronic
+hepatitis C, and it was more sensitive than standard liver
+tests in identifying these patients.63 Expensive and time
+consuming, quantitative tests currently remain primarily
+research tools and require further validation.!
+MEASUREMENT OF HEPATIC BLOOD FLOW
+Blood flow to the liver can be measured using clearance
+techniques, indicator dilution techniques, and direct mea-
+surements.
+Clearance Techniques
+Based upon the Fick principle, clearance techniques esti-
+mate the hepatic blood flow by measuring the rate of dis-
+appearance of substances that are exclusively and avidly
+cleared by the liver. Such substances with high extraction
+ratios include ICG, propranolol, lidocaine, and radiolabeled
+colloid particles. The primary limitation of clearance tech-
+niques is they assume normal hepatocyte function. Hepatic
+capacity to eliminate these substances can be variably or
+significantly diminished in liver disease. This is particularly
+problematic since liver dysfunction and altered hepatic flow
+are so often linked.64
+The dual cholate test measures the clearance of cholate, a
+bile salt, given in both oral and intravenous form. The oral
+cholate undergoes a high first-pass extraction and allows
+for a calculation of portal circulation. Clearance from the
+systemic circulation is measured using the intravenous
+cholate. One can quantify the degree of portal-systemic
+shunting and calculate a disease severity index. This index
+correlates with degree of fibrosis on liver biopsy and can
+predict risk of cirrhosis and poor clinical outcomes.63,65!
+Indicator Dilution Techniques
+Unlike clearance methods, indicator dilution techniques
+can measure hepatic blood flow even in the setting of liver
+dysfunction. A known quantity of a radiolabeled indicator
+(e.g., iodinated albumin) is injected into the portal system
+and hepatic artery. The concentration of that substance is
+then measured continuously from a hepatic vein. Hepatic
+blood flow can then be calculated by creating indicator
+dilution curves. The substance used should be resistant to
+hepatic clearance.4 Indicator dilution techniques also pre-
+sume uniform liver perfusion, and therefore results could
+be altered in patients with shunting. These techniques are
+invasive and are still primarily research tools as well.64!
+Direct Measurements
+Blood flow through the portal vein or hepatic artery can
+be measured directly using electromagnetic or ultrasonic
+probes. These techniques are invasive and subject to sig-
+nificant error. The surgical procedures required to implant
+the probes can themselves alter hepatic blood flow. Once
+implanted, the probes are often left in place, and blood flow
+is then measured via telemetry. Implantable Doppler probes
+are sometimes used in patients immediately post-liver trans-
+plantation, and in patients who are at high risk for hepatic
+artery or portal vein thromboses.64!
+RADIOLOGIC METHODS
+Radiologic techniques play important roles in diagnosing
+liver disease. Splenoportography evaluates the splenic and
+portal veins; it is useful in identifying varices and thrombo-
+ses. Portal venography uses three-dimensional CT to create
+vascular maps of portosystemic collateral vessels. These
+noninvasive imaging techniques are particularly useful in
+surgical planning, such as before liver transplantation.66
+Inexpensive and routinely available, ultrasound can help
+diagnose cirrhosis with high sensitivity and specificity. Ultra-
+sonic signs of cirrhosis include surface nodularity, hepato-
+megaly, and hypertrophy of the caudate lobe, as well as signs
+of portal hypertension, such as ascites, splenomegaly, and
+increased portal vein diameter. Doppler ultrasonography can
+show diminished portal flow and portal venous flow rever-
+sal.54,67,68 Fibrosis can also be estimated using elastography,
+a noninvasive measure of liver stiffness (LS). A shear wave
+is delivered across the liver via an ultrasound probe, and the
+wave propagation is then measured. Transient elastography
+is reproducible and easily performed in the office. Magnetic
+resonance elastography is especially useful in obese patients
+and those with ascites, where transient elastography is less
+accurate. Stiffness is a continuous measure which correlates
+with the histological stage of fibrosis, with high sensitivity
+and specificity.67,69,70 The combination of serum tests along
+with elastography offers much improved accuracy in diag-
+nosing fibrosis. These tests are now widely used in practice,
+although they have not yet supplanted the role of liver biopsy.
+Patients with chronic liver disease and chronic hepatitis
+B virus carriers are at increased risk for developing HCC and
+require regular screening for the cancer. Ultrasound is the
+most widely used screening tool for HCC worldwide. Multi-
+phasic, contrast-enhanced CT and MRI are used to evaluate
+focal liver lesions suspicious for HCC with high sensitivity
+and specificity. While normal liver parenchyma receives
+only 25% blood flow from the hepatic artery (the rest via
+the portal vein), HCC cells receive their blood supply pri-
+marily from the hepatic artery. Contrast-enhanced imag-
+ing reflects this fact with HCCs showing hyperintensity in
+the arterial phase and washout during the portal venous
+phase. The Liver Imaging Reporting and Data System (LI-
+RADS) is a standardized tool for the radiologic classification
+of liver lesions in patients with chronic liver disease. Use of
+the LI-RADS has improved radiologic diagnostic accuracy
+and reduced the need for biopsy in these patients. In fact,
+confirmatory biopsy is rarely used, even prior to liver trans-
+plantation for HCC.54,71,72!
+Hepatic Pathophysiology
+CHOLESTATIC DISEASE
+Cholestasis is the impairment of bile production or flow.
+Cholestatic disorders are characterized primarily by eleva-
+tions of serum AP and gamma-glutamyl transferase (GGT),
+
+
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_013_full | TOPIC: General
+================================================================================
+SECTION II • Anesthetic Physiology	432
+with or without elevations in bilirubin. Cholestasis can
+present as an acute or chronic condition and is thought
+to affect up to 20% of the population.73 The impairment of
+flow leads to an increase in the concentration of bile salts in
+the serum and hepatocytes. As the bile salts accumulate in
+the liver, they dissolve hepatocyte cell membranes, leading
+to the release of AP and GGT, resulting in an increase in the
+serum concentrations of these enzymes. 74 Serum concen-
+trations of AST and ALT, which are found in the cytoplasm
+of hepatocytes, are not increased to as great an extent. As
+the disease progresses, the serum concentration of conju-
+gated bilirubin increases, giving rise to jaundice. 31 The
+majority of cases of cholestasis are benign; however, severe
+and prolonged cholestasis can lead to cirrhosis.
+Signs and symptoms of cholestasis include fatigue, pru-
+ritus, dark urine, and pale stools. An elevation of AP on
+screening laboratory studies may be the first indication in
+asymptomatic patients. The evaluation consists of a his-
+tory and physical exam followed by abdominal ultrasonog-
+raphy. Abdominal ultrasonography is used to distinguish
+between extrahepatic and intrahepatic cholestasis. Extra-
+hepatic cholestasis results from mechanical obstruction of
+the extrahepatic bile ducts, typically by stones, strictures,
+or masses leading to ductal dilation. Definitive diagnosis
+and treatment is by endoscopic retrograde pancreatogra-
+phy (ERCP). If the etiology is unclear, further imaging can
+be conducted using endoscopic ultrasound or magnetic
+resonance cholangiopancreatography to identify the bili-
+ary lesion leading to obstruction.75 Normal imaging results
+indicate intrahepatic cholestasis. Intrahepatic cholestasis
+can have several etiologies including immune-mediated,
+infectious, drug-induced, paraneoplastic, and ischemic.
+The first step in the evaluation is the measurement of anti-
+mitochondrial antibody (AMA) titers to rule out primary
+biliary cholangitis (PBC). Further evaluation may require
+ERCP and liver biopsy.!
+PRIMARY BILIARY CHOLANGITIS
+Formerly known as primary biliary cirrhosis, PBC is an
+autoimmune disease that is characterized by the destruc-
+tion of intrahepatic cholangiocytes and the presence of
+AMAs. It is one of the most common cholestatic liver disor-
+ders.76 Reported prevalence rates vary from 20 to 490 cases
+per million inhabitants with the highest rates reported in
+the United States.77 Over 90% of patients are female and
+the average age at diagnosis is typically in the sixth decade.
+The diagnosis is made based on an elevation of AP over 1.5
+times the upper limit of normal for a duration greater than
+24 weeks along with the presence of an AMA titer greater
+than 1:40.76 A liver biopsy in these patients will reveal
+interlobular bile duct lesions. Up to 60% of patients may be
+asymptomatic at diagnosis. If present, the most common
+symptoms at presentation are fatigue and pruritus. A large
+number of patients may present with other autoimmune
+disorders such as keratoconjunctivitis sicca and Raynaud
+phenomenon. PBC may be associated with osteopenia as
+well as hyperlipidemia.76 The disease develops as a result of
+the loss of tolerance to mitochondrial antigens, leading to
+autoimmune-mediated destruction of biliary epithelial cells
+(cholangiocytes). PBC can lead to cirrhosis and liver failure,
+ultimately requiring transplantation.
+Treatment consists of ursodeoxycholic acid (UDCA)
+administration. UDCA, a bile acid, is thought to act by
+modifying the bile acid pool and reducing inflammation.
+Approximately 60% to 70% of patients with PBC respond to
+UDCA with improvement in serum AP and bilirubin levels
+and a delay in the progression to cirrhosis and liver trans-
+plantation. Patients who have a suboptimal response to
+UDCA have an increased risk of developing complications
+and liver failure. In these patients, the administration of
+obeticholic acid, a farnesoid-X receptor agonist, has been
+shown to reduce the serum levels of AP. Fibrates and cor-
+ticosteroids have also shown benefit when combined with
+UDCA in patients who are unresponsive to UDCA alone.78-83!
+PRIMARY SCLEROSING CHOLANGITIS
+PSC is a rare cholestatic, immune-mediated disease that
+occurs most frequently in men aged 30 to 40 years old. It is
+characterized by inflammation and fibrosis of the bile ducts.
+The majority of patients with PSC have ulcerative colitis as
+well. Approximately half of the patients are asymptomatic
+at diagnosis. The most common presenting symptoms are
+fatigue and pruritus. Blood tests demonstrate a cholestatic
+pattern. Patients may also have hypergammaglobulinemia
+and elevations in serum autoantibodies. Diagnosis is made
+based on the presence of multifocal strictures and segmental
+biliary dilations on cholangiography, and the exclusion of a
+number of other possible etiologies including bacterial chol-
+angitis, choledocholithiasis, and surgical biliary trauma.84
+Patients have an increased risk of developing hepatobiliary
+carcinoma. The disease is progressive, with biliary fibrosis
+leading to cirrhosis and ultimately end-stage liver disease
+(ESLD). Liver transplantation is the only effective therapy.!
+CIRRHOSIS
+Cirrhosis is the common pathologic endpoint of a variety of
+mechanisms of hepatic injury. In the United States, it is the
+14th most common cause of death and has a prevalence of
+0.3%.85 The most common causes of cirrhosis in western
+countries are alcoholic liver disease, hepatitis C, and nonal-
+coholic steatohepatitis. In the Asia-Pacific region the most
+common cause is hepatitis B. 86 The morbidity and mor-
+tality associated with cirrhosis result mainly from portal
+hypertension. Chronic liver disease promotes apoptosis and
+regeneration of hepatocytes. The resultant inflammation
+leads to parenchymal injury and fibrosis, causing distor-
+tion and obstruction of the hepatic vascular architecture.
+These structural changes increase hepatic resistance to
+portal blood flow (PBF) and give rise to portal hyperten-
+sion. Hepatic vascular resistance is further increased due to
+hepatic endothelial dysfunction, which results in a reduc-
+tion of vasodilator (primarily nitric oxide [NO]) production
+and an increase in vasoconstrictor (i.e., thromboxane) pro-
+duction.87 Portal hypertension and the release of angio-
+genic factors lead to the development of gastroesophageal
+varices as well as portosystemic shunts. As portal hyperten-
+sion worsens, the locally released NO and prostaglandins
+cause the splanchnic circulation to vasodilate. This further
+increases portal inflow and exacerbates portal hyperten-
+sion. Splanchnic vasodilation also leads to systemic hypo-
+tension that, in turn, increases sympathetic tone, activates
+
+
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_014_full | TOPIC: General
+================================================================================
+16 • Hepatic Physiology, Pathophysiology, and Anesthetic Considerations 	433
+the renin-angiotensin-aldosterone system, and increases
+antidiuretic hormone release, leading to the development of
+ascites and the hepatorenal syndrome (HRS). Other signifi-
+cant complications of cirrhosis and portal hypertension are
+spontaneous bacterial peritonitis, encephalopathy, HRS,
+portopulmonary hypertension (PoPH), cirrhotic cardiomy-
+opathy, and HCC.88
+Laboratory abnormalities in cirrhotic patients include
+elevations in ALT, AST, AP, GGT, as well as serum bilirubin.
+Hypoalbuminemia and elevations in the PT are indications
+of hepatic synthetic dysfunction. Although liver biopsy is
+the gold standard for diagnosing cirrhosis, it is often not
+necessary in the presence of an appropriate patient history,
+and laboratory and radiologic data. In patients who are sus-
+pected of having cirrhosis, abdominal ultrasonography is
+used to aid in the diagnosis and evaluation for HCC and portal
+hypertension. Serologic studies and ultrasound-based tech-
+niques for evaluating hepatic fibrosis are also available.89
+The risk stratification of patients with cirrhosis is based
+on the presence and degree of portal hypertension, gastro-
+esophageal varices, and synthetic dysfunction.90 There are
+two stages of cirrhosis: compensated and decompensated.
+Decompensated cirrhosis is characterized by the presence
+of ascites, variceal hemorrhage, and/or hepatic encepha-
+lopathy (HE). Compensated cirrhosis is characterized by
+the absence of these clinical conditions. While the median
+survival in patients with compensated cirrhosis is greater
+than 12 years, in those with decompensated cirrhosis it is
+approximately 2 years.91 Patients with compensated cir-
+rhosis can be further stratified based on their degree of
+portal hypertension. Portal hypertension is defined as a
+hepatic venous pressure gradient (HVPG) greater than 5
+mm Hg. Patients with an HVPG greater than 10 mm Hg
+are deemed to have clinically significant portal hyperten-
+sion. They are at increased risk of developing varices, overt
+hepatic decompensation, postsurgical decompensation,
+and HCC compared to those with mild portal hypertension
+(HVPG between 5 mm Hg and 10 mm Hg).92-94 Although
+HVPG is the gold standard for monitoring portal hyperten-
+sion, its invasive nature precludes its routine use. A nonin-
+vasive measure of clinically significant portal hypertension
+is LS using transient elastography, an ultrasound-based
+approach. An LS value greater than 20 kPa has been shown
+to effectively discriminate mild from clinically significant
+portal hypertension.95 Liver Doppler ultrasound may also
+aid in the diagnosis. The presence of portosystemic collater-
+als or reversal of portal venous flow on ultrasound imag-
+ing is also sufficient to diagnose clinically significant portal
+hypertension.96 In patients with clinically significant portal
+hypertension, the presence of gastroesophageal varices por-
+tends a worse prognosis.97
+The management of patients with compensated cirrho-
+sis who don’t have gastroesophageal varices focuses on
+preventing the advancement of the disease by treating the
+underlying etiology. 90 Patients with varices are treated
+with nonspecific beta-blockers (i.e., propranolol, timolol),
+carvedilol or endoscopic variceal ligation to prevent vari-
+ceal hemorrhage. Nonspecific beta-blocker therapy reduces
+HVPG.98-100
+Acute variceal hemorrhage is a medical emergency. Man-
+agement consists of airway protection, volume resuscita-
+tion, and endoscopy with variceal ligation. The concomitant
+initiation of antibiotic prophylaxis (ceftriaxone 1 g/24 h)
+and vasopressor infusion (somatostatin, octreotide, or ter-
+lipressin) has been shown to improve outcome and is the
+standard of care. Once stabilized, preemptive TIPS may be
+performed in patients who are at high risk of rebleeding.90!
+ASCITES
+The presence of ascites is a marker of decompensated cirrho-
+sis. The 1-year mortality rate of patients who develop asci-
+tes is 20%. 100 Patients who develop ascites are at increased
+risk of developing further complications including sponta-
+neous bacterial peritonitis and acute kidney injury (AKI).
+Management consists of dietary sodium restriction, non-
+specific beta-blocker therapy to reduce portal pressure, and
+diuretic administration (spironolactone, furosemide). Mido-
+drine can be added for refractory ascites. TIPS can improve
+transplant-free survival in certain patients with refractory
+ascites.86
+Renal Failure and Hepatorenal Syndrome
+Up to 40% of patients admitted to the hospital with ESLD
+develop renal failure. Renal failure is a sign of advanced
+disease and has a poor prognosis in liver failure. Seventy
+to 80% of cases are precipitated by hypovolemia or bacte-
+rial infections. HRS is less common and associated with
+a worse prognosis.101,102 The diagnosis of HRS is one of
+exclusion. It is characterized by AKI in the absence of any
+apparent cause (shock, nephrotoxic drugs, obstruction,
+renal parenchymal disease) that is unresponsive to volume
+expansion and diuretic withdrawal. AKI is defined as a rise
+in creatinine greater than or equal to 0.3 mg/dL within 48
+hours or a greater than 50% increase from baseline within
+7 days.103 HRS is subcategorized into Type 1 and Type 2
+based on the rapidity of onset and degree of injury. Type 1
+is rapidly progressive with a doubling of serum creatinine
+within 2 weeks. It is usually associated with a precipitating
+factor and has a worse prognosis. The treatment for HRS is
+aimed at increasing perfusion pressure to the kidneys. For
+critically ill patients, norepinephrine infusion with albumin
+boluses can be used. In more stable patients, terlipressin
+(if available) or midodrine with octreotide is administered
+along with albumin.104 Dialysis may be used in the absence
+of response to medical therapy. Liver transplantation is the
+definitive treatment for HRS.105!
+HEPATIC ENCEPHALOPATHY
+HE is brain dysfunction secondary to hepatic insufficiency
+or portosystemic shunting. It is a sign of decompensated cir-
+rhosis. It occurs in 30% to 40% of patients with cirrhosis and
+50% of patients with portosystemic shunts.106 The clinical
+presentation is variable and can range from mild changes
+in personality to disorientation, somnolence, and coma.
+Asterixis is usually present in the early to middle stages. 107
+The severity of HE is typically graded from I to IV using the
+West Haven criteria with Grade I indicating mild symptoms
+and Grade IV, coma (Table 16.4).108 Common precipitat-
+ing factors of HE include infections, variceal hemorrhage,
+and diuretic overdose. Diagnosis is based on the exclusion
+of other causes of brain dysfunction and the application
+of clinical criteria. Treatment consists of amelioration of
+
+
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_015_full | TOPIC: General
+================================================================================
+SECTION II • Anesthetic Physiology	434
+precipitating factors and the administration of lactulose, a
+nonabsorbable disaccharide. Rifaximin can be added on to
+prevent recurrence.108 !
+PULMONARY COMPLICATIONS
+Hepatopulmonary syndrome (HPS), PoPH, and hepatic
+hydrothorax (HH) are pulmonary conditions that can
+develop in patients with cirrhosis and advanced liver
+disease. HPS has been reported in up to 30% of patients
+presenting for liver transplantation evaluation and is asso-
+ciated with increased mortality independent of the sever-
+ity of liver disease. 109 It is defined as abnormal alveolar to
+arterial oxygen gradient (≥15 mm Hg) while breathing
+room air in sitting position. It is caused by intrapulmonary
+vascular dilation in the setting of cirrhosis. Its severity is
+determined by the PaO2 : greater than 80 mm Hg is mild,
+60 to 80 mm Hg is moderate, 50 to 60 mm Hg is severe,
+and less than 50 mm Hg is very severe.110 Patients may
+present with dyspnea at rest or on exertion. Approximately
+25% of patients have platypnea (dyspnea when moving
+from supine to standing) or orthodeoxia (decrease in PaO 2
+more than 5% or 4 mm Hg when moving from supine to
+standing). In advanced disease, patients may exhibit digi-
+tal clubbing and cyanosis. Patients can be screened with
+pulse oximetry (SpO2 < 96% on room air) and diagnosed
+based on PaO 2 values. Contrast-enhanced transthoracic
+echocardiography (TTE) may demonstrate intrapulmonary
+vascular dilation. No medical therapy has been shown to
+change outcome in patients with HPS. Supplemental oxy-
+gen is provided to maintain SpO2 over 88%. Liver trans-
+plantation is the only effective treatment. 111 As such, MELD
+exception points are granted for patients with severe HPS
+(PaO2 50-60 mm Hg). Patients with very severe HPS (PaO2
+< 50 mm Hg) have an increased risk for complications and
+mortality following liver transplantation although this risk
+may be lower in experienced centers.111,112
+PoPH is pulmonary arterial hypertension in the setting of
+portal hypertension. 113 It is found in 5% of patients present-
+ing for liver transplant evaluation and, in the absence of
+treatment, is associated with a 1-year survival of 46%. 114,115
+The diagnosis is made by right heart catheterization show-
+ing a mean pulmonary artery pressure (mPAP) greater
+than 25 mm Hg, pulmonary vascular resistance (PVR)
+greater than 240 dynes/s/cm5, and a pulmonary artery
+wedge pressure less than 15 mm Hg. PoPH is classified
+as mild (mPAP: 25-35 mm Hg), moderate (mPAP: 35-45
+mm Hg), and severe (mPAP more than 45 mm Hg).110 The
+pathophysiology of the disease remains to be elucidated.
+Patients are typically screened using TTE to measure right
+ventricular systolic pressure (RVSP). Those with RVSP
+greater than 50 mm Hg undergo right heart catheterization
+to confirm the diagnosis and determine the degree of PoPH.
+PoPH is treated with phosphodiesterase-5 inhibitors, pros-
+tacyclin analogs, and endothelin receptor antagonists to
+reduce PVR. mPAP greater than 45 mm Hg is an absolute
+contraindication to liver transplantation. MELD exception
+is considered for treatment-responsive PoPH.110
+HH has a prevalence of 5% to 10% in cirrhotic patients. 116
+It develops due to the passage of ascitic fluid from the peri-
+toneal cavity into the pleural space through defects in the
+diaphragm, most often on the right side. Patients may pres-
+ent with dyspnea, cough, chest discomfort, and hypoxia.
+Chest radiography and thoracentesis are used for diag-
+nosis. Medical therapy consists of sodium restriction and
+diuretic administration. Refractory HH is treated with TIPS
+placement. For patients who have failed TIPS, VATS with
+pleurodesis is an option.117!
+HEPATOCELLULAR CARCINOMA
+HCC is the most common primary liver malignancy and the
+third most common cause of cancer death globally. It occurs
+with greater frequency in men than woman and with a higher
+incidence in Asia and Africa, although the incidence has been
+increasing in the United States.118 Chronic liver disease is the
+most important risk factor for the development of HCC. Hepati-
+tis B, hepatitis C, hemochromatosis, alcohol use, nonalcoholic
+fatty liver disease, diabetes mellitus, and obesity all increase
+the risk of developing HCC.119 Screening is recommended for
+all patients with cirrhosis at 6-month intervals using ultra-
+sound with or without serum AFP measurement. Masses over
+1 cm should be imaged with dynamic MRI or four-phase mul-
+tidetector CT to make the diagnosis noninvasively. A percu-
+taneous biopsy is obtained for nodules that have nontypical
+appearance on imaging.120 Staging is based on the size of the
+tumor, degree of extension into adjacent structures, presence
+of metastases, liver function, and the patient’s physical sta-
+tus. There is no universally accepted system for staging. The
+tumor, node, metastasis and the Barcelona staging system
+(BCLC) are two of the more commonly used systems.120
+Surgical resection of HCC is the definitive treatment for
+the disease. However, the diagnosis of HCC is typically
+made late in the course of the disease. In patients with pre-
+served liver function and a solitary tumor confined to the
+liver, treatment with surgical resection carries a 5-year
+survival rate from 40% to 75%. 121 Transplantation may be
+an option for patients with hepatic dysfunction and tumors
+confined to the liver that meet certain size criteria.122 Non-
+surgical options for patients who are ineligible for resection
+or transplantation include radiofrequency ablation, trans-
+arterial chemoembolization, and systemic therapy.120!
+HEPATIC EFFECTS OF ANESTHETIC AGENTS
+Inhalational Anesthetics
+(See also chapter on pharmacokinetics/dynamics of volatile
+anesthetics.)
+TABLE 16.4 	West Haven Criteria for Grading Hepatic
+Encephalopathy
+Grade Description
+I 	Trivial lack of awareness; shortened attention span; disordered
+sleep
+II 	Lethargy; behavioral change; asterixis
+III 	Somnolence; confusion; gross disorientation; bizarre
+behavior
+IV 	Coma
+Modified from Table 2, Page 719 in: Vilstrup H, Amodio P, Bajaj J, et al. Hepatic
+encephalopathy in chronic liver disease: 2014 practice guideline by the
+American Association for the Study of Liver Diseases and the European
+Association for the Study of the Liver. Hepatol. 2014;60:715–735.
+
+
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_016_full | TOPIC: General
+================================================================================
+16 • Hepatic Physiology, Pathophysiology, and Anesthetic Considerations 	435
+The hepatic effects of volatile anesthetics result primarily
+from alterations in liver perfusion. Total hepatic blood flow
+(THBF) is the sum of PBF and hepatic arterial blood flow
+(HABF). Reductions in PBF are matched by increases in
+HABF to maintain THBF through the hepatic arterial buffer
+response (HABR).123 Volatile anesthetics reduce mean arte-
+rial pressure (MAP) and CO, leading to a reduction in PBF
+in a dose-dependent manner. The HABR is preserved with
+isoflurane, sevoflurane, and desflurane leading to preserva-
+tion of THBF, but not with halothane.124-126
+Xenon is an inert gas that can been used as an anes-
+thetic.127 It has favorable anesthetic properties including
+a low blood-gas partition coefficient (0.115) and a stable
+hemodynamic profile.128,129 Hepatic perfusion during
+xenon anesthesia has been studied in pigs. In one study
+using radiolabeled microspheres, there was no difference
+in hepatic perfusion in pigs anesthetized with xenon when
+compared to propofol.130 However, a second study using
+ICG reported a 17% reduction in portal venous blood flow
+in pigs anesthetized with a ketamine infusion that received
+a xenon anesthetic compared to controls. They reported no
+significant difference in hepatic arterial perfusion or hepatic
+function.131 In a porcine model, the use of xenon anesthe-
+sia was associated with significantly higher hepatic venous
+oxygen content when compared with propofol. 132 It is not
+clear that there are relevant clinical consequences to these
+findings. The successful use of xenon anesthesia for the con-
+duct of liver transplantation has been reported in a series of
+four cases.133
+In general, intravenous anesthetics such as propofol,
+thiopental, etomidate, and methohexital do not adversely
+affect the liver. Furthermore, the pharmacokinetic prop-
+erties of these agents are unchanged in patients with cir-
+rhosis.134-137 Cirrhotic patients may be more sensitive to
+their central nervous system depressant effects. Propofol
+has been found to increase hepatic blood flow and oxy-
+gen consumption in both animal and human studies that
+have measured flow using radiolabeled microspheres, Dop-
+pler, and electromagnetic flow meters.138-141 Studies using
+ICG clearance to measure hepatic flow, however, have
+reported that propofol reduced hepatic flow.142,143 These
+findings were confounded by the fact that propofol itself
+interferes with ICG clearance.141,144 Clinically, propofol has
+no adverse effect on hepatic function. Midazolam elimina-
+tion is impaired in liver dysfunction leading to prolonga-
+tion of sedative effects. 145 Dexmedetomidine elimination is
+reduced in patients with hepatic impairment, necessitating
+dose reduction.146
+In patients with significant cirrhosis, the metabolism of
+morphine, meperidine, and alfentanil is reduced and their
+durations of action are prolonged.147-149 In patients with
+mild hepatic insufficiency, the pharmacokinetics of fen-
+tanyl, sufentanil, and remifentanil are unchanged when
+compared to normal controls.150-152
+Reduced levels of pseudocholinesterase in patients with
+hepatic dysfunction may prolong the effects of succinyl-
+choline and mivacurium.153,154 The time to recovery from
+cisatracurium is unchanged as it is subject to Hoffman
+degradation.155
+Aminosteroid neuromuscular blocking agents (vecur-
+onium, rocuronium, pancuronium) have a larger volume
+of distribution in cirrhotic patients. They have a slower
+rate of onset and a longer duration of action, necessitating
+judicious dosing and close train-of-four monitoring.156-158
+Sugammadex has been shown to be effective for reversing
+rocuronium in patients with hepatic dysfunction.159 The
+use of neostigmine for reversal is likewise unaffected by the
+presence of hepatic dysfunction.
+Five studies have examined the effect of epidural anes-
+thesia on hepatic blood flow. Four have shown a reduc-
+tion in hepatic blood flow in response to lumbar or thoracic
+epidural anesthesia when measured using the PDR of ICG
+and transgastric hepatic vein Doppler. In one study, blood
+flow was restored with the infusion of colloid and dopa-
+mine.160-162 Maintenance of MAP with ephedrine or nor-
+epinephrine further reduced hepatic blood flow. Unlike
+these studies, a study by Kortgen et al. found that thoracic
+epidural anesthesia increased hepatic blood flow when
+measured by PDR-ICG, whereas lumbar epidural anesthe-
+sia resulted in an overall reduction. 163 The clinical signifi-
+cance of these findings is uncertain.!
+Nonhepatic Surgery in Patients With Liver Disease
+The preoperative evaluation of patients with liver dis-
+ease should determine the severity of the disease and the
+presence of comorbid conditions associated with hepatic
+dysfunction. Given the mortality risk, elective surgery is
+contraindicated in patients with acute hepatitis or acute
+liver failure.164 In the absence of cirrhosis and significant
+hepatic dysfunction, patients with chronic liver disease
+generally have no increased risk for undergoing elective
+surgery. Patients with cirrhosis who undergo nonhepatic
+surgery have a higher incidence of postoperative morbid-
+ity and mortality when compared to patients without cir-
+rhosis.165 A wide range of mortality rates has been reported
+in the literature (1%-50%), mostly in small, uncontrolled,
+institutional studies spanning 30 years. Mortality in these
+patients is a function of the severity of liver disease, its atten-
+dant comorbidities, and the type of surgical procedure.165
+The largest study of in-hospital mortality in patients with
+cirrhosis used data from the Nationwide Inpatient Sample.
+The outcomes of 22,569 cirrhotic patients undergoing one
+of four index operations (cholecystectomy, colectomy, coro-
+nary artery bypass grafting [CABG], and abdominal aortic
+aneurysm repair) from 1998 to 2005 were compared to
+those of 2.8 million control patients. It was found that 4214
+of the cirrhotic patients had portal hypertension. Patients
+with cirrhosis had a three- to eight-fold increase in the risk
+of in-hospital mortality, depending on the operation, com-
+pared to control patients. Mortality risk worsened in those
+with more severe liver disease, ranging from 12- to 23-fold,
+depending on the specific operation. The greatest risk was
+seen in patients undergoing CABG. 166 A Taiwanese study
+comparing 24,282 cirrhotic patients undergoing major
+nonhepatic surgery with 97,128 matched control patients
+found an over two-fold increased risk of 30-day mortality in
+patients with cirrhosis (1.2% vs. 0.7%). Mortality was fur-
+ther increased in those cirrhotic patients with viral hepa-
+titis, jaundice, ascites, gastrointestinal hemorrhage, and
+hepatic coma.167
+In cirrhotic patients undergoing nonhepatic surgery, the
+Child-Turcotte-Pugh (CTP) and MELD scores have been
+shown to identify those who are at higher risk of morbidity
+and mortality.168-172 The CTP score is calculated based on
+
+
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_017_full | TOPIC: General
+================================================================================
+SECTION II • Anesthetic Physiology	436
+the values of five variables: degree of HE, degree of ascites,
+INR, serum albumin, and total bilirubin (Table 16.5). The
+score is then used to classify the patient into one of three
+groups: Class A (score of 5-6), Class B (score of 7-9), and
+Class C (score > 10).173 A higher CTP class is associated with
+a greater risk of mortality. The mortality risk associated
+with each CTP class has decreased in more recent studies.
+In early retrospective series of cirrhotic patients undergo-
+ing abdominal surgery, the mortality risks associated with
+CTP Class A, B, and C were 10%, 30%, and 73% to 82%,
+respectively.174,175 In a more recent series of 194 patients
+undergoing 212 general surgical procedures, 30-day mor-
+tality was reported to be 6%, 13%, and 53% for CTP Classes
+A, B, and C, respectively.169 The risk has been found to be
+even lower in patients undergoing laparoscopic procedures
+(Class A: 2%; Class B: 12%; Class C: 12%), suggesting that
+improvements in perioperative care and surgical tech-
+niques have made surgery safer for patients with cirrho-
+sis.170 A disadvantage of the CTP score is that the grading of
+encephalopathy and ascites is subjective. Furthermore, the
+score doesn’t take into account other predictors of opera-
+tive risk such as the type of surgery or the etiology of the
+cirrhosis.176
+As described above, the MELD score, calculated using the
+patient’s INR, serum creatinine, serum bilirubin, and etiol-
+ogy of liver disease (Fig. 16.5) 177 is a validated measure of
+mortality risk in patients with ESLD and is the basis of the
+liver allocation system for transplantation. 178 A number
+of studies have validated the MELD score as a predictor of
+risk in cirrhotic patients undergoing abdominal, orthope-
+dic, and cardiac surgery. 168,179-181 In a large, retrospective
+study of cirrhotic patients undergoing major abdominal,
+orthopedic, or cardiac surgery, MELD score was a predic-
+tor for mortality at 30 days, 90 days, 1 year, and 5 years.
+The 30-day mortality ranged from 5.8% in patients with a
+MELD under 8 to over 50% in patients with a MELD score
+greater than 20.182 The incorporation of serum sodium
+into the MELD score (MELD-Na) as well as a combination
+of serum sodium and patient age (integrated MELD or
+iMELD) have been shown to improve the accuracy of pre-
+dictions of survival over MELD. 183,184 The use of MELD-Na
+and iMELD may allow more accurate prediction of mortal-
+ity following nonhepatic surgery; however more studies are
+needed.169,185,186
+Studies comparing the predictive power of CTP to MELD
+have yielded conflicting results likely due to small sample
+sizes and differences in primary outcome measures and sur-
+gical procedures. Small studies in cardiac and general sur-
+gical patients have found the abilities of CTP and MELD to
+predict postoperative mortality to be comparable. 168,179 A
+study in cirrhotic patients undergoing extrahepatic abdom-
+inal surgery found MELD to be a better predictor than CTP
+for mortality or hepatic decompensation within 90 days of
+surgery.180 A more recent study found neither to be a good
+predictor for death and hepatic decompensation in cir-
+rhotic patients undergoing elective surgery requiring gen-
+eral anesthesia.171 It has been suggested that both scores
+should be used in conjunction with other available patient
+data when attempting to risk-stratify cirrhotic patients for
+nonhepatic surgery.187
+Apart from the severity of cirrhosis and the specific surgi-
+cal procedure, risk factors associated with increased postop-
+erative morbidity and mortality in cirrhotic patients include
+emergency surgery, American Society of Anesthesiologists
+(ASA) physical status classification, the presence of renal
+insufficiency, male gender, and advanced age.168,170,188
+In addition to determining the severity of cirrhosis, the
+preoperative evaluation should determine the presence and
+severity of comorbidities associated with cirrhosis, includ-
+ing HE, pulmonary disease, cardiac disease, and renal dys-
+function (see previous discussion). Preoperative laboratory
+evaluation should include a complete blood count to evalu-
+ate for anemia, thrombocytopenia, and leukocytosis. Addi-
+tionally, INR, fibrinogen, serum electrolytes, creatinine,
+glucose, transaminases, bilirubin, and albumin should be
+measured.!
+Anesthetic Considerations for Procedures
+Involving the Liver
+Transjugular Intrahepatic Portosystemic Shunt. TIPS
+placement is a catheter-based, endovascular procedure dur-
+ing which a shunt is created between the portal and hepatic
+venous systems through the parenchyma of the liver (Fig.
+16.6). The goal of the procedure is to reduce portal hyper-
+tension.189 The main indications for TIPS are the secondary
+prevention of variceal hemorrhage and the management
+of refractory ascites.190 During acute variceal hemorrhage
+in high-risk patients (HVPG > 20), TIPS placement follow-
+ing endoscopic intervention has been shown to be reduce
+rebleeding.191 Contraindications to the procedure include
+congestive heart failure, tricuspid regurgitation, and moder-
+ate to severe pulmonary hypertension. During the procedure,
+a catheter is typically inserted through the right internal
+jugular vein into a hepatic venous branch. A needle is then
+passed through the hepatic vein into the portal vein. The
+tract is dilated and a stent is placed across it. HVPG should be
+TABLE 16.5 	Child-Turcotte-Pugh (CTP) Score
+POINTS ASSIGNED
+1 	2 	3
+Ascites 	Absent 	Slight 	Moderate
+Bilirubin 	<2 mg/dL 	2-3 mg/dL 	>3 mg/dL
+Albumin 	>3.5 g/dL 	2.8-3.5 g/dL 	<2.8 g/dL
+PROTHROMBIN TIME
+Seconds over control 	<4 	4-6 	>6
+International normalized
+ratio
+<1.7 	1.7-2.3 	>2.3
+Encephalopathy 	None 	Grades 1-2 	Grades 3-4
+Point total 	CTP class 	Operative
+mortality
+5-6 	A 	2-10%
+7-9 	B 	12-31%
+10-15 	C 	12-82%
+The 30-day postoperative mortality predicted by the Child-Turcotte-Pugh
+(CTP) score is based on retrospective studies cited in text. Lower mortality
+rates have been reported in more recent studies.
+From Pugh RN, Murray-Lyon IM, Dawson JL, et al. Transection of the oesopha-
+gus for bleeding oesophageal varices. Br J Surg. 1973;60(8):646–649.
+https://doi.org/10.1002/bjs.1800600817.
+
+
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_018_full | TOPIC: General
+================================================================================
+16 • Hepatic Physiology, Pathophysiology, and Anesthetic Considerations 	437
+less than 12 mm Hg following the procedure. The incidence
+of major complications such as intra abdominal hemorrhage
+is on the order of 1% to 2%.192
+TIPS may be carried out electively or emergently. The
+preoperative assessment should determine the extent of
+liver dysfunction and associated morbidity. Patients with
+advanced liver disease may be in a hyperdynamic state.
+They may have significant ascites with reductions in FRC
+as well as HH or HPS. Pulmonary function may be further
+compromised when the patient is in a supine position for
+the procedure. Patients may also have renal dysfunction,
+anemia, coagulopathy, and thrombocytopenia. Laboratory
+studies should screen for anemia, thrombocytopenia, and
+coagulopathy, as well as hyponatremia and elevations of
+creatinine and potassium. Patients should be transfused for
+a hemoglobin concentration less than 7 to 9 mg/dL, INR
+greater than 2, and a platelet count less than 50,000/μL.193
+The procedure can be conducted under local anesthesia,
+sedation, or general anesthesia. Consideration should be
+given to the acuity of the patient, their ability to tolerate
+supine positioning, and the anticipated length of the case.
+In patients with significant ascites or recent variceal hem-
+orrhage, general anesthesia with rapid sequence induction
+for airway protection is preferred. Intraoperative pain may
+be experienced during the establishment of the intrahe-
+patic shunt and the dilation of the stent. In a series of 150
+patients undergoing TIPS with general anesthesia using
+TIVA, the authors reported a postoperative ICU admission
+rate of 6.6% primarily for intraoperative hemodynamic
+instability. They advocated for the use of general anesthe-
+sia for all TIPS procedures, given the concerns for airway
+protection, ability to maintain supine position, and pain
+associated with the procedure.194 Postprocedure complica-
+tions include heart failure due to increased venous return,
+HE, contrast-induced nephropathy, hemolytic anemia, and
+sepsis.195,196!
+Hepatic Resection. The most common indications for
+hepatic resection are for the treatment of secondary metas-
+tases (i.e., metastatic colon cancer), primary hepatic malig-
+nancies, biliary tract malignancies, and benign hepatic
+masses.197 Hepatic resection is carried out along the func-
+tional segments of the liver. The liver is divided into eight
+functional segments based on the distribution of blood sup-
+ply and biliary drainage. The left liver is comprised of seg-
+ments II, III, and IV, while the right liver is comprised of
+segments V, VI, VII, and VIII. Segment I is the caudate lobe
+(see Fig.16.1). Right hepatectomy involves resection of seg-
+ments V-VIII. Left hepatectomy involves resection of seg-
+ments II-IV. Right lobectomy, also described as an extended
+right hepatectomy or right trisegmentectomy, involves
+resection of segments IV-VIII with or without segment I.
+An extended left hepatectomy (left trisegmentectomy) is the
+resection of segments II-V and VIII.198 Mortality and mor-
+bidity rates are impacted by the extent of the resection. A
+review of the 4881 hepatic resections over a 5-year period in
+the American College of Surgeons – National Surgical Qual-
+ity Improvement Program database reported 30-day mor-
+tality and morbidity rates of 1.9% and 13.1%, respectively,
+for patients undergoing partial hepatectomy. Those mortal-
+ity and morbidity rates increased significantly for patients
+undergoing extended hepatectomies (lobectomies or triseg-
+mentectomies) to 5.8% and 22.5%, respectively. 199,200
+Other factors which have been shown to impact outcomes
+are the case volume of the performing center, patient age,
+history of cardiac, pulmonary or renal disease, blood loss,
+the presence of ascites, and reduced hepatic function. 199,200
+Laparoscopic hepatic resection is considered most appro-
+priate for small (<5 cm), solitary lesions located in peripheral
+segments (II-VI), when performed in experienced institu-
+tions.201,202 More extensive resections have been reported
+in experienced centers. A metaanalysis of 83 comparative
+case series (2900 patients) found a significantly lower rate
+of complications, transfusions, blood loss, and hospital stay
+in case-matched cohort of patients undergoing laparoscopic
+liver resection compared to open liver resection.203 To date,
+the only randomized, controlled trial comparing laparo-
+scopic to open liver resection found a significant reduction
+in postoperative complications in patients undergoing lapa-
+roscopic hepatic resection (19% vs. 31%; 95% confidence
+interval [CI], 1.67-21.8; P = .021) for colorectal cancer
+liver metastases requiring resection of fewer than three con-
+secutive segments. Although the hospital length of stay was
+significantly shorter, there were no differences in blood loss
+or mortality.204 Conversion from a laparoscopic to an open
+procedure is usually due to intraoperative hemorrhage and
+is reported to occur in 6% to 14% of cases. Risk factors for
+conversion include elevated BMI, increased age, diabe-
+tes mellitus, hypertension, and large tumor size.205,206 A
+number of recent observational, retrospective studies have
+described the performance of robot-assisted hepatectomy
+for both minor and major resections. 207 A metaanalysis of
+Hepatic vein 	Hepatic vein 	Hepatic vein
+Portal vein 	Portal vein 	Portal vein	A 	B 	C
+EV 	EV
+Fig. 16.6 Transjugular intrahepatic portosystemic shunt procedure. A stent (or stents) is passed through the internal jugular vein over a wire into the
+hepatic vein (A); dilated esophageal varices (EV) are apparent. The wire and stent or stents are then advanced into the portal vein (B), after which blood
+can pass through the portal vein into the hepatic vein and bypass and decompress dilated esophageal veins (C). (Reproduced with permission from
+University of Michigan Health System: www.med.umich.edu/1libr/topics/liver09.htm/ (not able to access/TG 9–21–18)
+
+
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_019_full | TOPIC: General
+================================================================================
+SECTION II • Anesthetic Physiology	438
+seven studies published between 2010 and 2014, compar-
+ing laparoscopic to robotic hepatectomy, found that the
+laparoscopic approach is associated with significant reduc-
+tions in blood loss and operative time without any differ-
+ence in the conversion rate, postoperative morbidity, and
+the hospital length of stay.208
+The preoperative evaluation of the patient should focus
+on determining the severity of liver disease and the pres-
+ence of other comorbidities. Both cirrhosis and steatosis
+have been associated with increased mortality in patients
+undergoing liver resection. The decision to proceed is made
+based on the anticipated future liver remnant (FLR) that
+will remain following resection. 209,210 In patients with an
+anticipated FLR size that is considered unsafe, selective por-
+tal vein embolization (PVE) may be conducted in the weeks
+prior to the hepatic resection. Disruption of portal flow to
+the diseased portion of the liver leads to atrophy of the por-
+tion to be resected and hypertrophy of the FLR, allowing
+the patient to have adequate liver mass following resection.
+PVE is typically indicated for patients with an anticipated
+FLR less than 20% in the absence of cirrhosis, and less than
+40% in the presence of cirrhosis. 120,211 Further preopera-
+tive evaluation and risk assessment should take place as
+outlined above. Laboratory investigations prior to hepatic
+resection should include a complete blood count, serum
+electrolytes, liver chemistries, albumin, coagulation stud-
+ies, and a type and screen.!
+Strategies for Minimizing Blood
+Loss
+Intraoperative blood loss during liver resection is associated
+with an increased risk of morbidity and mortality.212-214
+Several preoperative factors have been associated with an
+increased risk of transfusion. These include preoperative
+anemia, the need for an extrahepatic procedure, the need
+for caval exposure, major hepatectomy (>3 segments),
+tumor size, thrombocytopenia, cirrhosis, and a repeat
+operation.215-217 For patients at increased risk of significant
+intraoperative hemorrhage, the use of techniques such as
+acute normovolemic hemodilution and intraoperative cell
+salvage have been shown to reduce the transfusion of allo-
+geneic units.218-221
+A number of strategies have been adopted to reduce
+blood loss in open hepatic resection and case series from
+high-volume centers routinely report losses less than 500
+mL.213,222,223 Such strategies include the use of temporary
+hepatic vascular occlusion and the intraoperative mainte-
+nance of low central venous pressure (CVP).224,225
+Hepatic vascular occlusion techniques may be used by
+surgeons to limit blood loss by limiting blood flow to the
+liver. Although not routinely used in simple resections,
+familiarity with these techniques is important as they may
+be employed in more complex resections. The most com-
+monly used vascular occlusion technique is occlusion of the
+hepatic artery and portal vein by clamping the hepatoduo-
+denal ligament. Otherwise known as the Pringle maneuver,
+total hepatic inflow occlusion was first described in 1908
+as a means of controlling hemorrhage in hepatic trauma
+(Fig.16.7A).226 The drawback of this maneuver is the
+potential for hepatic ischemia and reperfusion injury.227 To
+mitigate this effect, surgeons typically make use of intermit-
+tent clamping with 15- to 20-minute intervals of clamping
+interspersed with 5- to 10-minute intervals of unclamp-
+ing for a total ischemic time of less than 120 minutes. 228
+Tolerance of longer cumulative ischemic times has been
+reported.229 The application of sevoflurane for 30 min-
+utes of preconditioning prior to the Pringle maneuver has
+been shown in one single-center randomized, controlled
+trial to significantly reduce postoperative transaminitis
+and complications in cases with greater than 30 minutes
+of continuous inflow occlusion.230 In a subsequent three-
+armed randomized controlled trial, the same group reported
+reductions in postoperative transaminitis and complica-
+tions when sevoflurane was administered after the Pringle
+maneuver (“post-conditioning”) or with the use of intermit-
+tent clamping.231
+The utility of the Pringle maneuver for reducing blood
+loss in modern hepatic resection has been called into ques-
+tion. While two early randomized, controlled trials showed
+a significant reduction in blood loss with intermittent Prin-
+gle maneuver compared to no inflow occlusion, three,
+more recent, randomized controlled trials have reported
+no benefit.232-236 The median blood loss values reported in
+these three more recent trials were much lower than those
+reported in the initial two studies. This finding suggests
+that in the context of current intraoperative approaches to
+hepatic resection, the routine use of the Pringle maneuver
+may not be necessary.236,237
+An alternative technique that may be utilized is hemi-
+hepatic inflow occlusion. This maneuver involves exclu-
+sively clamping the branches of the portal vein and hepatic
+artery which supply the hemi-liver which is being resected
+in order to reduce ischemic injury to the remnant liver (see
+Fig. 16.7B and C).238 Hemi-hepatic inflow occlusion hasn’t
+been shown to reduce blood loss when compared to Pringle
+maneuver.239-242 Total hepatic vascular exclusion (THVE)
+involves occlusion of the suprahepatic and infrahepatic IVC
+in addition to the portal vein and hepatic artery (see Fig.
+16.7D)243 THVE can result in significant hypotension due
+to the reduction in venous return as well as increased mor-
+bidity. It has not been shown to offer any benefit compared
+to the Pringle maneuver and its use is typically reserved for
+patients with tumor extension into the IVC. In such com-
+plex resections, it has been combined with hypothermic
+portal perfusion and venovenous bypass to mitigate the
+risks of hypotension and hepatic ischemia; however the
+reported mortality is high.244,245 To avoid the hemody-
+namic effects of THVE, selective hepatic vascular exclusion
+(SHVE), which involves clamping the hepatic veins instead
+of the IVC, may be employed by the surgeon.246 Some stud-
+ies have shown that SHVE results in fewer complications
+than THVE; however it is technically demanding and has a
+limited role in uncomplicated hepatic resections.247,248
+LOW CENTRAL VENOUS PRESSURE
+While the Pringle maneuver occludes inflow to the liver,
+retrograde flow through the hepatic veins can still lead
+to substantial venous hemorrhage. The pressure in the
+hepatic veins is directly related to vena caval pressure,
+hence the strategy of maintaining a low CVP (<5 mm Hg)
+to minimize intraoperative blood loss. 249 Retrospective
+
+
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_020_full | TOPIC: General
+================================================================================
+16 • Hepatic Physiology, Pathophysiology, and Anesthetic Considerations 	439
+observational studies have reported reduced blood loss in
+patients managed with CVP less than 5 mm Hg without
+any significant adverse events. 250-253 Two randomized con-
+trolled trials comparing patients with CVP under 5 mm Hg
+with liberal volume administration have shown reductions
+in both intraoperative blood loss and the need for transfu-
+sion.254,255 These studies have all been at risk for signifi-
+cant bias. Furthermore, in some of the trials the difference
+in estimated blood loss, though statistically significant, was
+clinically inconsequential.256 Although standard practice
+in hepatic resections is to maintain low CVP, some studies
+have found no association between CVP and intraoperative
+blood loss. In retrospective studies of patients undergoing
+donor hepatectomies, no correlation was found between
+the CVP and intraoperative blood loss. This finding may be
+due to the fact that living liver donors are healthy patients
+with normal livers.257,258 The largest of these studies con-
+sisted of over 900 patients. Although it found no correla-
+tion between CVP and estimated blood loss, nearly all of the
+patients were managed with CVPs less than 10 mm Hg, and
+the majority had CVPs in the 4 to 6 mm Hg range.258
+A number of techniques have been described for reduc-
+ing CVP during hepatic resection. The most commonly
+reported approach is the use of intraoperative fluid restric-
+tion with rates of 1 mL/kg/h. Vasopressors are used as
+needed to maintain SBP over 90 mm Hg and urine output
+more than 25 mL/h. Though seldom required, vasodilation
+using nitroglycerin or morphine, or forced diuresis with
+furosemide, can be instituted if fluid restriction is insuffi-
+cient.250,251,254,255,259 The use of milrinone, reverse Tren-
+delenburg position, and epidural anesthesia have also been
+described, though there is insufficient data to recommend
+one particular approach.256,260-262
+Clamping of the infrahepatic IVC (IIVC) has been
+described as a means of minimizing hemorrhage in the set-
+ting of an elevated CVP despite the interventions described
+earlier (see Fig. 16.7E).263 A number of randomized con-
+trolled trials have demonstrated a significant reduction in
+blood loss and transfusion with the use of IIVC clamping in
+patients who tolerate the clamp or have a CVP greater than
+5 mm Hg. 262,264-268 A metaanalysis of these trials, com-
+prising of 714 patients, showed a significant reduction in
+intraoperative blood loss (mean difference −353 mL) with
+no difference in the rates of postoperative complications. Of
+note, in pooled analysis, there was no significant difference
+in reported CVP values between the two groups.269!
+OTHER APPROACHES TO REDUCE BLOOD LOSS
+Two multicenter, randomized, placebo-controlled trials
+have examined the efficacy of prophylactic recombinant
+Factor VIIa (rFVIIa) administration to reduce transfusion
+A
+D 	E
+B 	C
+Fig. 16.7 (A–E) Vascular occlusion techniques in hepatic surgery. Surgical vascular occlusive techniques to reduce hemorrhage during hepatic resection
+include the Pringle maneuver (7A) during which a clamp is placed across the hepatoduodenal ligament to occlude hepatic arterial and portal venous
+inflow to the liver. Selective hepatic vascular exclusion (7B and C) involves clamping of the vessels perfusing the hemi-liver which is being resected.
+Total hepatic vascular exclusion (7D) is achieved by clamping the inferior vena cava above and below the liver along with the hepatoduodenal ligament.
+Another technique combines the application of a clamp across the infrahepatic IVC clamp with one across the hepatoduodenal ligament (7E). IVC, Infe-
+rior vena cava. (From Otsubo T. Control of the inflow and outflow system during liver resection. J Hepatobiliary Pancreat Sci. 2012;19:15–18.)
+
+
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_021_full | TOPIC: General
+================================================================================
+SECTION II • Anesthetic Physiology	440
+patients undergoing hepatic resection. The studies found
+no benefit of prophylactic rFVIIa with respect to mortal-
+ity, red blood cell transfusions, or adverse events.270,271 A
+single randomized, controlled trial in 214 patients undergo-
+ing primarily minor hepatic resections (82% of cases) found
+that the administration of tranexamic acid (TXA) resulted
+in fewer transfusions and less blood loss compared to pla-
+cebo. In the study group, 500 mg of TXA was administered
+intravenously prior to incision followed by 250 mg every 6
+hours for 3 days.272
+A recent Cochrane database analysis of 67 randomized
+clinical trials of methods to decrease blood loss during liver
+resection found a high risk of bias in all trials. Based on the
+outcomes that were available in more than one trial, there
+is low-quality evidence that the “clamp and crush” paren-
+chymal resection technique may be associated with fewer
+adverse events than radiofrequency resection techniques.
+They reported very low quality evidence that blood loss,
+operating time, and total hospital stay were reduced with
+intraoperative low CVP management.273 !
+ANESTHETIC MANAGEMENT
+The anesthetic management of these cases should be tailored
+to the comorbidities of the patients, the surgical approach
+(open, laparoscopic), the anticipated extent of resection,
+and the need for vascular occlusive maneuvers. Adequate
+venous access should be obtained for the anticipated degree
+of hemorrhage. In cases where significant blood loss is
+anticipated, red blood cell salvage can be used and consid-
+eration should be given to the use of acute normovolemic
+hemodilution. In addition to standard ASA monitors, intra-
+arterial blood pressure monitoring should be used in cases
+during which significant hemorrhage or the need for vas-
+cular occlusion maneuvers is anticipated. Central venous
+catheters may be inserted for both vascular access and CVP
+monitoring, although some high-volume centers forgo the
+routine use of CVP monitoring.274,275 Peripheral venous
+pressure monitoring may be considered as an alternative.
+Values are obtained through transduction of an antecubi-
+tal vein and have been shown to correlate with the CVP in
+patients undergoing hepatic resection.276,277 Stroke vol-
+ume variation (SVV) has been investigated as an alterna-
+tive to CVP for volume management in patients undergoing
+liver resection. A study of patients undergoing donor hepa-
+tectomy showed an SVV value ≤6% to be predictive of blood
+loss over 700 mL.278 In two studies, targeting SVV values
+greater than 12% to 15% in patients undergoing open or
+laparoscopic hepatic resection yielded blood loss compa-
+rable to, or better than, maintaining low CVP.279,280 In a
+study using milrinone to reduce CVP, SVV of 9% yielded a
+favorable surgical field. No correlation with CVP was noted
+in this study, possibly due to the lusitropic effects of milri-
+none.281 The use of transesophageal echocardiography
+may be considered in patients with cardiac risk factors,
+although care must be taken in the presence of significant
+esophageal varices.
+Hepatic resection may be associated with hemorrhage
+and, in extensive cases, the development of coagulopa-
+thy. There is insufficient data to recommend the routine
+use of viscoelastic hemostatic assays (rotational throm-
+boelastography (TEG) or rotational thromboelastometry).
+A single randomized, controlled trial of TEG-guided trans-
+fusion in cirrhotic patients with coagulopathy (INR > 1.8
+and/or platelet count <50 × 109/L) undergoing invasive
+procedures found a significant reduction in blood prod-
+uct administration with TEG compared to the standard
+lab value–based group. However, only half of the patients
+enrolled in the trial were undergoing procedures associated
+with greater than 3% risk of hemorrhage.282
+With respect to pain management, thoracic epidural anal-
+gesia is a highly effective means of pain control for hepatic
+resection.283,284 Although its use for this purpose has been
+described in a number of case series, it remains controver-
+sial due to the development of postoperative coagulopathy
+and thrombocytopenia following hepatic resection and the
+associated risk of epidural hematoma.276,285-288 Postopera-
+tive coagulopathy and thrombocytopenia occur in 21% to
+100% of patients undergoing liver resection, depending on
+the volume of tissue resected. The INR peaks around post-
+operative day (POD) one or two while the platelet count is
+lowest on POD three or four. The values typically return to
+baseline by POD four or five; however in some patients they
+may remain elevated for up to a week, leading to delays in
+epidural catheter removal or the decision to transfuse FFP
+to facilitate catheter removal.276,285-289 An additional con-
+cern is the accidental dislodgment of the epidural catheter
+while the patient is coagulopathic which has been reported
+to occur in up to 7% of patients.276,286 The degree of coag-
+ulopathy is influenced by the extent of the resection. In a
+review of 759 patients undergoing hepatic resection, the
+incidence of coagulopathy was 39.1% in patients who had
+undergone major hepatectomies (>2 segments) versus
+21.3% in patients who had undergone minor hepatecto-
+mies (≤2 segments).289 Other factors that are independently
+associated 	with 	postoperative 	coagulopathy 	included
+preexisting cirrhosis, preoperative INR ≥ 1.3, preopera-
+tive platelet count <150,000/μL, estimated blood loss ≥
+1000 mL, and the duration of surgery.285,287,289 Although
+no case series has reported the complication of an epidural
+hematoma, epidural hematoma is quite rare and the num-
+bers of published cases may have been inadequate to detect
+its occurrence.290,291
+Rapid sequence induction should be considered in
+patients with significant ascites. Maintenance of general
+anesthesia has been described with both volatile anes-
+thetics and intravenous anesthetics. There is no compel-
+ling clinical evidence for the benefit of one specific agent
+over another. 292-294 Regardless of the approach, anes-
+thetic dosing should be titrated to the patient’s require-
+ments, taking into account the pharmacokinetics and
+pharmacodynamics of common anesthetic agents in
+patients with liver disease. The anesthesiologist should
+understand the vascular occlusion strategies that may be
+employed during the operation along with their hemody-
+namic effects. The Pringle maneuver, both during open
+and laparoscopic hepatic resections, leads to an increase
+in MAP and systemic vascular resistance and a decrease
+in CO. 295,296 During open hepatic resection, portal triad
+clamping leads to a decrease in left ventricular (LV) end-
+diastolic area (i.e., LV preload). During laparoscopic
+hepatic resection, in the presence of pneumoperitoneum,
+PTC also increases LV end-systolic wall stress (i.e., LV
+afterload). 297 !
+
+
+================================================================================
+ID: Millers_Anaesthesia_9th_Edition_Chapter_16.pdf_PAGE_022_full | TOPIC: ENHANCED RECOVERY AFTER SURGERY AND
+================================================================================
+16 • Hepatic Physiology, Pathophysiology, and Anesthetic Considerations 	441
+ENHANCED RECOVERY AFTER SURGERY AND
+LIVER RESECTION
+A number of randomized controlled trials have been con-
+ducted comparing the use of enhanced recovery after sur-
+gery (ERAS) protocols with traditional management in
+patients undergoing both open and laparoscopic liver resec-
+tions.250,298-301 Although ERAS Society consensus guide-
+lines exist, these trials differed with respect to the number
+and nature of ERAS elements. 302 Most incorporated pre-
+operative education, early enteral nutrition, and early
+mobilization. The implementation of an ERAS protocol for
+liver resection surgery has been shown to reduce minor
+adverse events, hospital length of stay, hospital cost, and
+to improve patient quality of life. A metaanalysis published
+by the Cochrane group found that the use of ERAS proto-
+cols resulted in a reduction in mild adverse events, hospital
+length of stay, and cost. However, all studies were at high
+risk of bias and the quality of available evidence was deter-
+mined to be low.303 !
+Acknowledgment
+The editors and publisher would like to thank Drs. Phillip S.
+Mushlin and Simon Gelman for contributing a chapter on
+this topic in the prior edition of this work. It has served as
+the foundation for the current chapter.
+Complete references available online at expertconsult.com.
+References
+1. Molina DK, et al. Am J Forensic Med Pathol. 2015;36(3):182.
+2. Molina DK, DiMaio VJM. Am J Forensic Med Pathol. 2012;33(4):368.
+3. Pryce JW, et al. BMC Clin Pathol. 2014;14:(18).
+4. Abdel–Misih SRZ, Bloomston M. Surg Clin North Am. 2010;90(4):643.
+5. van Gulik TM, van den Esschert JW. HPB (Oxford). England;
+2010;12:81.
+6. Juza RM, Pauli EM. Clin Anat. 2014;27(5):764.
+7. Strasberg SM. J Hepatobiliary Pancreat. 2005;12(5):351.
+8. Strasberg SM, Phillips C. Ann Surg. 2013;257(3):377.
+9. Bismuth H. Revisiting liver anatomy and terminology of hepatecto-
+mies. Ann Surg. 2013;257(3):383.
+10. Poisson J, et al. J Hepatol. 2017;66(1):212.
+11. Blouin A, et al. J Cell Biol. 1977;72(2):441.
+12. Treyer A, Müsch A. Physiol. 2013;3(1):243.
+13. T K. Metabolic Zonation of the Liver: The Oxygen Gradient Revis-
+ited; 2018. PubMed - NCBI. https://phstwlp2.partners.org:2052/pu
+bmed/28126520.
+14. Geerts A. Semin Liver Dis. 2001;21(3):311.
+15. Tsuchida SL, Friedman T. Mechanisms of Hepatic Stellate Cell Acti-
+vation; 2018. PubMed - NCBI. https://phstwlp2.partners.org:2052/
+pubmed/28487545.
+16. Li P, et al. Mol Immunol. 2017;85:222.
+17. Robinson MW, et al. Cell Mol Immunol. 2016;13(3):267.
+18. Lau AH, Thomson AW. Gut. 2003;52(2):307.
+19. Njoku DB. Int J Mol Sci. 2014;15(4):6990.
+20. Almazroo OA, et al. Clin Liver Dis. 2017;21(1):1.
+21. Trefts E, et al. Curr Biol. 2017;27(21):r1151.
+22. Adeva–Andany MM, et al. Biosci Rep. 2016;36(6).
+23. Nguyen P, et al. J Anim Physiol Anim Nutr (Berl). 2008;92(3):272.
+24. Boyer JL. Compr Physiol. 2013;3(3):1035.
+25. Roberts MS, et al. Clin Pharmacokinet. 2002;41(10):751.
+26. Malik MY, et al. Drug Metab Rev. 2016;48(2):281.
+27. Borowski M, et al. J Biol Chem. 1986;261(4):1624.
+28. Dimova EY, Kietzmann T. Thromb Haemost. 2008;100(6):992.
+29. Cesarman–Maus G, Hajjar KA. Br J Haematol. 2005;129(3):307.
+30. Stein PE, et al. Update Review of the Acute Porphyrias; 2018.PubMed –
+NCBI. https://phstwlp2.partners.org:2052/pubmed/?term=27982422.
+31. Sticova E, Jirsa M. World J Gastroenterol. 2013;19(38):6398–6407.
+32. Ganz T, Nemeth E. Biochim Biophys Acta. 2012;1823(9):1434.
+33. Yakar S, et al. J Clin Invest. 2002;110(6):771.
+34. Lu H, et al. Hypertens Res. 2016;39(7):492.
+35. Jelkmann W. Eur J Gastroenterol Hepatol. 2001;13(7):791.
+36. Habib S, et al. Approach to jaundice and abnormal liver function test
+results. In: Sanyal AJ, et al., ed. Zakim and Boyer’s Hepatol: A Textbook
+of Liver Disease. 7th ed. Philadelphia, PA: Elsevier; 2018:99–116.
+37. Pratt DS. Liver chemistry and function tests. In: Feldman M, et al.
+ed. Sleisenger and Fordtran’s Gastrointestinal and Liver Disease: Patho-
+physiology, Diagnosis, Management. 10th ed. Philadelphia: Saunders;
+2016:1243–1253.
+38. Kwo PY, et al. Am J Gastroenterol. 2017;112(1):18.
+39. Eminler AT, Ayyildiz T, Irak K, et al. AST/ALT ratio is not useful in
+predicting the degree of fibrosis in chronic viral hepatitis patients.
+Eur J Gastroenterol Hepatol. 2015;27(12):1361.
+40. Maina I, et al. Jrnl App Lab Med. 2016;1(2):119.
+41. Redick JA, et al. J Biol Chem. 1982;257(24):15200.
+42. Siddique A, Kowdley KV. Clin Liver Dis. 2012;16(2):199.
+43. Fargo MV, et al. Am Fam Physician. 2017;95(3):164.
+44. Liang TJ, Hepatitis B. The virus and disease. Hepatology. 2009;
+49(suppl 5):13.
+45. AASLD/IDSA HCV Guidance Panel. Hepatology. 2015;62(3):932.
+46. Fourati S, et al. J Int AIDS Soc. 2018;21(suppl 2):e25058.
+47. Freiman JM, et al. Ann Intern Med. 2016;165(5):345.
+48. Ajisaka H, et al. J Surg Oncol. 2003;84(2):89.
+49. Fujioka M, et al. Hepatology. 2001;34(6):1128.
+50. Sugimoto H, et al. Liver Int. 2003;23(1):38.
+51. Wong RJ, et al. Clin Liver Dis. 2015;19(2):309.
+52. Song P, et al. World J Gastroenterol. 2016;22(1):262.
+53. Yuen M, Lai C. Best Pract Res Clin Gastroenterol. 2005;19(1):91.
+54. Tapper EB, Lok AS. N Engl J Med. 2017;377(23):2296.
+55. Bolondi G, et al. World J Gastroenterol. 2016;22(26):5936.
+56. Guerrini GP, et al. Prog Transplant. 2018;28(1):63.
+57. Lin C, et al. Intern Med. 2008;47(7):569.
+58. Younossi ZM, et al. Hepatology. 2018;68(1):349.
+59. Sakka SG. Curr Opin Crit Care. 2007;13(2):207.
+60. Denaro CP, et al. Ther Drug Monit. 1998;20(1):78.
+61. Jover R, et al. Am J Gastroenterol. 1997;92(10):1905.
+62. Wahlländer A, et al. J Hepatol. 1990;10(2):129.
+63. Everson GT, et al. Hepatology. 2012;55(4):1019.
+64. Chow PKH, et al. J Surg Res. 2003;112(1):1.
+65. Helmke S, et al. Curr Opin Gastroenterol. 2015;31(3):199.
+66. Kang HK, et al. Radiographics. 2002;22(5):1053.
+67. Sharma S, et al. World J Gastroenterol. 2014;20(45).
+68. Iranpour P, et al. Ultrasonography. 2016;35(1):3.
+69. Barr RG, et al. Radiology. 2015;276(3):845.
+70. Younossi ZM, et al. Hepatology. 2018;68(1):349.
+71. Tang A, et al. Radiology. 2018;286(1):29.
+72. Bialecki ES, Di Bisceglie AM. HPB (Oxford). 2005;7(1):26.
+73. Pollock G, Minuk GY. J Gastroenterol Hepatol. 2017;32(7):1303.
+74. Popper H, Schaffner F. Pathophysiology of cholestasis. Hum Pathol.
+1970;1(1):1.
+75. EASL. J Hepatol. 2009;51(2):237.
+76. Lleo A, et al. Hepatol Int. 2017;11(6):485.
+77. Boonstra K, et al. J Hepatol. 2012;56(5):1181.
+78. Trivedi HD, et al. Frontline Gastroenterol. 2017;8(1):29.
+79. Poupon RE, et al. N Engl J Med. 1991;324(22):1548.
+80. Corpechot C, et al. Hepatology. 2008;48(3):871.
+81. Hirschfield GM, et al. Gastroenterol. 2015;148(4):61.e8.
+82. Lens S, et al. Liver Int. 2014;34(2):197.
+83. Rautiainen H, et al. Hepatology. 2005;41(4):747.
+84. Karlsen TH, et al. J Hepatol. 2017;67(6):1298.
+85. Scaglione S, et al. J Clin Gastroenterol. 2015;49(8):690.
+86. Tsochatzis EA, et al. Lancet. 2014;383(9930):1749.
+87. Garcia–Pagan JC, et al. J Hepatol. 2012;57(2):458.
+88. Runyon BA. Hepatology. 2013;57(4):1651.
+89. De Robertis R, et al. World J Gastroenterol. 2014;20(23):7231.
+90. Garcia–Tsao G, et al. Hepatology. 2017;65(1):310.
+91. D’Amico G, et al. J Hepatol. 2018;68(3):563.
+92. Ripoll C, et al. Gastroenterology. 2007;133(2):481.
+93. Ripoll C, et al. J Hepatology. 2009;50(5):923.
+94. Abraldes JG, et al. Clin Liver Dis. 2014;18(4):779.
+
+

@@ -280,6 +280,7 @@ export class RespiratoryEngine {
       anaphylaxisResistancePenalty: number;
       aspirationCompliancePenalty: number;
       aspirationResistancePenalty: number;
+      hpsShunt?: number;
     }
   ): RespiratoryOutput {
     const { patient, vitals } = st || { patient: {} as any, vitals: {} as any };
@@ -287,6 +288,7 @@ export class RespiratoryEngine {
     const safeVitals = vitals || {} as any;
 
     const safeInputs = inputs || {} as any;
+    const hpsShunt = typeof safeInputs.hpsShunt === 'number' && Number.isFinite(safeInputs.hpsShunt) ? safeInputs.hpsShunt : 0.0;
     const VO2_sec = typeof safeInputs.VO2_sec === 'number' && Number.isFinite(safeInputs.VO2_sec) && safeInputs.VO2_sec >= 0 ? safeInputs.VO2_sec : 0.004;
     const safeTotalMetabolicMultiplier = typeof safeInputs.totalMetabolicMultiplier === 'number' && Number.isFinite(safeInputs.totalMetabolicMultiplier) && safeInputs.totalMetabolicMultiplier >= 0 ? safeInputs.totalMetabolicMultiplier : 1.0;
     const compensatoryRR = typeof safeInputs.compensatoryRR === 'number' && Number.isFinite(safeInputs.compensatoryRR) ? safeInputs.compensatoryRR : 0;
@@ -609,7 +611,7 @@ export class RespiratoryEngine {
     const venousO2Content = Math.max(1.0, capillaryO2Content - (VO2_ml_min / (Math.max(0.5, safeTargetCO) * 10)));
 
       const baselineShunt = safePatient.shuntFraction || 0.05;
-      const actualShunt = Math.max(0.02, baselineShunt - shuntReduction);
+      const actualShunt = Math.max(0.02, baselineShunt - shuntReduction + hpsShunt);
     const arterialO2Content = (capillaryO2Content * (1 - actualShunt)) + (venousO2Content * actualShunt);
 
     const contentDenom = Math.max(0.1, safeCurrentHb * 1.34);

@@ -30,6 +30,7 @@ This document represents the unified, consolidated, and authoritative system arc
         *   [4.9 Optical Pulse Oximetry Absorption Model](#49-optical-pulse-oximetry-absorption-model)
         *   [4.10 Cerebral Physiology & Intracranial Mechanics](#410-cerebral-physiology--intracranial-mechanics)
         *   [4.11 Gastrointestinal Physiology & Lower Esophageal Barrier Pressure](#411-gastrointestinal-physiology--lower-esophageal-barrier-pressure)
+        *   [4.12 Hepatic Physiology, Pathophysiology, and Anesthetic Considerations](#412-hepatic-physiology-pathophysiology-and-anesthetic-considerations)
     *   [5. Pharmacology (PK/PD) Engine](#5-pharmacology-pkpd-engine)
         *   [5.1 Mammillary Multi-Compartment PK Model](#51-mammillary-multi-compartment-pk-model)
         *   [5.2 Numerical Integration (Euler Sub-stepping)](#52-numerical-integration-euler-sub-stepping)
@@ -68,6 +69,11 @@ This document represents the unified, consolidated, and authoritative system arc
     *   [6.24 Oculocardiac Reflex](#624-oculocardiac-reflex)
     *   [6.25 Postoperative Ileus (POI) & Gut Motility Dysregulation](#625-postoperative-ileus-poi--gut-motility-dysregulation)
     *   [6.26 Swallowing Apnea Reflex & Pharyngeal Protection](#626-swallowing-apnea-reflex--pharyngeal-protection)
+    *   [6.27 Acute Variceal Bleeding Emergency](#627-acute-variceal-bleeding-emergency)
+    *   [6.28 Hepatorenal Syndrome (HRS) Loop](#628-hepatorenal-syndrome-hrs-loop)
+    *   [6.29 Portopulmonary Hypertension (PoPH) Right Ventricular PEA Collapse](#629-portopulmonary-hypertension-poph-right-ventricular-pea-collapse)
+    *   [6.30 Hepatopulmonary Syndrome (HPS) Right-to-Left Shunt](#630-hepatopulmonary-syndrome-hps-right-to-left-shunt)
+    *   [6.31 Low Central Venous Pressure (CVP) Surgical Resection Bleeding Guidelines](#631-low-central-venous-pressure-cvp-surgical-resection-bleeding-guidelines)
     *   [7. Attending Direct Chat, Advisor & NLP Engine](#7-attending-direct-chat-advisor--nlp-engine)
         *   [7.1 Automated Guidance Evaluator](#71-automated-guidance-evaluator)
         *   [7.2 Conversational NLP Chat Portal](#72-conversational-nlp-chat-portal)
@@ -479,6 +485,66 @@ ight) \quad [\%/\text{s}]$$
     - *Moderate Hypotension* ($MAP$ reduced by $<33\%$): hypercapnia ($+1.3\% \text{ CBF per mmHg}$), hypocapnia ($-1.3\% \text{ CBF per mmHg}$).
     - *Severe Hypotension* ($MAP$ reduced by $>66\%$): CO2 reactivity is fully abolished ($0\% \text{ CBF per mmHg}$).
     - *Limits*: CBF vasoconstriction plateaus below $PaCO_2 = 25\text{ mmHg}$; vasodilation plateaus above $75-80\text{ mmHg}$. Reactivity is transient, returning to baseline over $6-8\text{ hours}$ due to active bicarbonate extrusion and CSF pH normalization.
+
+#### 4.11 Gastrointestinal Physiology & Lower Esophageal Barrier Pressure (`GastrointestinalEngine.ts`)
+The gastrointestinal engine models the lower esophageal sphincter ($LES$) tone, intragastric pressure ($P_{\text{gastric}}$), nitrous oxide ($N_2O$) bowel gas diffusion dynamics, and gut motility.
+
+1.  **Lower Esophageal Sphincter (LES) Tone**:
+    $$LES_{\text{tone}} = 25.0 \cdot \max(0.2, 1.0 - 0.4 \cdot \text{Propofol}_{Ce} - 0.3 \cdot \text{Volatile}_{\text{MAC}}) \quad \text{[mmHg]}$$
+    LES tone represents the active sphincter barrier preventing the regurgitation of gastric contents. It is blunted dose-dependently by intravenous sedatives (Propofol) and inhalational volatiles.
+
+2.  **Intragastric Pressure**:
+    $$P_{\text{gastric}} = 7.0 + 15.0 \cdot suxFasciculation \quad \text{[mmHg]}$$
+    Intragastric pressure is normally $7.0\text{ mmHg}$. However, during the first 45 seconds of succinylcholine administration, intense skeletal muscle fasciculations spike intragastric pressure by $+15.0\text{ mmHg}$ to $22.0\text{ mmHg}$.
+
+3.  **Barrier Pressure & Regurgitation / Aspiration Triggers**:
+    Regurgitation occurs if the stomach is not empty and gastric pressure exceeds LES tone:
+    $$\text{Regurgitation} = \text{stomach === 'full'} \land P_{\text{gastric}} > LES_{\text{tone}} \land \neg\text{airwaySecured}$$
+    If regurgitation occurs, active positive pressure ventilation ($PPV$) or spontaneous breathing will pull the regurgitated contents into the respiratory tract, causing **Chemical Aspiration Pneumonitis**:
+    $$\text{Aspiration} = \text{Regurgitation} \land (\text{positivePressureVentilationActive} \lor \text{spontaneousBreathingActive})$$
+    Aspiration triggers severe bronchospasm (resistance penalty $+25\text{ cmH2O/L/s}$) and chemical pneumonitis (compliance penalty $-30\text{ mL/cmH2O}$), which can be partially mitigated by suctioning the airway in the Trendelenburg position (reducing penalties to $+8$ resistance and $-10$ compliance).
+
+4.  **Nitrous Oxide Bowel Gas Expansion**:
+    Nitrous oxide ($N_2O$) is 34 times more soluble in blood than nitrogen ($N_2$). It diffuses into air-filled bowel cavities faster than nitrogen can escape, causing cavity expansion:
+    $$\frac{d(\text{bowelGasVolume})}{dt} = +0.02 \cdot \left(\frac{EtN_2O}{100}\right) - 0.005 \cdot (\text{bowelGasVolume} - 1.0)$$
+    clamped to a maximum of $2.5$.
+
+#### 4.12 Hepatic Physiology, Pathophysiology, and Anesthetic Considerations (`HepaticEngine.ts`)
+The hepatic physiological engine simulates liver perfusion, portal blood flow, hepatic arterial buffer response (HABR) compensation, portal venous pressure gradient (HVPG) elevation, Child-Pugh and MELD classification, and drug/volatile/pressure influences on hepatic hemodynamics.
+
+1.  **Dual-Supply Hepatic Circulation**:
+    The liver receives dual blood supply: portal venous flow ($PBF$) and hepatic arterial flow ($HABF$):
+    $$PBF = 1000.0 \cdot CO_{\text{ratio}} \cdot (1.0 - 0.5 \cdot \text{cirrhosisFactor}) \quad \text{[mL/min]}$$
+    where $CO_{\text{ratio}}$ is the current Cardiac Output divided by baseline Cardiac Output. Portal inflow is reduced by up to $50\%$ in patients with severe hepatic cirrhosis due to elevated structural vascular resistance.
+
+2.  **Hepatic Arterial Buffer Response (HABR)**:
+    The HABR is an intrinsic compensatory mechanism where a drop in portal venous inflow triggers immediate hepatic arterial vasodilation to maintain total hepatic blood flow ($THBF$):
+    $$HABF = 300.0 + \max(0.0, 0.5 \cdot (1000.0 - PBF)) \cdot HABR_{\text{efficiency}} \quad \text{[mL/min]}$$
+    $$THBF = PBF + HABF$$
+    where the compensatory capacity is governed by the HABR efficiency:
+    $$HABR_{\text{efficiency}} = \max(0.0, 1.0 - 0.6 \cdot \text{Volatile}_{\text{MAC}}) \cdot \max\left(0.1, \min\left(1.0, \frac{MAP - 40.0}{20.0}\right)\right)$$
+    - *Volatile Blunting*: Volatile anesthetics (Sevoflurane, Isoflurane, Desflurane) dose-dependently blunt the arterial dilation response by up to $60\%$.
+    - *Hypotensive Blunting*: When Mean Arterial Pressure ($MAP$) falls below $60\text{ mmHg}$, local autoregulation is impaired, abolishing the buffer response at $MAP \le 40\text{ mmHg}$.
+
+3.  **Portal Venous Pressure Gradient (HVPG) & TIPS Decompression**:
+    Normal HVPG is $5.0\text{ mmHg}$. Cirrhosis increases portal resistance, raising the gradient:
+    $$HVPG = 5.0 + 15.0 \cdot \text{cirrhosisFactor} \cdot \left(\frac{THBF}{1300.0}\right) \quad \text{[mmHg]}$$
+    A Transjugular Intrahepatic Portosystemic Shunt (TIPS) decompresses the portal system by creating a low-resistance pathway from the portal vein to the hepatic vein:
+    $$\text{If patient has TIPS} \rightarrow HVPG = \min(12.0, HVPG)$$
+
+4.  **Child-Pugh Classification**:
+    Grades hepatic dysfunction based on scoring ($1-3\text{ points}$ each) five clinical parameters:
+    - *Bilirubin (mg/dL)*: $<2.0$ ($1\text{ pt}$), $2.0-3.0$ ($2\text{ pts}$), $>3.0$ ($3\text{ pts}$)
+    - *Albumin (g/dL)*: $>3.5$ ($1\text{ pt}$), $2.8-3.5$ ($2\text{ pts}$), $<2.8$ ($3\text{ pts}$)
+    - *INR*: $<1.7$ ($1\text{ pt}$), $1.7-2.3$ ($2\text{ pts}$), $>2.3$ ($3\text{ pts}$)
+    - *Ascites*: None ($1\text{ pt}$), Slight/Controlled ($2\text{ pts}$), Moderate/Refractory ($3\text{ pts}$)
+    - *Encephalopathy Grade*: None ($1\text{ pt}$), Grade 1-2 ($2\text{ pts}$), Grade 3-4 ($3\text{ pts}$)
+    - *Classes*: Class A ($5-6\text{ points}$), Class B ($7-9\text{ points}$), Class C ($\ge 10\text{ points}$)
+
+5.  **Model for End-Stage Liver Disease (MELD)**:
+    Predicts 3-month mortality and guides organ allocation using clinical laboratory values:
+    $$MELD = 3.78 \cdot \ln(\max(1.0, \text{bilirubin})) + 11.2 \cdot \ln(\max(1.0, \text{INR})) + 9.57 \cdot \ln(\max(1.0, \text{creatinine})) + 6.43$$
+    clamped to integer values between $6$ and $40$.
 
 ---
 
@@ -1014,6 +1080,12 @@ The following lists the exact variables, structures, and data types stored in th
     *   `gutMotility`: `number` (Gut motility index, 0.0 - 1.0)
     *   `inflammatoryIleus`: `number` (Inflammatory ileus factor, 0.0 - 1.0)
     *   `postoperativeIleus`: `number` (Postoperative ileus duration, hours)
+    *   `mPAP`: `number` (Mean Pulmonary Artery Pressure, mmHg)
+    *   `HVPG`: `number` (Hepatic Venous Pressure Gradient, mmHg)
+    *   `pbf`: `number` (Portal Blood Flow, mL/min)
+    *   `habf`: `number` (Hepatic Arterial Blood Flow, mL/min)
+    *   `thbf`: `number` (Total Hepatic Blood Flow, mL/min)
+    *   `renalArteryResistance`: `number` (Renal Artery Resistance index)
     *   `sleepArousalThreshold`: `number` (Vigilance threshold for sensory arousal)
     *   `loopGain`: `number` (Respiratory feedback instability factor)
     *   `controllerGain`: `number` (Chemoreceptor sensitivity multiplier)
@@ -1042,6 +1114,18 @@ The following lists the exact variables, structures, and data types stored in th
     *   `oxygenBuffer`: `number | null`, `airwayBlood`: `boolean`, `isObese`: `boolean`, `isSeptic`: `boolean`, `hasCCollar`: `boolean`, `stomach`: `string` ('empty' | 'full'), `limitedMouth`: `boolean`, `trauma`: `boolean`, `chronicBetaBlockade`: `boolean`, `chronicHTN`: `boolean`, `highAnxiety`: `boolean`, `hasALine`: `boolean`, `hasCVC`: `boolean`, `hasIV`: `boolean`, `currentO2Device`: `string`, `currentFiO2`: `number`, `currentO2Flow`: `number`, `oculocardiacTriggered`: `boolean`
     *   `isApneic`: `boolean`, `isParalyzed`: `boolean`, `isTopicalized`: `boolean`, `airwaySecured`: `boolean`, `airwayExamined`: `boolean`, `ventilationStatus`: `string` ('none' | 'assisted' | 'successful' | 'failed' | 'spontaneous'), `tubePosition`: `string | null` ('trachea' | 'right_mainstem' | 'left_mainstem' | 'esophagus' | `null`), `isCuffDeflated`: `boolean`, `bmvOptimized`: `boolean`
     *   `vec3oh`: `number`, `normep`: `number`, `m6g`: `number`, `isSeizure`: `boolean`, `calciumStabilized`: `boolean`, `calciumStabilizedTime`: `number`, `bradycardiaTriggered`: `boolean`, `bradycardiaTime`: `number`, `laryngospasm`: `boolean`, `bronchospasm`: `boolean`, `isBucking`: `boolean`, `celiacBlockActive`: `boolean`, `epiduralBlockActive`: `boolean`, `swallowingActive`: `boolean`, `manipulationIndex`: `number`, `hasRegurgitated`: `boolean`, `hasAspirated`: `boolean`, `suxInjectionTime`: `number`
+    *   `cirrhosisFactor`: `number` (Hepatic cirrhosis score, 0.0 - 1.0)
+    *   `bilirubin`: `number` (Serum bilirubin level, mg/dL)
+    *   `inr`: `number` (International Normalized Ratio)
+    *   `creatinine`: `number` (Serum creatinine level, mg/dL)
+    *   `albumin`: `number` (Serum albumin level, g/dL)
+    *   `encephalopathyGrade`: `number` (West Haven criteria encephalopathy grade, 0 - 4)
+    *   `ascitesDegree`: `number` (Ascites severity degree, 0 - 2)
+    *   `surgicalProcedure`: `string` (Current scheduled surgical procedure)
+    *   `varicealBleedingActive`: `boolean` (Active gastroesophageal varices rupture flag)
+    *   `varicealBleedTime`: `number | null` (Timestamp of variceal rupture initiation)
+    *   `hasPoPHCollapse`: `boolean` (Portopulmonary acute RV collapse flag)
+    *   `hasTIPS`: `boolean` (Presence of Transjugular Intrahepatic Portosystemic Shunt)
     *   `nAChR_state`: `'normal' | 'upregulated' | 'downregulated'` (Nicotinic receptor expression state)
     *   `suxPhaseII`: `boolean` (Active Succinylcholine Phase II block flag)
     *   `suxCumulativeDose`: `number` (Cumulative succinylcholine dose, mg)
@@ -1161,6 +1245,7 @@ The simulator parses clinical textbooks into runtime rules and profiles during b
 12. **Alveolar Gas Partitioning**: The single-alveolus FRC model simplifies ventilation-perfusion distribution. Gravitational West zones and regional ventilation heterogeneities are represented through overall shunt fraction and compliance multipliers rather than discrete anatomical compartments.
 13. **Coronary Anatomy & Autoregulation**: The coronary system is modeled globally via left ventricular end-diastolic pressure and mean diastolic perfusion, representing local flow dynamics as a single lumped compartment with uniform stenosis scaling rather than independent regional vessel trees.
 14. **Gastrointestinal Cavities & Gas Solubility**: The bowel is treated as a single uniform gas cavity. Regional micro-peristalsis, stomach geometry, and anatomical divisions of the small and large bowel are represented via aggregate indices (`bowelGasVolume`, `gutMotility`, `inflammatoryIleus`) rather than detailed multi-segment spatial modeling.
+15. **Hepatic Blood Flow & Metabolism Autoregulation**: Liver circulation is represented as a lumped dual-supply system. Micro-lobular architecture, zone-specific hypoxia (Zones 1-3), and enzymatic induction rates for specific cytochrome P450 isoenzymes are simulated via aggregate flow rates and drug clearance ratios rather than detailed metabolic spatial maps.
 
 
 
@@ -1183,6 +1268,7 @@ The simulator parses clinical textbooks into runtime rules and profiles during b
 8.  [`AirwayPanel.jsx`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/components/controls/AirwayPanel.jsx): Renders glottic laryngoscopy viewpoints and handles direct mechanical instrumentation.
 9.  [`MemoryPanel.jsx`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/components/controls/MemoryPanel.jsx): Overlay panel showing subcortical activities, connectivities, memory states, and fear memory retrieval triggers.
 10. [`AttendingPanel.jsx`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/components/controls/AttendingPanel.jsx): Dual-tab sidebar panel hosting the automatic clinical monitor and conversational chat.
+11. [`HepaticEngine.ts`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts): Pure physical sub-engine coordinating liver perfusion, portal blood flow, HVPG dynamics, hepatorenal AKI, and PoPH-induced right heart overload.
 
 ---
 
@@ -1217,6 +1303,12 @@ To establish clinical enhancements, it is necessary to identify where the curren
 | **Nitrous Oxide Bowel Expansion** | Alveolar N2O diffuses into the bowel, causing gas volume expansion up to 2.5 in [GastrointestinalEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/GastrointestinalEngine.ts). | None. | Inhalational N2O exposure does not expand bowel gas volume or alter abdominal distension. |
 | **Postoperative Ileus (POI)** | Gut motility is blocked by opioids, stress-induced sympathetics, and surgery; epidural block protects motility in [GastrointestinalEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/GastrointestinalEngine.ts). | None. | Postoperative bowel motility recovery is constant and independent of surgical manipulation, opioid use, or sympathetic nerve blockade. |
 | **Swallowing Apnea** | Swallowing temporarily overrides and inhibits spontaneous breathing drive and mechanical ventilation in [RespiratoryEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RespiratoryEngine.ts). | None. | Swallowing events do not arrest spontaneous respiration or mechanical ventilation. |
+| **Hepatic Blood Flow & HABR** | Portal and arterial flows calculated dynamically based on CO ratio and cirrhosis; HABR blunted by Sevoflurane and hypotension in [HepaticEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts). | None. | Dual-supply hepatic circulation (PBF/HABF) and hepatic arterial buffer response auto-compensation are unmodeled. |
+| **Portal Hypertension & Variceal Bleeding** | HVPG rises with cirrhosis and falls with TIPS; pressure surges trigger bleeding; terlipressin constricts splanchnics and stops bleed in [HepaticEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts). | None. | Portal venous pressure gradient is not simulated; gastroesophageal varices rupture and active hematemesis are unmodeled. |
+| **Hepatorenal Syndrome (HRS)** | Splanchnic vasodilation raises renal resistance, leading to AKI and progressive creatinine accumulation in [HepaticEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts). | None. | Renal artery resistance is independent of liver cirrhosis and splanchnic tone; creatinine does not accumulate in liver failure. |
+| **Portopulmonary Hypertension (PoPH)** | Cirrhosis raises mPAP; hypoxia/hypercapnia/acidosis stressors trigger acute RV failure and PEA arrest in [HepaticEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts) and [CardiovascularEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/CardiovascularEngine.ts). | None. | Portopulmonary hypertension and stressful triggers of right ventricular failure/PEA cardiac arrest are unmodeled. |
+| **Hepatopulmonary Syndrome (HPS)** | Cirrhosis induces intrapulmonary vascular dilations creating right-to-left shunt, blunted by oxygen in [HepaticEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts) and [RespiratoryEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RespiratoryEngine.ts). | None. | Liver-induced intrapulmonary shunts and their responsive hypoxemia are unmodeled. |
+| **Low-CVP Hepatic Resection** | Venous back-bleeding scales with CVP; low-CVP fluid restriction reduces surgical blood loss in [HepaticEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts). | None. | Hepatic parenchymal bleeding rate is constant and independent of central venous pressure. |
 
 ---
 

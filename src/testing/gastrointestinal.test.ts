@@ -138,7 +138,7 @@ describe('Chapter 15 Gastrointestinal Physiology and Pathophysiology Unit Tests'
     it('should sequester blood volume in splanchnic circulation under epidural block and restore MAP with Phenylephrine', () => {
       const basePatient = {
         ebv: 5000,
-        intravascularVolume: 5000,
+        intravascularVolume: 0,
         patientBaseSVR: 1200,
         patientBaseHR: 70,
         patientBaseSV: 70,
