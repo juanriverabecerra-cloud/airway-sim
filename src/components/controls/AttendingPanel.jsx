@@ -105,7 +105,11 @@ async function handleFetchError(response) {
         errorMsg = errJson.details;
       }
     } else if (errJson && errJson.error) {
-      errorMsg = errJson.error;
+      if (typeof errJson.error === 'object' && errJson.error.message) {
+        errorMsg = errJson.error.message;
+      } else {
+        errorMsg = errJson.error;
+      }
     }
   } catch (e) {
     // Body is not JSON or couldn't be parsed
