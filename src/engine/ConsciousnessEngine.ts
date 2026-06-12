@@ -14,6 +14,10 @@ export interface ConsciousnessInputs {
   n2oMac: number;
   isSyncShock: boolean;
   time: number;
+  f3Ce?: number;
+  sIsofluraneCe?: number;
+  rIsofluraneCe?: number;
+  f6Ce?: number;
 }
 
 export class ConsciousnessEngine {
@@ -41,6 +45,17 @@ export class ConsciousnessEngine {
     let orexin = typeof patient.orexinLevel === 'number' ? patient.orexinLevel : (patient.narcolepsy ? 0.1 : 1.0);
     let soPower = typeof patient.slowOscillationPower === 'number' ? patient.slowOscillationPower : 0.1;
 
+    // Chapter 19: Molecular receptor inputs & chiral potencies
+    const f3CeVal = inputs.f3Ce || 0;
+    const sIsoCe = inputs.sIsofluraneCe || 0;
+    const rIsoCe = inputs.rIsofluraneCe || 0;
+    const f6CeVal = inputs.f6Ce || 0;
+
+    const activeIsoMac = inputs.isoMac + (sIsoCe / 0.9) + (rIsoCe / 1.8) + (f3CeVal / 1.2);
+    
+    // Genetic forebrain HCN1 knockout blunts hypnotic sensitivity to volatile agents
+    const volatileHypnoticMultiplier = patient.isHCN1Knockout ? 0.5 : 1.0;
+
     // 1. Numerical Integration Loop (Euler Sub-stepping)
     for (let i = 0; i < subSteps; i++) {
       // Competitive antagonism: Atipamezole blocks Dexmedetomidine at Alpha-2 receptors in the LC
@@ -51,7 +66,7 @@ export class ConsciousnessEngine {
         - 0.9 * (patient.alpha2AKnockout ? 0.0 : effectiveDexCe) // alpha-2A receptor knockout confers dexmed resistance in LC
         - 0.5 * inputs.propofolCe 
         - 0.4 * inputs.thiopentalCe 
-        - 0.4 * inputs.haloMac 
+        - 0.4 * inputs.haloMac * volatileHypnoticMultiplier
         + 0.3 * inputs.ketamineCe // Ketamine increases LC activity
         - 0.8 * vlpo
       );
@@ -62,7 +77,7 @@ export class ConsciousnessEngine {
       const tmnTarget = Math.max(0.01, 1.0 
         - propofolTmnEffect 
         - 0.7 * inputs.thiopentalCe 
-        - 0.6 * inputs.haloMac 
+        - 0.6 * inputs.haloMac * volatileHypnoticMultiplier
         - 0.8 * vlpo
       );
       tmn += (tmnTarget - tmn) * 0.1 * subDt;
@@ -72,7 +87,7 @@ export class ConsciousnessEngine {
         0.8 * inputs.propofolCe 
         + 0.7 * inputs.thiopentalCe 
         + 0.9 * effectiveDexCe 
-        + 0.5 * inputs.isoMac // Isoflurane depolarizes sleep-active VLPO neurons
+        + 0.5 * activeIsoMac * volatileHypnoticMultiplier // Isoflurane depolarizes sleep-active VLPO neurons
       );
       vlpo += (vlpoTarget - vlpo) * 0.1 * subDt;
 
@@ -80,22 +95,22 @@ export class ConsciousnessEngine {
       const orexinBase = patient.narcolepsy ? 0.1 : 1.0;
       const orexinTarget = Math.max(0.0, orexinBase 
         - 0.8 * inputs.propofolCe 
-        - 0.6 * inputs.sevoMac 
-        - 0.6 * inputs.isoMac
+        - 0.6 * inputs.sevoMac * volatileHypnoticMultiplier
+        - 0.6 * activeIsoMac * volatileHypnoticMultiplier
       );
       orexin += (orexinTarget - orexin) * 0.1 * subDt;
 
       // LDT/PPT cholinergic activity deactivation (sleep spindles during halothane/isoflurane)
       const ldtPptTarget = Math.max(0.01, 1.0 
         - 0.6 * inputs.propofolCe 
-        - 0.5 * inputs.haloMac 
-        - 0.5 * inputs.isoMac
+        - 0.5 * inputs.haloMac * volatileHypnoticMultiplier
+        - 0.5 * activeIsoMac * volatileHypnoticMultiplier
       );
       ldtPpt += (ldtPptTarget - ldtPpt) * 0.1 * subDt;
 
       // Pontine Reticular Formation (PRF) GABA-ergic deactivation
       const prfTarget = Math.max(0.01, 1.0 
-        - 0.75 * inputs.isoMac 
+        - 0.75 * activeIsoMac * volatileHypnoticMultiplier
         - 0.7 * inputs.propofolCe
       );
       prf += (prfTarget - prf) * 0.1 * subDt;
@@ -108,7 +123,7 @@ export class ConsciousnessEngine {
       vta += (vtaTarget - vta) * 0.15 * subDt;
 
       // Slow delta oscillation power build-up (propofol causes rapid delta fragmentation within 5s of LOC)
-      const soPowerTarget = 2.5 * inputs.propofolCe + 1.8 * inputs.sevoMac + 1.5 * inputs.isoMac;
+      const soPowerTarget = 2.5 * inputs.propofolCe + 1.8 * inputs.sevoMac * volatileHypnoticMultiplier + 1.5 * activeIsoMac * volatileHypnoticMultiplier;
       soPower += (soPowerTarget - soPower) * 0.25 * subDt;
     }
 
@@ -116,8 +131,8 @@ export class ConsciousnessEngine {
     // Nonspecific thalamocortical path disconnection best accounts for propofol/sevo LOC
     const thalamocortical = Math.max(0.0, Math.min(1.0, 1.0 
       - 0.9 * inputs.propofolCe 
-      - 0.85 * inputs.sevoMac 
-      - 0.8 * inputs.isoMac 
+      - 0.85 * inputs.sevoMac * volatileHypnoticMultiplier
+      - 0.8 * activeIsoMac * volatileHypnoticMultiplier
       - 0.7 * inputs.midazolamCe 
       + 0.2 * inputs.ketamineCe // Ketamine spares or activates thalamic connectivity
     ));
@@ -125,8 +140,8 @@ export class ConsciousnessEngine {
     // Frontoparietal feedback (top-down) directional connectivity disruption
     const frontoparietal = Math.max(0.0, Math.min(1.0, 1.0 
       - 0.95 * inputs.propofolCe 
-      - 0.9 * inputs.sevoMac 
-      - 0.85 * inputs.isoMac 
+      - 0.9 * inputs.sevoMac * volatileHypnoticMultiplier
+      - 0.85 * activeIsoMac * volatileHypnoticMultiplier
       - 0.85 * inputs.midazolamCe 
       - 0.8 * inputs.thiopentalCe 
       - 0.7 * inputs.ketamineCe
@@ -137,7 +152,7 @@ export class ConsciousnessEngine {
 
     // Frontal cortex-basal ganglia functional connectivity (putamen/caudate disconnect)
     const basalGanglia = Math.max(0.0, Math.min(1.0, 1.0 
-      - 0.85 * inputs.isoMac 
+      - 0.85 * activeIsoMac * volatileHypnoticMultiplier
       - 0.8 * inputs.propofolCe
     ));
 
@@ -145,8 +160,8 @@ export class ConsciousnessEngine {
     const alpha5Kd = 0.5;
     // Methylphenidate (CNS stimulant) indirectly opposes hypnotic GABA potentiation
     const effectiveEtomidate = inputs.etomidateCe * (1.0 - inputs.methylphenidateCe * 0.15);
-    const alpha5Gabaa = patient.alpha5Knockout ? 0.0 : (effectiveEtomidate + inputs.isoMac) / (alpha5Kd + effectiveEtomidate + inputs.isoMac);
-    const alpha4Gabaa = patient.alpha4Knockout ? 0.0 : (inputs.isoMac * 1.5) / (1.0 + inputs.isoMac * 1.5);
+    const alpha5Gabaa = patient.alpha5Knockout ? 0.0 : (effectiveEtomidate + activeIsoMac) / (alpha5Kd + effectiveEtomidate + activeIsoMac);
+    const alpha4Gabaa = patient.alpha4Knockout ? 0.0 : (activeIsoMac * 1.5) / (1.0 + activeIsoMac * 1.5);
 
     // 4. Memory Decay & Consolidation (Power Law: m(t) = lambda * t^(-psi))
     const baseArousal = Math.max(0.01, lc * 0.4 + tmn * 0.4 + orexin * 0.2);
@@ -161,15 +176,22 @@ export class ConsciousnessEngine {
     ));
     lambda = Math.max(0.0, Math.min(1.0, lambda));
 
+    // Chapter 19: Amnestic Nonimmobilizer (F6) blocks learning/episodic encoding completely
+    const isF6Active = f6CeVal > 0.1;
+    const isF3Active = f3CeVal > 0.1;
+    if (isF6Active) {
+      lambda = 0.0;
+    }
+
     // Consolidation Failure Rate (psi) - Propofol and Midazolam cause consolidation failure
     let psi = 0.1 
       + 0.85 * inputs.propofolCe 
       + 0.85 * (inputs.midazolamCe > 0.01 ? 1.0 : 0.0) 
       + 0.4 * inputs.sevoMac 
-      + 0.4 * inputs.isoMac;
+      + 0.4 * activeIsoMac;
     
     // LTP block via hippocampal alpha-5 / alpha-4 GABA-A receptor activation
-    const ltpInductionInhibited = (alpha5Gabaa > 0.4) || (alpha4Gabaa > 0.5) || (inputs.propofolCe > 0.5);
+    const ltpInductionInhibited = (alpha5Gabaa > 0.4) || (alpha4Gabaa > 0.5) || (inputs.propofolCe > 0.5) || isF6Active;
     if (ltpInductionInhibited) {
       psi = Math.max(3.5, psi * 2.5); // accelerated memory decay (instant consolidation block)
     }
@@ -184,15 +206,20 @@ export class ConsciousnessEngine {
     const n2Lat = Math.round(200 + (inputs.propofolCe * 120) + (inputs.dexmedCe * 50));
 
     // 6. Hippocampal Theta Rhythm Dynamics
-    // Isoflurane and halothane slow theta peak frequency, while scopolamine accelerates it
-    const thetaFreq = Math.max(1.0, Math.min(10.0, 7.0 - 2.5 * inputs.isoMac - 1.5 * inputs.haloMac - 1.0 * inputs.n2oMac + 2.0 * inputs.scopolamineCe));
-    // Scopolamine and deep propofol cause a loss of absolute power
-    const thetaPower = Math.max(0.0, 1.0 - 0.75 * inputs.scopolamineCe - (inputs.propofolCe > 1.5 ? 0.5 : 0.0));
+    // TASK-3 is required for halothane-induced theta slowing. isTASK3Knockout blunts this effect.
+    const effectiveHaloMacForThetaFreq = patient.isTASK3Knockout ? 0.0 : inputs.haloMac;
+    const thetaFreq = Math.max(1.0, Math.min(10.0, 7.0 - 2.5 * activeIsoMac - 1.5 * effectiveHaloMacForThetaFreq - 1.0 * inputs.n2oMac + 2.0 * inputs.scopolamineCe));
+    
+    // Scopolamine and deep propofol cause a loss of absolute power; TASK-3 knockout + Halothane causes theta rhythm to disappear
+    let thetaPower = Math.max(0.0, 1.0 - 0.75 * inputs.scopolamineCe - (inputs.propofolCe > 1.5 ? 0.5 : 0.0));
+    if (patient.isTASK3Knockout && inputs.haloMac > 0.05) {
+      thetaPower = 0.0;
+    }
     const amygdaloHippocampal = Math.max(0.0, Math.min(1.0, thetaPower * (thetaFreq / 7.0) * thalamocortical));
 
     // 7. Hysteresis / Neural Inertia
     // Emergence lag from volatile agents and propofol
-    const anestheticPressure = inputs.sevoMac + inputs.isoMac + inputs.haloMac + inputs.propofolCe / 2.5;
+    const anestheticPressure = inputs.sevoMac + activeIsoMac + inputs.haloMac + inputs.propofolCe / 2.5;
     let inertiaLag = typeof patient.neuralInertiaLag === 'number' ? patient.neuralInertiaLag : 0.0;
     if (anestheticPressure > 0.8) {
       inertiaLag = Math.min(1.0, inertiaLag + 0.05 * dt);
@@ -230,7 +257,9 @@ export class ConsciousnessEngine {
       hippocampalThetaFreq: parseFloat(thetaFreq.toFixed(2)),
       hippocampalThetaPower: parseFloat(thetaPower.toFixed(2)),
       amygdaloHippocampalConn: parseFloat(amygdaloHippocampal.toFixed(3)),
-      neuralInertiaLag: parseFloat(inertiaLag.toFixed(3))
+      neuralInertiaLag: parseFloat(inertiaLag.toFixed(3)),
+      isF6Active,
+      isF3Active
     };
   }
 }

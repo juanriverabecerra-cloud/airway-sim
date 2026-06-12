@@ -11,7 +11,6 @@ export function synthesizeArterialLine(tBeat, beatDuration, canvasHeight, timeSe
   
   const sys = (vitals && typeof vitals.sys === 'number') ? vitals.sys : 120;
   const dia = (vitals && typeof vitals.dia === 'number') ? vitals.dia : 80;
-  const map = (vitals && typeof vitals.map === 'number') ? vitals.map : 90;
   
   const isArrest = patient?.isArrest || false;
   const rhythm = patient?.cardiacRhythm || 'normal';
@@ -158,7 +157,7 @@ export function synthesizeArterialLine(tBeat, beatDuration, canvasHeight, timeSe
 
 function drawArterialWave(p, sbp, dbp, contractility, svr, damping, h, pNotch, notchSharpness) {
   const pp = sbp - dbp;
-  let s = 0; // Normalized shape factor [0, 1]
+  let s; // Normalized shape factor [0, 1]
 
   if (damping === 'overdamped') {
     // Overdamped: smooth upstroke, rounded peak, no notch, slow decay

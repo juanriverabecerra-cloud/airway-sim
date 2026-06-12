@@ -126,13 +126,11 @@ function synthesizeClinicalOutline(query, kbResults) {
       if (sentence.length < 25 || sentence.length > 350) continue;
 
       const sentenceLower = sentence.toLowerCase();
-      let matches = 0;
       const uniqueMatches = new Set();
 
       for (const token of queryTokens) {
         const term = token.includes('_') ? token.replace(/_/g, ' ') : token;
         if (sentenceLower.includes(term)) {
-          matches++;
           uniqueMatches.add(token);
         }
       }
@@ -265,8 +263,6 @@ function synthesizeClinicalOutline(query, kbResults) {
 
 export function getAttendingResponse(query, state, history) {
   const safeQuery = typeof query === 'string' ? query : '';
-  const q = safeQuery.toLowerCase().trim();
-  
   const activeHistory = history || conversationHistory;
   
   const historyMatch = searchHistory(safeQuery, activeHistory);

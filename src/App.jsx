@@ -517,7 +517,17 @@ export default function App() {
       oxygenBuffer: null, // Let engine calculate from FRC
       drugEffects: { sys: 0, hr: 0 }, accessLines: [],
       patientBaseHR: selectedCase.baseVitals.hr,
-      patientBaseRR: selectedCase.baseVitals.rr || 12
+      patientBaseRR: selectedCase.baseVitals.rr || 12,
+      lastAirwayManipulationTime: -999,
+      lastAirwayManipulationType: '',
+      laryngoscopyActive: false,
+      laryngoscopyTime: -999,
+      cricPlacedTime: -999,
+      cricSympatheticSurgeActive: false,
+      ioPlacedTime: -999,
+      ioSympatheticSurgeActive: false,
+      lastLinePlacementTime: -999,
+      lastLineCategory: ''
     });
     if (selectedCase.preOpLabs) {
       setLabs(selectedCase.preOpLabs);

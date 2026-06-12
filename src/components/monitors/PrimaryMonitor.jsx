@@ -17,7 +17,6 @@ export const PrimaryMonitor = ({
   activeMeds,
   onEkgClick
 }) => {
-  const isSplit = patient?.airwaySecured;
   const hrSpO2Class = "text-3xl @[200px]:text-4xl @[240px]:text-5xl @[280px]:text-6xl @[345px]:text-7xl @[410px]:text-8xl";
   const bpClass = "text-2xl @[200px]:text-3xl @[240px]:text-4xl @[280px]:text-5xl @[345px]:text-6xl @[410px]:text-7xl";
   const mapClass = "text-xs @[200px]:text-sm @[240px]:text-base @[280px]:text-lg @[345px]:text-xl @[410px]:text-2xl";
@@ -101,7 +100,7 @@ export const PrimaryMonitor = ({
           </div>
         )}
         <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
-          <div className="absolute text-cyan-550/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">PLETH</div>
+          <div className="absolute text-cyan-500/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">PLETH</div>
           <CanvasWaveform 
             color="#06b6d4" 
             speed={patient?.cprActive ? 100 : hrSpeed} 
@@ -267,8 +266,8 @@ export const PrimaryMonitor = ({
         </div>
 
         {/* Row 4: Advanced Monitoring Grid */}
-        <div className="bg-slate-955/80 border border-slate-800/85 rounded p-1.5 flex flex-col justify-between h-full overflow-hidden shadow-md">
-          <span className="text-[8.5px] text-slate-550 font-black uppercase tracking-widest border-b border-slate-900 pb-0.5 leading-none mb-1">Advanced Monitoring</span>
+        <div className="bg-slate-950/80 border border-slate-800/80 rounded p-1.5 flex flex-col justify-between h-full overflow-hidden shadow-md">
+          <span className="text-[8.5px] text-slate-500 font-black uppercase tracking-widest border-b border-slate-900 pb-0.5 leading-none mb-1">Advanced Monitoring</span>
           
           <div className="flex-1 flex justify-between items-stretch gap-1.5">
             {/* TEMP (Slate) */}
@@ -320,22 +319,22 @@ export const PrimaryMonitor = ({
                 {patient?.hasBisMonitor ? (
                   <span className={`${tempBisClass} font-black text-purple-300 leading-none select-all`}>{vitals?.bis || 98}</span>
                 ) : (
-                  <span className="text-[8px] lg:text-[9.5px] text-slate-655 font-bold uppercase tracking-wider select-none italic text-center">NO EEG</span>
+                  <span className="text-[8px] lg:text-[9.5px] text-slate-500 font-bold uppercase tracking-wider select-none italic text-center">NO EEG</span>
                 )}
               </div>
             </div>
             
             {/* TOF (Orange) */}
-            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between hover:border-orange-555/20 transition-all overflow-hidden">
+            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between hover:border-orange-500/20 transition-all overflow-hidden">
               <span className="text-[8px] lg:text-[9.5px] text-orange-400 font-bold uppercase tracking-wider leading-none">TOF</span>
               <div className="flex-1 flex items-center justify-center">
                 {patient?.hasTofMonitor ? (
                   <div className="flex flex-col items-center justify-center leading-none">
                     <span className={`${advClass} font-black text-orange-300 leading-none select-all`}>{vitals?.tofCount}/4</span>
-                    <span className="text-[8.5px] text-orange-555 font-bold mt-0.5 leading-none">{(vitals?.tofRatio * 100).toFixed(0)}%</span>
+                    <span className="text-[8.5px] text-orange-500 font-bold mt-0.5 leading-none">{(vitals?.tofRatio * 100).toFixed(0)}%</span>
                   </div>
                 ) : (
-                  <span className="text-[8px] lg:text-[9.5px] text-slate-655 font-black uppercase tracking-wider select-none italic font-mono text-center">NO TOF</span>
+                  <span className="text-[8px] lg:text-[9.5px] text-slate-500 font-black uppercase tracking-wider select-none italic font-mono text-center">NO TOF</span>
                 )}
               </div>
             </div>

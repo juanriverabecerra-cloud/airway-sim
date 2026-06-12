@@ -43,6 +43,9 @@ export interface PatientState {
   epiduralBlockActive?: boolean;
   celiacBlockActive?: boolean;
   hasPoPHCollapse?: boolean;
+  ischemiaActive?: boolean;
+  ischemiaMildLogged?: boolean;
+  ischemiaSevereLogged?: boolean;
 }
 
 export interface VitalsState {
@@ -240,12 +243,76 @@ export class CardiovascularEngine {
 
     // Ischemia & Stunning Loop
     let stunningIncrease = 0;
-    if (supplyVal < mvo2Val && !isArrestState) {
+    const isCurrentlyIschemic = (supplyVal < mvo2Val) && !isArrestState;
+    if (isCurrentlyIschemic) {
       stunningIncrease = Math.round((mvo2Val - supplyVal) * 0.0000381 * 10) / 10;
       newStunning = Math.min(60, Math.max(0, newStunning + stunningIncrease));
-      if (Math.random() < 0.05) {
-        events.push(`⚠️ MYOCARDIAL ISCHEMIA: Supply (${Math.round(supplyVal)}) fails to meet Demand (${Math.round(mvo2Val)})! Stunning is increasing (Stunning: ${newStunning.toFixed(1)}%).`);
+    }
+
+    if (isCurrentlyIschemic && newStunning >= 1.0) {
+      if (!patient.ischemiaActive) {
+        patient.ischemiaActive = true;
+        let msg = `⚠️ MYOCARDIAL ISCHEMIA: Oxygen supply fails to meet metabolic demand! Stunning is beginning (Stunning: ${newStunning.toFixed(1)}%).\n`;
+        msg += `• Pathophysiology: `;
+        const details: string[] = [];
+        if (safeHR > 95) {
+          details.push(`Tachycardia (HR: ${safeHR} bpm) limits diastolic coronary perfusion time`);
+        }
+        if (safeDia < 65) {
+          details.push(`Hypotension (DBP: ${safeDia} mmHg) reduces coronary perfusion pressure`);
+        }
+        if (lvedpVal > 18) {
+          details.push(`High preload (LVEDP: ${Math.round(lvedpVal)} mmHg) compresses subendocardial vessels`);
+        }
+        if (newSpo2 < 92) {
+          details.push(`Hypoxia (SpO2: ${newSpo2.toFixed(0)}%) reduces arterial oxygen content`);
+        }
+        if (safeCurrentHb < 9.0) {
+          details.push(`Anemia (Hb: ${safeCurrentHb.toFixed(1)} g/dL) reduces oxygen carrying capacity`);
+        }
+        if (patient.cad || patient.hasCAD) {
+          details.push(`Coronary Artery Disease limits flow reserve`);
+        }
+        if (details.length === 0) {
+          details.push(`Increased cardiac workload (MVO2: ${Math.round(mvo2Val)}) exceeds coronary delivery`);
+        }
+        msg += details.join(", ") + ".\n";
+
+        msg += `• Interventions: `;
+        const interventions: string[] = [];
+        if (safeHR > 95) {
+          interventions.push(`Control heart rate (e.g., titrate [esmolol] or deepen anesthesia)`);
+        }
+        if (safeDia < 65 || safeMap < 65) {
+          interventions.push(`Raise perfusion pressure (e.g., administer [phenylephrine] or [norepinephrine] bolus/infusion)`);
+        }
+        if (newSpo2 < 92) {
+          interventions.push(`Optimize ventilation / increase inspired oxygen fraction (FiO2)`);
+        }
+        if (safeCurrentHb < 9.0) {
+          interventions.push(`Consider blood transfusion (PRBC)`);
+        }
+        if (interventions.length === 0) {
+          interventions.push(`Deepen anesthetic or reduce surgical stress to lower heart rate and afterload`);
+        }
+        msg += interventions.join("; ") + ".";
+        events.push(msg);
+      } else {
+        // Severity progression warnings
+        if (newStunning >= 10.0 && !patient.ischemiaMildLogged) {
+          patient.ischemiaMildLogged = true;
+          events.push(`⚠️ MYOCARDIAL ISCHEMIA PROGRESSION: Stunning has reached ${newStunning.toFixed(1)}%. Wall motion abnormalities and subendocardial hypokinesia are developing. Deepen anesthesia, slow the heart, or support MAP!`);
+        }
+        if (newStunning >= 30.0 && !patient.ischemiaSevereLogged) {
+          patient.ischemiaSevereLogged = true;
+          events.push(`🚨 SEVERE MYOCARDIAL ISCHEMIA: Stunning has reached ${newStunning.toFixed(1)}%. High risk of cardiogenic shock and critical low cardiac output failure. Intervene immediately to restore supply-demand balance!`);
+        }
       }
+    } else if (!isCurrentlyIschemic && patient.ischemiaActive) {
+      patient.ischemiaActive = false;
+      patient.ischemiaMildLogged = false;
+      patient.ischemiaSevereLogged = false;
+      events.push(`✅ MYOCARDIAL ISCHEMIA RESOLVED: Coronary perfusion supply now meets myocardial metabolic demand. Myocardial stunning has stabilized and is recovering.`);
     }
 
     const inotropyFinal = Math.max(0.01, 1.0 - (newStunning / 100) + safeContractilitySympatheticSpike + (safeDrugInotropyMod - 1.0));

@@ -23,7 +23,6 @@ export function synthesizeVentFlow(
   activeMeds,
   ieRatio = 2,
   ampScale = 1.0,
-  baseScale = 0.0,
   mode = 'vcv'
 ) {
   const h = typeof canvasHeight === 'number' && Number.isFinite(canvasHeight) ? canvasHeight : 100;
@@ -135,7 +134,6 @@ export function synthesizeVentPressure(
   const rr = vitals && typeof vitals.rr === 'number' ? vitals.rr : 12;
 
   // Retrive clinical pressure targets
-  const peepVal = vitals && typeof vitals.peep === 'number' ? vitals.peep : 5;
   const pipVal = vitals && typeof vitals.pip === 'number' ? vitals.pip : 20;
   const pplatVal = vitals && typeof vitals.pplat === 'number' ? vitals.pplat : 15;
 

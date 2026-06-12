@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { CanvasWaveform } from '../CanvasWaveform';
 import { Activity, X, Heart, ShieldAlert, Zap } from 'lucide-react';
 
@@ -13,7 +13,7 @@ export const EkgModal = ({
   rrSpeed 
 }) => {
   const [viewMode, setViewMode] = useState('12lead'); // '3lead', '5lead', '12lead'
-  const [gridTheme, setGridTheme] = useState('green'); // 'green', 'pink'
+  const gridTheme = 'green'; // 'green', 'pink'
 
   if (!show) return null;
 

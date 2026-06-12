@@ -112,6 +112,26 @@ export const INHALATIONAL_AGENTS = {
     name: 'Nitrous Oxide', mac40: 104, bgPartition: 0.46, oilGasPartition: 1.4, brainBgPartition: 1.1, vaporPress: 38770, 
     sysMax: 5, diaMax: 5, hrMax: 5, rrMax: -5,
     description: 'Low potency. Diffuses into air-filled cavities (pneumothorax, bowel, ETT cuff). NMDA antagonist analgesic.'
+  },
+  f6: {
+    name: 'F6 (Nonimmobilizer)', mac40: 9999.0, bgPartition: 1.5, oilGasPartition: 60, brainBgPartition: 1.4, vaporPress: 180,
+    sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0,
+    description: 'Amnestic cyclobutane nonimmobilizer. Selectively blocks learning/episodic memory with zero MAC contribution.'
+  },
+  f3: {
+    name: 'F3 (Anesthetic)', mac40: 1.2, bgPartition: 1.0, oilGasPartition: 70, brainBgPartition: 1.5, vaporPress: 240,
+    sysMax: -20, diaMax: -20, hrMax: 0, rrMax: -10,
+    description: 'Halogenated cyclobutane volatile anesthetic. Produces immobility, sedation, and amnesia.'
+  },
+  s_isoflurane: {
+    name: 'S-Isoflurane', mac40: 0.9, bgPartition: 1.46, oilGasPartition: 98, brainBgPartition: 1.6, vaporPress: 240,
+    sysMax: -30, diaMax: -30, hrMax: 5, rrMax: -15,
+    description: 'Active stereoisomer of Isoflurane. Twice as potent as R-Isoflurane.'
+  },
+  r_isoflurane: {
+    name: 'R-Isoflurane', mac40: 1.8, bgPartition: 1.46, oilGasPartition: 98, brainBgPartition: 1.6, vaporPress: 240,
+    sysMax: -15, diaMax: -15, hrMax: 5, rrMax: -10,
+    description: 'Chiral enantiomer of Isoflurane. Lower potency, requires higher concentration.'
   }
 };
 
@@ -606,6 +626,42 @@ export const MEDICATIONS = {
     pk: { V1: 15.0, V2: 30.0, V3: 0, k10: 0.04, k12: 0.05, k21: 0.04, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 },
     pd: { c50: 0.05, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 15, rrMax: 0 },
     notes: 'Tertiary amine anticholinergic. Crosses the blood-brain barrier. Causes marked anterograde amnesia and sedation. Accelerates hippocampal theta oscillations while reducing absolute power.'
+  },
+  f6: {
+    name: 'F6 (Nonimmobilizer)', classes: ['Cyclobutane', 'Nonimmobilizer'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic / Pulmonary', proteinBinding: 0.80, synergyGroup: 'Other', pkModel: 'Standard Compartmental',
+    targetReceptor: 'nAChR / Muscarinic', intracellularCascade: 'Selectively inhibits neuronal nicotinic and muscarinic receptors',
+    indications: { 'Selective Amnesia': { dose: '2.0', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 10.0, V2: 25.0, V3: 80.0, k10: 0.15, k12: 0.1, k21: 0.05, k13: 0.03, k31: 0.01, ke0: 1.0, coSensitivity: 0.2 },
+    pd: { c50: 2.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Selective amnestic cyclobutane. Does NOT produce immobility or sedation.'
+  },
+  f3: {
+    name: 'F3 (Anesthetic)', classes: ['Cyclobutane', 'Volatile Anesthetic'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic / Pulmonary', proteinBinding: 0.75, synergyGroup: 'Sedative', pkModel: 'Standard Compartmental',
+    targetReceptor: 'GABA-A / Glycine', intracellularCascade: 'Enhances GABA-A and glycine receptor binding',
+    indications: { 'General Anesthesia': { dose: '1.5', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 10.0, V2: 25.0, V3: 80.0, k10: 0.10, k12: 0.1, k21: 0.05, k13: 0.03, k31: 0.01, ke0: 0.8, coSensitivity: 0.2 },
+    pd: { c50: 1.2, gamma: 2.5, sysMax: -20, diaMax: -20, hrMax: 0, rrMax: -10, inducesApneaAtCe: 2.0 },
+    notes: 'Halogenated cyclobutane. Produces immobility, sedation, and amnesia.'
+  },
+  s_isoflurane: {
+    name: 'S-Isoflurane', classes: ['Chiral Volatile', 'Active Enantiomer'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic / Pulmonary', proteinBinding: 0.85, synergyGroup: 'Sedative', pkModel: 'Standard Compartmental',
+    targetReceptor: 'GABA-A / Glycine / K2P', intracellularCascade: 'High-affinity stereoselective binding to GABA-A and Glycine receptors',
+    indications: { 'General Anesthesia': { dose: '1.0', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 1.40, V2: 5.0, V3: 20.0, k10: 0.08, k12: 0.12, k21: 0.06, k13: 0.04, k31: 0.01, ke0: 0.8, coSensitivity: 0.3 },
+    pd: { c50: 0.9, gamma: 2.0, sysMax: -30, diaMax: -30, hrMax: 5, rrMax: -15, inducesApneaAtCe: 1.5 },
+    notes: 'Active enantiomer of Isoflurane. High-affinity binding, twice as potent as R-Isoflurane.'
+  },
+  r_isoflurane: {
+    name: 'R-Isoflurane', classes: ['Chiral Volatile', 'Inactive Enantiomer'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepating / Pulmonary', proteinBinding: 0.85, synergyGroup: 'Sedative', pkModel: 'Standard Compartmental',
+    targetReceptor: 'GABA-A / Glycine / K2P', intracellularCascade: 'Lower-affinity stereoselective binding to GABA-A and Glycine receptors',
+    indications: { 'General Anesthesia': { dose: '2.0', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 1.40, V2: 5.0, V3: 20.0, k10: 0.08, k12: 0.12, k21: 0.06, k13: 0.04, k31: 0.01, ke0: 0.8, coSensitivity: 0.3 },
+    pd: { c50: 1.8, gamma: 2.0, sysMax: -15, diaMax: -15, hrMax: 5, rrMax: -10, inducesApneaAtCe: 3.0 },
+    notes: 'Less active enantiomer of Isoflurane. Lower potency, requires higher concentration.'
   }
 };
 

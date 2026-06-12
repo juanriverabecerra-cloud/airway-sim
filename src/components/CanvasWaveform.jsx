@@ -165,53 +165,51 @@ export const CanvasWaveform = React.memo(({
           } else if (type === 'etco2') {
               y = synthesizeEtCo2(tBeatVal, beatDurationVal, h, time / 1000, patientState, vitals, activeMeds, ieRatio, ampScale, baseScale);
           } else if (type === 'eeg') {
-              let yEEG = base;
-              const bis = vitals?.bis !== undefined ? vitals.bis : 98;
-              const bsr = vitals?.bsr !== undefined ? vitals.bsr : 0;
-              const isArrest = patientState?.isArrest || false;
-              
-              if (isArrest || patientState?.biologicalDeath || bis < 3) {
-                  yEEG = base + (Math.random() - 0.5) * 0.5;
-              } else {
-                  const tSecs = time / 1000;
-                  const isBursted = bsr > 0;
-                  const cyclePeriod = 6.0;
-                  const cyclePhase = tSecs % cyclePeriod;
-                  const activeFrac = (100 - bsr) / 100;
-                  const isFlatPeriod = cyclePhase > (cyclePeriod * activeFrac);
-                  
-                  if (isBursted && isFlatPeriod) {
-                      yEEG = base + (Math.random() - 0.5) * 0.4;
-                  } else {
-                      const gamma = Math.sin(tSecs * 2 * Math.PI * 32.0) * 2.0 + Math.sin(tSecs * 2 * Math.PI * 25.0) * 1.5;
-                      const beta = Math.sin(tSecs * 2 * Math.PI * 18.0) * 4.0 + Math.cos(tSecs * 2 * Math.PI * 15.0) * 3.0;
-                      const alphaEnvelope = 0.5 + 0.5 * Math.sin(tSecs * 2 * Math.PI * 0.5);
-                      const alpha = Math.sin(tSecs * 2 * Math.PI * 10.0) * 8.0 * alphaEnvelope;
-                      const theta = Math.sin(tSecs * 2 * Math.PI * 5.0) * 10.0;
-                      const delta = Math.sin(tSecs * 2 * Math.PI * 1.5) * 20.0 + Math.cos(tSecs * 2 * Math.PI * 0.8) * 15.0;
-                      
-                      let wGammaBeta = 0; let wAlpha = 0; let wTheta = 0; let wDelta = 0;
-                      if (bis > 85) {
-                          wGammaBeta = 1.0;
-                      } else if (bis > 65) {
-                          const f = (bis - 65) / 20;
-                          wGammaBeta = f * 0.8;
-                          wAlpha = (1 - f) * 0.7 + 0.2;
-                          wTheta = (1 - f) * 0.3;
-                      } else if (bis > 40) {
-                          const f = (bis - 40) / 25;
-                          wAlpha = f * 0.6;
-                          wTheta = f * 0.4;
-                          wDelta = (1 - f) * 0.8;
-                      } else {
-                          wDelta = 1.0;
-                      }
-                      
-                      const rawSignal = (gamma * wGammaBeta) + (beta * wGammaBeta * 0.8) + (alpha * wAlpha) + (theta * wTheta) + (delta * wDelta);
-                      yEEG = base + rawSignal * 0.6 * ampScale;
-                  }
-              }
-              y = yEEG;
+                const bis = vitals?.bis !== undefined ? vitals.bis : 98;
+                const bsr = vitals?.bsr !== undefined ? vitals.bsr : 0;
+                const isArrest = patientState?.isArrest || false;
+                
+                if (isArrest || patientState?.biologicalDeath || bis < 3) {
+                    y = base + (Math.random() - 0.5) * 0.5;
+                } else {
+                    const tSecs = time / 1000;
+                    const isBursted = bsr > 0;
+                    const cyclePeriod = 6.0;
+                    const cyclePhase = tSecs % cyclePeriod;
+                    const activeFrac = (100 - bsr) / 100;
+                    const isFlatPeriod = cyclePhase > (cyclePeriod * activeFrac);
+                    
+                    if (isBursted && isFlatPeriod) {
+                        y = base + (Math.random() - 0.5) * 0.4;
+                    } else {
+                        const gamma = Math.sin(tSecs * 2 * Math.PI * 32.0) * 2.0 + Math.sin(tSecs * 2 * Math.PI * 25.0) * 1.5;
+                        const beta = Math.sin(tSecs * 2 * Math.PI * 18.0) * 4.0 + Math.cos(tSecs * 2 * Math.PI * 15.0) * 3.0;
+                        const alphaEnvelope = 0.5 + 0.5 * Math.sin(tSecs * 2 * Math.PI * 0.5);
+                        const alpha = Math.sin(tSecs * 2 * Math.PI * 10.0) * 8.0 * alphaEnvelope;
+                        const theta = Math.sin(tSecs * 2 * Math.PI * 5.0) * 10.0;
+                        const delta = Math.sin(tSecs * 2 * Math.PI * 1.5) * 20.0 + Math.cos(tSecs * 2 * Math.PI * 0.8) * 15.0;
+                        
+                        let wGammaBeta = 0; let wAlpha = 0; let wTheta = 0; let wDelta = 0;
+                        if (bis > 85) {
+                            wGammaBeta = 1.0;
+                        } else if (bis > 65) {
+                            const f = (bis - 65) / 20;
+                            wGammaBeta = f * 0.8;
+                            wAlpha = (1 - f) * 0.7 + 0.2;
+                            wTheta = (1 - f) * 0.3;
+                        } else if (bis > 40) {
+                            const f = (bis - 40) / 25;
+                            wAlpha = f * 0.6;
+                            wTheta = f * 0.4;
+                            wDelta = (1 - f) * 0.8;
+                        } else {
+                            wDelta = 1.0;
+                        }
+                        
+                        const rawSignal = (gamma * wGammaBeta) + (beta * wGammaBeta * 0.8) + (alpha * wAlpha) + (theta * wTheta) + (delta * wDelta);
+                        y = base + rawSignal * 0.6 * ampScale;
+                    }
+                }
           } else {
               const morphGroup = WAVEFORMS[type] || WAVEFORMS.ecg;
               const morphFn = morphGroup[morphology] || morphGroup.normal || Object.values(morphGroup)[0];

@@ -193,6 +193,16 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           patientBaseDBP: safeBaseVitals.dia || 80,
           oculocardiacTriggered: false,
           patientBaseRR: safeBaseVitals.rr || 12,
+          lastAirwayManipulationTime: -999,
+          lastAirwayManipulationType: '',
+          laryngoscopyActive: false,
+          laryngoscopyTime: -999,
+          cricPlacedTime: -999,
+          cricSympatheticSurgeActive: false,
+          ioPlacedTime: -999,
+          ioSympatheticSurgeActive: false,
+          lastLinePlacementTime: -999,
+          lastLineCategory: '',
           
           metHb: 0.8,
           coHb: activeCase.id === 'trauma' ? 12.0 : 1.0,
@@ -354,7 +364,20 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           reconsolidationTimer: 0,
           fearConditioning: 0.0,
           fearExtinguished: false,
-          displayEmergenceLag: false
+          displayEmergenceLag: false,
+          isF6Active: false,
+          isF3Active: false,
+          isTASK1Knockout: safePatientObj.isTASK1Knockout || false,
+          isTASK3Knockout: safePatientObj.isTASK3Knockout || false,
+          isTREK1Knockout: safePatientObj.isTREK1Knockout || false,
+          isHCN1Knockout: safePatientObj.isHCN1Knockout || false,
+          gabaa_occupancy: 0.0,
+          glycine_occupancy: 0.0,
+          k2p_activation: 0.0,
+          nmda_blockade: 0.0,
+          hcn_inhibition: 0.0,
+          nav_blockade: 0.0,
+          nachr_inhibition: 0.0
         });
         
         setTime(0); setActiveMeds([]); setIntravascularVolume(0); setSurgicalPhase('Pre-Op');
@@ -1299,6 +1322,22 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               });
           }
 
+          const f6Model = st.activeMeds?.find(m => m.name === 'F6 (Nonimmobilizer)');
+          const f6Ce = f6Model ? f6Model.Ce : 0;
+          const f3Model = st.activeMeds?.find(m => m.name === 'F3 (Anesthetic)');
+          const f3Ce = f3Model ? f3Model.Ce : 0;
+          const sIsoModel = st.activeMeds?.find(m => m.name === 'S-Isoflurane');
+          const sIsofluraneCe = sIsoModel ? sIsoModel.Ce : 0;
+          const rIsoModel = st.activeMeds?.find(m => m.name === 'R-Isoflurane');
+          const rIsofluraneCe = rIsoModel ? rIsoModel.Ce : 0;
+
+          const f3MacContribution = f3Ce / 1.2;
+          const sIsoMacContribution = sIsofluraneCe / 0.9;
+          const rIsoMacContribution = rIsofluraneCe / 1.8;
+
+          displayedMac += f3MacContribution + sIsoMacContribution + rIsoMacContribution;
+          brainMac += f3MacContribution + sIsoMacContribution + rIsoMacContribution;
+
           const currentMac = brainMac;
 
           // Consciousness Engine Tick
@@ -1306,6 +1345,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const isoMac = st.gasModels?.isoflurane ? st.gasModels.isoflurane.Fb / calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.isoflurane.mac40, st.patient.age || 40) : 0;
           const haloMac = st.gasModels?.halothane ? st.gasModels.halothane.Fb / calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.halothane.mac40, st.patient.age || 40) : 0;
           const n2oMac = st.gasModels?.n2o ? st.gasModels.n2o.Fb / calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.n2o.mac40, st.patient.age || 40) : 0;
+          const desMac = st.gasModels?.desflurane ? st.gasModels.desflurane.Fb / calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.desflurane.mac40, st.patient.age || 40) : 0;
+          const xenonMac = st.gasModels?.xenon ? st.gasModels.xenon.Fb / calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.xenon.mac40, st.patient.age || 40) : 0;
 
           const propofolModel = st.activeMeds?.find(m => m.name === 'Propofol');
           const propofolCe = propofolModel ? propofolModel.Ce : 0;
@@ -1325,6 +1366,11 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const scopolamineModel = st.activeMeds?.find(m => m.name === 'Scopolamine');
           const scopolamineCe = scopolamineModel ? scopolamineModel.Ce : 0;
 
+          const f3Ce_total = f3Ce + (st.gasModels?.f3 ? st.gasModels.f3.Fb : 0);
+          const sIsoCe_total = sIsofluraneCe + (st.gasModels?.s_isoflurane ? st.gasModels.s_isoflurane.Fb : 0);
+          const rIsoCe_total = rIsofluraneCe + (st.gasModels?.r_isoflurane ? st.gasModels.r_isoflurane.Fb : 0);
+          const f6Ce_total = f6Ce + (st.gasModels?.f6 ? st.gasModels.f6.Fb : 0);
+
           const consciousnessOutput = ConsciousnessEngine.tick(1, st.patient, st.vitals, {
               propofolCe,
               dexmedCe,
@@ -1340,12 +1386,54 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               haloMac,
               n2oMac,
               isSyncShock: false,
-              time: st.time
+              time: st.time,
+              f3Ce: f3Ce_total,
+              sIsofluraneCe: sIsoCe_total,
+              rIsofluraneCe: rIsoCe_total,
+              f6Ce: f6Ce_total
           });
 
-          // Merge consciousnessOutput into st.patient and patientAfterFluidics
-          Object.assign(st.patient, consciousnessOutput);
-          Object.assign(patientAfterFluidics, consciousnessOutput);
+          // Chapter 19: Compute receptor-binding occupancies (0.0 - 1.0)
+          const gabaa_sum = (propofolCe / 2.5) + (midazolamCe / 0.05) + (etomidateCe / 0.3) + (thiopentalCe / 1.0) + sevoMac + isoMac + haloMac + desMac + (f3Ce_total / 1.2) + (sIsoCe_total / 0.9) + (rIsoCe_total / 1.8);
+          const gabaa_occupancy = Math.max(0.0, Math.min(1.0, gabaa_sum / (1.0 + gabaa_sum)));
+
+          const glycine_sum = sevoMac + isoMac + haloMac + desMac + (f3Ce_total / 1.2) + (sIsoCe_total / 0.9) + (rIsoCe_total / 1.8) + (propofolCe / 5.0);
+          const glycine_occupancy = Math.max(0.0, Math.min(1.0, glycine_sum / (1.0 + glycine_sum)));
+
+          const k2p_sum = sevoMac + isoMac + haloMac + desMac + n2oMac + xenonMac + (f3Ce_total / 1.2) + (sIsoCe_total / 0.9) + (rIsoCe_total / 1.8);
+          const k2p_mult = 1.0 - (st.patient.isTASK1Knockout ? 0.3 : 0.0) - (st.patient.isTASK3Knockout ? 0.3 : 0.0) - (st.patient.isTREK1Knockout ? 0.4 : 0.0);
+          const k2p_activation = Math.max(0.0, Math.min(1.0, k2p_mult * (k2p_sum / (1.0 + k2p_sum))));
+
+          const nmda_sum = (ketamineCe / 1.0) + (n2oMac * 1.5) + (xenonMac * 2.0) + (sevoMac + isoMac + haloMac + desMac + (f3Ce_total / 1.2) + (sIsoCe_total / 0.9) + (rIsoCe_total / 1.8)) * 0.5;
+          const nmda_blockade = Math.max(0.0, Math.min(1.0, nmda_sum / (1.0 + nmda_sum)));
+
+          const hcn_sum = sevoMac + isoMac + haloMac + desMac + (f3Ce_total / 1.2) + (sIsoCe_total / 0.9) + (rIsoCe_total / 1.8);
+          const hcn_mult = st.patient.isHCN1Knockout ? 0.25 : 1.0;
+          const hcn_inhibition = Math.max(0.0, Math.min(1.0, hcn_mult * (hcn_sum / (1.0 + hcn_sum))));
+
+          const lidocaineModel = st.activeMeds?.find(m => m.name === 'Lidocaine');
+          const lidocaineCe = lidocaineModel ? lidocaineModel.Ce : 0;
+          const nav_sum = (lidocaineCe / 2.0) + (sevoMac + isoMac + haloMac + desMac + (f3Ce_total / 1.2) + (sIsoCe_total / 0.9) + (rIsoCe_total / 1.8)) * 0.3;
+          const nav_blockade = Math.max(0.0, Math.min(1.0, nav_sum / (1.0 + nav_sum)));
+
+          const cisModel = st.activeMeds?.find(m => m.name === 'Cisatracurium');
+          const cisCe = cisModel ? cisModel.Ce : 0;
+          const nachr_sum = (f6Ce_total / 2.0) * 3.0 + (sevoMac + isoMac + haloMac + desMac + (f3Ce_total / 1.2) + (sIsoCe_total / 0.9) + (rIsoCe_total / 1.8)) * 2.0 + (scopolamineCe / 0.05) + (rocuroniumCe / 1.5) + (vecuroniumCe / 0.2) + (cisCe / 0.3);
+          const nachr_inhibition = Math.max(0.0, Math.min(1.0, nachr_sum / (1.0 + nachr_sum)));
+
+          const receptorOutputs = {
+              gabaa_occupancy,
+              glycine_occupancy,
+              k2p_activation,
+              nmda_blockade,
+              hcn_inhibition,
+              nav_blockade,
+              nachr_inhibition
+          };
+
+          // Merge consciousnessOutput and receptorOutputs into st.patient and patientAfterFluidics
+          Object.assign(st.patient, consciousnessOutput, receptorOutputs);
+          Object.assign(patientAfterFluidics, consciousnessOutput, receptorOutputs);
 
           // Chapter 9: Clinical Crises & Reflex Loops
           const isParalyzed = maxNMJOccupancy > 0.90;
@@ -1461,6 +1549,12 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               }
           }
 
+          if (st.patient.isF6Active) {
+              st.patient.explicitEncoding = 0;
+              patientAfterFluidics.explicitEncoding = 0;
+              fearConditioning = 0.0;
+          }
+
           // Apply updates to the patient state object
           st.patient.isAwarenessActive = isAwarenessActive;
           st.patient.ptsdScore = ptsdScore;
@@ -1512,7 +1606,11 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               st.patient.incisionStartTime = st.time;
           }
 
-          const painOutput = PainEngine.tick(1, st.patient, st.vitals, st.activeMeds, currentMac, st.time);
+          const isTASK1 = st.patient.isTASK1Knockout;
+          const isTASK3 = st.patient.isTASK3Knockout;
+          const isTREK1 = st.patient.isTREK1Knockout;
+          const macKnockoutResistFactor = 1.0 * (isTASK1 ? 1.3 : 1.0) * (isTASK3 ? 1.4 : 1.0) * (isTREK1 ? 1.5 : 1.0);
+          const painOutput = PainEngine.tick(1, st.patient, st.vitals, st.activeMeds, currentMac / macKnockoutResistFactor, st.time);
           
           // Log bucking/movement events
           if (painOutput.somaticResponse.event && (!st.patient.lastPainEventTime || st.time - st.patient.lastPainEventTime >= 8)) {

@@ -10,7 +10,7 @@ export const getMedColor = (medId) => {
   // Induction Hypnotics -> Yellow
   if (['propofol', 'etomidate', 'ketamine', 'dexmedetomidine'].some(k => id.includes(k))) {
     return {
-      active: 'border-yellow-500/80 text-yellow-355 shadow-[0_0_12px_rgba(234,179,8,0.25)] bg-yellow-950/10 font-bold',
+      active: 'border-yellow-500/80 text-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.25)] bg-yellow-950/10 font-bold',
       btn: 'glass-button-amber',
       subBorder: 'border-yellow-900/50',
       text: 'text-yellow-400',
@@ -20,7 +20,7 @@ export const getMedColor = (medId) => {
   // Benzodiazepines -> Orange
   if (['midazolam'].some(k => id.includes(k))) {
     return {
-      active: 'border-orange-500/80 text-orange-355 shadow-[0_0_12px_rgba(249,115,22,0.25)] bg-orange-950/10 font-bold',
+      active: 'border-orange-500/80 text-orange-500 shadow-[0_0_12px_rgba(249,115,22,0.25)] bg-orange-950/10 font-bold',
       btn: 'glass-button-amber',
       subBorder: 'border-orange-900/50',
       text: 'text-orange-400',
@@ -94,7 +94,7 @@ export const getFluidColor = (fluidId) => {
   // Blood Products -> Red/Rose
   if (id.includes('prbc') || id.includes('fresh frozen') || id.includes('platelets') || id.includes('cryo') || id.includes('fibrinogen') || id.includes('blood') || id.includes('ffp')) {
     return {
-      active: 'border-rose-550/80 text-rose-350 shadow-[0_0_12px_rgba(244,63,94,0.25)] bg-red-950/10 font-bold',
+      active: 'border-rose-500/80 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.25)] bg-red-950/10 font-bold',
       btn: 'glass-button-rose',
       progress: 'from-rose-500 to-red-400',
       subBorder: 'border-rose-900/50',
@@ -181,7 +181,7 @@ export const Pharmacopoeia = ({
     induction: ['propofol', 'etomidate', 'ketamine', 'midazolam', 'dexmedetomidine'],
     analgesia: ['fentanyl', 'sufentanil', 'remifentanil', 'hydromorphone', 'morphine', 'rocuronium', 'succinylcholine', 'vecuronium', 'cisatracurium'],
     hemodynamics: ['norepinephrine', 'epinephrine', 'phenylephrine', 'vasopressin', 'ephedrine', 'atropine', 'esmolol', 'labetalol', 'metoprolol', 'nicardipine', 'clevidipine', 'nitroglycerin'],
-    other: ['sugammadex', 'neostigmine', 'glycopyrrolate', 'unasyn', 'albuterol', 'calcium', 'magnesium', 'bicarbonate', 'lidocaine', 'adenosine', 'amiodarone', 'furosemide', 'methylphenidate', 'atipamezole', 'scopolamine'],
+    other: ['sugammadex', 'neostigmine', 'glycopyrrolate', 'unasyn', 'albuterol', 'calcium', 'magnesium', 'bicarbonate', 'lidocaine', 'adenosine', 'amiodarone', 'furosemide', 'methylphenidate', 'atipamezole', 'scopolamine', 'f6', 'f3', 's_isoflurane', 'r_isoflurane'],
     fluids: ['Lactated Ringers (LR)', 'Normal Saline (0.9% NS)', 'Plasmalyte', 'Albumin 5%', 'Packed Red Blood Cells (PRBC)', 'Fresh Frozen Plasma (FFP)', 'Platelets', 'Cryoprecipitate', 'Fibrinogen Concentrate']
   };
 

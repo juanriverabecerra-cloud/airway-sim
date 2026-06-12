@@ -271,7 +271,7 @@ export const LinesResusPanel = ({
                           : medColorTheme.active.includes('text-emerald')
                             ? 'text-emerald-400'
                             : medColorTheme.active.includes('text-rose')
-                              ? 'text-rose-455'
+                              ? 'text-rose-400'
                               : 'text-purple-400';
 
                     const activeMedModel = activeMeds.find(m => m.name.toLowerCase() === (medData?.name || medInf.medId).toLowerCase());

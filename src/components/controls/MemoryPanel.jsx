@@ -1,7 +1,6 @@
-import React from 'react';
-import { Activity, Brain, ShieldAlert, Award } from 'lucide-react';
+import { Brain, ShieldAlert, Award } from 'lucide-react';
 
-export const MemoryPanel = ({ patient, vitals, setPatient, logEvent }) => {
+export const MemoryPanel = ({ patient, setPatient, logEvent }) => {
   const isBis = patient?.hasBisMonitor;
 
   const triggerFearRecall = () => {
@@ -36,7 +35,7 @@ export const MemoryPanel = ({ patient, vitals, setPatient, logEvent }) => {
           <div className="text-xs text-slate-400 font-bold uppercase tracking-wider">
             EEG / BIS Monitor Not Connected
           </div>
-          <div className="text-[10px] text-slate-550 max-w-[200px] leading-relaxed">
+          <div className="text-[10px] text-slate-500 max-w-[200px] leading-relaxed">
             Attach the BIS monitor to initialize raw processed EEG waveforms and cognitive pathway metrics.
           </div>
         </div>
@@ -230,6 +229,78 @@ export const MemoryPanel = ({ patient, vitals, setPatient, logEvent }) => {
             </div>
           </div>
 
+          {/* Section: Molecular Receptor Diagnostics */}
+          <div className="flex flex-col gap-2">
+            <span className="text-[9.5px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-900 pb-1">
+              Molecular Receptor Diagnostics
+            </span>
+
+            <div className="bg-slate-900/20 border border-slate-900/80 rounded-lg p-2.5 flex flex-col gap-2">
+              {/* GABA-A Occupancy */}
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400 text-[10px] uppercase w-[40%]">GABA-A Occupancy</span>
+                <div className="flex-1 bg-slate-950 h-3 rounded border border-slate-800 overflow-hidden relative flex items-center">
+                  <div className="h-full bg-indigo-500/85 transition-all duration-300" style={{ width: `${Math.min(100, (patient?.gabaa_occupancy || 0) * 100)}%` }} />
+                  <span className="absolute right-1.5 text-[8.5px] font-black text-slate-300 leading-none">{formatPercent(patient?.gabaa_occupancy)}</span>
+                </div>
+              </div>
+
+              {/* Glycine Occupancy */}
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400 text-[10px] uppercase w-[40%]">Glycine Occupancy</span>
+                <div className="flex-1 bg-slate-950 h-3 rounded border border-slate-800 overflow-hidden relative flex items-center">
+                  <div className="h-full bg-cyan-500/85 transition-all duration-300" style={{ width: `${Math.min(100, (patient?.glycine_occupancy || 0) * 100)}%` }} />
+                  <span className="absolute right-1.5 text-[8.5px] font-black text-slate-300 leading-none">{formatPercent(patient?.glycine_occupancy)}</span>
+                </div>
+              </div>
+
+              {/* K2P Activation */}
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400 text-[10px] uppercase w-[40%]">K2P Activation</span>
+                <div className="flex-1 bg-slate-950 h-3 rounded border border-slate-800 overflow-hidden relative flex items-center">
+                  <div className="h-full bg-emerald-500/85 transition-all duration-300" style={{ width: `${Math.min(100, (patient?.k2p_activation || 0) * 100)}%` }} />
+                  <span className="absolute right-1.5 text-[8.5px] font-black text-slate-300 leading-none">{formatPercent(patient?.k2p_activation)}</span>
+                </div>
+              </div>
+
+              {/* NMDA Blockade */}
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400 text-[10px] uppercase w-[40%]">NMDA Blockade</span>
+                <div className="flex-1 bg-slate-950 h-3 rounded border border-slate-800 overflow-hidden relative flex items-center">
+                  <div className="h-full bg-rose-500/85 transition-all duration-300" style={{ width: `${Math.min(100, (patient?.nmda_blockade || 0) * 100)}%` }} />
+                  <span className="absolute right-1.5 text-[8.5px] font-black text-slate-300 leading-none">{formatPercent(patient?.nmda_blockade)}</span>
+                </div>
+              </div>
+
+              {/* HCN Inhibition */}
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400 text-[10px] uppercase w-[40%]">HCN Inhibition</span>
+                <div className="flex-1 bg-slate-950 h-3 rounded border border-slate-800 overflow-hidden relative flex items-center">
+                  <div className="h-full bg-yellow-500/85 transition-all duration-300" style={{ width: `${Math.min(100, (patient?.hcn_inhibition || 0) * 100)}%` }} />
+                  <span className="absolute right-1.5 text-[8.5px] font-black text-slate-300 leading-none">{formatPercent(patient?.hcn_inhibition)}</span>
+                </div>
+              </div>
+
+              {/* Nav Blockade */}
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400 text-[10px] uppercase w-[40%]">Nav Blockade</span>
+                <div className="flex-1 bg-slate-950 h-3 rounded border border-slate-800 overflow-hidden relative flex items-center">
+                  <div className="h-full bg-blue-500/85 transition-all duration-300" style={{ width: `${Math.min(100, (patient?.nav_blockade || 0) * 100)}%` }} />
+                  <span className="absolute right-1.5 text-[8.5px] font-black text-slate-300 leading-none">{formatPercent(patient?.nav_blockade)}</span>
+                </div>
+              </div>
+
+              {/* nAChR Inhibition */}
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400 text-[10px] uppercase w-[40%]">nAChR Inhibition</span>
+                <div className="flex-1 bg-slate-950 h-3 rounded border border-slate-800 overflow-hidden relative flex items-center">
+                  <div className="h-full bg-orange-500/85 transition-all duration-300" style={{ width: `${Math.min(100, (patient?.nachr_inhibition || 0) * 100)}%` }} />
+                  <span className="absolute right-1.5 text-[8.5px] font-black text-slate-300 leading-none">{formatPercent(patient?.nachr_inhibition)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Section: Action Buttons */}
           <div className="border-t border-purple-900/40 pt-3 flex flex-col gap-2">
             {patient?.reconsolidationWindowOpen ? (
@@ -256,7 +327,7 @@ export const MemoryPanel = ({ patient, vitals, setPatient, logEvent }) => {
               <button 
                 onClick={triggerFearRecall}
                 disabled={patient?.fearMemoryRetrieved}
-                className={`w-full py-2 px-3 rounded-lg text-xs font-bold font-mono transition-all border ${patient?.fearMemoryRetrieved ? 'bg-purple-950/20 border-purple-900/20 text-purple-650 cursor-not-allowed' : 'glass-button glass-button-purple text-purple-200 border-purple-800/80 hover:border-purple-600'}`}
+                className={`w-full py-2 px-3 rounded-lg text-xs font-bold font-mono transition-all border ${patient?.fearMemoryRetrieved ? 'bg-purple-950/20 border-purple-900/20 text-purple-500 cursor-not-allowed' : 'glass-button glass-button-purple text-purple-200 border-purple-800/80 hover:border-purple-600'}`}
               >
                 PRESENT FEAR MEMORY RETRIEVAL CUE
               </button>

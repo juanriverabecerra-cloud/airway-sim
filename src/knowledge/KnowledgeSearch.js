@@ -21,10 +21,11 @@ async function loadIndex() {
       
       let dirname = '';
       try {
-        dirname = __dirname;
-      } catch {
         const { fileURLToPath } = await import('url');
         dirname = path.dirname(fileURLToPath(import.meta.url));
+      } catch {
+        // eslint-disable-next-line no-undef
+        dirname = __dirname;
       }
       
       const indexPath = path.resolve(dirname, 'precomputed_index.json');
@@ -43,7 +44,7 @@ async function loadIndex() {
 }
 
 // Start loading index immediately on module import
-const indexLoadedPromise = loadIndex();
+loadIndex();
 
 // ─── TOKENIZER ───────────────────────────────────────────────────────────────
 

@@ -395,7 +395,7 @@ export default function FidelityPanel({
             onChange={(e) => setTesterNotes(e.target.value)}
             disabled={submitStatus === 'sending'}
             rows={3}
-            className="w-full px-3 py-2 bg-slate-950/70 border border-slate-800 rounded-lg text-[10.5px] font-mono text-cyan-200 placeholder-slate-650 focus:outline-none focus:border-cyan-500/55 transition resize-none leading-relaxed"
+            className="w-full px-3 py-2 bg-slate-950/70 border border-slate-800 rounded-lg text-[10.5px] font-mono text-cyan-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 transition resize-none leading-relaxed"
           />
         </div>
 

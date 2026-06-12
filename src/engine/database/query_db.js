@@ -1,6 +1,4 @@
 import Database from 'better-sqlite3';
-import * as path from 'path';
-
 const dbPath = '/Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/knowledge/medical_truth.db';
 const db = new Database(dbPath);
 

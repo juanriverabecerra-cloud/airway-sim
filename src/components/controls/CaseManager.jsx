@@ -211,7 +211,11 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
     betaBlocker: false, cad: false, afib: false, as: false, mg: false,
     burns: false, immobility: false, cp: 'none', htn: false,
     anemia: false, thrombocytopenia: false, coagulopathy: false, diabetes: false, insulin: false,
-    emergentRSI: false
+    emergentRSI: false,
+    isTASK1Knockout: false,
+    isTASK3Knockout: false,
+    isTREK1Knockout: false,
+    isHCN1Knockout: false
   });
 
   const [activePresetId, setActivePresetId] = useState('general');
@@ -465,7 +469,11 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
         thrombocytopenia: !!data.thrombocytopenia,
         coagulopathy: !!data.coagulopathy,
         diabetes: !!data.diabetes,
-        insulin: !!data.insulin
+        insulin: !!data.insulin,
+        isTASK1Knockout: !!data.isTASK1Knockout,
+        isTASK3Knockout: !!data.isTASK3Knockout,
+        isTREK1Knockout: !!data.isTREK1Knockout,
+        isHCN1Knockout: !!data.isHCN1Knockout
       }
     };
     setStagedCase(newCase);
@@ -914,14 +922,31 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
 
                {/* NEURO & MUSCULO */}
                <div className="flex flex-col gap-1 border-b border-slate-850 pb-2">
-                 <span className="text-[10px] text-green-400 font-bold uppercase tracking-wider">Neuromuscular</span>
-                 <div className="grid grid-cols-2 gap-1.5 mt-0.5">
+                 <span className="text-[10px] text-green-400 font-bold uppercase tracking-wider font-mono">Neuromuscular & Genetics</span>
+                 <div className="grid grid-cols-2 gap-1.5 mt-0.5 pb-1.5 border-b border-slate-800/35">
                    <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300">
                      <input type="checkbox" checked={customForm.mg} onChange={e => setCustomForm({...customForm, mg: e.target.checked})} className="accent-green-500" /> Myasthenia Gravis
                    </label>
                    <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300" title="Triggers upregulated nAChR state with fatal hyperkalemic arrest on Succinylcholine!">
                      <input type="checkbox" checked={customForm.burns || customForm.immobility} onChange={e => setCustomForm({...customForm, burns: e.target.checked, immobility: e.target.checked})} className="accent-red-500" /> Upregulated AChR ⚠️
                    </label>
+                 </div>
+                 <div className="flex flex-col gap-1 mt-1.5">
+                   <span className="text-[9px] text-green-400/80 font-bold uppercase tracking-wider font-mono">Genetic Knockouts</span>
+                   <div className="grid grid-cols-2 gap-1.5">
+                     <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300" title="TASK-1 Knockout: Increases resistance to volatile MAC immobility (1.3x)">
+                       <input type="checkbox" checked={customForm.isTASK1Knockout} onChange={e => setCustomForm({...customForm, isTASK1Knockout: e.target.checked})} className="accent-green-500" /> TASK-1 Knockout
+                     </label>
+                     <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300" title="TASK-3 Knockout: Blunts volatile-induced theta-slowing and increases MAC immobility resistance (1.4x)">
+                       <input type="checkbox" checked={customForm.isTASK3Knockout} onChange={e => setCustomForm({...customForm, isTASK3Knockout: e.target.checked})} className="accent-green-500" /> TASK-3 Knockout
+                     </label>
+                     <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300" title="TREK-1 Knockout: Removes neuroprotective preconditioning and increases MAC immobility resistance (1.5x)">
+                       <input type="checkbox" checked={customForm.isTREK1Knockout} onChange={e => setCustomForm({...customForm, isTREK1Knockout: e.target.checked})} className="accent-green-500" /> TREK-1 Knockout
+                     </label>
+                     <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300" title="HCN1 Knockout: Blunts volatile anesthetic hypnotic sensitivity (0.5x LC/TMN deactivation, 0.25x HCN inhibition)">
+                       <input type="checkbox" checked={customForm.isHCN1Knockout} onChange={e => setCustomForm({...customForm, isHCN1Knockout: e.target.checked})} className="accent-green-500" /> HCN1 Knockout
+                     </label>
+                   </div>
                  </div>
                </div>
 

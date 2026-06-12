@@ -11,7 +11,15 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
   const isHypoxic = deliveredFiO2 < 25;
  
   // === VAPORIZER MECHANICAL LIMITS ===
-  const maxDialMap = { sevoflurane: 8.0, desflurane: 18.0, isoflurane: 5.0 };
+  const maxDialMap = { 
+    sevoflurane: 8.0, 
+    desflurane: 18.0, 
+    isoflurane: 5.0,
+    f3: 5.0,
+    f6: 5.0,
+    s_isoflurane: 5.0,
+    r_isoflurane: 5.0
+  };
   const currentMaxDial = maxDialMap[gasSettings.agent] || 8.0;
  
   // === DYNAMIC VENTILATOR TARGETS ===
@@ -102,10 +110,14 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
           <span className="text-[9px] text-cyan-300 font-bold bg-cyan-950/30 px-1.5 py-0.5 rounded-md border border-cyan-900/30 font-mono">1.0 MAC = {INHALATIONAL_AGENTS[gasSettings.agent]?.mac40}%</span>
         </div>
         <div className="flex gap-2 h-full items-center">
-          <select value={gasSettings.agent} style={{ textAlignLast: 'center' }} onChange={handleAgentChange} className="flex-1 glass-input text-xs font-bold text-cyan-300 border border-white/10 rounded-lg outline-none appearance-none px-2 py-2 text-center h-full cursor-pointer hover:border-cyan-500/80 transition">
+          <select value={gasSettings.agent} style={{ textAlignLast: 'center' }} onChange={handleAgentChange} className="flex-1 glass-input text-xs font-bold text-cyan-300 border border-white/10 rounded-lg outline-none appearance-none px-2 py-2 text-center h-full cursor-pointer hover:border-cyan-500/80 transition font-mono">
             <option value="sevoflurane">Sevoflurane</option>
             <option value="desflurane">Desflurane</option>
             <option value="isoflurane">Isoflurane</option>
+            <option value="f3">F3 (Anesthetic)</option>
+            <option value="f6">F6 (Nonimmobilizer)</option>
+            <option value="s_isoflurane">S-Isoflurane</option>
+            <option value="r_isoflurane">R-Isoflurane</option>
           </select>
           <div className="flex items-center justify-between bg-slate-950/60 rounded-lg border border-white/5 w-28 sm:w-32 px-0.5 py-0.5 sm:px-1 sm:py-1 h-full shadow-inner">
             <button onClick={() => handleDialChange(-1)} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-cyan font-bold text-xs sm:text-base cursor-pointer">-</button>

@@ -58,7 +58,7 @@ function parsePartialQuestions(jsonStr) {
           if (parsedObj.vignette && parsedObj.options && Array.isArray(parsedObj.options) && parsedObj.options.length >= 4) {
             questions.push(parsedObj);
           }
-        } catch (err) {
+        } catch {
           // ignore parsing error for incomplete objects
         }
       }
@@ -111,7 +111,7 @@ async function handleFetchError(response) {
         errorMsg = errJson.error;
       }
     }
-  } catch (e) {
+  } catch {
     // Body is not JSON or couldn't be parsed
   }
   return new Error(errorMsg);
@@ -340,7 +340,7 @@ FORMATTING & ORGANIZATION RULES:
           onChunk(fullText);
         }
       }
-    } catch {}
+    } catch { /* ignore */ }
   }
 
   return fullText;
@@ -757,7 +757,7 @@ export default function AttendingPanel({
             ]);
 
             let lastText = '';
-            const streamText = await queryGeminiAI(currentInput, kbResults, apiKey, (fullStreamText) => {
+            await queryGeminiAI(currentInput, kbResults, apiKey, (fullStreamText) => {
               lastText = fullStreamText;
 
               // During streaming: only show the Clinical Summary portion.
@@ -802,7 +802,7 @@ export default function AttendingPanel({
               for (const result of kbResults.slice(0, 5)) {
                 const { record, score } = result;
                 const chLabel = extractChapterLabel(record.chapter_title);
-                fallback += `**${record.section_heading || 'General'}** *(Miller\'s ${chLabel}, relevance: ${score.toFixed(1)})*\n\n`;
+                fallback += `**${record.section_heading || 'General'}** *(Miller's ${chLabel}, relevance: ${score.toFixed(1)})*\n\n`;
                 const bodySnippet = (record.body_text || '').slice(0, 1500);
                 fallback += `${bodySnippet}\n\n---\n\n`;
               }
@@ -977,12 +977,12 @@ export default function AttendingPanel({
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed right-4 bottom-6 z-40 bg-gradient-to-r from-amber-600 to-yellow-600 border border-amber-400/50 text-white p-3 rounded-full shadow-[0_0_15px_rgba(245,158,11,0.4)] hover:scale-105 hover:from-amber-500 hover:to-yellow-505 transition-all flex items-center gap-2 group"
+          className="fixed right-4 bottom-6 z-40 bg-gradient-to-r from-amber-600 to-yellow-600 border border-amber-400/50 text-white p-3 rounded-full shadow-[0_0_15px_rgba(245,158,11,0.4)] hover:scale-105 hover:from-amber-500 hover:to-yellow-500 transition-all flex items-center gap-2 group"
         >
           <MessageSquare size={20} className="text-amber-100 group-hover:text-white" />
           <span className="text-xs font-bold font-mono uppercase tracking-wider">Attending Consult</span>
           {activeAlertsCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-500 text-white font-extrabold text-[10px] w-5 h-5 rounded-full flex items-center justify-center border border-amber-955">
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white font-extrabold text-[10px] w-5 h-5 rounded-full flex items-center justify-center border border-amber-950">
               {activeAlertsCount}
             </span>
           )}
@@ -1241,7 +1241,7 @@ export default function AttendingPanel({
                   } else if (isRefusal) {
                     senderLabel = '⚠️ Attending Limitation';
                     labelColor = 'text-amber-500';
-                    cardClass = 'bg-amber-955/20 border border-amber-500/20 text-amber-200 rounded-tl-none shadow-md';
+                    cardClass = 'bg-amber-950/20 border border-amber-500/20 text-amber-200 rounded-tl-none shadow-md';
                   } else if (isRecall) {
                     senderLabel = '🕰️ Memory Recall';
                     labelColor = 'text-purple-400';
@@ -1568,7 +1568,7 @@ Rules:
                                   if (chunkText) {
                                     fullText += chunkText;
                                   }
-                                } catch {}
+                                } catch { /* ignore */ }
                               }
 
                               const finalQuestions = parsePartialQuestions(fullText);
@@ -1585,7 +1585,7 @@ Rules:
                                   }
                                 } catch (err) {
                                   if (!hasFirstQuestion) {
-                                    throw new Error('Could not parse any generated questions from the AI stream.');
+                                    throw new Error('Could not parse any generated questions from the AI stream.', { cause: err });
                                   }
                                 }
                               }
@@ -1768,7 +1768,7 @@ Rules:
                               if (oIdx === currentQuestion.correctIdx) optStyle = 'border-emerald-500 bg-emerald-950/30 text-emerald-200 font-bold';
                               else if (selectedOptionIdx === oIdx) optStyle = 'border-red-500 bg-red-950/30 text-red-200';
                             } else if (selectedOptionIdx === oIdx) {
-                              optStyle = 'border-amber-500 bg-amber-955/30 text-amber-200';
+                              optStyle = 'border-amber-500 bg-amber-950/30 text-amber-200';
                             }
                             return (
                               <button key={oIdx} type="button" onClick={() => { if (!showQuizExplanation) setSelectedOptionIdx(oIdx); }} disabled={showQuizExplanation}
@@ -2002,7 +2002,7 @@ Rules:
                       for (const result of kbResults.slice(0, 5)) {
                         const { record, score } = result;
                         const chLabel = extractChapterLabel(record.chapter_title);
-                        fallback += `**${record.section_heading || 'General'}** *(Miller\'s ${chLabel}, relevance: ${score.toFixed(1)})*\n\n`;
+                        fallback += `**${record.section_heading || 'General'}** *(Miller's ${chLabel}, relevance: ${score.toFixed(1)})*\n\n`;
                         const bodySnippet = (record.body_text || '').slice(0, 1500);
                         fallback += `${bodySnippet}\n\n---\n\n`;
                       }

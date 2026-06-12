@@ -38,7 +38,7 @@ export function synthesizeEkgLead(lead, tBeat, beatDuration, canvasHeight, baseL
     }
     if (rhythm === 'asystole') {
       // Asystole: flat line, with mechanical CPR compression artifacts if active
-      let val = 0;
+      let val;
       if (patient?.cprActive) {
         const cprFreq = 100 / 60;
         val = Math.sin(timeSecs * 2 * Math.PI * cprFreq) * 0.15 + (Math.random() - 0.5) * 0.02;
@@ -266,7 +266,7 @@ function getLeadProfile(lead, patient) {
     'V6':  { p: 0.8,  q: 0.05, r: 0.9,  s: 0.05, t: 0.8 }
   };
 
-  const prof = { ...LEAD_PROFILES[lead] } || { p: 1.0, q: 0.0, r: 1.0, s: 0.0, t: 1.0 };
+  const prof = LEAD_PROFILES[lead] ? { ...LEAD_PROFILES[lead] } : { p: 1.0, q: 0.0, r: 1.0, s: 0.0, t: 1.0 };
   
   // Right Ventricular Strain (S1Q3T3) modifies profiles of I and III
   const hasPE = patient?.peActive || patient?.pulmonaryEmbolism || (patient?.procedure === 'PE' || patient?.currentPresetId === 'pe');
