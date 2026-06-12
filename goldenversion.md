@@ -90,6 +90,14 @@ This document represents the unified, consolidated, and authoritative system arc
     *   [6.40 Desiccated CO2 Absorbent Fire & Carbon Monoxide Poisoning](#640-desiccated-co2-absorbent-fire--carbon-monoxide-poisoning)
     *   [6.41 Nitrous Oxide-Induced Vitamin B12 & Methionine Synthase Shutdown](#641-nitrous-oxide-induced-vitamin-b12--methionine-synthase-shutdown)
     *   [6.42 Pediatric Anesthesia Neurodevelopmental Risk & Postoperative Cognitive Decline (POCD)](#642-pediatric-anesthesia-neurodevelopmental-risk--postoperative-cognitive-decline-pocd)
+    *   [6.43 Ciliary Clearance Inhibition, Mucus Plug, and Bronchial Suctioning](#643-ciliary-clearance-inhibition-mucus-plug-and-bronchial-suctioning)
+    *   [6.44 Xenon-Induced Viscous Airway Resistance Surge](#644-xenon-induced-viscous-airway-resistance-surge)
+    *   [6.45 Pipeline Crossover and Oxygen Supply Pressure Failure](#645-pipeline-crossover-and-oxygen-supply-pressure-failure)
+    *   [6.46 Link-25 Proportioning System and Hypoxic Mixture Protection](#646-link-25-proportioning-system-and-hypoxic-mixture-protection)
+    *   [6.47 APL Valve Mechanical Model and Low-Pressure Leak Kinetics](#647-apl-valve-mechanical-model-and-low-pressure-leak-kinetics)
+    *   [6.48 Mapleson Breathing Circuit Rebreathing and Fresh Gas Flow Limits](#648-mapleson-breathing-circuit-rebreathing-and-fresh-gas-flow-limits)
+    *   [6.49 Stuck Unidirectional Valves and Rebreathing Fraction](#649-stuck-unidirectional-valves-and-rebreathing-fraction)
+    *   [6.50 Oxygen Flush Valve dilution and Tension Pneumothorax Barotrauma](#650-oxygen-flush-valve-dilution-and-tension-pneumothorax-barotrauma)
     *   [7. Attending Direct Chat, Advisor & NLP Engine](#7-attending-direct-chat-advisor--nlp-engine)
         *   [7.1 Automated Guidance Evaluator](#71-automated-guidance-evaluator)
         *   [7.2 Conversational NLP Chat Portal](#72-conversational-nlp-chat-portal)
@@ -386,6 +394,27 @@ ight) \quad [\%/\text{s}]$$
         $$\text{dilatorMuscleTone} = 1.0 - \text{NMBA}_{\text{block}} - 0.7 \cdot \text{Propofol}_{Ce} - 0.5 \cdot \text{Volatile}_{\text{MAC}} - \text{REMAtonia}_{\text{penalty}}$$
         where $\text{NMBA}_{\text{block}}$ is nicotinic acetylcholine receptor occupancy, and $\text{REMAtonia}_{\text{penalty}} = 0.85$ when the active sleep stage is REM (Stage R).
     *   *Pharyngeal Collapse Pressure ($P_{\text{crit}}$)*: Mapped based on patient airway status. In normal patients, $P_{\text{crit}} = -5.0\text{ mmHg}$ (highly stable). In moderate-to-severe Obstructive Sleep Apnea (OSA) patients, $P_{\text{crit}}$ increases to $\ge 0.0\text{ mmHg}$ (collapses even at atmospheric pressure).
+    *   *Airway Obstruction Index*: In un-intubated, spontaneously ventilating patients, insufficient genioglossus muscle tone causes snoring and pharyngeal collapse:
+        $$\text{airwayObstructionIndex} = \min\left(1.0, \max\left(0.0, \frac{(1.0 - \text{dilatorMuscleTone}) \cdot (P_{\text{crit}} + 6.0)}{7.0}\right)\right)$$
+        If $\text{airwayObstructionIndex} > 0.6$, airway obstruction occurs, adding an obstruction resistance penalty:
+        $$\text{Resistance}_{\text{obstruction}} = 35.0 \cdot \text{airwayObstructionIndex} \quad [\text{cmH2O/L/s}]$$
+*   **Intercostal vs. Diaphragmatic Mechanics**: Volatile agents depress intercostal muscle activity more than diaphragmatic activity:
+    $$\text{intercostalContribution} = \max\left(0.1, 1.0 - 0.7 \cdot \text{Volatile}_{\text{MAC}}\right)$$
+    $$\text{diaphragmContribution} = \max\left(0.5, 1.0 - 0.15 \cdot \text{Volatile}_{\text{MAC}}\right)$$
+    If $\text{intercostalContribution} < 0.4$, paradoxical abdominal breathing is triggered. FRC volume scales by $(0.7 + 0.3 \cdot \text{intercostalContribution})$ and pulmonary compliance scales by $\text{intercostalContribution}$.
+*   **Ciliary Transport & Surfactant Dynamics**:
+    - *Cilia Beat Frequency ($CBF$)*: Volatile agents, smoking, and dry fresh gas flows ($FGF > 5\text{ L/min}$) depress ciliary beat frequency:
+        $$CBF = 100.0 - 25.0 \cdot \text{Volatile}_{\text{MAC}} - (\text{tobaccoSmoker} ? 30.0 : 0.0) - (FGF > 5.0 ? 15.0 : 0.0) \quad [\%]$$
+    - *Surfactant Production*: Volatile agents decay Alveolar Type II surfactant synthesis dose- and time-dependently:
+        $$\text{surfactantProduction} = \max\left(10.0, 100.0 - 20.0 \cdot \text{Volatile}_{\text{MAC}} \cdot (\text{time} > 600 ? 1.5 : 1.0)\right) \quad [\%]$$
+        Pulmonary compliance scales linearly with surfactant level: $Compliance *= (\text{surfactantProduction} / 100.0)$.
+*   **Volatile Bronchodilation vs. Xenon Resistance**:
+    - *Bronchial Smooth Muscle Relaxation*: Volatiles reduce calcium sensitivity in airway smooth muscle:
+        $$\text{bronchialSmoothMuscleCa} = \max\left(0.2, 1.0 - 0.5 \cdot \text{Volatile}_{\text{MAC}}\right)$$
+        This scales down the bronchospasm resistance penalty: $\text{Resistance}_{\text{bronchospasm}} = 40.0 \cdot \text{bronchialSmoothMuscleCa}$. (Xenon has no bronchodilating effect).
+    - *Xenon Viscous Airway Resistance*: Xenon's high density and viscosity increase total airway resistance:
+        $$\text{xenonResistanceMultiplier} = 1.0 + 0.4 \cdot \left(\frac{etAgent}{70.0}\right) \cdot (1.0 + (\text{bronchospasm} ? 1.5 : 0.0))$$
+        $$\text{Resistance}_{\text{final}} *= \text{xenonResistanceMultiplier}$$
 
 #### 4.6.1 Predicted Lung Volumes (ECCS/ERS 1993)
 
@@ -406,6 +435,18 @@ ight) \quad [\%/\text{s}]$$
 
 #### 4.7 Alveolar Ventilation, Apnea Kinetics & Loop Gain
 *   **Chemoreceptor Feedback Loop Gain ($LG$)**: Quantifies ventilatory control stability and propensity to periodic breathing:
+*   **Hypoxic & Hypercapnic Ventilatory Drive Blunting**:
+    - *Hypoxic Ventilatory Response (HVR)*: Sub-MAC concentrations ($0.1\text{ MAC}$) of volatiles (Sevoflurane, Isoflurane, Halothane, Methoxyflurane) blunt peripheral chemoreceptor hypoxic drive by $70\%$:
+        $$\text{hvrBlunting} = \begin{cases} \left(\frac{\text{Volatile}_{\text{MAC}}}{0.1}\right) \cdot 0.7 & \text{if } \text{Volatile}_{\text{MAC}} \le 0.1 \\ 0.7 + (\text{Volatile}_{\text{MAC}} - 0.1) \cdot 0.3 & \text{if } \text{Volatile}_{\text{MAC}} > 0.1 \end{cases}$$
+        For Desflurane and Xenon, HVR is not blunted at sub-MAC ($0.1\text{ MAC}$):
+        $$\text{hvrBlunting} = \max\left(0.0, \min\left(1.0, \frac{\text{Volatile}_{\text{MAC}} - 0.1}{1.0}\right)\right)$$
+    - *Hypercapnic Ventilatory Response (HCVR)*: Volatiles blunt the central carbon dioxide drive dose-dependently:
+        $$\text{hcvrBlunting} = \min\left(1.0, \text{Volatile}_{\text{MAC}} \cdot 0.6\right)$$
+        (Xenon does not blunt HCVR).
+    - *Blunted Compensatory Drive*:
+        $$\text{compensatoryRR} = \max(0, (PaCO_2 - 45) \cdot 0.8 \cdot (1 - \text{hcvrBlunting})) + \max(0, (70 - PaO_2) \cdot 0.4 \cdot (1 - \text{hvrBlunting}))$$
+    - *Xenon Spontaneous Respiratory Rate Depression*: Spontaneous breathing rate is depressed by Xenon:
+        $$\text{patientDriveRR} = \max\left(0.0, \text{patientDriveRR} - 0.25 \cdot etXenon\right)$$
     $$LG = G_{\text{controller}} \cdot G_{\text{plant}} \cdot \text{mixingGainMod}$$
     *   *Controller Gain ($G_{\text{controller}}$)*: Sensitivity of the central and peripheral chemoreceptors to changes in $PaCO_2$.
         $$G_{\text{controller}} = G_{\text{base}} \cdot \max(1.0, 1.0 + 3.0 \cdot (7.4 - pH) + 2.0 \cdot \frac{100 - SpO_2}{10})$$
@@ -444,9 +485,18 @@ ight) \quad [\%/\text{s}]$$
     $$SaO_2 = \frac{PO_{2,\text{eff}}^3 + 150 \cdot PO_{2,\text{eff}}}{PO_{2,\text{eff}}^3 + 150 * PO_{2,\text{eff}} + 23400} \cdot 100$$
 *   **Absorption Atelectasis Kinetics**:
     High inspired oxygen fractions combined with a lack of positive airway pressure and tone loss (induction apnea/paralysis) accelerate alveolar collapse:
-    $$\frac{d(\text{Atelectasis})}{dt} = \text{rate}_{\text{base}} \cdot (1.0 + \text{isParalyzed} \cdot 2.0) \cdot (1.0 + \text{isObese} \cdot 1.0)$$
+    $$\frac{d(\text{Atelectasis})}{dt} = \text{rate}_{\text{base}} \cdot (1.0 + \text{isParalyzed} \cdot 2.0) \cdot (1.0 + \text{isObese} \cdot 1.5)$$
     where:
-    $$\text{rate}_{\text{base}} = 0.001 \cdot \left(FiO_2 - 0.21\right) - 0.001 \cdot \text{PEEP}$$
+    $$\text{rate}_{\text{base}} = 0.0005 \cdot \left(\frac{FiO_2 - 21.0}{79.0}\right) - 0.0002 \cdot \text{PEEP}$$
+*   **Ciliary Atelectasis & Mucus Plug**:
+    If $CBF < 45\%$, mucus accumulates, driving ciliary atelectasis:
+    $$\text{ciliaryAtelectasisAccumulation} += 0.015 \cdot \left(\frac{45.0 - CBF}{100.0}\right) \quad [\text{per second}]$$
+    If $\text{ciliaryAtelectasisAccumulation} > 3.0$, a mucus plug forms (`isMucusPlugged = true`), adding a $+20\text{ cmH2O/L/s}$ resistance penalty.
+*   **Shunt Fraction with HPV Inhibition Penalty**:
+    Hypoxic pulmonary vasoconstriction (HPV) shifts blood flow away from hypoxic lung zones, reducing shunt fraction by $50\%$. Volatile agents inhibit HPV dose-dependently, increasing shunt contribution:
+    $$\text{hpvInhibition} = \min\left(0.80, \text{Volatile}_{\text{MAC}} \cdot 0.20\right) \quad \text{(Xenon has no HPV inhibition)}$$
+    $$\text{shunt}_{\text{HPV\_penalty}} = 0.25 \cdot \text{atelectasis} \cdot \text{hpvInhibition}$$
+    $$\text{actualShunt} = \max(0.02, \text{baselineShunt} - \text{shuntReduction} + \text{hpsShunt} + 0.15 \cdot \text{atelectasis} + \text{shunt}_{\text{HPV\_penalty}})$$
 *   **Alveolar Recruitment**:
     PEEP recruits collapsed units gradually, while a sustained inflation recruitment maneuver (airway pressure held $\ge 30\text{ cmH2O}$ for $\ge 10\text{ seconds}$) instantly restores volume:
     $$\text{recruitment}_{\text{PEEP}} = -0.005 \cdot \text{PEEP} \quad (\text{per second})$$
@@ -839,6 +889,7 @@ Neuromuscular blocking agents (NMBAs) block nicotinic acetylcholine receptors ($
 | **F3 (Anesthetic)** | Halogenated Cyclobutane | $V_1: 10.00\text{ L}$<br>$k_{10}: 0.10$<br>$ke_0: 0.8$ | $EC_{50}: 1.2\text{ vol\%}$<br>$\gamma: 2.5$ | Volatile anesthetic. Produces immobility, sedation, and amnesia. | Vasodilation, cardiodepression, and respiratory depression. |
 | **S-Isoflurane** | Chiral Volatile (Active) | $V_1: 1.40\text{ L}$<br>$k_{10}: 0.08$<br>$ke_0: 0.8$ | $EC_{50}: 0.9\text{ vol\%}$<br>$\gamma: 2.0$ | Active enantiomer of Isoflurane. High-affinity binding to proteins. | More potent vasodilation, bradycardia, and sedation. |
 | **R-Isoflurane** | Chiral Volatile (Less Active) | $V_1: 1.40\text{ L}$<br>$k_{10}: 0.08$<br>$ke_0: 0.8$ | $EC_{50}: 1.8\text{ vol\%}$<br>$\gamma: 2.0$ | Less active enantiomer of Isoflurane. Lower-affinity protein binding. | Requires twice the dose of S-enantiomer for same clinical effect. |
+| **Xenon** | Gaseous Anesthetic | $V_1: 5.00\text{ L}$<br>$k_{10}: 0.80$<br>$ke_0: 1.5$ | $EC_{50}: 63-71\text{ vol\%}$<br>$\gamma: 2.5$ | NMDA antagonist. Fast wash-in/wash-out due to low blood-gas partition coefficient ($0.115$). | High viscosity and density increase airway resistance. Depresses spontaneous respiratory rate. Does not blunt HVR or inhibit HPV. |
 
 ---
 
@@ -864,7 +915,8 @@ Neuromuscular blocking agents (NMBAs) block nicotinic acetylcholine receptors ($
     The rate of change of circuit anesthetic partial pressure ($P_{	ext{circ}}$) is:
     $$rac{dP_{	ext{circ}}}{dt} = rac{FGF}{V_{	ext{circ}}} \cdot (P_{	ext{del}} - P_{	ext{circ}})$$
     Assuming constant $P_{	ext{del}}$, integrating yields:
-    $$P_{	ext{circ}}(t) = P_{	ext{circ}}(0) + (P_{	ext{del}} - P_{	ext{circ}}(0)) \cdot \left(1 - e^{-t / 	au}ight) \quad 	ext{where } 	au = rac{V_{	ext{circ}}}{FGF}$$
+    $$P_{	ext{circ}}(t) = P_{	ext{circ}}(0) + (P_{	ext{del}} - P_{	ext{circ}}(0)) \cdot \left(1 - e^{-t / 	au}
+ight) \quad 	ext{where } 	au = rac{V_{	ext{circ}}}{FGF}$$
     *Adsorption Correction*: Circuit tubing and CO2 absorbents absorb volatile anesthetics dose-dependently, increasing the effective circuit volume:
     $$V_{	ext{circ, effective}} = V_{	ext{circ}} + k_{	ext{adsorption}} \cdot \lambda_{og}$$
 
@@ -877,7 +929,8 @@ Neuromuscular blocking agents (NMBAs) block nicotinic acetylcholine receptors ($
 
 *   **Concentration and Second Gas Effects (Gas Shrinkage)**:
     When a highly soluble gaseous agent (like Nitrous Oxide, $N_2O$) is administered in high concentrations ($50-70\%$), its rapid uptake into pulmonary capillary blood shrinks the remaining alveolar gas volume. This concentrates co-administered gases (such as Oxygen and volatile anesthetics), accelerating their alveolar rate of rise and uptake (the second gas effect):
-    $$	ext{dFa}_j = rac{\dot{V}_A \cdot (F_{I,j} - F_{A,j}) - 	ext{Uptake}_j + \left(\sum_k 	ext{Uptake}_kight) \cdot F_{I,j}}{V_{FRC}}$$
+    $$	ext{dFa}_j = rac{\dot{V}_A \cdot (F_{I,j} - F_{A,j}) - 	ext{Uptake}_j + \left(\sum_k 	ext{Uptake}_k
+ight) \cdot F_{I,j}}{V_{FRC}}$$
     where $\sum_k 	ext{Uptake}_k$ represents the sum of the volumetric uptake rates of all active gases (specifically $N_2O$ uptake drawing circuit gas into the lungs).
 
 *   **Ventilation-Perfusion (V/Q) Mismatches & Shunt**:
@@ -887,7 +940,8 @@ Neuromuscular blocking agents (NMBAs) block nicotinic acetylcholine receptors ($
 
 *   **Washout Kinetics & Diffusion Hypoxia (Fink Effect)**:
     Upon discontinuation of Nitrous Oxide, the low blood solubility and large volume of dissolved $N_2O$ in tissues causes it to rapidly diffuse out of pulmonary capillaries back into the alveoli ($	ext{Uptake}_{N2O} < 0$). This dilutes alveolar oxygen ($PAO_2$) and carbon dioxide ($PACO_2$):
-    $$	ext{O2Buffer} -= \left(rac{	ext{O2Buffer}}{FRC_{	ext{recruited}}}ight) \cdot (-	ext{Uptake}_{N_2O}) \cdot dt$$
+    $$	ext{O2Buffer} -= \left(rac{	ext{O2Buffer}}{FRC_{	ext{recruited}}}
+ight) \cdot (-	ext{Uptake}_{N_2O}) \cdot dt$$
     If the patient is breathing room air ($FiO_2 = 21\%$), this alveolar oxygen dilution reduces $PaO_2$, causing arterial hypoxemia and desaturation ($SpO_2 < 90\%$). This fink effect is mitigated by administering $100\%$ oxygen during washout.
     *Context-Sensitive Half-Times*: Emergence rates are context-sensitive. Long anesthetic exposures saturate muscle and fat reservoirs, causing volatile agents to diffuse back into circulation for extended periods, slowing recovery.
 
@@ -1316,6 +1370,60 @@ Postoperative ileus is a multifactorial bowel motility dysfunction governed by s
     - *Postoperative Cognitive Decline (POCD)*: Surgical trauma and anesthetic exposure trigger neuroinflammation and blood-brain barrier disruption in the elderly, causing cognitive decline and memory deficits.
 *   **Mitigation / Resolution**: Limit anesthetic exposure time to the minimum necessary for the procedure. Consider regional/spinal anesthesia techniques (GAS trial protocols) for brief procedures.
 
+
+#### 6.43 Ciliary Clearance Inhibition, Mucus Plug, and Bronchial Suctioning
+*   **Trigger Conditions**: Sustained depression of cilia beat frequency (`ciliaBeatFrequency < 45%`), leading to `ciliaryAtelectasisAccumulation > 3.0` and `isMucusPlugged = true`.
+*   **Physiological Impact**:
+    - *Airway Resistance Penalty*: Airway resistance increases by $+20\text{ cmH2O/L/s}$, driving up peak airway pressures under volume control ventilation.
+    - *Alveolar Shunt*: Atelectasis is promoted, increasing the shunt fraction.
+*   **Mitigation / Resolution**: Perform deep bronchial suctioning (airway toilet) in the checklists panel, which resets `isMucusPlugged` to `false` and `ciliaryAtelectasisAccumulation` to `0.0`.
+
+#### 6.44 Xenon-Induced Viscous Airway Resistance Surge
+*   **Trigger Conditions**: Active administration of Xenon ($etAgent > 40\%$) on the vaporizer dial.
+*   **Physiological Impact**: Xenon's high density and viscosity cause a dynamic surge in airway resistance:
+    $$\text{Resistance}_{\text{final}} *= 1.0 + 0.4 \cdot \left(\frac{etAgent}{70.0}\right) \cdot (1.0 + (\text{bronchospasm} ? 1.5 : 0.0))$$
+    This surge is aggravated if the patient has active bronchospasm.
+*   **Mitigation / Resolution**: Discontinue or reduce Xenon concentration. Administer bronchodilators to relax bronchial smooth muscle if bronchospasm is co-active.
+
+#### 6.45 Pipeline Crossover and Oxygen Supply Pressure Failure
+*   **Trigger Conditions**: Pipeline crossover active (`isO2PipelineCrossover === true`) or oxygen pipeline disconnected (`isO2PipelineDisconnected === true`) while backup cylinder is closed (`isO2CylinderOpen === false`).
+*   **Physiological Impact**:
+    - *Hypoxic Gas Mixture*: Crossover forces the oxygen pipeline to deliver $100\%$ nitrous oxide ($N_2O$) instead of oxygen ($O_2$), dropping inspired oxygen ($FiO_2$) precipitously and causing hypoxic arrest.
+    - *Oxygen Supply Pressure Loss*: Loss of pipeline pressure without an open cylinder drops oxygen gas flow to 0, raising a critical alarm and triggering severe arterial hypoxemia.
+*   **Mitigation / Resolution**: Open the backup oxygen cylinder (`isO2CylinderOpen = true`) and disconnect the pipeline from the wall outlet (`isO2PipelineDisconnected = true`).
+
+#### 6.46 Link-25 Proportioning System and Hypoxic Mixture Protection
+*   **Trigger Conditions**: User attempts to adjust nitrous oxide flow rate relative to oxygen flow rate.
+*   **Physiological Impact**: The Link-25 system mechanically links the $O_2$ and $N_2O$ flow control valves, enforcing a minimum ratio of $1:3$ ($o2Flow \ge n2oFlow / 3.0$). This guarantees a minimum inspired oxygen concentration ($FiO_2 \ge 25\%$) when ventilating with an oxygen-nitrous mixture.
+*   **Mitigation / Resolution**: Enforced automatically by the anesthesia machine flow control system.
+
+#### 6.47 APL Valve Mechanical Model and Low-Pressure Leak Kinetics
+*   **Trigger Conditions**: Attempting manual/assisted ventilation with the APL (adjustable pressure limiting) valve set to low pressures (`aplValveSetting < 15.0`).
+*   **Physiological Impact**: Squeezing the manual breathing bag is ineffective because gas leaks past the open APL valve, dropping effective minute ventilation (`effectiveMV_L_min`) to $0.0$ (if `aplValveSetting < 5.0`) or scaling it down proportionally (if `aplValveSetting < 15.0`). This stops pre-oxygenation and drives progressive hypercapnia.
+*   **Mitigation / Resolution**: Close the APL valve to $\ge 15\text{ cmH2O}$ when performing manual bag ventilation.
+
+#### 6.48 Mapleson Breathing Circuit Rebreathing and Fresh Gas Flow Limits
+*   **Trigger Conditions**: Fresh gas flow ($FGF$) set below the circuit-specific rebreathing requirements.
+*   **Physiological Impact**:
+    - *Mapleson A (Spontaneous)*: $FGF_{\text{req}} = MV$. If $FGF < MV$, expired alveolar gas accumulates, causing rebreathing.
+    - *Mapleson A (Controlled)*: $FGF_{\text{req}} = \max(20.0, 3.0 \cdot MV)$ (very inefficient under mechanical ventilation).
+    - *Mapleson D (Spontaneous)*: $FGF_{\text{req}} = 2.5 \cdot MV$.
+    - *Mapleson D (Controlled)*: $FGF_{\text{req}} = 2.0 \cdot MV$.
+    - *Rebreathing fraction*: $R_f = 1.0 - FGF / FGF_{\text{req}}$, driving inspired CO2 ($FiCO_2 = R_f \cdot EtCO_2$) and elevating PaCO2.
+*   **Mitigation / Resolution**: Increase fresh gas flow ($FGF$) above circuit-specific limits or switch to a circle system.
+
+#### 6.49 Stuck Unidirectional Valves and Rebreathing Fraction
+*   **Trigger Conditions**: Circle system inspiratory or expiratory unidirectional valves stuck open (`stuckInspiratoryValve === true` or `stuckExpiratoryValve === true`).
+*   **Physiological Impact**: A stuck unidirectional valve allows expired gas containing CO2 to backflow into the inspiratory limb, bypassing the CO2 absorbent canister and triggering a flat-rate $40\%$ rebreathing fraction ($R_f = 0.40$), causing severe hypercapnia ($FiCO_2 \approx 16\text{ mmHg}$).
+*   **Mitigation / Resolution**: Unstick the breathing circuit valves in the UI.
+
+#### 6.50 Oxygen Flush Valve dilution and Tension Pneumothorax Barotrauma
+*   **Trigger Conditions**: Momentary activation of the oxygen flush valve (`isOxygenFlushPressed === true`).
+*   **Physiological Impact**:
+    - *Gaseous Dilution*: Delivers $35-75\text{ L/min}$ of $100\%$ oxygen, immediately diluting circuit anesthetic agents by $50\%$.
+    - *Alveolar Pre-oxygenation*: Rapidly pre-oxygenates the FRC buffer.
+    - *Barotrauma / Tension Pneumothorax*: If the flush is pressed during inspiration (ventilator cycle active) or when the APL valve is closed ($\ge 30\text{ cmH2O}$), the high pressure ($50\text{ psi}$) triggers barotrauma and a tension pneumothorax (`hasPneumothorax = true`), causing lung compliance to drop to $25\%$, stroke volume to drop by $70\%$ (vena cava compression), and blood pressure (MAP) to collapse.
+*   **Mitigation / Resolution**: Perform needle decompression (`hasPneumothorax = false`) to release pleural air.
 
 ### 7. Attending Direct Chat, Advisor & NLP Engine
 

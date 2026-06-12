@@ -46,6 +46,7 @@ export interface PatientState {
   ischemiaActive?: boolean;
   ischemiaMildLogged?: boolean;
   ischemiaSevereLogged?: boolean;
+  hasPneumothorax?: boolean;
 }
 
 export interface VitalsState {
@@ -382,6 +383,9 @@ export class CardiovascularEngine {
     const afibSVModifier = (patient.afib || patient.hasAFib || patient.cardiacRhythm === 'afib') ? 0.85 : 1.0;
 
     let currentSV = Math.min(maxSV, baseSV * preloadSV * Math.max(0.1, inotropyFinal) * chfInotropicPenalty * afibSVModifier);
+    if (patient.hasPneumothorax) {
+      currentSV *= 0.3; // 70% drop in SV due to vena cava compression
+    }
     currentSV = Math.max(0.1, currentSV);
 
     // SVR computation
@@ -405,6 +409,9 @@ export class CardiovascularEngine {
     }
 
     let exactMap = ((newCO * newSVR) / 80) + pressorMAPShift + sepsisMAPShift;
+    if (patient.hasPneumothorax) {
+      exactMap = Math.max(15, exactMap - 30); // 30 mmHg MAP drop
+    }
     const safeRuleMapScale = typeof drugEffects.ruleMapScale === 'number' && Number.isFinite(drugEffects.ruleMapScale) ? drugEffects.ruleMapScale : 1.0;
     const safeRuleMapOffset = typeof drugEffects.ruleMapOffset === 'number' && Number.isFinite(drugEffects.ruleMapOffset) ? drugEffects.ruleMapOffset : 0;
     exactMap = exactMap * safeRuleMapScale + safeRuleMapOffset;

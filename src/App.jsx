@@ -250,7 +250,35 @@ export default function App() {
   const handleDeliverShock = (...args) => { saveState(); deliverShock(...args); };
   const handleOptimizeAirway = (...args) => { saveState(); optimizeAirway(...args); };
   const handleSetVentSettings = (update) => { saveState(); setVentSettings(update); };
-  const handleSetGasSettings = (update) => { saveState(); setGasSettings(update); };
+  const handleSetGasSettings = (update) => {
+    saveState();
+    setGasSettings(prev => {
+      const prevSettings = prev || { o2Flow: 2.0, airFlow: 0.0, n2oFlow: 0.0 };
+      const next = typeof update === 'function' ? update(prevSettings) : { ...prevSettings, ...update };
+      let finalO2 = next.o2Flow;
+      let finalN2O = next.n2oFlow;
+      
+      if (next.n2oFlow > prevSettings.n2oFlow) {
+        if (finalO2 < finalN2O / 3.0) {
+          finalO2 = finalN2O / 3.0;
+        }
+      } else if (next.o2Flow < prevSettings.o2Flow) {
+        if (finalN2O > finalO2 * 3.0) {
+          finalN2O = finalO2 * 3.0;
+        }
+      } else {
+        if (finalO2 < finalN2O / 3.0) {
+          finalO2 = finalN2O / 3.0;
+        }
+      }
+      
+      return {
+        ...next,
+        o2Flow: Math.round(finalO2 * 10) / 10,
+        n2oFlow: Math.round(finalN2O * 10) / 10
+      };
+    });
+  };
   const handleSetSurgicalPhase = (val) => {
     if (val === 'Induction' && !msmaidsComplete && !patient?.emergentRSI && !patient?.isFuzzing) {
       logEvent("⚠️ CLINICAL INTERLOCK BLOCKED: Induction phase locked. Complete MSMAIDS pre-induction checklist first.");
@@ -527,7 +555,17 @@ export default function App() {
       ioPlacedTime: -999,
       ioSympatheticSurgeActive: false,
       lastLinePlacementTime: -999,
-      lastLineCategory: ''
+      lastLineCategory: '',
+      isO2PipelineCrossover: false,
+      isO2CylinderOpen: false,
+      isO2PipelineDisconnected: false,
+      isOxygenFlushPressed: false,
+      breathingCircuitType: 'circle',
+      co2AbsorptiveCapacity: 100.0,
+      stuckExpiratoryValve: false,
+      stuckInspiratoryValve: false,
+      aplValveSetting: 0.0,
+      hasPneumothorax: false
     });
     if (selectedCase.preOpLabs) {
       setLabs(selectedCase.preOpLabs);
@@ -838,6 +876,9 @@ export default function App() {
     } else if (type === 'Type & Screen' || type === 'Type & Cross') {
       logEvent(`Sent blood bank tubes for ${type}. Crossmatching PRBCs (ETA ~45 min)...`);
       delay = 20000;
+    } else if (type === 'PFTs') {
+      logEvent(`Ordering Bedside Pulmonary Function Tests & Ciliary Audit (ETA ~2 min)...`);
+      delay = 3000;
     }
 
     setTimeout(() => {
@@ -979,6 +1020,16 @@ export default function App() {
         const a1c = patient.diabetes ? 8.4 : 5.3;
         results = {
           'HbA1c': { val: a1c.toFixed(1) + ' %', range: '< 5.7 %', alert: patient.diabetes }
+        };
+      } else if (type === 'PFTs') {
+        const cbf = patient.ciliaBeatFrequency !== undefined ? patient.ciliaBeatFrequency : 100.0;
+        const surfactant = patient.surfactantProduction !== undefined ? patient.surfactantProduction : 100.0;
+        const compliance = surfactant;
+        results = {
+          'Cilia Beat Frequency': { val: cbf.toFixed(1) + ' Hz', range: '80.0 - 120.0 Hz', alert: cbf < 45.0 },
+          'Surfactant Activity': { val: surfactant.toFixed(1) + ' %', range: '90.0 - 110.0 %', alert: surfactant < 80.0 },
+          'Estimated Compliance': { val: compliance.toFixed(1) + ' %', range: '90.0 - 110.0 %', alert: compliance < 80.0 },
+          'Mucus Status': { val: patient.isMucusPlugged ? '⚠️ MUCUS PLUG' : 'Normal', range: 'Normal', alert: patient.isMucusPlugged }
         };
       }
 
@@ -1186,6 +1237,7 @@ export default function App() {
         ventSettings={ventSettings} 
         setVentSettings={handleSetVentSettings} 
         patient={patient} 
+        setPatient={setPatient}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-stretch" style={{ minHeight: '500px' }}>

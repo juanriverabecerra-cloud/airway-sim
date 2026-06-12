@@ -35,6 +35,12 @@ export interface RespiratoryPatientState {
   isBucking?: boolean;
   C_cat?: number;
   swallowingActive?: boolean;
+  breathingCircuitType?: string;
+  co2AbsorptiveCapacity?: number;
+  stuckExpiratoryValve?: boolean;
+  stuckInspiratoryValve?: boolean;
+  aplValveSetting?: number;
+  hasPneumothorax?: boolean;
 }
 
 export interface RespiratoryVitalsState {
@@ -57,6 +63,7 @@ export interface RespiratoryVitalsState {
   mv?: number;
   peep?: number;
   bowelGasVolume?: number;
+  fico2?: number;
 }
 
 export interface VentSettings {
@@ -99,6 +106,7 @@ export interface RespiratoryOutput {
   resistance: number;
   pip: number;
   vte: number;
+  fico2?: number;
 }
 
 export class RespiratoryEngine {
@@ -282,6 +290,15 @@ export class RespiratoryEngine {
       aspirationResistancePenalty: number;
       hpsShunt?: number;
       fluidOverloadCompliancePenalty?: number;
+      agent?: string;
+      etAgent?: number;
+      currentMac?: number;
+      isMucusPlugged?: boolean;
+      bronchialSmoothMuscleCa?: number;
+      intercostalContribution?: number;
+      airwayObstructionIndex?: number;
+      hpvInhibition?: number;
+      fgf_L_min?: number;
     }
   ): RespiratoryOutput {
     const { patient, vitals } = st || { patient: {} as any, vitals: {} as any };
@@ -352,7 +369,11 @@ export class RespiratoryEngine {
       // PEEP recruits collapsed/atelectatic alveoli, expanding the effective FRC volume
       const shuntReduction = nippvPeep > 0 ? Math.min(0.15, nippvPeep * 0.015) : 0;
       const lungRecruitment = nippvPeep > 0 ? (safePatient.isObese || safePatient.chf ? 0.045 : 0.03) * nippvPeep : 0;
-      const recruitedFRC_L = currentFRC_L * (1.0 + lungRecruitment);
+      let intercostalScale = 1.0;
+      if (safeInputs.intercostalContribution !== undefined) {
+        intercostalScale = 0.7 + 0.3 * safeInputs.intercostalContribution;
+      }
+      const recruitedFRC_L = currentFRC_L * (1.0 + lungRecruitment) * intercostalScale;
 
       // FRC O2 buffer calculation based on recruited FRC volume
       let buffer = (typeof safePatient.oxygenBuffer === 'number' && Number.isFinite(safePatient.oxygenBuffer)) 
@@ -380,13 +401,37 @@ export class RespiratoryEngine {
       }
 
       let effectiveMV_L_min = 0;
-      if (safePatient.airwaySecured) {
-        effectiveMV_L_min = safeVitals.mv || 6.0;
-      } else if (isBagMaskActive) {
-        effectiveMV_L_min = 5.0;
-      } else if (!isParalyzed && !isApneic) {
-        const currentRR = safeVitals.rr !== undefined && Number.isFinite(safeVitals.rr) ? safeVitals.rr : 12;
-        effectiveMV_L_min = (currentRR * 0.5);
+      const circuitType = safePatient.breathingCircuitType || 'circle';
+      const aplSetting = typeof safePatient.aplValveSetting === 'number' ? safePatient.aplValveSetting : 0;
+
+      if (circuitType.includes('Mapleson')) {
+        if (isApneic) {
+          if (aplSetting < 5) {
+            effectiveMV_L_min = 0;
+          } else if (aplSetting < 15) {
+            effectiveMV_L_min = 6.0 * (aplSetting / 15);
+          } else {
+            effectiveMV_L_min = 6.0;
+          }
+        } else {
+          const currentRR = safeVitals.rr !== undefined && Number.isFinite(safeVitals.rr) ? safeVitals.rr : 12;
+          effectiveMV_L_min = (currentRR * 0.5);
+        }
+      } else {
+        if (safePatient.airwaySecured) {
+          effectiveMV_L_min = safeVitals.mv || 6.0;
+        } else if (isBagMaskActive) {
+          if (aplSetting < 5) {
+            effectiveMV_L_min = 0;
+          } else if (aplSetting < 15) {
+            effectiveMV_L_min = 5.0 * (aplSetting / 15);
+          } else {
+            effectiveMV_L_min = 5.0;
+          }
+        } else if (!isParalyzed && !isApneic) {
+          const currentRR = safeVitals.rr !== undefined && Number.isFinite(safeVitals.rr) ? safeVitals.rr : 12;
+          effectiveMV_L_min = (currentRR * 0.5);
+        }
       }
 
       if (effectiveMV_L_min > 0.1) {
@@ -455,9 +500,23 @@ export class RespiratoryEngine {
     currentCompliance -= fluidOverloadCompliancePenalty;
     currentCompliance *= safeRuleComplScale;
 
+    if (safePatient.hasPneumothorax) {
+      currentCompliance *= 0.25; // 75% compliance drop
+    }
+
     const bowelGasVol = typeof safeVitals.bowelGasVolume === 'number' && Number.isFinite(safeVitals.bowelGasVolume) ? safeVitals.bowelGasVolume : 1.0;
     const complianceModBowel = 1.0 / (1.0 + 0.3 * Math.max(0, bowelGasVol - 1.0));
     currentCompliance *= complianceModBowel;
+
+    // Scale by intercostal contribution (loss of chest wall expansion)
+    if (safeInputs.intercostalContribution !== undefined) {
+      currentCompliance *= safeInputs.intercostalContribution;
+    }
+
+    // Scale compliance by surfactant production (Chapter 21)
+    if (safePatient.surfactantProduction !== undefined) {
+      currentCompliance *= (safePatient.surfactantProduction / 100.0);
+    }
 
     if (safePatient.bronchospasm) {
       currentCompliance *= 0.5;
@@ -477,10 +536,27 @@ export class RespiratoryEngine {
       currentResistance += 15;
     }
     if (safePatient.bronchospasm) {
-      currentResistance += 40;
+      const spasmResist = 40.0 * (safeInputs.bronchialSmoothMuscleCa !== undefined ? safeInputs.bronchialSmoothMuscleCa : 1.0);
+      currentResistance += spasmResist;
     }
     if (safePatient.laryngospasm) {
       currentResistance = 999;
+    }
+
+    // Xenon density/viscosity increase
+    if (safeInputs.agent === 'xenon' && typeof safeInputs.etAgent === 'number' && safeInputs.etAgent > 0) {
+      const xenonResistanceMultiplier = 1.0 + 0.4 * (safeInputs.etAgent / 70.0) * (1.0 + (safePatient.bronchospasm ? 1.5 : 0.0));
+      currentResistance *= xenonResistanceMultiplier;
+    }
+
+    // Mucus plug resistance penalty
+    if (safeInputs.isMucusPlugged) {
+      currentResistance += 20.0;
+    }
+
+    // Upper airway obstruction resistance penalty
+    if (safeInputs.airwayObstructionIndex && safeInputs.airwayObstructionIndex > 0) {
+      currentResistance += 35.0 * safeInputs.airwayObstructionIndex;
     }
 
     // Ventilation settings and dynamic pressure calculations
@@ -490,6 +566,10 @@ export class RespiratoryEngine {
       ? safePatient.patientBaseRR
       : (safeVitals.rr || 12);
     let patientDriveRR = (isParalyzed || safePatient.swallowingActive) ? 0 : Math.max(0, baseRR + compensatoryRR + shiveringRRDrive + safeTotalRrDelta - opioidRRDrop);
+    if (safeInputs.agent === 'xenon' && typeof safeInputs.etAgent === 'number' && safeInputs.etAgent > 0) {
+      const xenonRRDepression = 0.25 * safeInputs.etAgent;
+      patientDriveRR = Math.max(0, patientDriveRR - xenonRRDepression);
+    }
     let targetRR = patientDriveRR;
     if (safePatient.swallowingActive) {
       targetRR = 0;
@@ -577,6 +657,46 @@ export class RespiratoryEngine {
     const safePaCO2 = safeVitals.paco2 || 40;
     const safeSys = safeVitals.sys || 120;
 
+    let rebreathingFraction = 0.0;
+    const totalFGF = typeof safeInputs.fgf_L_min === 'number' ? safeInputs.fgf_L_min : 2.0;
+
+    if (circuitType === 'Mapleson A') {
+      const isControlled = isApneic;
+      if (!isControlled) {
+        const fgfReq = effectiveMV_L_min;
+        if (fgfReq > 0.1 && totalFGF < fgfReq) {
+          rebreathingFraction = 1.0 - (totalFGF / fgfReq);
+        }
+      } else {
+        const fgfReq = Math.max(20.0, 3.0 * effectiveMV_L_min);
+        if (fgfReq > 0.1 && totalFGF < fgfReq) {
+          rebreathingFraction = 1.0 - (totalFGF / fgfReq);
+        }
+      }
+    } else if (circuitType === 'Mapleson D') {
+      const isControlled = isApneic;
+      if (!isControlled) {
+        const fgfReq = 2.5 * effectiveMV_L_min;
+        if (fgfReq > 0.1 && totalFGF < fgfReq) {
+          rebreathingFraction = 1.0 - (totalFGF / fgfReq);
+        }
+      } else {
+        const fgfReq = 2.0 * effectiveMV_L_min;
+        if (fgfReq > 0.1 && totalFGF < fgfReq) {
+          rebreathingFraction = 1.0 - (totalFGF / fgfReq);
+        }
+      }
+    } else {
+      const absorbentCapacity = typeof safePatient.co2AbsorptiveCapacity === 'number' ? safePatient.co2AbsorptiveCapacity : 100.0;
+      const rebreathingAbsorbent = Math.max(0, 1.0 - absorbentCapacity / 100.0);
+      const rebreathingValves = (safePatient.stuckInspiratoryValve || safePatient.stuckExpiratoryValve) ? 0.40 : 0.0;
+      rebreathingFraction = Math.max(rebreathingAbsorbent, rebreathingValves);
+    }
+    rebreathingFraction = Math.max(0.0, Math.min(0.85, rebreathingFraction));
+
+    const currentEt = typeof safeVitals.etco2 === 'number' ? safeVitals.etco2 : 40;
+    const fico2 = rebreathingFraction * currentEt;
+
     // Eger & Severinghaus Apnea CO2 accumulation
     if (targetRR === 0 || currentAlvVent_L_min <= 0.1) {
       const currentApneaDuration = safePatient.apneaStartTime ? (st.time - safePatient.apneaStartTime) : 0;
@@ -586,6 +706,7 @@ export class RespiratoryEngine {
       targetEtco2 = 0;
     } else {
       targetPaCO2 = safeBaselinePaCO2 * ((baseAlvVent_L_min * safeTotalMetabolicMultiplier) / Math.max(0.1, currentAlvVent_L_min));
+      targetPaCO2 += fico2;
       targetPaCO2 = Math.max(15, Math.min(120, targetPaCO2));
       let co2Gradient = safePatient.isObese ? 7 : (safePatient.copd ? 10 : 4);
       if (safeSys < 80) co2Gradient += (80 - safeSys) * 0.5;
@@ -620,7 +741,10 @@ export class RespiratoryEngine {
     const venousO2Content = Math.max(1.0, capillaryO2Content - (VO2_ml_min / (Math.max(0.5, safeTargetCO) * 10)));
 
       const baselineShunt = safePatient.shuntFraction || 0.05;
-      const actualShunt = Math.max(0.02, baselineShunt - shuntReduction + hpsShunt);
+      const atelectasis = safePatient.atelectasis || 0.0;
+      const hpvInhibition = safeInputs.hpvInhibition !== undefined ? safeInputs.hpvInhibition : (safePatient.hpvInhibition || 0.0);
+      const shuntHpvPenalty = 0.25 * atelectasis * hpvInhibition;
+      const actualShunt = Math.max(0.02, baselineShunt - shuntReduction + hpsShunt + 0.15 * atelectasis + shuntHpvPenalty);
     const arterialO2Content = (capillaryO2Content * (1 - actualShunt)) + (venousO2Content * actualShunt);
 
     const contentDenom = Math.max(0.1, safeCurrentHb * 1.34);
@@ -675,7 +799,8 @@ export class RespiratoryEngine {
       vte: Math.round(newVte),
       pmean: Math.round(newPmean),
       mv: parseFloat(newMv.toFixed(2)),
-      peep: newPeep
+      peep: newPeep,
+      fico2: Math.round(fico2)
     };
 
     return {
@@ -698,7 +823,8 @@ export class RespiratoryEngine {
       compliance: currentCompliance,
       resistance: currentResistance,
       pip: newPip,
-      vte: newVte
+      vte: newVte,
+      fico2: Math.round(fico2)
     };
   }
 }

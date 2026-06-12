@@ -1,9 +1,6 @@
 import { INHALATIONAL_AGENTS } from '../../engine/Pharmacology';
 
-export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSettings, patient }) => {
-  // If the airway is not secured, the controls hide themselves.
-  if (!patient?.airwaySecured) return null;
- 
+export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSettings, patient, setPatient }) => {
   // === PHYSIOLOGICAL STOICHIOMETRY ===
   const totalFGF = gasSettings.o2Flow + gasSettings.airFlow + gasSettings.n2oFlow;
   // Air is ~21% oxygen.
@@ -17,6 +14,7 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
     isoflurane: 5.0,
     halothane: 5.0,
     methoxyflurane: 3.0,
+    xenon: 75.0,
     f3: 5.0,
     f6: 5.0,
     s_isoflurane: 5.0,
@@ -50,14 +48,12 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
   const handleAgentChange = (e) => {
       const newAgent = e.target.value;
       const newMax = maxDialMap[newAgent] || 8.0;
-      // If switching to an agent with a lower max, automatically snap the dial down to prevent overdose.
       setGasSettings(s => ({ ...s, agent: newAgent, dial: Math.min(s.dial, newMax) }));
   };
 
   const handleDialChange = (direction) => {
       setGasSettings(s => {
           const newVal = s.dial + (direction * 0.1);
-          // Floating point rounding fix and mechanical clamping
           const roundedVal = Math.round(newVal * 10) / 10;
           return { ...s, dial: Math.max(0, Math.min(currentMaxDial, roundedVal)) };
       });
@@ -118,6 +114,7 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
             <option value="isoflurane">Isoflurane</option>
             <option value="halothane">Halothane</option>
             <option value="methoxyflurane">Methoxyflurane</option>
+            <option value="xenon">Xenon</option>
             <option value="f3">F3 (Anesthetic)</option>
             <option value="f6">F6 (Nonimmobilizer)</option>
             <option value="s_isoflurane">S-Isoflurane</option>
@@ -134,58 +131,114 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
       </div>
       
       {/* 3. Ventilator Settings */}
-      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-[2_1_450px] md:w-full xl:w-auto">
-        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center mb-1">Ventilator Setup</span>
-        <div className="flex flex-wrap md:flex-nowrap gap-2">
-          
-          <div className="flex flex-col flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[70px]">
-            <span className="text-[9px] text-slate-400 font-bold text-center mb-1">MODE</span>
-            <select value={ventSettings.mode} style={{ textAlignLast: 'center' }} onChange={e => setVentSettings(s => ({...s, mode: e.target.value}))} className="w-full glass-input text-xs font-black text-cyan-300 outline-none appearance-none text-center h-full rounded-lg cursor-pointer hover:border-cyan-500/80 transition">
-              <option value="PCV-VG">PCV-VG</option><option value="VCV">VCV</option><option value="PCV">PCV</option><option value="PSV">PSV</option>
-            </select>
-            <span className="text-[8px] text-slate-650 text-center mt-1 uppercase font-bold">Control</span>
-          </div>
-          
-          <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[85px] sm:min-w-[100px]">
-            <span className="text-[9px] text-slate-400 font-bold text-center mb-1">{primaryTargetLabel}</span>
-            <div className="flex items-center justify-between w-full px-1">
-               <button onClick={() => handleTargetChange(-1)} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">-</button>
-               <span className="text-base sm:text-lg font-black text-white text-center font-mono">{primaryTargetValue}</span>
-               <button onClick={() => handleTargetChange(1)} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">+</button>
+      {patient?.airwaySecured && (
+        <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-[2_1_450px] md:w-full xl:w-auto">
+          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center mb-1">Ventilator Setup</span>
+          <div className="flex flex-wrap md:flex-nowrap gap-2">
+            
+            <div className="flex flex-col flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[70px]">
+              <span className="text-[9px] text-slate-400 font-bold text-center mb-1">MODE</span>
+              <select value={ventSettings.mode} style={{ textAlignLast: 'center' }} onChange={e => setVentSettings(s => ({...s, mode: e.target.value}))} className="w-full glass-input text-xs font-black text-cyan-300 outline-none appearance-none text-center h-full rounded-lg cursor-pointer hover:border-cyan-500/80 transition">
+                <option value="PCV-VG">PCV-VG</option><option value="VCV">VCV</option><option value="PCV">PCV</option><option value="PSV">PSV</option>
+              </select>
+              <span className="text-[8px] text-slate-650 text-center mt-1 uppercase font-bold">Control</span>
             </div>
-            <span className="text-[8px] text-slate-500 mt-1 text-center font-mono">{primaryTargetTarget}</span>
-          </div>
-          
-          <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[80px] sm:min-w-[90px]">
-            <span className="text-[9px] text-slate-400 font-bold text-center mb-1">RR (bpm)</span>
-            <div className="flex items-center justify-between w-full px-1">
-               <button onClick={() => setVentSettings(s => ({...s, rr: Math.max(4, s.rr - 1)}))} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">-</button>
-               <span className="text-base sm:text-lg font-black text-white text-center font-mono">{ventSettings.rr}</span>
-               <button onClick={() => setVentSettings(s => ({...s, rr: Math.min(40, s.rr + 1)}))} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">+</button>
+            
+            <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[85px] sm:min-w-[100px]">
+              <span className="text-[9px] text-slate-400 font-bold text-center mb-1">{primaryTargetLabel}</span>
+              <div className="flex items-center justify-between w-full px-1">
+                 <button onClick={() => handleTargetChange(-1)} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">-</button>
+                 <span className="text-base sm:text-lg font-black text-white text-center font-mono">{primaryTargetValue}</span>
+                 <button onClick={() => handleTargetChange(1)} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">+</button>
+              </div>
+              <span className="text-[8px] text-slate-500 mt-1 text-center font-mono">{primaryTargetTarget}</span>
             </div>
-            <span className="text-[8px] text-slate-500 mt-1 text-center">{ventSettings.mode === 'PSV' ? 'Apnea Backup' : 'Target: 10-14'}</span>
-          </div>
-          
-          <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[80px] sm:min-w-[90px]">
-            <span className="text-[9px] text-slate-400 font-bold text-center mb-1">PEEP (cmH2O)</span>
-            <div className="flex items-center justify-between w-full px-1">
-               <button onClick={() => setVentSettings(s => ({...s, peep: Math.max(0, s.peep - 1)}))} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">-</button>
-               <span className="text-base sm:text-lg font-black text-white text-center font-mono">{ventSettings.peep}</span>
-               <button onClick={() => setVentSettings(s => ({...s, peep: Math.min(20, s.peep + 1)}))} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">+</button>
+            
+            <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[80px] sm:min-w-[90px]">
+              <span className="text-[9px] text-slate-400 font-bold text-center mb-1">RR (bpm)</span>
+              <div className="flex items-center justify-between w-full px-1">
+                 <button onClick={() => setVentSettings(s => ({...s, rr: Math.max(4, s.rr - 1)}))} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">-</button>
+                 <span className="text-base sm:text-lg font-black text-white text-center font-mono">{ventSettings.rr}</span>
+                 <button onClick={() => setVentSettings(s => ({...s, rr: Math.min(40, s.rr + 1)}))} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">+</button>
+              </div>
+              <span className="text-[8px] text-slate-500 mt-1 text-center">{ventSettings.mode === 'PSV' ? 'Apnea Backup' : 'Target: 10-14'}</span>
             </div>
-            <span className="text-[8px] text-slate-500 mt-1">Target: 4-8</span>
-          </div>
-          
-          <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[80px] sm:min-w-[90px]">
-            <span className="text-[9px] text-slate-400 font-bold text-center mb-1">Pmax (cmH2O)</span>
-            <div className="flex items-center w-full justify-between px-1">
-               <button onClick={() => setVentSettings(s => ({...s, pmax: Math.max(10, (s.pmax||40) - 1)}))} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">-</button>
-               <span className="text-base sm:text-lg font-black text-white text-center font-mono">{ventSettings.pmax || 40}</span>
-               <button onClick={() => setVentSettings(s => ({...s, pmax: Math.min(80, (s.pmax||40) + 1)}))} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">+</button>
+            
+            <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[80px] sm:min-w-[90px]">
+              <span className="text-[9px] text-slate-400 font-bold text-center mb-1">PEEP (cmH2O)</span>
+              <div className="flex items-center justify-between w-full px-1">
+                 <button onClick={() => setVentSettings(s => ({...s, peep: Math.max(0, s.peep - 1)}))} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">-</button>
+                 <span className="text-base sm:text-lg font-black text-white text-center font-mono">{ventSettings.peep}</span>
+                 <button onClick={() => setVentSettings(s => ({...s, peep: Math.min(20, s.peep + 1)}))} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">+</button>
+              </div>
+              <span className="text-[8px] text-slate-500 mt-1">Target: 4-8</span>
             </div>
-            <span className="text-[8px] text-slate-500 mt-1">Alarm Limit</span>
+            
+            <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[80px] sm:min-w-[90px]">
+              <span className="text-[9px] text-slate-400 font-bold text-center mb-1">Pmax (cmH2O)</span>
+              <div className="flex items-center w-full justify-between px-1">
+                 <button onClick={() => setVentSettings(s => ({...s, pmax: Math.max(10, (s.pmax||40) - 1)}))} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">-</button>
+                 <span className="text-base sm:text-lg font-black text-white text-center font-mono">{ventSettings.pmax || 40}</span>
+                 <button onClick={() => setVentSettings(s => ({...s, pmax: Math.min(80, (s.pmax||40) + 1)}))} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">+</button>
+              </div>
+              <span className="text-[8px] text-slate-500 mt-1">Alarm Limit</span>
+            </div>
+   
           </div>
- 
+        </div>
+      )}
+
+      {/* 4. Circuit & APL Setup */}
+      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-[1_1_250px]" style={{ minWidth: 0 }}>
+        <div className="flex justify-between items-center mb-1 px-1 border-b border-white/5 pb-1">
+          <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Breathing Circuit</span>
+          <span className="text-[10px] text-emerald-300 font-bold font-mono">APL: {patient?.aplValveSetting || 0} cmH2O</span>
+        </div>
+        <div className="flex gap-2 h-full items-center">
+          <select 
+            value={patient?.breathingCircuitType || 'circle'} 
+            style={{ textAlignLast: 'center' }} 
+            onChange={(e) => {
+              const val = e.target.value;
+              if (setPatient) {
+                setPatient(p => ({ ...p, breathingCircuitType: val }));
+              }
+            }} 
+            className="flex-1 glass-input text-xs font-bold text-emerald-300 border border-white/10 rounded-lg outline-none appearance-none px-2 py-2 text-center h-full cursor-pointer hover:border-emerald-500/80 transition font-mono"
+          >
+            <option value="circle">Circle System</option>
+            <option value="Mapleson A">Mapleson A</option>
+            <option value="Mapleson D">Mapleson D</option>
+          </select>
+          <div className="flex items-center justify-between bg-slate-950/60 rounded-lg border border-white/5 w-28 sm:w-32 px-0.5 py-0.5 sm:px-1 sm:py-1 h-full shadow-inner">
+            <button 
+              onClick={() => {
+                const currentVal = typeof patient?.aplValveSetting === 'number' ? patient.aplValveSetting : 0;
+                const nextVal = Math.max(0, currentVal - 5);
+                if (setPatient) {
+                  setPatient(p => ({ ...p, aplValveSetting: nextVal }));
+                }
+              }} 
+              className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-emerald font-bold text-xs sm:text-base cursor-pointer"
+            >
+              -
+            </button>
+            <span className="text-sm sm:text-base font-black text-center flex-1 font-mono text-white">
+              {patient?.aplValveSetting || 0}
+            </span>
+            <button 
+              onClick={() => {
+                const currentVal = typeof patient?.aplValveSetting === 'number' ? patient.aplValveSetting : 0;
+                const nextVal = Math.min(70, currentVal + 5);
+                if (setPatient) {
+                  setPatient(p => ({ ...p, aplValveSetting: nextVal }));
+                }
+              }} 
+              className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-emerald font-bold text-xs sm:text-base cursor-pointer"
+            >
+              +
+            </button>
+          </div>
         </div>
       </div>
       

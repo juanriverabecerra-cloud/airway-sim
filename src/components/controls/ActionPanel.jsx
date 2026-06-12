@@ -108,11 +108,12 @@ export const ActionPanel = ({
   const showCPR = !term || ['defib', 'cpr', 'shock', 'rhythm', 'joules', 'sync', 'compressions', 'code', 'arrest'].some(k => k.includes(term));
   const showPos = !term || ['position', 'supine', 'sniffing', 'ramped', 'trendelenburg', 'rev trend', 'lithotomy', 'lateral', 'prone', 'sitting'].some(k => k.includes(term));
   const showSurg = !term || ['surgical', 'timeline', 'pre-op', 'induction', 'incision', 'maintenance', 'emergence'].some(k => k.includes(term));
-  const showChecklists = !term || ['checklist', 'maneuver', 'pre-op', 'msmaids', 'larson', 'cuff', 'npo', 'history', 'intubation', 'extubation', 'absorbent', 'canister', 'b12', 'cobalamin', 'folate'].some(k => k.includes(term));
+  const showChecklists = !term || ['checklist', 'maneuver', 'pre-op', 'msmaids', 'larson', 'cuff', 'npo', 'history', 'intubation', 'extubation', 'absorbent', 'canister', 'b12', 'cobalamin', 'folate', 'suction', 'suctioning', 'bronchial', 'toilet'].some(k => k.includes(term));
   const showDiag = !term || ['diagnostic', 'pocus', 'exam', 'tte', 'lung', 'gastric', 'airway'].some(k => k.includes(term));
   const showNeuro = !term || ['neuro', 'bis', 'tof', 'nmb', 'twitch'].some(k => k.includes(term));
-  const showLabs = !term || ['access', 'lab', 'piv', 'iv', 'central line', 'io', 'arterial', 'abg', 'vbg', 'cbc', 'cmp', 'teg', 'coag'].some(k => k.includes(term));
+  const showLabs = !term || ['access', 'lab', 'piv', 'iv', 'central line', 'io', 'arterial', 'abg', 'vbg', 'cbc', 'cmp', 'teg', 'coag', 'pft', 'ciliary', 'audit', 'pulmonary', 'function'].some(k => k.includes(term));
   const showO2 = !term || ['oxygen', 'bmv', 'bag', 'cannula', 'mask', 'nrb', 'hfnc', 'cpap', 'bipap', 'room air'].some(k => k.includes(term));
+  const showDelivery = !term || ['delivery', 'crossover', 'pipeline', 'cylinder', 'valve', 'stuck', 'flush', 'pneumothorax', 'needle', 'decompression', 'diss', 'piss', 'oxygen flush'].some(k => k.includes(term));
 
   return (
     <div className="col-span-1 glass-panel glass-blue p-4 flex flex-col gap-4 overflow-y-auto overflow-x-hidden custom-scrollbar min-h-[500px] max-h-[800px]">
@@ -312,6 +313,20 @@ export const ActionPanel = ({
               >
                 💉 Administer Vitamin B12 & Folate
               </button>
+              <button 
+                onClick={() => {
+                  setPatient(p => ({
+                    ...p,
+                    isMucusPlugged: false,
+                    ciliaryAtelectasisAccumulation: 0.0
+                  }));
+                  logEvent("✅ SUCCESS: Deep bronchial suctioning (airway toilet) performed! Removed mucous plug and cleared pooled secretions.");
+                  setSearchTerm('');
+                }} 
+                className="bg-blue-950/30 hover:bg-blue-900/50 text-blue-300 border border-blue-500/40 hover:border-blue-400 p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider col-span-2 text-center transition-all duration-200"
+              >
+                🧼 Perform Bronchial Suctioning (Airway Toilet)
+              </button>
             </div>
           </div>
         )}
@@ -375,6 +390,7 @@ export const ActionPanel = ({
               <button onClick={() => { generateLab('Type & Screen'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order T&S</button>
               <button onClick={() => { generateLab('Type & Cross'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] border">Order T&Cross</button>
               <button onClick={() => { generateLab('HbA1c'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] col-span-2 text-center border">Order HbA1c</button>
+              <button onClick={() => { generateLab('PFTs'); setSearchTerm(''); }} className="glass-button glass-button-blue p-2 rounded-lg text-[9px] col-span-2 text-center border">Order PFT / Ciliary Audit</button>
             </div>
           </div>
         )}
@@ -396,6 +412,110 @@ export const ActionPanel = ({
                   REMOVE O2 DEVICE (ROOM AIR)
                 </button>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* Anesthesia Delivery Systems */}
+        {showDelivery && (
+          <div className="flex flex-col gap-2">
+            <h3 className="text-slate-400 text-[10px] border-b border-white/5 pb-1 uppercase font-black tracking-wider flex items-center gap-2 font-mono"><Wind size={12} className="text-emerald-400"/> Delivery Systems & Safety</h3>
+            <div className="grid grid-cols-2 gap-2 font-mono">
+              <button 
+                onClick={() => {
+                  const nextVal = !patient?.isO2PipelineCrossover;
+                  setPatient(p => ({ ...p, isO2PipelineCrossover: nextVal }));
+                  logEvent(`Action: ${nextVal ? 'Simulated pipeline crossover! Wall oxygen pipeline now delivers nitrous oxide.' : 'Resolved pipeline crossover. Wall oxygen pipeline restored.'}`);
+                  setSearchTerm('');
+                }}
+                className={`p-2.5 rounded-lg text-[9px] border font-black uppercase tracking-wider transition-all duration-200 ${patient?.isO2PipelineCrossover ? 'bg-red-500/20 border-red-500 text-red-300 shadow-[0_0_8px_rgba(239,68,68,0.2)] animate-pulse' : 'glass-button border-slate-800 text-slate-400 hover:text-slate-200'}`}
+              >
+                ⚠️ {patient?.isO2PipelineCrossover ? 'FIX CROSSOVER' : 'CROSSOVER PIPELINE'}
+              </button>
+              
+              <button 
+                onClick={() => {
+                  const nextVal = !patient?.isO2PipelineDisconnected;
+                  setPatient(p => ({ ...p, isO2PipelineDisconnected: nextVal }));
+                  logEvent(`Action: ${nextVal ? 'Disconnected oxygen pipeline from wall outlet.' : 'Connected oxygen pipeline to wall outlet.'}`);
+                  setSearchTerm('');
+                }}
+                className={`p-2.5 rounded-lg text-[9px] border font-black uppercase tracking-wider transition-all duration-200 ${patient?.isO2PipelineDisconnected ? 'bg-yellow-500/20 border-yellow-500 text-yellow-300 shadow-[0_0_8px_rgba(234,179,8,0.2)]' : 'glass-button border-slate-800 text-slate-400 hover:text-slate-200'}`}
+              >
+                🔌 {patient?.isO2PipelineDisconnected ? 'CONNECT PIPELINE' : 'DISCONNECT PIPELINE'}
+              </button>
+              
+              <button 
+                onClick={() => {
+                  const nextVal = !patient?.isO2CylinderOpen;
+                  setPatient(p => ({ ...p, isO2CylinderOpen: nextVal }));
+                  logEvent(`Action: ${nextVal ? 'Opened backup oxygen cylinder (E-cylinder).' : 'Closed backup oxygen cylinder.'}`);
+                  setSearchTerm('');
+                }}
+                className={`p-2.5 rounded-lg text-[9px] border font-black uppercase tracking-wider transition-all duration-200 ${patient?.isO2CylinderOpen ? 'bg-green-500/20 border-green-500 text-green-300 shadow-[0_0_8px_rgba(34,197,94,0.2)]' : 'glass-button border-slate-800 text-slate-400 hover:text-slate-200'}`}
+              >
+                🛢️ {patient?.isO2CylinderOpen ? 'CLOSE O2 CYLINDER' : 'OPEN O2 CYLINDER'}
+              </button>
+
+              <button 
+                onClick={() => {
+                  const hasStuck = patient?.stuckInspiratoryValve || patient?.stuckExpiratoryValve;
+                  if (hasStuck) {
+                    setPatient(p => ({ ...p, stuckInspiratoryValve: false, stuckExpiratoryValve: false }));
+                    logEvent("Action: Unstuck breathing circuit unidirectional valves.");
+                  } else {
+                    setPatient(p => ({ ...p, stuckInspiratoryValve: true }));
+                    logEvent("Action: Sticking circle system inspiratory unidirectional valve open (rebreathing induced).");
+                  }
+                  setSearchTerm('');
+                }}
+                className={`p-2.5 rounded-lg text-[9px] border font-black uppercase tracking-wider transition-all duration-200 ${(patient?.stuckInspiratoryValve || patient?.stuckExpiratoryValve) ? 'bg-red-500/20 border-red-500 text-red-300 shadow-[0_0_8px_rgba(239,68,68,0.2)]' : 'glass-button border-slate-800 text-slate-400 hover:text-slate-200'}`}
+              >
+                🔄 {(patient?.stuckInspiratoryValve || patient?.stuckExpiratoryValve) ? 'UNSTICK VALVES' : 'STICK CIR. VALVE'}
+              </button>
+
+              <button 
+                onClick={() => {
+                  const isInsp = patient?.ventilationStatus === 'mechanical' || patient?.ventilationStatus === 'assisted'; 
+                  const aplSetting = typeof patient?.aplValveSetting === 'number' ? patient.aplValveSetting : 0;
+                  const closedApl = aplSetting >= 30;
+                  const triggersPneumo = isInsp || closedApl;
+
+                  setPatient(p => {
+                    const lungVols = p.lungVolumes || { frc_L: 2.5 };
+                    const nextO2Buffer = lungVols.frc_L * 1.0; 
+                    
+                    return {
+                      ...p,
+                      isOxygenFlushPressed: true,
+                      oxygenBuffer: nextO2Buffer,
+                      hasPneumothorax: triggersPneumo ? true : p.hasPneumothorax
+                    };
+                  });
+
+                  if (triggersPneumo) {
+                    logEvent("🚨 BAROTRAUMA! Pressed Oxygen Flush valve with a closed APL valve or during positive-pressure inspiration, triggering a TENSION PNEUMOTHORAX!");
+                  } else {
+                    logEvent("💨 Pressed Oxygen Flush valve. Momentum flush pre-oxygenates FRC buffer and dilutes circuit anesthetic agents by 50%.");
+                  }
+                  setSearchTerm('');
+                }}
+                className="bg-blue-950/30 hover:bg-blue-900/50 text-blue-300 border border-blue-500/40 hover:border-blue-400 p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider col-span-2 text-center transition-all duration-200"
+              >
+                💨 Press Oxygen Flush Valve
+              </button>
+
+              <button 
+                onClick={() => {
+                  setPatient(p => ({ ...p, hasPneumothorax: false }));
+                  logEvent("✅ SUCCESS: Needle decompression performed! Released trapped pleural air, resolving tension pneumothorax. Compliance and venous return restored.");
+                  setSearchTerm('');
+                }}
+                disabled={!patient?.hasPneumothorax}
+                className="bg-rose-950/30 hover:bg-rose-900/50 text-rose-300 border border-rose-500/40 hover:border-rose-400 disabled:opacity-20 disabled:pointer-events-none p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider col-span-2 text-center transition-all duration-200"
+              >
+                📌 Perform Needle Decompression
+              </button>
             </div>
           </div>
         )}

@@ -397,7 +397,30 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           homocysteine: 10.0,
           b12Baseline: safePatientObj.b12Baseline || 400.0,
           pediatricNeuroRisk: 0.0,
-          pocdRisk: 0.0
+          pocdRisk: 0.0,
+          ciliaBeatFrequency: 100.0,
+          ciliaryAtelectasisAccumulation: 0.0,
+          isMucusPlugged: false,
+          surfactantProduction: 100.0,
+          hpvInhibition: 0.0,
+          intercostalContribution: 1.0,
+          diaphragmContribution: 1.0,
+          isParadoxicalBreathing: false,
+          dilatorMuscleTone: 1.0,
+          airwayObstructionIndex: 0.0,
+          isAirwayObstruction: false,
+          bronchialSmoothMuscleCa: 1.0,
+          atelectasis: 0.0,
+          isO2PipelineCrossover: false,
+          isO2CylinderOpen: false,
+          isO2PipelineDisconnected: false,
+          isOxygenFlushPressed: false,
+          breathingCircuitType: 'circle',
+          co2AbsorptiveCapacity: 100.0,
+          stuckExpiratoryValve: false,
+          stuckInspiratoryValve: false,
+          aplValveSetting: 0.0,
+          hasPneumothorax: false
         });
         
         setTime(0); setActiveMeds([]); setIntravascularVolume(0); setSurgicalPhase('Pre-Op');
@@ -1263,26 +1286,105 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let n2oPercent = 0;
           let freshGasFlow = 2.0; // default 2 L/min
 
-          if (st.gasSettings && st.patient.airwaySecured) {
+          const isPipelineConnected = !st.patient.isO2PipelineDisconnected;
+          const isCrossover = st.patient.isO2PipelineCrossover;
+          const isCylinderOpen = st.patient.isO2CylinderOpen;
+
+          let o2SourceIsO2 = false;
+          let o2SourceIsN2O = false;
+          let hasO2Supply = false;
+
+          if (isPipelineConnected) {
+              hasO2Supply = true;
+              if (isCrossover) {
+                  o2SourceIsN2O = true;
+              } else {
+                  o2SourceIsO2 = true;
+              }
+          } else {
+              if (isCylinderOpen) {
+                  hasO2Supply = true;
+                  o2SourceIsO2 = true;
+              } else {
+                  hasO2Supply = false;
+              }
+          }
+
+          if (st.gasSettings) {
               const o2F = typeof st.gasSettings.o2Flow === 'number' && Number.isFinite(st.gasSettings.o2Flow) ? st.gasSettings.o2Flow : 0;
               const airF = typeof st.gasSettings.airFlow === 'number' && Number.isFinite(st.gasSettings.airFlow) ? st.gasSettings.airFlow : 0;
               const n2oF = typeof st.gasSettings.n2oFlow === 'number' && Number.isFinite(st.gasSettings.n2oFlow) ? st.gasSettings.n2oFlow : 0;
-              const totalFGF = o2F + airF + n2oF;
-              if (Number.isFinite(totalFGF) && totalFGF > 0.001) {
-                  deliveredFiO2 = ((o2F * 100) + (airF * 21)) / totalFGF;
-                  n2oPercent = (n2oF / totalFGF) * 100;
+
+              const isO2PressureLow = o2F > 0 && !hasO2Supply;
+              if (isO2PressureLow && !st.patient.hasLowO2PressureLog) {
+                  st.patient.hasLowO2PressureLog = true;
+                  logEvent("🚨 CRITICAL WARNING: Oxygen pipeline pressure is 0 psi and backup cylinder is closed! Oxygen supply pressure failure!");
+              }
+              if (!isO2PressureLow && st.patient.hasLowO2PressureLog) {
+                  st.patient.hasLowO2PressureLog = false;
+              }
+
+              const actualO2FromFlowmeter = o2SourceIsO2 ? o2F : 0;
+              const actualN2OFromFlowmeter = n2oF + (o2SourceIsN2O ? o2F : 0);
+
+              const actualO2 = actualO2FromFlowmeter + airF * 0.21;
+              const actualN2O = actualN2OFromFlowmeter;
+              const actualN2 = airF * 0.79;
+              
+              const totalFGF = actualO2 + actualN2O + actualN2;
+              
+              if (totalFGF > 0.001) {
+                  deliveredFiO2 = (actualO2 / totalFGF) * 100;
+                  n2oPercent = (actualN2O / totalFGF) * 100;
                   freshGasFlow = totalFGF;
+              } else {
+                  deliveredFiO2 = 21;
+                  n2oPercent = 0;
+                  freshGasFlow = 0;
               }
               if (isNaN(deliveredFiO2) || !Number.isFinite(deliveredFiO2)) deliveredFiO2 = 21;
               if (isNaN(n2oPercent) || !Number.isFinite(n2oPercent)) n2oPercent = 0;
-          } else if (st.gasSettings) {
-              const o2F = typeof st.gasSettings.o2Flow === 'number' && Number.isFinite(st.gasSettings.o2Flow) ? st.gasSettings.o2Flow : 0;
-              const airF = typeof st.gasSettings.airFlow === 'number' && Number.isFinite(st.gasSettings.airFlow) ? st.gasSettings.airFlow : 0;
-              const n2oF = typeof st.gasSettings.n2oFlow === 'number' && Number.isFinite(st.gasSettings.n2oFlow) ? st.gasSettings.n2oFlow : 0;
-              const total = o2F + airF + n2oF;
-              if (Number.isFinite(total) && total > 0.001) {
-                  freshGasFlow = total;
+          }
+
+          // Crossover warning log
+          const isCrossoverActive = st.patient.isO2PipelineCrossover && !st.patient.isO2PipelineDisconnected;
+          if (isCrossoverActive && !st.patient.hasCrossoverWarningLogged) {
+              st.patient.hasCrossoverWarningLogged = true;
+              logEvent("🚨 CRITICAL WARNING: Oxygen analyzer measures low inspired oxygen concentration (FiO2)! Low oxygen alarm active!");
+          }
+          if (!isCrossoverActive && st.patient.hasCrossoverWarningLogged) {
+              st.patient.hasCrossoverWarningLogged = false;
+          }
+
+          // Oxygen Flush dilutes circuit volatile agents and pre-oxygenates
+          if (st.patient.isOxygenFlushPressed) {
+              const currentFRC = (st.patient.height * 0.02) - (st.patient.isObese ? 0.8 : 0);
+              patientAfterFluidics.oxygenBuffer = Math.max(0.5, currentFRC);
+              
+              if (st.gasModels) {
+                  Object.keys(st.gasModels).forEach(key => {
+                      const model = st.gasModels[key];
+                      if (model) {
+                          model.Fi *= 0.5;
+                          model.Fa *= 0.5;
+                      }
+                  });
               }
+
+              const isVentilatingPPV = st.patient.ventilationStatus === 'mechanical' 
+                || (st.ventSettings && st.ventSettings.mode !== 'spontaneous' && st.ventSettings.rr > 0);
+              const isAplClosed = st.patient.aplValveSetting >= 30;
+              
+              if (isVentilatingPPV || isAplClosed) {
+                  if (!st.patient.hasPneumothorax) {
+                      st.patient.hasPneumothorax = true;
+                      logEvent("🚨 CRITICAL EMERGENCY: Oxygen flush valve pressed with closed circuit exhalation path or positive-pressure inspiration! PIP surged > 65 cmH2O, triggering a massive tension pneumothorax!");
+                  }
+              } else {
+                  logEvent("💨 Oxygen flush pressed. Circuit agent concentration diluted by 50%. FRC oxygen buffer filled.");
+              }
+              
+              st.patient.isOxygenFlushPressed = false;
           }
 
           let currentFiAgent = 0;
@@ -1817,8 +1919,141 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           st.patient.pediatricNeuroRisk = pediatricNeuroRisk;
           st.patient.pocdRisk = pocdRisk;
           
+          // === CHAPTER 21: PULMONARY PHARMACOLOGY & RESPIRATORY DRIVE ===
+          const activeAgent = st.gasSettings?.agent;
+          const agentMac = currentMac; // cumulative MAC
+
+          // 1. Cilia Beat Frequency & Mucus Transport
+          let ciliaBeatFrequency = st.patient.ciliaBeatFrequency !== undefined ? st.patient.ciliaBeatFrequency : 100.0;
+          ciliaBeatFrequency = 100.0 - 25.0 * agentMac - (st.patient.tobaccoSmoker ? 30.0 : 0.0) - (st.gasSettings?.freshGasFlow > 5.0 ? 15.0 : 0.0);
+          ciliaBeatFrequency = Math.max(10.0, ciliaBeatFrequency);
+          st.patient.ciliaBeatFrequency = ciliaBeatFrequency;
+
+          let ciliaryAtelectasisAccumulation = st.patient.ciliaryAtelectasisAccumulation || 0.0;
+          let isMucusPlugged = st.patient.isMucusPlugged || false;
+          if (ciliaBeatFrequency < 45.0) {
+              ciliaryAtelectasisAccumulation += 0.015 * (45.0 - ciliaBeatFrequency) / 100.0;
+              if (ciliaryAtelectasisAccumulation > 3.0 && !isMucusPlugged) {
+                  isMucusPlugged = true;
+                  logEvent("🚨 CLINICAL ALERT: Severe ciliary beat frequency inhibition and mucous pooling have produced a focal mucous plug in the main bronchus!");
+              }
+          }
+          st.patient.ciliaryAtelectasisAccumulation = ciliaryAtelectasisAccumulation;
+          st.patient.isMucusPlugged = isMucusPlugged;
+
+          // 2. Surfactant Production (Alveolar Type II cells)
+          let surfactantProduction = st.patient.surfactantProduction !== undefined ? st.patient.surfactantProduction : 100.0;
+          surfactantProduction = Math.max(10.0, 100.0 - 20.0 * agentMac * (st.time > 600 ? 1.5 : 1.0));
+          st.patient.surfactantProduction = surfactantProduction;
+
+          // 3. Hypoxic Pulmonary Vasoconstriction (HPV) Inhibition
+          let hpvInhibition = 0.0;
+          if (activeAgent && activeAgent !== 'xenon') {
+              hpvInhibition = Math.min(0.80, agentMac * 0.20); // 20% at 1 MAC
+          }
+          st.patient.hpvInhibition = hpvInhibition;
+
+          // 4. Rib Cage vs Diaphragmatic breathing contributions
+          let intercostalContribution = Math.max(0.1, 1.0 - 0.7 * agentMac);
+          let diaphragmContribution = Math.max(0.5, 1.0 - 0.15 * agentMac);
+          st.patient.intercostalContribution = intercostalContribution;
+          st.patient.diaphragmContribution = diaphragmContribution;
+
+          let isParadoxicalBreathing = st.patient.isParadoxicalBreathing || false;
+          if (intercostalContribution < 0.4 && !isParadoxicalBreathing && !st.patient.isParalyzed && !st.patient.isApneic && st.patient.ventilationStatus === 'spontaneous') {
+              isParadoxicalBreathing = true;
+              logEvent("⚠️ CLINICAL ALERT: Rib cage muscle activity is severely depressed compared to the diaphragm. Paradoxical (abdominal) breathing observed.");
+          }
+          if ((intercostalContribution >= 0.4 || st.patient.isParalyzed || st.patient.isApneic) && isParadoxicalBreathing) {
+              isParadoxicalBreathing = false;
+          }
+          st.patient.isParadoxicalBreathing = isParadoxicalBreathing;
+
+          // 5. Genioglossus muscle tone & upper airway obstruction
+          let dilatorMuscleTone = 1.0;
+          dilatorMuscleTone = Math.max(0.01, 1.0 - maxNMJOccupancy - 0.7 * Math.min(1.0, propofolCe / 4.0) - 0.5 * Math.min(1.5, agentMac));
+          st.patient.dilatorMuscleTone = dilatorMuscleTone;
+
+          // Airway Obstruction Index
+          let isAirwayObstruction = st.patient.isAirwayObstruction || false;
+          const isOsa = st.patient.pulmonaryComorbidity?.toLowerCase().includes('osa') || st.patient.osa || false;
+          const pcrit = isOsa ? 1.0 : -5.0;
+          let airwayObstructionIndex = 0.0;
+          
+          if (!st.patient.airwaySecured && st.patient.ventilationStatus === 'spontaneous') {
+              airwayObstructionIndex = Math.max(0.0, Math.min(1.0, (1.0 - dilatorMuscleTone) * (pcrit + 6.0) / 7.0));
+              if (airwayObstructionIndex > 0.6 && !isAirwayObstruction) {
+                  isAirwayObstruction = true;
+                  logEvent("🚨 CRITICAL ALERT: Upper airway obstruction! Genioglossus muscle tone is insufficient to maintain pharyngeal patency. Patient is snoring/obstructed.");
+              }
+          }
+          if (st.patient.airwaySecured || st.patient.ventilationStatus !== 'spontaneous' || airwayObstructionIndex <= 0.3) {
+              if (isAirwayObstruction) {
+                  isAirwayObstruction = false;
+                  logEvent("✅ SUCCESS: Upper airway obstruction resolved.");
+              }
+          }
+          st.patient.airwayObstructionIndex = airwayObstructionIndex;
+          st.patient.isAirwayObstruction = isAirwayObstruction;
+
+          // 6. Bronchial Smooth Muscle Calcium Concentration (for bronchodilation)
+          let bronchialSmoothMuscleCa = 1.0;
+          if (activeAgent && activeAgent !== 'xenon') {
+              bronchialSmoothMuscleCa = Math.max(0.2, 1.0 - 0.5 * agentMac);
+          }
+          st.patient.bronchialSmoothMuscleCa = bronchialSmoothMuscleCa;
+
+          // 7. Atelectasis accumulation
+          let atelectasis = st.patient.atelectasis !== undefined ? st.patient.atelectasis : 0.0;
+          const currentFiO2Val = st.patient.airwaySecured ? Number(deliveredFiO2) : Number(st.patient.currentFiO2 || 21);
+          const currentPeepVal = st.ventSettings?.peep || 0;
+          
+          if (currentFiO2Val > 21) {
+              const rateBase = 0.0005 * ((currentFiO2Val - 21) / 79.0) - 0.0002 * currentPeepVal;
+              const paralyzeFactor = st.patient.isParalyzed ? 2.0 : 1.0;
+              const obeseFactor = st.patient.isObese ? 1.5 : 1.0;
+              const change = rateBase * paralyzeFactor * obeseFactor;
+              if (change > 0) {
+                  atelectasis = Math.min(1.0, atelectasis + change);
+              } else {
+                  atelectasis = Math.max(0.0, atelectasis + change * 0.1);
+              }
+          } else {
+              atelectasis = Math.max(0.0, atelectasis - 0.001);
+          }
+          
+          if (currentPeepVal > 0) {
+              atelectasis = Math.max(0.0, atelectasis - 0.002 * currentPeepVal);
+          }
+          st.patient.atelectasis = atelectasis;
+          
+          // CO2 absorbent canister depletion
+          let co2AbsorptiveCapacity = st.patient.co2AbsorptiveCapacity !== undefined ? st.patient.co2AbsorptiveCapacity : 100.0;
+          if (st.patient.breathingCircuitType === 'circle' && !st.patient.isApneic) {
+              const co2ProductionFactor = shiveringMultiplier * seizureMetabolicMultiplier;
+              co2AbsorptiveCapacity = Math.max(0.0, co2AbsorptiveCapacity - 0.015 * co2ProductionFactor);
+          }
+          st.patient.co2AbsorptiveCapacity = co2AbsorptiveCapacity;
+
+          if (co2AbsorptiveCapacity < 10.0 && !st.patient.hasAbsorbentExhaustedLog) {
+              st.patient.hasAbsorbentExhaustedLog = true;
+              logEvent("⚠️ CLINICAL ALERT: CO2 absorbent is nearly exhausted (capacity < 10%). Inspired CO2 (FiCO2) is rising!");
+          }
+          if (co2AbsorptiveCapacity >= 10.0 && st.patient.hasAbsorbentExhaustedLog) {
+              st.patient.hasAbsorbentExhaustedLog = false;
+          }
+
+          if (st.patient.hasPneumothorax && !st.patient.hasPneumothoraxWarningLogged) {
+              st.patient.hasPneumothoraxWarningLogged = true;
+              logEvent("🚨 CRITICAL EMERGENCY: Tension pneumothorax! Compliance collapsed by 75% and venous return compromised. SBP and MAP are crashing. Perform needle decompression immediately!");
+          }
+          if (!st.patient.hasPneumothorax && st.patient.hasPneumothoraxWarningLogged) {
+              st.patient.hasPneumothoraxWarningLogged = false;
+          }
+          
           // Merge these properties to patientAfterFluidics as well
           Object.assign(patientAfterFluidics, {
+              hasPneumothoraxWarningLogged: st.patient.hasPneumothoraxWarningLogged,
               tfaAdducts: st.patient.tfaAdducts,
               AST: st.patient.AST,
               ALT: st.patient.ALT,
@@ -1836,7 +2071,30 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               methionineSynthaseActivity: st.patient.methionineSynthaseActivity,
               homocysteine: st.patient.homocysteine,
               pediatricNeuroRisk: st.patient.pediatricNeuroRisk,
-              pocdRisk: st.patient.pocdRisk
+              pocdRisk: st.patient.pocdRisk,
+              ciliaBeatFrequency: st.patient.ciliaBeatFrequency,
+              ciliaryAtelectasisAccumulation: st.patient.ciliaryAtelectasisAccumulation,
+              isMucusPlugged: st.patient.isMucusPlugged,
+              surfactantProduction: st.patient.surfactantProduction,
+              hpvInhibition: st.patient.hpvInhibition,
+              intercostalContribution: st.patient.intercostalContribution,
+              diaphragmContribution: st.patient.diaphragmContribution,
+              isParadoxicalBreathing: st.patient.isParadoxicalBreathing,
+              dilatorMuscleTone: st.patient.dilatorMuscleTone,
+              airwayObstructionIndex: st.patient.airwayObstructionIndex,
+              isAirwayObstruction: st.patient.isAirwayObstruction,
+              bronchialSmoothMuscleCa: st.patient.bronchialSmoothMuscleCa,
+              atelectasis: st.patient.atelectasis,
+              isO2PipelineCrossover: st.patient.isO2PipelineCrossover,
+              isO2CylinderOpen: st.patient.isO2CylinderOpen,
+              isO2PipelineDisconnected: st.patient.isO2PipelineDisconnected,
+              isOxygenFlushPressed: st.patient.isOxygenFlushPressed,
+              breathingCircuitType: st.patient.breathingCircuitType,
+              co2AbsorptiveCapacity: st.patient.co2AbsorptiveCapacity,
+              stuckExpiratoryValve: st.patient.stuckExpiratoryValve,
+              stuckInspiratoryValve: st.patient.stuckInspiratoryValve,
+              aplValveSetting: st.patient.aplValveSetting,
+              hasPneumothorax: st.patient.hasPneumothorax
           });
 
           const totalMetabolicMultiplier = shiveringMultiplier * seizureMetabolicMultiplier;
@@ -2177,9 +2435,33 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const safePaCO2 = st.vitals.paco2 || 40;
           const safePaO2 = st.vitals.pao2 || 100;
           const safeSys = st.vitals.sys || 120;
+
+          // HVR and HCVR Blunting
+          let hvrBlunting = 0.0;
+          if (activeAgent === 'desflurane' || activeAgent === 'xenon') {
+              if (agentMac > 0.1) {
+                  hvrBlunting = Math.min(1.0, (agentMac - 0.1) / 1.0);
+              }
+          } else if (activeAgent) { // sevoflurane, isoflurane, halothane, methoxyflurane
+              if (agentMac <= 0.1) {
+                  hvrBlunting = (agentMac / 0.1) * 0.7;
+              } else {
+                  hvrBlunting = Math.min(1.0, 0.7 + (agentMac - 0.1) * 0.3);
+              }
+          }
+
+          let hcvrBlunting = 0.0;
+          if (activeAgent && activeAgent !== 'xenon') {
+              hcvrBlunting = Math.min(1.0, agentMac * 0.6);
+          }
+
           let compensatoryRR = 0;
-          if (safePaCO2 > 45) compensatoryRR += (safePaCO2 - 45) * 0.8; 
-          if (safePaO2 < 70) compensatoryRR += (70 - safePaO2) * 0.4;   
+          if (safePaCO2 > 45) {
+              compensatoryRR += Math.max(0, (safePaCO2 - 45) * 0.8 * (1.0 - hcvrBlunting));
+          }
+          if (safePaO2 < 70) {
+              compensatoryRR += Math.max(0, (70 - safePaO2) * 0.4 * (1.0 - hvrBlunting));
+          }
           if (safeSys < 90) compensatoryRR += 6; 
 
           const actualBaseDeficit = (st.patient.isSeptic ? 8 : 0) + (bloodLossRatio * 20) + (currentLactate - 1.0);
@@ -2228,7 +2510,16 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               aspirationCompliancePenalty,
               aspirationResistancePenalty,
               hpsShunt: st.patient.hpsShunt || 0.0,
-              fluidOverloadCompliancePenalty: st.patient.hasFluidOverloadEdema ? 25 : 0
+              fluidOverloadCompliancePenalty: st.patient.hasFluidOverloadEdema ? 25 : 0,
+              agent: st.gasSettings?.agent,
+              etAgent: currentEtAgent,
+              currentMac: currentMac,
+              isMucusPlugged: st.patient.isMucusPlugged,
+              bronchialSmoothMuscleCa: st.patient.bronchialSmoothMuscleCa,
+              intercostalContribution: st.patient.intercostalContribution,
+              airwayObstructionIndex: st.patient.airwayObstructionIndex,
+              hpvInhibition: st.patient.hpvInhibition,
+              fgf_L_min: freshGasFlow
           });
 
           // 5. CardiovascularEngine Tick
@@ -2327,7 +2618,18 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               childPughClass: st.patient.childPughClass,
               meldScore: st.patient.meldScore,
               hpsShunt: st.patient.hpsShunt,
-              hasTIPS: st.patient.hasTIPS
+              hasTIPS: st.patient.hasTIPS,
+              isO2PipelineCrossover: st.patient.isO2PipelineCrossover,
+              isO2CylinderOpen: st.patient.isO2CylinderOpen,
+              isO2PipelineDisconnected: st.patient.isO2PipelineDisconnected,
+              isOxygenFlushPressed: st.patient.isOxygenFlushPressed,
+              breathingCircuitType: st.patient.breathingCircuitType,
+              co2AbsorptiveCapacity: st.patient.co2AbsorptiveCapacity,
+              stuckExpiratoryValve: st.patient.stuckExpiratoryValve,
+              stuckInspiratoryValve: st.patient.stuckInspiratoryValve,
+              aplValveSetting: st.patient.aplValveSetting,
+              hasPneumothorax: st.patient.hasPneumothorax,
+              hasPneumothoraxWarningLogged: st.patient.hasPneumothoraxWarningLogged
           };
 
           const finalVitals = {
@@ -2341,6 +2643,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               pmean: respOutput.vitals.pmean,
               mv: respOutput.vitals.mv,
               peep: respOutput.vitals.peep,
+              fico2: respOutput.vitals.fico2 || 0,
               ph: respOutput.newPh,
               paco2: respOutput.newPaCO2,
               pao2: respOutput.vitals.pao2,
