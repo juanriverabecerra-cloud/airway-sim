@@ -377,7 +377,27 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           nmda_blockade: 0.0,
           hcn_inhibition: 0.0,
           nav_blockade: 0.0,
-          nachr_inhibition: 0.0
+          nachr_inhibition: 0.0,
+          tfaAdducts: 0.0,
+          AST: safePatientObj.AST || 25.0,
+          ALT: safePatientObj.ALT || 25.0,
+          bilirubin: safePatientObj.bilirubin || 1.0,
+          inr: safePatientObj.inr || 1.0,
+          albumin: safePatientObj.albumin || 4.0,
+          isHepatitisActive: false,
+          priorAnestheticExposure: safePatientObj.priorAnestheticExposure || false,
+          serumFluoride: 0.0,
+          accumulatedFluorideTime: 0.0,
+          hasFluorideNephrotoxicity: false,
+          coHb: activeCase.id === 'trauma' ? 12.0 : 1.0,
+          compoundA: 0.0,
+          absorbent: { waterContent: 15.0, temperature: 22.0, type: 'soda_lime' },
+          isAirwayFire: false,
+          methionineSynthaseActivity: 1.0,
+          homocysteine: 10.0,
+          b12Baseline: safePatientObj.b12Baseline || 400.0,
+          pediatricNeuroRisk: 0.0,
+          pocdRisk: 0.0
         });
         
         setTime(0); setActiveMeds([]); setIntravascularVolume(0); setSurgicalPhase('Pre-Op');
@@ -1595,6 +1615,230 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               newTemp += 0.05;
           }
 
+          // === CHAPTER 20: METABOLISM & TOXICITY LOOPS ===
+          
+          // Initialize absorbent if missing
+          if (!st.patient.absorbent) {
+              st.patient.absorbent = { waterContent: 15.0, temperature: 22.0, type: 'soda_lime' };
+          }
+          
+          // Desiccation logic: High FGF over time reduces water content
+          if (freshGasFlow > 10.0) {
+              st.patient.absorbent.waterContent = Math.max(0.5, st.patient.absorbent.waterContent - 0.005);
+          }
+
+          // 1. Halothane Hepatitis Loop
+          const isHalothaneActive = st.gasSettings?.agent === 'halothane';
+          const faHalo = isHalothaneActive ? currentEtAgent : 0.0;
+          let tfaAdducts = st.patient.tfaAdducts || 0.0;
+          if (isHalothaneActive) {
+              tfaAdducts += 0.03 * faHalo; // generates TFA neoantigens
+          }
+          st.patient.tfaAdducts = tfaAdducts;
+
+          let ast = st.patient.AST || 25.0;
+          let alt = st.patient.ALT || 25.0;
+          let bilirubin = st.patient.bilirubin || 1.0;
+          let inr = st.patient.inr || 1.0;
+          let albumin = st.patient.albumin || 4.0;
+          const priorExposure = st.patient.priorAnestheticExposure || false;
+          let isHepatitisActive = st.patient.isHepatitisActive || false;
+
+          if (tfaAdducts > 15.0 && priorExposure && !isHepatitisActive) {
+              isHepatitisActive = true;
+              logEvent("🚨 CRITICAL EMERGENCY: Massive immune-mediated hepatocellular injury (Halothane Hepatitis) has been triggered by toxic trifluoroacetyl (TFA) neoantigens!");
+          }
+
+          if (isHepatitisActive) {
+              ast = Math.min(1500, ast + 15.0);
+              alt = Math.min(1600, alt + 18.0);
+              bilirubin = Math.min(15.0, bilirubin + 0.1);
+              inr = Math.min(4.0, inr + 0.03);
+              albumin = Math.max(1.5, albumin - 0.02);
+              // Systemic inflammatory response spikes temperature
+              newTemp = Math.min(41.0, newTemp + 0.02);
+          }
+
+          // Resolution of hepatitis: stop halothane and administer dexamethasone
+          const hasDexamethasone = st.activeMeds?.find(m => m.name === 'Dexamethasone')?.Ce > 0.01;
+          if (isHepatitisActive && !isHalothaneActive && hasDexamethasone) {
+              isHepatitisActive = false;
+              logEvent("✅ SUCCESS: Halothane Hepatitis is resolving under high-dose corticosteroid therapy and volatile drug removal.");
+          }
+
+          if (!isHepatitisActive && (ast > 25.0 || alt > 25.0)) {
+              ast = Math.max(25.0, ast - 5.0);
+              alt = Math.max(25.0, alt - 5.0);
+              bilirubin = Math.max(1.0, bilirubin - 0.05);
+              inr = Math.max(1.0, inr - 0.01);
+              albumin = Math.min(4.0, albumin + 0.01);
+              newTemp = Math.max(37.0, newTemp - 0.02);
+          }
+          
+          st.patient.AST = ast;
+          st.patient.ALT = alt;
+          st.patient.bilirubin = bilirubin;
+          st.patient.inr = inr;
+          st.patient.albumin = albumin;
+          st.patient.isHepatitisActive = isHepatitisActive;
+
+          // 2. Methoxyflurane Fluoride-Induced Nephrotoxicity Loop
+          const isMethoxyfluraneActive = st.gasSettings?.agent === 'methoxyflurane';
+          const faMeth = isMethoxyfluraneActive ? currentEtAgent : 0.0;
+          let serumFluoride = st.patient.serumFluoride || 0.0;
+          let accumulatedFluorideTime = st.patient.accumulatedFluorideTime || 0.0;
+
+          if (isMethoxyfluraneActive) {
+              serumFluoride += 0.5 * faMeth - 0.02 * serumFluoride;
+          } else {
+              serumFluoride = Math.max(0.0, serumFluoride - 0.05);
+          }
+
+          if (serumFluoride > 50.0) {
+              // 1s sim = 1min patient time (1/60 hours)
+              accumulatedFluorideTime += (serumFluoride - 50.0) * (1.0 / 60.0);
+          }
+          st.patient.serumFluoride = serumFluoride;
+          st.patient.accumulatedFluorideTime = accumulatedFluorideTime;
+
+          let hasFluorideNephrotoxicity = st.patient.hasFluorideNephrotoxicity || false;
+          if (accumulatedFluorideTime > 150.0 && !hasFluorideNephrotoxicity) {
+              hasFluorideNephrotoxicity = true;
+              logEvent("🚨 CRITICAL ALERT: Toxic fluoride threshold exceeded (>50 µM for >150 µM-hours)! Methoxyflurane-induced high-output renal failure triggered.");
+          }
+
+          if (hasFluorideNephrotoxicity) {
+              st.patient.urineOutputRate = 4.5 * st.patient.weight; // polyuria
+              st.patient.urineOsmolality = 300.0; // isosthenuria
+              st.patient.feNa = 3.5; // sodium wasting
+              st.patient.creatinine = Math.min(8.0, st.patient.creatinine + 0.01);
+              st.patient.bun = Math.min(120.0, st.patient.bun + 0.5);
+              st.patient.akiStage = 3;
+              st.patient.akiDamage = Math.min(1.0, st.patient.akiDamage + 0.005);
+              st.patient.hasAki = true;
+              // Dehydration increases EBL to drain intravascular volume
+              st.patient.ebl = (st.patient.ebl || 0.0) + 1.5;
+          }
+
+          // Resolution: stop methoxyflurane and flush
+          if (!isMethoxyfluraneActive && serumFluoride < 30.0 && hasFluorideNephrotoxicity) {
+              st.patient.urineOutputRate = Math.max(70.0, st.patient.urineOutputRate - 5.0);
+              if (st.patient.urineOutputRate <= 70.0) {
+                  hasFluorideNephrotoxicity = false;
+                  logEvent("✅ SUCCESS: High-output renal failure resolved. Renal concentration function has recovered.");
+              }
+          }
+          st.patient.hasFluorideNephrotoxicity = hasFluorideNephrotoxicity;
+
+          // 3. Carbon Dioxide Absorbent Chemical Degradation
+          const isDesfluraneActive = st.gasSettings?.agent === 'desflurane';
+          const isIsofluraneActive = st.gasSettings?.agent === 'isoflurane';
+          const isSevofluraneActive = st.gasSettings?.agent === 'sevoflurane';
+
+          // Carbon Monoxide Poisoning
+          if (st.patient.absorbent.waterContent < 1.4 && (isDesfluraneActive || isIsofluraneActive)) {
+              const coRate = isDesfluraneActive ? 0.3 : 0.08;
+              st.patient.coHb = Math.min(80.0, (st.patient.coHb || 1.0) + coRate * currentEtAgent);
+              if (st.patient.coHb > 15.0 && !st.patient.hasCoPoisoningLog) {
+                  logEvent("🚨 CRITICAL EMERGENCY: Desiccated CO2 absorbent reacting with difluoromethyl group! Carbon Monoxide (CO) poisoning in progress.");
+                  st.patient.hasCoPoisoningLog = true;
+              }
+          }
+
+          // Sevoflurane & Compound A
+          if (isSevofluraneActive && freshGasFlow < 2.0 && currentEtAgent > 0.1) {
+              st.patient.compoundA = (st.patient.compoundA || 0.0) + 0.05 * currentEtAgent * (2.0 - freshGasFlow);
+              if (st.patient.compoundA > 150.0 && !st.patient.hasCompoundALog) {
+                  logEvent("⚠️ CLINICAL ALERT: Low fresh gas flow with Sevoflurane has produced nephrotoxic Compound A exceeding 150 ppm-hours in the loop!");
+                  st.patient.hasCompoundALog = true;
+              }
+          }
+
+          // Exothermic Canister Reaction & Airway Fire
+          if (st.patient.absorbent.waterContent < 1.4 && isSevofluraneActive && currentEtAgent > 0.5) {
+              st.patient.absorbent.temperature = (st.patient.absorbent.temperature || 22.0) + 0.5 * currentEtAgent;
+              if (st.patient.absorbent.temperature > 80.0 && !st.patient.isAirwayFire) {
+                  st.patient.isAirwayFire = true;
+                  logEvent("🚨🚨 CRITICAL EMERGENCY: Desiccated CO2 absorbent has undergone a runaway exothermic reaction with Sevoflurane! Canister temperature has exceeded 80°C, melting circuit plastics and triggering an active AIRWAY FIRE!");
+              }
+          }
+
+          // If airway fire is active, damage respiratory tree and drop SpO2
+          if (st.patient.isAirwayFire) {
+              ruleSpo2Offset -= 2.0; 
+              ruleComplScale *= 0.15;
+              rulePipOffset += 30; // PIP spikes
+          }
+
+          // 4. Nitrous Oxide-Induced Vitamin B12 & Methionine Synthase Shutdown
+          const isN2OActive = currentEtN2O > 30.0;
+          let methionineSynthaseActivity = st.patient.methionineSynthaseActivity !== undefined ? st.patient.methionineSynthaseActivity : 1.0;
+          let homocysteine = st.patient.homocysteine || 10.0;
+          const b12Baseline = st.patient.b12Baseline || 400.0;
+
+          if (isN2OActive && b12Baseline < 200.0) {
+              methionineSynthaseActivity = Math.max(0.0, methionineSynthaseActivity - 0.05);
+              if (methionineSynthaseActivity === 0.0 && !st.patient.hasB12ShutdownLog) {
+                  logEvent("🚨 CRITICAL ALERT: Nitrous Oxide has irreversibly oxidized Vitamin B12, causing complete shutdown of Methionine Synthase activity!");
+                  st.patient.hasB12ShutdownLog = true;
+              }
+          }
+
+          if (methionineSynthaseActivity < 0.2) {
+              homocysteine += 1.5;
+              if (homocysteine > 100.0 && !st.patient.hasHomocysteineLog) {
+                  logEvent("🚨 WARNING: Severe hyperhomocysteinemia! Vascular endothelial inflammation and risk of subacute combined degeneration of the spinal cord is high.");
+                  st.patient.hasHomocysteineLog = true;
+              }
+          }
+          st.patient.methionineSynthaseActivity = methionineSynthaseActivity;
+          st.patient.homocysteine = homocysteine;
+
+          // 5. Pediatric Anesthesia Neurodevelopmental Risk & Postoperative Cognitive Decline (POCD)
+          let pediatricNeuroRisk = st.patient.pediatricNeuroRisk || 0.0;
+          let pocdRisk = st.patient.pocdRisk || 0.0;
+          const isAnestheticActive = currentMac > 0.4 || (propofolCe || 0) > 0.5;
+
+          if (isAnestheticActive && st.time > 240.0) { // >4 hours exposure
+              if (st.patient.age < 2.0) {
+                  pediatricNeuroRisk += 0.05;
+                  if (pediatricNeuroRisk > 5.0 && !st.patient.hasPediatricNeuroLog) {
+                      logEvent("🚨 CLINICAL ALERT: Prolonged exposure to general anesthesia in a patient under 2 years old has exceeded 4 hours. Neurodevelopmental apoptotic injury risk is accumulating.");
+                      st.patient.hasPediatricNeuroLog = true;
+                  }
+              } else if (st.patient.age > 65.0) {
+                  pocdRisk += 0.05;
+                  if (pocdRisk > 5.0 && !st.patient.hasPocdLog) {
+                      logEvent("🚨 CLINICAL ALERT: Prolonged exposure to general anesthesia in an elderly patient has exceeded 4 hours. Postoperative Cognitive Decline (POCD) risk is accumulating.");
+                      st.patient.hasPocdLog = true;
+                  }
+              }
+          }
+          st.patient.pediatricNeuroRisk = pediatricNeuroRisk;
+          st.patient.pocdRisk = pocdRisk;
+          
+          // Merge these properties to patientAfterFluidics as well
+          Object.assign(patientAfterFluidics, {
+              tfaAdducts: st.patient.tfaAdducts,
+              AST: st.patient.AST,
+              ALT: st.patient.ALT,
+              bilirubin: st.patient.bilirubin,
+              inr: st.patient.inr,
+              albumin: st.patient.albumin,
+              isHepatitisActive: st.patient.isHepatitisActive,
+              serumFluoride: st.patient.serumFluoride,
+              accumulatedFluorideTime: st.patient.accumulatedFluorideTime,
+              hasFluorideNephrotoxicity: st.patient.hasFluorideNephrotoxicity,
+              coHb: st.patient.coHb,
+              compoundA: st.patient.compoundA,
+              absorbent: st.patient.absorbent,
+              isAirwayFire: st.patient.isAirwayFire,
+              methionineSynthaseActivity: st.patient.methionineSynthaseActivity,
+              homocysteine: st.patient.homocysteine,
+              pediatricNeuroRisk: st.patient.pediatricNeuroRisk,
+              pocdRisk: st.patient.pocdRisk
+          });
+
           const totalMetabolicMultiplier = shiveringMultiplier * seizureMetabolicMultiplier;
           const VO2_sec = (0.250 * totalMetabolicMultiplier * cyanideVO2Mod) / 60;
           // eslint-disable-next-line no-unused-vars
@@ -1812,7 +2056,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           // Renal Engine Tick
           const netFluidBalance = (st.patient.netFluidBalance || 0.0) + fluidicsOutput.intravascularVolumeAdded_mL - (st.patient.urineOutputRate || 70.0) * (1.0 / 3600.0);
           
-          const hasFluorideNephrotoxicity = (st.patient.sevoLowFlowTime || 0) > 600;
+          const isSevoFluorideNephrotoxic = (st.patient.sevoLowFlowTime || 0) > 600;
+          const finalHasFluorideNephrotoxicity = !!(st.patient.hasFluorideNephrotoxicity || isSevoFluorideNephrotoxic);
           const hasMismatchedTransfusion = st.patient.hasTransfusionReaction || false;
           const hasRhabdomyolysis = st.patient.suxUpregulatedPotassiumLeakActive || false;
           const hasContrastNephropathy = st.patient.contrastAdministered || false;
@@ -1850,7 +2095,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               ebl: safeEblForCvp,
               ebv: safeEbvForCvp,
               netFluidBalance: netFluidBalance,
-              hasFluorideNephrotoxicity,
+              hasFluorideNephrotoxicity: finalHasFluorideNephrotoxicity,
               hasMismatchedTransfusion,
               hasRhabdomyolysis,
               hasContrastNephropathy

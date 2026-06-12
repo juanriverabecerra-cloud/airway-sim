@@ -15,6 +15,8 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
     sevoflurane: 8.0, 
     desflurane: 18.0, 
     isoflurane: 5.0,
+    halothane: 5.0,
+    methoxyflurane: 3.0,
     f3: 5.0,
     f6: 5.0,
     s_isoflurane: 5.0,
@@ -114,6 +116,8 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
             <option value="sevoflurane">Sevoflurane</option>
             <option value="desflurane">Desflurane</option>
             <option value="isoflurane">Isoflurane</option>
+            <option value="halothane">Halothane</option>
+            <option value="methoxyflurane">Methoxyflurane</option>
             <option value="f3">F3 (Anesthetic)</option>
             <option value="f6">F6 (Nonimmobilizer)</option>
             <option value="s_isoflurane">S-Isoflurane</option>

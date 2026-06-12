@@ -88,6 +88,11 @@ export const INHALATIONAL_AGENTS = {
     sysMax: -30, diaMax: -25, hrMax: 0, rrMax: -15, 
     description: 'Sweet smelling, low pungency. Ideal for inhalational induction. Breaks down to Compound A. Produces fluoride ions.' 
   },
+  methoxyflurane: {
+    name: 'Methoxyflurane', mac40: 0.16, bgPartition: 12.0, oilGasPartition: 950.0, brainBgPartition: 2.0, vaporPress: 23,
+    sysMax: -20, diaMax: -20, hrMax: 0, rrMax: -15,
+    description: 'Highly potent, extremely soluble. Inhalation analgesic. Associated with fluoride nephrotoxicity.'
+  },
   desflurane: { 
     name: 'Desflurane', mac40: 6.0, bgPartition: 0.45, oilGasPartition: 19, brainBgPartition: 1.3, vaporPress: 669, 
     sysMax: -25, diaMax: -25, hrMax: 15, rrMax: -15,

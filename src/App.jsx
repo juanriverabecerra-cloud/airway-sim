@@ -859,12 +859,14 @@ export default function App() {
       const currentPlt = Math.max(10, Math.round((patient.thrombocytopenia ? 75 : 245) * (1 - bloodLossRatio)));
 
       if (type === 'ABG') {
+        const coHbVal = patient.coHb !== undefined ? patient.coHb : (activeCase.id === 'trauma' ? 12.0 : 1.0);
         results = {
           'pH': { val: currentPh.toFixed(2), range: '7.35 - 7.45', alert: currentPh < 7.35 || currentPh > 7.45 },
           'pCO2': { val: currentPaCO2.toFixed(1), range: '35 - 45 mmHg', alert: currentPaCO2 < 35 || currentPaCO2 > 45 },
           'pO2': { val: Math.round(currentPaO2), range: '75 - 100 mmHg', alert: currentPaO2 < 60 },
           'HCO3': { val: currentHco3.toFixed(1), range: '22 - 26 mEq/L', alert: currentHco3 < 20 || currentHco3 > 28 },
-          'Lactate': { val: currentLactate.toFixed(1), range: '0.5 - 2.0 mmol/L', alert: currentLactate > 2.0 }
+          'Lactate': { val: currentLactate.toFixed(1), range: '0.5 - 2.0 mmol/L', alert: currentLactate > 2.0 },
+          'Carboxyhemoglobin (CO-Hb)': { val: coHbVal.toFixed(1) + ' %', range: '0.5 - 2.0 %', alert: coHbVal > 10.0 }
         };
       } else if (type === 'VBG') {
         results = {
@@ -890,7 +892,10 @@ export default function App() {
         const crVal = patient.creatinine !== undefined ? patient.creatinine : ((patient.startingCreatinine || (patient.ckd ? 2.8 : 0.85)) + (patient.isSeptic ? 0.8 : 0));
         const glucVal = (patient.startingGlucose || (patient.diabetes ? 195 : 98)) + (patient.isSeptic ? 60 : 0);
         const gfrVal = patient.gfr !== undefined ? patient.gfr : (patient.renalComorbidity ? (patient.renalComorbidity.includes('stage 5') ? 12.5 : 45.0) : 125.0);
-        
+        const fluorideVal = patient.serumFluoride !== undefined ? patient.serumFluoride : 0.0;
+        const compoundAVal = patient.compoundA !== undefined ? patient.compoundA : 0.0;
+        const homocysteineVal = patient.homocysteine !== undefined ? patient.homocysteine : 10.0;
+
         results = {
           'Sodium (Na)': { val: Math.round(currentNa), range: '135 - 145 mEq/L', alert: currentNa < 135 || currentNa > 145 },
           'Potassium (K)': { val: currentK.toFixed(1), range: '3.5 - 5.1 mEq/L', alert: currentK < 3.5 || currentK > 5.1 },
@@ -899,7 +904,10 @@ export default function App() {
           'BUN': { val: Math.round(bunVal), range: '7 - 20 mg/dL', alert: bunVal > 20 },
           'Creatinine (Cr)': { val: crVal.toFixed(2), range: '0.70 - 1.30 mg/dL', alert: crVal > (patient.sex === 'female' ? 1.10 : 1.30) },
           'eGFR': { val: Math.round(gfrVal), range: '> 90 mL/min/1.73m²', alert: gfrVal < 60 },
-          'Glucose': { val: Math.round(glucVal), range: '70 - 100 mg/dL', alert: glucVal > 100 }
+          'Glucose': { val: Math.round(glucVal), range: '70 - 100 mg/dL', alert: glucVal > 100 },
+          'Serum Fluoride (F-)': { val: fluorideVal.toFixed(1) + ' µM', range: '< 1.5 µM', alert: fluorideVal > 50.0 },
+          'Compound A Exposure': { val: compoundAVal.toFixed(1) + ' ppm-h', range: '< 150.0 ppm-h', alert: compoundAVal > 150.0 },
+          'Serum Homocysteine': { val: homocysteineVal.toFixed(1) + ' µM', range: '5.0 - 15.0 µM', alert: homocysteineVal > 15.0 }
         };
       } else if (type === 'Coagulation') {
         const tempFactor = vitals.temp < 36.0 ? Math.pow(1.15, 36.0 - vitals.temp) : 1.0;
@@ -925,17 +933,17 @@ export default function App() {
         };
       } else if (type === 'LFTs') {
         const isCirrhosis = patient.cirrhosis;
-        const astVal = isCirrhosis ? 134 : 22;
-        const altVal = isCirrhosis ? 118 : 25;
+        const astVal = patient.AST !== undefined ? Math.round(patient.AST) : (isCirrhosis ? 134 : 22);
+        const altVal = patient.ALT !== undefined ? Math.round(patient.ALT) : (isCirrhosis ? 118 : 25);
         const alkVal = isCirrhosis ? 210 : 68;
-        const biliVal = isCirrhosis ? 3.4 : 0.6;
-        const albVal = isCirrhosis ? 2.5 : 4.1;
+        const biliVal = patient.bilirubin !== undefined ? patient.bilirubin : (isCirrhosis ? 3.4 : 0.6);
+        const albVal = patient.albumin !== undefined ? patient.albumin : (isCirrhosis ? 2.5 : 4.1);
         results = {
-          'AST': { val: astVal + ' U/L', range: '10 - 40 U/L', alert: isCirrhosis },
-          'ALT': { val: altVal + ' U/L', range: '7 - 56 U/L', alert: isCirrhosis },
+          'AST': { val: astVal + ' U/L', range: '10 - 40 U/L', alert: astVal > 40 },
+          'ALT': { val: altVal + ' U/L', range: '7 - 56 U/L', alert: altVal > 56 },
           'Alkaline Phosphatase': { val: alkVal + ' U/L', range: '44 - 147 U/L', alert: isCirrhosis },
-          'Total Bilirubin': { val: biliVal.toFixed(1) + ' mg/dL', range: '0.2 - 1.2 mg/dL', alert: isCirrhosis },
-          'Albumin': { val: albVal.toFixed(1) + ' g/dL', range: '3.5 - 5.0 g/dL', alert: isCirrhosis }
+          'Total Bilirubin': { val: biliVal.toFixed(1) + ' mg/dL', range: '0.2 - 1.2 mg/dL', alert: biliVal > 1.2 },
+          'Albumin': { val: albVal.toFixed(1) + ' g/dL', range: '3.5 - 5.0 g/dL', alert: albVal < 3.5 }
         };
       } else if (type === 'Thyroid') {
         const isHyper = patient.hyperthyroid || patient.thyroid === 'hyper';

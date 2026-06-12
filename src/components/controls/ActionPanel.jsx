@@ -108,7 +108,7 @@ export const ActionPanel = ({
   const showCPR = !term || ['defib', 'cpr', 'shock', 'rhythm', 'joules', 'sync', 'compressions', 'code', 'arrest'].some(k => k.includes(term));
   const showPos = !term || ['position', 'supine', 'sniffing', 'ramped', 'trendelenburg', 'rev trend', 'lithotomy', 'lateral', 'prone', 'sitting'].some(k => k.includes(term));
   const showSurg = !term || ['surgical', 'timeline', 'pre-op', 'induction', 'incision', 'maintenance', 'emergence'].some(k => k.includes(term));
-  const showChecklists = !term || ['checklist', 'maneuver', 'pre-op', 'msmaids', 'larson', 'cuff', 'npo', 'history', 'intubation', 'extubation'].some(k => k.includes(term));
+  const showChecklists = !term || ['checklist', 'maneuver', 'pre-op', 'msmaids', 'larson', 'cuff', 'npo', 'history', 'intubation', 'extubation', 'absorbent', 'canister', 'b12', 'cobalamin', 'folate'].some(k => k.includes(term));
   const showDiag = !term || ['diagnostic', 'pocus', 'exam', 'tte', 'lung', 'gastric', 'airway'].some(k => k.includes(term));
   const showNeuro = !term || ['neuro', 'bis', 'tof', 'nmb', 'twitch'].some(k => k.includes(term));
   const showLabs = !term || ['access', 'lab', 'piv', 'iv', 'central line', 'io', 'arterial', 'abg', 'vbg', 'cbc', 'cmp', 'teg', 'coag'].some(k => k.includes(term));
@@ -278,6 +278,39 @@ export const ActionPanel = ({
                 className="bg-blue-950/30 hover:bg-blue-900/50 text-blue-300 border border-blue-500/40 hover:border-blue-400 p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider col-span-2 text-center transition-all duration-200"
               >
                 📋 Review NPO & Fasting History
+              </button>
+              <button 
+                onClick={() => {
+                  setPatient(p => ({
+                    ...p,
+                    absorbent: { waterContent: 15.0, temperature: 22.0, type: 'soda_lime' },
+                    isAirwayFire: false,
+                    hasCoPoisoningLog: false,
+                    hasCompoundALog: false
+                  }));
+                  logEvent("✅ SUCCESS: CO2 absorbent canister replaced with a fresh, hydrated canister! Temperature reset to 22.0°C and circuit fire resolved.");
+                  setSearchTerm('');
+                }} 
+                className="bg-blue-950/30 hover:bg-blue-900/50 text-blue-300 border border-blue-500/40 hover:border-blue-400 p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider col-span-2 text-center transition-all duration-200"
+              >
+                🔄 Replace CO2 Absorbent Canister
+              </button>
+              <button 
+                onClick={() => {
+                  setPatient(p => ({
+                    ...p,
+                    methionineSynthaseActivity: 1.0,
+                    homocysteine: 10.0,
+                    b12Baseline: 400.0,
+                    hasB12ShutdownLog: false,
+                    hasHomocysteineLog: false
+                  }));
+                  logEvent("✅ SUCCESS: High-dose intravenous cobalamin (Vitamin B12) and folate administered! Methionine synthase activity restored to 100% and homocysteine levels normalized.");
+                  setSearchTerm('');
+                }} 
+                className="bg-blue-950/30 hover:bg-blue-900/50 text-blue-300 border border-blue-500/40 hover:border-blue-400 p-2.5 rounded-lg text-[10px] font-bold uppercase tracking-wider col-span-2 text-center transition-all duration-200"
+              >
+                💉 Administer Vitamin B12 & Folate
               </button>
             </div>
           </div>
