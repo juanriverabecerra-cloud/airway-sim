@@ -1242,12 +1242,30 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               }
           }
 
+          let currentFiAgent = 0;
+          let currentFiN2O = 0;
+          let n2oUptake_L_sec = 0;
+
           if (st.gasModels && Object.keys(st.gasModels).length > 0) {
               const isParalyzed = maxNMJOccupancy > 0.90;
               const isApneic = isParalyzed || (st.vitals.rr !== undefined ? st.vitals.rr < 1 : false);
               const effectiveMv = st.patient.airwaySecured ? (st.vitals.mv || 0) : (isApneic ? 0 : 6.0);
               const currentFRC = (st.patient.height * 0.02) - (st.patient.isObese ? 0.8 : 0);
 
+              // 1. Tick N2O first to calculate its uptake rate for the Second Gas Effect
+              if (st.gasModels.n2o && INHALATIONAL_AGENTS.n2o) {
+                  st.gasModels.n2o.setDial(st.patient.airwaySecured ? n2oPercent : 0);
+                  const n2oState = st.gasModels.n2o.tick(1, effectiveMv, currentCOForPK, currentFRC, st.patient.ibw, st.patient.shuntFraction, freshGasFlow);
+                  currentEtN2O = n2oState.Fa;
+                  currentFiN2O = st.gasModels.n2o.Fi * 100;
+                  n2oUptake_L_sec = n2oState.uptake_vol_sec || 0;
+                  
+                  const n2oAdjMac = Math.max(0.01, calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.n2o.mac40, st.patient.age || 40));
+                  displayedMac += (n2oState.Fa / n2oAdjMac);
+                  brainMac += (n2oState.Fb / n2oAdjMac);
+              }
+
+              // 2. Tick volatile agents, passing the co-administered N2O uptake to model Second Gas Effect
               Object.keys(st.gasModels).forEach(key => {
                   const model = st.gasModels[key];
                   const agentData = INHALATIONAL_AGENTS[key];
@@ -1255,36 +1273,30 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                       if (st.gasSettings && st.gasSettings.agent === key && st.patient.airwaySecured) model.setDial(st.gasSettings.dial || 0);
                       else model.setDial(0);
                       
-                      const gasState = model.tick(1, effectiveMv, currentCOForPK, currentFRC, st.patient.ibw, st.patient.shuntFraction, freshGasFlow);
-                      if (gasState.Fa > 0.01) {
+                      const gasState = model.tick(1, effectiveMv, currentCOForPK, currentFRC, st.patient.ibw, st.patient.shuntFraction, freshGasFlow, n2oUptake_L_sec);
+                      if (gasState.Fa > 0.01 || model.Fi > 0.0001) {
                           currentEtAgent = gasState.Fa;
+                          currentFiAgent = model.Fi * 100;
                           
-                          let macModifier = 1.0;
-                          if (st.vitals.temp < 36.0) macModifier -= (36.0 - st.vitals.temp) * 0.05;
-                          if (st.patient.isSeptic) macModifier -= 0.1;
-                          if (currentHb < 5.0) macModifier -= 0.1;
-                          macModifier = Math.max(0.4, macModifier);
-                          
-                          const safeAdjMac = Math.max(0.01, calculateAgeAdjustedMAC(agentData.mac40, st.patient.age || 40) * macModifier);
-                          
-                          displayedMac += gasState.Fa / safeAdjMac;
-                          const brainMacContribution = gasState.Fb / safeAdjMac;
-                          brainMac += brainMacContribution;
-                          
-                          sedativeEff = 1 - (1 - sedativeEff) * (1 - Math.min(1, brainMacContribution));
-                          drugSvrMod = drugSvrMod * (1 - (brainMacContribution * 0.15));
+                          if (gasState.Fa > 0.01) {
+                              let macModifier = 1.0;
+                              if (st.vitals.temp < 36.0) macModifier -= (36.0 - st.vitals.temp) * 0.05;
+                              if (st.patient.isSeptic) macModifier -= 0.1;
+                              if (currentHb < 5.0) macModifier -= 0.1;
+                              macModifier = Math.max(0.4, macModifier);
+                              
+                              const safeAdjMac = Math.max(0.01, calculateAgeAdjustedMAC(agentData.mac40, st.patient.age || 40) * macModifier);
+                              
+                              displayedMac += gasState.Fa / safeAdjMac;
+                              const brainMacContribution = gasState.Fb / safeAdjMac;
+                              brainMac += brainMacContribution;
+                              
+                              sedativeEff = 1 - (1 - sedativeEff) * (1 - Math.min(1, brainMacContribution));
+                              drugSvrMod = drugSvrMod * (1 - (brainMacContribution * 0.15));
+                          }
                       }
                   }
               });
-
-              if (st.gasModels.n2o && INHALATIONAL_AGENTS.n2o) {
-                  st.gasModels.n2o.setDial(st.patient.airwaySecured ? n2oPercent : 0);
-                  const n2oState = st.gasModels.n2o.tick(1, effectiveMv, currentCOForPK, currentFRC, st.patient.ibw, st.patient.shuntFraction, freshGasFlow);
-                  currentEtN2O = n2oState.Fa;
-                  const n2oAdjMac = Math.max(0.01, calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.n2o.mac40, st.patient.age || 40));
-                  displayedMac += (n2oState.Fa / n2oAdjMac);
-                  brainMac += (n2oState.Fb / n2oAdjMac);
-              }
           }
 
           const currentMac = brainMac;
@@ -1841,7 +1853,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               vitals: {
                   ...st.vitals,
                   temp: newTemp,
-                  bowelGasVolume: giOutput.bowelGasVolume
+                  bowelGasVolume: giOutput.bowelGasVolume,
+                  n2oUptakeRate: st.vitals.n2oUptakeRate || 0
               },
               time: st.time
           }, st.ventSettings, deliveredFiO2, {
@@ -1994,7 +2007,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               cvo2: respOutput.vitals.cvo2,
               temp: newTemp,
               etAgent: currentEtAgent,
+              fiAgent: currentFiAgent,
               etN2O: currentEtN2O,
+              fiN2O: currentFiN2O,
+              n2oUptakeRate: n2oUptake_L_sec,
               mac: displayedMac,
               lesTone: giOutput.lesTone,
               gastricPressure: giOutput.gastricPressure,

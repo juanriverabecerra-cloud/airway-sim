@@ -1,0 +1,2106 @@
+487
+KEY POINTS
+Inhaled Anesthetics:
+Mechanisms of Action
+MISHA PEROUANSKY, ROBERT A. PEARCE, HUGH C. HEMMINGS, and
+NICHOLAS P. FRANKS
+19
+Despite the widespread clinical use of general anesthetics,
+our current understanding of their molecular, cellular,
+and network mechanisms is incomplete. This critical gap
+in the pharmacology of one of medicine’s most important
+drug classes not only impedes rational use of available
+anesthetics but also hinders the development of newer
+anesthetics that might selectively achieve the desirable
+end points of anesthesia with fewer adverse cardiovascu-
+lar, respiratory, and possibly neuropathologic side effects.
+Although major progress has been made in understand-
+ing the pharmacology of the intravenous anesthetics by
+molecular genetic approaches, the actions of the inhaled
+anesthetics at the molecular and cellular levels are more
+enigmatic. It is still not possible to trace precisely the
+sequence of events that leads from inhaled anesthetic-
+target interactions, through ascending levels of biologic
+complexity, to the various behavioral effects that charac-
+terize the composite state of clinical anesthesia in humans.
+Nevertheless, investigations continue to reveal funda-
+mental principles of action and have led to a framework
+for understanding anesthetic effects at different organiza-
+tional levels.
+The focus of this chapter is on the mechanisms involved
+in the principal therapeutic effects (anesthesia) and on the
+side effects of the inhaled anesthetics (Fig. 19.1), a chemi-
+cally and pharmacologically diverse group that includes
+!□! !Anesthesia consists of separable and independent components, each of which involves distinct,
+but possibly overlapping, mechanisms at different sites in the central nervous system.
+!□! The potencies of general anesthetics correlate with their solubility in oil, indicating the impor-
+tance of interactions with predominantly hydrophobic targets.
+!□! General anesthetics act by binding directly to amphiphilic cavities in proteins. Binding sites
+have been identified by a combination of site-directed mutagenesis and high-resolution struc-
+tural analysis of anesthetic binding.
+!□! Mutations made to render putative protein targets insensitive to inhaled anesthetics have been
+expressed in mice but have not generated breakthroughs analogous to the success of this strat-
+egy with intravenous anesthetics.
+!□! The effects of inhaled anesthetics cannot be explained by a single molecular mechanism.
+Rather, several targets contribute to the component actions comprising the anesthetic effects
+of each anesthetic. However, these effects do converge on a limited number of states underly-
+ing the behavioral effects.
+!□! The immobilizing effect of inhaled anesthetics involves actions in the spinal cord, whereas
+sedation/hypnosis and amnesia involve supraspinal mechanisms that interact with endogenous
+memory, sleep, and consciousness pathways and networks.
+!□! Volatile inhaled anesthetics enhance inhibitory synaptic transmission postsynaptically by
+potentiating ligand-gated ion channels activated by γ-aminobutyric acid (GABA) and glycine,
+extrasynaptically by enhancing GABA receptors, and presynaptically by enhancing basal GABA
+release.
+!□! Inhaled anesthetics suppress excitatory synaptic transmission presynaptically by reducing
+glutamate release (volatile anesthetics) and postsynaptically by inhibiting excitatory ionotropic
+receptors activated by glutamate (gaseous and to some extent volatile anesthetics).
+!□! Inhaled anesthetics directly activate certain two-pore-domain potassium channels, which is
+likely to result in both pre- and post-synaptic effects.
+!□! There is as yet no comprehensive theory of anesthesia that describes the sequence of events
+leading from the interaction between an anesthetic molecule and its targets to the behavioral
+effects.
+=== PAGE BREAK ===
+SECTION II • Anesthetic Physiology	488
+the potent halogenated ether (isoflurane, sevoflurane, des-
+flurane, enflurane) and alkane (halothane) volatile anes-
+thetics and the inorganic gaseous anesthetics (nitrous
+oxide and xenon). This critical summary of the current
+state of knowledge begins with an historical overview
+and a review of the behavioral end points of anesthesia.
+We then trace, where possible, inhaled anesthetic effects
+through ascending levels of organization from molecules,
+cells, circuits, networks, and organs to mammalian behav-
+ior. We also briefly address studies of anesthetic effects in
+very simple model organisms, with anesthetic end points
+being identified that as yet bear uncertain relationships to
+those in mammals. 1
+History
+THE UNIFIED PARADIGM OF ANESTHETIC
+THEORIES
+The first monograph reporting experimental work on anes-
+thetic mechanisms, proposing a soon-to-be discredited
+lipid-elution theory of anesthetic action, was published
+only 6 months after Morton’s public demonstration of ether
+anesthesia in Boston’s Ether Dome. For decades thereafter,
+the phenomenon of anesthesia puzzled, inspired, and awed
+those who tried to understand it. An influential paradigm
+of anesthetic action formulated by Claude Bernard in the
+1870s posited that anesthesia was a “unified” phenome-
+non―a unitary mechanism applicable to all forms of life.
+Although the anesthetized state could be brought about by a
+variety of agents, its essence was the same in all living crea-
+tures. In fact, Bernard thought that life itself was defined by
+susceptibility to anesthesia. Bernard also proposed a more
+specific theory of anesthesia, coagulation of protoplasm,
+which competed with a number of coexisting theories
+entertained by the scientific community. In a major work
+published in 1919, Hans Winterstein2 summarized the per-
+plexing diversity of anesthetic theories by listing more than
+600 references, the majority to original laboratory work—a
+convincing testimony to the interest of the scientific world
+in this phenomenon. Of note, the work of Meyer and Over-
+ton at the end of the nineteenth century had only a limited
+effect on the trajectory of research until the 1960s. Only
+then was the striking simplicity of the Meyer-Overton cor-
+relation (Fig. 19.2A) of anesthetic potency with solubility
+in olive oil interpreted by the majority of researchers to indi-
+cate that lipids are likely to be the anesthetic target. This
+interpretation focused attention on anesthetic effects on
+the bulk physical properties of cell membranes, which were
+known to consist primarily of lipid molecules. Such non-
+specific or “lipoid-based” anesthetic theories dominated the
+field from the 1960s to the 1980s.!
+MINIMUM ALVEOLAR CONCENTRATION―A
+BRIDGE BETWEEN PAST AND PRESENT
+The potencies of inhaled anesthetics for immobilization
+were established in the classic studies in the 1960s of Eger
+and colleagues, 3,4 who defined the minimum alveolar con-
+centration (MAC) as the inhaled anesthetic atmospheric
+pressure required to prevent movement in response to a
+defined noxious stimulus in 50% of subjects. The concept
+of MAC evolved within a unitary paradigm of anesthetic
+action and also reflected the priorities of clinical practice.
+As a result, prevention of movement (immobility) became a
+Fig. 19.1 Structures of some representative general anesthetics and a nonimmobilizer (F6). The colors are bromine (brown), carbon (black), chlorine
+(green), fluorine (cyan), hydrogen (gray), nitrogen (blue), oxygen (red), and xenon (magenta). Note that halothane, isoflurane, desflurane, and F3 all con-
+tain a chiral carbon; therefore each exists as two mirror-image enantiomers (only one enantiomer is shown). Also, the nonimmobilizer F6 contains two
+chiral carbons and exists as two trans enantiomers and one cis stereoisomer (only one of the enantiomers is shown).
+=== PAGE BREAK ===
+19 • Inhaled Anesthetics: Mechanisms of Action 	489
+universal yardstick for anesthetic effects, presumed to occur
+in the brain. Moreover, the simple elegance of the relation-
+ship between anesthetic potency and lipid solubility (see
+Fig. 19.2A) graphically illustrated Meyer and Overton’s
+conclusion that “All chemically indifferent substances that
+are soluble in fat are anesthetics. Their relative potency as
+anesthetics will depend on their affinity to fat on the one
+hand and water on the other hand, that is, on the fat/water
+partition coefficient.”1 This was interpreted as favoring lip-
+ids as the primary targets of anesthetics and a single non-
+specific theory to explain anesthesia. The appeal of a single
+unified mechanism to explain anesthesia was (and remains)
+intellectually appealing. This focused the bulk of research
+efforts on delineating how anesthetic interactions with lipid
+membranes might lead to the behavioral changes observed
+under anesthesia―the nonspecific lipoid theory.
+Because inhaled anesthetic concentrations reflect con-
+centrations in the tissues after equilibration, which is most
+rapidly achieved for well-perfused organs such as the brain
+and heart, MAC is analogous to the plasma concentration
+for 50% effect (EC50) for intravenous anesthetics. In clini-
+cal applications, MAC is usually expressed as volume per-
+cent (vol%), which varies considerably with temperature
+owing to the large temperature dependence of partitioning
+between the gas phase and condensed phases (be they water,
+lipids, or proteins), whereas the equivalent condensed-
+phase molar concentrations are much less dependent on
+temperature.5 The MAC concept provided researchers and
+clinicians with a universal standard whereby to measure a
+defined anesthetic end point (immobility), making mean-
+ingful comparisons of experimental results possible and
+accelerating clinical and laboratory research into anes-
+thetic mechanisms. Today, a more nuanced understanding
+of MAC considers the structural and functional diversity of
+the physiologic targets for the different components of the
+anesthetic state.!
+SHIFT FROM LIPID- TO PROTEIN-CENTERED
+MECHANISMS
+Lipid-centered mechanisms of anesthesia prevailed in the
+two decades after definition of the MAC concept. Alternative
+targets were occasionally proposed but largely neglected by
+the scientific mainstream. Experimental inconsistencies of
+lipid targets, 6-8 as well as evidence compatible with pro-
+teins as primary sites of action,9,10 were largely ignored. A
+shift from lipid- to protein-centered mechanisms, however,
+began in the late 1970s, owing largely to the discoveries of
+Franks and Lieb, 11-15 who in an influential series of publi-
+cations demonstrated that not only were lipids implausible
+targets but that protein targets were also compatible with
+the Meyer-Overton correlation (see Fig. 19.2B)—a proof
+of concept that, within a few years, redirected the bulk of
+research efforts toward proteins. As a corollary of this reori-
+entation, evidence against lipid-based theories was recog-
+nized. Examples include the cutoff in anesthetic potency in
+homologous series of long-chain anesthetic alcohols 15,16
+and the identification of hydrophobic drugs that do not
+obey the Meyer-Overton correlation. 1,17 The enantiomeric
+selectivity of several anesthetics further strengthened the
+case for specific binding sites on proteins because stere-
+oselectivity is difficult to reconcile with lipid targets.18-20
+Today, there is widespread acceptance of the notion that
+lipid bilayers remain essentially unaffected by general
+anesthetics 11,21 and that critical signaling proteins (e.g.,
+ion channels or ligand-gated receptors) are the relevant
+6
+5
+4
+3
+2
+1
+0
+–1–2 	–1 	0 	1 	2 	3 	4 	5
+6
+5
+4
+3
+2
+1
+0
+–1–1 	0 	1 	2 	3 	4 	5 	6
+A
+Methanol
+Methanol
+Acetone
+Ethanol
+2-Butanone
+Paraldehyde
+n-Propanol
+n-Butanol
+n-Hexanol 	Halothane
+Methoxyflurane
+n-Pentane
+n-Hexane
+n-Decanol
+n-Nonanol
+n-Octanol
+Benzyl Alcohol
+Chloroform
+Diethyl ether
+Acetone
+n-Propanol
+n-Pentanol
+n-Heptanol
+n-Pentane
+n-Hexane
+n-Decanol
+n-Nonanol
+n-Octanol
+n-Hexanol Halothane
+Methoxyflurane
+Benzyl Alcohol
+Log
+10 (Potency for general anesthesia)
+Log10 (Lipid bilayer/water partition coefficient)
+n-Butanol
+Ethanol
+B 
+Log
+10 (Potency for general anesthesia)
+Log10 (Potency for luciferase inhibition)
+Fig. 19.2 General anesthetics act by binding directly to proteins. (A)
+The iconic Meyer-Overton correlation (c.1900) between anesthetic
+potency and the lipid-water partition coefficient was initially inter-
+preted as evidence that lipids of nerve membranes were the principal
+anesthetic target sites. (B) Progress in the 20th century showed that
+general anesthetic potencies correlate equally well with their ability
+to inhibit activity of the soluble firefly enzyme luciferase, which is not
+a physiologically relevant anesthetic target itself but serves as a lipid-
+free model protein for anesthetic binding. Inset, The crystal structure
+of luciferase 110 with bound anesthetic (red). (Reprinted with permission
+from Franks NP, Lieb WR. Molecular and cellular mechanisms of general
+anesthesia. Nature. 1994;367:607–614.)
+=== PAGE BREAK ===
+SECTION II • Anesthetic Physiology	490
+molecular targets of anesthetic action. 22 The exact identity
+of proteins contributing to specific anesthetic end points
+continues to be sought, with research addressing not only
+the “where” (target) but also the “how” (process) of anes-
+thetic mechanisms.!
+DIVERSITY OF POTENTIAL ANESTHETIC
+TARGETS
+At high concentrations in vitro, most inhaled anesthetics
+affect the functions of multiple proteins, several of which
+might be plausibly connected to the components of the
+anesthetic state or anesthetic side effects. However, when
+a specific anesthetic end point is considered, anesthetics are
+effective in vivo over a very narrow concentration range.
+This makes the concentration at which a relevant anes-
+thetic effect is observed a critical consideration for deciding
+potential relevance. The mechanistic relevance of small
+effects observed in vitro at relevant concentrations is less
+clear; that is, what effect is too small to be considered rel-
+evant to anesthesia?23-25
+Whether anesthesia results from the sum of minor per-
+turbations at multiple sites or from substantial effects
+on a small number of targets remains to be determined.
+This should be resolved as more sophisticated molecular
+genetics experimental techniques are applied to test the
+relevance of putative targets. There are two reasons for
+believing that the number of relevant targets may be small.
+First, the extreme steepness of anesthetic concentration-
+response curves means that, for a given end point, sub-
+stantial effects on two or three targets would be sufficient
+to account entirely for the in vivo effect. Second, the stere-
+oselectivity observed in vivo 26 is comparable to the largest
+effects seen in putative targets in vitro, 18,20 suggesting that
+only a small number of targets are likely to be involved. Set
+against this logic is the experimental evidence that a rather
+large number of plausible target proteins are affected, albeit
+usually to small extents, and determining which of these
+are relevant to the various anesthetic end points remains
+a challenge.!
+ANESTHESIA: A COMPOSITE
+NEUROPHARMACOLOGIC STATE
+Along with progress in identifying the molecular mecha-
+nisms of anesthesia, our understanding of the nature of
+the anesthetic state has evolved. Whereas a drug-induced
+coma-like state of general anesthesia can be induced by
+inhaled anesthetics administered at appropriate concen-
+trations (approximately 1.3 times MAC, equivalent to
+the EC 95 of an intravenous anesthetic), the use of such
+high concentrations can lead to short- and possibly long-
+term side effects. It is now clear that anesthesia consists
+of separable and at least partially independent compo-
+nents or substates, each of which involves distinct but
+possibly overlapping mechanisms in different regions of
+the central nervous system (CNS) and with variations in
+relative potencies between specific agents. 27 Immobili-
+zation, the core measure of MAC, is mediated largely at
+the level of the spinal cord by inhaled anesthetics 28,29
+but not by barbiturates. 30 On the other hand, the spinal
+cord is clearly not the primary site of such phenomena as
+amnesia, sedation, and unconsciousness, which rather
+are produced by anesthetic effects on cerebral cortical
+function (Fig. 19.3). A functional separation between
+amnesia and sedation has been demonstrated for intra-
+venous anesthetics, 31 and it seems likely that this will
+apply to inhaled anesthetics as well. The state commonly
+referred to as “unconsciousness” is in itself heteroge-
+neous, with evidence for distinct states of unresponsive-
+ness and unconsciousness. 32 These and similar findings
+have led to the concept that general anesthesia consists
+of multiple independent components that can be resolved
+experimentally and clinically.
+In principle, each component of anesthesia can be pref-
+erentially induced in a concentration- and agent-specific
+manner using individual cellular/molecular pathways
+in various regions of the CNS. For example, injections
+of pentobarbital into discrete sites in the mesopontine
+tegmentum induce a comatose state, 33,34 whereas seda-
+tion induced by systemic administration of propofol can
+be reversed by microinjections of γ-aminobutyric acid
+(GABA) A receptor antagonists into the tuberomammil-
+lary nucleus, a sleep-regulating nucleus in the hypo-
+thalamus. 35 Thus general anesthetics produce separate
+identifiable anesthetic substates via agent-specific actions
+at discrete anatomic sites in the CNS through different
+molecular targets. An important consequence of this
+complexity is that MAC, which is based exclusively on a
+motor response, might not proportionately reflect other
+components of anesthesia. Although this heterogeneity
+of anesthetic actions complicates a mechanistic under-
+standing, it does open the possibility of developing sub-
+state-specific drugs.!
+0
+50
+100
+0.75	0.50	0.25 	1.0
+Responders (%)
+MAC fraction
+Amnesia
+Unconsciousness
+Immobility
+Fig. 19.3 Several behavioral end points and sites of action underlie
+inhaled anesthetic action. Amnesia, the most sensitive anesthetic end
+point, probably involves the hippocampus, amygdala, mediotemporal
+lobe, and other cortical structures. Unconsciousness likely involves the
+cerebral cortex, thalamus, and neuronal pathways of sleep and arousal.
+Sedation and hypnosis (loss of responsiveness) are part of the con-
+sciousness-unconsciousness continuum and are not shown. Immobil-
+ity occurs by anesthetic action in the spinal cord, although supraspinal
+effects (dotted arrow) are likely to be important for some anesthetics.
+Anesthetic action in the spinal cord blunts ascending impulses arising
+from noxious stimulation and might indirectly contribute to anesthetic-
+induced unconsciousness and amnesia (dashed arrow). Cardiovascular
+responses occur at even greater MAC fractions (not shown). (Courtesy
+Joseph Antognini, University of California, Davis, CA.)
+=== PAGE BREAK ===
+19 • Inhaled Anesthetics: Mechanisms of Action 	491
+Integrated Effects on Central
+Nervous System Function
+IMMOBILITY
+Electroencephalography as a monitor of brain activity has
+been applied both to the study of anesthetic mechanisms
+and as a monitor of the anesthetic state. Failure to find a
+correlation between quantitative electroencephalographic
+activity and immobility in response to noxious stimulation
+led to the somewhat radical (at the time) hypothesis that
+immobility was not a cerebral cortex–mediated phenom-
+enon.36 Experimental demonstration that volatile anes-
+thetics act on the spinal cord to suppress movement28,29
+supported this hypothesis and was a major factor leading
+to the contemporary separation of anesthetic substates,
+of which immobility requires the highest drug concentra-
+tions (see Fig. 19.3). Taking advantage of the atypical blood
+supply of goat CNS, which allows separate experimental
+perfusion of the brain and spinal cord, Antognini and col-
+leagues28,37 showed that immobility involves anesthetic
+effects at the spinal level because selective delivery of iso-
+flurane or halothane only to the brain required 2.5-fold to
+4-fold higher concentrations compared with delivery to the
+whole CNS. At the same time, experiments by Rampil and
+colleagues29 that used surgical separation of the forebrain
+and midbrain from the spinal cord in rats led to the con-
+clusion that immobilization involves primarily suppression
+of the nocifensive withdrawal reflex arc at the level of the
+spinal cord (Fig. 19.4).
+In the 25 years since the identification of the spi-
+nal cord as the site of anesthetic-induced immobility,
+research has centered on pharmacologic, genetic, and
+complex network approaches. The conventional phar-
+macologic approach (“bulk” administration of agonists
+and antagonists into the CNS) to identify receptor-level
+contributions to isoflurane-induced immobility (isoflu-
+rane being the standard potent ether for experimental
+purposes) has severe limitations in the complex networks
+of the CNS. Nevertheless, it yielded at least one surpris-
+ing insight―that actions at GABA A receptors appear not
+to be important for the end point of immobility, at least
+where inhalational agents are concerned. 38 Anesthetic-
+resistant transgenic mice confirmed that GABA A recep-
+tors containing α1- or α3-subunits do not contribute to
+the immobilizing action of isoflurane. 39,40 Perhaps less
+surprisingly, inhibition of central nicotinic acetylcholine
+receptors also plays no role in immobilization. 41 A role for
+voltage-gated sodium (Na + ) channels was suggested by
+the finding that intrathecal administration of a selective
+inhibitor of Na + channels potentiates anesthetic immobil-
+ity (reduces MAC), whereas an enhancer of Na + channel
+activity does the opposite. 42
+In contrast, work in mutant mice suggests a potential
+role for tandem-pore domain potassium channels (K2P)
+in anesthetic-induced immobility. Global knockout mice
+lacking the TASK-1, TASK-3, and TREK-1 K2P channels
+are less sensitive to volatile but not intravenous anesthet-
+ics,43-46 indicating a role for these channels possibly by a
+presynaptic mechanism. 47 An important limitation is that
+global knockout results almost invariably in wide-ranging
+compensatory changes in the molecular landscape of the
+organism with unpredictable consequences for the phe-
+nomenon under investigation.
+Work with ex vivo preparations that attempt to pre-
+serve parts of the complex spinal cord circuitry suggests
+that anesthetic inhibition of afferent (noxious sensory)
+input to the dorsal horn plays a subordinate role to the
+suppression of the efferent (motor) output from the ven-
+tral horn, although this may vary by specific agent. This
+motor output is coordinated by neuronal networks orga-
+nized in so-called central pattern generators that control
+the activity of cholinergic motoneurons. 48 Not unlike
+understanding the anesthetic effects on higher cognitive
+function, the key to understanding immobility will likely
+lie in resolving the effect of anesthetics on integrated
+spinal network activity after understanding the circuit
+physiology.!
+UNCONSCIOUSNESS
+Compared with the other end points of anesthesia, research
+into the biologic basis of anesthetic-induced unconscious-
+ness is relatively recent, but it has become an area of active
+investigation. Research is being conducted in animal mod-
+els and human subjects and commercial interests are work-
+ing to develop effective depth-of-anesthesia monitors. These
+efforts reflect increasing interest, and progress, in “con-
+sciousness science” in general.49,50 Moreover, anesthetics
+are themselves being used as research tools to help unravel
+the neuronal underpinnings of consciousness.
+Loss of consciousness (or hypnosis) is a hallmark of the
+onset of anesthesia. However, what is commonly referred to
+as unconsciousness under anesthesia might be more accurately
+described as unresponsiveness, a condition that could also
+encompass states of self-awareness without environmental
+awareness (as in dreaming) or environmental awareness
+without recall (e.g. conscious amnesia combined with neu-
+romuscular paralysis during induction of anesthesia).32,51
+Cerebral
+cortex
+A
+B
+Noxious
+stimulation
+Spinothalamic
+tract
+Fig. 19.4 Inhaled anesthetics produce immobility at the spinal level.
+(A) Decerebration by removal of the forebrain rostral to the black line
+does not alter the minimum alveolar concentration of isoflurane in rats,
+indicating that volatile anesthetic immobilization does not depend on
+the cerebral cortex.28,29 (B) Anesthetics suppress the nocifensive with-
+drawal reflex response to noxious stimulation transmitted to the dorsal
+horn by sensory nerves at the spinal level. Current efforts are focused
+on identifying the molecular, cellular, and anatomic substrates for this
+effect.
+=== PAGE BREAK ===
+SECTION II • Anesthetic Physiology	492
+Numerous theories have been advanced to explain
+anesthetic-induced unconsciousness. They can generally
+be divided into those that address “bottom-up” changes in
+the brain stem circuitry that controls arousal,52,53 versus
+“top-down” changes in the thalamocortical circuits that
+integrate information.54 Indeed, this distinction formed
+the basis for a recent suggestion that the level of conscious-
+ness reflects bottom-up processes whereas the content of
+consciousness reflects top-down processes―a notion with
+intuitive appeal.55
+One of the most influential theories has been the “inte-
+grated information theory of consciousness (IITC)” of
+Tononi,56 which emphasizes the need for simultaneous dif-
+ferentiation between brain states and their integration into
+a coherent whole. 57 Drugs or diseases that suppress con-
+sciousness could act through either process. Other infor-
+mation-based approaches use symbolic analysis, 58 transfer
+entropy,59 chaos theory,60 and more. The rich connectivity
+of the cerebral cortex and its hierarchical organization are
+especially suited to enable high levels of information inte-
+gration in the human brain. Some brain areas present a
+“rich club” organization (i.e., highly connected nodes tend
+to be preferentially connected to other highly connected
+nodes), which has been suggested to be optimal for infor-
+mation integration.61,62 These hubs are promising targets
+for the hypnotic action of general anesthetic drugs.
+Anesthetics might act by interfering with the operational
+synchronicity and coherence of corticothalamic networks.
+Consequent disruption of functional and effective connec-
+tivity has been observed during natural slow-wave 63 and
+midazolam-induced loss of responsiveness. 64 This break-
+down of cortical connectivity, rather than pharmacologic
+deafferentation from the environment, could underlie loss
+of consciousness.65 Unconsciousness would then be char-
+acterized not by the absence but by the fragmentation of
+cortical processing.
+Although the mechanism of “binding” (i.e., creating the
+unity of perception) is uncertain, synchronicity of neu-
+ronal activity in the 40- to 90-Hz range across function-
+ally connected cortical areas (commonly referred to as
+40-Hz- or γ-rhythm) is a viable candidate. Animal 66,67 and
+human 68 data implicate activity in the γ-band throughout
+the cortex as a network-level target of general anesthet-
+ics. Anesthetic actions on cortical information processing
+probably consist not merely of suppression of responses but
+of reduced complexity and variability reflected counterin-
+tuitively in the increased reliability and precision of evoked
+responses. 69,70
+A consistent and intriguing observation has been that
+anesthetics suppress descending more than ascending
+neural connectivity. 59,71 Within the framework of predic-
+tive coding,72 this indicates that unconsciousness is asso-
+ciated with a reduction in internally generated predictions
+more than a suppression of incoming sensory information.
+The molecular and cellular mechanisms underlying this
+effect remain undefined, but the preferential suppression
+by isoflurane of cortico-cortical responses in brain slices
+in vitro73,74 supports a top-down mechanism wherein the
+anesthetic acts directly on the thalamocortical circuitry.
+By contrast, “bottom-up” theories attribute changes
+in consciousness to anesthetic modulation of subcortical
+arousal nuclei. An interesting theme has emerged from
+this line of research. There is substantial overlap between
+the centers whose activity is altered during natural slow-
+wave sleep and the state of general anesthesia.35,75–77
+That is, many anesthetics may induce unconsciousness, at
+least in part, by “hijacking” neural sleep 78,79 or arousal 80
+pathways.
+Thalamic theories of anesthetic-induced unconscious-
+ness81,82 incorporate aspects of both top-down and bot-
+tom-up mechanisms, reflecting not only the intermediate
+position of this structure in the hierarchical organization
+of the brain but also the different connection patterns of
+“sensory relay” versus higher-order “nonspecific” thalamic
+nuclei.83!
+LEARNING AND MEMORY
+Anterograde amnesia, one of the core desirable anesthetic
+end points, is achieved at lower anesthetic concentrations
+(∼0.25 MAC) than those required for unconsciousness (∼0.5
+MAC). Perhaps the closest analogue in rodents to explicit
+memory in humans is medial temporal lobe–dependent
+learning of temporal and spatial sequences known as hippo-
+campus-dependent spatial learning. Other learning paradigms,
+such as fear conditioning to tone, are by contrast indepen-
+dent of the hippocampus. Spatial learning can be tested by
+a variety of experimental paradigms, including fear condi-
+tioning to context (Fig. 19.5). Isoflurane and the nonimmo-
+bilizer F6 both inhibit hippocampus-dependent learning at
+about half the concentration necessary for disrupting hip-
+pocampus-independent learning.84 Similarly, anesthetic
+concentrations that inhibit explicit memory in humans
+(memory that can be explicitly recalled as opposed to motor
+learning, classical conditioning, and so on) are similarly
+lower than concentrations that impair implicit memory
+(not subject to willful recollection). 85 Taken together, these
+findings implicate effects on function of the medial temporal
+lobe, including the hippocampus, in the suppression of
+explicit memory by anesthetics. Effects on other structures,
+such as the amygdala, may be relevant to anesthetic impair-
+ment of implicit or other types of memory.86
+Because inhaled anesthetics affect multiple cellular
+targets even at amnesic concentrations, it is likely that
+anesthetic-induced amnesia arises from multiple cellular-
+level changes. A quantitative comparison of the degree of
+change in synaptic inhibition in the hippocampus produced
+by equiamnestic concentrations of isoflurane versus etomi-
+date indicated that the enhancement of GABAergic inhibi-
+tion can account for a substantial portion of isoflurane’s
+effect on memory.87 Other contributing targets may include
+nAChRs,88 HCN1 channels,89 and excitatory glutamater-
+gic synapses,90 Conversely, it is also likely that suppression
+of learning and memory by drugs known to have differ-
+ent receptor affinities share common mechanisms at some
+level of integration. For example, θ-rhythms (4-12 Hz) are
+clearly important for hippocampus-dependent learning
+and memory.91 Benzodiazepines92 and cannabinoids93
+slow and suppress hippocampal θ-rhythms in proportion
+to their ability to impair hippocampus-dependent learning.
+Isoflurane and the nonimmobilizer F6 have comparable
+effects on θ-rhythms at amnesic concentrations while hav-
+ing different receptor-level profiles and opposite effects on
+sedation.94 Thus alterations in neuronal synchrony may
+=== PAGE BREAK ===
+19 • Inhaled Anesthetics: Mechanisms of Action 	493
+provide a common network-level substrate for memory
+impairment. The synchronization between amygdalar and
+hippocampal θ-rhythms that occurs during fear memory
+retrieval indicates that this principle might also apply to
+other forms of memory and their impairment by anesthet-
+ics.95 As with other components of the anesthetic state, the
+precise mechanisms of memory impairment by anesthetics
+and of memory itself remain to be fully elucidated.!
+SEDATION
+Sedation (defined as a decrease in activity, alertness,
+arousal, and/or vigilance), which is on a behavioral con-
+tinuum leading to hypnosis, is achieved at anesthetic doses
+similar to those that produce amnesia (<0.5 MAC). There
+is no clear mechanistic or clinical separation between seda-
+tion and hypnosis. By contrast, even though sedation can
+be difficult to separate from amnesia, for intravenous anes-
+thetics there may be separate but overlapping substrates for
+these two end points.31 The mechanisms involved in these
+behavioral effects are likely to resemble those of less pro-
+miscuous drugs, for which genetic approaches have been
+informative. An amino acid knockin mutation (H101R) in
+mice that renders the α1 GABAA receptor subunit insensi-
+tive to modulation by benzodiazepines produces resistance
+to the sedative and amnesic effects of benzodiazepines while
+maintaining other behavioral effects, among them anxioly-
+sis.96 The α1 subunit is abundantly expressed in the CNS,
+mainly in the cortical areas and thalamus. Volatile anes-
+thetics have qualitatively similar effects on α 1-containing
+GABA A receptors (but also those containing other sub-
+units) at low concentrations. The observation that the non-
+immobilizer F6, which is devoid of sedative properties, 94 is
+amnesic97 but does not modulate benzodiazepine-sensitive
+α1-containing GABA A receptors, 98,99 is compatible with
+a role for α1-containing receptors in volatile anesthetic-
+induced sedation, because few other targets are affected
+at purely sedative concentrations. Possible targets for the
+sedative effects of the gaseous anesthetics nitrous oxide
+and xenon, which do not affect GABA A receptors, include
+N-methyl-D-aspartate (NMDA) receptor antagonism100
+and K2P channel activation.101 Consistent with this distinct
+pharmacologic profile, nitrous oxide has strikingly differ-
+ent effects from those of benzodiazepines in behavioral tests
+aimed at evaluating sedation in mice.102
+Recognizing that there may be more than a superficial
+similarity between natural sleep and anesthetic-induced
+sedation and hypnosis, the effects of some anesthetics
+apparently share natural sleep mechanisms by directly
+activating discrete sleep-promoting nuclei in the hypothal-
+amus.35 Indeed, the same neurons, or at least overlapping
+populations of neurons, that are activated by sleep depriva-
+tion are also activated during dexmedetomidine-induced
+sedation.103 Electroencephalographic patterns during nat-
+ural slow-wave sleep and anesthesia show similarities,104
+and recovery from sleep deprivation can occur under pro-
+pofol105,106 and inhalational anesthesia, supporting this
+concept. Anesthetic effects on other cortical107 and subcor-
+tical structures32 may also contribute to anesthetic-induced
+sedation and hypnosis.!
+0
+100
+70
+60
+40
+20
+0.4	0.2	0.0 	0.6 	0.8 	1.0
+Freezing (%)
+MAC fraction
+F6 context
+F6 tone
+Isoflurane context
+Isoflurane tone
+Equilibration
+chamber
+Training and context
+testing chamber
+Tone
+testing chamber
+Speaker
+Speaker
+Shock
+grid
+Fig. 19.5 Differential sensitivity of different types of learning to anesthetics and nonimmobilizers. Freezing in anticipation of a noxious stimulus is a
+measure of learning in rats; less freezing indicates less learning. Left, the learning protocol involves preequilibration of rats in the equilibration chamber
+to isoflurane or the nonimmobilizer F6 at the desired concentration before placement into the training chamber. For testing of memory to context,
+the training and test chamber are identical. For testing of memory to tone, training and testing take place in different chambers. Right, hippocampus-
+dependent learning (fear conditioning to context, closed symbols) is inhibited by isoflurane (purple circles) at lower concentrations than hippocampus-
+independent learning (fear conditioning to tone, purple squares). This differential sensitivity is mirrored by the nonimmobilizer F6 (blue circles and
+blue squares for context and tone, respectively). (Left panel adapted with permission from Eger EI 2nd, Xing Y, Pearce R, et al. Isoflurane antagonizes
+the capacity of flurothyl or 1,2-dichlorohexafluorocyclobutane to impair fear conditioning to context and tone. Anesth Analg. 2003;96:1010–1018; right
+panel data points reconstructed from Dutton RC, Maurer AJ, Sonner JM, et al. Short-term memory resists the depressant effect of the nonimmobilizer
+1-2-dichlorohexafluorocyclobutane (2N) more than long-term memory. Anesth Analg. 2002;94:631–639; and Dutton RC, Maurer AJ, Sonner JM, et al. The
+concentration of isoflurane required to suppress learning depends on the type of learning. Anesthesiology. 2001;94:514–519.)
+=== PAGE BREAK ===
+SECTION II • Anesthetic Physiology	494
+Identification of Molecular Sites
+of Anesthetic Action
+CRITERIA FOR IDENTIFYING SITES RELEVANT TO
+ANESTHESIA
+Specific criteria have been proposed to evaluate the rel-
+evance of the many potential molecular targets of anesthet-
+ics.108 These criteria include the following:
+1. Reversible alteration of target function at clinically rel-
+evant concentrations. This criterion requires comparable
+in vivo and in vitro sensitivities and depends on the
+anesthetic end point under consideration. For example,
+targets involved in immobility must be sensitive to anes-
+thetics near MAC, whereas targets mediating amnesia
+must be affected at a fraction of MAC. Recent evidence
+for persistent effects of inhaled anesthetics demonstrable
+in the absence of continued anesthetic exposure is chal-
+lenging the notion of reversibility for certain effects.
+2. Expression of the target in appropriate anatomic locations
+to mediate the specific anesthetic end point. For example,
+immobilization by inhaled agents appears to involve pri-
+marily actions in the spinal cord independent of actions
+in the brain.
+3. Concordant stereoselectivity of anesthetic effects in vivo and
+on the target in vitro. Without a specific pharmacologic
+antagonist of anesthesia, correlation between the ste-
+reoselective actions of general anesthetics in vivo and
+in vitro is a useful test of pharmacologic relevance of
+putative molecular targets. Stereoselectivity data cor-
+relating in vivo potency and in vitro receptor actions
+implicate GABA A receptors as a target for the anesthetic
+actions of etomidate, pentobarbital, neurosteroid anes-
+thetics, and isoflurane.
+4. Appropriate sensitivity or insensitivity to anesthetic and
+nonanesthetic 	compounds. 	Anesthetic 	halogenated
+cyclobutanes together with structural analogs that do
+not produce anesthesia at concentrations predicted to
+be anesthetic by the Meyer-Overton correlation (nonim-
+mobilizers) can be used to discriminate relevant volatile
+anesthetic targets in vitro. For example, the anesthetic
+F3 (1-chloro-1,2,2-trifluorocyclobutane), but not the
+structurally similar nonanesthetic F6 (1,2-dichloro-
+hexa fluorocyclobutane), affect GABAA , glycine, AMPA
+(α-amino-3-hydroxy-5-methyl-4-isoxazolepropionic
+acid), kainate, and 5-HT3 receptors; and Na+ channels,
+consistent with possible roles in immobility, whereas
+both F3 and F6 affect neuronal nicotinic, M1 mus-
+carinic, 5-HT2C, and mGluR5 receptors, indicating
+that these targets are not involved in immobility. F6 is
+interesting in that it lacks sedative and immobilizing
+effects but does possess amnesic effects, hence use of the
+more accurate term nonimmobilizer, making it a useful
+pharmacologic tool for discriminating targets for these
+actions.
+5. Predictable effects of genetic manipulations targeted to
+putative molecular targets. The effects of targeted dele-
+tion of specific molecules implicated as anesthetic tar-
+gets (knockout mutations) or genetic engineering to
+introduce specific mutations that modify anesthetic
+sensitivity (knockin mutations) in model organisms
+provide powerful approaches to test the roles of putative
+molecular targets of anesthetic action. This approach
+has been particularly successful in implicating specific
+GABA A receptor subtypes in the effects of the GABAergic
+intravenous anesthetics propofol and etomidate, where
+single amino acid substitutions in specific receptor
+subtypes eliminate anesthetic effects both in vitro and
+in vivo.109 Targeted mutations of putative anesthetic
+targets provide a bridge between in vitro observations
+and whole-animal experiments essential for demon-
+strating anesthetic end points. The existence of multiple
+targets and redundancy among ion channel subtypes
+makes this a more challenging experimental approach
+for inhaled anesthetics compared with intravenous
+anesthetics (discussed later).!
+PHYSICOCHEMICAL PROPERTIES OF
+ANESTHETIC BINDING SITES
+A convergence of x-ray crystallography, molecular model-
+ing, and structure-function studies indicates that inhaled
+anesthetics bind in the hydrophobic cavities formed within
+proteins.22 The lipophilic (or hydrophobic) nature of these
+binding sites explains their adherence to the Meyer-Over-
+ton correlation. An element of amphiphilicity (possessing
+both polar and nonpolar characteristics) is also required
+for effective interaction with these cavities, as indicated by
+improvements in the Meyer-Overton correlation with more
+amphipathic solvents (possessing both hydrophobic and
+hydrophilic properties).7!
+FROM MODEL PROTEINS TO RECEPTORS
+Identifying inhaled anesthetic binding sites on plausible
+target proteins is difficult because of their low-affinity
+interactions, the paucity of atomic resolution structures of
+pharmacologically relevant target proteins, and the lack of
+specific antagonists. Consequently most anesthetic binding
+sites have been identified in well-characterized model pro-
+teins for which three-dimensional atomic resolution struc-
+tures―such as luciferase110 and serum albumin111―are
+available but are not themselves relevant to anesthesia.
+These studies indicate that anesthetics bind in pockets with
+both nonpolar and polar noncovalent chemical interac-
+tions.23,112 Binding involves weak hydrogen bond interac-
+tions with polar amino acid residues and water molecules,
+nonpolar van der Waals interactions, and a polarizing effect
+of the amphiphilic binding cavity on the relatively hydro-
+phobic anesthetic molecules. Occupation of a site, or sites, by
+an anesthetic provides a plausible mechanism for alteration
+of receptor and ion channel function by selectively binding
+to a particular conformation (e.g., an open or inactivated
+state of an ion channel).22 Studies of glycine, GABAA, and
+NMDA receptors provide convincing evidence for the exis-
+tence of anesthetic binding sites in critical neuronal signal-
+ing proteins. 113 It is likely that before long, high-resolution
+crystal structures of these receptors will be determined with
+inhaled anesthetic bound. However, because anesthetics
+act by binding only to certain transient conformational
+states, the relevance of necessarily static crystal structures
+will have to be assessed with care.
+=== PAGE BREAK ===
+19 • Inhaled Anesthetics: Mechanisms of Action 	495
+Structural studies using the more accessible prokary-
+otic homologues of eukaryotic ion channels have provided
+a powerful tool for the study of anesthetic binding sites in
+biologically plausible proteins. For example, both propo-
+fol and desflurane have been cocrystalized with Gloebacter
+violaceus, a bacterial homologue of eukaryotic inhibitory
+ligand-gated ion channels (glycine and GABAA receptors).
+Both anesthetics bind to a common preexisting site in the
+upper part of the transmembrane domain between the
+transmembrane segments of a single subunit (Fig. 19.6).114
+Molecular modeling based on structurally homologous
+proteins has also been used to identify putative anesthetic
+binding sites in the transmembrane domains of vertebrate
+GABA A and glycine receptors (Fig. 19.7). These models
+Desflurane
+A 	B
+Intersubunit
+cavity
+General
+anesthetic
+cavity
+Linking
+tunnel	Propofol
+Membrane
+Fig. 19.6 X-ray structures of propofol and desflurane bound to a pentameric ligand-gated ion channel. (A) Cartoon of membrane-plane view of the
+bacterial homologue of mammalian pentameric ligand-gated ion channels (Gloebacter violaceus) with a bound general anesthetic molecule. (B) Molec-
+ular surface of the general anesthetic intrasubunit cavities (yellow) and neighboring intersubunit cavities (pink) of the whole pentameric channel.
+(Modified from Nury H, Van Renterghem C, Weng Y, et al. X-ray structure of general anaesthetics bound to a pentameric ligand-gated ion channel. Nature.
+2011;469:428–433.)
+A
+B
+C
+Transmembrane
+domain
+Cl–
+ASN 265
+Desflurane
+MET 286 	LEU 231
+Extracellular
+domain	
+GABA
+ABP
+!
+!
+"
+"
+#
+Fig. 19.7 Putative anesthetic binding sites on γ-aminobutyric acid (GABA A) receptors identified by molecular modeling. (A) Molecular model of the
+mouse GABA A receptor built using homology modeling techniques with computational chemistry optimizations and molecular dockings. The amino
+acid backbone is displayed in ribbon format and outlined by the transparent solvent-accessible molecular surface. Each of the five subunits is colored
+uniquely. The GABA binding site is noted in the extracellular domain, whereas the putative anesthetic binding pocket (ABP) for potentiation is noted in
+the outer third of the transmembrane domain between the α and β subunits. Two binding sites are shown but only one has computationally docked
+desflurane. (B) A cross-section at the dotted line level in A showing orientation of subunits with pentameric symmetry about a central ion pore. (C) Mag-
+nified region of intersubunit anesthetic binding site derived from region in B showing relevant amino acid positions (in space-filling format) interacting
+with desflurane (in ball-and-stick format at the same scale). (Courtesy the Bertaccini laboratory, Stanford University, Stanford, CA.)
+=== PAGE BREAK ===
+SECTION II • Anesthetic Physiology	496
+suggest that different drugs may either bind in different
+orientations within a single amphiphilic cavity or occupy
+different cavities within the protein, causing similar func-
+tional effects. Refinement of these molecular models will
+continue to provide new insights in the molecular basis for
+general anesthetic action that can be experimentally tested.
+For example, potential sites of interaction of xenon and
+isoflurane with the NMDA receptor have also been identi-
+fied using this approach. One site, which can contain up to
+three xenon atoms or one molecule of isoflurane, overlaps
+the known binding site for the coagonist glycine in the NR1
+subunit.115 This suggests that two chemically dissimilar
+inhaled anesthetics inhibit NMDA receptors by direct com-
+petitive inhibition of coagonist binding.
+Molecular Targets of Inhaled Anesthetics
+Ion channels have emerged as the most promising molecu-
+lar targets for inhaled anesthetics. Neurotransmitter-gated
+ion channels―in particular GABA A, glycine, and NMDA-
+type glutamate receptors―are leading candidates owing
+to their appropriate CNS distributions, essential physiologic
+roles in inhibitory and excitatory synaptic transmission,
+and sensitivities to clinically relevant concentrations of
+anesthetics.22,27,108,116 Other ion channels that are sensi-
+tive to inhaled anesthetics include the hyperpolarization-
+activated cyclic nucleotide (HCN)-gated family of channels
+that give rise to pacemaker currents 116 and regulate den-
+dritic excitability, two-pore domain (K 2P ) “leak” K + chan-
+nels that maintain resting membrane potential in many
+cells,117,118 and voltage-gated Na+ and Ca2+ channels.116!
+LIGAND-GATED ION CHANNELS
+Potentiation of Inhibitory GABAA and Glycine
+Receptors
+The ether anesthetics (including isoflurane, sevoflurane, and
+desflurane), the alkane anesthetic halothane, most intrave-
+nous anesthetics (including propofol, etomidate, barbitu-
+rates), and the neurosteroid anesthetics enhance GABAA and
+glycine receptor (GlyR) function. GABAA and GlyRs are mem-
+bers of the same cys-loop ligand-gated ion channel super-
+family that also includes the cation-permeable nicotinic
+acetylcholine and 5HT3 receptors. GABAA receptors are the
+principal transmitter-gated Cl− channels in the neocortex
+and allocortex, whereas GlyRs fulfill this function in the spi-
+nal cord, with some overlap in the diencephalon and brain
+stem. Activated receptors conduct chloride ions, driving the
+membrane potential toward the Cl− equilibrium potential.
+Both receptors are inhibitory (except in some cases dur-
+ing development) because the Cl− equilibrium potential is
+usually more negative than the normal resting potential.
+Channel opening also reduces membrane resistance and
+“shunts” excitatory responses. Most functional GABAA and
+GlyRs are heteropentamers, typically consisting of three
+different GABAA subunits (e.g., two α, two β, and one γ or
+∂)119 or two different GlyR subunits (three α and two β).120
+The subunit composition of GABA A receptors determines
+their physiologic and pharmacologic properties and varies
+between and within brain areas as well as between differ-
+ent compartments of individual neurons. Examples are the
+preferential expression of the α5 subunit in the dendritic
+field of the hippocampal CA1 area (a region important for
+memory formation), of the α4 subunit in the thalamus, and
+of the α6 subunit in the cerebellum. Presence of a γ sub-
+unit is required for benzodiazepine modulation of GABAA
+receptors and can also influence modulation by inhaled
+anesthetics. Although the molecular mechanisms of recep-
+tor modulation by inhaled anesthetics are not clear, these
+receptors have been key to our understanding of anesthetic-
+receptor interactions. Using chimeric receptor constructs
+between anesthetic-sensitive GABAA and insensitive GlyR
+subunits, specific amino acid residues in transmembrane
+domains 2 and 3 critical to the action of inhaled anesthet-
+ics have been identified.121 This laid the groundwork for the
+construction of anesthetic-resistant GABAA receptors and
+the generation of transgenic mice with altered anesthetic
+sensitivity (discussed later).
+The 	related 	cation-permeable 	5-hydroxytryptamine
+(serotonin)-3 (5HT 3) receptors are similarly potentiated
+by volatile anesthetics. 122,123 5HT 3 receptors are involved
+with autonomic reflexes and also probably contribute to the
+emetogenic properties of volatile anesthetics.!
+Inhibition of Excitatory Acetylcholine and
+Glutamate Receptors
+Neuronal nicotinic acetylcholine receptors (nnAChRs), like
+the other members of the cys-loop family, are heteropenta-
+meric ligand-gated ion channels but are cation-selective.
+They are composed of α and β subunits but functional
+homomeric receptors can be formed by certain α subunits.
+In the CNS, nnAChRs are localized primarily presynapti-
+cally.124 Homomeric α7 receptors have high permeability
+to Ca2+, which can exceed that of NMDA receptors.124 In
+contrast to GABA A and GlyRs, nnAChRs pass cations when
+activated and therefore depolarize the membrane potential.
+Receptors containing α4β2 subunits are very sensitive to
+block by isoflurane.125,126 Relevance of nnAChR block to
+immobilization, sedation, and unconsciousness by inhaled
+anesthetics is unlikely because nnAChRs are also blocked
+by nonimmobilizers, although it is possible that they do
+contribute to amnesia.
+NMDA receptors are a major postsynaptic receptor sub-
+type of inotropic receptors for glutamate, the principal
+excitatory neurotransmitter in the mammalian CNS. 127
+Typical NMDA receptors, defined pharmacologically by
+their selective activation by the exogenous agonist NMDA,
+are heteromers consisting of an obligatory GluN1 subunit
+and modulatory GluN2 subunits. Channel opening requires
+glutamate (or another synthetic agonist such as NMDA)
+binding to the GluN2 subunit while the endogenous coago-
+nist glycine binds to the GluN1 subunit. NMDA receptors
+also require membrane depolarization to relieve voltage-
+dependent block by Mg 2+. Depolarization is typically pro-
+vided by the binding of glutamate to non-NMDA glutamate
+receptors (discussed later). Because of this requirement
+for both presynaptic transmitter release and postsynaptic
+depolarization, synaptic NMDA receptors function as coin-
+cidence detectors, and this characteristic is thought to be
+central to their role in learning and memory. NMDA recep-
+tors are also involved in the development of chronic pain,
+perhaps because of mechanisms similar to those underlying
+synaptic plasticity, and in ischemia-induced excitotoxicity
+by virtue of their capacity to allow entry of the ubiquitous
+intracellular signal Ca2+. The nonhalogenated inhaled
+=== PAGE BREAK ===
+19 • Inhaled Anesthetics: Mechanisms of Action 	497
+anesthetics xenon, nitrous oxide, and cyclopropane have
+minimal effects on GABAA receptors but depress excitatory
+glutamatergic synaptic transmission postsynaptically via
+NMDA glutamate receptor blockade (Fig. 19.8).128,129
+Volatile anesthetics can also inhibit isolated NMDA recep-
+tors at higher concentrations.130 Along with presynaptic
+inhibition of glutamate release, this might contribute to
+their depression of NMDA receptor–mediated excitatory
+transmission.
+A second class of inotropic glutamate receptors includes
+the non-NMDA receptors, which are subdivided into AMPA
+and kainate receptors based again on their sensitivities to
+selective exogenous agonists. 127 Inhaled anesthetics only
+weakly inhibit AMPA receptors; hence this action is unlikely
+to be important in their actions.131 Interestingly, kainate
+receptors are enhanced by inhaled anesthetics, but this is
+unlikely to be involved in immobility because MAC is not
+altered in mice deficient in the GluR6 receptor subunit.132
+Most evidence suggests that the principal mechanism for
+depression of glutamatergic transmission by volatile anes-
+thetics is presynaptic, with minor contributions from post-
+synaptic receptor blockade 133-135 (see section on “Cellular
+Mechanisms”).!
+VOLTAGE-GATED AND OTHER ION CHANNELS
+Volatile anesthetics have diverse effects on a wide variety of
+ion channels that are critically involved in their neurophys-
+iologic, cardiovascular, and respiratory actions. A detailed
+understanding of these interactions is crucial to a pharma-
+cologic description of this essential drug class.
+Na+ Channels
+Voltage-gated Na + channels are critical to axonal conduc-
+tion, synaptic integration, and neuronal excitability. In
+contrast to findings in invertebrate giant axons,136 axonal
+conduction in small (0.1-0.2 μm) unmyelinated hippocam-
+pal axons is depressed by volatile anesthetics, 137,138 and
+small reductions in preterminal action potential amplitude
+significantly depress transmitter release and hence post-
+synaptic responses at a mammalian synapse.139 Heterolo-
+gously expressed mammalian voltage-gated Na + channels
+are sensitive to clinically relevant concentrations of vola-
+tile anesthetics. The Na + channel family consists of nine
+homologous pore-forming α subunits with distinct cellular
+and subcellular distributions.140,141 Isoflurane and other
+volatile anesthetics inhibit the major mammalian Na+
+channel isoforms, including neuronal (Nav1.2), skeletal
+muscle (Nav1.4), cardiac (Nav1.5), and peripheral (Nav1.8)
+isoforms.142 Volatile anesthetics but not nonimmobiliz-
+ers also inhibit native neuronal and nerve terminal Na +
+channels,141,143-146 lending support to the notion that Na+
+channel blockade contributes to the depression of synap-
+tic neurotransmitter release. 147 In contrast, xenon has no
+detectable effect on Na + , Ca 2+, or K + channels in isolated
+cardiomyocytes.148 The demonstration that NaChBac, a
+prokaryotic homologue of voltage-gated Na+ channels,
+is also inhibited by volatile anesthetics opens the way for
+structure-function studies of these channels.145 These stud-
+ies suggest that volatile anesthetics affect channel gating,
+probably via at least two drug binding sites.149-151!
+Ca2+ Channels
+Multiple cellular functions depend on the tightly controlled
+concentration of intracellular free Ca2+ ([Ca2+]i), which
+is determined by the integrated activities of voltage-gated
+Ca2+ channels, capacitative Ca2+ channels, plasma mem-
+brane and sarcoplasmic/endoplasmic reticulum (ER) Ca2+-
+adenosine triphosphatases (pumps), Na+ /Ca2+ exchangers,
+mitochondrial Ca2+ sequestration, and cytoplasmic Ca2+-
+binding proteins. Alteration of any of these mechanisms
+can affect the many cellular processes regulated by the
+second-messenger actions of Ca2+, including synaptic
+transmission, gene expression, cytotoxicity, and muscle
+excitation-contraction coupling. Excitable cells translate
+their electrical activity into action by Ca 2+ fluxes mediated
+primarily by voltage-gated Ca2+ channels in the plasma
+membrane. Distinct Ca2+ channel subtypes are expressed
+in various cells and tissues, and are classified pharmaco-
+logically and functionally by the degree of depolarization
+required to gate the channel as low voltage–activated
+100 	200 	300 	400 	500
+0
+−2
+−4
+−6
+−8
+−10
+0
+A
+200	150	100	50
+0
+−4
+−8
+−12
+0
+B
+Time (msec)
+Inhibitory postsynaptic current (nA)
++Xenon
++Xenon
++Xenon
+20s
+Control
+Control
+GABA
+200 pA
+Time (msec)
+Excitatory postsynaptic current (nA)
+Fig. 19.8 The actions of xenon on inhibitory GABAergic and excitatory
+glutamatergic synapses in cultured rat hippocampal neurons. Xenon
+(3.4 mM, or 1 minimum alveolar concentration [MAC]) has no signifi-
+cant effect on the inhibitory postsynaptic current (A) but depresses
+the excitatory glutamatergic synaptic current, almost exclusively the
+slow N-methyl-D-aspartate receptor-mediated component of the cur-
+rent (B). In contrast, the principal effects of 1 MAC isoflurane are a pro-
+longation in the inhibitory current decay and a reduction in excitatory
+current peak height, with little change in time course (not shown, see
+Fig. 19.10). (Reprinted in modified form by permission from de Sousa SLM,
+et al. Contrasting synaptic actions of the inhalational general anesthetics
+isoflurane and xenon. Anesthesiology. 2000;92:1055–1066.)
+=== PAGE BREAK ===
+SECTION II • Anesthetic Physiology	498
+(LVA; T-type) or high voltage–activated (HVA; L-, N-, R-,
+and P/Q-type) channels. Cloning and sequencing to iden-
+tify their pore-forming α subunits has allowed molecular
+classification of these functionally identified channel sub-
+types.141 Considerable evidence indicates that volatile anes-
+thetics inhibit certain Ca 2+ channel isoforms but not others.
+Inhibition of presynaptic voltage-gated Ca2+ chan-
+nels coupled to transmitter release has been proposed as a
+mechanism by which volatile anesthetics reduce excitatory
+transmission.152,153 Indeed, N-type (Ca v2.2) and P-type
+(Cav2.1) channels, which mediate Ca 2+ entry coupled to
+neurotransmitter release, are modestly sensitive to volatile
+anesthetics154,155 but not in all neuron types,156 suggest-
+ing the importance of auxiliary subunits, posttranslational
+modification, or other potential modulators of anesthetic
+sensitivity. A modest contribution of R-type Ca 2+ channels
+(Cav2.3) to anesthesia is suggested by their sensitivity to
+volatile anesthetics and a small increase in MAC produced
+by genetic deletion in mice.157 T-type Ca2+ channels are
+particularly sensitive to volatile anesthetics158 and nitrous
+oxide.159 However, mutant mice lacking a major neuronal
+T-type Ca2+ channel isoform (Cav3.1) have normal volatile
+anesthetic sensitivity, although the onset of anesthesia is
+delayed.160 Thus the role that inhibition of these or other
+Ca2+ channels plays in the CNS effects of inhaled anesthet-
+ics is unclear.
+At higher doses, a role for Ca 2+ channel inhibition in the
+negative inotropic effects of volatile anesthetics is well estab-
+lished. The force of myocardial contraction is determined
+by the magnitude of cytosolic Ca 2+ increase after electrical
+excitation, the responsiveness of the contractile proteins
+to Ca2+, and sarcomere length. Negative inotropic effects
+of volatile anesthetics are mediated by reductions in Ca 2+
+availability, Ca2+ sensitivity of the contractile proteins, and
+rate of cytosolic Ca 2+ clearance. Volatile anesthetics reduce
+the Ca 2+ transient and shorten action potential duration
+in cardiomyocytes primarily by inhibiting L-type (Ca v1.2)
+Ca2+ currents, resulting in a negative inotropic effect and
+arrhythmogenicity.161-163 In contrast, xenon does not
+depress myocardial function or inhibit L-type Ca2+, Na+, or
+K+ currents in isolated cardiomyocytes. 164,165 Inhibition of
+trans-sarcolemmal Ca2+ influx through cardiac L-type Ca2+
+channels plays a major role in the negative inotropic effects
+of volatile anesthetics—greatest for halothane—along with
+contributions from effects on myofilament Ca2+ sensitivity
+and sarcolemmal Ca2+ release.162,166
+In contrast to voltage-gated Ca 2+ channels that regulate
+the influx of extracellular Ca 2+, intracellular Ca 2+ channels
+regulate Ca2+ release from intracellular stores, particularly
+the ER and sarcoplasmic reticulum (SR). These include
+1,4,5-inositol triphosphate receptors (IP 3Rs), regulated by
+the second messenger IP3 , and ryanodine receptors (RyRs);
+the latter mediate the release of SR Ca2+, which is critical
+to excitation-contraction coupling in muscle. Volatile anes-
+thetic–induced Ca 2+ leak occurs by effects on both IP 3R
+and RyR channels, which leads to depletion of intracellular
+Ca2+ stores from the SR and ER. In brain, volatile anesthetic
+activation of IP3Rs has been proposed as a mechanism for
+anesthetic neurotoxicity.167 This blunts changes in intra-
+cellular Ca 2+ in response to stimulation and contributes
+to the smooth muscle–relaxing properties of volatile anes-
+thetics that underlie bronchodilation and vasodilation. 168
+Malignant hyperthermia is a pharmacogenetic disorder
+that manifests as a potentially fatal hypermetabolic crisis
+triggered by volatile anesthetics, particularly halothane. It
+is often associated with mutations in RyR1 and the physi-
+cally associated L-type Ca 2+ channel (Ca v1.1), which func-
+tions as the voltage sensor. 169 Volatile anesthetics activate
+the mutated RyRs, resulting in uncontrolled intracellular
+Ca2+ release from the SR, muscle contraction, and hyper-
+metabolic activity.170!
+K+, HCN, and TRP Channels
+Potassium (K+ ) channels are members of an extremely
+diverse ion channel family noted for their varied modes of
+activation. They regulate electrical excitability, muscle con-
+tractility, and neurotransmitter release. They are important
+in determining input resistance and in driving repolariza-
+tion after action potentials; thus they determine excitability
+and action potential duration. Given the large diversity in
+K+ channel structure, function, and anesthetic sensitiv-
+ity, it is not surprising that there is considerable diversity
+in their sensitivity and response to inhaled anesthetics, 171
+from relatively insensitive (voltage-gated K+ channels
+Kv1.1, Kv3)172 to sensitive (some members of the K2P fam-
+ily), resulting in either inhibition, activation, or no effect on
+K+ currents.
+Volatile anesthetic activation of certain “leak” K+ chan-
+nels was first observed in the snail Lymnaea,173 although
+the molecular identity of the affected ion channels was
+unknown. Activation of K 2P channels by volatile and
+gaseous anesthetics―including xenon, nitrous oxide,
+and cyclopropane―was subsequently observed in mam-
+mals.118 Increased K + conductance can hyperpolarize neu-
+rons, reducing responsiveness to excitatory synaptic input
+and possibly altering network synchrony. Targeted deletion
+of the TASK-1, TASK-3, and TREK-1 K 2P channels in mice
+reduces sensitivity to immobilization by volatile anesthetics
+in an agent-specific manner, implicating these channels as
+contributory anesthetic targets in vivo. 44-47 The K + chan-
+nel TREK-1 also contributes to the neuroprotective effects
+of xenon174 and sevoflurane.175
+Progress has recently been made in identifying anes-
+thetic binding sites to K + channels using photoaffinity label-
+ing, which has identified a sevoflurane binding site in the
+Kv1.2 channel; this is widely expressed in brain and posi-
+tively modulated by volatile anesthetics.176 Molecular mod-
+eling has also been used to identify likely binding sites in K2P
+channels.177
+The recognition that inherited channelopathies are
+arrhythmogenic and constitute an important contributor to
+sudden cardiac death, 178 particularly in young children, 179
+highlights the importance of analyzing anesthetic modula-
+tion of cardiac ion channels. Recombinant hERG (human
+ether-a-go-go–related) channels are moderately inhibited
+by halothane, and their depression likely contributes to
+arrhythmogenic effects of volatile anesthetics 162,180; they
+are also involved in acquired (drug-induced) and inherited
+long QT syndrome. Cardiac inward-rectifying (K IR), voltage-
+gated (Kv), and Ca2+-activated K+ channels are generally
+relatively insensitive to clinical concentrations of volatile
+anesthetics and xenon.162,164,181 In contrast, volatile anes-
+thetics and xenon activate cardiac mitochondrial and
+sarcolemmal KATP channels,182 which might contribute
+=== PAGE BREAK ===
+19 • Inhaled Anesthetics: Mechanisms of Action 	499
+to anesthetic preconditioning to cardiac ischemia. Direct
+electrophysiologic effects of anesthetics with precondition-
+ing properties have been demonstrated on both mitochon-
+drial and sarcolemmal KATP channels, although the precise
+mechanisms remain to be clarified. The large conductance
+(BK) mitochondrial K + channel Slick of the Slo2 gene fam-
+ily has been shown to be important for volatile anesthetic
+preconditioning in vivo.183
+Volatile anesthetics also inhibit HCN pacemaker chan-
+nels, reducing the rate of rise of pacemaker potentials
+and the bursting frequency of certain neurons that show
+autorhythmicity. They decrease the I h conductance in
+neurons184 and modulate recombinant HCN1 and HCN2
+channel isoforms at clinically relevant concentrations.185
+Because HCN channels contribute to resting membrane
+potential, control action potential ring, dendritic integra-
+tion, neuronal automaticity, and temporal summation,
+and also determine periodicity and synchronization of oscil-
+lations in many neuronal networks,186 anesthetic modu-
+lation of these channels could play an important role in
+anesthetic effects on neuronal integrative functions. Selec-
+tive knockout of HCN1 in mouse forebrain shows a role for
+these channels in the amnestic and hypnotic but not immo-
+bilizing effects of volatile anesthetics.89 !
+INTRACELLULAR SIGNALING MECHANISMS
+Cell signaling mechanisms are critical to all phases of organ
+and cellular function, which has made them attractive
+targets for producing the broad effects of general anesthet-
+ics on multiple organs. Anesthetics have complex actions
+on intracellular cell signaling pathways, which include
+processes downstream from cell surface receptors and ion
+channels, including effects on second messengers, pro-
+tein phosphorylation pathways, and other regulatory
+mechanisms.187
+G-Protein–Coupled Receptors
+A variety of signals―including hormones, neurotrans-
+mitters, cytokines, pheromones, odorants, and photons―
+produce their intracellular actions by interactions with
+metabotropic receptors that activate heterotrimeric gua-
+nine nucleotide–binding proteins (G proteins). In contrast
+to inotropic receptors that directly couple to ion-selective
+channels, G proteins act as indirect molecular switches to
+relay information from activated plasma membrane recep-
+tors to appropriate intracellular targets.
+Heterotrimeric G proteins consist of a large α-subunit
+and a smaller β/γ-subunit dimer, each expressed as mul-
+tiple isoforms with distinct properties and downstream
+targets. G proteins regulate a plethora of downstream
+effectors to control the levels of cytosolic second messen-
+gers such as Ca 2+ , cyclic adenosine monophosphate, and
+inositol triphosphate. These, in turn, regulate effector pro-
+teins such as ion channels and enzymes, either directly or
+via second messenger–regulated protein phosphorylation
+pathways. Ca 2+ is a ubiquitous second messenger that reg-
+ulates a number of downstream effectors, often mediated
+by the multifunctional Ca 2+ -binding protein calmodulin.
+As volatile anesthetics have profound effects on intracel-
+lular Ca 2+ concentrations via their effects on both plasma
+membrane and intracellular Ca 2+ channels, transporters,
+and exchangers (see the section on ion channels earlier),
+many of the downstream effects of anesthetics are ulti-
+mately mediated by changes in the second-messenger
+actions of Ca 2+ .
+Drugs that act through G protein–coupled receptors
+(GPCRs) such as agonists for μ-opioid and α2-adrenergic
+receptors can affect anesthetic sensitivity (reduce MAC).
+Inhaled anesthetics can also directly affect signaling via
+GPCRs.188 For example, volatile anesthetics activate mul-
+tiple olfactory GPCRs in the rat in vivo in a receptor- and
+agent-selective manner.189 Analogous effects on related
+GPCRs more relevant to critical anesthetic end points are
+possible but remain to be demonstrated. The observation
+that both volatile anesthetics and nonimmobilizers inhibit
+mGluR5 glutamate receptors, 5-HT2A serotonin recep-
+tors, and muscarinic acetylcholine receptors suggests
+that these GPCR effects do not contribute to anesthetic
+immobilization.190-192!
+Protein Phosphorylation
+Phosphorylation of proteins on specific serine, threonine,
+or tyrosine hydroxyl groups, a posttranslational modifica-
+tion involved in the regulation of many anesthetic-sensitive
+receptors and ion channels, is pivotal to synaptic plastic-
+ity (e.g., long-term potentiation [LTP]). Phosphorylation is
+controlled by the balance of activity between protein kinases
+and phosphatases, several of which are plausible anesthetic
+targets. The protein kinase C (PKC) family of multifunc-
+tional protein kinases is activated by the lipid-signaling
+molecule diacylglycerol and is involved in the regulation of
+many ion channels and receptors. Halothane193 and sevo-
+flurane194 enhance the activity of some PKC isoforms and
+stimulate phosphorylation of specific PKC substrates. Struc-
+tural studies have identified a potential binding site in the
+diacylglycerol binding domain of PKCδ, consistent with the
+ability of certain anesthetics to mimic this natural regula-
+tor by binding to the activating site.195 A specific role for a
+direct pharmacologically relevant effect related to general
+anesthesia mediated by anesthetic activation of PKC or of
+any other kinase has yet to be demonstrated. Intrathecal
+injection of isoform-specific inhibitors of PKC does not affect
+sensitivity to halothane in vivo.196 Knockout mice lacking
+the PKCγ isoform show normal sensitivity to halothane
+and desflurane while isoflurane MAC was increased, 197
+suggesting that PKC is not critical to volatile anesthetic
+immobilization.
+An important role for effects of volatile anesthetics and
+xenon on cell signaling mechanisms has been discovered for
+anesthetic-induced preconditioning in the heart and brain
+against ischemic damage. 198-202 Anesthetic-induced and
+ischemic cardiac preconditioning share critical signaling
+mechanisms, including activation of multiple GPCRs (e.g.,
+adenosine, opioid, adrenergic) and protein kinases (e.g., src
+kinase, PKCδ, PKCε, Akt, mitogen-activated protein kinases
+[MAPKs]), and their downstream targets, particularly sar-
+colemmal and/or mitochondrial KATP channels, possibly
+initiated by changes in reactive oxygen species as the criti-
+cal second messenger. 203,204 Volatile anesthetics and xenon
+share cardioprotective and neuroprotective effects involv-
+ing these signaling pathways.202,205
+The effects of anesthetics on the phosphorylation of indi-
+vidual residues in specific substrates can be studied using
+=== PAGE BREAK ===
+SECTION II • Anesthetic Physiology	500
+phosphorylation state–specific antibodies that are able to
+detect the phosphorylated forms of kinase substrates. A
+comparison of the effects of three mechanistically diverse
+anesthetics (isoflurane, propofol, and ketamine) on critical
+intracellular protein phosphorylation signaling pathways
+that are known to integrate multiple second messenger
+systems reveals both shared and agent-specific actions
+in vivo.206 All three anesthetics reduce phosphorylation
+of activating sites on NMDA and AMPA glutamate recep-
+tors and of the downstream extracellular signal-regulated
+kinase ERK2, all of which are known to be involved in syn-
+aptic plasticity, consistent with depression of normal gluta-
+matergic synaptic transmission in the anesthetized mouse
+cerebral cortex. These effects are somewhat selective in that
+several other protein kinase A (PKA) substrates examined
+are not affected, indicating substrate-specific effects rather
+than a general inhibition of PKA activity. 207 Additional
+studies will be required to determine which anesthetic
+effects on kinase pathways represent direct effects, as occurs
+with PKC, and which are indirect because of anesthetic-
+induced alterations in signaling molecules known to regu-
+late protein kinase and phosphatase activity such as Ca2+
+and other second messengers.!
+Gene Expression
+The ability of general anesthetics to alter gene expres-
+sion in the brain was first observed for the highly reactive
+immediate early genes c-fos and c-jun.208 Anesthetic effects
+on gene expression have since been observed for multiple
+anesthetics and organs.209 In the hippocampus of aged rats,
+changes in gene expression persisted for up to 2 days in rats
+exposed to isoflurane and nitrous oxide, 210 and changes in
+protein expression have been observed 3 days after expo-
+sure to desflurane. 211 The significance of these changes in
+gene and protein expression persisting after recovery from
+the classic signs of anesthesia remains to be established (see
+review212). Recent findings suggest that certain anesthetic
+effects are mediated by epigenetic mechanisms involving
+specific posttranslational modifications of DNA-binding
+histone proteins by acetylase and deacetylase enzymes. For
+example, exposure of neonatal rats to general anesthesia
+led to reduced histone 3 acetylation and delayed cogni-
+tive deficits that could be reversed by a histone deacetylase
+inhibitor.213!
+Cellular Mechanisms
+NEURONAL EXCITABILITY
+Neuronal excitability is determined by resting membrane
+potential, threshold for action potential initiation, and
+input resistance (an indication of overall channel activ-
+ity). Considerable diversity exists for each of these factors
+in different types of neurons, and membrane properties dif-
+fer not only between neurons but also between compart-
+ments (e.g., soma versus dendrite). Moreover, anesthetic
+effects vary with the state of the individual neuron—that
+is, whether it is hyperpolarized or depolarized, stimulated
+by synaptic inputs, or quiescent. Therefore results obtained
+using model systems or reduced preparations (e.g. cultured
+neurons and brain slices) incompletely reflect anesthetic
+effects in vivo. Nevertheless much valuable information has
+been obtained using these approaches because they allow
+changes in neuronal activity to be attributed to specific cel-
+lular and molecular targets.
+The intrinsic excitability of spinal motoneurons was
+reported to be little affected by halothane,214 but changes
+in hippocampal pyramidal neuron excitability were shown
+to be substantial and complex. Threshold can be increased
+or decreased, and regional differences and dose-dependent
+effects on firing patterns have been observed.215,216 Neu-
+rons in the ventral-posterior nucleus of the thalamus (pos-
+sibly thalamic relay neurons) hyperpolarize in the presence
+of isoflurane and are less likely to fire action potentials
+because of a decrease in input resistance (increased
+shunting)―an effect that has been attributed to increased
+K + conductance. 217 Similar effects are observed in hypo-
+glossal motoneurons and neurons from the locus coeru-
+leus, where a TASK-type K 2P channel has been causally
+implicated. 218
+GABA A receptors located at extrasynaptic sites can also
+influence excitability by increasing membrane conductance
+and thereby “shunting” excitatory currents. These recep-
+tors have a high affinity for GABA; they are continually
+exposed to low ambient GABA concentrations and desen-
+sitize slowly. 219 Their importance to anesthesia, however,
+may hinge on exactly what these ambient concentrations
+are.220 Tonic current in hippocampal pyramidal neurons
+arises primarily from α5 subunit–containing GABA A recep-
+tors, which are highly sensitive to etomidate, propofol, mid-
+azolam, and isoflurane.221-224 Thus they provide a potential
+substrate for the amnesic properties of anesthetics. These
+same receptors also contribute to slow phasic (synaptic)
+currents, which are produced by spillover of GABA from
+synapses.225 Their slow time course and location, matching
+those of synaptic NMDA receptors, place them in an ideal
+position to modulate synaptic plasticity. Indeed, reducing
+or eliminating α5-GABAA receptors by pharmacologic or
+genetic means attenuates the amnestic properties of the
+GABA A receptor-selective anesthetic etomidate. However,
+since elimination of α5-GABAA receptors from pyramidal
+neurons does not reproduce this effect, 226 modulation of
+other cell types (interneurons or glia) may also play a role
+in anesthetic-induced amnesia and other anesthetic end
+points.!
+PRESYNAPTIC VERSUS POSTSYNAPTIC EFFECTS
+ON SYNAPTIC TRANSMISSION
+General anesthetics have potent and specific effects on
+synaptic transmission, including presynaptic actions (by
+altering transmitter release) and postsynaptic actions (by
+altering the postsynaptic responses of neurons to specific
+transmitters). The relative contributions of presynaptic
+compared with postsynaptic anesthetic effects on synap-
+tic transmission have been difficult to resolve, probably
+because the effects are transmitter- and synapse-specific.
+The net effect of anesthetics on synaptic transmission is
+determined by the relative magnitude and direction of both
+their presynaptic and postsynaptic effects. The general
+effects of inhaled anesthetics are to increase inhibitory syn-
+aptic transmission and to inhibit excitatory synaptic trans-
+mission (Fig. 19.9).
+=== PAGE BREAK ===
+19 • Inhaled Anesthetics: Mechanisms of Action 	501
+Excitatory synaptic excitation is generally decreased by
+volatile anesthetics (Fig. 19.10). Experiments in various
+slice preparations indicate that reduced excitation is pri-
+marily caused by presynaptic mechanisms. 87,133,214,227-229
+A postsynaptic mechanism is also involved because the
+response to directly applied glutamate is reduced to some
+degree.229-231 Volatile anesthetics have inconsistent effects
+on cloned AMPA or NMDA glutamate receptors, but they
+potentiate kainite receptors,115,129,232,233 consistent with a
+predominantly presynaptic mechanism for glutamatergic
+synapses. By contrast, the effects of the nonhalogenated
+inhaled anesthetics (xenon, nitrous oxide, cyclopropane)
+appear to be mediated primarily by inhibition of postsyn-
+aptic NMDA receptors (discussed earlier). Under some
+circumstances, such as in patients with defects in mito-
+chondrial complex 1234 and in mice carrying mutations in
+mitochondrial complex 1,235 inhaled agents suppress glu-
+tamate release by interfering with the energy-intensive glu-
+tamate recycling pathways,236 thereby leading to extreme
+anesthetic sensitivity. Recent evidence from conditional
+knockout mice indicates this mechanism may contribute to
+various end points even in nonpathogenic states.237
+Augmentation of GABAergic inhibition by most general
+anesthetics is mediated by both presynaptic and postsynaptic
+1 	2 	3 	4
+Cl -
+Cl-
+Cl-
+β
+γ
+β	α
+α
+A
+C
+B
+Current
+Time
+GABA
+release 	Postsynaptic
+membrane
+Ca2+
+entry	Action potential
+Inhibitory postsynaptic
+current
++ Anesthetic
+Channel
+pore
+Putative
+anesthetic site
+Intracellular
+Critical
+amino acids
+Extracellular
+Bicuculline, picrotoxin Inhibition of tonic current
+Potentiation of tonic current
+Baseline (Iholding )
+Anesthetics, benzodiazepines
+D
+Isoflurane 2.5 μM 	Isoflurane 25 μM
+Fig. 19.9 Synaptic and extrasynaptic γ-aminobutyric acid (GABAA ) receptors are targets for inhaled anesthetics. (A) On binding of GABA to the GABAA
+receptor, its chloride-permeable channel opens, usually leading to hyperpolarization. Volatile anesthetics have a relatively low potency but high effi-
+cacy at synaptic GABAA receptors and a high potency and low efficacy at extrasynaptic GABAA receptors. (B) General anesthetics prolong channel open-
+ing and increase postsynaptic inhibition. The cartoon illustrates the prolongation of miniature inhibitory synaptic currents by the slowing of current
+decay. (C) A pentameric GABAA receptor complex in the lipid bilayer membrane (left), with a blowup of a single subunit showing the location of residues
+critical to anesthetic efficacy in the second and third transmembrane domains (right). (D) A tonic inhibitory conductance is revealed by the application
+of a GABAA receptor antagonist (bicuculline or picrotoxin), as shown by the upward shift in the baseline current. Anesthetics and benzodiazepines
+increase the tonic conductance, as indicated by the inward shift in the current. (Modified from Hemmings HC Jr, Akabas MH, Goldstein PA, et al. Emerging
+molecular mechanisms of general anesthetic action. Trends Pharmacol Sci. 2005;26:503–510.)
+=== PAGE BREAK ===
+SECTION II • Anesthetic Physiology	502
+mechanisms. Enhancement of postsynaptic and extrasyn-
+aptic GABAA receptors is well recognized.116 Volatile anes-
+thetics increase spontaneous GABA release and inhibitory
+postsynaptic current (IPSC) frequency 238-242—that is, their
+presynaptic effects at GABAergic terminals are distinct from
+those at glutamatergic synapses.
+The mechanisms for the presynaptic effects of inhaled
+anesthetics, like those for their postsynaptic effects, are
+complex and involve multiple targets. Although a syn-
+apse-specific contribution of presynaptic Ca 2+ channels is
+likely,243 presynaptic Na+ channels are more sensitive than
+the Ca 2+ channels coupled to glutamate release. This find-
+ing is consistent with observations that the predominant
+Ca2+ channel coupled to neurotransmitter release at hip-
+pocampal glutamatergic synapses (P/Q-type) is insensitive
+to isoflurane.156 Other presynaptic mechanisms have been
+proposed, including actions on the vesicle fusion process,
+as demonstrated in the model organism Caenorhabditis ele-
+gans.244,245 However, isoflurane effects on exocytosis in rat
+hippocampal neurons occur primarily upstream of vesicle
+fusion.139,246!
+Simple Circuits and Complex
+Networks
+SIMPLE CIRCUIT PHENOMENA
+The development of a mechanistic understanding of phe-
+nomena involving complex circuits has been greatly
+facilitated by the study of anatomically reduced (in vitro)
+or physiologically simplified (in vivo) preparations com-
+plemented by computer simulations (in silico). These
+approaches are essential for integrating reductionist obser-
+vations of the multiple molecular effects of anesthetics into
+functional models relevant to behavioral end points. Anes-
+thetic effects have been studied in acute brain slice prepa-
+rations from various regions of the CNS (hippocampus,
+amygdala, cortex, thalamus, brain stem, and spinal cord)—
+most often from rodents. Brain slices preserve native con-
+nections but usually lack natural inputs and outputs. Slices
+from developing mammalian brain can also be cultured
+in vitro. These “organotypic slice cultures” preserve a high
+degree of synaptic connectivity and display spontaneous
+network activity, typically absent from “acute slices.” Sim-
+plified in vivo preparations involve phenomena (typically
+evoked responses) with relatively well-understood circuitry.
+Computer models and simulations can assist in generat-
+ing hypotheses for experimental testing and developing
+hypotheses based on experimental data.
+Synaptic Plasticity
+Paired-pulse depression and paired-pulse facilitation are
+examples of short-term plasticity in response to external
+stimulation. Synaptic inhibition is prolonged by volatile
+anesthetics in vivo247 and in vitro,248 in general agreement
+with the notion that anesthetics enhance functional inhi-
+bition in the CNS. Enhancement of paired-pulse facilitation
+has been attributed to the presynaptic depressant effect of
+volatile agents (Fig. 19.11).133,228
+LTP, a cellular model of learning and memory, is a use-
+dependent strengthening of glutamatergic excitatory syn-
+aptic connections. Volatile anesthetic effects on LTP depend
+on the experimental preparation. Halothane, enflurane,
+and isoflurane do not block LTP induction in vivo, whereas
+ketamine and the NMDA antagonist CPP do.247,249 By
+contrast, isoflurane blocks LTP in the hippocampal slice
+by enhancing GABAA receptor–mediated inhibition (Fig.
+19.12)250 or blocking neuronal nicotinic receptors,88 Long-
+term depression, a use-dependent weakening of excitatory
+connections that is effectively a homeostatic counterpart
+of LTP, is also blocked by isoflurane in vitro.250 The dis-
+crepancy between findings in vivo and in vitro remains
+unexplained.!
+Spontaneously Active Circuits
+Spontaneous neuronal activity is decreased by volatile
+anesthetics both in vivo and in cortical brain slices. This
+effect is largely GABA A receptor-dependent and marked
+even at low sedative concentrations.107 Because the cortical
+brain slices lack subcortical input, these results suggest that
+volatile anesthetics can cause some effects (e.g., sedation)
+A 	B
+Interneuron IPSC
+Control
+GABAA
+Halothane
+0.35 mM 	Overlay
+200 pA
+100 msec
+100 pA
+200 msec
+100 pA
+20 msec
+Halothane
+0.64 mM
+Control
+non-NMDA
+Interneuron EPSC
+NMDA
+Fig. 19.10 Halogenated anesthetics enhance inhibitory and depress excitatory synaptic transmission. Halothane slows the decay of GABA A receptor–
+mediated inhibitory postsynaptic currents (IPSCs) (A) and depresses the amplitude of glutamatergic excitatory postsynaptic currents (EPSCs) without
+affecting the decay (B) in hippocampal interneurons. ([A] Redrawn with permission from Nishikawa K, MacIver MB. Membrane and synaptic actions of
+halothane on rat hippocampal pyramidal neurons and inhibitory interneurons. J Neurosci. 2000;20:5915–5923. [B] Redrawn with permission from Per-
+ouansky M, Baranov D, Salman M, Yaari Y. Effects of halothane on glutamate receptor-mediated excitatory postsynaptic currents. A patch-clamp study
+in adult mouse hippocampal slices. Anesthesiology. 1995;83:109–119.)
+=== PAGE BREAK ===
+19 • Inhaled Anesthetics: Mechanisms of Action 	503
+via direct cortical action. However, changes in raw neuro-
+nal firing rates do not provide a precise quantitative mea-
+sure of higher cognitive function, which is better reflected
+by the relationship of firing patterns to the strength and
+phase of ongoing cortical rhythms (see next section). Anes-
+thetic effects have also been tested on the circuitry under-
+lying locomotion, a well-studied central pattern generator.
+Effects of isoflurane on in vitro lamprey and rat spinal cord
+preparations support the spinal cord as the primary target
+for volatile anesthetic–induced immobility.251,252!
+RHYTHMS AND SIMULATIONS
+The brain perpetually generates complex electrical rhythms
+(oscillations in extracellular field potentials) that range in
+frequency from fractions to hundreds of Hertz (Hz; cycles
+per second), as recorded on the surface of the scalp as the
+electroencephalogram (EEG; the higher-frequency oscil-
+lations cannot be resolved in surface recordings). All
+oscillations are behavioral state–dependent and mul-
+tiple oscillations coexist throughout the sleep-wake cycle.
+Lower-frequency rhythms allow for integration over longer
+time periods and typically engage larger areas of the brain.
+By contrast, higher-frequency rhythms allow for higher
+temporal resolution on local scales. Cross-frequency modu-
+lation allows for integration of both aspects of information
+processing. Although their physiologic roles are not clear,
+brain rhythms reflect, subserve, and/or constitute funda-
+mental higher-order processing such that their modulation
+by anesthetics is of great interest. The current nomencla-
+ture of brain rhythms reflects historical conventions and is
+not based on underlying mechanisms.
+δ-Rhythms and Other Slow Rhythms
+Oscillations with EEG frequencies from 1.5 to 4 Hz are gen-
+erally referred to as δ-rhythms, and these oscillations are
+characteristic of deep sleep and are commonly observed
+under general anesthesia. Even slower rhythms (below 1
+Hz) occur during non–rapid eye movement (NREM) sleep
+and appear at loss of consciousness induced by propofol 253
+and sevoflurane. 254 During natural NREM sleep, δ-rhythms
+and sleep spindles are phase related to a slower oscillation,
+suggesting functional interaction.255 Paroxysmal spindle-
+like waxing and waning oscillations overriding slower
+rhythms are also present in the cortical EEG under anesthe-
+sia. A change in δ-α phase relationships has been proposed
+as a “signature” of propofol-induced unconsciousness,256
+but how this comes about, whether similar changes occur
+for a wider range of anesthetics, and the underlying physi-
+ology and functional significance are unknown.!
+θ-Rhythms
+θ-Rhythms, present in various cortical structures but most
+prominent in the hippocampus, are thought to signal the
+“online state.” They are associated with sensorimotor and
+5 mV
+100 msec
+Control
+Halothane
+Halothane
+Pyramidal cell
+Control
+Interneuron
+Fig. 19.11 Anesthetics affect excitation and inhibition simultaneously
+in opposite directions. Halothane depresses the excitatory depolariza-
+tion and augments the inhibitory hyperpolarization in both hippocam-
+pal pyramidal cells and interneurons. The net result will depend on the
+underlying neuronal state as well as the neuronal network and its func-
+tion. (Redrawn with permission form Nishikawa K, MacIver MB. Membrane
+and synaptic actions of halothane on rat hippocampal pyramidal neurons
+and inhibitory interneurons. J Neurosci. 2000;20:5915–5923.)
+0.6
+0.8
+1.0
+1.2
+1.4
+1.6
+1.8
+2.2
+2.4
+2.0
+-20 	-10 	0 	10 	20 	30 	40 	-20 	-10 	0 	10 	20 	30 	40
+Normalized fEPSP slope
+100Hz/1sec 	100Hz/1sec
+Isoflurane 0.2–0.3 mM
+Time (min)
+Fig. 19.12 Isoflurane blocks the induction of synaptic plasticity in vitro (a model of learning and memory). Long-term potentiation (an increase in syn-
+aptic strength), indicated by the increase in normalized excitatory postsynaptic potential (EPSP) slope, in hippocampal slices evoked by tetanic stimula-
+tion of excitatory synapses is blocked by 0.2 to 0.3 mM isoflurane. (Redrawn with permission from Simon W, Hapfelmeier G, Kochs E, et al. Isoflurane blocks
+synaptic plasticity in the mouse hippocampus. Anesthesiology. 2001;94:1058–1065.)
+=== PAGE BREAK ===
+SECTION II • Anesthetic Physiology	504
+mnemonic functions during waking behavior. 257 One com-
+ponent of the θ-rhythm (type I or atropine-resistant) can be
+affected by amnestic concentrations of isoflurane as well as
+by the amnestic nonimmobilizer F6, 94 indicating a poten-
+tial network-level signature effect for anesthetic-induced
+amnesia. Type II θ-rhythm (atropine-sensitive) can be
+evoked under anesthesia and is slowed and potentiated by
+halothane.258 Interestingly, this halothane-induced oscilla-
+tion disappears in TASK-3 knockout mice.46 !
+γ-Rhythms
+This designation includes an extremely broad and prob-
+ably functionally and mechanistically heterogeneous
+spectrum of rhythms. It is frequently subdivided into slow
+γ (30-50 Hz; i.e., the spectrum above β-rhythms); γ (50-90
+Hz), and fast-, ultra-γ, or ε-rhythms (>90 and up to hun-
+dreds of Hz). Fast GABA A ergic synaptic inhibition and the
+intrinsic resonant properties of neurons play important
+roles in γ-physiology, making these obvious candidates
+for anesthetic modulation. Isoflurane slows the frequency
+of evoked γ-oscillations (30-90 Hz, also known as “40-
+Hz rhythms”) in humans. 259,260 Studies of γ-oscillations
+in vitro suggest that their frequency depends on the time
+constant of decay of GABA A receptor–mediated synap-
+tic currents in inhibitory networks. 261 Isoflurane slows
+γ-rhythms in hippocampal 262 and neocortical slices 263
+to a comparable degree as it does in humans, 259 provid-
+ing a tentative link between receptor and circuit-level
+effects. However, the interaction between anesthetics and
+behaviorally relevant network effects is likely to be com-
+plex because flash-evoked γ-oscillations in the primary
+visual cortex are not affected by inhaled agents, 67 whereas
+feedback information transfer at γ-frequencies between
+the visual and frontal cortices is disrupted. 59,67 More-
+over, many brain rhythms are interlinked (e.g., θ-rhythm
+modulates γ-oscillations (θ−γ nesting). The nature of their
+modulation by anesthetics as well as its relevance are far
+from clear.!
+Models and Simulations
+On the macroscopic scale, computer simulations can pro-
+vide an integrated picture of modulation of dynamic neuro-
+nal and network activity. “Bottom-up” neuron-by-neuron
+approaches are based on computational models of indi-
+vidual neurons, known anesthetic effects on intrinsic and
+synaptic membrane conductances, and simple network
+models. Computer simulations of anesthetic effects on inte-
+grated outputs can thereby be generated (e.g., the ring of
+pacemaker neurons). 264 These models obviously rely on the
+accuracy of the derived characteristics of real neurons and
+networks as well as knowledge of the effects of anesthet-
+ics; the scale of simulations is limited by the complexity of
+its elements. 265 An alternative is a “top-down” approach,
+such as mean-field modeling, in which molecular and cellu-
+lar individual accuracy detail is sacrificed in favor of global
+dynamics. For example, global cortical phenomena, such
+as anesthetic-induced seizures, have been modeled as phase
+transitions based on mean interactions between popula-
+tions of averaged neurons (analogous to the EEG signal
+that also averages the signals of neuronal populations).266
+This approach can be extended to other global cortical phe-
+nomena such as consciousness.267 Neuronal modeling and
+computer simulations may gain importance in the future
+as bridges between theoretical and experimental studies of
+anesthesia.!
+Research Strategies for the Future
+The search for anesthetic mechanisms is driven by advances
+in the basic sciences. Some strategies that should facilitate
+understanding of anesthetic mechanisms include use of
+agonists or antagonists in vivo, nonanesthetics or non-
+immobilizers, high-resolution imaging of the functioning
+brain, transgenic animals, and the application of the latest
+techniques of molecular genetics.
+PHARMACOLOGIC APPROACHES
+Agonists, Antagonists, and Experimental
+Anesthetics
+Use of receptor-specific agonists and antagonists provides
+a pharmacologic method for bridging in vitro with in vivo
+studies. In this approach, a receptor may be tested for its
+contribution to a specific end point (e.g., immobility) accord-
+ing to the criteria presented earlier. This approach was used
+to exclude an important role for NMDA receptor block in
+the immobilizing action of volatile anesthetics but did not
+yield conclusive results for the roles of GABA A and GlyR for
+immobilization,267,268 probably owing to the intricacies of
+drug-receptor interactions on different levels of integration
+in complex networks like the spinal cord. A complementary
+pharmacologic approach using experimental anesthetics
+that inhibit NMDA receptors in vitro with different poten-
+cies supports the conclusion that NMDA receptor blockade
+does not contribute significantly to immobility by conven-
+tional volatile anesthetics.269 Refinement of this strategy
+involves the anatomically discrete application of drugs to
+nuclei with known function. For example, the tuberomam-
+millary nucleus (part of the endogenous sleep pathway)
+mediates the sedative component of anesthesia for some
+intravenous anesthetics (e.g., propofol). 35 A discrete site of
+general anesthetic action for GABAergic drugs in the meso-
+pontine tegmentum has also been proposed based on this
+strategy.33,34 However, these approaches suffer from the
+fact that, invariably, high concentrations of drugs have to
+be injected locally to observe pharmacologic effects (because
+of rapid redistribution), so that such observations need to be
+substantiated using more sophisticated approaches, such as
+genetic manipulations (see later).!
+Nonimmobilizers
+Nonimmobilizers are compounds with physicochemical
+characteristics similar to those of conventional inhaled
+anesthetics, but their predicted anesthetizing concentra-
+tions (based on their lipid solubility and the Meyer-Overton
+correlation [MACpred]) do not induce immobility.17 Initially
+termed nonanesthetics, the terminology was revised when
+it was discovered that at least some of them cause amne-
+sia at similar MAC pred fractions to classic volatile anesthet-
+ics.98 If a molecular or cellular process is affected in similar
+ways by an anesthetic and a nonimmobilizer, that process
+is not relevant for the anesthetic state, with the notable
+exception of amnesia. Despite this elegant rationale, only
+=== PAGE BREAK ===
+19 • Inhaled Anesthetics: Mechanisms of Action 	505
+a limited number of receptors have been excluded because,
+compared with volatile anesthetics, nonimmobilizers are
+relatively target selective. These compounds have the
+potential to provide insights beyond the initially envisaged
+receptor-level studies by allowing the separation of sedation
+from amnesia for the study of underlying network activity
+in vivo.95!
+Photoreactive Anesthetics
+An approach that has proven to be very successful with
+intravenous drugs 270 is one in which an analog of an anes-
+thetic is synthesized that bears a photoreactive group (often
+a tri-fluoro-diazirine) which, when irradiated at a wave-
+length of around 300 nm, reacts irreversibly with some
+amino acids in the anesthetic binding site. This approach, of
+course, requires that the pharmacologic profile of the ana-
+log is very similar to that of the parent compound, so that
+the relevant binding site is identified. Photoreactive analogs
+of inhaled anesthetics have been synthesized and four puta-
+tive sites on GABA A receptors have been identified. 271. One
+advantage of this approach over x-ray crystallography is
+that anesthetic binding to different conformational states
+of the receptor are, at least in principle, more accessible to
+analysis.!
+GENETIC APPROACHES
+Whole-Organism Genetics
+Genetic strategies on whole organisms take two forms: for-
+ward and reverse. 272 The reverse genetic approach focuses
+on a particular gene chosen because there are reasons to
+hypothesize that its product may be important to anesthe-
+sia. Examples of this strategy are targeted mutations that
+alter the sensitivity of specific neurotransmitter receptors
+to anesthetics. 121 Initially, these mutations were used to
+identify anesthetic binding sites. Subsequently, transgenic
+animals rendered resistant to anesthetics, either by deletion
+of a putative target protein from the genome or by express-
+ing a target receptor engineered to be insensitive to an anes-
+thetic, were used to test behavioral relevance of the altered
+gene product for the production of anesthesia. Forward
+genetics, by contrast, is a discovery process that involves
+the study of randomly generated mutations (either experi-
+mentally induced or naturally occurring polymorphisms)
+that affect the phenotype of interest (i.e., anesthetic end
+points) in a population. This approach, however, has not
+been widely used.!
+Molecular Genetics
+A third genetic approach that is playing an increasing
+role in neuroscience is the selective modification of neu-
+ronal function using molecular genetics. Many different
+approaches are used, ranging from the selective knock-
+down of specific receptor populations using microRNA (a
+small noncoding piece of RNA that can selectively reduce
+protein expression), the block of neurotransmitter release
+from a population of neurons using tetanus toxin light
+chain, and the selective activation or inhibition of neuronal
+networks using optogenetics273 or pharmacogenetics.274
+A powerful complement to these techniques is the ability
+to deliver artificial transgenes to defined neuronal popula-
+tions using adeno-associated virus (AAV), and mouse lines
+that express Cre recombinase in particular cell types, which
+allow the selective expression of those genes in those spe-
+cific cells. These approaches are only just beginning to be
+used to identify neuronal pathways that are involved in
+anesthetic action. For example, it has recently been shown
+that the sedative effects of propofol require the activation of
+the lateral habenula, an excitatory nucleus that lies close
+to the thalamus.275 These approaches are likely to have an
+increasing impact on our understanding of the mechanisms
+of inhaled general anesthetics.!
+Knockout and Knockin Animals
+In the knockout approach, expression of the gene encod-
+ing a protein of interest is disrupted by a specific deletion
+or insertion. Nearly all such studies have been carried out
+in mice. A well-recognized problem with the global knock-
+out approach is that extensive compensatory changes
+can be induced, from anomalies that are lethal in utero
+to insidious (but experimentally confounding) influences
+that might be expressed only at maturity. A complemen-
+tary strategy is the conditional knockout, in which the
+genetic deletion is restricted either anatomically (limited
+to certain brain regions) or temporally (at a known point
+in time). These strategies can minimize developmental
+anomalies and reduce the likelihood of compensatory
+changes. In the knockin approach, a mutation, usually of
+a single amino acid residue, is targeted to produce a pro-
+tein with altered sensitivity to a drug of interest. Ideally,
+this mutation remains completely silent in the absence of
+the drug; that is, it does not perturb the normal expression
+and function of the protein of interest or alter the expres-
+sion of other genes.
+GABAA 	receptors. Results from transgenic animals
+illustrate both the utility and the difficulties of the genetic
+approach with respect to inhaled agents. The conditional
+forebrain-restricted GABAA receptor α1-subunit knockout
+mouse was found to be less sensitive to isoflurane-induced
+amnesia than wild-type mice, which led to the conclu-
+sion that action at these receptors contributes to isoflu-
+rane’s amnesic effects.276 By contrast, a mouse harboring
+a mutation of the GABA A receptor α1 subunit that renders
+the receptor insensitive to isoflurane in vitro did not show
+reduced sensitivity to either the amnesic or the immobiliz-
+ing effects of isoflurane, leading to the conclusion that this
+subunit does not mediate the impairment of learning and
+memory by isoflurane.40 Similar experiments indicate that
+action at the GABAA receptor β 3 subunit does not medi-
+ate immobility or amnesia by isoflurane.39 This bottom-up
+genetic approach is a work-intensive but powerful tool that
+has yielded clear results with the receptor-specific intrave-
+nous anesthetics,27 but it has proved challenging to apply it
+to the more promiscuous inhaled agents.!
+Glycine α1–containing receptors. Pharmacologic stud-
+ies supported the notion that glycinergic neurotransmission
+might be the effector for the immobilizing action of inhaled
+anesthetics in the spinal cord, where glycine replaces GABA
+as the principal inhibitory transmitter. However, mice har-
+boring mutations that render α1 subunit–containing gly-
+cine receptors largely insensitive to alcohol and inhaled
+ether anesthetics did not demonstrate a concordant change
+=== PAGE BREAK ===
+SECTION II • Anesthetic Physiology	506
+in MAC values. Because α1 is the most widely expressed
+subunit in adult animals, it is unlikely that action at gly-
+cine receptors plays an important part in the immobilizing
+action of inhaled anesthetics.276 !
+Two-pore domain K + channels. Use of mice harboring
+knockout mutations of several two-pore domain K+ chan-
+nel (K2P) family members (TASK-1, TASK-3, TREK-1) has
+demonstrated a role for these channels in volatile anes-
+thesia.44,45,47 For example, TREK-1 knockout mice are
+partially resistant to all volatile anesthetics tested with
+respect to both loss of righting reflex (a surrogate measure
+of consciousness) and immobility, but anesthesia can still
+be induced, albeit at higher anesthetic concentrations.
+Interestingly, responses to pentobarbital are unaffected,
+indicating that the mutation does not cause a generalized
+resistance to anesthesia.!
+FORWARD AND POPULATION GENETICS
+The nematode C. elegans and the fruit fly Drosophila mela-
+nogaster, with 302 and 100,000 neurons, respectively,
+have also been used as model organisms in anesthesia
+research.277 Mutations in a number of C. elegans genes affect
+sensitivity to volatile anesthetics, 278 most notably unc-1,279
+a close homologue of the mammalian protein stomatin.280
+Yeasts have also been used as model organisms, with even
+more obvious limitations with respect to identification of
+appropriate anesthetic end points.
+Sensitivity to anesthetics is a quantitative trait (vary-
+ing continuously in a population). Quantitative genetics
+is the study of the heritability of continuous traits. These
+traits are controlled by genes represented in quantitative
+trait loci (QTLs). A top-down population-based approach
+has been used to localize QTLs that govern susceptibility of
+individuals to anesthetics, in higher and lower organisms.
+Starting from the observation that inbred mouse strains
+vary in their sensitivity to isoflurane, microsatellite-based
+linkage analysis and, alternatively, single-nucleotide poly-
+morphism–based analysis of genetic variation localized a
+QTL for isoflurane immobilization to the proximal part of
+mouse chromosome 7.281 Genetic variability in the sensi-
+tivity of D. melanogaster to inhaled anesthetics has also been
+demonstrated.282 This type of analysis promises to assist in
+defining the genetic basis for variability in the susceptibility
+to both primary anesthetic end points and side effects.!
+FUNCTIONAL IMAGING AND HIGH-DENSITY
+ELECTROENCEPHALOGRAPHY
+Identification of the anatomic and functional substrates for
+anesthetic effects on consciousness, memory, and immo-
+bility is now approachable with improved imaging tech-
+niques. Imaging is based on mapping of either metabolic
+or hemodynamic changes as surrogate measures of neu-
+ronal activity, as in positron emission tomography (PET)
+and functional magnetic resonance imaging, or on map-
+ping electrical activity with high-density EEG, magnetoen-
+cephalography, and low-resolution brain electromagnetic
+tomography. Properties of receptors can also be probed
+with radioactive ligands by PET. These techniques have
+the capacity to identify neuroanatomic substrates of drug
+action with method-specific limitations. Results from func-
+tional PET imaging suggest that propofol suppresses episodic
+memory by targeting the prefrontal and posterior parietal
+cortex as opposed to the medial temporal lobe283 and that
+suppression of consciousness is caused by anesthetic action
+in the thalamus, parts of the medial and posterior parietal
+cortex, and/or the posterior cingulate and medial parietal
+cortex.284 Although observations of regionally specific and
+global suppressive effects of anesthetics on metabolic activ-
+ity are unlikely to provide a definitive mechanistic under-
+standing, such information can facilitate hypotheses and
+experimentally testable predictions.
+Advanced analytical approaches based on theories from
+mathematical and statistical sciences are being increas-
+ingly applied to enhance the power of existing technologies.
+Magnetic resonance images and high-density EEG record-
+ings of the brain reveal strong interregional connections,
+but the considerable potential of this connectivity informa-
+tion to better understand the brain’s response to anesthesia
+has only recently begun to be tapped. The growing use of
+invasive recording techniques (e.g., brain surface electrode
+grids and microelectrodes implanted deep into the brain for
+functional neurosurgical therapies) is also advancing the
+frontiers of neuroscience in general and the understanding
+of anesthetic mechanisms in particular.!
+Summary
+The mechanisms of inhaled anesthetics have proved
+more difficult to explain than was envisaged a generation
+ago, when the paradigm shifted from lipids to amphiphi-
+lic cavities in proteins as targets for anesthetics. Despite a
+remarkable accumulation of information, a comprehen-
+sive theory of general anesthetic action has yet to be for-
+mulated. Progress toward this goal has been difficult for
+several reasons. Important pharmacologic characteristics
+of inhaled anesthetics that have impeded identification
+of their relevant molecular targets are their low potency
+(micromolar range), activity at multiple targets, lack of
+specific antagonists, and limitations in the neuroscience
+of memory and consciousness. This contrasts with the
+situation for intravenous anesthetics, which exhibit more
+conventional receptor pharmacology. Moreover, accumu-
+lating evidence indicates that no universal target exists to
+explain the actions of every general anesthetic or even of a
+single anesthetic agent. It is now clear that the composite
+state of anesthesia and its core components (amnesia, seda-
+tion/unconsciousness, immobility) are separable behav-
+ioral states in vivo. Resolution of these phenomena at the
+molecular and cellular levels represents the cutting edge
+of contemporary neuroscience. Of the multiple molecular
+and cellular anesthetic effects identified, it is unclear which
+are critical for the desired behavioral end points, which
+are harmless or beneficial side effects (e.g., precondition-
+ing), and which, if any, could have long-lasting or delayed
+undesirable consequences (e.g., cell death, cognitive dys-
+function). Progress in identifying the molecular targets of
+general anesthetics provides a foundation for identification
+of the network- and systems-level effects relevant to their
+behavioral and peripheral end points. As the biologic foun-
+dations of behaviors once thought to be exclusively the

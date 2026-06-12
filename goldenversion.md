@@ -43,6 +43,8 @@ This document represents the unified, consolidated, and authoritative system arc
         *   [5.8 Drug-Drug Synergism, Chelation Reversal, Anticholinesterase ceiling, & Back-End CSHT decrement curves](#58-drug-drug-synergism-chelation-reversal-anticholinesterase-ceiling--back-end-csht-decrement-curves)
         *   [5.9 Consciousness, Sleep Stages, Memory, & Processed EEG Engine](#59-consciousness-sleep-stages-memory--processed-eeg-engine)
         *   [5.10 High-Fidelity Medication Data Table](#510-high-fidelity-medication-data-table)
+    *   [5.11 High-Fidelity Inhalational Gas Kinetics & Multi-Gas Interactions](#511-high-fidelity-inhalational-gas-kinetics--multi-gas-interactions)
+    *   [5.12 Molecular Mechanisms of Inhalational Anesthetics](#512-molecular-mechanisms-of-inhalational-anesthetics)
     *   [6. Event Trigger, Clinical Scenarios & Workflow Engine](#6-event-trigger-clinical-scenarios--workflow-engine)
         *   [6.1 Pre-induction Workflow Interlock (MSMAIDS Checklist)](#61-pre-induction-workflow-interlock-msmaids-checklist)
         *   [6.2 Airway Assessment & Direct Laryngoscopy Glottic Visualization](#62-airway-assessment--direct-laryngoscopy-glottic-visualization)
@@ -78,6 +80,9 @@ This document represents the unified, consolidated, and authoritative system arc
     *   [6.32 Prerenal Oliguria Loop](#632-prerenal-oliguria-loop)
     *   [6.33 Intrinsic Acute Kidney Injury (AKI) & Acute Tubular Necrosis (ATN)](#633-intrinsic-acute-kidney-injury-aki--acute-tubular-necrosis-atn)
     *   [6.34 Fluid Overload Pulmonary Edema Crisis](#634-fluid-overload-pulmonary-edema-crisis)
+    *   [6.35 Amnestic Nonimmobilizer (F6) Disassociation Scenario](#635-amnestic-nonimmobilizer-f6-disassociation-scenario)
+    *   [6.36 K2P (TASK/TREK) Channel Knockout Anesthetic Resistance](#636-k2p-tasktrek-channel-knockout-anesthetic-resistance)
+    *   [6.37 Xenon & Sevoflurane TREK-1 Mediated Neuroprotection](#637-xenon--sevoflurane-trek-1-mediated-neuroprotection)
     *   [7. Attending Direct Chat, Advisor & NLP Engine](#7-attending-direct-chat-advisor--nlp-engine)
         *   [7.1 Automated Guidance Evaluator](#71-automated-guidance-evaluator)
         *   [7.2 Conversational NLP Chat Portal](#72-conversational-nlp-chat-portal)
@@ -823,6 +828,85 @@ Neuromuscular blocking agents (NMBAs) block nicotinic acetylcholine receptors ($
 | **Scopolamine** | Anticholinergic / Amnestic | $V_1: 15.00\text{ L}$<br>$k_{10}: 0.04$<br>$ke_0: 0.5$ | $EC_{50}: 0.05\text{ ng/mL}$<br>$\gamma: 1.5$ | Muscarinic antagonist. Crosses blood-brain barrier. Induces profound anterograde amnesia. | Mild tachycardia, accelerates hippocampal theta frequency while decreasing power. |
 | **Suvorexant** | Dual Orexin Receptor Antagonist | $V_1: 15.00\text{ L}$<br>$k_{10}: 0.08$<br>$ke_0: 1.0$ | $EC_{50}: 2.0\text{ ng/mL}$<br>$\gamma: 1.5$ | Reversibly binds $OX_1R$/$OX_2R$, blocking orexinergic arousal and promoting sleep onset. | Daytime drowsiness, sleep paralysis. Contraindicated in narcolepsy. |
 | **Solriamfetol** | Dopamine-Norepinephrine Reuptake Inhibitor | $V_1: 18.00\text{ L}$<br>$k_{10}: 0.05$<br>$ke_0: 1.2$ | $EC_{50}: 4.0\text{ ng/mL}$<br>$\gamma: 1.2$ | Selective DAT/NET inhibitor. Excites VTA/AAS, promoting wakefulness. | Mild tachycardia, hypertension, palpitations. |
+| **F6 (Nonimmobilizer)** | Cyclobutane / Nonimmobilizer | $V_1: 10.00\text{ L}$<br>$k_{10}: 0.15$<br>$ke_0: 1.0$ | $EC_{50}: 2.0\text{ vol\%}$<br>$\gamma: 1.5$ | Selective amnesic cyclobutane. Blocks learning/fear memory. | Does NOT cause sedation, hypnosis, or immobility (no effect on MAC). |
+| **F3 (Anesthetic)** | Halogenated Cyclobutane | $V_1: 10.00\text{ L}$<br>$k_{10}: 0.10$<br>$ke_0: 0.8$ | $EC_{50}: 1.2\text{ vol\%}$<br>$\gamma: 2.5$ | Volatile anesthetic. Produces immobility, sedation, and amnesia. | Vasodilation, cardiodepression, and respiratory depression. |
+| **S-Isoflurane** | Chiral Volatile (Active) | $V_1: 1.40\text{ L}$<br>$k_{10}: 0.08$<br>$ke_0: 0.8$ | $EC_{50}: 0.9\text{ vol\%}$<br>$\gamma: 2.0$ | Active enantiomer of Isoflurane. High-affinity binding to proteins. | More potent vasodilation, bradycardia, and sedation. |
+| **R-Isoflurane** | Chiral Volatile (Less Active) | $V_1: 1.40\text{ L}$<br>$k_{10}: 0.08$<br>$ke_0: 0.8$ | $EC_{50}: 1.8\text{ vol\%}$<br>$\gamma: 2.0$ | Less active enantiomer of Isoflurane. Lower-affinity protein binding. | Requires twice the dose of S-enantiomer for same clinical effect. |
+
+---
+
+#### 5.11 High-Fidelity Inhalational Gas Kinetics & Multi-Gas Interactions
+
+*   **Solubility and Partition Coefficients**:
+    The simulator uses agent-specific blood-gas ($\lambda_{bg}$) and oil-gas ($\lambda_{og}$) partition coefficients to model pharmacokinetic distribution. The fat-blood partition coefficient ($\lambda_{fg}$) is calculated dynamically:
+    $$\lambda_{fg} = \frac{\lambda_{og}}{\lambda_{bg}}$$
+    - Sevoflurane: $\lambda_{bg} = 0.65, \lambda_{og} = 47.0 \rightarrow \lambda_{fg} \approx 72.3$
+    - Desflurane: $\lambda_{bg} = 0.45, \lambda_{og} = 19.0 \rightarrow \lambda_{fg} \approx 42.2$
+    - Isoflurane: $\lambda_{bg} = 1.4, \lambda_{og} = 98.0 \rightarrow \lambda_{fg} \approx 70.0$
+    - Halothane: $\lambda_{bg} = 2.4, \lambda_{og} = 224.0 \rightarrow \lambda_{fg} \approx 93.3$
+    - Nitrous Oxide ($N_2O$): $\lambda_{bg} = 0.47, \lambda_{og} = 1.4 \rightarrow \lambda_{fg} \approx 2.98$
+    - Xenon: $\lambda_{bg} = 0.115, \lambda_{og} = 1.9 \rightarrow \lambda_{fg} \approx 16.5$
+
+*   **Alveolar Concentration ($F_A$) and Multi-Gas Interactions**:
+    The wash-in of inhalational anesthetics is modeled by updating the alveolar fraction ($F_{A,j}$) for each gas $j$ at every second. This incorporates fresh gas flows, alveolar ventilation ($\dot{V}_A$), lung volume ($V_{FRC}$), and uptake into pulmonary blood ($\text{Uptake}_j$). To model the **Concentration Effect** and **Second Gas Effect** without code inflation, the alveolar mass-balance equation is modified by the co-administered gas shrinkage rate:
+    $$\text{dFa}_j = \frac{\dot{V}_A \cdot (F_{I,j} - F_{A,j}) - \text{Uptake}_j + \left(\sum_k \text{Uptake}_k\right) \cdot F_{I,j}}{V_{FRC}}$$
+    where $\sum_k \text{Uptake}_k$ represents the total volumetric uptake rate (in L/sec) of all active gases (specifically Nitrous Oxide accelerating the uptake of volatile agents co-administered with it).
+
+*   **Diffusion Hypoxia (Fink Effect) and Washout Kinetics**:
+    When Nitrous Oxide administration is stopped, the high solubility and high volume of N2O dissolved in blood causes it to rapidly diffuse out of pulmonary capillaries back into the alveoli ($\text{Uptake}_{N_2O} < 0$). This dilutes all other alveolar gases:
+    $$\text{O2Buffer} -= \left(\frac{\text{O2Buffer}}{FRC_{\text{recruited}}}\right) \cdot (-\text{Uptake}_{N_2O}) \cdot dt$$
+    If the patient is left breathing room air ($FiO_2 = 21\%$), this alveolar oxygen dilution reduces $PaO_2$ and causes rapid desaturation ($SpO_2 < 90\%$). This is prevented or reversed by increasing inspired oxygen ($FiO_2 = 100\%$), which over-saturates the remaining gas volume.
+
+#### 5.12 Molecular Mechanisms of Inhalational Anesthetics
+
+The pharmacology of inhaled anesthetics represents a composite, multi-target cellular and network model. Rather than perturbing bulk lipid membrane structures (as posited by the original lipid-elution or non-specific lipid theory), general anesthetics bind directly to specific amphiphilic cavities in critical neuronal signaling proteins. This is proven by the enantiomeric stereoselectivity of chiral anesthetics (e.g. S-isoflurane being more potent than R-isoflurane) and the distinct receptor profile of nonimmobilizers like F6.
+
+1.  **GABA-A Receptor Potentiation (Sedation, Hypnosis, and Amnesia)**:
+    Volatile anesthetics (Isoflurane, Sevoflurane, Desflurane, Halothane) directly potentiate $\gamma$-aminobutyric acid type A ($GABA_A$) receptors.
+    - *Synaptic IPSC Prolongation*: Potentiation slows the decay rate of inhibitory postsynaptic currents (IPSCs) postsynaptically, lengthening synaptic inhibition.
+    - *Extrasynaptic Tone*: Volatiles enhance tonic currents at extrasynaptic GABA-A receptors, hyperpolarizing neurons.
+    - *Presynaptic Facilitation*: Volatiles increase the basal release of GABA from presynaptic terminals.
+    - *Subtype Specialization*:
+      - $\alpha_1$-containing subtypes (abundantly expressed in the cortex and thalamus) mediate the sedative and hypnotic (unconsciousness) components.
+      - $\alpha_5$-containing subtypes (expressed in the hippocampus) and $\alpha_4$-containing subtypes (dentate gyrus/thalamus) mediate retrograde amnesia.
+    - *Gaseous Exceptions*: Nitrous oxide and Xenon do NOT modulate GABA-A receptors, indicating a distinct substate pathway.
+
+2.  **Glycine Receptor Potentiation (Immobility)**:
+    Volatile anesthetics enhance Glycine receptors postsynaptically in the spinal cord.
+    - Glycine is the primary inhibitory neurotransmitter in the spinal cord and brainstem.
+    - Potentiation of glycine receptors containing the $\alpha_1$-subunit suppresses motor efferent outputs from the ventral horn (nocifensive withdrawal reflex arc), mediating the immobility component of anesthesia (measured by MAC).
+    - Barbiturates and gaseous agents have negligible effects on glycine receptors.
+
+3.  **Two-Pore-Domain Potassium Channel (K2P) Activation (Hyperpolarization)**:
+    Both volatile and gaseous agents directly activate leak potassium channels ($K_{2P}$), specifically the TASK-1, TASK-3, and TREK-1 subfamilies.
+    - Activation increases $K^+$ conductance, hyperpolarizing resting membrane potentials and reducing neuronal excitability.
+    - Knockout of TASK-1, TASK-3, or TREK-1 reduces sensitivity to volatile anesthetics, increasing MAC.
+    - Halothane-induced atropine-sensitive Type II $\theta$-rhythm (4-12 Hz) slowing/potentiation requires the presence of TASK-3 channels.
+    - TREK-1 activation mediates the neuroprotective preconditioning effects of Sevoflurane and Xenon during ischemic insult.
+
+4.  **Glutamate Receptor Inhibition (Excitatory Suppression)**:
+    Anesthetics suppress excitatory glutamatergic transmission postsynaptically and presynaptically.
+    - *NMDA Blockade*: Gaseous anesthetics (Nitrous oxide and Xenon) are potent antagonists of N-methyl-D-aspartate ($NMDA$) receptors. They compete with co-agonists (Glycine at the GluN1 site and Glutamate at the GluN2 site) to block calcium influx. Volatiles also inhibit NMDA receptors, contributing to unconsciousness and amnesia.
+    - *AMPA/Kainate Receptors*: Volatiles weakly inhibit $\alpha$-amino-3-hydroxy-5-methyl-4-isoxazolepropionic acid ($AMPA$) receptors, but paradoxically enhance kainate receptors.
+    - *Presynaptic Release Inhibition*: Volatiles reduce presynaptic glutamate release from excitatory terminals by blocking presynaptic voltage-gated sodium and calcium channels.
+
+5.  **HCN Pacemaker Current Inhibition (Integrative Functions)**:
+    Volatiles inhibit hyperpolarization-activated cyclic nucleotide-gated ($HCN1$ and $HCN2$) channels, reducing the hyperpolarization-activated pacemaker current ($I_h$).
+    - This slows spontaneous neuronal firing and dendritic integration.
+    - Selective forebrain knockout of HCN1 blunts the hypnotic sensitivity of volatile anesthetics.
+
+6.  **Voltage-Gated Sodium Channel Blockade (Presynaptic Release)**:
+    Volatiles inhibit major mammalian voltage-gated sodium channel ($Na^+$) isoforms, including neuronal ($Nav1.2$, $Nav1.6$) and presynaptic terminal sodium channels.
+    - This blockade reduces the amplitude of action potentials arriving at synaptic terminals, suppressing presynaptic calcium influx and subsequent glutamate release.
+    - Enhancers of $Na^+$ channel activity (e.g. veratridine) oppose anesthetic action (increases MAC), whereas inhibitors (e.g. tetrodotoxin) reduce MAC.
+
+7.  **Nicotinic Acetylcholine Receptor Blockade (Amnesia)**:
+    Neuronal nicotinic acetylcholine receptors ($nnAChR$, specifically the $\alpha_4\beta_2$ and $\alpha_7$ pentamers) are highly sensitive to volatiles, being inhibited at sub-MAC concentrations ($<0.25\text{ MAC}$).
+    - Blockade of central nnAChRs disrupts cholinergic neurotransmission in ascending arousal pathways, contributing to anterograde amnesia.
+
+8.  **Receptor Profile Discrimination: F6 vs. F3**:
+    - **F6 (1,2-dichlorohexafluorocyclobutane)**: An amnestic nonimmobilizer. It does NOT produce immobility or sedation (does not affect MAC, does not affect GABA-A, glycine, or Na+ channels), but it DOES produce amnesia by selectively inhibiting neuronal nicotinic, M1 muscarinic, 5-HT2C, and mGluR5 receptors.
+    - **F3 (1-chloro-1,2,2-trifluorocyclobutane)**: A volatile anesthetic. It produces immobility, sedation, and amnesia by modulating GABA-A, glycine, AMPA, kainate, 5-HT3, nicotinic, and Na+ channels.
 
 ---
 
@@ -1108,6 +1192,28 @@ Postoperative ileus is a multifactorial bowel motility dysfunction governed by s
     In volume-controlled ventilation, this spikes peak inspiratory pressure ($PIP$) and impairs blood-gas exchange, resulting in progressive hypoxemia ($SpO_2 < 90\%$).
 *   **Resolution Criteria**: Requires urgent loop diuretic therapy (Furosemide) or renal replacement therapy to remove excess volume, combined with positive airway pressure (PEEP/CPAP) to recruit flooded alveoli.
 
+#### 6.35 Amnestic Nonimmobilizer (F6) Disassociation Scenario
+*   **Trigger Conditions**: Administration of F6 (nonimmobilizer cyclobutane).
+*   **Physiological Impact**: F6 selectively blocks memory encoding without causing immobility or sedation:
+    - Inhibits episodic memory formation (`explicitEncoding = 0` and `fearConditioning = 0`).
+    - Does NOT affect MAC (displayed MAC is unaffected by F6).
+    - Does NOT cause sedation or loss of consciousness (BIS remains at wake baseline $\ge 95$).
+*   **Resolution Criteria**: Discontinuation and clearance of F6.
+
+#### 6.36 K2P (TASK/TREK) Channel Knockout Anesthetic Resistance
+*   **Trigger Conditions**: Setting `isTASK1Knockout`, `isTASK3Knockout`, or `isTREK1Knockout` to true.
+*   **Physiological Impact**: Mutated animals lack leak potassium currents that mediate anesthetic hyperpolarization:
+    - Reduces sensitivity to the immobilizing action of volatiles, requiring $1.3-2.5\text{x}$ higher concentrations to prevent movement (increases MAC).
+    - In `isTASK3Knockout === true`, halothane-induced atropine-sensitive slow-wave $\theta$-oscillatory rhythms disappear.
+*   **Resolution Criteria**: Maintain higher anesthetic concentrations (dialed volatile agent) to overcome receptor-level resistance.
+
+#### 6.37 Xenon & Sevoflurane TREK-1 Mediated Neuroprotection
+*   **Trigger Conditions**: Active administration of Xenon or Sevoflurane in a patient with focal cerebral ischemia (`hasCerebralIschemia === true`) and `isTREK1Knockout === false`.
+*   **Physiological Impact**: Selective activation of TREK-1 leak channels hyperpolarizes neurons, preventing calcium overload and glutamate excitotoxicity:
+    - Reduces ischemic stunning accumulation rate by $50\%$:
+      $$\text{StunningRate} = \max\left(0, \frac{MVO_2 - Supply_{\text{myo}}}{10000} \cdot 0.381\right) \cdot 0.5$$
+*   **Resolution Criteria**: Ischemic event resolves, or anesthetic agent washed out.
+
 ### 7. Attending Direct Chat, Advisor & NLP Engine
 
 The simulator incorporates an interactive **Attending Physician AI Engine** combining real-time physiological diagnostics with an active natural language processing (NLP) chat portal.
@@ -1302,7 +1408,20 @@ The following lists the exact variables, structures, and data types stored in th
     *   `prfActivity`: `number` (Pontine Reticular Formation activity 0.0-1.0)
     *   `vtaActivity`: `number` (Ventral Tegmental Area dopaminergic activity 0.0-1.0)
     *   `orexinLevel`: `number` (Hypothalamic orexin A/B level 0.0-1.0)
-    *   `slowOscillationPower`: `number` (Delta slow-wave power 0.0-10.0)
+    *   `gabaa_occupancy`: `number` (Sedation & hypnosis receptor state)
+*   `glycine_occupancy`: `number` (Spinal cord motor immobility receptor state)
+*   `k2p_activation`: `number` (Leak potassium hyperpolarization state)
+*   `nmda_blockade`: `number` (NMDA receptor inhibition state)
+*   `hcn_inhibition`: `number` (HCN pacemaker current inhibition state)
+*   `nav_blockade`: `number` (Voltage-gated sodium channel inhibition state)
+*   `nachr_inhibition`: `number` (Nicotinic AChR inhibition state)
+*   `isF6Active`: `boolean` (Amnestic nonimmobilizer active flag)
+*   `isF3Active`: `boolean` (Anesthetic cyclobutane active flag)
+*   `isTASK1Knockout`: `boolean` (TASK-1 gene knockout comorbidity)
+*   `isTASK3Knockout`: `boolean` (TASK-3 gene knockout comorbidity)
+*   `isTREK1Knockout`: `boolean` (TREK-1 gene knockout comorbidity)
+*   `isHCN1Knockout`: `boolean` (HCN1 forebrain knockout comorbidity)
+*   `slowOscillationPower`: `number` (Delta slow-wave power 0.0-10.0)
     *   `thalamocorticalConn`: `number` (Nonspecific thalamocortical connectivity 0.0-1.0)
     *   `frontoparietalFeedback`: `number` (Top-down FP directional connectivity 0.0-1.0)
     *   `corticocorticalConn`: `number` (Global corticocortical connectivity 0.0-1.0)
@@ -1475,6 +1594,8 @@ To establish clinical enhancements, it is necessary to identify where the curren
 | **KDIGO AKI Staging & Diuresis** | Staging is computed dynamically from creatinine ratios and oliguria/anuria timers. Loop diuretics (Furosemide) and osmotic agents (Mannitol) stimulate diuresis in [RenalEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RenalEngine.ts). | None. | AKI staging is unmodeled; UOP does not scale with GFR or diuretics. |
 | **Front-End & Back-End Kinetics** | Dynamic V1 scaling is driven by cardiac output and blood volume ratios; cumulative active infusion time is tracked in seconds to calculate context-sensitive half-times (CSHT) in [PKPDEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/PKPDEngine.ts). | None. | Central volume V1 is constant (or scales only with hemodilution); infusion durations and context-sensitive half-times are unmodeled. |
 | **GABA-Opioid Synergistic Hypnosis** | Sedative and opioid effects are combined synergistically using an inward-bowing isobologram interaction formula to calculate aggregate hypnosis in [usePhysiology.js](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/usePhysiology.js). | None. | Medication hypnosis levels are combined using an independent probability formula. |
+| **Volatile Gas Kinetics & Second Gas Effect** | Alveolar gas concentration ($F_A$) models multi-gas interaction for the concentration and second gas effects. Dynamic solubility-based tissue partition coefficients ($\lambda_{fg}$) are calculated from oil-gas partition values. Diffusion hypoxia dilution occurs on room air when N2O is stopped. | None. | Alveolar gas kinetics are independent of co-administered gas uptake; partition coefficients are static constants; diffusion hypoxia and FRC oxygen buffer dilution are unmodeled. |
+| **Inhaled Anesthetics Molecular Targets** | Receptors (GABA-A, Glycine, NMDA, K2P, HCN, Na+ channels, nAChRs) drive target occupancies. Supports genetic knockouts (TASK-1/3, TREK-1, HCN1) and nonimmobilizers (F6). | None. | Molecular target binding occupancies are unmodeled; MAC and sedative values are aggregated without detailed receptor-level pathway modeling. |
 
 ---
 

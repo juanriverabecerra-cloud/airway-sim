@@ -285,15 +285,27 @@ export const PrimaryMonitor = ({
             </div>
 
             {/* MAC (Teal) */}
-            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between hover:border-teal-500/20 transition-all overflow-hidden">
+            <div 
+              className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between hover:border-teal-500/20 transition-all overflow-hidden cursor-help"
+              title={`Volatile Agent: ${gasSettings?.agent || 'None'} (Fi: ${(vitals?.fiAgent || 0).toFixed(1)}%, Et: ${(vitals?.etAgent || 0).toFixed(1)}%, Fa/Fi: ${(vitals?.fiAgent > 0.05 ? vitals.etAgent / vitals.fiAgent : 0).toFixed(2)})\nNitrous Oxide: (Fi: ${(vitals?.fiN2O || 0).toFixed(0)}%, Et: ${(vitals?.etN2O || 0).toFixed(0)}%, Fa/Fi: ${(vitals?.fiN2O > 0.5 ? vitals.etN2O / vitals.fiN2O : 0).toFixed(2)})`}
+            >
               <span className="text-[8px] lg:text-[9.5px] text-teal-400 font-bold uppercase tracking-wider leading-none">MAC</span>
               <div className="flex-1 flex items-center justify-center">
                 {(patient?.airwaySecured && (vitals?.mac || 0) > 0) ? (
                   <div className="flex flex-col items-center justify-center leading-none">
                     <span className={`${advClass} font-black text-teal-300 leading-none select-all`}>{vitals?.mac?.toFixed(1)}</span>
-                    <span className="text-[8.5px] text-teal-500 font-bold mt-0.5 leading-none" title={gasSettings?.agent}>
-                      {gasSettings?.agent?.charAt(0).toUpperCase()}{vitals?.etAgent?.toFixed(1)}%
-                    </span>
+                    <div className="text-[7px] lg:text-[8px] text-teal-500 font-bold mt-0.5 leading-none flex flex-col items-center gap-0.5 font-mono">
+                      {vitals?.etAgent > 0.01 && (
+                        <span title={`Fa/Fi: ${(vitals?.fiAgent > 0.05 ? vitals.etAgent / vitals.fiAgent : 0).toFixed(2)}`}>
+                          {gasSettings?.agent?.slice(0, 3).toUpperCase()}: {vitals?.fiAgent?.toFixed(1)}/{vitals?.etAgent?.toFixed(1)}
+                        </span>
+                      )}
+                      {vitals?.etN2O > 0.1 && (
+                        <span title={`Fa/Fi: ${(vitals?.fiN2O > 0.5 ? vitals.etN2O / vitals.fiN2O : 0).toFixed(2)}`}>
+                          N2O: {vitals?.fiN2O?.toFixed(0)}/{vitals?.etN2O?.toFixed(0)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <span className="text-[8px] lg:text-[9.5px] text-slate-600 font-bold uppercase tracking-wider select-none italic text-center">NO GAS</span>

@@ -84,32 +84,32 @@ export function calculateAgeAdjustedMAC(mac40, age) {
 
 export const INHALATIONAL_AGENTS = {
   sevoflurane: { 
-    name: 'Sevoflurane', mac40: 2.0, bgPartition: 0.65, brainBgPartition: 1.7, vaporPress: 160, 
+    name: 'Sevoflurane', mac40: 2.0, bgPartition: 0.65, oilGasPartition: 47, brainBgPartition: 1.7, vaporPress: 160, 
     sysMax: -30, diaMax: -25, hrMax: 0, rrMax: -15, 
     description: 'Sweet smelling, low pungency. Ideal for inhalational induction. Breaks down to Compound A. Produces fluoride ions.' 
   },
   desflurane: { 
-    name: 'Desflurane', mac40: 6.0, bgPartition: 0.45, brainBgPartition: 1.3, vaporPress: 669, 
+    name: 'Desflurane', mac40: 6.0, bgPartition: 0.45, oilGasPartition: 19, brainBgPartition: 1.3, vaporPress: 669, 
     sysMax: -25, diaMax: -25, hrMax: 15, rrMax: -15,
     description: 'Pungent, rapid offset. Risk of sympathetic surge/tachycardia if rapidly increased. Boils at sea level.'
   },
   isoflurane: { 
-    name: 'Isoflurane', mac40: 1.2, bgPartition: 1.46, brainBgPartition: 1.6, vaporPress: 240, 
+    name: 'Isoflurane', mac40: 1.2, bgPartition: 1.46, oilGasPartition: 98, brainBgPartition: 1.6, vaporPress: 240, 
     sysMax: -35, diaMax: -35, hrMax: 5, rrMax: -15,
     description: 'Highly potent, slow kinetics. Potent vasodilator. Cardioprotective (ischemic preconditioning).'
   },
   halothane: { 
-    name: 'Halothane', mac40: 0.75, bgPartition: 2.54, brainBgPartition: 2.9, vaporPress: 243, 
+    name: 'Halothane', mac40: 0.75, bgPartition: 2.54, oilGasPartition: 224, brainBgPartition: 2.9, vaporPress: 243, 
     sysMax: -20, diaMax: -20, hrMax: -15, rrMax: -10,
     description: 'Highly soluble, slow onset/offset. Sensitizes myocardium to catecholamines.' 
   },
   xenon: { 
-    name: 'Xenon', mac40: 71, bgPartition: 0.115, brainBgPartition: 1.2, vaporPress: 9999, 
+    name: 'Xenon', mac40: 71, bgPartition: 0.115, oilGasPartition: 1.9, brainBgPartition: 1.2, vaporPress: 9999, 
     sysMax: 0, diaMax: 0, hrMax: -5, rrMax: -5,
     description: 'Inert noble gas. NMDA antagonist. Extremely rapid onset/offset. Cardio-stable.' 
   },
   n2o: { 
-    name: 'Nitrous Oxide', mac40: 104, bgPartition: 0.46, brainBgPartition: 1.1, vaporPress: 38770, 
+    name: 'Nitrous Oxide', mac40: 104, bgPartition: 0.46, oilGasPartition: 1.4, brainBgPartition: 1.1, vaporPress: 38770, 
     sysMax: 5, diaMax: 5, hrMax: 5, rrMax: -5,
     description: 'Low potency. Diffuses into air-filled cavities (pneumothorax, bowel, ETT cuff). NMDA antagonist analgesic.'
   }

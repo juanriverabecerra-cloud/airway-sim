@@ -2,6 +2,7 @@ export interface InhalationalAgentProfile {
   name: string;
   mac40: number;
   bgPartition: number;
+  oilGasPartition?: number;
   brainBgPartition?: number;
 }
 
@@ -9,6 +10,7 @@ export class GasKineticsModel {
   name: string;
   mac40: number;
   bgPartition: number;
+  oilGasPartition?: number;
   
   // Fractional Concentrations (0.0 - 1.0 internally)
   Fi: number = 0; // Inspired Fractional Concentration
@@ -30,10 +32,16 @@ export class GasKineticsModel {
     this.name = agent?.name || 'Unknown';
     this.mac40 = Number.isFinite(agent?.mac40) && agent.mac40 > 0 ? agent.mac40 : 1.0;
     this.bgPartition = Number.isFinite(agent?.bgPartition) && agent.bgPartition > 0 ? Math.max(0.01, agent.bgPartition) : 0.5; 
+    this.oilGasPartition = agent?.oilGasPartition;
     
     this.lambda_vrg = Number.isFinite(agent?.brainBgPartition) && agent.brainBgPartition > 0 ? agent.brainBgPartition : 1.2;
-    this.lambda_fg = this.name.toLowerCase().includes('nitrous') ? 1.2 : 
-                    (this.name.toLowerCase().includes('desflurane') ? 27.0 : 45.0); 
+    
+    if (Number.isFinite(this.oilGasPartition) && this.oilGasPartition > 0) {
+      this.lambda_fg = this.oilGasPartition / this.bgPartition;
+    } else {
+      this.lambda_fg = this.name.toLowerCase().includes('nitrous') ? 1.2 : 
+                      (this.name.toLowerCase().includes('desflurane') ? 27.0 : 45.0); 
+    }
   }
 
   // Receives the dial setting from the UI (0 - 100%)
@@ -52,8 +60,9 @@ export class GasKineticsModel {
     frc_L: number,
     ibw_kg: number,
     shuntFraction: number,
-    fgf_L_min: number = 6.0
-  ): { Fa: number; Fb: number } {
+    fgf_L_min: number = 6.0,
+    otherUptake_L_sec: number = 0
+  ): { Fa: number; Fb: number; uptake_vol_sec: number; uptakeLMin: number } {
     // Internal Euler sub-stepping for differential equation stability
     const subSteps = 10;
     const safeDt = Number.isFinite(dt) && dt > 0 ? dt : 1;
@@ -106,6 +115,8 @@ export class GasKineticsModel {
     const safeFgf = Number.isFinite(fgf_L_min) && fgf_L_min >= 0 ? fgf_L_min : 6.0;
     const k_circuit = safeFgf / (V_circuit * 60); // s^-1
 
+    let totalUptakeAccumulator = 0;
+
     for (let i = 0; i < subSteps; i++) {
       // Circle system circuit wash-in/wash-out kinetics
       this.Fi += subDt * k_circuit * (this.F_dial - this.Fi);
@@ -118,9 +129,11 @@ export class GasKineticsModel {
       // 2. Alveolar Gas Equation (Uptake)
       const Q_cap = CO_sec * (1 - safeShunt);
       const uptake_vol_sec = Q_cap * this.bgPartition * (this.Fa - F_v_bar);
+      totalUptakeAccumulator += uptake_vol_sec * subDt;
 
-      // The Concentration Effect
-      const concentrationEffectFlux = uptake_vol_sec * this.Fi;
+      // The Concentration Effect & Second Gas Effect
+      const totalUptake_sec = uptake_vol_sec + otherUptake_L_sec;
+      const concentrationEffectFlux = totalUptake_sec * this.Fi;
 
       const dFa = ((VA_sec * (this.Fi - this.Fa)) - uptake_vol_sec + concentrationEffectFlux) / Math.max(0.5, safeFrc);
       if (Number.isFinite(dFa)) {
@@ -154,9 +167,13 @@ export class GasKineticsModel {
     if (!Number.isFinite(this.Fa)) this.Fa = 0;
     if (!Number.isFinite(this.Fb)) this.Fb = 0;
 
+    const averageUptakeRate_L_sec = totalUptakeAccumulator / safeDt;
+
     return {
       Fa: this.Fa * 100, 
-      Fb: this.Fb * 100  
+      Fb: this.Fb * 100,
+      uptake_vol_sec: averageUptakeRate_L_sec,
+      uptakeLMin: averageUptakeRate_L_sec * 60
     };
   }
 }

@@ -416,6 +416,12 @@ export class RespiratoryEngine {
       } else {
         buffer -= (VO2_sec - passiveO2Influx);
       }
+      // Diffusion Hypoxia (Fink Effect) due to Nitrous Oxide washout
+      const n2oUptakeRate = safeVitals.n2oUptakeRate || 0; // average uptake rate in L/sec
+      if (n2oUptakeRate < 0) {
+        buffer -= (buffer / recruitedFRC_L) * (-n2oUptakeRate) * dt;
+      }
+
       buffer = Math.max(0, Math.min(recruitedFRC_L, buffer));
       const currentBuffer = buffer;
 
