@@ -215,7 +215,8 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
     isTASK1Knockout: false,
     isTASK3Knockout: false,
     isTREK1Knockout: false,
-    isHCN1Knockout: false
+    isHCN1Knockout: false,
+    butyrylcholinesteraseVariant: 'normal'
   });
 
   const [activePresetId, setActivePresetId] = useState('general');
@@ -473,7 +474,9 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
         isTASK1Knockout: !!data.isTASK1Knockout,
         isTASK3Knockout: !!data.isTASK3Knockout,
         isTREK1Knockout: !!data.isTREK1Knockout,
-        isHCN1Knockout: !!data.isHCN1Knockout
+        isHCN1Knockout: !!data.isHCN1Knockout,
+        butyrylcholinesteraseVariant: data.butyrylcholinesteraseVariant || 'normal',
+        dibucaineNumber: data.butyrylcholinesteraseVariant === 'heterozygous' ? 50 : (data.butyrylcholinesteraseVariant === 'atypical' ? 20 : 80)
       }
     };
     setStagedCase(newCase);
@@ -923,14 +926,29 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
                {/* NEURO & MUSCULO */}
                <div className="flex flex-col gap-1 border-b border-slate-850 pb-2">
                  <span className="text-[10px] text-green-400 font-bold uppercase tracking-wider font-mono">Neuromuscular & Genetics</span>
-                 <div className="grid grid-cols-2 gap-1.5 mt-0.5 pb-1.5 border-b border-slate-800/35">
-                   <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300">
-                     <input type="checkbox" checked={customForm.mg} onChange={e => setCustomForm({...customForm, mg: e.target.checked})} className="accent-green-500" /> Myasthenia Gravis
-                   </label>
-                   <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300" title="Triggers upregulated nAChR state with fatal hyperkalemic arrest on Succinylcholine!">
-                     <input type="checkbox" checked={customForm.burns || customForm.immobility} onChange={e => setCustomForm({...customForm, burns: e.target.checked, immobility: e.target.checked})} className="accent-red-500" /> Upregulated AChR ⚠️
-                   </label>
-                 </div>
+                  <div className="grid grid-cols-2 gap-1.5 mt-0.5 pb-1.5 border-b border-slate-800/35">
+                    <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300">
+                      <input type="checkbox" checked={customForm.mg} onChange={e => setCustomForm({...customForm, mg: e.target.checked})} className="accent-green-500" /> Myasthenia Gravis
+                    </label>
+                    <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300" title="Triggers upregulated nAChR state with fatal hyperkalemic arrest on Succinylcholine!">
+                      <input type="checkbox" checked={customForm.burns || customForm.immobility} onChange={e => setCustomForm({...customForm, burns: e.target.checked, immobility: e.target.checked})} className="accent-red-500" /> Upregulated AChR ⚠️
+                    </label>
+                  </div>
+                  <div className="flex flex-col gap-1 mt-1 pb-1.5 border-b border-slate-800/35">
+                    <span className="text-[9px] text-green-400/80 font-bold uppercase tracking-wider font-mono">Pseudocholinesterase Genotype</span>
+                    <div className="flex items-center gap-2">
+                      <select 
+                        value={customForm.butyrylcholinesteraseVariant || 'normal'} 
+                        onChange={e => setCustomForm({...customForm, butyrylcholinesteraseVariant: e.target.value})} 
+                        className="bg-slate-950 border border-slate-800 text-[11px] text-white rounded px-1.5 py-0.5"
+                      >
+                        <option value="normal">Normal (E1u-E1u, DN 80)</option>
+                        <option value="heterozygous">Heterozygous (E1u-E1a, DN 50)</option>
+                        <option value="atypical">Atypical (E1a-E1a, DN 20)</option>
+                      </select>
+                      <span className="text-[9px] text-slate-400 font-mono">DN: {customForm.butyrylcholinesteraseVariant === 'heterozygous' ? 50 : (customForm.butyrylcholinesteraseVariant === 'atypical' ? 20 : 80)}</span>
+                    </div>
+                  </div>
                  <div className="flex flex-col gap-1 mt-1.5">
                    <span className="text-[9px] text-green-400/80 font-bold uppercase tracking-wider font-mono">Genetic Knockouts</span>
                    <div className="grid grid-cols-2 gap-1.5">

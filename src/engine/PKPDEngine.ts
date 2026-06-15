@@ -207,7 +207,10 @@ export class PKPDModel {
     v1VolumeRatio: number = 1.0,
     renalRatio: number = 1.0,
     pdSensitivityCoeff: number = 1.0,
-    hepaticRatio: number = 1.0
+    hepaticRatio: number = 1.0,
+    bcheMultiplier: number = 1.0,
+    hofmannMultiplier: number = 1.0,
+    lCysteineCe: number = 0.0
   ): PKPDEffects {
     // Validate inputs
     let safeDt = Number(dt);
@@ -246,6 +249,21 @@ export class PKPDModel {
     }
     safeHepaticRatio = Math.max(0.0, Math.min(5.0, safeHepaticRatio));
 
+    let safeBcheMultiplier = Number(bcheMultiplier);
+    if (isNaN(safeBcheMultiplier) || !isFinite(safeBcheMultiplier) || safeBcheMultiplier < 0) {
+      safeBcheMultiplier = 1.0;
+    }
+
+    let safeHofmannMultiplier = Number(hofmannMultiplier);
+    if (isNaN(safeHofmannMultiplier) || !isFinite(safeHofmannMultiplier) || safeHofmannMultiplier < 0) {
+      safeHofmannMultiplier = 1.0;
+    }
+
+    let safeLCysteineCe = Number(lCysteineCe);
+    if (isNaN(safeLCysteineCe) || !isFinite(safeLCysteineCe) || safeLCysteineCe < 0) {
+      safeLCysteineCe = 0.0;
+    }
+
     // Internal sub-stepping for numerical stability (10 steps per tick)
     const subSteps = 10;
     const subDt = safeDt / subSteps;
@@ -254,6 +272,17 @@ export class PKPDModel {
     const coMod = Math.max(0, 1 + (safeCoRatio - 1) * (this.pk.coSensitivity !== undefined ? this.pk.coSensitivity : 0.5));
     
     let k10Raw = this.pk.k10 || 0;
+
+    // Apply Chapter 27 dynamic clearance multipliers
+    if (this.name === 'Succinylcholine') {
+      k10Raw *= safeBcheMultiplier;
+    } else if (this.name === 'Atracurium' || this.name === 'Cisatracurium') {
+      k10Raw *= safeHofmannMultiplier;
+    } else if (this.name === 'Gantacurium' || this.name === 'CW002') {
+      if (safeLCysteineCe > 0.01) {
+        k10Raw *= (1.0 + 20.0 * (safeLCysteineCe / (safeLCysteineCe + 0.5)));
+      }
+    }
     
     // Configuration-driven organ impairment clearance calculations
     const renalFrac = this.pk.renalFraction !== undefined ? this.pk.renalFraction : 0.0;

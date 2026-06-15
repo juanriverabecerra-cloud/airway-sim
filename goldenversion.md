@@ -39,7 +39,7 @@ This document represents the unified, consolidated, and authoritative system arc
         *   [5.4 Organ Impairment & Protein Binding Corrections](#54-organ-impairment--protein-binding-corrections)
         *   [5.5 Receptor-Level Pharmacodynamics](#55-receptor-level-pharmacodynamics)
         *   [5.6 Receptor-Level Vasoactive Chronotropic & Vasomotor Coupling](#56-receptor-level-vasoactive-chronotropic--vasomotor-coupling)
-        *   [5.7 Neuromuscular Blockade, Receptor Subtypes & Fade (TOF Count)](#57-neuromuscular-blockade-receptor-subtypes--fade-tof-count)
+        *   [5.7 Neuromuscular Blockade, Receptor Subtypes, Fade (TOF Count/Ratio) & Pseudocholinesterase Variants](#57-neuromuscular-blockade-receptor-subtypes-fade-tof-countratio--pseudocholinesterase-variants)
         *   [5.8 Drug-Drug Synergism, Chelation Reversal, Anticholinesterase ceiling, & Back-End CSHT decrement curves](#58-drug-drug-synergism-chelation-reversal-anticholinesterase-ceiling--back-end-csht-decrement-curves)
         *   [5.9 Consciousness, Sleep Stages, Memory, & Processed EEG Engine](#59-consciousness-sleep-stages-memory--processed-eeg-engine)
         *   [5.10 High-Fidelity Medication Data Table](#510-high-fidelity-medication-data-table)
@@ -116,6 +116,8 @@ This document represents the unified, consolidated, and authoritative system arc
     *   [6.60 Naloxone-Induced Autonomic Sympathetic Surge & Renarcotization](#660-naloxone-induced-autonomic-sympathetic-surge--renarcotization)
     *   [6.61 Postoperative Ileus Sparing & Multimodal Analgesia](#661-postoperative-ileus-sparing--multimodal-analgesia)
     *   [6.62 Connected Awareness under TCI Closed-Loop Failure & Adaptive Overdrive](#662-connected-awareness-under-tci-closed-loop-failure--adaptive-overdrive)
+    *   [6.63 Atypical Pseudocholinesterase Succinylcholine Prolongation Crisis](#663-atypical-pseudocholinesterase-succinylcholine-prolongation-crisis)
+    *   [6.64 Laudanosine Accumulation & Epileptogenic Seizure Loop](#664-laudanosine-accumulation--epileptogenic-seizure-loop)
     *   [7. Attending Direct Chat, Advisor & NLP Engine](#7-attending-direct-chat-advisor--nlp-engine)
         *   [7.1 Automated Guidance Evaluator](#71-automated-guidance-evaluator)
         *   [7.2 Conversational NLP Chat Portal](#72-conversational-nlp-chat-portal)
@@ -771,7 +773,7 @@ Vasoactive medications act directly on cardiovascular receptors ($\alpha_1, \bet
 *   **Baroreceptor Reflex Chronotropic Offset**: Pure vasopressors induce a reflex bradycardia offset in heart rate:
     $$HR_{\text{baroreflex\_offset}} = -(\text{Alpha1} \cdot 5 \cdot Effect_{\alpha 1}) - (V_1 \cdot 5 \cdot Effect_{V1})$$
 
-#### 5.7 Neuromuscular Blockade, Receptor Subtypes & Fade (TOF Count)
+#### 5.7 Neuromuscular Blockade, Receptor Subtypes, Fade (TOF Count/Ratio) & Pseudocholinesterase Variants
 Neuromuscular blocking agents (NMBAs) block nicotinic acetylcholine receptors ($nAChR$) at the motor endplate. The simulator models three distinct receptor populations representing mature, extrajunctional, and presynaptic sites:
 *   **Nicotinic Receptor Subtypes**:
     1.  *Mature Junctional ($nAChR_{\text{mature}}$)*: Pentameric structure of $\alpha_2\beta\delta\epsilon$. Found strictly at the postjunctional endplate crests. Exhibits short channel opening time and high electrical conductance.
@@ -790,9 +792,21 @@ Neuromuscular blocking agents (NMBAs) block nicotinic acetylcholine receptors ($
     Fade is caused by competitive blockade of presynaptic $\alpha_3\beta_2$ receptors, which halts the positive feedback replenishment of acetylcholine:
     $$\text{TOF Ratio} = 1.0 - nAChR_{\text{presynaptic\_occupancy}} \cdot 0.95$$
     - *Nondepolarizers (NDMRs)*: Bind competitively to presynaptic receptors, causing immediate dose-dependent fade.
-    - *Succinylcholine Phase I*: Does not block presynaptic receptors ($nAChR_{\text{presynaptic\_occupancy}} = 0$), producing non-fade blockade (TOF ratio $= 1.0$).
-    - *Succinylcholine Phase II*: Under high cumulative doses ($>4\text{ mg/kg}$ or $>300\text{ mg}$), receptors undergo desensitization. The block transitions to exhibit fade:
+    - *Succinylcholine Phase I*: Does not block presynaptic receptors ($nAChR_{\text{presynaptic\_occupancy}} = 0$), producing non-fade blockade (TOF ratio $= 1.0$, equal twitch height depression).
+    - *Succinylcholine Phase II*: Under high cumulative doses ($>4\text{ mg/kg}$ or $>300\text{ mg}$ or $>120$ seconds of exposure), receptors undergo desensitization. The block transitions to exhibit fade:
       $$nAChR_{\text{presynaptic\_occupancy}} = suxOccupancy \cdot 0.85$$
+
+*   **Pseudocholinesterase (Butyrylcholinesterase / BChE) Genotypes & Clearance**:
+    Succinylcholine clearance is mediated by plasma butyrylcholinesterase (BChE). The simulator models genetic variants that alter this clearance multiplier ($bcheMultiplier$):
+    1. *Normal ($E_1^u E_1^u$)*: Dibucaine Number $\approx 80$. Clearance multiplier $= 1.0$. Block duration is 5-10 minutes.
+    2. *Heterozygous ($E_1^u E_1^a$)*: Dibucaine Number $\approx 50$. Clearance multiplier $= 0.1$. Block duration is prolonged to 20-30 minutes.
+    3. *Atypical Homozygous ($E_1^a E_1^a$)*: Dibucaine Number $\approx 20$. Clearance multiplier $= 0.01$. Block duration is severely prolonged to 4-6 hours.
+    4. *Acquired / Physiological Blunting*: Plasma BChE activity is further blunted in pregnancy (activity multiplier $= 0.8$), liver cirrhosis / Child-Pugh C ($= 0.5$), and neostigmine administration ($= 0.1$ due to competitive AChE/BChE inhibition).
+
+*   **Hofmann Spontaneous Elimination**:
+    Atracurium and Cisatracurium clearance occurs via Hofmann elimination, a temperature- and pH-dependent spontaneous chemical degradation independent of organ function:
+    $$hofmannMultiplier = 1.07^{(\text{temp} - 37.0)} \cdot 10^{(\text{pH} - 7.4)}$$
+    Hypothermia (temp $< 35^{\circ}\text{C}$) and acidosis (pH $< 7.2$) slow elimination, while hyperthermia and alkalosis accelerate it.
 
 #### 5.8 Drug-Drug Synergism, Chelation Reversal, Anticholinesterase ceiling, & Back-End CSHT decrement curves
 *   **MAC-BAR Suppression Synergy (Minto/Greco concept)**:
@@ -908,6 +922,10 @@ Neuromuscular blocking agents (NMBAs) block nicotinic acetylcholine receptors ($
 | **S-Isoflurane** | Chiral Volatile (Active) | $V_1: 1.40\text{ L}$<br>$k_{10}: 0.08$<br>$ke_0: 0.8$ | $EC_{50}: 0.9\text{ vol\%}$<br>$\gamma: 2.0$ | Active enantiomer of Isoflurane. High-affinity binding to proteins. | More potent vasodilation, bradycardia, and sedation. |
 | **R-Isoflurane** | Chiral Volatile (Less Active) | $V_1: 1.40\text{ L}$<br>$k_{10}: 0.08$<br>$ke_0: 0.8$ | $EC_{50}: 1.8\text{ vol\%}$<br>$\gamma: 2.0$ | Less active enantiomer of Isoflurane. Lower-affinity protein binding. | Requires twice the dose of S-enantiomer for same clinical effect. |
 | **Xenon** | Gaseous Anesthetic | $V_1: 5.00\text{ L}$<br>$k_{10}: 0.80$<br>$ke_0: 1.5$ | $EC_{50}: 63-71\text{ vol\%}$<br>$\gamma: 2.5$ | NMDA antagonist. Fast wash-in/wash-out due to low blood-gas partition coefficient ($0.115$). | High viscosity and density increase airway resistance. Depresses spontaneous respiratory rate. Does not blunt HVR or inhibit HPV. |
+| **Atracurium** | Non-Depolarizing NMB | $V_1: 10.0\text{ L}$<br>$k_{10}: 0.08$<br>$ke_0: 0.12$ | $EC_{50}: 0.4\text{ mcg/mL}$<br>$\gamma: 4.0$ | Competitive postsynaptic Nicotinic antagonist. Intermediate block duration. Cleared by Hofmann elimination. | Generates active metabolite laudanosine (30% of cleared dose), which clears renal/hepatic and triggers seizures in organ failure. |
+| **Gantacurium** | Non-Depolarizing NMB | $V_1: 8.0\text{ L}$<br>$k_{10}: 0.12$<br>$ke_0: 0.18$ | $EC_{50}: 0.2\text{ mcg/mL}$<br>$\gamma: 4.0$ | Ultrashort-acting asymmetric mixed-onium chlorofumarate. Rapid paralysis onset. Reversed by L-cysteine adduction. | Minimal. High density increases airway resistance when given with Xenon. |
+| **CW002** | Non-Depolarizing NMB | $V_1: 10.0\text{ L}$<br>$k_{10}: 0.06$<br>$ke_0: 0.10$ | $EC_{50}: 0.15\text{ mcg/mL}$<br>$\gamma: 4.0$ | Intermediate-acting asymmetric fumarate NDMR. Reversed immediately by L-cysteine. | Extremely clean safety profile. |
+| **L-Cysteine** | Specific Reversal Agent | $V_1: 15.0\text{ L}$<br>$k_{10}: 0.10$<br>$ke_0: 1.0$ | $EC_{50}: 0.5\text{ mcg/mL}$<br>$\gamma: 1.0$ | Specific chemical rescue reversal agent. Covalently adducts to fumarate double bond of gantacurium/CW002. | Endogenous amino acid. High safety margin. |
 
 ---
 
@@ -1596,6 +1614,22 @@ Postoperative ileus is a multifactorial bowel motility dysfunction governed by s
     - *AAGA Initiation*: Rapid drop in hypnosis levels ($Ce < C_{50}$) under surgical stimulation triggers connected intraoperative awareness (AAGA).
     - *Autonomic Activation*: Leading to hypertensive and tachycardic surges (HR +25 bpm, MAP +30 mmHg offsets) and active sympathetic drive.
 *   **Mitigation / Resolution**: Rapid restoration of TCI target concentration or transition to manual override. Under Ce-mode, the adaptive overdrive algorithm automatically boosts the plasma concentration target to load the effect site and suppress awareness.
+
+#### 6.63 Atypical Pseudocholinesterase Succinylcholine Prolongation Crisis
+*   **Trigger Conditions**: Administration of standard Succinylcholine dose ($1.0 - 1.5\text{ mg/kg}$) to a patient with an atypical butyrylcholinesterase genotype (heterozygous $E_1^u E_1^a$ or homozygous atypical $E_1^a E_1^a$), pregnancy, severe liver failure, or after neostigmine administration.
+*   **Physiological Impact**:
+    - *Severe Prolongation*: In homozygous atypical ($E_1^a E_1^a$, Dibucaine Number $\approx 20$), Succinylcholine clearance is reduced to 1%, causing the block to persist for 4 to 6 hours instead of the normal 5 to 10 minutes.
+    - *Phase II Transition*: Persistent receptor occupancy transitions the block from a non-fade depolarizing Phase I block to a fade-exhibiting Phase II block.
+    - *Apnea*: Persistent diaphragmatic paralysis prevents spontaneous ventilation.
+*   **Mitigation / Resolution**: Maintain mechanical ventilation and sedation until the block spontaneously resolves (verified by TOF count 4/4 and TOF ratio $> 0.90$).
+
+#### 6.64 Laudanosine Accumulation & Epileptogenic Seizure Loop
+*   **Trigger Conditions**: Administration of high-dose or continuous infusions of Atracurium or Cisatracurium, especially in the presence of severe renal and/or hepatic failure, allowing the active metabolite laudanosine to accumulate in plasma.
+*   **Physiological Impact**:
+    - *Metabolite Accumulation*: Atracurium (30% yield) and Cisatracurium (10% yield) clearance generates laudanosine. Normal clearance ($0.005$ per second) is blunted in organ failure.
+    - *Seizure Threshold Reduction*: If plasma laudanosine level exceeds $2.0\text{ mcg/mL}$, it lowers the seizure threshold and triggers generalized epileptogenic seizures.
+    - *Metabolic Surge*: Seizure activity triggers a massive metabolic surge: carbon dioxide production and oxygen demand increase by a factor of 8.0 ($seizureMetabolicMultiplier = 8.0$).
+*   **Mitigation / Resolution**: Immediate administration of anticonvulsant GABA-A agonists (Propofol Ce $> 1.2\text{ mcg/mL}$ or Midazolam Ce $> 0.08\text{ mcg/mL}$) to abort seizure activity. Optimize ventilation to manage the severe metabolic acidosis and hypercapnia.
 
 ### 7. Attending Direct Chat, Advisor & NLP Engine
 

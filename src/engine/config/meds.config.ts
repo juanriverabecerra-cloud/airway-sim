@@ -211,6 +211,38 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
     pd: { c50: 0.2, gamma: 4, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: -20, inducesParalysisAtCe: 0.15, inducesApneaAtCe: 0.15, receptorAffinity: 0.75 },
     notes: 'Intermediate-acting NDMR. STRICT renal warning: Hepatic deacetylation forms 3-desacetylvecuronium, an active metabolite (has 80% potency of parent compound) which is renal-excreted and accumulates heavily in renal failure, causing severe prolonged paralysis. Can be reversed by Sugammadex.'
   },
+  atracurium: {
+    name: 'Atracurium', classes: ['NDMR'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'IBW',
+    metabolism: 'Hofmann Elimination & Ester Hydrolysis', proteinBinding: 0.82, targetReceptor: 'nAChR (Antagonist)', intracellularCascade: 'Competitive antagonist -> blocks ACh binding -> prevents Na+ influx/depolarization',
+    indications: { 'Intubation': { dose: '0.4-0.5', unit: 'mg/kg', type: 'Bolus' }, 'Infusion': { dose: '5-10', unit: 'mcg/kg/min', type: 'Infusion' } },
+    pk: { V1: 10.0, V2: 20.0, V3: 0, k10: 0.08, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.12, coSensitivity: 0.0, renalFraction: 0.0, hepaticFraction: 0.0 },
+    pd: { c50: 0.4, gamma: 4.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: -20, inducesParalysisAtCe: 0.25, inducesApneaAtCe: 0.25, receptorAffinity: 0.8 },
+    notes: 'Intermediate-acting benzylisoquinoline NDMR. Undergoes spontaneous chemical degradation (Hofmann elimination) and non-specific ester hydrolysis. Cleared independently of organ function, but generates active metabolite laudanosine, which can accumulate in renal failure and lower seizure threshold.'
+  },
+  gantacurium: {
+    name: 'Gantacurium', classes: ['NDMR'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'IBW',
+    metabolism: 'L-Cysteine adduction & ester hydrolysis', proteinBinding: 0.35, targetReceptor: 'nAChR (Antagonist)', intracellularCascade: 'Competitive antagonist -> blocks ACh binding -> prevents Na+ influx/depolarization',
+    indications: { 'Intubation': { dose: '0.2', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 8.0, V2: 15.0, V3: 0, k10: 0.12, k12: 0.08, k21: 0.08, k13: 0, k31: 0, ke0: 0.18, coSensitivity: 0.1, renalFraction: 0.0, hepaticFraction: 0.0 },
+    pd: { c50: 0.2, gamma: 4.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: -20, inducesParalysisAtCe: 0.15, inducesApneaAtCe: 0.15, receptorAffinity: 0.75 },
+    notes: 'Ultrashort-acting asymmetric mixed-onium chlorofumarate NDMR. Has a rapid onset similar to succinylcholine. Undergoes rapid chemical inactivation by L-cysteine adduction. Reversible by L-cysteine.'
+  },
+  cw002: {
+    name: 'CW002', classes: ['NDMR'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'IBW',
+    metabolism: 'L-Cysteine adduction', proteinBinding: 0.50, targetReceptor: 'nAChR (Antagonist)', intracellularCascade: 'Competitive antagonist -> blocks ACh binding -> prevents Na+ influx/depolarization',
+    indications: { 'Intubation': { dose: '0.08-0.12', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 10.0, V2: 20.0, V3: 0, k10: 0.06, k12: 0.06, k21: 0.06, k13: 0, k31: 0, ke0: 0.10, coSensitivity: 0.2, renalFraction: 0.0, hepaticFraction: 0.0 },
+    pd: { c50: 0.15, gamma: 4.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: -20, inducesParalysisAtCe: 0.1, inducesApneaAtCe: 0.1, receptorAffinity: 0.80 },
+    notes: 'Intermediate-acting asymmetric fumarate NDMR. Cleared via slow chemical inactivation by L-cysteine. Can be reversed immediately with L-cysteine infusion.'
+  },
+  l_cysteine: {
+    name: 'L-Cysteine', classes: ['Reversal'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Renal excretion / endogenous metabolization', proteinBinding: 0.0, targetReceptor: 'Asymmetric fumarate double bond', intracellularCascade: 'Covalent adduction -> chemical inactivation of gantacurium/CW002',
+    indications: { 'Specific Rescue': { dose: '10.0', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.1, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.0, renalFraction: 1.0, hepaticFraction: 0.0 },
+    pd: { c50: 0.5, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0, chelationRatio: 1.0 },
+    notes: 'Endogenous amino acid. Acts as a specific rescue reversal agent for gantacurium and CW002 by rapidly adducting to their fumarate double bond, terminating blockade within 1-2 minutes.'
+  },
   dobutamine: { 
     name: 'Dobutamine', classes: ['Inotrope'], routes: ['IV'], types: ['Infusion'], dosingWeight: 'TBW',
     metabolism: 'Hepatic (COMT/conjugation)', targetReceptor: 'Beta-1 > Beta-2', intracellularCascade: 'Low Dose: B1 (Gs -> cAMP), High Dose: B1/B2 (Gs -> cAMP) + a1 (Gq -> IP3/DAG/Ca2+)',

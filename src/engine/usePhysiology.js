@@ -1157,6 +1157,32 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const dexmedModel = st.activeMeds?.find(m => m.name === 'Dexmedetomidine');
           // const lidoModel = st.activeMeds?.find(m => m.name === 'Lidocaine');
 
+          let bcheMultiplier = 1.0;
+          if (st.patient.butyrylcholinesteraseVariant === 'heterozygous') {
+              bcheMultiplier = 0.1;
+          } else if (st.patient.butyrylcholinesteraseVariant === 'atypical') {
+              bcheMultiplier = 0.01;
+          }
+          if (st.patient.pregnancy) {
+              bcheMultiplier *= 0.8;
+          }
+          if (st.patient.cirrhosis || st.patient.childPugh === 'C') {
+              bcheMultiplier *= 0.5;
+          }
+          const neostigmineModelForBche = st.activeMeds?.find(m => m.name === 'Neostigmine');
+          if (neostigmineModelForBche && neostigmineModelForBche.Ce > 0.01) {
+              bcheMultiplier *= 0.1;
+          }
+
+          const currentTemp = st.vitals.temp || 37.0;
+          const currentPhForHofmann = st.electrolytes.ph || 7.4;
+          const hofmannMultiplier = Math.pow(1.07, currentTemp - 37.0) * Math.pow(10, currentPhForHofmann - 7.4);
+
+          const cysteineModel = st.activeMeds?.find(m => m.name === 'L-Cysteine');
+          const cysteineCe = cysteineModel ? cysteineModel.Ce : 0.0;
+
+          let laudanosineAccumulated = 0;
+
           if (st.activeMeds) {
               st.activeMeds.forEach(model => {
                   const matchingId = Object.keys(MEDICATIONS).find(key => MEDICATIONS[key].name === model.name);
@@ -1168,7 +1194,13 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
                   const isNDMR = model.classes.includes('NDMR');
                   const pdSens = (isNDMR && hasMG) ? 4.0 : 1.0;
-                  const effects = model.tick(1, coRatio, v1VolumeRatio, renalRatio, pdSens, hepaticRatio);
+                  const effects = model.tick(1, coRatio, v1VolumeRatio, renalRatio, pdSens, hepaticRatio, bcheMultiplier, hofmannMultiplier, cysteineCe);
+                  
+                  if (model.name === 'Atracurium') {
+                      laudanosineAccumulated += model.A1 * ((model.pk.k10 * hofmannMultiplier) / 60) * 0.30;
+                  } else if (model.name === 'Cisatracurium') {
+                      laudanosineAccumulated += model.A1 * ((model.pk.k10 * hofmannMultiplier) / 60) * 0.10;
+                  }
                   
                   totalHrDelta += effects.hrDelta || 0;
                   totalRrDelta += effects.rrDelta || 0;
@@ -1247,23 +1279,33 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const cisatracuriumCe = cisatracuriumModel ? cisatracuriumModel.Ce : 0;
           const succinylcholineModel = st.activeMeds?.find(m => m.name === 'Succinylcholine');
           const succinylcholineCe = succinylcholineModel ? succinylcholineModel.Ce : 0;
+          const atracuriumModel = st.activeMeds?.find(m => m.name === 'Atracurium');
+          const atracuriumCe = atracuriumModel ? atracuriumModel.Ce : 0;
+          const gantacuriumModel = st.activeMeds?.find(m => m.name === 'Gantacurium');
+          const gantacuriumCe = gantacuriumModel ? gantacuriumModel.Ce : 0;
+          const cw002Model = st.activeMeds?.find(m => m.name === 'CW002');
+          const cw002Ce = cw002Model ? cw002Model.Ce : 0;
 
-          if (rocuroniumCe > 0.15) {
-              const rocOccupancy = 0.80 + Math.min(0.20, (rocuroniumCe - 0.15) * 0.5);
-              if (rocOccupancy > maxNMJOccupancy) maxNMJOccupancy = rocOccupancy;
-          }
-          if (vecuroniumCe > 0.05) {
-              const vecOccupancy = 0.80 + Math.min(0.20, (vecuroniumCe - 0.05) * 1.5);
-              if (vecOccupancy > maxNMJOccupancy) maxNMJOccupancy = vecOccupancy;
-          }
-          if (cisatracuriumCe > 0.08) {
-              const cisOccupancy = 0.80 + Math.min(0.20, (cisatracuriumCe - 0.08) * 1.0);
-              if (cisOccupancy > maxNMJOccupancy) maxNMJOccupancy = cisOccupancy;
-          }
-          if (succinylcholineCe > 0.08) {
-              const suxOccupancy = 0.80 + Math.min(0.20, (succinylcholineCe - 0.08) * 1.0);
-              if (suxOccupancy > maxNMJOccupancy) maxNMJOccupancy = suxOccupancy;
-          }
+           const rocOccupancy = rocuroniumCe <= 0.15 ? (rocuroniumCe / 0.15) * 0.70 : 0.70 + Math.min(0.30, (rocuroniumCe - 0.15) * 0.5);
+          if (rocOccupancy > maxNMJOccupancy) maxNMJOccupancy = rocOccupancy;
+
+          const vecOccupancy = vecuroniumCe <= 0.05 ? (vecuroniumCe / 0.05) * 0.70 : 0.70 + Math.min(0.30, (vecuroniumCe - 0.05) * 1.5);
+          if (vecOccupancy > maxNMJOccupancy) maxNMJOccupancy = vecOccupancy;
+
+          const cisOccupancy = cisatracuriumCe <= 0.08 ? (cisatracuriumCe / 0.08) * 0.70 : 0.70 + Math.min(0.30, (cisatracuriumCe - 0.08) * 1.0);
+          if (cisOccupancy > maxNMJOccupancy) maxNMJOccupancy = cisOccupancy;
+
+          const suxOccupancy = succinylcholineCe <= 0.08 ? (succinylcholineCe / 0.08) * 0.70 : 0.70 + Math.min(0.30, (succinylcholineCe - 0.08) * 1.0);
+          if (suxOccupancy > maxNMJOccupancy) maxNMJOccupancy = suxOccupancy;
+
+          const atrOccupancy = atracuriumCe <= 0.08 ? (atracuriumCe / 0.08) * 0.70 : 0.70 + Math.min(0.30, (atracuriumCe - 0.08) * 1.0);
+          if (atrOccupancy > maxNMJOccupancy) maxNMJOccupancy = atrOccupancy;
+
+          const gantOccupancy = gantacuriumCe <= 0.04 ? (gantacuriumCe / 0.04) * 0.70 : 0.70 + Math.min(0.30, (gantacuriumCe - 0.04) * 2.0);
+          if (gantOccupancy > maxNMJOccupancy) maxNMJOccupancy = gantOccupancy;
+
+          const cwOccupancy = cw002Ce <= 0.03 ? (cw002Ce / 0.03) * 0.70 : 0.70 + Math.min(0.30, (cw002Ce - 0.03) * 2.5);
+          if (cwOccupancy > maxNMJOccupancy) maxNMJOccupancy = cwOccupancy;
 
           // Active Metabolites
           const renalMult = (st.patient.isRenal || st.patient.renalFailure) ? 0.1 : 1.0;
@@ -1280,8 +1322,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let currentVec3oh = st.patient.vec3oh || 0;
           let currentNormep = st.patient.normep || 0;
           let currentM6g = st.patient.m6g || 0;
+          let currentLaudanosine = st.patient.laudanosine || 0;
           // currentHydroxyMidazolam and currentNorketamine are already declared and initialized above
-
 
           if (vecCe > 0.01) {
               currentVec3oh = Math.max(0, currentVec3oh + vecCe * 0.01 - 0.002 * renalMult);
@@ -1313,12 +1355,18 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               currentNorketamine = Math.max(0, currentNorketamine - 0.004);
           }
 
+          // Laudanosine metabolism and clearance
+          const laudanosineClearance = 0.005 * (0.3 * renalRatio + 0.7 * hepaticRatio);
+          currentLaudanosine = Math.max(0, currentLaudanosine + laudanosineAccumulated - laudanosineClearance);
+
           if (currentVec3oh > 0) {
               maxNMJOccupancy = Math.min(1.0, maxNMJOccupancy + (currentVec3oh * 0.8));
           }
 
           let isSeizure = false;
           let seizureMetabolicMultiplier = 1.0;
+          
+          // Normeperidine seizures
           if (currentNormep < 0.2) {
               st.patient.normepSeizureRolled = undefined;
           }
@@ -1336,6 +1384,33 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               } else {
                   st.patient.normepSeizureRolled = false;
                   logEvent("⚠️ Clinical Note: Normeperidine levels are elevated. Fortunately, generalized seizures were not triggered (neurological threshold remains stable).");
+              }
+          }
+
+          // Laudanosine seizures
+          if (currentLaudanosine < 0.2) {
+              st.patient.laudanosineSeizureRolled = undefined;
+          }
+          if (currentLaudanosine > 2.0 && !st.patient.laudanosineSeizureTriggered && st.patient.laudanosineSeizureRolled === undefined) {
+              const baseProb = 0.15;
+              const hasRisk = (st.patient.epilepsy || st.patient.seizureHistory) ? 3.0 : 1.0;
+              const prob = Math.min(1.0, baseProb * hasRisk);
+              st.patient.laudanosineSeizureRolled = Math.random() < prob;
+              if (st.patient.forceLaudanosineSeizure || st.patient.laudanosineSeizureRolled) {
+                  st.patient.laudanosineSeizureTriggered = true;
+                  logEvent("🚨 CRITICAL EMERGENCY: High levels of active metabolite Laudanosine have accumulated, triggering generalized seizures!");
+              } else {
+                  st.patient.laudanosineSeizureRolled = false;
+                  logEvent("⚠️ Clinical Note: Laudanosine levels are elevated. Fortunately, generalized seizures were not triggered.");
+              }
+          }
+          if (st.patient.laudanosineSeizureTriggered) {
+              if (propofolCe > 1.2 || midazolamCe > 0.08) {
+                  st.patient.laudanosineSeizureTriggered = false;
+                  logEvent("✅ SUCCESS: Anticonvulsant sedative administered. Laudanosine-induced seizure activity aborted.");
+              } else {
+                  isSeizure = true;
+                  seizureMetabolicMultiplier = 8.0;
               }
           }
 
@@ -3315,6 +3390,12 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               barbiturateArterialPrecipitation: st.patient.barbiturateArterialPrecipitation,
               hydroxyMidazolam: st.patient.hydroxyMidazolam || 0,
               norketamine: st.patient.norketamine || 0,
+              laudanosine: currentLaudanosine,
+              laudanosineSeizureTriggered: st.patient.laudanosineSeizureTriggered || false,
+              suxPhase2Accumulation: st.patient.suxPhase2Accumulation || 0,
+              cumulativeSuxDose: st.patient.cumulativeSuxDose || 0,
+              butyrylcholinesteraseVariant: st.patient.butyrylcholinesteraseVariant || 'normal',
+              dibucaineNumber: st.patient.dibucaineNumber || 80,
               chronicBenzoUse: st.patient.chronicBenzoUse,
               opioidRigidityActive: st.patient.opioidRigidityActive,
               remifentanilHyperalgesiaActive: st.patient.remifentanilHyperalgesiaActive,
@@ -3344,6 +3425,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               forcePoPHCollapse: st.patient.forcePoPHCollapse,
               forceFluidOverloadEdema: st.patient.forceFluidOverloadEdema,
               forceNormepSeizure: st.patient.forceNormepSeizure,
+              forceLaudanosineSeizure: st.patient.forceLaudanosineSeizure,
               halothaneHepatitisRolled: st.patient.halothaneHepatitisRolled,
               methoxyfluraneNephrotoxicityRolled: st.patient.methoxyfluraneNephrotoxicityRolled,
               airwayFireRolled: st.patient.airwayFireRolled,
@@ -3351,7 +3433,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               varicealBleedRolled: st.patient.varicealBleedRolled,
               poPHCollapseRolled: st.patient.poPHCollapseRolled,
               fluidOverloadEdemaRolled: st.patient.fluidOverloadEdemaRolled,
-              normepSeizureRolled: st.patient.normepSeizureRolled
+              normepSeizureRolled: st.patient.normepSeizureRolled,
+              laudanosineSeizureRolled: st.patient.laudanosineSeizureRolled
           };
 
           const finalVitals = {
@@ -3464,25 +3547,61 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           }
           sefVal = parseFloat(sefVal.toFixed(1));
 
-          let t1 = 1.0; let t4 = 1.0;
-          if (maxNMJOccupancy > 0.70) {
-              t1 = Math.max(0, 1 - Math.pow((maxNMJOccupancy - 0.70) / 0.30, 2));
-              t4 = Math.max(0, 1 - Math.pow((maxNMJOccupancy - 0.60) / 0.35, 2.5));
-          }
-          let targetTofCount = 4;
-          if (maxNMJOccupancy >= 0.95) {
-              targetTofCount = 0;
-          } else if (maxNMJOccupancy >= 0.90) {
-              targetTofCount = 1;
-          } else if (maxNMJOccupancy >= 0.85) {
-              targetTofCount = 2;
-          } else if (maxNMJOccupancy >= 0.75) {
-              targetTofCount = 3;
-          } else {
-              targetTofCount = 4;
-          }
+          const isSuxActive = succinylcholineCe > 0.01;
+          const hasNDMR = st.activeMeds?.some(m => m.classes.includes('NDMR') && m.Ce > 0.01);
           
-          let targetTofRatio = (targetTofCount === 4 && t1 > 0.001) ? (t4 / t1) : 0.0;
+          let suxPhase2Accumulation = st.patient.suxPhase2Accumulation || 0;
+          if (isSuxActive) {
+              suxPhase2Accumulation += 1;
+          } else {
+              suxPhase2Accumulation = Math.max(0, suxPhase2Accumulation - 0.5);
+          }
+          st.patient.suxPhase2Accumulation = suxPhase2Accumulation;
+          
+          const cumulativeSuxDose = st.patient.cumulativeSuxDose || 0;
+          const isSuxPhaseII = isSuxActive && (cumulativeSuxDose > 300 || suxPhase2Accumulation > 120);
+
+          let t1 = 1.0; let t4 = 1.0;
+          let t2 = 1.0; let t3 = 1.0;
+          let targetTofCount = 4;
+          let targetTofRatio = 1.0;
+
+          if (maxNMJOccupancy > 0.0) {
+              if (isSuxActive && !isSuxPhaseII && !hasNDMR) {
+                  // Phase I depolarizing block: no fade, all four twitches decrease together
+                  t1 = maxNMJOccupancy <= 0.30 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.30) / (0.95 - 0.30));
+                  t2 = t1;
+                  t3 = t1;
+                  t4 = t1;
+                  targetTofRatio = 1.0;
+                  targetTofCount = t1 > 0.05 ? 4 : 0;
+              } else {
+                  // Non-depolarizing block or Phase II block: exhibits fade
+                  t1 = maxNMJOccupancy <= 0.60 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.60) / (0.95 - 0.60));
+                  t2 = maxNMJOccupancy <= 0.50 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.50) / (0.90 - 0.50));
+                  t3 = maxNMJOccupancy <= 0.40 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.40) / (0.85 - 0.40));
+                  t4 = maxNMJOccupancy <= 0.30 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.30) / (0.75 - 0.30));
+
+                  if (maxNMJOccupancy >= 0.95) {
+                      targetTofCount = 0;
+                  } else if (maxNMJOccupancy >= 0.90) {
+                      targetTofCount = 1;
+                  } else if (maxNMJOccupancy >= 0.85) {
+                      targetTofCount = 2;
+                  } else if (maxNMJOccupancy >= 0.75) {
+                      targetTofCount = 3;
+                  } else {
+                      targetTofCount = 4;
+                  }
+                  targetTofRatio = (targetTofCount === 4 && t1 > 0.001) ? (t4 / t1) : 0.0;
+              }
+
+              // Nullify twitches that are blocked based on count
+              if (targetTofCount < 4) t4 = 0;
+              if (targetTofCount < 3) t3 = 0;
+              if (targetTofCount < 2) t2 = 0;
+              if (targetTofCount < 1) t1 = 0;
+          }
           if (isNaN(targetTofRatio) || targetTofRatio < 0) targetTofRatio = 0;
           targetTofRatio = Math.min(1.0, targetTofRatio);
 
@@ -3530,13 +3649,17 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           // Update final states
           setPatient(finalPatient);
           setActiveMeds([...st.activeMeds]);
-          setVitals({
+           setVitals({
               ...finalVitals,
               bis: Math.round(finalBis),
               sef95: sefVal,
               bsr: bsrVal,
               tofCount: targetTofCount,
               tofRatio: targetTofRatio,
+              t1: t1,
+              t2: t2,
+              t3: t3,
+              t4: t4,
               p300Amplitude: finalPatient.p300Amplitude,
               n2p3Amplitude: finalPatient.n2p3Amplitude,
               p2Amplitude: finalPatient.p2Amplitude,
