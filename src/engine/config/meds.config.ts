@@ -524,6 +524,15 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
     pd: { c50: 15.0, gamma: 2.0, sysMax: -25, diaMax: -20, hrMax: 15, rrMax: -12, inducesApneaAtCe: 10.0 },
     notes: 'Potent barbiturate. Fast onset/offset due to brain-to-tissue redistribution. STRICT safety warning: Highly alkaline (pH 10.5). If injected intra-arterially (e.g. into an arterial line), it immediately precipitates into crystals, blocking microvasculature, causing profound endothelial destruction, severe vasospasm, gangrene, and necrosis (Treat immediately with Papaverine, Lidocaine, or stellate ganglion block).'
   },
+  methohexital: {
+    name: 'Methohexital', classes: ['Barbiturate'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'LBW',
+    metabolism: 'Hepatic (rapid, hepatic extraction ratio is higher than thiopental)', proteinBinding: 0.73, synergyGroup: 'Sedative', pkModel: 'Hudson',
+    targetReceptor: 'GABA-A',
+    indications: { 'Induction': { dose: '1.0-2.0', unit: 'mg/kg', type: 'Bolus' }, 'ECT Sedation': { dose: '0.75-1.5', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 30.0, V3: 90.0, k10: 0.15, k12: 0.12, k21: 0.09, k13: 0.04, k31: 0.015, ke0: 1.5, coSensitivity: 0.3, proteinBinding: 0.73, hepaticFraction: 0.9, renalFraction: 0.1 },
+    pd: { c50: 3.5, gamma: 2.0, sysMax: -20, diaMax: -15, hrMax: 20, rrMax: -10, inducesApneaAtCe: 2.5 },
+    notes: 'Ultra-short acting barbiturate. Rapid redistribution and fast hepatic clearance lead to quicker emergence compared to thiopental. Lowers seizure threshold, making it the preferred induction agent for Electroconvulsive Therapy (ECT). Highly alkaline, same intra-arterial warning.'
+  },
   lorazepam: {
     name: 'Lorazepam', classes: ['Benzodiazepine'], routes: ['IV', 'IM'], types: ['Bolus'], dosingWeight: 'TBW',
     metabolism: 'Hepatic (glucuronidation only, no active metabolites)', proteinBinding: 0.85, synergyGroup: 'Sedative', pkModel: 'Greenblatt',
@@ -540,6 +549,14 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
     pk: { V1: 15.0, V2: 25.0, V3: 0, k10: 0.1, k12: 0.08, k21: 0.05, k13: 0, k31: 0, ke0: 0.4, coSensitivity: 0.1 },
     pd: { c50: 0.002, gamma: 1, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0, receptorAffinity: 1.8 },
     notes: 'Competitive antagonist at the GABA-A benzodiazepine binding site. Dose: 0.2mg IV, repeat q1 min to 1mg max. Duration of action is 45-90 minutes. STRICT clinical constraint: Must monitor for re-sedation for 2-3 hours because benzodiazepine half-life often exceeds Flumazenil (renarcotization/resedation risk).'
+  },
+  papaverine: {
+    name: 'Papaverine', classes: ['Vasodilator'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic', proteinBinding: 0.90, targetReceptor: 'Phosphodiesterase',
+    indications: { 'Vasospasm Reversal': { dose: '30-40', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 40.0, V3: 0, k10: 0.15, k12: 0.1, k21: 0.08, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.2 },
+    pd: { c50: 1.0, gamma: 2.0, sysMax: -15, diaMax: -15, hrMax: 5, rrMax: 0 },
+    notes: 'Direct-acting smooth muscle relaxant / phosphodiesterase inhibitor. Direct vasodilator. Used to treat arterial vasospasm, especially in response to intra-arterial barbiturate crystal precipitation.'
   },
   meperidine: {
     name: 'Meperidine', classes: ['Opioid'], routes: ['IV', 'IM'], types: ['Bolus'], dosingWeight: 'IBW',
@@ -698,5 +715,53 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
     pk: { V1: 1.40, V2: 5.0, V3: 20.0, k10: 0.08, k12: 0.12, k21: 0.06, k13: 0.04, k31: 0.01, ke0: 0.8, coSensitivity: 0.3 },
     pd: { c50: 1.8, gamma: 2.0, sysMax: -15, diaMax: -15, hrMax: 5, rrMax: -10, inducesApneaAtCe: 3.0 },
     notes: 'Less active enantiomer of Isoflurane. Lower potency, requires higher concentration.'
+  },
+  acetaminophen: {
+    name: 'Acetaminophen', classes: ['Nonopioid Analgesic'], routes: ['IV', 'PO'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (conjugation & CYP2E1 to NAPQI)', proteinBinding: 0.20,
+    indications: { 'Postoperative Pain': { dose: '1000', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 40.0, V3: 0, k10: 0.05, k12: 0.05, k21: 0.04, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 },
+    pd: { c50: 10.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Nonopioid analgesic. Potent central COX inhibition. Opioid-sparing, decreases postoperative ileus duration and opioid consumption.'
+  },
+  ketorolac: {
+    name: 'Ketorolac', classes: ['NSAID'], routes: ['IV', 'IM'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic / Renal', proteinBinding: 0.99,
+    indications: { 'Severe Acute Pain': { dose: '30', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 10.0, V2: 15.0, V3: 0, k10: 0.03, k12: 0.04, k21: 0.03, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Potent injectable NSAID. Non-selective cyclooxygenase inhibitor. Opioid-sparing, reduces constipation and postoperative ileus. Risks: renal impairment, platelet inhibition, GI bleeding.'
+  },
+  gabapentin: {
+    name: 'Gabapentin', classes: ['Gabapentinoid'], routes: ['PO'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Renal (Unchanged)', proteinBinding: 0.0,
+    indications: { 'Neuropathic Pain': { dose: '300', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 30.0, V3: 0, k10: 0.03, k12: 0.05, k21: 0.04, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0.2 },
+    pd: { c50: 5.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Anticonvulsant/gabapentinoid. Excellent for neuropathic pain and multimodal perioperative analgesia. Side effects: sedation, dizziness, synergizes with other sedative-hypnotics.'
+  },
+  pregabalin: {
+    name: 'Pregabalin', classes: ['Gabapentinoid'], routes: ['PO'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Renal (Unchanged)', proteinBinding: 0.0,
+    indications: { 'Neuropathic Pain': { dose: '75', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 25.0, V3: 0, k10: 0.04, k12: 0.05, k21: 0.04, k13: 0, k31: 0, ke0: 0.4, coSensitivity: 0.2 },
+    pd: { c50: 3.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Gabapentinoid. Higher potency than Gabapentin. Blunts central excitatory drive, synergizes with sedatives, reduces postop hyperalgesia.'
+  },
+  mexiletine: {
+    name: 'Mexiletine', classes: ['Class IB', 'Sodium Channel Blocker'], routes: ['PO'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP2D6)', proteinBinding: 0.70,
+    indications: { 'Neuropathic Pain / Arrhythmia': { dose: '150', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 40.0, V3: 0, k10: 0.04, k12: 0.06, k21: 0.04, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.2 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: -5, diaMax: -5, hrMax: -5, rrMax: 0 },
+    notes: 'Orally active Class IB antiarrhythmic. Structurally similar to Lidocaine. Blocks sodium channels, dampening neuropathic ectopic discharges.'
+  },
+  topiramate: {
+    name: 'Topiramate', classes: ['Anticonvulsant'], routes: ['PO'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic / Renal', proteinBinding: 0.15,
+    indications: { 'Chronic Pain / Headaches': { dose: '50', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 35.0, V3: 0, k10: 0.03, k12: 0.05, k21: 0.04, k13: 0, k31: 0, ke0: 0.4, coSensitivity: 0.2 },
+    pd: { c50: 4.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Sulfamate-substituted monosaccharide anticonvulsant. Attenuates chronic/neuropathic pain and tension/migraine headaches. Associated with weight loss and mild cognitive slowing.'
   }
 };

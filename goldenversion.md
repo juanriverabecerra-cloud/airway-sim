@@ -47,6 +47,12 @@ This document represents the unified, consolidated, and authoritative system arc
     *   [5.12 Molecular Mechanisms of Inhalational Anesthetics](#512-molecular-mechanisms-of-inhalational-anesthetics)
     *   [5.13 Inhaled Anesthetic Metabolism & Toxicities](#513-inhaled-anesthetic-metabolism--toxicities)
     *   [5.14 Inhaled Anesthetics, Environmental Effects, & Long-Term Neurocognition](#514-inhaled-anesthetics-environmental-effects--long-term-neurocognition)
+    *   [5.15 Intravenous Anesthetics: Sedative-Hypnotic Receptor Profiles](#515-intravenous-anesthetics-sedative-hypnotic-receptor-profiles)
+    *   [5.16 Active Metabolites Kinetics: 1-Hydroxymidazolam & Norketamine](#516-active-metabolites-kinetics-1-hydroxymidazolam--norketamine)
+    *   [5.17 Opioid Physiology & Pharmacodynamics](#517-opioid-physiology--pharmacodynamics)
+    *   [5.18 Naloxone Pharmacokinetics, Competitive Antagonism & Renarcotization](#518-naloxone-pharmacokinetics-competitive-antagonism--renarcotization)
+    *   [5.19 Nonopioid Pain Medications: Pharmacokinetics & Pharmacodynamics](#519-nonopioid-pain-medications-pharmacokinetics--pharmacodynamics)
+    *   [5.20 Intravenous Drug Delivery Systems & Target-Controlled Infusion (TCI)](#520-intravenous-drug-delivery-systems--target-controlled-infusion-tci)
     *   [6. Event Trigger, Clinical Scenarios & Workflow Engine](#6-event-trigger-clinical-scenarios--workflow-engine)
         *   [6.1 Pre-induction Workflow Interlock (MSMAIDS Checklist)](#61-pre-induction-workflow-interlock-msmaids-checklist)
         *   [6.2 Airway Assessment & Direct Laryngoscopy Glottic Visualization](#62-airway-assessment--direct-laryngoscopy-glottic-visualization)
@@ -98,6 +104,18 @@ This document represents the unified, consolidated, and authoritative system arc
     *   [6.48 Mapleson Breathing Circuit Rebreathing and Fresh Gas Flow Limits](#648-mapleson-breathing-circuit-rebreathing-and-fresh-gas-flow-limits)
     *   [6.49 Stuck Unidirectional Valves and Rebreathing Fraction](#649-stuck-unidirectional-valves-and-rebreathing-fraction)
     *   [6.50 Oxygen Flush Valve dilution and Tension Pneumothorax Barotrauma](#650-oxygen-flush-valve-dilution-and-tension-pneumothorax-barotrauma)
+    *   [6.51 Propofol Infusion Syndrome (PRIS) Crisis Loop](#651-propofol-infusion-syndrome-pris-crisis-loop)
+    *   [6.52 Etomidate-Induced Adrenocortical Suppression Crisis](#652-etomidate-induced-adrenocortical-suppression-crisis)
+    *   [6.53 Ketamine Washout Emergence Delirium Loop](#653-ketamine-washout-emergence-delirium-loop)
+    *   [6.54 Intra-Arterial Barbiturate Precipitation and Vasospasm Injury](#654-intra-arterial-barbiturate-precipitation-and-vasospasm-injury)
+    *   [6.55 Benzodiazepine Withdrawal Seizures and Flumazenil Antagonism](#655-benzodiazepine-withdrawal-seizures-and-flumazenil-antagonism)
+    *   [6.56 Opioid-Induced Chest Wall Rigidity (Wooden Chest Syndrome)](#656-opioid-induced-chest-wall-rigidity-wooden-chest-syndrome)
+    *   [6.57 Remifentanil-Induced Hyperalgesia (OIH)](#657-remifentanil-induced-hyperalgesia-oih)
+    *   [6.58 Sphincter of Oddi Spasm & Biliary Colic](#658-sphincter-of-oddi-spasm--biliary-colic)
+    *   [6.59 Opioid-Induced Pruritus](#659-opioid-induced-pruritus)
+    *   [6.60 Naloxone-Induced Autonomic Sympathetic Surge & Renarcotization](#660-naloxone-induced-autonomic-sympathetic-surge--renarcotization)
+    *   [6.61 Postoperative Ileus Sparing & Multimodal Analgesia](#661-postoperative-ileus-sparing--multimodal-analgesia)
+    *   [6.62 Connected Awareness under TCI Closed-Loop Failure & Adaptive Overdrive](#662-connected-awareness-under-tci-closed-loop-failure--adaptive-overdrive)
     *   [7. Attending Direct Chat, Advisor & NLP Engine](#7-attending-direct-chat-advisor--nlp-engine)
         *   [7.1 Automated Guidance Evaluator](#71-automated-guidance-evaluator)
         *   [7.2 Conversational NLP Chat Portal](#72-conversational-nlp-chat-portal)
@@ -1027,6 +1045,75 @@ The pharmacology of inhaled anesthetics is governed by direct binding to specifi
 *   **Postoperative Cognitive Decline (POCD) in Elderly**:
     POCD is characterized by persistent memory impairment, attention deficits, and cognitive decline in elderly patients weeks to months after anesthesia and surgery. Its pathogenesis is multifactorial, involving anesthetic-induced neuroinflammation, blood-brain barrier disruption, micro-embolization, and postoperative sleep disturbances.
 
+#### 5.15 Intravenous Anesthetics: Sedative-Hypnotic Receptor Profiles
+The simulator integrates the comparative pharmacodynamics and receptor-level interactions of intravenous sedatives, hypnotics, and adjuvants.
+
+*   **Propofol & Etomidate (GABA-A Beta-2/3 Subtypes)**:
+    - *Mechanism*: Directly bind and potentiate GABA-A receptors, primarily those containing $\beta_2$ or $\beta_3$ subunits, which mediate clinical sedation, hypnosis, and EEG slowing.
+    - *Adrenal Side Effects*: Etomidate selectively inhibits the enzyme 11-$\beta$-hydroxylase, completely shutting down cortisol synthesis even after a single induction dose.
+    - *PRIS Pathophysiology*: Propofol Infusion Syndrome (PRIS) is triggered by high-dose propofol ($>67\text{ mcg/kg/min}$) over prolonged periods, leading to mitochondrial respiratory chain failure, lactic acidosis, rhabdomyolysis, hyperkalemia, lipemic plasma, and progressive myocardial stunning.
+
+*   **Dexmedetomidine (Alpha-2 Adrenergic Receptors)**:
+    - *Mechanism*: High affinity selective $\alpha_2$-adrenoceptor agonist. Acts on pre-synaptic receptors in the locus coeruleus (LC) to decrease noradrenaline release, inducing a natural-like NREM sleep state (sparing respiratory drive).
+    - *Reversal*: Atipamezole acts as a competitive antagonist, rapidly reversing LC suppression and restoring wakefulness.
+
+*   **Ketamine (NMDA Receptor Blockade)**:
+    - *Mechanism*: Non-competitive antagonist of N-methyl-D-aspartate (NMDA) receptors. Restricts excitatory glutamate neurotransmission, producing dissociative anesthesia and analgesia.
+    - *Washout Agitation*: Rapid clearance can lead to emergence delirium and intense psychotomimetic surges, characterized by tachycardia, hypertension, and sialorrhea.
+
+*   **Benzodiazepines (GABA-A Alpha-Subtypes & Reversal)**:
+    - *Mechanism*: Positive allosteric modulators that bind to the interface of $\alpha$ and $\gamma$ subunits on GABA-A receptors.
+    - *Reversal*: Flumazenil acts as a competitive antagonist. In patients with chronic benzodiazepine dependence, rapid flumazenil administration triggers severe withdrawal seizures.
+
+*   **Barbiturates (Thiopental & Methohexital)**:
+    - *Mechanism*: Bind to distinct sites on GABA-A receptors, prolonging channel open state. At high doses, they directly activate the channel, causing profound cerebral metabolic rate depression (burst suppression) and cardiovascular vasodilation.
+    - *Intra-arterial Crystal Precipitation*: Barbiturate solutions are highly alkaline (pH 10.5). If injected into an arterial line, contact with blood triggers immediate acid-base precipitation, forming micro-crystals that occlude microvasculature, triggering severe chemical endarteritis, intense spasm, and distal limb gangrene. Papaverine (direct vasodilator) or Lidocaine can reverse this spasm.
+
+#### 5.16 Active Metabolites Kinetics: 1-Hydroxymidazolam & Norketamine
+Active metabolites of intravenous anesthetics are cleared by distinct metabolic routes:
+- **1-Hydroxymidazolam**: Midazolam undergoes hepatic CYP3A4/5 metabolism to 1-hydroxymidazolam. This metabolite retains significant sedative potency ($60-80\%$ of parent) and is cleared exclusively by renal excretion (glucuronidated to 1-hydroxymidazolam glucuronide). In renal impairment, this active metabolite accumulates, causing prolonged, refractory sedation.
+- **Norketamine**: Ketamine is metabolized by CYP2B6/3A4 to norketamine, which retains $20-30\%$ of parent anesthetic potency and undergoes hepatic elimination.
+
+#### 5.17 Opioid Physiology & Pharmacodynamics
+Opioids selectively bind to G-protein coupled Mu-opioid receptors ($\mu_1, \mu_2$), triggering Gi-protein activation, inhibition of adenylate cyclase, decreased intracellular cAMP, closing of voltage-gated calcium channels, and opening of inward-rectifying potassium channels. This hyperpolarizes neurons, suppressing nociceptive transmission.
+*   **Respiratory Depression**: Opioids depress the hypercapnic and hypoxic ventilatory response curves by acting directly on Mu receptors in the pre-Bötzinger complex.
+*   **Chest Wall Rigidity**: High doses or rapid administration of lipophilic agonists (Fentanyl, Remifentanil, Sufentanil) lock the chest wall, creating severe apnea, compliance drops to $3\text{ mL/cmH2O}$, and airway resistance of $999\text{ cmH2O/L/s}$.
+*   **Sphincter of Oddi Spasm**: Agonist accumulation leads to severe choledochoduodenal spasm, causing bile duct pressure spikes and intense biliary colic pain.
+*   **Pruritus**: Induced centrally via Mu-receptor co-activation with gastrin-releasing peptide receptors, manifesting as severe facial itching.
+
+#### 5.18 Naloxone Pharmacokinetics, Competitive Antagonism & Renarcotization
+Naloxone is a pure competitive opioid receptor antagonist.
+*   **Competitive Antagonism Math**: Shifts the concentration-effect curve of agonists to the right:
+    \[EC_{50,\text{apparent}} = EC_{50} \cdot \left(1 + \frac{[\text{Naloxone}]}{K_i}\right)\]
+    where $K_i = 0.001\text{ mg/L}$.
+*   **Sympathetic Surge**: Rapid reversal of high agonist concentrations causes a massive sympathetic discharge, triggering severe hypertension and tachycardia.
+*   **Renarcotization**: Naloxone has a short half-life ($\approx 30-45\text{ minutes}$). Agonists like Morphine or Fentanyl have much longer durations. As Naloxone decays ($Ce < 0.0005\text{ mg/L}$), remaining agonist levels re-depress respiration, triggering secondary apnea.
+
+#### 5.19 Nonopioid Pain Medications: Pharmacokinetics & Pharmacodynamics
+Chapter 25 introduces nonopioid pain medications to support multimodal analgesia strategies. These drugs act synergistically with opioids and ketamine to blunt nociceptive pathways while sparing bowel function and reducing opioid-induced side effects.
+*   **Analgesic Sparing Factor**: Combines nonopioid pain medication effects: $E_{\text{nonopioid}} = 1.0 - \prod (1.0 - w_{\text{med}} \cdot E_{\text{med}})$, where weights are $w_{\text{acetaminophen}} = 0.35$, $w_{\text{ketorolac}} = 0.40$, $w_{\text{gabapentin}} = 0.30$, $w_{\text{pregabalin}} = 0.35$, $w_{\text{mexiletine}} = 0.25$, $w_{\text{topiramate}} = 0.20$.
+*   **Pharmacokinetics & Pharmacodynamics Table**:
+    *   *Acetaminophen*: $V_1 = 20.0\text{ L}$, $C_{50} = 10.0\text{ mcg/mL}$, $\gamma = 1.5$.
+    *   *Ketorolac*: $V_1 = 10.0\text{ L}$, $C_{50} = 1.0\text{ mcg/mL}$, $\gamma = 1.5$.
+    *   *Gabapentin*: $V_1 = 15.0\text{ L}$, $C_{50} = 5.0\text{ mcg/mL}$, $\gamma = 1.5$.
+    *   *Pregabalin*: $V_1 = 15.0\text{ L}$, $C_{50} = 3.0\text{ mcg/mL}$, $\gamma = 1.5$.
+    *   *Mexiletine*: $V_1 = 20.0\text{ L}$, $C_{50} = 1.0\text{ mcg/mL}$, $\gamma = 1.5$.
+    *   *Topiramate*: $V_1 = 20.0\text{ L}$, $C_{50} = 4.0\text{ mcg/mL}$, $\gamma = 1.5$.
+*   **CNS Pathways & processed EEG**: Gabapentinoids and Topiramate depress noradrenergic tone in the Locus Coeruleus (LC), stimulate sleep-promoting pathways in the Ventrolateral Preoptic Area (VLPO), and decrease frontoparietal connectivity, thereby reducing anesthetic requirements and processed EEG (BIS) values.
+
+#### 5.20 Intravenous Drug Delivery Systems & Target-Controlled Infusion (TCI)
+Chapter 26 details pharmacokinetic-pharmacodynamic model-driven intravenous drug delivery. TCI systems calculate infusion rates required to achieve and maintain a user-specified target concentration in plasma ($C_p$) or effect site ($C_e$).
+*   **Dynamic PK Model Covariate Scaling**:
+    *   *Marsh Model* (Propofol): $V_1 = 0.228 \cdot \text{weight}$, $V_2 = 0.363 \cdot \text{weight}$, $V_3 = 2.893 \cdot \text{weight}$, $k_{10} = 0.119$, $k_{12} = 0.112$, $k_{13} = 0.042$, $k_{21} = 0.055$, $k_{31} = 0.0033$, $k_{e0} = 0.26$.
+    *   *Schnider Model* (Propofol): $V_1 = 4.27\text{ L}$, $V_2 = 18.9 - 0.391 \cdot (\text{age} - 53)$, $V_3 = 238.0\text{ L}$, $Cl_1 = 1.29 - 0.024 \cdot (\text{age} - 53)$, $k_{10} = Cl_1 / V_1$, $k_{12} = 0.302 - 0.0056 \cdot (\text{age} - 53)$, $k_{13} = 0.196$, $k_{21} = Cl_1 / V_2$, $k_{31} = 0.0035$, $k_{e0} = 0.456$.
+    *   *Paedfusor Model* (Pediatric Propofol): $V_1 = 0.458 \cdot \text{weight}$, $V_2 = 1.34 \cdot \text{weight}$, $V_3 = 8.20 \cdot \text{weight}$, $k_{10} = 70 \cdot \text{weight}^{-0.3} / 458.3$, $k_{12} = 0.12$, $k_{13} = 0.034$, $k_{21} = 0.041$, $k_{31} = 0.0019$, $k_{e0} = 0.26$.
+    *   *Kataria Model* (Pediatric Propofol): $V_1 = 0.52 \cdot \text{weight}$, $V_2 = 1.0 \cdot \text{weight}$, $V_3 = 8.2 \cdot \text{weight}$, $k_{10} = 0.066$, $k_{12} = 0.113$, $k_{13} = 0.051$, $k_{21} = 0.059$, $k_{31} = 0.0032$, $k_{e0} = 0.26$.
+    *   *Domino Model* (Ketamine): $V_1 = 0.063 \cdot \text{weight}$, $V_2 = 0.207 \cdot \text{weight}$, $V_3 = 1.51 \cdot \text{weight}$, $k_{10} = 0.4381$, $k_{12} = 0.5921$, $k_{13} = 0.59$, $k_{21} = 0.2470$, $k_{31} = 0.0146$, $k_{e0} = 0.15$.
+*   **Numerical Integration & Backward-Solving**: Continuous infusion rates $I(t)$ are computed inside the Euler integration loop (10x sub-steps per physical tick) to maintain numerical stability:
+    \[I(t) = \max\left(0, \frac{\text{targetA}_1 - A_1(t)}{\Delta t} + (k_{10} + k_{12} + k_{13})A_1(t) - k_{21}A_2(t) - k_{31}A_3(t)\right)\]
+*   **Ce-Targeted Overdrive Control**: To minimize time-to-target at the effect site ($C_e$), the system calculates a dynamic plasma target ($C_{p,\text{target}}$) with a safety limit of 3x the effect-site target:
+    \[C_{p,\text{target}} = \max\left(0, \min\left(3.0 \cdot C_{e,\text{target}}, C_{e,\text{target}} + (C_{e,\text{target}} - C_e) \cdot 1.5\right)\right)\]
+
 ### 6. Event Trigger, Clinical Scenarios & Workflow Engine
 
 #### 6.1 Pre-induction Workflow Interlock (MSMAIDS Checklist)
@@ -1077,7 +1164,7 @@ graph TD
     *   *Bronchospasm*: Resolves if anesthetized deeply ($MAC > 1.2$) or Epinephrine administered ($Ce > 0.01$).
 
 #### 6.4 IgE-Mediated Anaphylactic Shock Vasoplegia
-*   **Trigger Condition**: Administering a penicillin-containing drug (Ampicillin/Sulbactam) to a patient with a documented penicillin allergy.
+*   **Trigger Condition**: Administering a penicillin-containing drug (Ampicillin/Sulbactam) to a patient with a documented penicillin allergy. Triggers probabilistically by default (2% baseline clinical incidence, increased 4x if asthmatic, COPD, atopic, or highly anxious). Can be forced deterministically via `forcePenicillinAnaphylaxis: true` in patient state.
 *   **Physiological Impact**: Triggers immediate anaphylaxis, causing vasoplegia and bronchospasm:
     *   *Vasoplegia*: SVR is severely reduced:
         $$SVR_{\text{multiplier}} = 0.25 + 0.75 \cdot e^{-0.05 \cdot dt_{\text{anaphylaxis}}}$$
@@ -1100,7 +1187,7 @@ graph TD
 *   **Metabolite Pathways**:
     1.  *Vecuronium* metabolism yields **3-desacetylvecuronium (3-OH-vecuronium)**, which retains $80\%$ of the parent drug's paralytic potency. Accumulation prolongs paralysis.
     2.  *Morphine* metabolism yields **Morphine-6-glucuronide (M6G)**. If $M6G > 0.8\text{ mcg/mL}$, it triggers central respiratory depression, reducing respiratory rate: $RR_{\text{offset}} = -10$ bpm.
-    3.  *Meperidine* metabolism yields **Normeperidine**. If $Normeperidine > 1.2\text{ mcg/mL}$, it causes central nervous system hyper-excitation, triggering tonic-clonic seizures (`isSeizure = true`) and multiplying the metabolic rate by $8.0$.
+    3.  *Meperidine* metabolism yields **Normeperidine**. If $Normeperidine > 1.2\text{ mcg/mL}$, it causes central nervous system hyper-excitation, triggering tonic-clonic seizures (`isSeizure = true` / `seizureMetabolicMultiplier = 8.0`) probabilistically by default (15% baseline clinical incidence, increased 3x if patient has pre-existing epilepsy or seizure history). Can be forced deterministically via `forceNormepSeizure: true` in patient state.
 
 #### 6.7 Local Anesthetic Systemic Toxicity (LAST) & Cyanide Toxicity
 *   **LAST**: Lidocaine infusion at high doses blocks cardiac sodium channels, causing central nervous system excitation (seizures) followed by cardiac depression (bradycardia, conduction blocks, and asystole).
@@ -1259,7 +1346,7 @@ Postoperative ileus is a multifactorial bowel motility dysfunction governed by s
 *   **Resolution Criteria**: Resolves within $1 - 2\text{ seconds}$ once the swallow phase is complete, restoring baseline ventilatory drive and parameters.
 
 #### 6.27 Acute Variceal Bleeding Emergency
-*   **Trigger Conditions**: Sudden arterial/portal hypertensive pressure surge ($SBP \ge 160\text{ mmHg}$ or $HVPG \ge 12\text{ mmHg}$) in a patient with severe cirrhosis and pre-existing gastroesophageal varices.
+*   **Trigger Conditions**: Sudden arterial/portal hypertensive pressure surge ($SBP \ge 160\text{ mmHg}$ or $HVPG \ge 12\text{ mmHg}$) in a patient with severe cirrhosis and pre-existing gastroesophageal varices. Triggers probabilistically by default (10% baseline clinical incidence per pressure surge). Can be forced deterministically via `forceVaricealBleed: true` in patient state.
 *   **Physiological Impact**: Initiates active massive upper gastrointestinal hemorrhage ($BleedRate = 2.0 - 5.0\text{ mL/s}$). Rapid blood loss causes hypovolemia, falling CVP, drop in cardiac output, systemic hypotension, and subsequent profound tissue ischemia.
 *   **Resolution Criteria**: Requires splanchnic vasoconstrictor therapy (Terlipressin infusion or high-dose Octreotide, reducing portal pressure) maintained for $\ge 60\text{ seconds}$ combined with aggressive volume resuscitation to terminate the hemorrhage.
 
@@ -1271,7 +1358,7 @@ Postoperative ileus is a multifactorial bowel motility dysfunction governed by s
 *   **Resolution Criteria**: Managed via portal decompression (TIPS placement) or splanchnic vasoconstrictor therapy (Terlipressin) to restore effective arterial blood volume and normalize renal artery resistance.
 
 #### 6.29 Portopulmonary Hypertension (PoPH) Right Ventricular PEA Collapse
-*   **Trigger Conditions**: Severe liver cirrhosis ($cirrhosisFactor \ge 0.8$) elevates baseline mean pulmonary artery pressure ($mPAP > 25\text{ mmHg}$). Under acute physiologic stressors like hypoxia ($SpO_2 < 85\%$), hypercapnia ($PaCO_2 > 50\text{ mmHg}$), or severe acidosis ($pH < 7.15$), pulmonary vascular resistance spikes.
+*   **Trigger Conditions**: Severe liver cirrhosis ($cirrhosisFactor \ge 0.8$) elevates baseline mean pulmonary artery pressure ($mPAP > 25\text{ mmHg}$). Under acute physiologic stressors like hypoxia ($SpO_2 < 85\%$), hypercapnia ($PaCO_2 > 50\text{ mmHg}$), or severe acidosis ($pH < 7.15$), pulmonary vascular resistance spikes. Triggers probabilistically by default (10% baseline clinical incidence under stress, increased 3x if multiple stressors are present, and 2x if hypothermia Temp < 35°C is present). Can be forced deterministically via `forcePoPHCollapse: true` in patient state.
 *   **Physiological Impact**: The right ventricle, unaccustomed to high afterload, undergoes acute dilatation and failure. Cardiac output drops to near-zero, inducing pulseless electrical activity (PEA) cardiac arrest.
 *   **Resolution Criteria**: Emergency resuscitation requires immediate relief of pulmonary vasoconstriction (high $FiO_2$, hyperventilation to induce hypocapnic alkalosis) coupled with CPR chest compressions and epinephrine to restore coronary perfusion.
 
@@ -1303,7 +1390,7 @@ Postoperative ileus is a multifactorial bowel motility dysfunction governed by s
 *   **Resolution Criteria**: Avoidance of further nephrotoxic insults, fluid optimization, and supportive renal replacement therapy if severe uremia or volume overload develops.
 
 #### 6.34 Fluid Overload Pulmonary Edema Crisis
-*   **Trigger Conditions**: Aggressive intravenous fluid resuscitation ($netFluidBalance > 2000\text{ mL}$) administered in the presence of severe oliguria/AKI ($UOP < 15\text{ mL/h}$).
+*   **Trigger Conditions**: Aggressive intravenous fluid resuscitation ($netFluidBalance > 2000\text{ mL}$) administered in the presence of severe oliguria/AKI ($UOP < 15\text{ mL/h}$). Triggers probabilistically by default (10% baseline clinical incidence, increased 4x in presence of heart failure [CHF] or coronary artery disease [CAD], and 3x if patient is elderly >65 or has renal insufficiency). Can be forced deterministically via `forceFluidOverloadEdema: true` in patient state.
 *   **Physiological Impact**: Hydrostatic pressure drives fluid extravasation into the pulmonary interstitium and alveoli. This causes a severe drop in lung compliance:
     $$Compliance_{\text{overload}} = Compliance_{\text{baseline}} - 25.0 \quad \text{[mL/cmH2O]}$$ 
     In volume-controlled ventilation, this spikes peak inspiratory pressure ($PIP$) and impairs blood-gas exchange, resulting in progressive hypoxemia ($SpO_2 < 90\%$).
@@ -1333,32 +1420,33 @@ Postoperative ileus is a multifactorial bowel motility dysfunction governed by s
 
 
 #### 6.38 Halothane-Induced Hepatitis Crisis Loop
-*   **Trigger Conditions**: Cumulative metabolism of halothane (generating TFA-adducts $> 15.0$ arbitrary units) in a patient with a history of prior volatile anesthetic exposure (`priorAnestheticExposure === true`).
+*   **Trigger Conditions**: Cumulative metabolism of halothane (generating TFA-adducts $> 15.0$ arbitrary units) in a patient with a history of prior volatile anesthetic exposure (`priorAnestheticExposure === true`). Triggers probabilistically by default (0.5% baseline clinical incidence when threshold is crossed, increased 10x if prior volatile exposure is documented, 2x if obese BMI > 30, 2x if female sex, and 2x if middle-aged between 30 and 60). Can be forced deterministically via `forceHalothaneHepatitis: true` in patient state.
 *   **Physiological Impact**: Triggers severe immune-mediated hepatocellular necrosis:
     - Liver transaminases spike: `AST` and `ALT` increase to $>1000$ U/L, and `bilirubin` increases to $>10.0$ mg/dL.
-    - Core body temperature rises due to systemic inflammatory response: $rac{d(	ext{Temp})}{dt} = +0.02^{\circ}	ext{C/s}$ ($1.2^{\circ}	ext{C/min}$).
+    - Core body temperature rises due to systemic inflammatory response: $\frac{d(\text{Temp})}{dt} = +0.02^{\circ}\text{C/s}$ ($1.2^{\circ}\text{C/min}$).
     - Liver synthetic function fails: INR rises $>3.0$, and albumin drops, causing acute coagulopathy and bleeding risk.
 *   **Mitigation / Resolution**: Immediately discontinue all volatile anesthetics. Support hemodynamics, administer intravenous corticosteroids, and monitor liver function panels.
 
 #### 6.39 Methoxyflurane Fluoride-Induced High-Output Renal Failure
-*   **Trigger Conditions**: Serum fluoride levels exceeding the nephrotoxic threshold ($50	ext{ }\mu	ext{M}$) for a sustained duration (cumulative fluoride AUC: `accumulatedFluorideTime > 150` $\mu$M-hours).
+*   **Trigger Conditions**: Serum fluoride levels exceeding the nephrotoxic threshold ($50\text{ }\mu\text{M}$) for a sustained duration (cumulative fluoride AUC: `accumulatedFluorideTime > 150` $\mu$M-hours). By default, this triggers with a baseline probability of $15\%$ (`0.15`), unless forced by setting `forceMethoxyfluraneNephrotoxicity: true`.
+*   **Risk Modifiers**: $2.0\times$ multiplier for elderly patients (`age > 65`), and $3.0\times$ multiplier for patients with pre-existing renal disease (`isRenal || renalFailure || hasAki`), up to a maximum probability of $100\%$ ($1.0$).
 *   **Physiological Impact**: Causes acute proximal tubular necrosis, leading to nephrogenic diabetes insipidus:
     - Renal concentrating ability is lost, triggering polyuria: urine output rises to $>4.0$ mL/kg/h.
-    - Urine osmolality is fixed close to plasma ($U_{	ext{osm}} pprox 300$ mOsm/kg), and fractional excretion of sodium increases ($FENa > 2\%$).
+    - Urine osmolality is fixed close to plasma ($U_{\text{osm}} \approx 300$ mOsm/kg), and fractional excretion of sodium increases ($FENa > 2\%$).
     - Serum creatinine and BUN accumulate progressively. Severe dehydration and hypernatremia occur unless fluid losses are aggressively replaced.
 *   **Mitigation / Resolution**: Discontinue methoxyflurane. Administer intravenous fluids to match urine output, support renal perfusion, and avoid other nephrotoxic drugs.
 
 #### 6.40 Desiccated CO2 Absorbent Fire & Carbon Monoxide Poisoning
-*   **Trigger Conditions**: Exposure to difluoromethyl-ethyl ether volatile agents (Desflurane > Isoflurane) on desiccated CO2 absorbent canister (`absorbent.waterContent < 1.4%` for soda lime, or $<5\%$ for Baralyme).
+*   **Trigger Conditions**: Exposure to difluoromethyl-ethyl ether volatile agents (Desflurane > Isoflurane) on desiccated CO2 absorbent canister (`absorbent.waterContent < 1.4%` for soda lime, or $<5\%$ for Baralyme). Exothermic fire Sevoflurane degradation on dry soda lime generates extreme heat, spiking canister temperature: `absorbent.temperature` rises to $>80^{\circ}\text{C}$. Once the canister temperature exceeds $80^{\circ}\text{C}$, there is a baseline probability of $2\%$ (`0.02`) of a runaway exothermic ignition leading to active fire, unless forced by setting `forceAirwayFire: true`.
 *   **Physiological Impact**:
-    - *Carbon Monoxide Poisoning*: CO accumulates in the circuit, elevating carboxyhemoglobin (`carboxyhemoglobin > 15\%`). COHb reduces oxygen delivery, causing tissue hypoxia. The pulse oximeter falsely reads normal saturation ($SpO_{2,	ext{measured}} pprox 98\%$), masking the hypoxemia.
-    - *Exothermic Fire*: Sevoflurane degradation on dry Baralyme/soda lime generates extreme heat, spiking canister temperature: `absorbent.temperature` rises to $>80^{\circ}	ext{C}$. This melts circuit plastics, triggering an airway fire (`isAirwayFire = true`) and airway burns.
+    - *Carbon Monoxide Poisoning*: CO accumulates in the circuit, elevating carboxyhemoglobin (`carboxyhemoglobin > 15\%`). COHb reduces oxygen delivery, causing tissue hypoxia. The pulse oximeter falsely reads normal saturation ($SpO_{2,\text{measured}} \approx 98\%$), masking the hypoxemia.
+    - *Exothermic Fire*: Runaway reaction melts circuit plastics, triggering an airway fire (`isAirwayFire = true`) and airway burns.
 *   **Mitigation / Resolution**: Immediately replace the CO2 absorbent canister with a fresh, hydrated canister. Flush the breathing circuit with $100\%$ oxygen at high flows, discontinue the volatile agent, and treat airway fire according to fire protocol.
 
 #### 6.41 Nitrous Oxide-Induced Vitamin B12 & Methionine Synthase Shutdown
 *   **Trigger Conditions**: Exposure to Nitrous Oxide ($Fa_{N2O} > 0.3$) in a patient with baseline B12 deficiency (`b12Baseline < 200` pg/mL) or homozygous MTHFR mutations.
 *   **Physiological Impact**: Irreversible oxidation of Vitamin B12 inactivates methionine synthase (`methionineSynthaseActivity` drops to $0.0$).
-    - Homocysteine accumulates: $rac{d(	ext{Homocysteine})}{dt} = +1.5 	ext{ }\mu	ext{M/s}$, triggering vascular endothelial inflammation and microvascular thrombosis.
+    - Homocysteine accumulates: $\frac{d(\text{Homocysteine})}{dt} = +1.5 \text{ }\mu\text{M/s}$, triggering vascular endothelial inflammation and microvascular thrombosis.
     - DNA and myelin synthesis cease. Megaloblastic changes occur in bone marrow within $2-6$ hours.
     - If exposure is prolonged ($>12$ hours or repeated recreational inhalation), subacute combined degeneration (demyelination of spinal cord posterior/lateral columns) is triggered, presenting as sensory ataxia, neuropathies, and spasticity.
 *   **Mitigation / Resolution**: Discontinue Nitrous Oxide. Administer high-dose intramuscular cobalamin (Vitamin B12) and folate.
@@ -1372,7 +1460,8 @@ Postoperative ileus is a multifactorial bowel motility dysfunction governed by s
 
 
 #### 6.43 Ciliary Clearance Inhibition, Mucus Plug, and Bronchial Suctioning
-*   **Trigger Conditions**: Sustained depression of cilia beat frequency (`ciliaBeatFrequency < 45%`), leading to `ciliaryAtelectasisAccumulation > 3.0` and `isMucusPlugged = true`.
+*   **Trigger Conditions**: Sustained depression of cilia beat frequency (`ciliaBeatFrequency < 45%`), leading to `ciliaryAtelectasisAccumulation > 3.0`. By default, triggers with a baseline probability of $5\%$ (`0.05`) of forming a focal mucus plug (`isMucusPlugged = true`), unless forced by setting `forceMucusPlug: true`.
+*   **Risk Modifiers**: $2.0\times$ multiplier for tobacco smokers (`tobaccoSmoker`), $2.0\times$ multiplier for COPD (`copd`), and $2.0\times$ multiplier for asthma (`asthma`), up to a maximum probability of $100\%$ ($1.0$).
 *   **Physiological Impact**:
     - *Airway Resistance Penalty*: Airway resistance increases by $+20\text{ cmH2O/L/s}$, driving up peak airway pressures under volume control ventilation.
     - *Alveolar Shunt*: Atelectasis is promoted, increasing the shunt fraction.
@@ -1424,6 +1513,89 @@ Postoperative ileus is a multifactorial bowel motility dysfunction governed by s
     - *Alveolar Pre-oxygenation*: Rapidly pre-oxygenates the FRC buffer.
     - *Barotrauma / Tension Pneumothorax*: If the flush is pressed during inspiration (ventilator cycle active) or when the APL valve is closed ($\ge 30\text{ cmH2O}$), the high pressure ($50\text{ psi}$) triggers barotrauma and a tension pneumothorax (`hasPneumothorax = true`), causing lung compliance to drop to $25\%$, stroke volume to drop by $70\%$ (vena cava compression), and blood pressure (MAP) to collapse.
 *   **Mitigation / Resolution**: Perform needle decompression (`hasPneumothorax = false`) to release pleural air.
+
+#### 6.51 Propofol Infusion Syndrome (PRIS) Crisis Loop
+*   **Trigger Conditions**: Propofol infusion rate exceeds $67\text{ mcg/kg/min}$ ($4\text{ mg/kg/hr}$) for a cumulative duration of $>120$ seconds. Triggers probabilistically by default (5% baseline clinical incidence, increased 4x in presence of sepsis, trauma, or pediatric age <12). Can be forced deterministically via `forcePris: true` in patient state.
+*   **Physiological Impact**:
+    - *Mitochondrial Failure*: Accumulation of propofol inhibits the mitochondrial respiratory chain, blocking fatty acid oxidation.
+    - *Rhabdomyolysis & Hyperkalemia*: Skeletal muscle necrosis drives serum potassium ($K^+$) upwards at a rate of $+0.03\text{ mEq/L/s}$.
+    - *Acidosis*: Uncoupling of oxidative phosphorylation shifts metabolism to anaerobic pathways, raising lactate at $+0.08\text{ mmol/L/s}$ and causing severe metabolic acidosis (drop in pH).
+    - *Myocardial Stunning*: Direct myocardial mitochondrial dysfunction leads to progressive heart failure (stunning accumulation $+0.5\%/\text{s}$), reducing MAP and SV.
+    - *Lipemic Warning*: Serum turns milky/lipemic due to lipid vehicle accumulation.
+*   **Mitigation / Resolution**: Immediately discontinue the propofol infusion, support hemodynamics, administer Calcium to stabilize cardiac membranes, administer Sodium Bicarbonate to treat acidosis, and hyperventilate to clear CO2.
+
+#### 6.52 Etomidate-Induced Adrenocortical Suppression Crisis
+*   **Trigger Conditions**: Effect-site concentration of Etomidate exceeds $0.05\text{ mcg/mL}$ (`etomidateCe > 0.05`). Triggers probabilistically by default (10% baseline clinical incidence, increased 5x in presence of sepsis, trauma, or elderly age >65). Can be forced deterministically via `forceAdrenalSuppression: true` in patient state.
+*   **Physiological Impact**:
+    - *11-Beta-Hydroxylase Inhibition*: Etomidate binds and reversibly inhibits the mitochondrial enzyme 11-$\beta$-hydroxylase, blocking conversion of 11-deoxycortisol to cortisol.
+    - *Steroid Depletion*: Serum cortisol levels rapidly decay from normal ($15\text{ mcg/dL}$) to exhausted levels ($<3.0\text{ mcg/dL}$).
+    - *Vasopressor Resistance*: Cortisol depletion blunts vascular responsiveness to catecholamines. Sympathetic vasoconstrictive surges and vasopressor SVR/CO multipliers are blunted by $40\%$, leading to refractory hypotension during surgical incision.
+*   **Mitigation / Resolution**: Administer **Dexamethasone** or Hydrocortisone to restore glucocorticoid activity and reverse vasopressor blunting.
+
+#### 6.53 Ketamine Washout Emergence Delirium Loop
+*   **Trigger Conditions**: Ketamine wash-out phase when effect-site concentration decays into the psychotomimetic window ($0.05 < ketamineCe < 0.3$) while sedative coverage is inadequate (`sedativeEff < 0.2`). Triggers probabilistically by default (15% baseline clinical incidence, increased 3x in presence of high anxiety, trauma, or age extremes <18 or >65). Can be forced deterministically via `forceEmergenceDelirium: true` in patient state.
+*   **Physiological Impact**:
+    - *Dissociative Agitation*: Hyper-excitation of limbic structures causes severe emergence delirium and psychotomimetic agitation.
+    - *Sympathetic Surge*: Triggers intense endogenous catecholamine release, raising heart rate (+20 bpm) and blood pressure (+25 mmHg targets).
+    - *Sialorrhea*: Excitation of salivary glands causes profound hypersalivation (sialorrhea), adding a severe laryngospasm risk.
+*   **Mitigation / Resolution**: Administer Midazolam or Propofol to restore sedative coverage. Administer Glycopyrrolate or Atropine to treat sialorrhea.
+
+#### 6.54 Intra-Arterial Barbiturate Precipitation and Vasospasm Injury
+*   **Trigger Conditions**: Injection of Thiopental or Methohexital into an active arterial line (`targetLine.category === 'Arterial'`). Triggers probabilistically by default (50% baseline clinical incidence). Can be forced deterministically via `forceBarbituratePrecipitation: true` in patient state.
+*   **Physiological Impact**:
+    - *Chemical Endarteritis*: Highly alkaline barbiturate (pH 10.5) mixes with blood (pH 7.4), causing instant crystallization and drug precipitation.
+    - *Microvascular Occlusion*: Solid micro-crystals occlude distal arterioles, causing severe pain (hemodynamic surge: HR +30, MAP +40) and immediate cyanosis/loss of pulse waveform in the distal limb.
+    - *Severe Vasospasm*: Endothelial irritation triggers intense reflex arterial vasospasm, worsening distal limb ischemia.
+*   **Mitigation / Resolution**: Administer **Papaverine** (direct vasodilator) or **Lidocaine** into the same arterial line to relieve spasm and dissolve crystals.
+
+#### 6.55 Benzodiazepine Withdrawal Seizures and Flumazenil Antagonism
+*   **Trigger Conditions**: Flumazenil administration (`flumazenilCe > 0.02`) in a patient with chronic benzodiazepine use (`chronicBenzoUse === true`). Triggers probabilistically by default (10% baseline clinical incidence, increased 3x in presence of sepsis, trauma, or high anxiety). Can be forced deterministically via `forceBenzoWithdrawalSeizure: true` in patient state.
+*   **Physiological Impact**:
+    - *Acute GABA-A Antagonism*: Flumazenil displaces benzodiazepines from the receptor, removing inhibitory tone.
+    - *Tonic-Clonic Seizures*: Sudden disinhibition triggers generalized tonic-clonic seizures (`isSeizure = true`, `seizureMetabolicMultiplier = 8.0`).
+    - *Metabolic Surge*: Seizure activity causes a $300\%$ spike in metabolic oxygen demand ($VO_2$), driving rapid oxygen desaturation ($SpO_2$ collapse) if the airway is unprotected.
+*   **Mitigation / Resolution**: Administer **Propofol** ($Ce > 1.2\text{ mcg/mL}$) or restart Benzodiazepines (e.g. Midazolam $Ce > 0.08$) to restore GABA-A mediated inhibition.
+
+#### 6.56 Opioid-Induced Chest Wall Rigidity (Wooden Chest Syndrome)
+*   **Trigger Conditions**: Effect-site concentration of Fentanyl, Remifentanil, or Sufentanil exceeds the high threshold (`fentanylCe > 0.0015` or `remifentanilCe > 0.003` or `sufentanilCe > 0.00015`) and no muscle relaxant is active (`maxNMJOccupancy < 0.8`). Triggers probabilistically by default (3% baseline clinical incidence, increased 4x if age is extreme [<12 or >65] or concurrent `sedativeEff < 0.1`). Can be forced deterministically via `forceOpioidRigidity: true` in patient state.
+*   **Physiological Impact**: Patient becomes apneic, chest wall compliance drops to $3\text{ mL/cmH2O}$, and airway resistance surges to $999\text{ cmH2O/L/s}$, completely preventing bag-mask or mechanical ventilation.
+*   **Mitigation / Resolution**: Administer a neuromuscular blocking agent (`maxNMJOccupancy >= 0.8`) or Naloxone (`naloxoneCe > 0.001`).
+
+#### 6.57 Remifentanil-Induced Hyperalgesia (OIH)
+*   **Trigger Conditions**: Discontinuation of high-dose Remifentanil infusion after prolonged exposure (`remifentanilInfusionDuration > 180` seconds at rate $>0.15\text{ mcg/kg/min}$). Triggers probabilistically by default (15% baseline clinical incidence, increased 3x if female or highly anxious). Can be forced deterministically via `forceRemifentanilHyperalgesia: true` in patient state.
+*   **Physiological Impact**: Central glutamate and substance P sensitization causes a $2.5\text{x}$ amplification of sympathetic pain spikes and nociceptive response.
+*   **Mitigation / Resolution**: Prevented or resolved by NMDA antagonists such as Ketamine (`ketamineCe > 0.05`) or Magnesium Sulfate (`magnesiumCe > 1.0`).
+
+#### 6.58 Sphincter of Oddi Spasm & Biliary Colic
+*   **Trigger Conditions**: Opioid agonist accumulation (`morphineCe > 0.04` or `fentanylCe > 0.001`). Triggers probabilistically by default (2% baseline clinical incidence, increased 4x if elderly [age >50] or 10x if prior biliary disease/cholecystectomy). Can be forced deterministically via `forceSphincterOfOddiSpasm: true` in patient state.
+*   **Physiological Impact**: Spasm of the choledochoduodenal sphincter induces severe biliary colic pain, causing autonomic surges (+15 bpm HR and +20 mmHg MAP offsets).
+*   **Mitigation / Resolution**: Reversible by Naloxone (`naloxoneCe > 0.001`) or Atropine (`atropineCe > 0.01`).
+
+#### 6.59 Opioid-Induced Pruritus
+*   **Trigger Conditions**: Histamine/central mu-receptor activation (`morphineCe > 0.03`). Triggers probabilistically by default (10% baseline clinical incidence, increased 3x if female). Can be forced deterministically via `forceOpioidPruritus: true` in patient state.
+*   **Physiological Impact**: Central co-activation of Mu-opioid and gastrin-releasing peptide receptors triggers severe facial itching.
+*   **Mitigation / Resolution**: Administer Ondansetron (`ondansetronCe > 0.02`) or titrate low-dose Naloxone (`0.0002 < naloxoneCe < 0.002`).
+
+#### 6.60 Naloxone-Induced Autonomic Sympathetic Surge & Renarcotization
+*   **Trigger Conditions**:
+    - *Sympathetic Surge*: Rapid Naloxone reversal (`naloxoneCe > 0.002`) in the presence of high opioid concentrations (`opioidEff > 0.4`). Triggers probabilistically by default (5% baseline clinical incidence, increased 5x if patient has coronary artery disease [CAD], heart failure [CHF], or high anxiety). Can be forced deterministically via `forceNaloxoneSurge: true` in patient state.
+    - *Renarcotization*: Naloxone levels decay (`naloxoneCe < 0.0005`) while longer-acting agonist levels remain elevated.
+*   **Physiological Impact**:
+    - *Sympathetic Surge*: Hypertensive crisis and tachycardia (HR +30 bpm, MAP +35 mmHg offsets) decaying over 120 seconds.
+    - *Renarcotization*: Recurrence of central respiratory depression and apnea.
+*   **Mitigation / Resolution**: Repeat dose of Naloxone (`naloxoneCe >= 0.001`).
+
+#### 6.61 Postoperative Ileus Sparing & Multimodal Analgesia
+*   **Trigger Conditions**: Multimodal non-opioid pain medications (Acetaminophen or Ketorolac) are administered in the presence of active opioid infusions or concentrations (Fentanyl, Morphine, Remifentanil).
+*   **Physiological Impact**: The non-opioid sparing effect reduces the Mu-opioid receptor-mediated gut blockade fraction on motility by up to $40\%$ ($\text{sparingFactor} = 1.0 - 0.40 \cdot \max(\text{acetEff}, \text{ketoEff})$), preserving gastrointestinal motility and accelerating the resolution of postoperative or inflammatory ileus.
+*   **Mitigation / Resolution**: Optimization of perioperative non-opioid dosing regimens ($1000\text{ mg}$ Acetaminophen IV/PO, $30\text{ mg}$ Ketorolac IV/IM) combined with regional/epidural sympathetic blockade.
+
+#### 6.62 Connected Awareness under TCI Closed-Loop Failure & Adaptive Overdrive
+*   **Trigger Conditions**: Disconnection or failure of TCI closed-loop feed (e.g. processed EEG electrode artifact or pump communication loss) while surgical stimulus remains active. Can also trigger during underdosing or incorrect PK model selections in obese patients (e.g. using Marsh/Schnider without body weight adjustments).
+*   **Physiological Impact**:
+    - *AAGA Initiation*: Rapid drop in hypnosis levels ($Ce < C_{50}$) under surgical stimulation triggers connected intraoperative awareness (AAGA).
+    - *Autonomic Activation*: Leading to hypertensive and tachycardic surges (HR +25 bpm, MAP +30 mmHg offsets) and active sympathetic drive.
+*   **Mitigation / Resolution**: Rapid restoration of TCI target concentration or transition to manual override. Under Ce-mode, the adaptive overdrive algorithm automatically boosts the plasma concentration target to load the effect site and suppress awareness.
 
 ### 7. Attending Direct Chat, Advisor & NLP Engine
 
@@ -1666,6 +1838,52 @@ The following lists the exact variables, structures, and data types stored in th
     *   `fearExtinguished`: `boolean` (Fear memory successfully erased indicator)
     *   `displayEmergenceLag`: `boolean` (Indicates emergence delay is active)
 *   `activeMeds`: `PKPDModel[]` (Instantiated pharmacology models tracking compartment amounts $A_1, A_2, A_3$, effect site $C_e$, plasma concentration $C_p$, dynamic central volume `dynamicV1`, active infusion duration `infusionDurationSeconds`, and context-sensitive half-times `csht`).
+*   `cortisolLevel`: `number` (Dynamic cortisol level in mcg/dL)
+*   `adrenalSuppressionActive`: `boolean` (Adrenocortical 11-beta-hydroxylase blockade flag)
+*   `prisAccumulation`: `number` (Cumulative seconds of high-dose propofol infusion)
+*   `prisTriggered`: `boolean` (Propofol Infusion Syndrome crisis active flag)
+*   `emergenceDeliriumTriggered`: `boolean` (Ketamine emergence delirium agitation active flag)
+*   `barbiturateArterialPrecipitation`: `boolean` (Arterial crystal precipitation active flag)
+*   `barbiturateArterialDrugName`: `string` (Name of injected precipitating barbiturate)
+*   `chronicBenzoUse`: `boolean` (Chronic benzodiazepine tolerance flag)
+*   `hydroxyMidazolam`: `number` (Active metabolite 1-hydroxymidazolam level)
+*   `norketamine`: `number` (Active metabolite norketamine level)
+*   `opioidRigidityActive`: `boolean` (Chest wall rigidity active flag)
+*   `remifentanilHyperalgesiaActive`: `boolean` (Opioid-induced hyperalgesia active flag)
+*   `remifentanilInfusionDuration`: `number` (Seconds of high-rate remifentanil infusion)
+*   `sphincterOfOddiSpasmActive`: `boolean` (Sphincter of Oddi spasm active flag)
+*   `opioidPruritusActive`: `boolean` (Opioid-induced pruritus active flag)
+*   `renarcotizationActive`: `boolean` (Renarcotization central apnea active flag)
+*   `naloxoneSurgeTriggered`: `boolean` (Naloxone sympathetic surge triggered flag)
+*   `naloxoneSurgeActive`: `boolean` (Naloxone sympathetic surge active flag)
+*   `naloxoneSurgeTime`: `number` (Remaining seconds of sympathetic surge)
+*   `forcePenicillinAnaphylaxis`: `boolean` (Force IgE-mediated anaphylactic shock flag)
+*   `forcePris`: `boolean` (Force Propofol Infusion Syndrome flag)
+*   `forceAdrenalSuppression`: `boolean` (Force Etomidate adrenal suppression flag)
+*   `forceEmergenceDelirium`: `boolean` (Force Ketamine emergence delirium flag)
+*   `forceBarbituratePrecipitation`: `boolean` (Force Barbiturate arterial precipitation flag)
+*   `forceBenzoWithdrawalSeizure`: `boolean` (Force Flumazenil benzo withdrawal seizure flag)
+*   `forceOpioidRigidity`: `boolean` (Force Opioid chest wall rigidity flag)
+*   `forceRemifentanilHyperalgesia`: `boolean` (Force Remifentanil-induced hyperalgesia flag)
+*   `forceSphincterOfOddiSpasm`: `boolean` (Force Sphincter of Oddi spasm flag)
+*   `forceOpioidPruritus`: `boolean` (Force Opioid-induced pruritus flag)
+*   `forceNaloxoneSurge`: `boolean` (Force Naloxone sympathetic surge flag)
+*   `forceHalothaneHepatitis`: `boolean` (Force Halothane hepatitis flag)
+*   `forceMethoxyfluraneNephrotoxicity`: `boolean` (Force Methoxyflurane fluoride-induced nephrotoxicity flag)
+*   `forceAirwayFire`: `boolean` (Force runaway exothermic CO2 absorbent fire flag)
+*   `forceMucusPlug`: `boolean` (Force focal mucus plug formation flag)
+*   `forceVaricealBleed`: `boolean` (Force variceal bleeding event flag)
+*   `forcePoPHCollapse`: `boolean` (Force Portopulmonary Hypertension acute right ventricular collapse flag)
+*   `forceFluidOverloadEdema`: `boolean` (Force Fluid Overload pulmonary edema flag)
+*   `forceNormepSeizure`: `boolean` (Force Normeperidine-induced seizure flag)
+*   `halothaneHepatitisRolled`: `boolean | undefined` (Indicates if Halothane hepatitis has been randomly rolled)
+*   `methoxyfluraneNephrotoxicityRolled`: `boolean | undefined` (Indicates if Methoxyflurane nephrotoxicity has been randomly rolled)
+*   `airwayFireRolled`: `boolean | undefined` (Indicates if runaway airway fire has been randomly rolled)
+*   `mucusPlugRolled`: `boolean | undefined` (Indicates if mucus plug has been randomly rolled)
+*   `varicealBleedRolled`: `boolean | undefined` (Indicates if variceal bleeding has been randomly rolled)
+*   `poPHCollapseRolled`: `boolean | undefined` (Indicates if PoPH collapse has been randomly rolled)
+*   `fluidOverloadEdemaRolled`: `boolean | undefined` (Indicates if fluid overload edema has been randomly rolled)
+*   `normepSeizureRolled`: `boolean | undefined` (Indicates if normeperidine seizure has been randomly rolled)
 *   `electrolytes`: `Object` (na, k, cl, ca, ph)
 *   `coags`: `Object` (r_offset, ma_offset, angle_offset)
 

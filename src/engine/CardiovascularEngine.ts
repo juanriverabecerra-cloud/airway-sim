@@ -47,6 +47,7 @@ export interface PatientState {
   ischemiaMildLogged?: boolean;
   ischemiaSevereLogged?: boolean;
   hasPneumothorax?: boolean;
+  adrenalSuppressionActive?: boolean;
 }
 
 export interface VitalsState {
@@ -150,8 +151,12 @@ export class CardiovascularEngine {
 
     const safeDrugSvrMod = typeof drugEffects.drugSvrMod === 'number' && Number.isFinite(drugEffects.drugSvrMod) ? Math.max(0.1, drugEffects.drugSvrMod) : 1.0;
     const safeDrugInotropyMod = typeof drugEffects.drugInotropyMod === 'number' && Number.isFinite(drugEffects.drugInotropyMod) ? Math.max(0.1, drugEffects.drugInotropyMod) : 1.0;
-    const safeSvrSympatheticSpike = typeof drugEffects.svrSympatheticSpike === 'number' && Number.isFinite(drugEffects.svrSympatheticSpike) ? drugEffects.svrSympatheticSpike : 0;
-    const safeContractilitySympatheticSpike = typeof drugEffects.contractilitySympatheticSpike === 'number' && Number.isFinite(drugEffects.contractilitySympatheticSpike) ? drugEffects.contractilitySympatheticSpike : 0;
+    let safeSvrSympatheticSpike = typeof drugEffects.svrSympatheticSpike === 'number' && Number.isFinite(drugEffects.svrSympatheticSpike) ? drugEffects.svrSympatheticSpike : 0;
+    let safeContractilitySympatheticSpike = typeof drugEffects.contractilitySympatheticSpike === 'number' && Number.isFinite(drugEffects.contractilitySympatheticSpike) ? drugEffects.contractilitySympatheticSpike : 0;
+    if (patient.adrenalSuppressionActive) {
+      safeSvrSympatheticSpike *= 0.6;
+      safeContractilitySympatheticSpike *= 0.6;
+    }
     const safeHrSympatheticSpike = typeof drugEffects.hrSympatheticSpike === 'number' && Number.isFinite(drugEffects.hrSympatheticSpike) ? drugEffects.hrSympatheticSpike : 0;
     const safeShiveringHRDrive = typeof drugEffects.shiveringHRDrive === 'number' && Number.isFinite(drugEffects.shiveringHRDrive) ? drugEffects.shiveringHRDrive : 0;
     const safeAnaphylaxisHrMod = typeof drugEffects.anaphylaxisHrMod === 'number' && Number.isFinite(drugEffects.anaphylaxisHrMod) ? drugEffects.anaphylaxisHrMod : 0;

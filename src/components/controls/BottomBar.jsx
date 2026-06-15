@@ -1,6 +1,6 @@
 import { INHALATIONAL_AGENTS } from '../../engine/Pharmacology';
 
-export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSettings, patient, setPatient }) => {
+export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSettings, patient, setPatient, logEvent }) => {
   // === PHYSIOLOGICAL STOICHIOMETRY ===
   const totalFGF = gasSettings.o2Flow + gasSettings.airFlow + gasSettings.n2oFlow;
   // Air is ~21% oxygen.
@@ -239,6 +239,96 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
               +
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* 5. Troubleshooting & Safety Overrides */}
+      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-[1_1_220px]" style={{ minWidth: 0 }}>
+        <div className="flex justify-between items-center mb-1 px-1 border-b border-white/5 pb-1">
+          <span className="text-[10px] text-red-400 font-bold uppercase tracking-widest flex items-center gap-1 font-mono">⚠️ Machine Safety</span>
+          <div className="flex gap-1">
+            {patient?.isO2PipelineCrossover && <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" title="Pipeline Crossover Warning" />}
+            {patient?.isO2PipelineDisconnected && <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse shadow-[0_0_8px_rgba(234,179,8,0.8)]" title="Pipeline Disconnection Warning" />}
+            {(patient?.stuckInspiratoryValve || patient?.stuckExpiratoryValve) && <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.8)]" title="Stuck Circuit Valve Warning" />}
+          </div>
+        </div>
+        <div className="relative font-mono mt-1">
+          <select 
+            value="" 
+            onChange={(e) => {
+              const action = e.target.value;
+              if (action === 'crossover') {
+                const nextVal = !patient?.isO2PipelineCrossover;
+                setPatient(p => ({ ...p, isO2PipelineCrossover: nextVal }));
+                if (logEvent) logEvent(`Action: ${nextVal ? 'Simulated pipeline crossover! Wall oxygen pipeline now delivers nitrous oxide.' : 'Resolved pipeline crossover. Wall oxygen pipeline restored.'}`);
+              } else if (action === 'disconnect') {
+                const nextVal = !patient?.isO2PipelineDisconnected;
+                setPatient(p => ({ ...p, isO2PipelineDisconnected: nextVal }));
+                if (logEvent) logEvent(`Action: ${nextVal ? 'Disconnected oxygen pipeline from wall outlet.' : 'Connected oxygen pipeline to wall outlet.'}`);
+              } else if (action === 'cylinder') {
+                const nextVal = !patient?.isO2CylinderOpen;
+                setPatient(p => ({ ...p, isO2CylinderOpen: nextVal }));
+                if (logEvent) logEvent(`Action: ${nextVal ? 'Opened backup oxygen cylinder (E-cylinder).' : 'Closed backup oxygen cylinder.'}`);
+              } else if (action === 'valves') {
+                const hasStuck = patient?.stuckInspiratoryValve || patient?.stuckExpiratoryValve;
+                if (hasStuck) {
+                  setPatient(p => ({ ...p, stuckInspiratoryValve: false, stuckExpiratoryValve: false }));
+                  if (logEvent) logEvent("Action: Unstuck breathing circuit unidirectional valves.");
+                } else {
+                  setPatient(p => ({ ...p, stuckInspiratoryValve: true }));
+                  if (logEvent) logEvent("Action: Sticking circle system inspiratory unidirectional valve open (rebreathing induced).");
+                }
+              } else if (action === 'flush') {
+                const isInsp = patient?.ventilationStatus === 'mechanical' || patient?.ventilationStatus === 'assisted'; 
+                const aplSetting = typeof patient?.aplValveSetting === 'number' ? patient.aplValveSetting : 0;
+                const closedApl = aplSetting >= 30;
+                const triggersPneumo = isInsp || closedApl;
+
+                setPatient(p => {
+                  const lungVols = p.lungVolumes || { frc_L: 2.5 };
+                  const nextO2Buffer = lungVols.frc_L * 1.0; 
+                  return {
+                    ...p,
+                    isOxygenFlushPressed: true,
+                    oxygenBuffer: nextO2Buffer,
+                    hasPneumothorax: triggersPneumo ? true : p.hasPneumothorax
+                  };
+                });
+
+                if (triggersPneumo) {
+                  if (logEvent) logEvent("🚨 BAROTRAUMA! Pressed Oxygen Flush valve with a closed APL valve or during positive-pressure inspiration, triggering a TENSION PNEUMOTHORAX!");
+                } else {
+                  if (logEvent) logEvent("💨 Pressed Oxygen Flush valve. Momentum flush pre-oxygenates FRC buffer and dilutes circuit anesthetic agents by 50%.");
+                }
+              } else if (action === 'canister') {
+                setPatient(p => ({
+                  ...p,
+                  absorbent: { waterContent: 15.0, temperature: 22.0, type: 'soda_lime' },
+                  isAirwayFire: false,
+                  hasCoPoisoningLog: false,
+                  hasCompoundALog: false
+                }));
+                if (logEvent) logEvent("✅ SUCCESS: CO2 absorbent canister replaced with a fresh, hydrated canister! Temperature reset to 22.0°C and circuit fire resolved.");
+              }
+            }} 
+            className="w-full glass-input text-[10px] font-bold text-red-300 border border-white/10 rounded-lg outline-none appearance-none px-2 py-1.5 text-center cursor-pointer hover:border-red-500/85 transition font-mono bg-slate-950"
+          >
+            <option value="" disabled>🛠️ Troubleshooting Overrides...</option>
+            <option value="flush">💨 Press Oxygen Flush Valve</option>
+            <option value="canister">🔄 Replace CO2 Absorbent</option>
+            <option value="cylinder">
+              {patient?.isO2CylinderOpen ? '🛢️ Close Backup O2 Cylinder' : '🛢️ Open Backup O2 Cylinder'}
+            </option>
+            <option value="disconnect">
+              {patient?.isO2PipelineDisconnected ? '🔌 Connect O2 Pipeline' : '🔌 Disconnect O2 Pipeline'}
+            </option>
+            <option value="crossover">
+              {patient?.isO2PipelineCrossover ? '⚠️ Fix Pipeline Crossover' : '⚠️ Simulate Pipeline Crossover'}
+            </option>
+            <option value="valves">
+              {(patient?.stuckInspiratoryValve || patient?.stuckExpiratoryValve) ? '🔄 Unstick Unidirectional Valves' : '🔄 Stick Circle Valve Open'}
+            </option>
+          </select>
         </div>
       </div>
       

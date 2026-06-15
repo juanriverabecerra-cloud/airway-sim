@@ -38,6 +38,10 @@ export class PKPDModel {
   infusionDurationSeconds: number = 0; // Cumulative duration of active infusion (seconds)
   csht: number = 0; // Context-sensitive half-time (minutes)
 
+  tciMode: 'none' | 'Cp' | 'Ce' = 'none';
+  tciTarget: number = 0;
+  tciModelName: string = 'Schnider';
+
   constructor(med: MedicationProfileInput, weight: number) {
     this.name = med.name || 'Unknown';
     this.classes = med.classes || [];
@@ -86,6 +90,77 @@ export class PKPDModel {
       w = 70.0;
     }
     this.weight = Math.max(1.0, Math.min(500.0, w));
+  }
+
+  setTci(mode: 'none' | 'Cp' | 'Ce', target: number, modelName?: string, patient?: any): void {
+    this.tciMode = mode;
+    this.tciTarget = Number(target) || 0;
+    if (modelName) {
+      this.tciModelName = modelName;
+    }
+    if (mode !== 'none' && patient) {
+      this.updateModelParameters(this.tciModelName, patient);
+    }
+  }
+
+  updateModelParameters(modelName: string, patient: any): void {
+    const age = patient.age || 40;
+    const weight = this.weight;
+    const height = patient.height || 170;
+    const sex = patient.sex || 'male';
+
+    if (modelName === 'Marsh') {
+      this.pk.V1 = 0.228 * weight;
+      this.pk.V2 = 0.363 * weight;
+      this.pk.V3 = 2.893 * weight;
+      this.pk.k10 = 0.119;
+      this.pk.k12 = 0.112;
+      this.pk.k13 = 0.042;
+      this.pk.k21 = 0.055;
+      this.pk.k31 = 0.0033;
+      this.pk.ke0 = 0.26;
+    } else if (modelName === 'Schnider') {
+      this.pk.V1 = 4.27;
+      this.pk.V2 = 18.9 - 0.391 * (age - 53);
+      this.pk.V3 = 238.0;
+      const Cl1 = 1.29 - 0.024 * (age - 53);
+      this.pk.k10 = Cl1 / this.pk.V1;
+      this.pk.k12 = 0.302 - 0.0056 * (age - 53);
+      this.pk.k13 = 0.196;
+      this.pk.k21 = Cl1 / this.pk.V2;
+      this.pk.k31 = 0.0035;
+      this.pk.ke0 = 0.456;
+    } else if (modelName === 'Paedfusor') {
+      this.pk.V1 = 0.458 * weight;
+      this.pk.V2 = 1.34 * weight;
+      this.pk.V3 = 8.20 * weight;
+      this.pk.k10 = 70.0 * Math.pow(weight, -0.3) / 458.3;
+      this.pk.k12 = 0.12;
+      this.pk.k13 = 0.034;
+      this.pk.k21 = 0.041;
+      this.pk.k31 = 0.0019;
+      this.pk.ke0 = 0.26;
+    } else if (modelName === 'Kataria') {
+      this.pk.V1 = 0.52 * weight;
+      this.pk.V2 = 1.0 * weight;
+      this.pk.V3 = 8.2 * weight;
+      this.pk.k10 = 0.066;
+      this.pk.k12 = 0.113;
+      this.pk.k13 = 0.051;
+      this.pk.k21 = 0.059;
+      this.pk.k31 = 0.0032;
+      this.pk.ke0 = 0.26;
+    } else if (modelName === 'Domino') {
+      this.pk.V1 = 0.063 * weight;
+      this.pk.V2 = 0.207 * weight;
+      this.pk.V3 = 1.51 * weight;
+      this.pk.k10 = 0.4381;
+      this.pk.k12 = 0.5921;
+      this.pk.k13 = 0.59;
+      this.pk.k21 = 0.2470;
+      this.pk.k31 = 0.0146;
+      this.pk.ke0 = 0.15;
+    }
   }
 
   // Administer a bolus (instantly enters V1)
@@ -236,6 +311,18 @@ export class PKPDModel {
     const effectiveFreeFraction = Math.min(1.0, freeFraction * (safeV1VolumeRatio > 1.2 ? 1.2 : 1.0));
 
     for (let i = 0; i < subSteps; i++) {
+      if (this.tciMode === 'Cp' || this.tciMode === 'Ce') {
+        let targetCp = this.tciTarget;
+        if (this.tciMode === 'Ce') {
+          // Ce-controlled overshoot targeting
+          targetCp = Math.max(0, Math.min(3.0 * this.tciTarget, this.tciTarget + (this.tciTarget - this.Ce) * 1.5));
+        }
+        const targetA1 = targetCp * dynamicV1;
+        // Euler backward-solving for required infusion rate (mg/sec)
+        const reqInfRate = (targetA1 - this.A1) / subDt + (k10 + k12 + k13) * this.A1 - k21 * this.A2 - k31 * this.A3;
+        this.currentInfusionRate = Math.max(0, reqInfRate);
+      }
+
       // 1. Add continuous infusion to Central Compartment
       this.A1 += this.currentInfusionRate * subDt;
 

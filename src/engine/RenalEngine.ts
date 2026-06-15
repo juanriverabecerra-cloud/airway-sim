@@ -24,6 +24,13 @@ export interface RenalPatientState {
   weight?: number;
   ckd?: boolean;
   glucose?: number;
+  fluidOverloadEdemaRolled?: boolean;
+  forceFluidOverloadEdema?: boolean;
+  chf?: boolean;
+  cad?: boolean;
+  renalFailure?: boolean;
+  isRenal?: boolean;
+  age?: number;
 }
 
 export interface RenalVitalsState {
@@ -64,6 +71,7 @@ export interface RenalOutput {
   hasPrerenalOliguria: boolean;
   hasFluidOverloadEdema: boolean;
   events: string[];
+  fluidOverloadEdemaRolled?: boolean;
 }
 
 export class RenalEngine {
@@ -294,7 +302,30 @@ export class RenalEngine {
     const hasAki = akiDamage > 0.35 || akiStage >= 1;
 
     // Fluid Overload: net fluid balance (inputs - outputs) > 2000 mL and UOP is blunted (< 15 mL/h)
-    const hasFluidOverloadEdema = inputs.netFluidBalance > 2000.0 && urineOutputRate < 15.0;
+    let hasFluidOverloadEdema = !!patient.hasFluidOverloadEdema;
+    let fluidOverloadEdemaRolled = patient.fluidOverloadEdemaRolled;
+
+    if (inputs.netFluidBalance < 1500.0) {
+      fluidOverloadEdemaRolled = undefined;
+    }
+
+    const edemaCondition = inputs.netFluidBalance > 2000.0 && urineOutputRate < 15.0;
+
+    if (edemaCondition && !hasFluidOverloadEdema && fluidOverloadEdemaRolled === undefined) {
+      const baseProb = 0.10; // 10% base chance of pulmonary edema under fluid overload
+      const isElderly = typeof patient.age === 'number' && patient.age > 65;
+      const modifier = (patient.chf || patient.cad ? 4.0 : 1.0) * (patient.isRenal || patient.renalFailure || isElderly ? 3.0 : 1.0);
+      const prob = Math.min(1.0, baseProb * modifier);
+      fluidOverloadEdemaRolled = Math.random() < prob;
+
+      if (patient.forceFluidOverloadEdema || fluidOverloadEdemaRolled) {
+        hasFluidOverloadEdema = true;
+        events.push("🚨 CRITICAL EMERGENCY: Fluid Overload Pulmonary Edema! Massive fluid resuscitation in the face of severe oliguria has precipitated alveolar fluid extravasation.");
+      } else {
+        fluidOverloadEdemaRolled = false;
+        events.push("⚠️ Clinical Note: Net fluid balance exceeds +2000 mL under oliguric conditions. Fortunately, pulmonary capillary membranes remain intact (no acute pulmonary edema triggered). Monitor compliance.");
+      }
+    }
 
     // Event Logging
     if (hasPrerenalOliguria && !patient.hasPrerenalOliguria) {
@@ -302,9 +333,6 @@ export class RenalEngine {
     }
     if (hasAki && !patient.hasAki) {
       events.push(`🚨 CLINICAL ALERT: Acute Kidney Injury (Stage ${akiStage}) has developed! Serum creatinine has risen and tubular function is impaired.`);
-    }
-    if (hasFluidOverloadEdema && !patient.hasFluidOverloadEdema) {
-      events.push("🚨 CRITICAL EMERGENCY: Fluid Overload Pulmonary Edema! Massive fluid resuscitation in the face of severe oliguria has precipitated alveolar fluid extravasation.");
     }
 
     return {
@@ -326,7 +354,8 @@ export class RenalEngine {
       hasAki,
       hasPrerenalOliguria,
       hasFluidOverloadEdema,
-      events
+      events,
+      fluidOverloadEdemaRolled
     };
   }
 }

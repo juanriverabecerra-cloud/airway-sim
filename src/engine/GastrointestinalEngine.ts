@@ -108,6 +108,19 @@ export class GastrointestinalEngine {
     const maxOpioidCe = Math.max(fentanylCe * 500, morphineCe * 20, remiCe * 1000);
     const opioidBlock = maxOpioidCe / (maxOpioidCe + 1.0);
 
+    // Nonopioid Sparing (Chapter 25)
+    const acetaminophenModel = activeMeds.find(m => m.name === 'Acetaminophen');
+    const acetCe = acetaminophenModel ? acetaminophenModel.Ce : 0;
+    const acetEff = acetCe > 0 ? (Math.pow(acetCe, 1.5) / (Math.pow(acetCe, 1.5) + Math.pow(10.0, 1.5))) : 0;
+
+    const ketorolacModel = activeMeds.find(m => m.name === 'Ketorolac');
+    const ketoCe = ketorolacModel ? ketorolacModel.Ce : 0;
+    const ketoEff = ketoCe > 0 ? (Math.pow(ketoCe, 1.5) / (Math.pow(ketoCe, 1.5) + Math.pow(1.0, 1.5))) : 0;
+
+    // Acetaminophen / Ketorolac reduce the opioid block effect on the gut by up to 40%
+    const sparingFactor = 1.0 - 0.40 * Math.max(acetEff, ketoEff);
+    const gutOpioidBlock = opioidBlock * sparingFactor;
+
     // Sympathetic block
     const epiduralActive = !!patient.epiduralBlockActive;
     const celiacActive = !!patient.celiacBlockActive;
@@ -124,13 +137,14 @@ export class GastrointestinalEngine {
     inflammatoryIleus = Math.max(0.0, Math.min(1.0, inflammatoryIleus + dInflam * safeDt));
 
     // Gut motility calculation
-    const gutMotility = (1.0 - opioidBlock) * (1.0 - sympatheticInhibition) * (1.0 - inflammatoryIleus);
+    const gutMotility = (1.0 - gutOpioidBlock) * (1.0 - sympatheticInhibition) * (1.0 - inflammatoryIleus);
 
-    // Postoperative Ileus hours
+    // Postoperative Ileus hours (reduced by up to 25% by nonopioids)
     let postoperativeIleus = typeof vitals.postoperativeIleus === 'number' && Number.isFinite(vitals.postoperativeIleus) ? vitals.postoperativeIleus : 0.0;
     if (manipulationIndex > 0) {
       const bowelDistensionFactor = 1.0 + 0.5 * Math.max(0, bowelGasVolume - 1.0);
-      postoperativeIleus = 72.0 * manipulationIndex * (1.0 - sympatheticBlock * 0.36) * bowelDistensionFactor;
+      const nonopiodDurationSparing = 1.0 - 0.25 * Math.max(acetEff, ketoEff);
+      postoperativeIleus = 72.0 * manipulationIndex * (1.0 - sympatheticBlock * 0.36) * bowelDistensionFactor * nonopiodDurationSparing;
     }
 
     return {

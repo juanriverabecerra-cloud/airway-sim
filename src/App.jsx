@@ -10,7 +10,6 @@ import { PatientHeader } from './components/PatientHeader';
 import { PrimaryMonitor } from './components/monitors/PrimaryMonitor';
 import { VentMonitor } from './components/monitors/VentMonitor';
 import { BottomBar } from './components/controls/BottomBar';
-import { ActionPanel } from './components/controls/ActionPanel';
 import { Pharmacopoeia } from './components/controls/Pharmacopoeia';
 import { AirwayPanel } from './components/controls/AirwayPanel';
 import { LogPanel } from './components/controls/LogPanel';
@@ -43,9 +42,9 @@ const CASES = [
   },
   {
     id: 'septic', name: 'Septic Shock (Hemodynamic Cliff)', difficulty: 'Hard',
-    description: '68yo Male, urosepsis. Profoundly vasodilated, living on endogenous catecholamines. High risk of cardiovascular collapse.',
+    description: '68yo Male, urosepsis. Profoundly vasodilated, living on endogenous catecholamines. High risk of cardiovascular collapse. Documented chronic benzodiazepine user.',
     baseVitals: { hr: 135, sys: 85, dia: 40, spo2: 92, etco2: 0, rr: 28 },
-    patient: { age: 68, sex: 'male', weight: 70, height: 175, ibw: 70, bmi: 22.9, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: false, isObese: false, baseGrade: 2, isSeptic: true, hasCCollar: false, stomach: 'empty', limitedMouth: false, trauma: false }
+    patient: { age: 68, sex: 'male', weight: 70, height: 175, ibw: 70, bmi: 22.9, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: false, isObese: false, baseGrade: 2, isSeptic: true, hasCCollar: false, stomach: 'empty', limitedMouth: false, trauma: false, chronicBenzoUse: true }
   },
   {
     id: 'obese', name: 'Morbid Obesity / OSA (Rapid Desat)', difficulty: 'Hard',
@@ -565,7 +564,45 @@ export default function App() {
       stuckExpiratoryValve: false,
       stuckInspiratoryValve: false,
       aplValveSetting: 0.0,
-      hasPneumothorax: false
+      hasPneumothorax: false,
+      cortisolLevel: 15.0,
+      adrenalSuppressionActive: false,
+      adrenalSuppressionTime: null,
+      prisAccumulation: 0.0,
+      prisTriggered: false,
+      emergenceDeliriumTriggered: false,
+      barbiturateArterialPrecipitation: false,
+      barbiturateArterialPrecipitationTime: null,
+      barbiturateArterialDrugName: '',
+      chronicBenzoUse: selectedCase.patient.chronicBenzoUse || false,
+      opioidRigidityActive: false,
+      remifentanilHyperalgesiaActive: false,
+      remifentanilInfusionDuration: 0,
+      sphincterOfOddiSpasmActive: false,
+      opioidPruritusActive: false,
+      renarcotizationActive: false,
+      naloxoneSurgeTriggered: false,
+      naloxoneSurgeActive: false,
+      naloxoneSurgeTime: 0,
+      forcePenicillinAnaphylaxis: selectedCase.patient?.forcePenicillinAnaphylaxis || false,
+      forcePris: selectedCase.patient?.forcePris || false,
+      forceAdrenalSuppression: selectedCase.patient?.forceAdrenalSuppression || false,
+      forceEmergenceDelirium: selectedCase.patient?.forceEmergenceDelirium || false,
+      forceBarbituratePrecipitation: selectedCase.patient?.forceBarbituratePrecipitation || false,
+      forceBenzoWithdrawalSeizure: selectedCase.patient?.forceBenzoWithdrawalSeizure || false,
+      forceOpioidRigidity: selectedCase.patient?.forceOpioidRigidity || false,
+      forceRemifentanilHyperalgesia: selectedCase.patient?.forceRemifentanilHyperalgesia || false,
+      forceSphincterOfOddiSpasm: selectedCase.patient?.forceSphincterOfOddiSpasm || false,
+      forceOpioidPruritus: selectedCase.patient?.forceOpioidPruritus || false,
+      forceNaloxoneSurge: selectedCase.patient?.forceNaloxoneSurge || false,
+      forceHalothaneHepatitis: selectedCase.patient?.forceHalothaneHepatitis || false,
+      forceMethoxyfluraneNephrotoxicity: selectedCase.patient?.forceMethoxyfluraneNephrotoxicity || false,
+      forceAirwayFire: selectedCase.patient?.forceAirwayFire || false,
+      forceMucusPlug: selectedCase.patient?.forceMucusPlug || false,
+      forceVaricealBleed: selectedCase.patient?.forceVaricealBleed || false,
+      forcePoPHCollapse: selectedCase.patient?.forcePoPHCollapse || false,
+      forceFluidOverloadEdema: selectedCase.patient?.forceFluidOverloadEdema || false,
+      forceNormepSeizure: selectedCase.patient?.forceNormepSeizure || false
     });
     if (selectedCase.preOpLabs) {
       setLabs(selectedCase.preOpLabs);
@@ -889,7 +926,7 @@ export default function App() {
       const baseHco3 = patient.isObese ? 32 : 24; 
       const metabolicAcidosis = (patient.isSeptic ? 8 : 0) + ((patient.ebl || 0) > 1500 ? 6 : 0);
       const currentHco3 = Math.max(8, baseHco3 - metabolicAcidosis - ((7.4 - currentPh) * 100));
-      const currentLactate = (patient.isSeptic ? 4.5 + Math.random() * 2 : 1.0 + ((patient.ebl || 0) / 600));
+      const currentLactate = patient.lacticAcid !== undefined ? patient.lacticAcid : (patient.isSeptic ? 4.5 + Math.random() * 2 : 1.0 + ((patient.ebl || 0) / 600));
 
       const ebv = (patient.sex === 'male' ? patient.weight * 70 : patient.weight * 65) || 5000;
       const bloodLossRatio = (patient.ebl || 0) / ebv;
@@ -948,7 +985,10 @@ export default function App() {
           'Glucose': { val: Math.round(glucVal), range: '70 - 100 mg/dL', alert: glucVal > 100 },
           'Serum Fluoride (F-)': { val: fluorideVal.toFixed(1) + ' µM', range: '< 1.5 µM', alert: fluorideVal > 50.0 },
           'Compound A Exposure': { val: compoundAVal.toFixed(1) + ' ppm-h', range: '< 150.0 ppm-h', alert: compoundAVal > 150.0 },
-          'Serum Homocysteine': { val: homocysteineVal.toFixed(1) + ' µM', range: '5.0 - 15.0 µM', alert: homocysteineVal > 15.0 }
+          'Serum Homocysteine': { val: homocysteineVal.toFixed(1) + ' µM', range: '5.0 - 15.0 µM', alert: homocysteineVal > 15.0 },
+          'Cortisol Level': { val: (patient.cortisolLevel !== undefined ? patient.cortisolLevel : 15.0).toFixed(1) + ' mcg/dL', range: '10.0 - 20.0 mcg/dL', alert: (patient.cortisolLevel !== undefined ? patient.cortisolLevel : 15.0) < 5.0 },
+          'Blood Lactate': { val: (patient.lacticAcid !== undefined ? patient.lacticAcid : 1.0).toFixed(1) + ' mmol/L', range: '0.5 - 2.0 mmol/L', alert: (patient.lacticAcid !== undefined ? patient.lacticAcid : 1.0) > 2.0 },
+          'Plasma Lipids': { val: patient.prisTriggered ? '⚠️ LIPEMIC' : 'Clear', range: 'Clear', alert: !!patient.prisTriggered }
         };
       } else if (type === 'Coagulation') {
         const tempFactor = vitals.temp < 36.0 ? Math.pow(1.15, 36.0 - vitals.temp) : 1.0;
@@ -1199,6 +1239,11 @@ export default function App() {
         setShowPreOp={setPreOpEMR}
         showFidelityPanel={showFidelityPanel}
         setShowFidelityPanel={setShowFidelityPanel}
+        surgicalPhase={surgicalPhase}
+        setSurgicalPhase={handleSetSurgicalPhase}
+        msmaidsComplete={msmaidsComplete}
+        setMsmaidsModal={setMsmaidsModal}
+        logEvent={logEvent}
       />
 
       <div className={`grid grid-cols-1 ${patient?.airwaySecured ? 'lg:grid-cols-2' : ''} gap-4`}>
@@ -1238,50 +1283,12 @@ export default function App() {
         setVentSettings={handleSetVentSettings} 
         patient={patient} 
         setPatient={setPatient}
+        logEvent={logEvent}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-stretch" style={{ minHeight: '500px' }}>
-        <ActionPanel
-           patient={patient} 
-           setPatient={setPatient} 
-           defibSettings={defibSettings} 
-           setDefibSettings={handleSetDefibSettings} 
-           toggleCPR={handleToggleCPR} 
-           deliverShock={handleDeliverShock} 
-           examineAirway={examineAirway} 
-           handlePocus={handlePocus} 
-           setAccessModal={setAccessModal} 
-           generateLab={generateLab} 
-           handleSetO2={handleSetO2} 
-           logEvent={logEvent} 
-           surgicalPhase={surgicalPhase} 
-           setSurgicalPhase={handleSetSurgicalPhase}
-           toggleBis={handleToggleBis}
-           toggleTof={handleToggleTof}
-           checkRhythm={handleCheckRhythm}
-           time={time}
-           formatTime={formatTime}
-           setPreopModal={setPreopModal}
-           setMsmaidsModal={setMsmaidsModal}
-           msmaidsComplete={msmaidsComplete}
-           setPostIntubationModal={setPostIntubationModal}
-           setExtubationModal={setExtubationModal}
-           performLarsonManeuver={performLarsonManeuver}
-           checkCuffLeak={checkCuffLeak}
-           examineNpoHistory={examineNpoHistory}
-        />
-        
-        <Pharmacopoeia
-           pushFluid={handlePushFluid} 
-           processMed={handleProcessMed} 
-           patient={patient} 
-           setPatient={setPatient}
-           updateFluidRate={handleUpdateFluidRate}
-           removeFluid={handleRemoveFluid}
-           logEvent={logEvent}
-        />
-        
-        <div className="col-span-1 flex flex-col gap-4 min-h-[500px]">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch" style={{ minHeight: '500px' }}>
+        {/* Column 1: Vascular & Resus Pole (25% width) */}
+        <div className="lg:col-span-3 flex flex-col gap-4">
           <LinesResusPanel
              patient={patient}
              setPatient={setPatient}
@@ -1290,7 +1297,20 @@ export default function App() {
              logEvent={logEvent}
              processMed={handleProcessMed}
              activeMeds={activeMeds}
+             defibSettings={defibSettings}
+             setDefibSettings={handleSetDefibSettings}
+             toggleCPR={handleToggleCPR}
+             deliverShock={handleDeliverShock}
+             checkRhythm={handleCheckRhythm}
+             time={time}
+             formatTime={formatTime}
+             setAccessModal={setAccessModal}
+             generateLab={generateLab}
           />
+        </div>
+        
+        {/* Column 2: Patient & Airway Console (25% width) */}
+        <div className="lg:col-span-3 flex flex-col gap-4">
           <AirwayPanel 
              patient={patient} 
              setPatient={setPatient} 
@@ -1308,21 +1328,43 @@ export default function App() {
              checkCuffLeak={checkCuffLeak}
              isCollapsed={isAirwayCollapsed}
              setIsCollapsed={setIsAirwayCollapsed}
+             examineAirway={examineAirway}
+             handlePocus={handlePocus}
+             handleSetO2={handleSetO2}
+             setPreopModal={setPreopModal}
+             setMsmaidsModal={setMsmaidsModal}
+             msmaidsComplete={msmaidsComplete}
+             performLarsonManeuver={performLarsonManeuver}
+             examineNpoHistory={examineNpoHistory}
           />
         </div>
         
-        <div className="col-span-1 flex flex-col gap-4">
-          <MemoryPanel 
-             patient={patient}
-             vitals={vitals}
+        {/* Column 3: Workstation & Records (50% width) */}
+        <div className="lg:col-span-6 flex flex-col gap-4">
+          <Pharmacopoeia
+             pushFluid={handlePushFluid} 
+             processMed={handleProcessMed} 
+             patient={patient} 
              setPatient={setPatient}
+             updateFluidRate={handleUpdateFluidRate}
+             removeFluid={handleRemoveFluid}
              logEvent={logEvent}
           />
-          <LogPanel 
-             logs={logs} 
-             formatTime={formatTime} 
-             onActionClick={handleExecuteClinicalAction}
-          />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <MemoryPanel 
+               patient={patient}
+               vitals={vitals}
+               setPatient={setPatient}
+               logEvent={logEvent}
+               toggleBis={handleToggleBis}
+               toggleTof={handleToggleTof}
+            />
+            <LogPanel 
+               logs={logs} 
+               formatTime={formatTime} 
+               onActionClick={handleExecuteClinicalAction}
+            />
+          </div>
         </div>
       </div>
 

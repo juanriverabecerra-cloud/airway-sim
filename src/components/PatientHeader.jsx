@@ -12,14 +12,19 @@ export const PatientHeader = ({
   setIsRunning, 
   setShowPreOp,
   showFidelityPanel,
-  setShowFidelityPanel
+  setShowFidelityPanel,
+  surgicalPhase,
+  setSurgicalPhase,
+  msmaidsComplete,
+  setMsmaidsModal,
+  logEvent
 }) => {
   return (
     <>
       <header className="flex flex-col glass-panel glass-emerald p-4 gap-4 relative z-10">
         {/* Top Row: Demographics & Controls */}
         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center w-full gap-4">
-          <div className="flex flex-col gap-1 w-full xl:w-auto">
+          <div className="flex flex-col gap-2 w-full xl:w-auto">
             <h1 className="text-2xl font-black tracking-tight text-emerald-400 drop-shadow-[0_0_12px_rgba(16,185,129,0.35)]">{activeCase.name}</h1>
             <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm text-slate-300 bg-slate-950/40 p-2 rounded-lg border border-white/5 font-mono">
               <span><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Age:</span> {patient?.age ?? '--'}</span>
@@ -29,6 +34,44 @@ export const PatientHeader = ({
               <span><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">IBW:</span> {Math.round(patient?.ibw || 0)} kg</span>
               <span className={`ml-auto xl:ml-2 border-l border-slate-800 pl-3 ${patient?.bmi > 30 ? 'text-orange-400 font-bold animate-pulse' : ''}`}><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px] mr-1">BMI:</span>{(patient?.bmi || 22).toFixed(1)}</span>
               <span className="text-red-300 ml-2 border-l border-slate-800 pl-3 bg-red-950/30 px-2.5 py-0.5 rounded-md border border-red-900/30"><span className="text-red-400 font-extrabold uppercase tracking-wider text-[10px] mr-1">EBL:</span>{Math.round(patient?.ebl || 0)} mL</span>
+            </div>
+            
+            {/* Surgical Phase Timeline */}
+            <div className="flex flex-wrap items-center gap-1.5 bg-slate-950/60 border border-white/5 p-1 rounded-xl font-mono text-[9px] font-black uppercase tracking-wider w-full xl:w-auto">
+              <span className="text-slate-500 px-2 py-1 text-[8px] font-extrabold uppercase font-mono">CASE PHASE:</span>
+              {['Pre-Op', 'Induction', 'Incision', 'Maintenance', 'Emergence'].map((phase) => {
+                const isLockedInduction = phase === 'Induction' && !msmaidsComplete && !patient?.emergentRSI;
+                const isActive = surgicalPhase === phase;
+                
+                let btnStyle;
+                if (isActive) {
+                  btnStyle = 'bg-blue-500/20 text-blue-300 border border-blue-500/50 shadow-[0_0_8px_rgba(59,130,246,0.35)]';
+                } else if (isLockedInduction) {
+                  btnStyle = 'border border-dashed border-red-950 text-red-400/60 hover:bg-red-950/20';
+                } else {
+                  btnStyle = 'border border-white/5 text-slate-400 hover:bg-white/5';
+                }
+
+                const handleClick = () => {
+                  if (isLockedInduction) {
+                    logEvent("⚠️ CLINICAL INTERLOCK BLOCKED: Induction phase locked. Complete MSMAIDS pre-induction checklist first.");
+                    if (setMsmaidsModal) setMsmaidsModal(true);
+                    return;
+                  }
+                  if (setSurgicalPhase) setSurgicalPhase(phase);
+                };
+
+                return (
+                  <button
+                    key={phase}
+                    onClick={handleClick}
+                    className={`px-2.5 py-1 rounded-lg transition-all text-center flex items-center gap-1 ${btnStyle}`}
+                    title={isLockedInduction ? "Induction Locked: Complete MSMAIDS setup checklist first" : ""}
+                  >
+                    {isLockedInduction ? '🔒 ' : ''}{phase}
+                  </button>
+                );
+              })}
             </div>
           </div>
 

@@ -8,7 +8,7 @@ export const getMedColor = (medId) => {
   const id = medId.toLowerCase();
   
   // Induction Hypnotics -> Yellow
-  if (['propofol', 'etomidate', 'ketamine', 'dexmedetomidine'].some(k => id.includes(k))) {
+  if (['propofol', 'etomidate', 'ketamine', 'dexmedetomidine', 'thiopental', 'methohexital', 'f3', 'f6'].some(k => id.includes(k))) {
     return {
       active: 'border-yellow-500/80 text-yellow-500 shadow-[0_0_12px_rgba(234,179,8,0.25)] bg-yellow-950/10 font-bold',
       btn: 'glass-button-amber',
@@ -68,13 +68,23 @@ export const getMedColor = (medId) => {
     };
   }
   // Antihypertensives / Beta Blockers (Arterial red / pressure control) -> Red/Rose
-  if (['esmolol', 'labetalol', 'metoprolol', 'nicardipine', 'clevidipine', 'nitroglycerin'].some(k => id.includes(k))) {
+  if (['esmolol', 'labetalol', 'metoprolol', 'nicardipine', 'clevidipine', 'nitroglycerin', 'papaverine'].some(k => id.includes(k))) {
     return {
       active: 'border-rose-500/80 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.25)] bg-red-950/10 font-bold',
       btn: 'glass-button-rose',
       subBorder: 'border-rose-900/50',
       text: 'text-rose-400',
       focus: 'focus:border-rose-500 focus:ring-rose-500'
+    };
+  }
+  // Nonopioid Pain Meds -> Indigo
+  if (['acetaminophen', 'ketorolac', 'gabapentin', 'pregabalin', 'mexiletine', 'topiramate'].some(k => id.includes(k))) {
+    return {
+      active: 'border-indigo-500/80 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.25)] bg-indigo-950/10 font-bold',
+      btn: 'glass-button-indigo',
+      subBorder: 'border-indigo-900/50',
+      text: 'text-indigo-400',
+      focus: 'focus:border-indigo-500 focus:ring-indigo-500'
     };
   }
   
@@ -116,13 +126,28 @@ export const getFluidColor = (fluidId) => {
 export const Pharmacopoeia = ({ 
   pushFluid, 
   processMed, 
-  patient 
+  patient,
+  setPatient,
+  logEvent
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState('induction'); // 'induction' | 'analgesia' | 'hemodynamics' | 'other' | 'fluids'
+  const [activeSubTab, setActiveSubTab] = useState('induction'); // 'induction' | 'analgesia' | 'paralytics' | 'hemodynamics' | 'adjuncts' | 'fluids'
   const [searchTerm, setSearchTerm] = useState('');
   const [medInput, setMedInput] = useState({ drug: null, dose: '', indication: '', route: 'IV', type: 'Bolus', unit: '', lineId: '' });
   const [fluidInput, setFluidInput] = useState({ fluid: null, dose: '', rate: '', lineId: '' });
+  const [tciMode, setTciMode] = useState('none');
+  const [tciTarget, setTciTarget] = useState('');
+  const [tciModel, setTciModel] = useState('Schnider');
   const searchRef = useRef(null);
+
+  useEffect(() => {
+    setTciMode('none');
+    setTciTarget('');
+    if (medInput.drug === 'ketamine') {
+      setTciModel('Domino');
+    } else {
+      setTciModel('Schnider');
+    }
+  }, [medInput.drug]);
 
   // QoL: Global Keyboard Shortcut to focus search
   useEffect(() => {
@@ -140,6 +165,17 @@ export const Pharmacopoeia = ({
     if (medInput.dose) {
       processMed(medId, medInput.dose, medInput.route, medInput.type, medInput.unit, medInput.lineId || patient?.accessLines?.[0]?.id);
       setMedInput({ drug: null, dose: '', indication: '', route: 'IV', type: 'Bolus', unit: '', lineId: '' });
+      setSearchTerm('');
+    }
+  };
+
+  const handleTciSubmit = (medId) => {
+    if (tciTarget && tciMode !== 'none') {
+      const selectedLineId = medInput.lineId || patient?.accessLines?.[0]?.id;
+      processMed(medId, tciTarget, 'IV', tciMode, 'mcg/mL', selectedLineId, tciModel);
+      setMedInput({ drug: null, dose: '', indication: '', route: 'IV', type: 'Bolus', unit: '', lineId: '' });
+      setTciMode('none');
+      setTciTarget('');
       setSearchTerm('');
     }
   };
@@ -176,13 +212,81 @@ export const Pharmacopoeia = ({
     return '';
   };
 
-  // Group Definitions
+  // Group Definitions reorganized by clinical function and sorted alphabetically
   const GROUPS = {
-    induction: ['propofol', 'etomidate', 'ketamine', 'midazolam', 'dexmedetomidine'],
-    analgesia: ['fentanyl', 'sufentanil', 'remifentanil', 'hydromorphone', 'morphine', 'rocuronium', 'succinylcholine', 'vecuronium', 'cisatracurium'],
-    hemodynamics: ['norepinephrine', 'epinephrine', 'phenylephrine', 'vasopressin', 'ephedrine', 'atropine', 'esmolol', 'labetalol', 'metoprolol', 'nicardipine', 'clevidipine', 'nitroglycerin'],
-    other: ['sugammadex', 'neostigmine', 'glycopyrrolate', 'unasyn', 'albuterol', 'calcium', 'magnesium', 'bicarbonate', 'lidocaine', 'adenosine', 'amiodarone', 'furosemide', 'methylphenidate', 'atipamezole', 'scopolamine', 'f6', 'f3', 's_isoflurane', 'r_isoflurane'],
-    fluids: ['Lactated Ringers (LR)', 'Normal Saline (0.9% NS)', 'Plasmalyte', 'Albumin 5%', 'Packed Red Blood Cells (PRBC)', 'Fresh Frozen Plasma (FFP)', 'Platelets', 'Cryoprecipitate', 'Fibrinogen Concentrate']
+    induction: [
+      'dexmedetomidine',
+      'etomidate',
+      'f3',
+      'f6',
+      'ketamine',
+      'methohexital',
+      'midazolam',
+      'propofol',
+      'thiopental'
+    ],
+    analgesia: [
+      'acetaminophen',
+      'fentanyl',
+      'gabapentin',
+      'hydromorphone',
+      'ketorolac',
+      'mexiletine',
+      'morphine',
+      'pregabalin',
+      'remifentanil',
+      'sufentanil',
+      'topiramate'
+    ],
+    paralytics: [
+      'atipamezole',
+      'cisatracurium',
+      'glycopyrrolate',
+      'neostigmine',
+      'rocuronium',
+      'scopolamine',
+      'succinylcholine',
+      'sugammadex',
+      'vecuronium'
+    ],
+    hemodynamics: [
+      'adenosine',
+      'amiodarone',
+      'atropine',
+      'clevidipine',
+      'ephedrine',
+      'epinephrine',
+      'esmolol',
+      'labetalol',
+      'lidocaine',
+      'metoprolol',
+      'nicardipine',
+      'nitroglycerin',
+      'norepinephrine',
+      'papaverine',
+      'phenylephrine',
+      'vasopressin'
+    ],
+    adjuncts: [
+      'albuterol',
+      'bicarbonate',
+      'calcium',
+      'furosemide',
+      'magnesium',
+      'methylphenidate',
+      'unasyn'
+    ],
+    fluids: [
+      'Albumin 5%',
+      'Cryoprecipitate',
+      'Fibrinogen Concentrate',
+      'Fresh Frozen Plasma (FFP)',
+      'Lactated Ringers (LR)',
+      'Normal Saline (0.9% NS)',
+      'Packed Red Blood Cells (PRBC)',
+      'Platelets',
+      'Plasmalyte'
+    ]
   };
 
   const renderFluidButton = (fluidId) => {
@@ -318,6 +422,57 @@ export const Pharmacopoeia = ({
                 {medInput.type === 'Infusion' ? 'START INF' : 'PUSH'}
               </button>
             </div>
+
+            {['propofol', 'ketamine'].includes(medId) && (
+              <div className="flex flex-col gap-1.5 border-t border-slate-800/60 pt-2 mt-1 font-mono">
+                <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Target Controlled Infusion (TCI)</div>
+                <div className="flex gap-2">
+                  <select 
+                    value={tciMode} 
+                    onChange={(e) => setTciMode(e.target.value)} 
+                    className={`bg-slate-900 text-slate-200 border border-slate-700 rounded p-1 w-1/2 outline-none ${colorTheme.focus}`}
+                  >
+                    <option value="none">Manual Mode</option>
+                    <option value="TCI_Cp">TCI (Target Cp)</option>
+                    <option value="TCI_Ce">TCI (Target Ce)</option>
+                  </select>
+                  {tciMode !== 'none' && (
+                    <select 
+                      value={tciModel} 
+                      onChange={(e) => setTciModel(e.target.value)} 
+                      className={`bg-slate-900 text-slate-200 border border-slate-700 rounded p-1 w-1/2 outline-none ${colorTheme.focus}`}
+                    >
+                      {medId === 'propofol' ? (
+                        <>
+                          <option value="Schnider">Schnider (Adult)</option>
+                          <option value="Marsh">Marsh (Adult)</option>
+                          <option value="Paedfusor">Paedfusor (Pediatric)</option>
+                          <option value="Kataria">Kataria (Pediatric)</option>
+                        </>
+                      ) : (
+                        <option value="Domino">Domino (Ketamine)</option>
+                      )}
+                    </select>
+                  )}
+                </div>
+                {tciMode !== 'none' && (
+                  <div className="flex gap-2">
+                    <input 
+                      type="number" 
+                      step="0.1"
+                      placeholder="Target (mcg/mL)" 
+                      className={`w-2/3 bg-slate-900 border border-slate-700 rounded p-1 text-white outline-none ${colorTheme.focus}`}
+                      value={tciTarget} 
+                      onChange={(e) => setTciTarget(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleTciSubmit(medId); }}
+                    />
+                    <button onClick={() => handleTciSubmit(medId)} className={`w-1/3 glass-button ${colorTheme.btn} py-1 text-[10px] uppercase font-bold`}>
+                      Start TCI
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -369,11 +524,12 @@ export const Pharmacopoeia = ({
           {/* Category Sub-Tabs */}
           <div className="flex gap-1 overflow-x-auto shrink-0 pb-1 border-b border-white/5 custom-scrollbar font-mono text-[9px] font-black uppercase tracking-wider">
             {[
-              { id: 'induction', label: 'Induction', color: 'text-cyan-400' },
-              { id: 'analgesia', label: 'Analgesia/NMB', color: 'text-teal-400' },
-              { id: 'hemodynamics', label: 'Hemodyn', color: 'text-rose-400' },
-              { id: 'other', label: 'Other/Rev', color: 'text-purple-400' },
-              { id: 'fluids', label: 'Fluids', color: 'text-emerald-400' }
+              { id: 'induction', label: 'Induction/Sedation', color: 'text-yellow-400' },
+              { id: 'analgesia', label: 'Analgesics', color: 'text-teal-400' },
+              { id: 'paralytics', label: 'NMBAs/Reversal', color: 'text-cyan-400' },
+              { id: 'hemodynamics', label: 'Cardio/Vasoactive', color: 'text-rose-400' },
+              { id: 'adjuncts', label: 'Electrolytes/Emergency', color: 'text-purple-400' },
+              { id: 'fluids', label: 'Resus Fluids', color: 'text-emerald-400' }
             ].map(sub => (
               <button 
                 key={sub.id} 
@@ -395,6 +551,34 @@ export const Pharmacopoeia = ({
             ) : (
               <div className="flex flex-col gap-1">
                 {GROUPS[activeSubTab].map(renderAdvancedMedButton)}
+                {activeSubTab === 'adjuncts' && (
+                  <div className="border border-blue-500/20 bg-blue-950/15 p-2 rounded-xl flex justify-between items-center gap-2 mt-2 font-mono text-[9px] shrink-0">
+                    <div className="flex flex-col">
+                      <span className="font-black text-blue-300 uppercase">Cobalamin & Folate</span>
+                      <span className="text-[8px] text-slate-500 leading-tight">Intravenous rescue for N2O toxicity</span>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        if (setPatient) {
+                          setPatient(p => ({
+                            ...p,
+                            methionineSynthaseActivity: 1.0,
+                            homocysteine: 10.0,
+                            b12Baseline: 400.0,
+                            hasB12ShutdownLog: false,
+                            hasHomocysteineLog: false
+                          }));
+                        }
+                        if (logEvent) {
+                          logEvent("✅ SUCCESS: High-dose intravenous cobalamin (Vitamin B12) and folate administered! Methionine synthase activity restored to 100% and homocysteine levels normalized.");
+                        }
+                      }} 
+                      className="glass-button glass-button-blue py-1.5 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider text-white shrink-0 hover:bg-blue-600/40"
+                    >
+                      Administer
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

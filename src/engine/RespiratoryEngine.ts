@@ -41,6 +41,8 @@ export interface RespiratoryPatientState {
   stuckInspiratoryValve?: boolean;
   aplValveSetting?: number;
   hasPneumothorax?: boolean;
+  opioidRigidityActive?: boolean;
+  renarcotizationActive?: boolean;
 }
 
 export interface RespiratoryVitalsState {
@@ -335,7 +337,7 @@ export class RespiratoryEngine {
     const safeRuleSpo2Offset = typeof safeDrugEffects.ruleSpo2Offset === 'number' && Number.isFinite(safeDrugEffects.ruleSpo2Offset) ? safeDrugEffects.ruleSpo2Offset : 0;
 
     const isParalyzed = maxNMJOccupancy > 0.90;
-    const isApneic = isParalyzed || safePatient.swallowingActive || (safeVitals.rr !== undefined && Number.isFinite(safeVitals.rr) ? safeVitals.rr < 1 : false);
+    const isApneic = isParalyzed || safePatient.swallowingActive || safePatient.opioidRigidityActive || safePatient.renarcotizationActive || (safeVitals.rr !== undefined && Number.isFinite(safeVitals.rr) ? safeVitals.rr < 1 : false);
 
     // Calculate current volumes
     const currentLungVols = this.calculateLungVolumes(
@@ -524,6 +526,9 @@ export class RespiratoryEngine {
     if (safePatient.laryngospasm) {
       currentCompliance = 2;
     }
+    if (safePatient.opioidRigidityActive) {
+      currentCompliance = 3.0; // drops compliance to 3 mL/cmH2O
+    }
     currentCompliance = Math.max(2, currentCompliance);
 
     let currentResistance = 5;
@@ -541,6 +546,9 @@ export class RespiratoryEngine {
     }
     if (safePatient.laryngospasm) {
       currentResistance = 999;
+    }
+    if (safePatient.opioidRigidityActive) {
+      currentResistance = 999; // surges resistance to 999 cmH2O/L/s
     }
 
     // Xenon density/viscosity increase

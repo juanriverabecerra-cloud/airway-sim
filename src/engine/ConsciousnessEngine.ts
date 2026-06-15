@@ -18,6 +18,10 @@ export interface ConsciousnessInputs {
   sIsofluraneCe?: number;
   rIsofluraneCe?: number;
   f6Ce?: number;
+  methohexitalCe?: number;
+  gabapentinCe?: number;
+  pregabalinCe?: number;
+  topiramateCe?: number;
 }
 
 export class ConsciousnessEngine {
@@ -57,6 +61,16 @@ export class ConsciousnessEngine {
     const volatileHypnoticMultiplier = patient.isHCN1Knockout ? 0.5 : 1.0;
 
     // 1. Numerical Integration Loop (Euler Sub-stepping)
+    const methoCe = inputs.methohexitalCe || 0;
+    const effectiveBarbiturateCe = inputs.thiopentalCe + methoCe * (15.0 / 3.5);
+
+    const gabaCe = inputs.gabapentinCe || 0;
+    const pregabCe = inputs.pregabalinCe || 0;
+    const topCe = inputs.topiramateCe || 0;
+
+    const gabapentinoidEff = (gabaCe > 0 ? (gabaCe / (gabaCe + 5.0)) : 0) + (pregabCe > 0 ? (pregabCe / (pregabCe + 3.0)) : 0);
+    const topiramateEff = topCe > 0 ? (topCe / (topCe + 4.0)) : 0;
+
     for (let i = 0; i < subSteps; i++) {
       // Competitive antagonism: Atipamezole blocks Dexmedetomidine at Alpha-2 receptors in the LC
       const effectiveDexCe = inputs.dexmedCe / (1.0 + inputs.atipamezoleCe * 8.0);
@@ -65,10 +79,12 @@ export class ConsciousnessEngine {
       const lcTarget = Math.max(0.01, 1.0 
         - 0.9 * (patient.alpha2AKnockout ? 0.0 : effectiveDexCe) // alpha-2A receptor knockout confers dexmed resistance in LC
         - 0.5 * inputs.propofolCe 
-        - 0.4 * inputs.thiopentalCe 
+        - 0.4 * effectiveBarbiturateCe 
         - 0.4 * inputs.haloMac * volatileHypnoticMultiplier
         + 0.3 * inputs.ketamineCe // Ketamine increases LC activity
         - 0.8 * vlpo
+        - 0.15 * gabapentinoidEff // Gabapentinoids blunt noradrenergic outflow
+        - 0.10 * topiramateEff
       );
       lc += (lcTarget - lc) * 0.1 * subDt;
 
@@ -76,7 +92,7 @@ export class ConsciousnessEngine {
       const propofolTmnEffect = patient.tmnPropofolResistant ? 0.0 : 0.85 * inputs.propofolCe;
       const tmnTarget = Math.max(0.01, 1.0 
         - propofolTmnEffect 
-        - 0.7 * inputs.thiopentalCe 
+        - 0.7 * effectiveBarbiturateCe 
         - 0.6 * inputs.haloMac * volatileHypnoticMultiplier
         - 0.8 * vlpo
       );
@@ -85,9 +101,11 @@ export class ConsciousnessEngine {
       // VLPO sleep-promoting GABA/galanin activation
       const vlpoTarget = Math.min(1.0, 
         0.8 * inputs.propofolCe 
-        + 0.7 * inputs.thiopentalCe 
+        + 0.7 * effectiveBarbiturateCe 
         + 0.9 * effectiveDexCe 
         + 0.5 * activeIsoMac * volatileHypnoticMultiplier // Isoflurane depolarizes sleep-active VLPO neurons
+        + 0.20 * gabapentinoidEff // Gabapentinoids enhance sleep pathways
+        + 0.15 * topiramateEff // Topiramate enhances GABA-A sleep drive
       );
       vlpo += (vlpoTarget - vlpo) * 0.1 * subDt;
 
@@ -143,8 +161,10 @@ export class ConsciousnessEngine {
       - 0.9 * inputs.sevoMac * volatileHypnoticMultiplier
       - 0.85 * activeIsoMac * volatileHypnoticMultiplier
       - 0.85 * inputs.midazolamCe 
-      - 0.8 * inputs.thiopentalCe 
+      - 0.8 * effectiveBarbiturateCe 
       - 0.7 * inputs.ketamineCe
+      - 0.15 * gabapentinoidEff
+      - 0.10 * topiramateEff
     ));
 
     // Global corticocortical phase synchronization
@@ -168,7 +188,7 @@ export class ConsciousnessEngine {
     
     // Encoding Strength (lambda) - Thiopental, Dexmedetomidine, Scopolamine, High-dose midazolam cause encoding failure
     let lambda = Math.max(0.0, baseArousal * (1.0 
-      - 0.85 * inputs.thiopentalCe 
+      - 0.85 * effectiveBarbiturateCe 
       - 0.9 * inputs.dexmedCe 
       - 0.8 * (inputs.midazolamCe > 0.08 ? 1.0 : inputs.midazolamCe * 12.5) 
       - 0.25 * inputs.propofolCe 

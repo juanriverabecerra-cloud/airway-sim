@@ -663,14 +663,36 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     logEvent(`Stopped and removed fluid infusion.`);
   };
 
-  const processMed = (medId, doseInput, route, type, unit, lineId = null) => {
+  const processMed = (medId, doseInput, route, type, unit, lineId = null, modelName = null) => {
     const currentPatient = stateRef.current.patient || patient;
     const currentActiveMeds = stateRef.current.activeMeds || activeMeds;
 
     const targetLine = lineId ? currentPatient.accessLines?.find(l => l.id === lineId) : null;
+    let injectedArterial = false;
     if (targetLine && targetLine.category?.includes('Arterial')) {
-        logEvent(`🚨 CRITICAL ERROR: Injected ${medId} into Arterial Line: ${targetLine.name}! This causes immediate profound arterial vasospasm, endothelial destruction, and severe distal limb necrosis!`);
-        return false;
+        injectedArterial = true;
+        if (medId === 'thiopental' || medId === 'methohexital') {
+            const baseProb = 0.50;
+            const willPrecipitate = currentPatient.forceBarbituratePrecipitation || (Math.random() < baseProb);
+            if (willPrecipitate) {
+                logEvent(`🚨 CRITICAL EMERGENCY: Injected Barbiturate ${medId === 'thiopental' ? 'Thiopental' : 'Methohexital'} into Arterial Line: ${targetLine.name}! This triggers immediate chemical endarteritis, microvascular crystal precipitation, profound arterial vasospasm, and severe distal limb ischemia!`);
+                setPatient(prev => ({
+                    ...prev,
+                    barbiturateArterialPrecipitation: true,
+                    barbiturateArterialPrecipitationTime: stateRef.current.time,
+                    barbiturateArterialDrugName: medId === 'thiopental' ? 'Thiopental' : 'Methohexital'
+                }));
+            } else {
+                logEvent(`⚠️ Clinical Note: Injected Barbiturate ${medId === 'thiopental' ? 'Thiopental' : 'Methohexital'} into Arterial Line: ${targetLine.name}. Fortunately, microvascular crystal precipitation did not occur (occurs in ~50% of intra-arterial injections). Monitor extremity for delayed vasospasm.`);
+            }
+        } else {
+            logEvent(`🚨 CRITICAL ERROR: Injected ${medId} into Arterial Line: ${targetLine.name}! This causes immediate profound arterial vasospasm and endothelial irritation!`);
+            setPatient(prev => ({
+                ...prev,
+                genericArterialSpasm: true,
+                genericArterialSpasmTime: stateRef.current.time
+            }));
+        }
     }
     if (targetLine && targetLine.failed) {
         logEvent(`❌ FAILED: Cannot administer ${medId}. Access Line: ${targetLine.name} has been BLOWN OUT!`);
@@ -681,16 +703,62 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     const hasIO = currentPatient.accessLines?.some(l => !l.failed && (l.category?.includes('IO') || l.name?.includes('IO') || l.type?.includes('IO') || l.type?.includes('Intraosseous')));
     const hasArt = currentPatient.accessLines?.some(l => l.category?.includes('Arterial') || l.name?.includes('Arterial'));
 
-    if (route === 'IV' && !hasCVC && !hasPIV && !hasIO) {
-        if (hasArt) {
-            logEvent(`🚨 CRITICAL ERROR: Injected ${medId} into Arterial Line! This causes immediate profound arterial vasospasm, endothelial destruction, and severe distal limb necrosis!`);
-        } else {
-            logEvent(`❌ FAILED: No venous access available for ${medId}!`);
-        }
+    if (route === 'IV' && !hasCVC && !hasPIV && !hasIO && !injectedArterial) {
+        logEvent(`❌ FAILED: No venous access available for ${medId}!`);
         return false; 
     }
 
     const medData = MEDICATIONS[medId]; if (!medData) return false;
+
+    const safePatientWeight = typeof currentPatient.weight === 'number' && Number.isFinite(currentPatient.weight) && currentPatient.weight > 0 ? currentPatient.weight : 70;
+    const safePatientIbw = typeof currentPatient.ibw === 'number' && Number.isFinite(currentPatient.ibw) && currentPatient.ibw > 0 ? currentPatient.ibw : 70;
+    const safePatientLbw = typeof currentPatient.lbw === 'number' && Number.isFinite(currentPatient.lbw) && currentPatient.lbw > 0 ? currentPatient.lbw : 60;
+
+    if (type === 'TCI_Cp' || type === 'TCI_Ce') {
+      const targetConc = parseFloat(doseInput);
+      if (isNaN(targetConc) || targetConc <= 0) {
+        logEvent(`❌ FAILED: Invalid target concentration specified!`);
+        return false;
+      }
+      
+      const mode = type === 'TCI_Cp' ? 'Cp' : 'Ce';
+      const selectedModelName = modelName || medData.pkModel || 'Schnider';
+      
+      let existingModel = currentActiveMeds.find(m => m.name === medData.name);
+      let updatedMeds = [...currentActiveMeds];
+      if (!existingModel) { 
+        existingModel = new PKPDModel(medData, safePatientWeight); 
+        updatedMeds.push(existingModel); 
+      }
+      
+      existingModel.setTci(mode, targetConc, selectedModelName, currentPatient);
+      existingModel.displayDose = `target: ${targetConc}`;
+      existingModel.displayUnit = 'mcg/mL';
+      existingModel.medId = medId;
+
+      const targetLineId = lineId || (currentPatient.accessLines || []).find(l => !l.category?.includes('Arterial'))?.id;
+      if (targetLineId) {
+        setPatient(prev => {
+          const updatedLines = (prev.accessLines || []).map(l => {
+            if (l.id !== targetLineId) return l;
+            const meds = [...(l.activeMedInfusions || [])];
+            const idx = meds.findIndex(m => m.medId === medId);
+            const infItem = { medId, rate: 0.0, unit: `mcg/mL (TCI ${mode} - ${selectedModelName})` };
+            if (idx >= 0) {
+              meds[idx] = infItem;
+            } else {
+              meds.push(infItem);
+            }
+            return { ...l, activeMedInfusions: meds };
+          });
+          return { ...prev, accessLines: updatedLines };
+        });
+      }
+      
+      setActiveMeds(updatedMeds);
+      logEvent(`🔁 Started TCI (${mode}-controlled) for ${medData.name} targeting ${targetConc} mcg/mL using ${selectedModelName} model.`);
+      return true;
+    }
 
     if (route === 'IV' && !hasCVC && (hasPIV || hasIO)) {
         if (type === 'Infusion' && medData.classes.some(c => c.includes('Vasopressor')) && medId !== 'phenylephrine') {
@@ -709,9 +777,6 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
         logEvent(`❌ FAILED: Invalid medication dose specified!`);
         return false;
     }
-    const safePatientWeight = typeof currentPatient.weight === 'number' && Number.isFinite(currentPatient.weight) && currentPatient.weight > 0 ? currentPatient.weight : 70;
-    const safePatientIbw = typeof currentPatient.ibw === 'number' && Number.isFinite(currentPatient.ibw) && currentPatient.ibw > 0 ? currentPatient.ibw : 70;
-    const safePatientLbw = typeof currentPatient.lbw === 'number' && Number.isFinite(currentPatient.lbw) && currentPatient.lbw > 0 ? currentPatient.lbw : 60;
 
     const dosingWeight = medData.dosingWeight === 'IBW' ? safePatientIbw : (medData.dosingWeight === 'LBW' ? safePatientLbw : safePatientWeight);
     const safeUnit = typeof unit === 'string' ? unit : '';
@@ -842,6 +907,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     } else if (type === 'Stop Infusion') {
       existingModel.setInfusion(0);
       existingModel.displayDose = 0;
+      existingModel.tciMode = 'none';
+      existingModel.tciTarget = 0;
       
       setPatient(prev => {
         const updatedLines = (prev.accessLines || []).map(l => ({
@@ -1094,7 +1161,9 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               st.activeMeds.forEach(model => {
                   const matchingId = Object.keys(MEDICATIONS).find(key => MEDICATIONS[key].name === model.name);
                   if (matchingId && lineMedicationRates[matchingId] !== undefined) {
-                      model.currentInfusionRate = lineMedicationRates[matchingId];
+                      if (!model.tciMode || model.tciMode === 'none') {
+                          model.currentInfusionRate = lineMedicationRates[matchingId];
+                      }
                   }
 
                   const isNDMR = model.classes.includes('NDMR');
@@ -1114,10 +1183,18 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                   }
                   
                   if (effects.svrMultiplier !== undefined) {
-                      drugSvrMod *= effects.svrMultiplier;
+                      let mult = effects.svrMultiplier;
+                      if (st.patient.adrenalSuppressionActive && mult > 1.0) {
+                          mult = 1.0 + (mult - 1.0) * 0.6;
+                      }
+                      drugSvrMod *= mult;
                   }
                   if (effects.coMultiplier !== undefined) {
-                      drugInotropyMod *= effects.coMultiplier;
+                      let mult = effects.coMultiplier;
+                      if (st.patient.adrenalSuppressionActive && mult > 1.0) {
+                          mult = 1.0 + (mult - 1.0) * 0.6;
+                      }
+                      drugInotropyMod *= mult;
                   }
                   
                   if (effects.group === 'Sedative') sedativeEff = 1 - (1 - sedativeEff) * (1 - effects.hypnoticEffect);
@@ -1142,6 +1219,24 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               
               drugSvrMod = Math.max(0.55, drugSvrMod);
               drugInotropyMod = Math.max(0.50, drugInotropyMod);
+          }
+
+          // Apply active metabolites of Midazolam and Ketamine to global effects
+          let currentHydroxyMidazolam = st.patient.hydroxyMidazolam || 0;
+          let currentNorketamine = st.patient.norketamine || 0;
+          if (currentHydroxyMidazolam > 0.01) {
+              sedativeEff = 1 - (1 - sedativeEff) * (1 - Math.min(0.95, currentHydroxyMidazolam * 1.5));
+          }
+          if (currentNorketamine > 0.01) {
+              // Norketamine retains 20-30% of parent drug potency
+              opioidEff = 1 - (1 - opioidEff) * (1 - Math.min(0.5, currentNorketamine * 0.3));
+          }
+
+          const naloxoneModel = st.activeMeds?.find(m => m.name === 'Naloxone');
+          const naloxoneCe = naloxoneModel ? naloxoneModel.Ce : 0;
+          if (naloxoneCe > 0) {
+              const naloxoneAntagonism = naloxoneCe / (naloxoneCe + 0.001); // Ki = 0.001 mg/L for Naloxone
+              opioidEff *= (1.0 - naloxoneAntagonism);
           }
 
           const rocuroniumModel = st.activeMeds?.find(m => m.name === 'Rocuronium');
@@ -1177,10 +1272,16 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const morCe = morModel ? morModel.Ce : 0;
           const mepModel = st.activeMeds?.find(m => m.name === 'Meperidine');
           const mepCe = mepModel ? mepModel.Ce : 0;
+          const midazolamModel = st.activeMeds?.find(m => m.name === 'Midazolam');
+          const midazolamCe = midazolamModel ? midazolamModel.Ce : 0;
+          const ketamineModel = st.activeMeds?.find(m => m.name === 'Ketamine');
+          const ketamineCe = ketamineModel ? ketamineModel.Ce : 0;
 
           let currentVec3oh = st.patient.vec3oh || 0;
           let currentNormep = st.patient.normep || 0;
           let currentM6g = st.patient.m6g || 0;
+          // currentHydroxyMidazolam and currentNorketamine are already declared and initialized above
+
 
           if (vecCe > 0.01) {
               currentVec3oh = Math.max(0, currentVec3oh + vecCe * 0.01 - 0.002 * renalMult);
@@ -1200,20 +1301,51 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               currentM6g = Math.max(0, currentM6g - 0.002 * renalMult);
           }
 
+          if (midazolamCe > 0.01) {
+              currentHydroxyMidazolam = Math.max(0, currentHydroxyMidazolam + midazolamCe * 0.02 - 0.003 * renalMult);
+          } else {
+              currentHydroxyMidazolam = Math.max(0, currentHydroxyMidazolam - 0.003 * renalMult);
+          }
+
+          if (ketamineCe > 0.01) {
+              currentNorketamine = Math.max(0, currentNorketamine + ketamineCe * 0.02 - 0.004);
+          } else {
+              currentNorketamine = Math.max(0, currentNorketamine - 0.004);
+          }
+
           if (currentVec3oh > 0) {
               maxNMJOccupancy = Math.min(1.0, maxNMJOccupancy + (currentVec3oh * 0.8));
           }
 
           let isSeizure = false;
           let seizureMetabolicMultiplier = 1.0;
+          if (currentNormep < 0.2) {
+              st.patient.normepSeizureRolled = undefined;
+          }
           if (currentNormep > 1.2) {
-              isSeizure = true;
-              seizureMetabolicMultiplier = 8.0;
+              if (st.patient.normepSeizureRolled === undefined) {
+                  const baseProb = 0.15; // 15% base probability of seizures
+                  const hasRisk = (st.patient.epilepsy || st.patient.seizureHistory) ? 3.0 : 1.0;
+                  const prob = Math.min(1.0, baseProb * hasRisk);
+                  st.patient.normepSeizureRolled = Math.random() < prob;
+              }
+              if (st.patient.forceNormepSeizure || st.patient.normepSeizureRolled) {
+                  isSeizure = true;
+                  seizureMetabolicMultiplier = 8.0;
+                  logEvent("🚨 CRITICAL EMERGENCY: High levels of active metabolite Normeperidine have accumulated, triggering generalized tonic-clonic seizures!");
+              } else {
+                  st.patient.normepSeizureRolled = false;
+                  logEvent("⚠️ Clinical Note: Normeperidine levels are elevated. Fortunately, generalized seizures were not triggered (neurological threshold remains stable).");
+              }
           }
 
           let m6gRrDelta = 0;
           if (currentM6g > 0.8) {
               m6gRrDelta = -10;
+          }
+          if (naloxoneCe > 0) {
+              const naloxoneAntagonism = naloxoneCe / (naloxoneCe + 0.001);
+              m6gRrDelta *= (1.0 - naloxoneAntagonism);
           }
 
           const nipModel = st.activeMeds?.find(m => m.name === 'Nitroprusside');
@@ -1475,10 +1607,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const dexmedCe = dexmedModel ? dexmedModel.Ce : 0;
           const thiopentalModel = st.activeMeds?.find(m => m.name === 'Thiopental');
           const thiopentalCe = thiopentalModel ? thiopentalModel.Ce : 0;
-          const midazolamModel = st.activeMeds?.find(m => m.name === 'Midazolam');
-          const midazolamCe = midazolamModel ? midazolamModel.Ce : 0;
-          const ketamineModel = st.activeMeds?.find(m => m.name === 'Ketamine');
-          const ketamineCe = ketamineModel ? ketamineModel.Ce : 0;
+          // midazolamModel/midazolamCe and ketamineModel/ketamineCe already declared above (~L1211-1214)
           const etomidateModel = st.activeMeds?.find(m => m.name === 'Etomidate');
           const etomidateCe = etomidateModel ? etomidateModel.Ce : 0;
           const atipamezoleModel = st.activeMeds?.find(m => m.name === 'Atipamezole');
@@ -1492,6 +1621,16 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const sIsoCe_total = sIsofluraneCe + (st.gasModels?.s_isoflurane ? st.gasModels.s_isoflurane.Fb : 0);
           const rIsoCe_total = rIsofluraneCe + (st.gasModels?.r_isoflurane ? st.gasModels.r_isoflurane.Fb : 0);
           const f6Ce_total = f6Ce + (st.gasModels?.f6 ? st.gasModels.f6.Fb : 0);
+
+          const methohexitalModel = st.activeMeds?.find(m => m.name === 'Methohexital');
+          const methohexitalCe = methohexitalModel ? methohexitalModel.Ce : 0;
+
+          const gabapentinModel = st.activeMeds?.find(m => m.name === 'Gabapentin');
+          const gabapentinCe = gabapentinModel ? gabapentinModel.Ce : 0;
+          const pregabalinModel = st.activeMeds?.find(m => m.name === 'Pregabalin');
+          const pregabalinCe = pregabalinModel ? pregabalinModel.Ce : 0;
+          const topiramateModel = st.activeMeds?.find(m => m.name === 'Topiramate');
+          const topiramateCe = topiramateModel ? topiramateModel.Ce : 0;
 
           const consciousnessOutput = ConsciousnessEngine.tick(1, st.patient, st.vitals, {
               propofolCe,
@@ -1512,11 +1651,15 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               f3Ce: f3Ce_total,
               sIsofluraneCe: sIsoCe_total,
               rIsofluraneCe: rIsoCe_total,
-              f6Ce: f6Ce_total
+              f6Ce: f6Ce_total,
+              methohexitalCe,
+              gabapentinCe,
+              pregabalinCe,
+              topiramateCe
           });
 
           // Chapter 19: Compute receptor-binding occupancies (0.0 - 1.0)
-          const gabaa_sum = (propofolCe / 2.5) + (midazolamCe / 0.05) + (etomidateCe / 0.3) + (thiopentalCe / 1.0) + sevoMac + isoMac + haloMac + desMac + (f3Ce_total / 1.2) + (sIsoCe_total / 0.9) + (rIsoCe_total / 1.8);
+          const gabaa_sum = (propofolCe / 2.5) + (midazolamCe / 0.05) + (etomidateCe / 0.3) + (thiopentalCe / 1.0) + (methohexitalCe * (15.0 / 3.5) / 1.0) + sevoMac + isoMac + haloMac + desMac + (f3Ce_total / 1.2) + (sIsoCe_total / 0.9) + (rIsoCe_total / 1.8);
           const gabaa_occupancy = Math.max(0.0, Math.min(1.0, gabaa_sum / (1.0 + gabaa_sum)));
 
           const glycine_sum = sevoMac + isoMac + haloMac + desMac + (f3Ce_total / 1.2) + (sIsoCe_total / 0.9) + (rIsoCe_total / 1.8) + (propofolCe / 5.0);
@@ -1746,9 +1889,27 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const priorExposure = st.patient.priorAnestheticExposure || false;
           let isHepatitisActive = st.patient.isHepatitisActive || false;
 
-          if (tfaAdducts > 15.0 && priorExposure && !isHepatitisActive) {
-              isHepatitisActive = true;
-              logEvent("🚨 CRITICAL EMERGENCY: Massive immune-mediated hepatocellular injury (Halothane Hepatitis) has been triggered by toxic trifluoroacetyl (TFA) neoantigens!");
+          if (!isHalothaneActive && tfaAdducts > 0) {
+              tfaAdducts = Math.max(0, tfaAdducts - 0.02);
+          }
+          if (tfaAdducts < 1.0) {
+              st.patient.halothaneHepatitisRolled = undefined;
+          }
+          if (tfaAdducts > 15.0 && !isHepatitisActive && st.patient.halothaneHepatitisRolled === undefined) {
+              const baseProb = 0.005; // 0.5% base probability when threshold is crossed
+              const age = typeof st.patient.age === 'number' ? st.patient.age : 40;
+              const isObese = st.patient.isObese || (st.patient.bmi && st.patient.bmi > 30.0);
+              const hasRisk = (priorExposure ? 10.0 : 1.0) * (isObese ? 2.0 : 1.0) * (st.patient.sex === 'female' ? 2.0 : 1.0) * (age > 30 && age < 60 ? 2.0 : 1.0);
+              const prob = Math.min(1.0, baseProb * hasRisk);
+              st.patient.halothaneHepatitisRolled = Math.random() < prob;
+              
+              if (st.patient.forceHalothaneHepatitis || st.patient.halothaneHepatitisRolled) {
+                  isHepatitisActive = true;
+                  logEvent("🚨 CRITICAL EMERGENCY: Massive immune-mediated hepatocellular injury (Halothane Hepatitis) has been triggered by toxic trifluoroacetyl (TFA) neoantigens!");
+              } else {
+                  st.patient.halothaneHepatitisRolled = false;
+                  logEvent("⚠️ Clinical Note: High levels of TFA neoantigens detected. Fortunately, immune-mediated Halothane Hepatitis did not trigger (baseline clinical susceptibility is limited).");
+              }
           }
 
           if (isHepatitisActive) {
@@ -1804,9 +1965,24 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           st.patient.accumulatedFluorideTime = accumulatedFluorideTime;
 
           let hasFluorideNephrotoxicity = st.patient.hasFluorideNephrotoxicity || false;
-          if (accumulatedFluorideTime > 150.0 && !hasFluorideNephrotoxicity) {
-              hasFluorideNephrotoxicity = true;
-              logEvent("🚨 CRITICAL ALERT: Toxic fluoride threshold exceeded (>50 µM for >150 µM-hours)! Methoxyflurane-induced high-output renal failure triggered.");
+          if (serumFluoride < 5.0) {
+              st.patient.methoxyfluraneNephrotoxicityRolled = undefined;
+          }
+          if (accumulatedFluorideTime > 150.0 && !hasFluorideNephrotoxicity && st.patient.methoxyfluraneNephrotoxicityRolled === undefined) {
+              const baseProb = 0.15; // 15% base probability when cumulative dose is reached
+              const isElderly = typeof st.patient.age === 'number' && st.patient.age > 65;
+              const hasRenalDisease = st.patient.isRenal || st.patient.renalFailure || st.patient.hasAki;
+              const modifier = (isElderly ? 2.0 : 1.0) * (hasRenalDisease ? 3.0 : 1.0);
+              const prob = Math.min(1.0, baseProb * modifier);
+              st.patient.methoxyfluraneNephrotoxicityRolled = Math.random() < prob;
+              
+              if (st.patient.forceMethoxyfluraneNephrotoxicity || st.patient.methoxyfluraneNephrotoxicityRolled) {
+                  hasFluorideNephrotoxicity = true;
+                  logEvent("🚨 CRITICAL ALERT: Toxic fluoride threshold exceeded (>50 µM for >150 µM-hours)! Methoxyflurane-induced high-output renal failure triggered.");
+              } else {
+                  st.patient.methoxyfluraneNephrotoxicityRolled = false;
+                  logEvent("⚠️ Clinical Note: High accumulated fluoride exposure from Methoxyflurane. Fortunately, severe high-output nephrotoxicity did not trigger (baseline clinical susceptibility is limited).");
+              }
           }
 
           if (hasFluorideNephrotoxicity) {
@@ -1859,9 +2035,19 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           // Exothermic Canister Reaction & Airway Fire
           if (st.patient.absorbent.waterContent < 1.4 && isSevofluraneActive && currentEtAgent > 0.5) {
               st.patient.absorbent.temperature = (st.patient.absorbent.temperature || 22.0) + 0.5 * currentEtAgent;
-              if (st.patient.absorbent.temperature > 80.0 && !st.patient.isAirwayFire) {
-                  st.patient.isAirwayFire = true;
-                  logEvent("🚨🚨 CRITICAL EMERGENCY: Desiccated CO2 absorbent has undergone a runaway exothermic reaction with Sevoflurane! Canister temperature has exceeded 80°C, melting circuit plastics and triggering an active AIRWAY FIRE!");
+              if (st.patient.absorbent.temperature < 40.0) {
+                  st.patient.airwayFireRolled = undefined;
+              }
+              if (st.patient.absorbent.temperature > 80.0 && !st.patient.isAirwayFire && st.patient.airwayFireRolled === undefined) {
+                  const baseProb = 0.02; // 2% chance of runaway exothermic reaction leading to active fire
+                  st.patient.airwayFireRolled = Math.random() < baseProb;
+                  if (st.patient.forceAirwayFire || st.patient.airwayFireRolled) {
+                      st.patient.isAirwayFire = true;
+                      logEvent("🚨🚨 CRITICAL EMERGENCY: Desiccated CO2 absorbent has undergone a runaway exothermic reaction with Sevoflurane! Canister temperature has exceeded 80°C, melting circuit plastics and triggering an active AIRWAY FIRE!");
+                  } else {
+                      st.patient.airwayFireRolled = false;
+                      logEvent("⚠️ Clinical Note: Carbon dioxide canister temperature is dangerously high (>80°C) due to Sevoflurane reacting with desiccated soda lime. Fortunately, a runaway exothermic ignition did not trigger an active airway fire. Swap the CO2 absorbent canister immediately!");
+                  }
               }
           }
 
@@ -1933,9 +2119,22 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let isMucusPlugged = st.patient.isMucusPlugged || false;
           if (ciliaBeatFrequency < 45.0) {
               ciliaryAtelectasisAccumulation += 0.015 * (45.0 - ciliaBeatFrequency) / 100.0;
-              if (ciliaryAtelectasisAccumulation > 3.0 && !isMucusPlugged) {
-                  isMucusPlugged = true;
-                  logEvent("🚨 CLINICAL ALERT: Severe ciliary beat frequency inhibition and mucous pooling have produced a focal mucous plug in the main bronchus!");
+              if (ciliaryAtelectasisAccumulation < 0.1) {
+                  st.patient.mucusPlugRolled = undefined;
+              }
+              if (ciliaryAtelectasisAccumulation > 3.0 && !isMucusPlugged && st.patient.mucusPlugRolled === undefined) {
+                  const baseProb = 0.05; // 5% base chance of thick mucus plug forming
+                  const hasRisk = (st.patient.tobaccoSmoker ? 2.0 : 1.0) * (st.patient.copd ? 2.0 : 1.0) * (st.patient.asthma ? 2.0 : 1.0);
+                  const prob = Math.min(1.0, baseProb * hasRisk);
+                  st.patient.mucusPlugRolled = Math.random() < prob;
+                  
+                  if (st.patient.forceMucusPlug || st.patient.mucusPlugRolled) {
+                      isMucusPlugged = true;
+                      logEvent("🚨 CLINICAL ALERT: Severe ciliary beat frequency inhibition and mucous pooling have produced a focal mucous plug in the main bronchus!");
+                  } else {
+                      st.patient.mucusPlugRolled = false;
+                      logEvent("⚠️ Clinical Note: Inadequate ciliary clearance and dry gases present. Fortunately, a focal mainstem bronchus mucus plug did not consolidate (occurs in ~5% of un-humidified circuits over time).");
+                  }
               }
           }
           st.patient.ciliaryAtelectasisAccumulation = ciliaryAtelectasisAccumulation;
@@ -2172,11 +2371,26 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let anaphylaxisResistancePenalty = 0;
           let anaphylaxisHrMod = 0;
 
+          if (unasynCe < 0.01) {
+              st.patient.penicillinAnaphylaxisRolled = undefined;
+          }
+
           if (unasynCe > 0.05 && (st.patient.penicillinAllergy || (st.patient.allergies && st.patient.allergies.toLowerCase().includes('penicillin'))) && !anaphylaxisTriggered) {
-              anaphylaxisTriggered = true;
-              st.patient.anaphylaxisTriggered = true;
-              st.patient.anaphylaxisTime = st.time;
-              logEvent(`🚨 CRITICAL EMERGENCY: Penicillin-containing Ampicillin/Sulbactam administered to a patient with severe Penicillin Allergy! Triggered hyperacute IgE-mediated anaphylactic shock! (Profound vasoplegic hypotension, severe bronchospasm, extreme airway resistance).`);
+              if (st.patient.penicillinAnaphylaxisRolled === undefined) {
+                  const baseProb = 0.02;
+                  const hasRisk = st.patient.copd || st.patient.asthma || st.patient.atopic || st.patient.highAnxiety;
+                  const prob = Math.min(1.0, baseProb * (hasRisk ? 4.0 : 1.0));
+                  st.patient.penicillinAnaphylaxisRolled = Math.random() < prob;
+              }
+              if (st.patient.forcePenicillinAnaphylaxis || st.patient.penicillinAnaphylaxisRolled) {
+                  anaphylaxisTriggered = true;
+                  st.patient.anaphylaxisTriggered = true;
+                  st.patient.anaphylaxisTime = st.time;
+                  logEvent(`🚨 CRITICAL EMERGENCY: Penicillin-containing Ampicillin/Sulbactam administered to a patient with severe Penicillin Allergy! Triggered hyperacute IgE-mediated anaphylactic shock! (Profound vasoplegic hypotension, severe bronchospasm, extreme airway resistance).`);
+              } else {
+                  st.patient.penicillinAnaphylaxisRolled = false;
+                  logEvent(`⚠️ Clinical Note: Penicillin-containing Ampicillin/Sulbactam administered to allergy-documented patient. Fortunately, no acute anaphylaxis occurred (only ~2% baseline clinical incidence).`);
+              }
           }
 
           if (st.patient.anaphylaxisTriggered) {
@@ -2201,6 +2415,463 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                   }
               }
           }
+
+          // 1. PRIS (Propofol Infusion Syndrome)
+          // propofolModel and propofolCe are already declared in this scope above
+          const safePatientWeight = typeof st.patient.weight === 'number' && Number.isFinite(st.patient.weight) && st.patient.weight > 0 ? st.patient.weight : 70;
+          let currentPrisAccum = st.patient.prisAccumulation || 0;
+          let prisTriggered = st.patient.prisTriggered || false;
+          
+          if (propofolModel && propofolModel.currentInfusionRate > 0) {
+              const rateMcgKgMin = (propofolModel.currentInfusionRate * 1000 * 60) / safePatientWeight;
+              if (rateMcgKgMin > 67.0) {
+                  currentPrisAccum += 1;
+              }
+          }
+          if (currentPrisAccum === 0) {
+              st.patient.prisRolled = undefined;
+          }
+          if (currentPrisAccum > 120 && !prisTriggered) {
+              if (st.patient.prisRolled === undefined) {
+                  const baseProb = 0.05;
+                  const isYoung = typeof st.patient.age === 'number' && st.patient.age < 12;
+                  const modifier = (st.patient.isSeptic || st.patient.trauma || isYoung) ? 4.0 : 1.0;
+                  const prob = Math.min(1.0, baseProb * modifier);
+                  st.patient.prisRolled = Math.random() < prob;
+              }
+              if (st.patient.forcePris || st.patient.prisRolled) {
+                  prisTriggered = true;
+                  logEvent(`🚨 CRITICAL EMERGENCY: Propofol Infusion Syndrome (PRIS) triggered! The patient has developed profound metabolic acidosis, hyperkalemia, rhabdomyolysis, and progressive myocardial failure!`);
+              } else {
+                  st.patient.prisRolled = false;
+                  logEvent(`⚠️ Clinical Note: Propofol infusion rate was maintained above 67 mcg/kg/min for a prolonged period. Fortunately, PRIS did not manifest (occurs in <5% of cases). Close monitoring of pH and potassium is advised.`);
+              }
+          }
+          
+          let currentK = fluidicsOutput.electrolytes.k;
+          let stunning = st.patient.myocardialStunning || 0;
+          
+          if (prisTriggered) {
+              const isInfusing = propofolModel && propofolModel.currentInfusionRate > 0;
+              if (isInfusing) {
+                  currentK += 0.03; // Progressive hyperkalemia from rhabdo
+                  currentLactate += 0.08; // Progressive metabolic acidosis
+                  stunning = Math.min(85, stunning + 0.5); // Myocardial stunning
+              } else {
+                  // Recovery if propofol is stopped
+                  currentK = Math.max(4.0, currentK - 0.01);
+                  currentLactate = Math.max(1.0, currentLactate - 0.015);
+                  stunning = Math.max(0, stunning - 0.2);
+              }
+              
+              // Treatment with Bicarbonate shifts K and treats acidosis
+              const bicarbModel = st.activeMeds?.find(m => m.name === 'Bicarbonate');
+              if (bicarbModel && bicarbModel.Ce > 0.02) {
+                  currentK = Math.max(4.0, currentK - 0.05);
+                  currentLactate = Math.max(1.0, currentLactate - 0.1);
+              }
+          }
+          
+          // Save updated potassium in fluidicsOutput.electrolytes
+          fluidicsOutput.electrolytes.k = currentK;
+          st.patient.prisAccumulation = currentPrisAccum;
+          st.patient.prisTriggered = prisTriggered;
+          st.patient.myocardialStunning = stunning;
+          patientAfterFluidics.prisAccumulation = currentPrisAccum;
+          patientAfterFluidics.prisTriggered = prisTriggered;
+          patientAfterFluidics.myocardialStunning = stunning;
+
+          // 2. Adrenocortical Suppression
+          // etomidateModel and etomidateCe are already declared in this scope above
+          let cortisol = st.patient.cortisolLevel !== undefined ? st.patient.cortisolLevel : 15.0;
+          let adrenalSuppressionActive = st.patient.adrenalSuppressionActive || false;
+          
+          if (etomidateCe < 0.01) {
+              st.patient.adrenalSuppressionRolled = undefined;
+          }
+          if (etomidateCe > 0.05 && !adrenalSuppressionActive) {
+              if (st.patient.adrenalSuppressionRolled === undefined) {
+                  const baseProb = 0.10;
+                  const isElderly = typeof st.patient.age === 'number' && st.patient.age > 65;
+                  const modifier = (st.patient.isSeptic || st.patient.trauma || isElderly) ? 5.0 : 1.0;
+                  const prob = Math.min(1.0, baseProb * modifier);
+                  st.patient.adrenalSuppressionRolled = Math.random() < prob;
+              }
+              if (st.patient.forceAdrenalSuppression || st.patient.adrenalSuppressionRolled) {
+                  adrenalSuppressionActive = true;
+                  logEvent(`🚨 CLINICAL ALERT: Etomidate administration has inhibited 11-beta-hydroxylase, triggering adrenocortical suppression! Cortisol production has shut down, blunting endogenous sympathetic tone and vascular responsiveness to catecholamines.`);
+              } else {
+                  st.patient.adrenalSuppressionRolled = false;
+                  logEvent(`⚠️ Clinical Note: Etomidate was administered. While biochemically 11-beta-hydroxylase inhibition occurs, no acute adrenocortical suppression or sympathetic blunting occurred in this patient (occurs in ~10% of elective cases).`);
+              }
+          }
+          
+          const dexaModel = st.activeMeds?.find(m => m.name === 'Dexamethasone');
+          const dexaCe = dexaModel ? dexaModel.Ce : 0;
+          if (dexaCe > 0.01 && adrenalSuppressionActive) {
+              adrenalSuppressionActive = false;
+              cortisol = 15.0;
+              logEvent(`✅ SUCCESS: Dexamethasone administered! Corticosteroid activity restored, reversing etomidate-induced adrenocortical suppression and restoring vasopressor sensitivity.`);
+          }
+          
+          if (adrenalSuppressionActive) {
+              cortisol = Math.max(1.5, cortisol - 0.1);
+          } else {
+              cortisol = Math.min(15.0, cortisol + 0.15);
+          }
+          
+          st.patient.cortisolLevel = cortisol;
+          st.patient.adrenalSuppressionActive = adrenalSuppressionActive;
+          patientAfterFluidics.cortisolLevel = cortisol;
+          patientAfterFluidics.adrenalSuppressionActive = adrenalSuppressionActive;
+
+          // 3. Ketamine Emergence Delirium
+          // ketamineModel/ketamineCe already declared above (~L1213-1214)
+          let emergenceDeliriumTriggered = st.patient.emergenceDeliriumTriggered || false;
+          let deliriumHrMod = 0;
+          let deliriumMapMod = 0;
+          
+          if (ketamineCe < 0.01) {
+              st.patient.emergenceDeliriumRolled = undefined;
+          }
+          if (ketamineCe > 0.4) {
+              st.patient.ketaminePeakAchieved = true;
+              patientAfterFluidics.ketaminePeakAchieved = true;
+          }
+          if (ketamineCe > 0.02 && ketamineCe < 0.25 && sedativeEff < 0.2 && !emergenceDeliriumTriggered && st.patient.ketaminePeakAchieved) {
+              if (st.patient.emergenceDeliriumRolled === undefined) {
+                  const baseProb = 0.15;
+                  const isAgeExtreme = typeof st.patient.age === 'number' && (st.patient.age < 18 || st.patient.age > 65);
+                  const modifier = (st.patient.highAnxiety || st.patient.trauma || isAgeExtreme) ? 3.0 : 1.0;
+                  const prob = Math.min(1.0, baseProb * modifier);
+                  st.patient.emergenceDeliriumRolled = Math.random() < prob;
+              }
+              if (st.patient.forceEmergenceDelirium || st.patient.emergenceDeliriumRolled) {
+                  emergenceDeliriumTriggered = true;
+                  logEvent(`🚨 CLINICAL WARNING: Patient is emerging from Ketamine anesthesia and experiencing Emergence Delirium! Signs include severe psychomotor agitation, visual hallucinations, sialorrhea, tachycardia, and hypertension.`);
+              } else {
+                  st.patient.emergenceDeliriumRolled = false;
+                  st.patient.ketaminePeakAchieved = false;
+                  patientAfterFluidics.ketaminePeakAchieved = false;
+                  logEvent(`⚠️ Clinical Note: Patient emerged from Ketamine anesthesia. No emergence delirium occurred (occurs in ~15% of cases without co-administered sedatives).`);
+              }
+          }
+          if (emergenceDeliriumTriggered) {
+              if (sedativeEff > 0.35) {
+                  emergenceDeliriumTriggered = false;
+                  logEvent(`✅ SUCCESS: Sedative administered! Emergence delirium successfully suppressed.`);
+              } else {
+                  deliriumHrMod = 20;
+                  deliriumMapMod = 25;
+                  
+                  // In un-intubated patients, saliva can trigger laryngospasm
+                  if (!st.patient.airwaySecured && st.patient.laryngospasm === false && Math.random() < 0.02) {
+                      st.patient.laryngospasm = true;
+                      patientAfterFluidics.laryngospasm = true;
+                      logEvent(`🚨 CRITICAL ALERT: Sialorrhea from Ketamine emergence delirium has triggered a Laryngospasm! Airway resistance is now infinite.`);
+                  }
+              }
+          }
+          
+          st.patient.emergenceDeliriumTriggered = emergenceDeliriumTriggered;
+          patientAfterFluidics.emergenceDeliriumTriggered = emergenceDeliriumTriggered;
+
+          // 4. Barbiturate Arterial Precipitation
+          let barbiturateArterialPrecipitation = st.patient.barbiturateArterialPrecipitation || false;
+          let arterialIschemiaHrMod = 0;
+          let arterialIschemiaMapMod = 0;
+          
+          if (barbiturateArterialPrecipitation) {
+              const lidoModel = st.activeMeds?.find(m => m.name === 'Lidocaine');
+              const lidoCe = lidoModel ? lidoModel.Ce : 0;
+              const papModel = st.activeMeds?.find(m => m.name === 'Papaverine');
+              const papCe = papModel ? papModel.Ce : 0;
+              
+              if (lidoCe > 0.05 || papCe > 0.05) {
+                  barbiturateArterialPrecipitation = false;
+                  st.patient.barbiturateArterialPrecipitation = false;
+                  logEvent(`✅ SUCCESS: Vasodilator administered into arterial line! Profound arterial vasospasm resolved, crystals dissolved, and distal tissue perfusion restored.`);
+              } else {
+                  arterialIschemiaHrMod = 30;
+                  arterialIschemiaMapMod = 40;
+              }
+          }
+          
+          st.patient.barbiturateArterialPrecipitation = barbiturateArterialPrecipitation;
+          patientAfterFluidics.barbiturateArterialPrecipitation = barbiturateArterialPrecipitation;
+
+          // 5. Benzodiazepine Withdrawal Seizures
+          const flumModel = st.activeMeds?.find(m => m.name === 'Flumazenil');
+          const flumCe = flumModel ? flumModel.Ce : 0;
+          // isSeizure and seizureMetabolicMultiplier are already declared in this scope above
+          
+          if (flumCe < 0.01) {
+              st.patient.benzoWithdrawalSeizureRolled = undefined;
+          }
+          if (flumCe > 0.02 && st.patient.chronicBenzoUse && !st.patient.benzoWithdrawalSeizureTriggered && st.patient.benzoWithdrawalSeizureRolled === undefined) {
+              if (st.patient.benzoWithdrawalSeizureRolled === undefined) {
+                  const baseProb = 0.10;
+                  const modifier = (st.patient.isSeptic || st.patient.trauma || st.patient.highAnxiety) ? 3.0 : 1.0;
+                  const prob = Math.min(1.0, baseProb * modifier);
+                  st.patient.benzoWithdrawalSeizureRolled = Math.random() < prob;
+              }
+              if (st.patient.forceBenzoWithdrawalSeizure || st.patient.benzoWithdrawalSeizureRolled) {
+                  st.patient.benzoWithdrawalSeizureTriggered = true;
+                  logEvent(`🚨 CRITICAL EMERGENCY: Flumazenil administered to a chronic benzodiazepine user! Triggered acute benzodiazepine withdrawal tonic-clonic seizures! Metabolic rate has surged, causing severe hypoxia risk.`);
+              } else {
+                  st.patient.benzoWithdrawalSeizureRolled = false;
+                  logEvent(`⚠️ Clinical Note: Flumazenil was administered to a chronic benzodiazepine user. While acute withdrawal or anxiety commonly occurs, no withdrawal seizures were triggered (occurs in ~10% of cases).`);
+              }
+          }
+          if (st.patient.benzoWithdrawalSeizureTriggered) {
+              if (propofolCe > 1.2 || midazolamCe > 0.08) {
+                  st.patient.benzoWithdrawalSeizureTriggered = false;
+                  logEvent(`✅ SUCCESS: Anticonvulsant sedative administered. Seizure activity aborted.`);
+              } else {
+                  isSeizure = true;
+                  seizureMetabolicMultiplier = 8.0;
+              }
+          }
+          
+          st.patient.isSeizure = isSeizure;
+          patientAfterFluidics.isSeizure = isSeizure;
+
+          // ==========================================
+          // CHAPTER 24: OPIOID CRITICAL SCENARIOS
+          // ==========================================
+          const fentanylCe = st.activeMeds?.find(m => m.name === 'Fentanyl')?.Ce || 0;
+          const remifentanilCe = st.activeMeds?.find(m => m.name === 'Remifentanil')?.Ce || 0;
+          const sufentanilCe = st.activeMeds?.find(m => m.name === 'Sufentanil')?.Ce || 0;
+          const morphineCe = st.activeMeds?.find(m => m.name === 'Morphine')?.Ce || 0;
+          const hydromorphoneCe = st.activeMeds?.find(m => m.name === 'Hydromorphone')?.Ce || 0;
+
+          // 1. Opioid-Induced Chest Wall Rigidity ("Wooden Chest Syndrome")
+          let opioidRigidityActive = st.patient.opioidRigidityActive || false;
+          if (fentanylCe < 0.0002 && remifentanilCe < 0.0002 && sufentanilCe < 0.00002) {
+              st.patient.opioidRigidityRolled = undefined;
+          }
+          if (!opioidRigidityActive && maxNMJOccupancy < 0.8 && naloxoneCe < 0.001) {
+              const hasHighOpioids = fentanylCe > 0.0015 || remifentanilCe > 0.003 || sufentanilCe > 0.00015;
+              if (hasHighOpioids && st.patient.opioidRigidityRolled === undefined) {
+                  if (st.patient.opioidRigidityRolled === undefined) {
+                      const baseProb = 0.03;
+                      const isAgeExtreme = typeof st.patient.age === 'number' && (st.patient.age < 12 || st.patient.age > 65);
+                      const modifier = (isAgeExtreme || (sedativeEff < 0.1)) ? 4.0 : 1.0;
+                      const prob = Math.min(1.0, baseProb * modifier);
+                      st.patient.opioidRigidityRolled = Math.random() < prob;
+                  }
+                  if (st.patient.forceOpioidRigidity || st.patient.opioidRigidityRolled) {
+                      opioidRigidityActive = true;
+                      logEvent("🚨 CRITICAL EMERGENCY: Rapid bolus of potent lipophilic opioids has triggered Opioid-Induced Chest Wall Rigidity ('Wooden Chest Syndrome')! The chest wall is locked, compliance has dropped to 3 mL/cmH2O, and airway resistance is 999 cmH2O/L/s, making manual/bag-mask ventilation impossible.");
+                  } else {
+                      st.patient.opioidRigidityRolled = false;
+                      logEvent("⚠️ Clinical Note: High dose of potent lipophilic opioid administered. Fortunately, chest wall rigidity was not triggered (baseline incidence ~3%). Spontaneous or manual ventilation remains patent.");
+                  }
+              }
+          }
+          if (opioidRigidityActive) {
+              if (maxNMJOccupancy >= 0.8) {
+                  opioidRigidityActive = false;
+                  logEvent("✅ SUCCESS: Muscle relaxant administered! Nicotinic acetylcholine receptor blockade has resolved chest wall rigidity and restored chest wall compliance.");
+              } else if (naloxoneCe > 0.001) {
+                  opioidRigidityActive = false;
+                  logEvent("✅ SUCCESS: Naloxone administered! Competitive mu-receptor antagonism has resolved chest wall rigidity.");
+              }
+          }
+          st.patient.opioidRigidityActive = opioidRigidityActive;
+          patientAfterFluidics.opioidRigidityActive = opioidRigidityActive;
+
+          // 2. Remifentanil-Induced Hyperalgesia (OIH)
+          let remifentanilInfusionDuration = st.patient.remifentanilInfusionDuration || 0;
+          let remifentanilHyperalgesiaActive = st.patient.remifentanilHyperalgesiaActive || false;
+          const remiModel = st.activeMeds?.find(m => m.name === 'Remifentanil');
+          const remiInfRate = remiModel ? remiModel.currentInfusionRate : 0;
+
+          if (remiInfRate > 0.15 || remifentanilCe > 0.003) {
+              remifentanilInfusionDuration += 1;
+              st.patient.remiHyperalgesiaRolled = undefined;
+          }
+
+          if (remifentanilInfusionDuration > 180 && remiInfRate === 0 && remifentanilCe < 0.0005 && !remifentanilHyperalgesiaActive && st.patient.remiHyperalgesiaRolled === undefined) {
+              if (st.patient.remiHyperalgesiaRolled === undefined) {
+                  const baseProb = 0.15;
+                  const modifier = (st.patient.highAnxiety || st.patient.sex === 'female') ? 3.0 : 1.0;
+                  const prob = Math.min(1.0, baseProb * modifier);
+                  st.patient.remiHyperalgesiaRolled = Math.random() < prob;
+              }
+              if (st.patient.forceRemifentanilHyperalgesia || st.patient.remiHyperalgesiaRolled) {
+                  remifentanilHyperalgesiaActive = true;
+                  logEvent("🚨 CLINICAL ALERT: Prolonged high-dose Remifentanil infusion has been discontinued, triggering acute Opioid-Induced Hyperalgesia (OIH)! Central glutamate and substance P sensitization has amplified nociceptive transmission.");
+              } else {
+                  st.patient.remiHyperalgesiaRolled = false;
+                  remifentanilInfusionDuration = 0;
+                  logEvent("⚠️ Clinical Note: Prolonged Remifentanil infusion discontinued. Fortunately, no acute opioid-induced hyperalgesia (OIH) was triggered (baseline incidence ~15%).");
+              }
+          }
+
+          // Prevention/Resolution by Ketamine or Magnesium
+          const magnesiumModel = st.activeMeds?.find(m => m.name === 'Magnesium Sulfate');
+          const magnesiumCe = magnesiumModel ? magnesiumModel.Ce : 0;
+
+          if (remifentanilHyperalgesiaActive && (ketamineCe > 0.05 || magnesiumCe > 1.0)) {
+              remifentanilHyperalgesiaActive = false;
+              remifentanilInfusionDuration = 0; // reset
+              logEvent("✅ SUCCESS: NMDA antagonist administered! Central hyperalgesia pathways blocked, successfully reversing opioid-induced hyperalgesia.");
+          }
+
+          st.patient.remifentanilInfusionDuration = remifentanilInfusionDuration;
+          st.patient.remifentanilHyperalgesiaActive = remifentanilHyperalgesiaActive;
+          patientAfterFluidics.remifentanilInfusionDuration = remifentanilInfusionDuration;
+          patientAfterFluidics.remifentanilHyperalgesiaActive = remifentanilHyperalgesiaActive;
+
+          // 3. Sphincter of Oddi Spasm
+          let sphincterOfOddiSpasmActive = st.patient.sphincterOfOddiSpasmActive || false;
+          if (morphineCe < 0.01 && fentanylCe < 0.0002) {
+              st.patient.sphincterOfOddiRolled = undefined;
+          }
+          if (!sphincterOfOddiSpasmActive) {
+              const hasTriggerAgonists = morphineCe > 0.04 || fentanylCe > 0.001;
+              if (hasTriggerAgonists && st.patient.sphincterOfOddiRolled === undefined) {
+                  if (st.patient.sphincterOfOddiRolled === undefined) {
+                      const baseProb = 0.02;
+                      const isElderly = typeof st.patient.age === 'number' && st.patient.age > 50;
+                      let modifier = 1.0;
+                      if (st.patient.biliaryDisease || st.patient.cholecystectomy) {
+                          modifier = 10.0;
+                      } else if (isElderly) {
+                          modifier = 4.0;
+                      }
+                      const prob = Math.min(1.0, baseProb * modifier);
+                      st.patient.sphincterOfOddiRolled = Math.random() < prob;
+                  }
+                  if (st.patient.forceSphincterOfOddiSpasm || st.patient.sphincterOfOddiRolled) {
+                      sphincterOfOddiSpasmActive = true;
+                      logEvent("🚨 CLINICAL ALERT: Opioid administration has induced spasm of the sphincter of Oddi! Common bile duct pressure has spiked, causing severe biliary colic pain.");
+                  } else {
+                      st.patient.sphincterOfOddiRolled = false;
+                      logEvent("⚠️ Clinical Note: Opioids administered. Sphincter of Oddi tone remained stable (biliary spasm occurs in ~2% of patients).");
+                  }
+              }
+          }
+          let oddiHrMod = 0;
+          let oddiMapMod = 0;
+          if (sphincterOfOddiSpasmActive) {
+              const atropineModel = st.activeMeds?.find(m => m.name === 'Atropine');
+              const atropineCe = atropineModel ? atropineModel.Ce : 0;
+              if (naloxoneCe > 0.001) {
+                  sphincterOfOddiSpasmActive = false;
+                  logEvent("✅ SUCCESS: Naloxone administered! Competitive mu-receptor antagonism has resolved sphincter of Oddi spasm.");
+              } else if (atropineCe > 0.01) {
+                  sphincterOfOddiSpasmActive = false;
+                  logEvent("✅ SUCCESS: Atropine administered! Muscarinic receptor blockade has relaxed the sphincter of Oddi and resolved spasm.");
+              } else {
+                  oddiHrMod = 15;
+                  oddiMapMod = 20;
+              }
+          }
+          st.patient.sphincterOfOddiSpasmActive = sphincterOfOddiSpasmActive;
+          patientAfterFluidics.sphincterOfOddiSpasmActive = sphincterOfOddiSpasmActive;
+
+          // 4. Opioid-Induced Pruritus
+          let opioidPruritusActive = st.patient.opioidPruritusActive || false;
+          if (morphineCe < 0.01) {
+              st.patient.opioidPruritusRolled = undefined;
+          }
+          if (morphineCe > 0.03 && !opioidPruritusActive && st.patient.opioidPruritusRolled === undefined) {
+              if (st.patient.opioidPruritusRolled === undefined) {
+                  const baseProb = 0.10;
+                  const modifier = (st.patient.sex === 'female') ? 3.0 : 1.0;
+                  const prob = Math.min(1.0, baseProb * modifier);
+                  st.patient.opioidPruritusRolled = Math.random() < prob;
+              }
+              if (st.patient.forceOpioidPruritus || st.patient.opioidPruritusRolled) {
+                  opioidPruritusActive = true;
+                  logEvent("🚨 CLINICAL ALERT: Morphine administration has triggered significant opioid-induced pruritus (facial itching)! This is mediated by central mu-receptor and gastrin-releasing peptide receptor co-activation.");
+              } else {
+                  st.patient.opioidPruritusRolled = false;
+                  logEvent("⚠️ Clinical Note: Morphine administered. Facial itching was not triggered (baseline clinical incidence ~10%).");
+              }
+          }
+          if (opioidPruritusActive) {
+              const ondansetronModel = st.activeMeds?.find(m => m.name === 'Ondansetron');
+              const ondansetronCe = ondansetronModel ? ondansetronModel.Ce : 0;
+              if (ondansetronCe > 0.02) {
+                  opioidPruritusActive = false;
+                  logEvent("✅ SUCCESS: Ondansetron administered! 5-HT3 receptor blockade has successfully treated opioid-induced pruritus.");
+              } else if (naloxoneCe > 0.0002 && naloxoneCe < 0.002) {
+                  opioidPruritusActive = false;
+                  logEvent("✅ SUCCESS: Low-dose Naloxone titrated! Competitive mu-receptor antagonism has resolved pruritus while preserving systemic analgesia.");
+              } else if (naloxoneCe >= 0.002) {
+                  opioidPruritusActive = false;
+                  logEvent("✅ SUCCESS: Naloxone administered! Pruritus resolved, but warning: full dose has antagonized all opioid analgesia!");
+              }
+          }
+          st.patient.opioidPruritusActive = opioidPruritusActive;
+          patientAfterFluidics.opioidPruritusActive = opioidPruritusActive;
+
+          // 5. Naloxone Sympathetic Surge
+          let naloxoneSurgeTriggered = st.patient.naloxoneSurgeTriggered || false;
+          let naloxoneSurgeActive = st.patient.naloxoneSurgeActive || false;
+          let naloxoneSurgeTime = st.patient.naloxoneSurgeTime !== undefined ? st.patient.naloxoneSurgeTime : 0;
+
+          if (naloxoneCe < 0.0005) {
+              st.patient.naloxoneSurgeRolled = undefined;
+          }
+          if (naloxoneCe > 0.002 && !naloxoneSurgeTriggered && opioidEff > 0.4 && st.patient.naloxoneSurgeRolled === undefined) {
+              if (st.patient.naloxoneSurgeRolled === undefined) {
+                  const baseProb = 0.05;
+                  const modifier = (st.patient.cad || st.patient.chf || st.patient.highAnxiety) ? 5.0 : 1.0;
+                  const prob = Math.min(1.0, baseProb * modifier);
+                  st.patient.naloxoneSurgeRolled = Math.random() < prob;
+              }
+              if (st.patient.forceNaloxoneSurge || st.patient.naloxoneSurgeRolled) {
+                  naloxoneSurgeTriggered = true;
+                  naloxoneSurgeActive = true;
+                  naloxoneSurgeTime = 120; // 120 seconds duration
+                  logEvent("🚨 CRITICAL ALERT: Rapid Naloxone reversal has triggered an acute autonomic sympathetic surge! Release of endogenous catecholamines causes severe hypertension and tachycardia.");
+              } else {
+                  st.patient.naloxoneSurgeRolled = false;
+                  logEvent("⚠️ Clinical Note: Rapid Naloxone reversal performed. Fortunately, no acute sympathetic surge occurred (occurs in ~5% of reversals). Hemodynamics remain stable.");
+              }
+          }
+          let surgeHrMod = 0;
+          let surgeMapMod = 0;
+          if (naloxoneSurgeActive && naloxoneSurgeTime > 0) {
+              naloxoneSurgeTime--;
+              const factor = naloxoneSurgeTime / 120;
+              surgeHrMod = Math.round(30 * factor);
+              surgeMapMod = Math.round(35 * factor);
+              if (naloxoneSurgeTime === 0) {
+                  naloxoneSurgeActive = false;
+                  logEvent("✅ SUCCESS: Naloxone-induced sympathetic surge has resolved and hemodynamics have stabilized.");
+              }
+          }
+          st.patient.naloxoneSurgeTriggered = naloxoneSurgeTriggered;
+          st.patient.naloxoneSurgeActive = naloxoneSurgeActive;
+          st.patient.naloxoneSurgeTime = naloxoneSurgeTime;
+          patientAfterFluidics.naloxoneSurgeTriggered = naloxoneSurgeTriggered;
+          patientAfterFluidics.naloxoneSurgeActive = naloxoneSurgeActive;
+          patientAfterFluidics.naloxoneSurgeTime = naloxoneSurgeTime;
+
+          // 6. Renarcotization
+          let renarcotizationActive = st.patient.renarcotizationActive || false;
+          if (naloxoneSurgeTriggered && naloxoneCe < 0.0005 && !renarcotizationActive) {
+              const longAgonistActive = (fentanylCe > 0.002) || (morphineCe > 0.04) || (sufentanilCe > 0.0004) || (hydromorphoneCe > 0.015);
+              if (longAgonistActive) {
+                  renarcotizationActive = true;
+                  logEvent("🚨 CRITICAL EMERGENCY: Naloxone levels have decayed below the therapeutic threshold while high levels of long-acting opioid agonists remain! Renarcotization has occurred, re-triggering central respiratory arrest.");
+              }
+          }
+          if (renarcotizationActive && naloxoneCe >= 0.001) {
+              renarcotizationActive = false;
+              logEvent("✅ SUCCESS: Repeat Naloxone dose administered! Renarcotization reversed and spontaneous respiration restored.");
+          }
+          st.patient.renarcotizationActive = renarcotizationActive;
+          patientAfterFluidics.renarcotizationActive = renarcotizationActive;
+
+          // Apply clinical offsets
+          ruleHrOffset += deliriumHrMod + arterialIschemiaHrMod + oddiHrMod + surgeHrMod;
+          ruleMapOffset += deliriumMapMod + arterialIschemiaMapMod + oddiMapMod + surgeMapMod;
 
           // Position modifiers
           let positionPreloadMod = 0;
@@ -2300,6 +2971,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           st.patient.childPughClass = hepaticOutput.childPughClass;
           st.patient.meldScore = hepaticOutput.meldScore;
           st.patient.hpsShunt = hepaticOutput.hpsShunt;
+          st.patient.varicealBleedRolled = hepaticOutput.varicealBleedRolled;
+          st.patient.poPHCollapseRolled = hepaticOutput.poPHCollapseRolled;
 
           patientAfterFluidics.creatinine = hepaticOutput.creatinine;
           patientAfterFluidics.varicealBleedingActive = hepaticOutput.varicealBleedingActive;
@@ -2310,6 +2983,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           patientAfterFluidics.childPughClass = hepaticOutput.childPughClass;
           patientAfterFluidics.meldScore = hepaticOutput.meldScore;
           patientAfterFluidics.hpsShunt = hepaticOutput.hpsShunt;
+          patientAfterFluidics.varicealBleedRolled = hepaticOutput.varicealBleedRolled;
+          patientAfterFluidics.poPHCollapseRolled = hepaticOutput.poPHCollapseRolled;
 
           // Renal Engine Tick
           const netFluidBalance = (st.patient.netFluidBalance || 0.0) + fluidicsOutput.intravascularVolumeAdded_mL - (st.patient.urineOutputRate || 70.0) * (1.0 / 3600.0);
@@ -2383,6 +3058,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           st.patient.hasPrerenalOliguria = renalOutput.hasPrerenalOliguria;
           st.patient.hasFluidOverloadEdema = renalOutput.hasFluidOverloadEdema;
           st.patient.netFluidBalance = netFluidBalance;
+          st.patient.fluidOverloadEdemaRolled = renalOutput.fluidOverloadEdemaRolled;
 
           patientAfterFluidics.gfr = renalOutput.gfr;
           patientAfterFluidics.rbf = renalOutput.rbf;
@@ -2403,6 +3079,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           patientAfterFluidics.hasPrerenalOliguria = renalOutput.hasPrerenalOliguria;
           patientAfterFluidics.hasFluidOverloadEdema = renalOutput.hasFluidOverloadEdema;
           patientAfterFluidics.netFluidBalance = netFluidBalance;
+          patientAfterFluidics.fluidOverloadEdemaRolled = renalOutput.fluidOverloadEdemaRolled;
 
           // Gastric Aspiration triggers
           let hasAspirated = st.patient.hasAspirated || giOutput.hasAspirated || false;
@@ -2629,7 +3306,52 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               stuckInspiratoryValve: st.patient.stuckInspiratoryValve,
               aplValveSetting: st.patient.aplValveSetting,
               hasPneumothorax: st.patient.hasPneumothorax,
-              hasPneumothoraxWarningLogged: st.patient.hasPneumothoraxWarningLogged
+              hasPneumothoraxWarningLogged: st.patient.hasPneumothoraxWarningLogged,
+              cortisolLevel: st.patient.cortisolLevel,
+              adrenalSuppressionActive: st.patient.adrenalSuppressionActive,
+              prisAccumulation: st.patient.prisAccumulation,
+              prisTriggered: st.patient.prisTriggered,
+              emergenceDeliriumTriggered: st.patient.emergenceDeliriumTriggered,
+              barbiturateArterialPrecipitation: st.patient.barbiturateArterialPrecipitation,
+              hydroxyMidazolam: st.patient.hydroxyMidazolam || 0,
+              norketamine: st.patient.norketamine || 0,
+              chronicBenzoUse: st.patient.chronicBenzoUse,
+              opioidRigidityActive: st.patient.opioidRigidityActive,
+              remifentanilHyperalgesiaActive: st.patient.remifentanilHyperalgesiaActive,
+              remifentanilInfusionDuration: st.patient.remifentanilInfusionDuration,
+              sphincterOfOddiSpasmActive: st.patient.sphincterOfOddiSpasmActive,
+              opioidPruritusActive: st.patient.opioidPruritusActive,
+              renarcotizationActive: st.patient.renarcotizationActive,
+              naloxoneSurgeTriggered: st.patient.naloxoneSurgeTriggered,
+              naloxoneSurgeActive: st.patient.naloxoneSurgeActive,
+              naloxoneSurgeTime: st.patient.naloxoneSurgeTime,
+              forcePenicillinAnaphylaxis: st.patient.forcePenicillinAnaphylaxis,
+              forcePris: st.patient.forcePris,
+              forceAdrenalSuppression: st.patient.forceAdrenalSuppression,
+              forceEmergenceDelirium: st.patient.forceEmergenceDelirium,
+              forceBarbituratePrecipitation: st.patient.forceBarbituratePrecipitation,
+              forceBenzoWithdrawalSeizure: st.patient.forceBenzoWithdrawalSeizure,
+              forceOpioidRigidity: st.patient.forceOpioidRigidity,
+              forceRemifentanilHyperalgesia: st.patient.forceRemifentanilHyperalgesia,
+              forceSphincterOfOddiSpasm: st.patient.forceSphincterOfOddiSpasm,
+              forceOpioidPruritus: st.patient.forceOpioidPruritus,
+              forceNaloxoneSurge: st.patient.forceNaloxoneSurge,
+              forceHalothaneHepatitis: st.patient.forceHalothaneHepatitis,
+              forceMethoxyfluraneNephrotoxicity: st.patient.forceMethoxyfluraneNephrotoxicity,
+              forceAirwayFire: st.patient.forceAirwayFire,
+              forceMucusPlug: st.patient.forceMucusPlug,
+              forceVaricealBleed: st.patient.forceVaricealBleed,
+              forcePoPHCollapse: st.patient.forcePoPHCollapse,
+              forceFluidOverloadEdema: st.patient.forceFluidOverloadEdema,
+              forceNormepSeizure: st.patient.forceNormepSeizure,
+              halothaneHepatitisRolled: st.patient.halothaneHepatitisRolled,
+              methoxyfluraneNephrotoxicityRolled: st.patient.methoxyfluraneNephrotoxicityRolled,
+              airwayFireRolled: st.patient.airwayFireRolled,
+              mucusPlugRolled: st.patient.mucusPlugRolled,
+              varicealBleedRolled: st.patient.varicealBleedRolled,
+              poPHCollapseRolled: st.patient.poPHCollapseRolled,
+              fluidOverloadEdemaRolled: st.patient.fluidOverloadEdemaRolled,
+              normepSeizureRolled: st.patient.normepSeizureRolled
           };
 
           const finalVitals = {
@@ -2767,6 +3489,42 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           if (finalPatient.airwaySecured && st.surgicalPhase === 'Induction') {
               setSurgicalPhase('Maintenance');
               logEvent(`➡️ Airway Secured. Surgical Timeline Auto-Advanced: MAINTENANCE phase initiated.`);
+          }
+
+          if (st.activeMeds && finalPatient.accessLines) {
+              const safePatientWeight = typeof finalPatient.weight === 'number' && finalPatient.weight > 0 ? finalPatient.weight : 70;
+              const safePatientIbw = typeof finalPatient.ibw === 'number' && finalPatient.ibw > 0 ? finalPatient.ibw : 70;
+              const safePatientLbw = typeof finalPatient.lbw === 'number' && finalPatient.lbw > 0 ? finalPatient.lbw : 60;
+
+              st.activeMeds.forEach(model => {
+                  if (model.tciMode && model.tciMode !== 'none') {
+                      const matchingId = Object.keys(MEDICATIONS).find(key => MEDICATIONS[key].name === model.name);
+                      if (matchingId) {
+                          const medData = MEDICATIONS[matchingId];
+                          finalPatient.accessLines.forEach(line => {
+                              if (line.activeMedInfusions) {
+                                  const medInf = line.activeMedInfusions.find(mi => mi.medId === matchingId);
+                                  if (medInf) {
+                                      const dosingWeight = medData.dosingWeight === 'IBW' ? safePatientIbw : (medData.dosingWeight === 'LBW' ? safePatientLbw : safePatientWeight);
+                                      if (medInf.unit.includes('mcg/kg/min')) {
+                                          medInf.rate = parseFloat(((model.currentInfusionRate * 1000 * 60) / dosingWeight).toFixed(2));
+                                      } else if (medInf.unit.includes('mg/kg/hr')) {
+                                          medInf.rate = parseFloat(((model.currentInfusionRate * 3600) / dosingWeight).toFixed(2));
+                                      } else if (medInf.unit.includes('mcg/kg/hr')) {
+                                          medInf.rate = parseFloat(((model.currentInfusionRate * 1000 * 3600) / dosingWeight).toFixed(2));
+                                      } else if (medInf.unit.includes('mcg/min')) {
+                                          medInf.rate = parseFloat((model.currentInfusionRate * 1000 * 60).toFixed(2));
+                                      } else if (medInf.unit.includes('mg/hr')) {
+                                          medInf.rate = parseFloat((model.currentInfusionRate * 3600).toFixed(2));
+                                      } else {
+                                          medInf.rate = parseFloat((model.currentInfusionRate * 3600).toFixed(2));
+                                      }
+                                  }
+                              }
+                          });
+                      }
+                  }
+              });
           }
 
           // Update final states

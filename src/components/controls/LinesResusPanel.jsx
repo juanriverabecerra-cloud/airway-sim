@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Droplet } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Droplet, Activity, Eye, Syringe, FileText } from 'lucide-react';
 import { MEDICATIONS } from '../../engine/Pharmacology';
 import { getMedColor, getFluidColor } from './Pharmacopoeia';
 
@@ -10,8 +10,25 @@ export const LinesResusPanel = ({
   removeFluid,
   logEvent,
   processMed,
-  activeMeds = []
+  activeMeds = [],
+  defibSettings,
+  setDefibSettings,
+  toggleCPR,
+  deliverShock,
+  checkRhythm,
+  time,
+  formatTime,
+  setAccessModal,
+  generateLab
 }) => {
+  const isCodeActive = !!(patient?.cprActive || patient?.isArrest);
+  const [showCPRDefib, setShowCPRDefib] = useState(isCodeActive);
+
+  useEffect(() => {
+    if (isCodeActive) {
+      setShowCPRDefib(true);
+    }
+  }, [isCodeActive]);
   const [editInfusionDose, setEditInfusionDose] = useState({});
   const [bolusInfusionDose, setBolusInfusionDose] = useState({});
 
@@ -38,8 +55,13 @@ export const LinesResusPanel = ({
       return { ...prev, accessLines: newLines };
     });
 
-    processMed(medId, newDose, 'IV', 'Infusion', originalUnit);
-    logEvent(`Set ${medId} infusion rate to ${newDose} ${originalUnit} on selected line.`);
+    if (parseFloat(newDose) <= 0) {
+      processMed(medId, 0, 'IV', 'Stop Infusion', originalUnit);
+      logEvent(`Stopped ${medId} infusion on selected line.`);
+    } else {
+      processMed(medId, newDose, 'IV', 'Infusion', originalUnit);
+      logEvent(`Set ${medId} infusion rate to ${newDose} ${originalUnit} on selected line.`);
+    }
   };
 
   const handlePushFromInfusion = (medId, doseToPush, originalUnit, lineId) => {
@@ -68,6 +90,132 @@ export const LinesResusPanel = ({
           </span>
         </div>
       </h3>
+
+      {/* Bedside Procedures & Access Dropdowns */}
+      <div className="grid grid-cols-2 gap-2 shrink-0">
+        {/* Establish Access Dropdown */}
+        <div className="relative font-mono">
+          <select
+            value=""
+            onChange={(e) => {
+              const category = e.target.value;
+              if (setAccessModal) setAccessModal({ show: true, category });
+            }}
+            className="w-full glass-input text-[9px] font-black text-cyan-300 border border-white/10 rounded-lg outline-none appearance-none px-2 py-1.5 text-center cursor-pointer hover:border-cyan-500/80 transition font-mono bg-slate-950"
+          >
+            <option value="" disabled>💉 Establish Access...</option>
+            <option value="Peripheral IV">Peripheral IV (PIV)</option>
+            <option value="Central Line">Central Line (CVC)</option>
+            <option value="Intraosseous (IO)">Intraosseous (IO)</option>
+            <option value="Arterial Line">Arterial Line</option>
+          </select>
+        </div>
+
+        {/* Order Labs Dropdown */}
+        <div className="relative font-mono">
+          <select
+            value=""
+            onChange={(e) => {
+              const lab = e.target.value;
+              if (generateLab) generateLab(lab);
+            }}
+            className="w-full glass-input text-[9px] font-black text-purple-300 border border-white/10 rounded-lg outline-none appearance-none px-2 py-1.5 text-center cursor-pointer hover:border-purple-500/80 transition font-mono bg-slate-950"
+          >
+            <option value="" disabled>📋 Order Labs...</option>
+            <option value="ABG">Order ABG (Arterial)</option>
+            <option value="VBG">Order VBG (Venous)</option>
+            <option value="CBC">Order CBC (Hemoglobin)</option>
+            <option value="CMP">Order CMP (Electrolytes)</option>
+            <option value="Coagulation">Order Coags (PT/INR)</option>
+            <option value="TEG">Order TEG (Viscoelastic)</option>
+            <option value="LFTs">Order LFTs (Liver)</option>
+            <option value="Thyroid">Order Thyroid Panel</option>
+            <option value="Urinalysis">Order Urinalysis</option>
+            <option value="Pregnancy">Order Pregnancy (hCG)</option>
+            <option value="Type & Screen">Order Type & Screen</option>
+            <option value="Type & Cross">Order Type & Cross</option>
+            <option value="HbA1c">Order HbA1c</option>
+            <option value="PFTs">Order PFT / Ciliary Audit</option>
+          </select>
+        </div>
+      </div>
+
+      {/* CPR & Defibrillation Console */}
+      <div className="border border-red-500/20 bg-red-950/5 rounded-xl overflow-hidden shrink-0">
+        <button 
+          onClick={() => setShowCPRDefib(!showCPRDefib)}
+          className="w-full flex items-center justify-between px-3 py-1.5 bg-red-950/20 border-b border-white/5 font-mono text-[9px] font-black text-red-400 uppercase tracking-wider hover:bg-red-950/30 transition-all"
+        >
+          <span className="flex items-center gap-1.5">
+            <Activity size={12} className={patient?.isArrest || patient?.cprActive ? "text-red-500 animate-pulse" : "text-red-400"}/> 
+            Defib & CPR Console
+          </span>
+          <span>{showCPRDefib ? '▲' : '▼'}</span>
+        </button>
+        {showCPRDefib && (
+          <div className="p-2.5 flex flex-col gap-2 font-mono">
+            {(patient?.cprActive || patient?.isArrest) && (
+              <div className="bg-red-950/40 border border-red-900/40 p-2 rounded-lg flex justify-between items-center shadow-inner text-[9px] font-bold">
+                <span className="text-red-400 animate-pulse flex items-center gap-1">
+                  🚨 {patient?.isArrest ? 'CODE BLUE ACTIVE' : 'CPR ACTIVE'}
+                </span>
+                <span className="text-white">
+                  {formatTime(time - (patient?.isArrest ? (patient?.codeStartTime ?? time) : (patient?.cprStartTime ?? time)))}
+                </span>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <button 
+                onClick={() => { if (toggleCPR) toggleCPR(); }} 
+                className={`flex-1 py-1.5 rounded-lg text-[9px] font-black border transition active:scale-97 ${
+                  patient?.cprActive 
+                    ? 'bg-rose-600 border-red-500 text-white shadow-[0_0_8px_rgba(244,63,94,0.35)] animate-pulse' 
+                    : 'glass-button border-red-950/30 text-red-300 hover:bg-red-950/20'
+                }`}
+              >
+                {patient?.cprActive ? 'STOP CPR' : 'START CPR'}
+              </button>
+              <button 
+                onClick={() => { if (checkRhythm) checkRhythm(); }} 
+                disabled={!patient?.cprActive && !patient?.isArrest} 
+                className="flex-1 glass-button text-[9px] border border-slate-800 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-1 py-1.5"
+              >
+                <Eye size={12}/> CHECK RHYTHM
+              </button>
+            </div>
+            {defibSettings && (
+              <div className="flex gap-1.5 items-center mt-1">
+                <select 
+                  value={defibSettings.joules} 
+                  onChange={(e) => setDefibSettings({...defibSettings, joules: parseInt(e.target.value)})} 
+                  className="bg-slate-950 border border-white/5 rounded-lg p-1 text-[9px] text-slate-300 outline-none flex-1 h-7 font-mono"
+                >
+                  <option value={50}>50 J</option>
+                  <option value={100}>100 J</option>
+                  <option value={150}>150 J</option>
+                  <option value={200}>200 J (Max)</option>
+                </select>
+                <button 
+                  onClick={() => setDefibSettings({...defibSettings, sync: !defibSettings.sync})} 
+                  className={`px-2 h-7 text-[9px] rounded-lg border font-black transition ${
+                    defibSettings.sync 
+                      ? 'bg-amber-600/20 text-yellow-300 border-yellow-500 shadow-[0_0_8px_rgba(245,158,11,0.25)]' 
+                      : 'glass-button border-slate-800'
+                  }`}
+                >
+                  SYNC
+                </button>
+                <button 
+                  onClick={() => { if (deliverShock) deliverShock(defibSettings.joules, defibSettings.sync); }} 
+                  className="glass-button glass-button-rose border-rose-500 hover:bg-red-600 px-3 h-7 rounded-lg text-[9px] text-white"
+                >
+                  SHOCK
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       <div className="flex flex-col gap-3 overflow-y-auto custom-scrollbar flex-1 pr-1 min-h-0">
         {resusLines.length === 0 ? (

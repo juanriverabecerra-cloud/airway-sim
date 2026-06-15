@@ -137,7 +137,8 @@ describe('Chapter 16 Hepatic Physiology and Pathophysiology Unit Tests', () => {
       let patient = {
         cirrhosisFactor: 0.8,
         varicealBleedingActive: false,
-        varicealBleedTime: null
+        varicealBleedTime: null,
+        forceVaricealBleed: true
       };
       const vitals = {
         mPAP: 15.0,
@@ -284,7 +285,8 @@ describe('Chapter 16 Hepatic Physiology and Pathophysiology Unit Tests', () => {
       const basePatient = {
         cirrhosisFactor: 0.9,
         isArrest: false,
-        cardiacRhythm: 'normal'
+        cardiacRhythm: 'normal',
+        forcePoPHCollapse: true
       };
 
       const baseVitals = {

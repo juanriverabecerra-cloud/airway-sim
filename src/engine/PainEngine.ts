@@ -23,6 +23,7 @@ export interface PainPatientState {
   isParalyzed?: boolean;
   tofCount?: number;
   airwaySecured?: boolean;
+  remifentanilHyperalgesiaActive?: boolean;
 }
 
 export interface PainVitalsState {
@@ -176,8 +177,15 @@ export class PainEngine {
       const med = activeMeds?.find(m => m.name === name);
       const ce = med ? med.Ce : 0;
       if (ce <= 0) return 0;
+      let effectiveC50 = c50;
+      if (name !== 'Naloxone' && ['Fentanyl', 'Remifentanil', 'Sufentanil', 'Morphine', 'Hydromorphone'].includes(name)) {
+        const naloxone = activeMeds?.find(m => m.name === 'Naloxone');
+        if (naloxone && naloxone.Ce > 0) {
+          effectiveC50 = c50 * (1.0 + (naloxone.Ce / 0.001)); // Ki = 0.001 mg/L for Naloxone competitive antagonism
+        }
+      }
       const powerCe = Math.pow(ce, gamma);
-      const powerC50 = Math.pow(c50, gamma);
+      const powerC50 = Math.pow(effectiveC50, gamma);
       return powerCe / (powerCe + powerC50);
     };
 
@@ -196,8 +204,26 @@ export class PainEngine {
     const lidoCe = lidocaineModel ? lidocaineModel.Ce : 0;
     const lidoEff = lidoCe > 0 ? (Math.pow(lidoCe, 1.5) / (Math.pow(lidoCe, 1.5) + Math.pow(3.0, 1.5))) : 0;
 
+    // Non-opioid Pain Medications (Chapter 25)
+    const acetaminophenEff = getDrugEffect('Acetaminophen', 10.0, 1.5);
+    const ketorolacEff = getDrugEffect('Ketorolac', 1.0, 1.5);
+    const gabapentinEff = getDrugEffect('Gabapentin', 5.0, 1.5);
+    const pregabalinEff = getDrugEffect('Pregabalin', 3.0, 1.5);
+    const mexiletineEff = getDrugEffect('Mexiletine', 1.0, 1.5);
+    const topiramateEff = getDrugEffect('Topiramate', 4.0, 1.5);
+
+    const nonopioidEff = 1.0 - (1.0 - acetaminophenEff * 0.35) *
+                              (1.0 - ketorolacEff * 0.40) *
+                              (1.0 - gabapentinEff * 0.30) *
+                              (1.0 - pregabalinEff * 0.35) *
+                              (1.0 - mexiletineEff * 0.25) *
+                              (1.0 - topiramateEff * 0.20);
+
     // Afferent Analgesia Blunting
-    const analgesiaBlunting = 1.0 - (1.0 - opioidAnalgesia) * (1.0 - ketamineEff * 0.8) * (1.0 - lidoEff * 0.4);
+    const analgesiaBlunting = 1.0 - (1.0 - opioidAnalgesia) * 
+                              (1.0 - ketamineEff * 0.8) * 
+                              (1.0 - lidoEff * 0.4) * 
+                              (1.0 - nonopioidEff);
 
     // Airway specific blunting
     const airwayBlock = Math.min(0.85, (isTopicalized ? 0.85 : 0.0) + lidoEff * 0.5);
@@ -235,9 +261,13 @@ export class PainEngine {
     const propofolEff = getDrugEffect('Propofol', 2.5, 2.0);
     const midazolamEff = getDrugEffect('Midazolam', 0.05, 1.5);
     const etomidateEff = getDrugEffect('Etomidate', 0.3, 3.0);
+    const thiopentalEff = getDrugEffect('Thiopental', 15.0, 2.0);
+    const methohexitalEff = getDrugEffect('Methohexital', 3.5, 2.0);
     const hypnoticFraction = (activeMeds?.find(m => m.name === 'Propofol') ? propofolEff * 2.0 : 0) +
                              (activeMeds?.find(m => m.name === 'Midazolam') ? midazolamEff * 1.5 : 0) +
-                             (activeMeds?.find(m => m.name === 'Etomidate') ? etomidateEff * 1.5 : 0);
+                             (activeMeds?.find(m => m.name === 'Etomidate') ? etomidateEff * 1.5 : 0) +
+                             (activeMeds?.find(m => m.name === 'Thiopental') ? thiopentalEff * 2.0 : 0) +
+                             (activeMeds?.find(m => m.name === 'Methohexital') ? methohexitalEff * 2.0 : 0);
 
     const hypnoticBAR = Math.min(0.95, Math.pow(hypnoticFraction, 1.5) / (Math.pow(hypnoticFraction, 1.5) + Math.pow(Hypnotic_50_BAR, 1.5)));
 
@@ -245,7 +275,10 @@ export class PainEngine {
     const BAR_suppression = Math.max(0.0, Math.min(0.99, 1.0 - (1.0 - volatileBAR) * (1.0 - hypnoticBAR)));
 
     // Sympathetic Surge Outflow
-    const sympatheticDrive = currentCcat * (1.0 - BAR_suppression);
+    let sympatheticDrive = currentCcat * (1.0 - BAR_suppression);
+    if (p.remifentanilHyperalgesiaActive) {
+      sympatheticDrive *= 2.5; // OIH scales sympathetic spikes by 2.5x
+    }
 
     // 6. Dynamic Baroreceptor Resetting Loop
     // Setpoint drift (tau = 180 seconds)

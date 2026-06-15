@@ -1,6 +1,6 @@
 import { Brain, ShieldAlert, Award } from 'lucide-react';
 
-export const MemoryPanel = ({ patient, setPatient, logEvent }) => {
+export const MemoryPanel = ({ patient, setPatient, logEvent, toggleBis, toggleTof }) => {
   const isBis = patient?.hasBisMonitor;
 
   const triggerFearRecall = () => {
@@ -22,11 +22,35 @@ export const MemoryPanel = ({ patient, setPatient, logEvent }) => {
 
   return (
     <div className="glass-panel glass-purple p-4 flex flex-col gap-4 overflow-y-auto custom-scrollbar h-full max-h-[800px]">
-      <div className="flex items-center gap-2 border-b border-purple-900 pb-2">
-        <Brain className="text-purple-400 shrink-0" size={18} />
-        <span className="font-mono text-sm font-black uppercase tracking-wider text-slate-200">
-          Cognitive & Sleep-Wake Diagnostics
-        </span>
+      <div className="flex items-center justify-between border-b border-purple-900 pb-2 shrink-0">
+        <div className="flex items-center gap-2">
+          <Brain className="text-purple-400 shrink-0" size={18} />
+          <span className="font-mono text-xs font-black uppercase tracking-wider text-slate-200">
+            Neuro & EEG Monitors
+          </span>
+        </div>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => { if (toggleBis) toggleBis(); }} 
+            className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border transition-all ${
+              patient?.hasBisMonitor 
+                ? 'bg-purple-950/65 text-purple-300 border-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.35)]' 
+                : 'bg-slate-950/40 border-white/5 text-slate-500 hover:text-slate-400 font-normal'
+            }`}
+          >
+            {patient?.hasBisMonitor ? '✓ BIS On' : 'Attach BIS'}
+          </button>
+          <button 
+            onClick={() => { if (toggleTof) toggleTof(); }} 
+            className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border transition-all ${
+              patient?.hasTofMonitor 
+                ? 'bg-purple-950/65 text-purple-300 border-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.35)]' 
+                : 'bg-slate-950/40 border-white/5 text-slate-500 hover:text-slate-400 font-normal'
+            }`}
+          >
+            {patient?.hasTofMonitor ? '✓ TOF On' : 'Attach TOF'}
+          </button>
+        </div>
       </div>
 
       {!isBis ? (
@@ -38,6 +62,12 @@ export const MemoryPanel = ({ patient, setPatient, logEvent }) => {
           <div className="text-[10px] text-slate-500 max-w-[200px] leading-relaxed">
             Attach the BIS monitor to initialize raw processed EEG waveforms and cognitive pathway metrics.
           </div>
+          <button 
+            onClick={() => { if (toggleBis) toggleBis(); }} 
+            className="mt-2 glass-button glass-button-purple text-[9px] font-black uppercase tracking-wider py-1 px-3.5 rounded-lg"
+          >
+            Attach BIS Monitor
+          </button>
         </div>
       ) : (
         <div className="flex flex-col gap-4 font-mono text-[11px]">

@@ -11,6 +11,10 @@ export interface HepaticPatientState {
   varicealBleedTime?: number;
   hasPoPHCollapse?: boolean;
   hasTIPS?: boolean;
+  varicealBleedRolled?: boolean;
+  poPHCollapseRolled?: boolean;
+  forceVaricealBleed?: boolean;
+  forcePoPHCollapse?: boolean;
 }
 
 export interface HepaticVitalsState {
@@ -39,6 +43,8 @@ export interface HepaticOutput {
   meldScore: number;
   hpsShunt: number;
   events: string[];
+  varicealBleedRolled?: boolean;
+  poPHCollapseRolled?: boolean;
 }
 
 export class HepaticEngine {
@@ -124,10 +130,25 @@ export class HepaticEngine {
 
     // Bleeding trigger: HVPG > 12 mmHg and sudden systolic pressure spike (> 160 mmHg) or severe stress (C_cat > 30)
     const bleedTriggerPressure = inputs.sys > 160.0 || inputs.map > 115.0;
+    let varicealBleedRolled = patient.varicealBleedRolled;
+    if (!bleedTriggerPressure) {
+      varicealBleedRolled = undefined;
+    }
     if (cirrhosisFactor > 0.5 && HVPG > 12.0 && bleedTriggerPressure && !varicealBleedingActive && !patient.hasTIPS) {
-      varicealBleedingActive = true;
-      varicealBleedTime = safeTime;
-      events.push("🚨 CRITICAL EMERGENCY: Sudden hypertensive pressure surge triggered rupture of gastroesophageal varices! Active massive upper gastrointestinal bleeding has begun.");
+      if (varicealBleedRolled === undefined) {
+        const baseProb = 0.10; // 10% baseline probability of variceal rupture
+        varicealBleedRolled = Math.random() < baseProb;
+      }
+      if (patient.forceVaricealBleed || varicealBleedRolled) {
+        varicealBleedingActive = true;
+        varicealBleedTime = safeTime;
+        events.push("🚨 CRITICAL EMERGENCY: Sudden hypertensive pressure surge triggered rupture of gastroesophageal varices! Active massive upper gastrointestinal bleeding has begun.");
+      } else {
+        varicealBleedRolled = false;
+        if (safeTime % 30 === 0) {
+          events.push("⚠️ Clinical Note: Portal hypertension and hypertensive surge present. Fortunately, gastroesophageal varices remain intact (no bleeding triggered).");
+        }
+      }
     }
 
     if (varicealBleedingActive) {
@@ -169,16 +190,30 @@ export class HepaticEngine {
     // Normal mPAP is 15 mmHg. Cirrhosis increases it.
     const mPAP = 15.0 + 25.0 * cirrhosisFactor;
     let hasPoPHCollapse = !!patient.hasPoPHCollapse;
-
-    if (mPAP > 35.0 && !hasPoPHCollapse) {
-      // Acute PVR stressors trigger RV failure & PEA collapse
-      const hypoxicStressor = inputs.spo2 < 85.0;
-      const hypercapnicStressor = inputs.paco2 > 50.0;
-      const acidoticStressor = inputs.temp < 35.0; // severe hypothermia
-
-      if (hypoxicStressor || hypercapnicStressor || acidoticStressor) {
+    let poPHCollapseRolled = patient.poPHCollapseRolled;
+    const hypoxicStressor = inputs.spo2 < 85.0;
+    const hypercapnicStressor = inputs.paco2 > 50.0;
+    const acidoticStressor = inputs.temp < 35.0; // severe hypothermia
+    const hasStressors = hypoxicStressor || hypercapnicStressor || acidoticStressor;
+    if (!hasStressors) {
+      poPHCollapseRolled = undefined;
+    }
+    if (mPAP > 35.0 && !hasPoPHCollapse && hasStressors) {
+      if (poPHCollapseRolled === undefined) {
+        const baseProb = 0.10; // 10% base chance of RV collapse
+        const stressorCount = (hypoxicStressor ? 1 : 0) + (hypercapnicStressor ? 1 : 0) + (acidoticStressor ? 1 : 0);
+        const modifier = (stressorCount > 1 ? 3.0 : 1.0) * (inputs.temp < 35.0 ? 2.0 : 1.0);
+        const prob = Math.min(1.0, baseProb * modifier);
+        poPHCollapseRolled = Math.random() < prob;
+      }
+      if (patient.forcePoPHCollapse || poPHCollapseRolled) {
         hasPoPHCollapse = true;
         events.push("🚨 CRITICAL EMERGENCY: Acute pulmonary vasoconstriction stressor (hypoxia/hypercapnia) in a Portopulmonary Hypertension (PoPH) patient has precipitated acute right ventricular overload and cardiovascular collapse (PEA arrest)!");
+      } else {
+        poPHCollapseRolled = false;
+        if (safeTime % 30 === 0) {
+          events.push("⚠️ Clinical Note: Portopulmonary Hypertension (PoPH) patient exposed to acute pulmonary vasoconstriction stressors. Fortunately, right ventricular overload and collapse did not trigger.");
+        }
       }
     }
 
@@ -250,7 +285,9 @@ export class HepaticEngine {
       childPughClass,
       meldScore,
       hpsShunt: parseFloat(hpsShunt.toFixed(4)),
-      events
+      events,
+      varicealBleedRolled,
+      poPHCollapseRolled
     };
   }
 }
