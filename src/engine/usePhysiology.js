@@ -3569,7 +3569,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           if (maxNMJOccupancy > 0.0) {
               if (isSuxActive && !isSuxPhaseII && !hasNDMR) {
                   // Phase I depolarizing block: no fade, all four twitches decrease together
-                  t1 = maxNMJOccupancy <= 0.30 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.30) / (0.95 - 0.30));
+                  t1 = maxNMJOccupancy <= 0.75 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.75) / (0.95 - 0.75));
                   t2 = t1;
                   t3 = t1;
                   t4 = t1;
@@ -3577,10 +3577,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                   targetTofCount = t1 > 0.05 ? 4 : 0;
               } else {
                   // Non-depolarizing block or Phase II block: exhibits fade
-                  t1 = maxNMJOccupancy <= 0.60 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.60) / (0.95 - 0.60));
-                  t2 = maxNMJOccupancy <= 0.50 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.50) / (0.90 - 0.50));
-                  t3 = maxNMJOccupancy <= 0.40 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.40) / (0.85 - 0.40));
-                  t4 = maxNMJOccupancy <= 0.30 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.30) / (0.75 - 0.30));
+                  t1 = maxNMJOccupancy <= 0.90 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.90) / 0.05);
+                  t2 = maxNMJOccupancy <= 0.85 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.85) / 0.05);
+                  t3 = maxNMJOccupancy <= 0.80 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.80) / 0.05);
+                  t4 = maxNMJOccupancy <= 0.75 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.75) / 0.05);
 
                   if (maxNMJOccupancy >= 0.95) {
                       targetTofCount = 0;
@@ -3588,7 +3588,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                       targetTofCount = 1;
                   } else if (maxNMJOccupancy >= 0.85) {
                       targetTofCount = 2;
-                  } else if (maxNMJOccupancy >= 0.75) {
+                  } else if (maxNMJOccupancy >= 0.80) {
                       targetTofCount = 3;
                   } else {
                       targetTofCount = 4;

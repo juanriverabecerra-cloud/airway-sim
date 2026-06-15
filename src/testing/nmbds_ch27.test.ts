@@ -282,13 +282,13 @@ describe('Chapter 27: Pharmacology of Neuromuscular Blocking Drugs (NMBDs)', () 
 
         if (maxNMJOccupancy > 0.0) {
           if (isSuxActive && !isSuxPhaseII && !hasNDMR) {
-            t1 = maxNMJOccupancy <= 0.30 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.30) / (0.95 - 0.30));
+            t1 = maxNMJOccupancy <= 0.75 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.75) / (0.95 - 0.75));
             t4 = t1;
             targetTofRatio = 1.0;
             targetTofCount = t1 > 0.05 ? 4 : 0;
           } else {
-            t1 = maxNMJOccupancy <= 0.60 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.60) / (0.95 - 0.60));
-            t4 = maxNMJOccupancy <= 0.30 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.30) / (0.75 - 0.30));
+            t1 = maxNMJOccupancy <= 0.90 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.90) / 0.05);
+            t4 = maxNMJOccupancy <= 0.75 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.75) / 0.05);
 
             if (maxNMJOccupancy >= 0.95) {
               targetTofCount = 0;
@@ -296,7 +296,7 @@ describe('Chapter 27: Pharmacology of Neuromuscular Blocking Drugs (NMBDs)', () 
               targetTofCount = 1;
             } else if (maxNMJOccupancy >= 0.85) {
               targetTofCount = 2;
-            } else if (maxNMJOccupancy >= 0.75) {
+            } else if (maxNMJOccupancy >= 0.80) {
               targetTofCount = 3;
             } else {
               targetTofCount = 4;
@@ -331,13 +331,13 @@ describe('Chapter 27: Pharmacology of Neuromuscular Blocking Drugs (NMBDs)', () 
 
         if (maxNMJOccupancy > 0.0) {
           if (isSuxActive && !isSuxPhaseII && !hasNDMR) {
-            t1 = maxNMJOccupancy <= 0.30 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.30) / (0.95 - 0.30));
+            t1 = maxNMJOccupancy <= 0.75 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.75) / (0.95 - 0.75));
             t4 = t1;
             targetTofRatio = 1.0;
             targetTofCount = t1 > 0.05 ? 4 : 0;
           } else {
-            t1 = maxNMJOccupancy <= 0.60 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.60) / (0.95 - 0.60));
-            t4 = maxNMJOccupancy <= 0.30 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.30) / (0.75 - 0.30));
+            t1 = maxNMJOccupancy <= 0.90 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.90) / 0.05);
+            t4 = maxNMJOccupancy <= 0.75 ? 1.0 : Math.max(0, 1.0 - (maxNMJOccupancy - 0.75) / 0.05);
 
             if (maxNMJOccupancy >= 0.95) {
               targetTofCount = 0;
@@ -345,7 +345,7 @@ describe('Chapter 27: Pharmacology of Neuromuscular Blocking Drugs (NMBDs)', () 
               targetTofCount = 1;
             } else if (maxNMJOccupancy >= 0.85) {
               targetTofCount = 2;
-            } else if (maxNMJOccupancy >= 0.75) {
+            } else if (maxNMJOccupancy >= 0.80) {
               targetTofCount = 3;
             } else {
               targetTofCount = 4;
@@ -357,9 +357,9 @@ describe('Chapter 27: Pharmacology of Neuromuscular Blocking Drugs (NMBDs)', () 
         return { t1, t4, targetTofCount, targetTofRatio };
       };
 
-      // Scenario: Non-depolarizing block (e.g. Atracurium, occupancy = 0.74)
-      const resNDMR = getTofState(0.74, false, false, true);
-      expect(resNDMR.t1).toBeLessThan(1.0);
+      // Scenario: Non-depolarizing block (e.g. Atracurium, occupancy = 0.78)
+      const resNDMR = getTofState(0.78, false, false, true);
+      expect(resNDMR.t1).toBe(1.0);
       expect(resNDMR.t4).toBeLessThan(resNDMR.t1); // exhibits fade
       expect(resNDMR.targetTofRatio).toBeLessThan(1.0);
       expect(resNDMR.targetTofCount).toBe(4);
