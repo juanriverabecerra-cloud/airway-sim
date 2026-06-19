@@ -34,6 +34,7 @@ export interface PDParameters {
   chelationRatio?: number;
   receptors?: Receptors;
   synergyGroup?: string;
+  ccCnsRatio?: number;
 }
 
 export interface IndicationDetail {
@@ -177,6 +178,22 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
     pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.04, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.2, coSensitivity: 0.1, renalFraction: 0.5, hepaticFraction: 0.0 }, 
     pd: { c50: 0.02, gamma: 2, sysMax: 0, diaMax: 0, hrMax: -40, rrMax: 0 },
     notes: 'Reverses NDMR block by inhibiting Acetylcholinesterase, raising synaptic ACh levels to outcompete paralytics. MUST be co-administered with Glycopyrrolate. Omitting Glycopyrrolate triggers profound muscarinic activation: severe bradycardia (HR to 20 or asystole), salivation, bronchospasm, pupillary constriction.'
+  },
+  edrophonium: { 
+    name: 'Edrophonium', classes: ['AChE Inhibitor'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Renal (70%) and Hepatic', proteinBinding: 0.20, targetReceptor: 'Acetylcholinesterase', intracellularCascade: 'Rapid competitive inhibition of AChE -> ACh accumulates -> M2 (Gi) activation -> bradycardia if unopposed',
+    indications: { 'Reversal': { dose: '0.5-1.0', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.06, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.5, coSensitivity: 0.1, renalFraction: 0.7, hepaticFraction: 0.3 }, 
+    pd: { c50: 0.25, gamma: 2, sysMax: 0, diaMax: 0, hrMax: -50, rrMax: 0 },
+    notes: 'Rapid onset (0.8-2 minutes), short-acting AChE inhibitor. Dissociates quickly. Must be co-administered with Atropine due to rapid vagal onset. Pairing with Glycopyrrolate causes transient bradycardia due to onset mismatch.'
+  },
+  pyridostigmine: { 
+    name: 'Pyridostigmine', classes: ['AChE Inhibitor'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Renal (75%) and Hepatic', proteinBinding: 0.15, targetReceptor: 'Acetylcholinesterase', intracellularCascade: 'Carbamylose covalent inhibition of AChE -> ACh accumulates -> M2 (Gi) activation -> bradycardia if unopposed',
+    indications: { 'Reversal': { dose: '0.2-0.35', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.02, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.08, coSensitivity: 0.1, renalFraction: 0.75, hepaticFraction: 0.25 }, 
+    pd: { c50: 0.088, gamma: 2, sysMax: 0, diaMax: 0, hrMax: -30, rrMax: 0 },
+    notes: 'Slow onset (12-16 minutes), long-acting AChE inhibitor. Paired with Glycopyrrolate. Carbamylose mechanism inhibits pseudocholinesterase (BChE) by 90%, prolonging succinylcholine block.'
   },
   rocuronium: { 
     name: 'Rocuronium', classes: ['NDMR'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'IBW',
@@ -514,6 +531,70 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
     pk: { V1: 25.0, V2: 40.0, V3: 0, k10: 0.05, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.1 },
     pd: { c50: 2.0, gamma: 1.5, sysMax: -5, diaMax: -5, hrMax: -5, rrMax: 0 },
     notes: 'Amide local anesthetic. Metabolized to o-toluidine, which oxidizes hemoglobin to methemoglobin, risking severe Methemoglobinemia.'
+  },
+  bupivacaine: {
+    name: 'Bupivacaine', classes: ['Local Anesthetic'], routes: ['IV', 'Epidural', 'Spinal'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic', proteinBinding: 0.95, targetReceptor: 'Sodium Channels',
+    indications: { 'Local Infiltration': { dose: '1.0-2.5', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 10.0, V2: 30.0, V3: 150.0, k10: 0.015, k12: 0.05, k21: 0.02, k13: 0.01, k31: 0.005, ke0: 0.1, coSensitivity: 0.4, proteinBinding: 0.95, renalFraction: 0.0, hepaticFraction: 1.0 },
+    pd: { c50: 0.3, gamma: 2.0, sysMax: -20, diaMax: -20, hrMax: -15, rrMax: 0, ccCnsRatio: 2.0 },
+    notes: 'Racemic amide local anesthetic. High potency, long duration. Extremely high cardiotoxicity due to slow dissociation from cardiac sodium channels ("fast-in, slow-out") and mitochondrial inhibition. CC/CNS ratio ~2.0.'
+  },
+  ropivacaine: {
+    name: 'Ropivacaine', classes: ['Local Anesthetic'], routes: ['IV', 'Epidural', 'Spinal'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic', proteinBinding: 0.94, targetReceptor: 'Sodium Channels',
+    indications: { 'Local Infiltration': { dose: '1.0-3.0', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 12.0, V2: 35.0, V3: 160.0, k10: 0.02, k12: 0.06, k21: 0.025, k13: 0.01, k31: 0.006, ke0: 0.15, coSensitivity: 0.35, proteinBinding: 0.94, renalFraction: 0.0, hepaticFraction: 1.0 },
+    pd: { c50: 0.4, gamma: 2.0, sysMax: -15, diaMax: -15, hrMax: -10, rrMax: 0, ccCnsRatio: 4.0 },
+    notes: 'Pure S-enantiomer amide local anesthetic. Reduced cardiotoxicity compared to bupivacaine (CC/CNS ratio ~4.0) due to faster dissociation from sodium channels.'
+  },
+  levobupivacaine: {
+    name: 'Levobupivacaine', classes: ['Local Anesthetic'], routes: ['IV', 'Epidural', 'Spinal'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic', proteinBinding: 0.97, targetReceptor: 'Sodium Channels',
+    indications: { 'Local Infiltration': { dose: '1.0-2.5', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 10.0, V2: 30.0, V3: 150.0, k10: 0.018, k12: 0.05, k21: 0.02, k13: 0.01, k31: 0.005, ke0: 0.12, coSensitivity: 0.38, proteinBinding: 0.97, renalFraction: 0.0, hepaticFraction: 1.0 },
+    pd: { c50: 0.33, gamma: 2.0, sysMax: -18, diaMax: -18, hrMax: -12, rrMax: 0, ccCnsRatio: 3.3 },
+    notes: 'Pure S-enantiomer of bupivacaine. Reduced cardiotoxicity compared to racemic bupivacaine (CC/CNS ratio ~3.3).'
+  },
+  cocaine: {
+    name: 'Cocaine', classes: ['Local Anesthetic', 'Sympathomimetic'], routes: ['Topical', 'IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Plasma and Hepatic Esterases', proteinBinding: 0.90, targetReceptor: 'Norepinephrine Transporter',
+    indications: { 'Topical Vasoconst': { dose: '1.5-3.0', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 30.0, V3: 0, k10: 0.04, k12: 0.05, k21: 0.03, k13: 0, k31: 0, ke0: 0.8, coSensitivity: 0.2, proteinBinding: 0.90, renalFraction: 0.0, hepaticFraction: 0.5 },
+    pd: { c50: 0.1, gamma: 1.5, sysMax: 40, diaMax: 30, hrMax: 35, rrMax: 0, ccCnsRatio: 3.0 },
+    notes: 'Ester local anesthetic. Blocks sodium channels and inhibits catecholamine reuptake (NET blocker), causing marked vasoconstriction, tachycardia, and hypertension.'
+  },
+  tetracaine: {
+    name: 'Tetracaine', classes: ['Local Anesthetic'], routes: ['Topical', 'Spinal'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Plasma Cholinesterase', proteinBinding: 0.76, targetReceptor: 'Sodium Channels',
+    indications: { 'Spinal Anesthesia': { dose: '5.0-15.0', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 40.0, V3: 0, k10: 0.02, k12: 0.05, k21: 0.03, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0.3, proteinBinding: 0.76, renalFraction: 0.0, hepaticFraction: 0.0 },
+    pd: { c50: 0.5, gamma: 2.0, sysMax: -12, diaMax: -12, hrMax: -8, rrMax: 0, ccCnsRatio: 2.5 },
+    notes: 'Potent, long-acting ester local anesthetic. Highly lipid-soluble. Used predominantly for spinal and topical anesthesia.'
+  },
+  chloroprocaine: {
+    name: 'Chloroprocaine', classes: ['Local Anesthetic'], routes: ['Epidural', 'IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Plasma Cholinesterase', proteinBinding: 0.0, targetReceptor: 'Sodium Channels',
+    indications: { 'Local Infiltration': { dose: '5.0-11.0', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 25.0, V2: 0, V3: 0, k10: 2.0, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 2.0, coSensitivity: 0.1, proteinBinding: 0.0, renalFraction: 0.0, hepaticFraction: 0.0 },
+    pd: { c50: 2.0, gamma: 1.5, sysMax: -5, diaMax: -5, hrMax: -5, rrMax: 0, ccCnsRatio: 12.0 },
+    notes: 'Ultra-short-acting ester local anesthetic. Extremely rapid hydrolysis by pseudocholinesterase (half-life < 30 seconds), making systemic toxicity (LAST) virtually impossible.'
+  },
+  intralipid: {
+    name: 'Intralipid 20%', classes: ['Rescue Agent', 'Lipid Emulsion'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Lipolysis / Hepatic clearance', proteinBinding: 0.0, targetReceptor: 'Lipid Sink',
+    indications: { 'LAST Rescue Bolus': { dose: '1.5', unit: 'mL/kg', type: 'Bolus' }, 'LAST Rescue Infusion': { dose: '0.25', unit: 'mL/kg/min', type: 'Infusion' } },
+    pk: { V1: 10.0, V2: 0, V3: 0, k10: 0.03, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.1, proteinBinding: 0.0, renalFraction: 0.0, hepaticFraction: 1.0 },
+    pd: { c50: 1.0, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Intravenous lipid emulsion for rescue of local anesthetic systemic toxicity (LAST). Sequesters lipophilic local anesthetics ("lipid sink") and restores myocardial mitochondrial metabolism.'
+  },
+  methyleneBlue: {
+    name: 'Methylene Blue', classes: ['Antidote'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Renal clearance', proteinBinding: 0.0, targetReceptor: 'Methemoglobin Reductase',
+    indications: { 'Methemoglobinemia': { dose: '1.0-2.0', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.05, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.1, proteinBinding: 0.0, renalFraction: 0.9, hepaticFraction: 0.1 },
+    pd: { c50: 1.0, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Antidote for Methemoglobinemia. Acts as an electron donor to reduce Methemoglobin (Fe3+) back to functional oxygen-carrying Hemoglobin (Fe2+).'
   },
   magnesium: { 
     name: 'Magnesium Sulfate', classes: ['Electrolyte'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',

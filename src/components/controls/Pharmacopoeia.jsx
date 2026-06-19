@@ -58,7 +58,7 @@ export const getMedColor = (medId) => {
     };
   }
   // Anticholinergics / Reversals -> Green
-  if (['atropine', 'sugammadex', 'neostigmine', 'glycopyrrolate', 'atipamezole', 'methylphenidate', 'scopolamine'].some(k => id.includes(k))) {
+  if (['atropine', 'sugammadex', 'neostigmine', 'glycopyrrolate', 'atipamezole', 'methylphenidate', 'scopolamine', 'edrophonium', 'pyridostigmine'].some(k => id.includes(k))) {
     return {
       active: 'border-emerald-500/80 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)] bg-emerald-950/10 font-bold',
       btn: 'glass-button-emerald',
@@ -85,6 +85,17 @@ export const getMedColor = (medId) => {
       subBorder: 'border-indigo-900/50',
       text: 'text-indigo-400',
       focus: 'focus:border-indigo-500 focus:ring-indigo-500'
+    };
+  }
+
+  // Local Anesthetics -> Cyan
+  if (['bupivacaine', 'ropivacaine', 'levobupivacaine', 'tetracaine', 'chloroprocaine', 'benzocaine', 'prilocaine'].some(k => id.includes(k))) {
+    return {
+      active: 'border-cyan-500/80 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.25)] bg-cyan-950/10 font-bold',
+      btn: 'glass-button-cyan',
+      subBorder: 'border-cyan-900/50',
+      text: 'text-cyan-400',
+      focus: 'focus:border-cyan-500 focus:ring-cyan-500'
     };
   }
   
@@ -227,22 +238,31 @@ export const Pharmacopoeia = ({
     ],
     analgesia: [
       'acetaminophen',
+      'benzocaine',
+      'bupivacaine',
+      'chloroprocaine',
       'fentanyl',
       'gabapentin',
       'hydromorphone',
       'ketorolac',
+      'levobupivacaine',
       'mexiletine',
       'morphine',
       'pregabalin',
+      'prilocaine',
       'remifentanil',
+      'ropivacaine',
       'sufentanil',
+      'tetracaine',
       'topiramate'
     ],
     paralytics: [
       'atipamezole',
       'cisatracurium',
+      'edrophonium',
       'glycopyrrolate',
       'neostigmine',
+      'pyridostigmine',
       'rocuronium',
       'scopolamine',
       'succinylcholine',
@@ -254,6 +274,7 @@ export const Pharmacopoeia = ({
       'amiodarone',
       'atropine',
       'clevidipine',
+      'cocaine',
       'ephedrine',
       'epinephrine',
       'esmolol',
@@ -272,7 +293,9 @@ export const Pharmacopoeia = ({
       'bicarbonate',
       'calcium',
       'furosemide',
+      'intralipid',
       'magnesium',
+      'methyleneBlue',
       'methylphenidate',
       'unasyn'
     ],

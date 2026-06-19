@@ -136,6 +136,7 @@ export const LinesResusPanel = ({
             <option value="Type & Cross">Order Type & Cross</option>
             <option value="HbA1c">Order HbA1c</option>
             <option value="PFTs">Order PFT / Ciliary Audit</option>
+            <option value="Local Anesthetics">Order Local Anesthetic Assays</option>
           </select>
         </div>
       </div>

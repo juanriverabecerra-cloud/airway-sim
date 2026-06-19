@@ -157,7 +157,98 @@ export class CardiovascularEngine {
       safeSvrSympatheticSpike *= 0.6;
       safeContractilitySympatheticSpike *= 0.6;
     }
-    const safeHrSympatheticSpike = typeof drugEffects.hrSympatheticSpike === 'number' && Number.isFinite(drugEffects.hrSympatheticSpike) ? drugEffects.hrSympatheticSpike : 0;
+    let safeHrSympatheticSpike = typeof drugEffects.hrSympatheticSpike === 'number' && Number.isFinite(drugEffects.hrSympatheticSpike) ? drugEffects.hrSympatheticSpike : 0;
+    
+    // Calculate LAST Cardiotoxicity (tCv) and Cocaine NET Blockade Sympathetic Surge
+    let tCv = 0;
+    let cocaineHrSpike = 0;
+    let cocaineSvrSpike = 0;
+    let cocaineContractilitySpike = 0;
+
+    const currentPh = typeof (vitals as any).ph === 'number' ? (vitals as any).ph : (st.electrolytes as any)?.ph || 7.4;
+    const age = patient.age || 40;
+    const ageFactor = (age < 1) ? 0.5 : 1.0;
+    const acidosisFactor = Math.max(0.5, 1.0 - Math.max(0, 7.4 - currentPh) * 0.5);
+
+    const lipidSinkVol = (patient as any).lipidSinkVol || 0;
+    const safeEbvVal = typeof patient.ebv === 'number' && Number.isFinite(patient.ebv) && patient.ebv > 0 ? patient.ebv : 5000;
+    const vLipid = lipidSinkVol / safeEbvVal;
+
+    if (inputs.activeMeds) {
+      inputs.activeMeds.forEach(m => {
+        const med = m as any;
+        const ce = med.Ce || 0;
+        let thresholdCns = 0;
+        let ccCnsRatio = 7.0;
+        let pb = 0;
+        let kLipid = 15.0;
+
+        if (med.name === 'Lidocaine') {
+          thresholdCns = 1.5;
+          ccCnsRatio = 7.0;
+          pb = 0.70;
+          kLipid = 15.0;
+        } else if (med.name === 'Bupivacaine') {
+          thresholdCns = 0.3;
+          ccCnsRatio = 2.0;
+          pb = 0.95;
+          kLipid = 120.0;
+        } else if (med.name === 'Ropivacaine') {
+          thresholdCns = 0.6;
+          ccCnsRatio = 4.0;
+          pb = 0.94;
+          kLipid = 60.0;
+        } else if (med.name === 'Levobupivacaine') {
+          thresholdCns = 0.6;
+          ccCnsRatio = 3.3;
+          pb = 0.97;
+          kLipid = 120.0;
+        } else if (med.name === 'Cocaine') {
+          thresholdCns = 0.5;
+          ccCnsRatio = 3.0;
+          pb = 0.90;
+          kLipid = 30.0;
+          if (ce > 0.01) {
+            const sens = ce / (ce + 0.1);
+            cocaineHrSpike = 35.0 * sens;
+            cocaineSvrSpike = 400.0 * sens;
+            cocaineContractilitySpike = 0.5 * sens;
+          }
+        } else if (med.name === 'Tetracaine') {
+          thresholdCns = 0.24;
+          ccCnsRatio = 2.5;
+          pb = 0.76;
+          kLipid = 80.0;
+        } else if (med.name === 'Chloroprocaine') {
+          thresholdCns = 10.0;
+          ccCnsRatio = 12.0;
+          pb = 0.0;
+          kLipid = 0.5;
+        } else if (med.name === 'Benzocaine') {
+          thresholdCns = 2.0;
+          ccCnsRatio = 8.0;
+          pb = 0.0;
+          kLipid = 1.0;
+        } else if (med.name === 'Prilocaine') {
+          thresholdCns = 2.0;
+          ccCnsRatio = 8.0;
+          pb = 0.55;
+          kLipid = 10.0;
+        }
+
+        if (thresholdCns > 0 && ce > 0) {
+          const freeFraction = 1.0 - pb * acidosisFactor * ageFactor;
+          const fLipidBound = (kLipid * vLipid) / (1.0 + kLipid * vLipid);
+          const ceFree = ce * freeFraction * (1.0 - fLipidBound);
+          tCv += ceFree / (thresholdCns * ccCnsRatio);
+        }
+      });
+    }
+
+    safeSvrSympatheticSpike += cocaineSvrSpike;
+    safeContractilitySympatheticSpike += cocaineContractilitySpike;
+    safeHrSympatheticSpike += cocaineHrSpike;
+
     const safeShiveringHRDrive = typeof drugEffects.shiveringHRDrive === 'number' && Number.isFinite(drugEffects.shiveringHRDrive) ? drugEffects.shiveringHRDrive : 0;
     const safeAnaphylaxisHrMod = typeof drugEffects.anaphylaxisHrMod === 'number' && Number.isFinite(drugEffects.anaphylaxisHrMod) ? drugEffects.anaphylaxisHrMod : 0;
     const safeAnaphylaxisSvrMod = typeof drugEffects.anaphylaxisSvrMod === 'number' && Number.isFinite(drugEffects.anaphylaxisSvrMod) ? drugEffects.anaphylaxisSvrMod : 1.0;
@@ -219,7 +310,11 @@ export class CardiovascularEngine {
 
     const effectiveIntravascularVolume = Math.max(100, safeEbv - safeCurrentEbl + safePreloadMod + volumeOffset - splanchnicPoolingOffset);
     let newStunning = typeof patient.myocardialStunning === 'number' && Number.isFinite(patient.myocardialStunning) ? patient.myocardialStunning : 0;
-    const inotropyInitial = Math.max(0.01, 1.0 - (newStunning / 100) + safeContractilitySympatheticSpike + (safeDrugInotropyMod - 1.0));
+    let lastInotropyScale = 1.0;
+    if (tCv >= 0.5) {
+      lastInotropyScale = Math.max(0.05, 1.0 - 0.7 * (tCv - 0.5));
+    }
+    const inotropyInitial = Math.max(0.01, (1.0 - (newStunning / 100) + safeContractilitySympatheticSpike + (safeDrugInotropyMod - 1.0)) * lastInotropyScale);
 
     // Left Ventricular End-Diastolic Pressure (LVEDP)
     const baseLVEDP = 8.0;
@@ -321,7 +416,7 @@ export class CardiovascularEngine {
       events.push(`✅ MYOCARDIAL ISCHEMIA RESOLVED: Coronary perfusion supply now meets myocardial metabolic demand. Myocardial stunning has stabilized and is recovering.`);
     }
 
-    const inotropyFinal = Math.max(0.01, 1.0 - (newStunning / 100) + safeContractilitySympatheticSpike + (safeDrugInotropyMod - 1.0));
+    const inotropyFinal = Math.max(0.01, (1.0 - (newStunning / 100) + safeContractilitySympatheticSpike + (safeDrugInotropyMod - 1.0)) * lastInotropyScale);
 
     // Frank-Starling stroke volume preload factor
     const starlingPreloadSV = 1.2 * (1.0 - Math.exp(-0.15 * lvedpVal));
@@ -368,6 +463,20 @@ export class CardiovascularEngine {
 
     const baseHR = typeof patient.patientBaseHR === 'number' && Number.isFinite(patient.patientBaseHR) && patient.patientBaseHR > 0 ? patient.patientBaseHR : 70;
     let targetHR = Math.max(0, baseHR + totalHrDelta + adjustedAutonomicHrMod + adjustedHypovolemicTachy + safeHrSympatheticSpike + shiveringHRDriveVal + afibHRFlutter + safeAnaphylaxisHrMod + hrBainbridge);
+    let lastHrPenalty = 0;
+    if (tCv >= 0.5) {
+      lastHrPenalty = 25.0 * (tCv - 0.5);
+    }
+    targetHR = Math.max(0, targetHR - lastHrPenalty);
+
+    let prInterval = 160;
+    let qrsDuration = 80;
+    if (tCv >= 0.5) {
+      prInterval = Math.round(160.0 * (1.0 + 0.8 * (tCv - 0.5)));
+      qrsDuration = Math.round(80.0 * (1.0 + 1.5 * (tCv - 0.5)));
+    }
+    (patient as any).prInterval = prInterval;
+    (patient as any).qrsDuration = qrsDuration;
     const safeRuleHrScale = typeof drugEffects.ruleHrScale === 'number' && Number.isFinite(drugEffects.ruleHrScale) ? drugEffects.ruleHrScale : 1.0;
     const safeRuleHrOffset = typeof drugEffects.ruleHrOffset === 'number' && Number.isFinite(drugEffects.ruleHrOffset) ? drugEffects.ruleHrOffset : 0;
     targetHR = targetHR * safeRuleHrScale + safeRuleHrOffset;
@@ -520,12 +629,23 @@ export class CardiovascularEngine {
     // Clamping to prevent infinite mathematical overflow/divergence
     newDamage = Math.max(0, Math.min(10000, newDamage));
 
-    if (!isArrestState && !patient.biologicalDeath && newDamage > (patient.arrestThreshold || 1200)) {
+    if (!isArrestState && !patient.biologicalDeath && (newDamage > (patient.arrestThreshold || 1200) || tCv >= 1.3)) {
       isArrestState = true;
-      if (newSpo2 < 60) currentRhythm = 'asystole';
-      else if (safeBloodLossRatio > 0.35) currentRhythm = 'pea';
-      else currentRhythm = Math.random() > 0.5 ? 'vfib' : 'asystole';
-      events.push(`🚨 CARDIAC ARREST! Rhythm: ${currentRhythm.toUpperCase()}`);
+      if (tCv >= 1.3) {
+        const bup = inputs.activeMeds.find(m => m.name === 'Bupivacaine');
+        if (bup && (bup as any).Ce > 0.3) {
+          currentRhythm = 'vfib';
+        } else {
+          currentRhythm = Math.random() > 0.5 ? 'pea' : 'asystole';
+        }
+        patient.isLAST = true;
+        events.push(`🚨 CRITICAL EMERGENCY: Local Anesthetic Systemic Toxicity (LAST) has triggered cardiac arrest (rhythm: ${currentRhythm.toUpperCase()})!`);
+      } else {
+        if (newSpo2 < 60) currentRhythm = 'asystole';
+        else if (safeBloodLossRatio > 0.35) currentRhythm = 'pea';
+        else currentRhythm = Math.random() > 0.5 ? 'vfib' : 'asystole';
+        events.push(`🚨 CARDIAC ARREST! Rhythm: ${currentRhythm.toUpperCase()}`);
+      }
     }
 
     let bioDeath = !!patient.biologicalDeath;
@@ -544,8 +664,8 @@ export class CardiovascularEngine {
     // Spontaneous ROSC (PEA/Asystole)
     let spontaneousRosc = false;
     if (isArrestState && (currentRhythm === 'pea' || currentRhythm === 'asystole') && patient.cprActive) {
-      const hasEpi = activeMeds.some(m => m.name === 'Epinephrine' && m.A1 > 0.1);
-      if (safeBuffer > (safeFRC_L * 0.50) && safeBloodLossRatio < 0.2 && hasEpi && Math.random() < 0.04) {
+      const hasEpi = activeMeds.find(m => m.name === 'Epinephrine' && (m as any).A1 > 0.1);
+      if (safeBuffer > (safeFRC_L * 0.50) && safeBloodLossRatio < 0.2 && hasEpi && tCv < 1.3 && Math.random() < 0.04) {
         spontaneousRosc = true;
       }
     }
@@ -654,7 +774,83 @@ export class CardiovascularEngine {
       const ischemicDamage = typeof updated.ischemicDamage === 'number' && Number.isFinite(updated.ischemicDamage) ? updated.ischemicDamage : 0;
       const ischemicPenalty = (ischemicDamage / 5000);
 
-      const successChance = Math.max(0.01, 0.7 + totalBonus - ischemicPenalty - hypoxiaPenalty - hypovolemiaPenalty);
+      // Calculate LAST Cardiotoxicity (tCv) for defibrillation penalty
+      let tCv = 0;
+      const age = updated.age || 40;
+      const ageFactor = (age < 1) ? 0.5 : 1.0;
+      const acidosisFactor = 1.0; // Neutral pH assumed for defib check fallback
+
+      const lipidSinkVol = (updated as any).lipidSinkVol || 0;
+      const safeEbvVal = typeof updated.ebv === 'number' && Number.isFinite(updated.ebv) && updated.ebv > 0 ? updated.ebv : 5000;
+      const vLipid = lipidSinkVol / safeEbvVal;
+
+      if (activeMeds) {
+        activeMeds.forEach(m => {
+          const med = m as any;
+          const ce = med.Ce || 0;
+          let thresholdCns = 0;
+          let ccCnsRatio = 7.0;
+          let pb = 0;
+          let kLipid = 15.0;
+
+          if (med.name === 'Lidocaine') {
+            thresholdCns = 1.5;
+            ccCnsRatio = 7.0;
+            pb = 0.70;
+            kLipid = 15.0;
+          } else if (med.name === 'Bupivacaine') {
+            thresholdCns = 0.3;
+            ccCnsRatio = 2.0;
+            pb = 0.95;
+            kLipid = 120.0;
+          } else if (med.name === 'Ropivacaine') {
+            thresholdCns = 0.6;
+            ccCnsRatio = 4.0;
+            pb = 0.94;
+            kLipid = 60.0;
+          } else if (med.name === 'Levobupivacaine') {
+            thresholdCns = 0.6;
+            ccCnsRatio = 3.3;
+            pb = 0.97;
+            kLipid = 120.0;
+          } else if (med.name === 'Cocaine') {
+            thresholdCns = 0.5;
+            ccCnsRatio = 3.0;
+            pb = 0.90;
+            kLipid = 30.0;
+          } else if (med.name === 'Tetracaine') {
+            thresholdCns = 0.24;
+            ccCnsRatio = 2.5;
+            pb = 0.76;
+            kLipid = 80.0;
+          } else if (med.name === 'Chloroprocaine') {
+            thresholdCns = 10.0;
+            ccCnsRatio = 12.0;
+            pb = 0.0;
+            kLipid = 0.5;
+          } else if (med.name === 'Benzocaine') {
+            thresholdCns = 2.0;
+            ccCnsRatio = 8.0;
+            pb = 0.0;
+            kLipid = 1.0;
+          } else if (med.name === 'Prilocaine') {
+            thresholdCns = 2.0;
+            ccCnsRatio = 8.0;
+            pb = 0.55;
+            kLipid = 10.0;
+          }
+
+          if (thresholdCns > 0 && ce > 0) {
+            const freeFraction = 1.0 - pb * acidosisFactor * ageFactor;
+            const fLipidBound = (kLipid * vLipid) / (1.0 + kLipid * vLipid);
+            const ceFree = ce * freeFraction * (1.0 - fLipidBound);
+            tCv += ceFree / (thresholdCns * ccCnsRatio);
+          }
+        });
+      }
+
+      const lastPenalty = Math.min(0.9, 0.7 * tCv);
+      const successChance = Math.max(0.01, 0.7 + totalBonus - ischemicPenalty - hypoxiaPenalty - hypovolemiaPenalty - lastPenalty);
 
       if (Math.random() < successChance) {
         if (ischemicDamage > 4000) {
@@ -663,6 +859,7 @@ export class CardiovascularEngine {
         } else {
           events.push("✅ ROSC ACHIEVED! Organized rhythm restored.");
           updated.isArrest = false;
+          updated.isLAST = false;
           updated.cardiacRhythm = 'normal';
           updated.myocardialStunning = 60;
           updated.arrestThreshold = ischemicDamage + 1500;

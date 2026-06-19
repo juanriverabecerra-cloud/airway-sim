@@ -916,6 +916,9 @@ export default function App() {
     } else if (type === 'PFTs') {
       logEvent(`Ordering Bedside Pulmonary Function Tests & Ciliary Audit (ETA ~2 min)...`);
       delay = 3000;
+    } else if (type === 'Local Anesthetics') {
+      logEvent(`Sent blood for Local Anesthetic drug level assays & MetHb analysis (ETA ~2 min)...`);
+      delay = 3000;
     }
 
     setTimeout(() => {
@@ -1071,6 +1074,61 @@ export default function App() {
           'Estimated Compliance': { val: compliance.toFixed(1) + ' %', range: '90.0 - 110.0 %', alert: compliance < 80.0 },
           'Mucus Status': { val: patient.isMucusPlugged ? '⚠️ MUCUS PLUG' : 'Normal', range: 'Normal', alert: patient.isMucusPlugged }
         };
+      } else if (type === 'Local Anesthetics') {
+        const age = patient.age || 40;
+        const ageFactor = (age < 1) ? 0.5 : 1.0;
+        const acidosisFactor = Math.max(0.5, 1.0 - Math.max(0, 7.4 - currentPh) * 0.5);
+        const lipidSinkVol = patient.lipidSinkVol || 0.0;
+        const safeEbvVal = typeof patient.ebv === 'number' && Number.isFinite(patient.ebv) && patient.ebv > 0 ? patient.ebv : 5000;
+        const vLipid = lipidSinkVol / safeEbvVal;
+        const metHbVal = vitals.metHb !== undefined ? vitals.metHb : (patient.metHb !== undefined ? patient.metHb : 0.8);
+
+        results = {
+          'Methemoglobin (MetHb)': {
+            val: metHbVal.toFixed(1) + ' %',
+            range: '< 1.5 %',
+            alert: metHbVal > 1.5
+          },
+          'Lipid Sink Volume': {
+            val: lipidSinkVol.toFixed(1) + ' mL',
+            range: '0.0 mL',
+            alert: false
+          }
+        };
+
+        const laKeys = {
+          'Lidocaine': { pb: 0.70, kLipid: 15.0, range: '< 5.0' },
+          'Bupivacaine': { pb: 0.95, kLipid: 120.0, range: '< 0.3' },
+          'Ropivacaine': { pb: 0.94, kLipid: 60.0, range: '< 0.6' },
+          'Levobupivacaine': { pb: 0.97, kLipid: 120.0, range: '< 0.6' },
+          'Cocaine': { pb: 0.90, kLipid: 30.0, range: '< 0.5' },
+          'Tetracaine': { pb: 0.76, kLipid: 80.0, range: '< 0.24' },
+          'Chloroprocaine': { pb: 0.0, kLipid: 0.5, range: '< 10.0' },
+          'Benzocaine': { pb: 0.0, kLipid: 1.0, range: '< 2.0' },
+          'Prilocaine': { pb: 0.55, kLipid: 10.0, range: '< 2.0' }
+        };
+
+        Object.keys(laKeys).forEach(laName => {
+          const medModel = activeMeds?.find(m => m.name === laName);
+          const ce = medModel ? medModel.Ce : 0.0;
+          const pb = laKeys[laName].pb;
+          const kLipid = laKeys[laName].kLipid;
+          const freeFraction = 1.0 - pb * acidosisFactor * ageFactor;
+          const fLipidBound = (kLipid * vLipid) / (1.0 + kLipid * vLipid);
+          const ceFree = ce * freeFraction * (1.0 - fLipidBound);
+          const limit = parseFloat(laKeys[laName].range.replace(/[^\d.]/g, ''));
+
+          results[`${laName} (Total)`] = {
+            val: ce.toFixed(2) + ' µg/mL',
+            range: laKeys[laName].range + ' µg/mL',
+            alert: ce > limit
+          };
+          results[`${laName} (Free)`] = {
+            val: ceFree.toFixed(2) + ' µg/mL',
+            range: `< ${(limit * (1.0 - pb)).toFixed(3)} µg/mL`,
+            alert: ceFree > limit * (1.0 - pb)
+          };
+        });
       }
 
       setLabs(prev => {

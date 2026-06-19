@@ -72,7 +72,7 @@ This document represents the unified, consolidated, and authoritative system arc
     *   [6.16 Cerebral Steal Syndrome vs. Robin Hood Effect](#616-cerebral-steal-syndrome-vs-robin-hood-effect)
     *   [6.17 Severe Traumatic Brain Injury (TBI) & Brain Herniation](#617-severe-traumatic-brain-injury-tbi--brain-herniation)
     *   [6.18 Succinylcholine Hyperkalemia & Cardiac Membrane Stabilization](#618-succinylcholine-hyperkalemia--cardiac-membrane-stabilization)
-    *   [6.19 Neostigmine Ceiling Effect & Overdose Weakness](#619-neostigmine-ceiling-effect--overdose-weakness)
+    *   [6.19 Anticholinesterase Ceiling Effect & Overdose Weakness](#619-anticholinesterase-ceiling-effect--overdose-weakness)
     *   [6.20 Absorption Atelectasis & Shunt Hypoxemia](#620-absorption-atelectasis--shunt-hypoxemia)
     *   [6.21 Alveolar Recruitment Maneuver](#621-alveolar-recruitment-maneuver)
     *   [6.22 Bezold-Jarisch Reflex](#622-bezold-jarisch-reflex)
@@ -118,6 +118,13 @@ This document represents the unified, consolidated, and authoritative system arc
     *   [6.62 Connected Awareness under TCI Closed-Loop Failure & Adaptive Overdrive](#662-connected-awareness-under-tci-closed-loop-failure--adaptive-overdrive)
     *   [6.63 Atypical Pseudocholinesterase Succinylcholine Prolongation Crisis](#663-atypical-pseudocholinesterase-succinylcholine-prolongation-crisis)
     *   [6.64 Laudanosine Accumulation & Epileptogenic Seizure Loop](#664-laudanosine-accumulation--epileptogenic-seizure-loop)
+    *   [6.65 Edrophonium & Pyridostigmine Reversal Dynamics](#665-edrophonium--pyridostigmine-reversal-dynamics)
+    *   [6.66 Muscarinic Chronotropic Surge and Anticholinergic Pairing Mismatches](#666-muscarinic-chronotropic-surge-and-anticholinergic-pairing-mismatches)
+    *   [6.67 Local Anesthetics Chemistry & Potency Ratios](#667-local-anesthetics-chemistry--potency-ratios)
+    *   [6.68 Protein Binding Shifts in Acidosis & Infancy](#668-protein-binding-shifts-in-acidosis--infancy)
+    *   [6.69 Cocaine Sympathomimetic Net Blockade](#669-cocaine-sympathomimetic-net-blockade)
+    *   [6.70 Methemoglobinemia Induction & Methylene Blue Rescue](#670-methemoglobinemia-induction--methylene-blue-rescue)
+    *   [6.71 Local Anesthetic Systemic Toxicity (LAST) & Lipid Sink Rescue](#671-local-anesthetic-systemic-toxicity-last--lipid-sink-rescue)
     *   [7. Attending Direct Chat, Advisor & NLP Engine](#7-attending-direct-chat-advisor--nlp-engine)
         *   [7.1 Automated Guidance Evaluator](#71-automated-guidance-evaluator)
         *   [7.2 Conversational NLP Chat Portal](#72-conversational-nlp-chat-portal)
@@ -911,6 +918,9 @@ Neuromuscular blocking agents (NMBAs) block nicotinic acetylcholine receptors ($
 | **Epinephrine** | Vasopressor / Inotrope | $V_1: 5.00\text{ L}$<br>$k_{10}: 0.90$<br>$ke_0: 2.0$ | $EC_{50}: 0.08\text{ ng/mL}$<br>$\gamma: 1.5$ | $\alpha_1$, $\beta_1$, $\beta_2$ agonist. Profound raise in SVR ($+120\%$) and HR ($+60\%$). | Tachycardia, risks myocardial ischemia under high coronary demand. |
 | **Phenylephrine** | Pure Vasopressor | $V_1: 6.00\text{ L}$<br>$k_{10}: 0.30$<br>$ke_0: 0.8$ | $EC_{50}: 0.15\text{ ng/mL}$<br>$\gamma: 1.2$ | Pure $\alpha_1$ agonist. Raises SVR ($+80\%$). Treats vasoplegia. | Reflex bradycardia due to carotid baroreceptor trigger (HR drops up to $-25\%$). |
 | **Glycopyrrolate** | Anticholinergic | $V_1: 8.00\text{ L}$<br>$k_{10}: 0.12$<br>$ke_0: 0.4$ | $EC_{50}: 0.5\text{ mcg/mL}$<br>$\gamma: 1.5$ | Muscarinic antagonist. Increases HR, resolves hypoxemic bradycardia. | Mild tachycardia, xerostomia (dry mouth). |
+| **Neostigmine** | AChE Inhibitor | $V_1: 20.00\text{ L}$<br>$k_{10}: 0.04$<br>$ke_0: 0.2$ | $EC_{50}: 0.02\text{ mcg/mL}$<br>$\gamma: 2.0$ | AChE inhibitor. Reverses NDMR block by raising synaptic ACh levels. | Muscarinic chronotropic surge (severe bradycardia / salivation) when unopposed. Inhibits BChE. |
+| **Edrophonium** | AChE Inhibitor | $V_1: 15.00\text{ L}$<br>$k_{10}: 0.06$<br>$ke_0: 1.5$ | $EC_{50}: 0.25\text{ mcg/mL}$<br>$\gamma: 2.0$ | AChE inhibitor. Ultra-rapid onset ($0.8-2$ min) reversal. | Electrostatic binding. Triggers rapid muscarinic bradycardia. Pairing mismatch with glycopyrrolate. |
+| **Pyridostigmine** | AChE Inhibitor | $V_1: 20.00\text{ L}$<br>$k_{10}: 0.02$<br>$ke_0: 0.08$ | $EC_{50}: 0.088\text{ mcg/mL}$<br>$\gamma: 2.0$ | AChE inhibitor. Slow onset ($12-16$ min), long-acting reversal. | Carbamylose covalent binding. Inhibits BChE by 90%. Transient tachycardia with fast anticholinergics. |
 | **Calcium Chloride** | Electrolyte | Instant distribution | $EC_{50}: N/A$<br>$\gamma: N/A$ | Myocardial membrane stabilizer. Counteracts potassium hyperkalemia danger. | Negligible at therapeutic doses. |
 | **Methylphenidate** | Dopamine Agonist / CNS Stimulant | $V_1: 15.00\text{ L}$<br>$k_{10}: 0.08$<br>$ke_0: 1.0$ | $EC_{50}: 2.0\text{ ng/mL}$<br>$\gamma: 1.5$ | Dopamine/norepinephrine reuptake inhibitor. Reverses/accelerates emergence via VTA activation. | Tachycardia, hypertension (systolic/diastolic elevations). |
 | **Atipamezole** | Alpha-2 Antagonist | $V_1: 10.00\text{ L}$<br>$k_{10}: 0.10$<br>$ke_0: 1.0$ | $EC_{50}: 1.0\text{ ng/mL}$<br>$\gamma: 1.0$ | Specific competitive $\alpha_2$ antagonist. Specifically reverses sedation and cardiovascular actions of dexmedetomidine. | Mild tachycardia, transient hypertension. |
@@ -926,6 +936,16 @@ Neuromuscular blocking agents (NMBAs) block nicotinic acetylcholine receptors ($
 | **Gantacurium** | Non-Depolarizing NMB | $V_1: 8.0\text{ L}$<br>$k_{10}: 0.12$<br>$ke_0: 0.18$ | $EC_{50}: 0.2\text{ mcg/mL}$<br>$\gamma: 4.0$ | Ultrashort-acting asymmetric mixed-onium chlorofumarate. Rapid paralysis onset. Reversed by L-cysteine adduction. | Minimal. High density increases airway resistance when given with Xenon. |
 | **CW002** | Non-Depolarizing NMB | $V_1: 10.0\text{ L}$<br>$k_{10}: 0.06$<br>$ke_0: 0.10$ | $EC_{50}: 0.15\text{ mcg/mL}$<br>$\gamma: 4.0$ | Intermediate-acting asymmetric fumarate NDMR. Reversed immediately by L-cysteine. | Extremely clean safety profile. |
 | **L-Cysteine** | Specific Reversal Agent | $V_1: 15.0\text{ L}$<br>$k_{10}: 0.10$<br>$ke_0: 1.0$ | $EC_{50}: 0.5\text{ mcg/mL}$<br>$\gamma: 1.0$ | Specific chemical rescue reversal agent. Covalently adducts to fumarate double bond of gantacurium/CW002. | Endogenous amino acid. High safety margin. |
+| **Bupivacaine** | Local Anesthetic | $V_1: 10.0\text{ L}$<br>$k_{10}: 0.015$<br>$ke_0: 0.1$ | $EC_{50}: 0.3\text{ mcg/mL}$<br>$\gamma: 2.0$ | Amide local anesthetic. Blocks voltage-gated sodium channels. Highly lipid soluble. | Profound cardiotoxicity ($T_{\text{CV}}$) due to slow cardiac sodium channel dissociation. |
+| **Ropivacaine** | Local Anesthetic | $V_1: 12.0\text{ L}$<br>$k_{10}: 0.02$<br>$ke_0: 0.15$ | $EC_{50}: 0.4\text{ mcg/mL}$<br>$\gamma: 2.0$ | Pure S-enantiomer. Blocks voltage-gated sodium channels. Reduced cardiotoxicity. | Lower lipid solubility than bupivacaine. Transient vasoconstriction. |
+| **Levobupivacaine** | Local Anesthetic | $V_1: 10.0\text{ L}$<br>$k_{10}: 0.018$<br>$ke_0: 0.12$ | $EC_{50}: 0.33\text{ mcg/mL}$<br>$\gamma: 2.0$ | Pure S-enantiomer of bupivacaine. Blocks sodium channels with reduced cardiotoxicity. | Moderately high cardiotoxicity compared to ropivacaine, but safer than racemic bupivacaine. |
+| **Cocaine** | Local Anesthetic | $V_1: 15.0\text{ L}$<br>$k_{10}: 0.04$<br>$ke_0: 0.8$ | $EC_{50}: 0.1\text{ mcg/mL}$<br>$\gamma: 1.5$ | Ester local anesthetic. Blocks sodium channels and inhibits NET catecholamine reuptake. | Sympathomimetic surge (marked hypertension, tachycardia, vasoconstriction, coronary vasospasm). |
+| **Tetracaine** | Local Anesthetic | $V_1: 20.0\text{ L}$<br>$k_{10}: 0.02$<br>$ke_0: 0.3$ | $EC_{50}: 0.5\text{ mcg/mL}$<br>$\gamma: 2.0$ | Ester local anesthetic. High lipid solubility, long duration. Used topically/spinally. | Elevated systemic absorption risks LAST cardiotoxicity. |
+| **Chloroprocaine** | Local Anesthetic | $V_1: 25.0\text{ L}$<br>$k_{10}: 2.0$<br>$ke_0: 2.0$ | $EC_{50}: 2.0\text{ mcg/mL}$<br>$\gamma: 1.5$ | Ester local anesthetic. Rapidly hydrolyzed by plasma pseudocholinesterase. | Short duration. Extremely low systemic toxicity risk due to fast clearance. |
+| **Benzocaine** | Local Anesthetic | $V_1: 25.0\text{ L}$<br>$k_{10}: 0.05$<br>$ke_0: 1.0$ | $EC_{50}: 2.0\text{ mcg/mL}$<br>$\gamma: 1.5$ | Ester local anesthetic. Used topically for mucous membranes. Low pKa, uncharged base. | Methemoglobinemia risk via active metabolite o-toluidine oxidation of hemoglobin. |
+| **Prilocaine** | Local Anesthetic | $V_1: 15.0\text{ L}$<br>$k_{10}: 0.03$<br>$ke_0: 0.5$ | $EC_{50}: 2.0\text{ mcg/mL}$<br>$\gamma: 1.5$ | Amide local anesthetic. Moderate lipid solubility. | Methemoglobinemia risk. Active metabolite o-toluidine causes oxidative hemoglobin damage. |
+| **Intralipid 20%** | Rescue Agent | $V_1: 10.0\text{ L}$<br>$k_{10}: 0.03$<br>$ke_0: 1.0$ | $EC_{50}: 1.0\text{ mg/mL}$<br>$\gamma: 1.0$ | Lipid emulsion. Sequesters lipophilic drugs ("lipid sink") to rescue from LAST. | Transient hyperlipidemia, lipemic plasma interference with lab analysis. |
+| **Methylene Blue** | Rescue Agent | $V_1: 15.0\text{ L}$<br>$k_{10}: 0.05$<br>$ke_0: 1.0$ | $EC_{50}: 1.0\text{ mcg/mL}$<br>$\gamma: 1.0$ | Electron donor. Reductant that converts Methemoglobin (Fe3+) back to Hemoglobin (Fe2+). | Serotonin syndrome risk in patients on SSRIs due to MAO-A inhibition. |
 
 ---
 
@@ -1298,10 +1318,10 @@ To prevent airway collapse and respiratory failure in patients with sleep-disord
     2.  *Potassium Shifts*: Administer Insulin (10 units IV) + Dextrose (50 mL D50W), Sodium Bicarbonate ($50\text{ mEq}$ IV), or induce hyperventilation ($PaCO_2 = 30-35\text{ mmHg}$) to drive potassium intracellularly via $Na^+/K^+\text{-ATPase}$ stimulation.
     3.  *Resuscitation*: Standard CPR and defibrillation if VFib occurs.
 
-#### 6.19 Neostigmine Ceiling Effect & Overdose Weakness
-*   **Trigger Conditions**: Neostigmine reversal administered in overdose ($>0.08\text{ mg/kg}$ or $>5.0\text{ mg}$ total) or in the absence of active neuromuscular blockade (recovering normally with TOF count $4/4$ and TOF ratio $1.0$).
-*   **Physiological Impact**: Excessive acetylcholinesterase inhibition allows high concentrations of acetylcholine to accumulate at the motor endplate, triggering depolarizing channel block and nicotinic receptor desensitization. This manifests as muscle weakness (`neostigmineWeakness = true`), which paradoxically reduces the TOF ratio to $<0.90$ and decreases genioglossus tone to $<0.80$, predisposing the patient to upper airway collapse and post-extubation hypoxemia.
-*   **Mitigation / Resolution**: Avoid neostigmine when TOF ratio is already $>0.90$. Support ventilation, administer oxygen, or wait for neostigmine metabolic clearance (approx $45-60\text{ minutes}$).
+#### 6.19 Anticholinesterase Ceiling Effect & Overdose Weakness
+*   **Trigger Conditions**: Anticholinesterase reversal (neostigmine, pyridostigmine, or edrophonium) administered in overdose ($>0.08\text{ mg/kg}$ neostigmine, $>0.35\text{ mg/kg}$ pyridostigmine, or $>1.0\text{ mg/kg}$ edrophonium) or in the absence of active neuromuscular blockade (recovering normally with TOF count $4/4$ and TOF ratio $1.0$).
+*   **Physiological Impact**: Excessive acetylcholinesterase inhibition allows high concentrations of acetylcholine to accumulate at the motor endplate, triggering depolarizing channel block and nicotinic receptor desensitization. This manifests as muscle weakness (`neostigmineWeakness = true`), which paradoxically caps the TOF ratio at $\le 0.89$ and decreases genioglossus tone to $\le 0.79$, predisposing the patient to upper airway collapse and post-extubation hypoxemia.
+*   **Mitigation / Resolution**: Avoid AChE inhibitors when TOF ratio is already $>0.90$. Support ventilation, administer oxygen, or wait for metabolic clearance of the inhibitor.
 
 #### 6.20 Absorption Atelectasis & Shunt Hypoxemia
 *   **Trigger Conditions**: Preoxygenation with $FiO_2 = 1.0$ (or prolonged exposure to high $FiO_2 > 0.8$) combined with loss of diaphragmatic tone (general anesthesia induction with muscle relaxation) and a lack of positive end-expiratory pressure (PEEP $= 0$).
@@ -1630,6 +1650,69 @@ Postoperative ileus is a multifactorial bowel motility dysfunction governed by s
     - *Seizure Threshold Reduction*: If plasma laudanosine level exceeds $2.0\text{ mcg/mL}$, it lowers the seizure threshold and triggers generalized epileptogenic seizures.
     - *Metabolic Surge*: Seizure activity triggers a massive metabolic surge: carbon dioxide production and oxygen demand increase by a factor of 8.0 ($seizureMetabolicMultiplier = 8.0$).
 *   **Mitigation / Resolution**: Immediate administration of anticonvulsant GABA-A agonists (Propofol Ce $> 1.2\text{ mcg/mL}$ or Midazolam Ce $> 0.08\text{ mcg/mL}$) to abort seizure activity. Optimize ventilation to manage the severe metabolic acidosis and hypercapnia.
+
+#### 6.65 Edrophonium & Pyridostigmine Reversal Dynamics
+*   **Trigger Conditions**: Reversal of nondepolarizing neuromuscular blockade using Edrophonium or Pyridostigmine.
+*   **Physiological Impact**:
+    - *Competitive NMJ Displacement*: Acetylcholinesterase inhibitors prevent the hydrolysis of acetylcholine, raising the local synaptic concentration of ACh. Synaptic ACh outcompetes and displaces active NDMRs from nicotinic receptors:
+      $$\text{occupancy}_{\text{effective}} = \text{occupancy}_{\text{base}} \cdot \left(1.0 - 0.85 \cdot E_{\text{AChE}} \cdot (1.0 - \text{ceilingPenalty})\right)$$
+      where $E_{\text{AChE}} = \min(1.0, E_{\text{neostigmine}} + E_{\text{pyridostigmine}} + E_{\text{edrophonium}})$, and $E_i = Ce_i^2 / (Ce_i^2 + c50_i^2)$.
+    - *Ceiling Penalty*: At profound block levels (occupancy $\ge 0.95$), the ceiling penalty is $1.0$, preventing any displacement and rendering AChE inhibitors ineffective.
+    - *Butyrylcholinesterase Inhibition*: Pyridostigmine, like neostigmine, inhibits plasma butyrylcholinesterase (BChE) by 90% ($bcheMultiplier *= 0.1$), prolonging succinylcholine block. Edrophonium has negligible BChE inhibition.
+
+#### 6.66 Muscarinic Chronotropic Surge and Anticholinergic Pairing Mismatches
+*   **Trigger Conditions**: Administration of an acetylcholinesterase inhibitor (Neostigmine, Pyridostigmine, or Edrophonium) with incorrect or omitted anticholinergic pairing.
+*   **Physiological Impact**:
+    - *Unopposed Muscarinic Activation (Omission)*: Administration of an AChE inhibitor without any anticholinergic (both Atropine and Glycopyrrolate $Ce < 0.05\text{ mg/L}$) leads to massive acetylcholine accumulation at peripheral muscarinic receptors. Vagal stimulation triggers severe bradycardia (HR to 20 or asystole) and salivary hyper-secretions (`bradycardiaTriggered = true`).
+    - *Edrophonium + Glycopyrrolate Mismatch*: Edrophonium has a rapid onset ($0.8-2$ min) while Glycopyrrolate is slower ($2-3$ min). This onset mismatch allows edrophonium's muscarinic surge to occur before glycopyrrolate takes effect, causing a transient, self-resolving bradycardia (`transientBradycardia = true`, resolving after $120$ seconds).
+    - *Neostigmine/Pyridostigmine + Atropine Mismatch*: Atropine has a rapid onset (~1 min) while Neostigmine/Pyridostigmine are slower. This causes transient tachycardia initially as Atropine blocks muscarinic receptors before the AChE inhibitor can raise acetylcholine levels.
+*   **Mitigation / Resolution**: Pair Edrophonium with Atropine ($5-7\text{ mcg/kg}$) and Neostigmine/Pyridostigmine with Glycopyrrolate ($1\text{ mg}$ glyco per $4\text{ mg}$ neostigmine). Administer Atropine or Glycopyrrolate boluses as rescue therapy to resolve bradycardia.
+
+#### 6.67 Local Anesthetics Chemistry & Potency Ratios
+*   **Trigger Conditions**: Systemic or local administration of local anesthetics (Lidocaine, Bupivacaine, Ropivacaine, Levobupivacaine, Cocaine, Tetracaine, Chloroprocaine, Benzocaine, or Prilocaine).
+*   **Physiological Impact**:
+    - *Mechanism of Action*: Local anesthetics bind specifically to the inner vestibule of voltage-gated sodium ($Na^+$) channels, preventing channel activation and blocking the generation and conduction of action potentials in nerve fibers.
+    - *Potency and Toxicity Rankings*: Determined by lipid solubility (hydrophobicity) and chemical structure:
+      - *Bupivacaine* (and *Levobupivacaine*): highly lipophilic, very high potency ($EC_{50} = 0.3-0.33\text{ mcg/mL}$), but highly cardiotoxic.
+      - *Ropivacaine*: moderately lipophilic, high potency ($EC_{50} = 0.4\text{ mcg/mL}$), reduced cardiotoxicity compared to bupivacaine.
+      - *Chloroprocaine*: extremely hydrophilic, low potency ($EC_{50} = 2.0\text{ mcg/mL}$), rapidly metabolized in plasma, virtually zero cardiotoxicity.
+      - *Tetracaine*: highly potent and long-acting ester ($EC_{50} = 0.24-0.5\text{ mcg/mL}$), high systemic risk.
+      - *Lidocaine*: intermediate potency ($EC_{50} = 1.5\text{ mcg/mL}$ / $5.0\text{ mcg/mL}$ toxic).
+
+#### 6.68 Protein Binding Shifts in Acidosis & Infancy
+*   **Trigger Conditions**: Local anesthetic administration in patients with metabolic/respiratory acidosis (low blood pH) or infants (age $< 1$ year).
+*   **Physiological Impact**:
+    - *Acidosis Effect*: Local anesthetics are weak bases ($pK_a = 7.7 - 9.1$). Acidosis decreases local anesthetic protein binding capacity to alpha-1 acid glycoprotein (AAG) and albumin:
+      $$\text{freeFraction} = 1.0 - pb \cdot \text{acidosisFactor} \cdot \text{ageFactor}$$
+      where $\text{acidosisFactor} = \max(0.5, 1.0 - \max(0, 7.4 - pH) * 0.5)$. Lower pH increases the free unbound fraction of local anesthetic in blood ($ceFree$), amplifying both CNS and cardiotoxicity risks.
+    - *Infancy Effect*: Infants have immature hepatic protein synthesis and low baseline AAG levels. This is modeled by $\text{ageFactor} = 0.5$ if age $<1$ year, doubling the unbound drug concentration ($ceFree$) and severely lowering the toxic dose threshold.
+
+#### 6.69 Cocaine Sympathomimetic Net Blockade
+*   **Trigger Conditions**: Systemic absorption or IV injection of Cocaine.
+*   **Physiological Impact**:
+    - *NET Blockade*: Cocaine blocks the norepinephrine transporter (NET) in sympathetic nerve terminals, preventing norepinephrine reuptake and causing catecholamine accumulation in the synaptic cleft.
+    - *Hemodynamic Surge*: Induces a profound sympathomimetic state, causing heart rate and blood pressure spikes:
+      $$\text{hrMultiplier} += \left(\frac{Ce_{\text{Cocaine}}}{0.5}\right) \cdot 0.25$$
+      $$\text{mapOffset} += \left(\frac{Ce_{\text{Cocaine}}}{0.5}\right) \cdot 15.0\text{ mmHg}$$
+    - *Cardiovascular Strain*: Raises myocardial oxygen demand ($MVO_2$) while causing coronary vasoconstriction/vasospasm, posing a high risk of acute myocardial ischemia.
+
+#### 6.70 Methemoglobinemia Induction & Methylene Blue Rescue
+*   **Trigger Conditions**: Administration of Benzocaine or Prilocaine.
+*   **Physiological Impact**:
+    - *Methemoglobinemia*: Benzocaine and Prilocaine are metabolized to **ortho-toluidine**, which oxidizes the ferrous iron ($Fe^{2+}$) of heme to the ferric state ($Fe^{3+}$), forming methemoglobin. Methemoglobin cannot bind oxygen, shifting the oxygen-hemoglobin dissociation curve to the left and locking remaining heme sites in a high-affinity state.
+    - *Oximetry Drop*: Under methemoglobinemia, light absorption at $660\text{ nm}$ and $940\text{ nm}$ becomes equal, causing the pulse oximeter ($SpO_2$) reading to drop and lock at approximately $85\%$.
+    - *Methylene Blue Rescue*: Administration of Methylene Blue ($1 - 2\text{ mg/kg}$) resolves methemoglobinemia. It acts as an electron donor to the Methemoglobin Reductase enzyme system, accelerating the reduction of ferric $Fe^{3+}$ back to active ferrous $Fe^{2+}$ hemoglobin.
+
+#### 6.71 Local Anesthetic Systemic Toxicity (LAST) & Lipid Sink Rescue
+*   **Trigger Conditions**: Systemic toxicity resulting from local anesthetic overdose or accidental intravascular injection, followed by rescue with Intralipid 20% (IV lipid emulsion).
+*   **Physiological Impact**:
+    - *CNS & CV Toxicity (LAST)*: High systemic levels of free local anesthetic ($ceFree$) block central and cardiac sodium channels:
+      $$T_{\text{CNS}} = \sum \frac{ceFree_i}{\text{thresholdCns}_i} \ge 1.3 \implies \text{tonic-clonic seizures}$$
+      $$T_{\text{CV}} = \sum \frac{ceFree_i}{\text{thresholdCns}_i \cdot \text{ccCnsRatio}_i} \ge 1.0 \implies \text{cardiotoxic cardiac arrest (Asystole/VFib)}$$
+      - *Cardiovascular Depression*: Severe negative inotropy, myocardial stunning, conduction blocks (PR and QRS prolongation), and resistance to standard defibrillation and CPR.
+    - *Lipid Sink Rescue*: Intravenous lipid emulsion (Intralipid 20%) creates a lipid phase in the intravascular compartment. Highly lipophilic local anesthetics partition into this lipid phase, decreasing the active unbound free drug concentration ($ceFree$):
+      $$f_{\text{LipidBound}} = \frac{k_{\text{lipid}} \cdot V_{\text{lipid}}}{1.0 + k_{\text{lipid}} \cdot V_{\text{lipid}}}$$
+      where $V_{\text{lipid}} = \text{lipidSinkVol} / EBV$. Intralipid partitions local anesthetics based on their octanol/buffer partition coefficients: Bupivacaine/Levobupivacaine ($k_{\text{lipid}} = 120$), Tetracaine ($80$), Ropivacaine ($60$), Cocaine ($30$), Lidocaine ($15$), Chloroprocaine ($0.5$).
 
 ### 7. Attending Direct Chat, Advisor & NLP Engine
 

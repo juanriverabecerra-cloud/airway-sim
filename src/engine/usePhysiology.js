@@ -420,7 +420,14 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           stuckExpiratoryValve: false,
           stuckInspiratoryValve: false,
           aplValveSetting: 0.0,
-          hasPneumothorax: false
+          hasPneumothorax: false,
+          lipidSinkVol: 0.0,
+          prInterval: 160.0,
+          qrsDuration: 80.0,
+          isLAST: false,
+          lastSeizureTriggered: false,
+          hasMetHbLog: false,
+          lastMetHbLogTime: 0
         });
         
         setTime(0); setActiveMeds([]); setIntravascularVolume(0); setSurgicalPhase('Pre-Op');
@@ -782,7 +789,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     const safeUnit = typeof unit === 'string' ? unit : '';
     if (safeUnit.includes('mcg/kg/min')) doseInMg = (doseInMg * dosingWeight) / 1000;
     else if (safeUnit.includes('mcg')) doseInMg = doseInMg / 1000;
-    else if (safeUnit.includes('mg/kg')) doseInMg = doseInMg * dosingWeight;
+    else if (safeUnit.includes('mg/kg') || safeUnit.includes('mL/kg') || safeUnit.includes('ml/kg') || safeUnit.includes('mL/kg/min') || safeUnit.includes('ml/kg/min')) doseInMg = doseInMg * dosingWeight;
 
     if (isNaN(doseInMg) || !Number.isFinite(doseInMg) || doseInMg <= 0) {
         logEvent(`❌ FAILED: Invalid calculated medication dose in mg!`);
@@ -800,6 +807,15 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
       const bio = route === 'IV' ? 1.0 : (route === 'IM' ? 0.8 : 0.5);
       existingModel.giveBolus(doseInMg * bio);
       logEvent(`💉 Pushed ${doseInput} ${unit} of ${medData.name} via ${route}.`);
+      
+      if (medId === 'intralipid') {
+          const volInMl = doseInMg * bio;
+          setPatient(prev => ({
+              ...prev,
+              lipidSinkVol: (prev.lipidSinkVol || 0) + volInMl
+          }));
+          logEvent(`⚡ Administered Intralipid 20% rescue bolus: ${volInMl.toFixed(1)} mL.`);
+      }
       
       if (medId === 'sugammadex') {
         const roc = currentActiveMeds.find(m => m.name === 'Rocuronium');
@@ -839,25 +855,65 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
         setPatient(prev => ({ ...prev, suxPotassiumLeaked: true }));
       }
 
-      if (medId === 'neostigmine') {
+      if (medId === 'neostigmine' || medId === 'pyridostigmine' || medId === 'edrophonium') {
         const glyco = currentActiveMeds.find(m => m.name === 'Glycopyrrolate');
         const glycoCe = glyco ? glyco.Ce : 0;
-        if (glycoCe < 0.05) {
-          setPatient(prev => ({
-            ...prev,
-            bradycardiaTriggered: true,
-            bradycardiaTime: stateRef.current.time || 0
-          }));
-          logEvent(`🚨 CRITICAL CLINICAL EMERGENCY: Neostigmine administered without Glycopyrrolate! Unopposed muscarinic activation is causing profound vagal bradycardia and salivation!`);
-        } else {
-          logEvent(`⚡ Neostigmine and Glycopyrrolate administered. Safe reversal of neuromuscular blockade initiated.`);
+        const atropine = currentActiveMeds.find(m => m.name === 'Atropine');
+        const atropineCe = atropine ? atropine.Ce : 0;
+        
+        const doseMgPerKg = doseInMg / currentPatient.weight;
+        const lastOccupancy = stateRef.current.patient?.maxNMJOccupancy || 0;
+        const noActiveBlock = lastOccupancy <= 0.15;
+        
+        let isOverdose = false;
+        if (medId === 'neostigmine' && doseMgPerKg > 0.08) isOverdose = true;
+        if (medId === 'pyridostigmine' && doseMgPerKg > 0.35) isOverdose = true;
+        if (medId === 'edrophonium' && doseMgPerKg > 1.0) isOverdose = true;
+        
+        if (noActiveBlock || isOverdose) {
+          setPatient(prev => ({ ...prev, neostigmineWeakness: true }));
+          logEvent(`⚠️ WARNING: ${medData.name} administered ${noActiveBlock ? 'in the absence of active neuromuscular blockade' : 'in overdose'}. Paradoxical anticholinesterase-associated muscle weakness induced.`);
+        }
+        
+        if (medId === 'neostigmine' || medId === 'pyridostigmine') {
+          if (glycoCe < 0.05 && atropineCe < 0.05) {
+            setPatient(prev => ({
+              ...prev,
+              bradycardiaTriggered: true,
+              bradycardiaTime: stateRef.current.time || 0
+            }));
+            logEvent(`🚨 CRITICAL CLINICAL EMERGENCY: ${medData.name} administered without anticholinergic protection! Unopposed muscarinic activation is causing profound vagal bradycardia and salivation!`);
+          } else if (glycoCe < 0.05 && atropineCe >= 0.05) {
+            logEvent(`⚡ ${medData.name} administered with Atropine. Safe reversal of neuromuscular blockade initiated, although transient tachycardia may occur due to Atropine's rapid onset.`);
+          } else {
+            logEvent(`⚡ ${medData.name} administered with Glycopyrrolate. Safe reversal of neuromuscular blockade initiated.`);
+          }
+        } else if (medId === 'edrophonium') {
+          if (atropineCe < 0.05 && glycoCe < 0.05) {
+            setPatient(prev => ({
+              ...prev,
+              bradycardiaTriggered: true,
+              bradycardiaTime: stateRef.current.time || 0
+            }));
+            logEvent(`🚨 CRITICAL CLINICAL EMERGENCY: Edrophonium administered without anticholinergic protection! Unopposed muscarinic activation is causing profound vagal bradycardia and salivation!`);
+          } else if (atropineCe < 0.05 && glycoCe >= 0.05) {
+            setPatient(prev => ({
+              ...prev,
+              bradycardiaTriggered: true,
+              bradycardiaTime: stateRef.current.time || 0,
+              transientBradycardia: true
+            }));
+            logEvent(`⚠️ CLINICAL ALERT: Edrophonium administered with Glycopyrrolate. Due to onset mismatch (Edrophonium onset is 1 min, Glycopyrrolate is 2-3 min), the patient will experience transient bradycardia before anticholinergic blockade takes effect.`);
+          } else {
+            logEvent(`⚡ Edrophonium administered with Atropine. Safe and rapid reversal of neuromuscular blockade initiated.`);
+          }
         }
       }
 
-      if (medId === 'glycopyrrolate') {
+      if (medId === 'glycopyrrolate' || medId === 'atropine') {
         if (currentPatient.bradycardiaTriggered) {
-          setPatient(prev => ({ ...prev, bradycardiaTriggered: false }));
-          logEvent(`✅ Glycopyrrolate administered. Muscarinic bradycardia successfully resolved. Heart rate recovering.`);
+          setPatient(prev => ({ ...prev, bradycardiaTriggered: false, transientBradycardia: false }));
+          logEvent(`✅ ${medData.name} administered. Muscarinic bradycardia successfully resolved. Heart rate recovering.`);
         }
       }
 
@@ -1100,6 +1156,16 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               });
           }
 
+          // Auto-resolve transient bradycardia from onset mismatch (Edrophonium + Glyco) after 120 seconds
+          if (patientAfterFluidics.transientBradycardia && patientAfterFluidics.bradycardiaTriggered) {
+              const elapsed = st.time - (patientAfterFluidics.bradycardiaTime || 0);
+              if (elapsed >= 120) {
+                  patientAfterFluidics.bradycardiaTriggered = false;
+                  patientAfterFluidics.transientBradycardia = false;
+                  logEvent("✅ Glycopyrrolate has reached therapeutic effect. Transient bradycardia resolved.");
+              }
+          }
+
           if (fluidicsOutput.tbwDelta_L > 0) {
               setTotalBodyWaterLiters(prev => prev + fluidicsOutput.tbwDelta_L);
               setElectrolytes(fluidicsOutput.electrolytes);
@@ -1154,7 +1220,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           // const esmololModel = st.activeMeds?.find(m => m.name === 'Esmolol');
           // const labetalolModel = st.activeMeds?.find(m => m.name === 'Labetalol');
           // const metoprololModel = st.activeMeds?.find(m => m.name === 'Metoprolol');
-          const dexmedModel = st.activeMeds?.find(m => m.name === 'Dexmedetomidine');
+          // const dexmedModel = st.activeMeds?.find(m => m.name === 'Dexmedetomidine');
           // const lidoModel = st.activeMeds?.find(m => m.name === 'Lidocaine');
 
           let bcheMultiplier = 1.0;
@@ -1170,7 +1236,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               bcheMultiplier *= 0.5;
           }
           const neostigmineModelForBche = st.activeMeds?.find(m => m.name === 'Neostigmine');
-          if (neostigmineModelForBche && neostigmineModelForBche.Ce > 0.01) {
+          const pyridostigmineModelForBche = st.activeMeds?.find(m => m.name === 'Pyridostigmine');
+          if ((neostigmineModelForBche && neostigmineModelForBche.Ce > 0.01) || (pyridostigmineModelForBche && pyridostigmineModelForBche.Ce > 0.01)) {
               bcheMultiplier *= 0.1;
           }
 
@@ -1183,12 +1250,73 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
           let laudanosineAccumulated = 0;
 
+          // Chapter 28: AChE competitive displacement calculation setup
+          const neostigmineModel = st.activeMeds?.find(m => m.name === 'Neostigmine');
+          const neostigmineCe = neostigmineModel ? neostigmineModel.Ce : 0;
+          const pyridostigmineModel = st.activeMeds?.find(m => m.name === 'Pyridostigmine');
+          const pyridostigmineCe = pyridostigmineModel ? pyridostigmineModel.Ce : 0;
+          const edrophoniumModel = st.activeMeds?.find(m => m.name === 'Edrophonium');
+          const edrophoniumCe = edrophoniumModel ? edrophoniumModel.Ce : 0;
+
+          let E_neo = 0;
+          if (neostigmineCe > 0) {
+              E_neo = Math.pow(neostigmineCe, 2) / (Math.pow(neostigmineCe, 2) + Math.pow(0.02, 2));
+          }
+          let E_pyr = 0;
+          if (pyridostigmineCe > 0) {
+              E_pyr = Math.pow(pyridostigmineCe, 2) / (Math.pow(pyridostigmineCe, 2) + Math.pow(0.088, 2));
+          }
+          let E_edr = 0;
+          if (edrophoniumCe > 0) {
+              E_edr = Math.pow(edrophoniumCe, 2) / (Math.pow(edrophoniumCe, 2) + Math.pow(0.25, 2));
+          }
+          const E_AChE = Math.min(1.0, E_neo + E_pyr + E_edr);
+
+          const applyDisplacement = (occupancyBase) => {
+              if (occupancyBase <= 0) return 0;
+              const ceilingPenalty = Math.max(0, Math.min(1.0, (occupancyBase - 0.85) / 0.10));
+              const effOccupancy = occupancyBase * (1.0 - 0.85 * E_AChE * (1.0 - ceilingPenalty));
+              return Math.max(0, effOccupancy);
+          };
+
           if (st.activeMeds) {
               st.activeMeds.forEach(model => {
                   const matchingId = Object.keys(MEDICATIONS).find(key => MEDICATIONS[key].name === model.name);
                   if (matchingId && lineMedicationRates[matchingId] !== undefined) {
                       if (!model.tciMode || model.tciMode === 'none') {
-                          model.currentInfusionRate = lineMedicationRates[matchingId];
+                          const medData = MEDICATIONS[matchingId];
+                          const safePatientWeight = typeof st.patient.weight === 'number' && Number.isFinite(st.patient.weight) && st.patient.weight > 0 ? st.patient.weight : 70;
+                          const safePatientIbw = typeof st.patient.ibw === 'number' && Number.isFinite(st.patient.ibw) && st.patient.ibw > 0 ? st.patient.ibw : 70;
+                          const safePatientLbw = typeof st.patient.lbw === 'number' && Number.isFinite(st.patient.lbw) && st.patient.lbw > 0 ? st.patient.lbw : 60;
+                          const dosingWeight = medData.dosingWeight === 'IBW' ? safePatientIbw : (medData.dosingWeight === 'LBW' ? safePatientLbw : safePatientWeight);
+                          
+                          let activeUnit = '';
+                          for (const line of st.patient.accessLines || []) {
+                              const medInf = line.activeMedInfusions?.find(mi => mi.medId === matchingId);
+                              if (medInf) {
+                                  activeUnit = medInf.unit;
+                                  break;
+                              }
+                          }
+                          
+                          let rateDialed = lineMedicationRates[matchingId];
+                          let rateMgPerSec = rateDialed;
+                          if (activeUnit.includes('mcg/kg/min')) {
+                              rateMgPerSec = (rateDialed * dosingWeight) / 1000 / 60;
+                          } else if (activeUnit.includes('mL/kg/min') || activeUnit.includes('ml/kg/min')) {
+                              rateMgPerSec = (rateDialed * dosingWeight) / 60;
+                          } else if (activeUnit.includes('mg/kg/hr')) {
+                              rateMgPerSec = (rateDialed * dosingWeight) / 3600;
+                          } else if (activeUnit.includes('mcg/kg/hr')) {
+                              rateMgPerSec = (rateDialed * dosingWeight) / 1000 / 3600;
+                          } else if (activeUnit.includes('mcg/min')) {
+                              rateMgPerSec = rateDialed / 1000 / 60;
+                          } else if (activeUnit.includes('mg/hr')) {
+                              rateMgPerSec = rateDialed / 3600;
+                          } else {
+                              rateMgPerSec = rateDialed / 3600;
+                          }
+                          model.currentInfusionRate = rateMgPerSec;
                       }
                   }
 
@@ -1234,6 +1362,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                   
                   let occupancy = effects.receptorOccupancy;
                   if (model.classes.includes('NDMR')) {
+                      occupancy = applyDisplacement(occupancy);
                       if (st.patient.nAChR_state === 'downregulated') {
                           occupancy = Math.min(1.0, occupancy * 2.0);
                       } else if (st.patient.nAChR_state === 'upregulated') {
@@ -1286,25 +1415,25 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const cw002Model = st.activeMeds?.find(m => m.name === 'CW002');
           const cw002Ce = cw002Model ? cw002Model.Ce : 0;
 
-           const rocOccupancy = rocuroniumCe <= 0.15 ? (rocuroniumCe / 0.15) * 0.70 : 0.70 + Math.min(0.30, (rocuroniumCe - 0.15) * 0.5);
+          const rocOccupancy = applyDisplacement(rocuroniumCe <= 0.15 ? (rocuroniumCe / 0.15) * 0.70 : 0.70 + Math.min(0.30, (rocuroniumCe - 0.15) * 0.5));
           if (rocOccupancy > maxNMJOccupancy) maxNMJOccupancy = rocOccupancy;
 
-          const vecOccupancy = vecuroniumCe <= 0.05 ? (vecuroniumCe / 0.05) * 0.70 : 0.70 + Math.min(0.30, (vecuroniumCe - 0.05) * 1.5);
+          const vecOccupancy = applyDisplacement(vecuroniumCe <= 0.05 ? (vecuroniumCe / 0.05) * 0.70 : 0.70 + Math.min(0.30, (vecuroniumCe - 0.05) * 1.5));
           if (vecOccupancy > maxNMJOccupancy) maxNMJOccupancy = vecOccupancy;
 
-          const cisOccupancy = cisatracuriumCe <= 0.08 ? (cisatracuriumCe / 0.08) * 0.70 : 0.70 + Math.min(0.30, (cisatracuriumCe - 0.08) * 1.0);
+          const cisOccupancy = applyDisplacement(cisatracuriumCe <= 0.08 ? (cisatracuriumCe / 0.08) * 0.70 : 0.70 + Math.min(0.30, (cisatracuriumCe - 0.08) * 1.0));
           if (cisOccupancy > maxNMJOccupancy) maxNMJOccupancy = cisOccupancy;
 
           const suxOccupancy = succinylcholineCe <= 0.08 ? (succinylcholineCe / 0.08) * 0.70 : 0.70 + Math.min(0.30, (succinylcholineCe - 0.08) * 1.0);
           if (suxOccupancy > maxNMJOccupancy) maxNMJOccupancy = suxOccupancy;
 
-          const atrOccupancy = atracuriumCe <= 0.08 ? (atracuriumCe / 0.08) * 0.70 : 0.70 + Math.min(0.30, (atracuriumCe - 0.08) * 1.0);
+          const atrOccupancy = applyDisplacement(atracuriumCe <= 0.08 ? (atracuriumCe / 0.08) * 0.70 : 0.70 + Math.min(0.30, (atracuriumCe - 0.08) * 1.0));
           if (atrOccupancy > maxNMJOccupancy) maxNMJOccupancy = atrOccupancy;
 
-          const gantOccupancy = gantacuriumCe <= 0.04 ? (gantacuriumCe / 0.04) * 0.70 : 0.70 + Math.min(0.30, (gantacuriumCe - 0.04) * 2.0);
+          const gantOccupancy = applyDisplacement(gantacuriumCe <= 0.04 ? (gantacuriumCe / 0.04) * 0.70 : 0.70 + Math.min(0.30, (gantacuriumCe - 0.04) * 2.0));
           if (gantOccupancy > maxNMJOccupancy) maxNMJOccupancy = gantOccupancy;
 
-          const cwOccupancy = cw002Ce <= 0.03 ? (cw002Ce / 0.03) * 0.70 : 0.70 + Math.min(0.30, (cw002Ce - 0.03) * 2.5);
+          const cwOccupancy = applyDisplacement(cw002Ce <= 0.03 ? (cw002Ce / 0.03) * 0.70 : 0.70 + Math.min(0.30, (cw002Ce - 0.03) * 2.5));
           if (cwOccupancy > maxNMJOccupancy) maxNMJOccupancy = cwOccupancy;
 
           // Active Metabolites
@@ -1318,6 +1447,12 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const midazolamCe = midazolamModel ? midazolamModel.Ce : 0;
           const ketamineModel = st.activeMeds?.find(m => m.name === 'Ketamine');
           const ketamineCe = ketamineModel ? ketamineModel.Ce : 0;
+          const dexmedModel = st.activeMeds?.find(m => m.name === 'Dexmedetomidine');
+          const dexmedCe = dexmedModel ? dexmedModel.Ce : 0;
+          const propofolModel = st.activeMeds?.find(m => m.name === 'Propofol');
+          const propofolCe = propofolModel ? propofolModel.Ce : 0;
+          const thiopentalModel = st.activeMeds?.find(m => m.name === 'Thiopental');
+          const thiopentalCe = thiopentalModel ? thiopentalModel.Ce : 0;
 
           let currentVec3oh = st.patient.vec3oh || 0;
           let currentNormep = st.patient.normep || 0;
@@ -1360,7 +1495,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           currentLaudanosine = Math.max(0, currentLaudanosine + laudanosineAccumulated - laudanosineClearance);
 
           if (currentVec3oh > 0) {
-              maxNMJOccupancy = Math.min(1.0, maxNMJOccupancy + (currentVec3oh * 0.8));
+              maxNMJOccupancy = Math.min(1.0, maxNMJOccupancy + applyDisplacement(currentVec3oh * 0.8));
           }
 
           let isSeizure = false;
@@ -1458,6 +1593,137 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               currentLactate -= (currentLactate - baselineLactate) * 0.005;
           }
           currentLactate = Math.max(0.5, Math.min(25.0, currentLactate));
+
+          // ==========================================
+          // LOCAL ANESTHETIC KINETICS & LAST CRISES
+          // ==========================================
+          let lipidSinkVol = st.patient.lipidSinkVol || 0;
+          const intralipidModel = st.activeMeds?.find(m => m.name === 'Intralipid 20%');
+          if (intralipidModel && intralipidModel.currentInfusionRate > 0) {
+              lipidSinkVol += intralipidModel.currentInfusionRate; // rate is in mL/sec
+          }
+          lipidSinkVol = Math.max(0, lipidSinkVol - 0.1); // 0.1 mL/s decay
+          st.patient.lipidSinkVol = lipidSinkVol;
+
+          const currentPh = st.electrolytes.ph || 7.4;
+          const age = st.patient.age || 40;
+          const ageFactor = (age < 1) ? 0.5 : 1.0;
+          const acidosisFactor = Math.max(0.5, 1.0 - Math.max(0, 7.4 - currentPh) * 0.5);
+          const safeEbvVal = typeof st.patient.ebv === 'number' && Number.isFinite(st.patient.ebv) && st.patient.ebv > 0 ? st.patient.ebv : 5000;
+          const vLipid = lipidSinkVol / safeEbvVal;
+
+          let tCns = 0;
+          let tCv = 0;
+
+          st.activeMeds?.forEach(m => {
+              const ce = m.Ce || 0;
+              let thresholdCns = 0;
+              let ccCnsRatio = 7.0;
+              let pb = 0;
+              let kLipid = 15.0;
+
+              if (m.name === 'Lidocaine') {
+                  thresholdCns = 1.5;
+                  ccCnsRatio = 7.0;
+                  pb = 0.70;
+                  kLipid = 15.0;
+              } else if (m.name === 'Bupivacaine') {
+                  thresholdCns = 0.3;
+                  ccCnsRatio = 2.0;
+                  pb = 0.95;
+                  kLipid = 120.0;
+              } else if (m.name === 'Ropivacaine') {
+                  thresholdCns = 0.6;
+                  ccCnsRatio = 4.0;
+                  pb = 0.94;
+                  kLipid = 60.0;
+              } else if (m.name === 'Levobupivacaine') {
+                  thresholdCns = 0.6;
+                  ccCnsRatio = 3.3;
+                  pb = 0.97;
+                  kLipid = 120.0;
+              } else if (m.name === 'Cocaine') {
+                  thresholdCns = 0.5;
+                  ccCnsRatio = 3.0;
+                  pb = 0.90;
+                  kLipid = 30.0;
+              } else if (m.name === 'Tetracaine') {
+                  thresholdCns = 0.24;
+                  ccCnsRatio = 2.5;
+                  pb = 0.76;
+                  kLipid = 80.0;
+              } else if (m.name === 'Chloroprocaine') {
+                  thresholdCns = 10.0;
+                  ccCnsRatio = 12.0;
+                  pb = 0.0;
+                  kLipid = 0.5;
+              } else if (m.name === 'Benzocaine') {
+                  thresholdCns = 2.0;
+                  ccCnsRatio = 8.0;
+                  pb = 0.0;
+                  kLipid = 1.0;
+              } else if (m.name === 'Prilocaine') {
+                  thresholdCns = 2.0;
+                  ccCnsRatio = 8.0;
+                  pb = 0.55;
+                  kLipid = 10.0;
+              }
+
+              if (thresholdCns > 0 && ce > 0) {
+                  const freeFraction = 1.0 - pb * acidosisFactor * ageFactor;
+                  const fLipidBound = (kLipid * vLipid) / (1.0 + kLipid * vLipid);
+                  const ceFree = ce * freeFraction * (1.0 - fLipidBound);
+                  tCns += ceFree / thresholdCns;
+                  tCv += ceFree / (thresholdCns * ccCnsRatio);
+              }
+          });
+
+          // Seizure control by anticonvulsants
+          const anticonvulsantFactor = 1.0 + (propofolCe > 0 ? propofolCe * 0.8 : 0) + (midazolamCe > 0 ? midazolamCe * 8.0 : 0) + (thiopentalCe > 0 ? thiopentalCe * 0.1 : 0);
+          
+          if (st.patient.lastSeizureTriggered) {
+              if (propofolCe > 1.2 || midazolamCe > 0.08 || thiopentalCe > 15.0) {
+                  st.patient.lastSeizureTriggered = false;
+                  logEvent("✅ SUCCESS: Anticonvulsant sedative administered. LAST-induced tonic-clonic seizure aborted.");
+              } else {
+                  isSeizure = true;
+                  seizureMetabolicMultiplier = 8.0;
+              }
+          } else {
+              if (tCns >= 1.3 * anticonvulsantFactor) {
+                  st.patient.lastSeizureTriggered = true;
+                  logEvent("🚨 CRITICAL EMERGENCY: Local Anesthetic Systemic Toxicity (LAST) CNS toxicity has triggered generalized tonic-clonic seizures!");
+              }
+          }
+
+          // Methemoglobinemia kinetics
+          const benzocaineModel = st.activeMeds?.find(m => m.name === 'Benzocaine');
+          const benzocaineCe = benzocaineModel ? benzocaineModel.Ce : 0;
+          const prilocaineModel = st.activeMeds?.find(m => m.name === 'Prilocaine');
+          const prilocaineCe = prilocaineModel ? prilocaineModel.Ce : 0;
+          const methyleneBlueModel = st.activeMeds?.find(m => m.name === 'Methylene Blue');
+          const methyleneBlueCe = methyleneBlueModel ? methyleneBlueModel.Ce : 0;
+
+          let currentMetHb = st.patient.metHb !== undefined ? st.patient.metHb : 0.8;
+          if (benzocaineCe > 0.2 || prilocaineCe > 0.5) {
+              currentMetHb = Math.min(35.0, currentMetHb + 0.1);
+              const currentTime = st.time || 0;
+              if (!st.patient.hasMetHbLog || (currentTime - (st.patient.lastMetHbLogTime || 0) >= 15)) {
+                  logEvent(`⚠️ CLINICAL ALERT: Methemoglobin levels are rising (${currentMetHb.toFixed(1)}%). Hemoglobin oxidation has induced Methemoglobinemia!`);
+                  st.patient.hasMetHbLog = true;
+                  st.patient.lastMetHbLogTime = currentTime;
+              }
+          } else if (methyleneBlueCe > 0.05) {
+              currentMetHb = Math.max(0.8, currentMetHb - 0.5);
+              const currentTime = st.time || 0;
+              if (st.patient.hasMetHbLog || (currentTime - (st.patient.lastMetHbLogTime || 0) >= 15)) {
+                  logEvent(`✅ Methylene Blue is reducing Methemoglobin back to active oxyhemoglobin. MetHb levels dropping (${currentMetHb.toFixed(1)}%).`);
+                  st.patient.hasMetHbLog = false;
+                  st.patient.lastMetHbLogTime = currentTime;
+              }
+          }
+          st.patient.metHb = currentMetHb;
+          setVitals({ metHb: currentMetHb });
 
           // Bleed rates & Haemoglobin dilution
           const baseHb = st.patient.trauma ? 11.2 : 14.5;
@@ -1677,11 +1943,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const desMac = st.gasModels?.desflurane ? st.gasModels.desflurane.Fb / calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.desflurane.mac40, st.patient.age || 40) : 0;
           const xenonMac = st.gasModels?.xenon ? st.gasModels.xenon.Fb / calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.xenon.mac40, st.patient.age || 40) : 0;
 
-          const propofolModel = st.activeMeds?.find(m => m.name === 'Propofol');
-          const propofolCe = propofolModel ? propofolModel.Ce : 0;
-          const dexmedCe = dexmedModel ? dexmedModel.Ce : 0;
-          const thiopentalModel = st.activeMeds?.find(m => m.name === 'Thiopental');
-          const thiopentalCe = thiopentalModel ? thiopentalModel.Ce : 0;
+          // const dexmedCe = dexmedModel ? dexmedModel.Ce : 0;
           // midazolamModel/midazolamCe and ketamineModel/ketamineCe already declared above (~L1211-1214)
           const etomidateModel = st.activeMeds?.find(m => m.name === 'Etomidate');
           const etomidateCe = etomidateModel ? etomidateModel.Ce : 0;
@@ -2244,8 +2506,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           st.patient.isParadoxicalBreathing = isParadoxicalBreathing;
 
           // 5. Genioglossus muscle tone & upper airway obstruction
-          let dilatorMuscleTone = 1.0;
           dilatorMuscleTone = Math.max(0.01, 1.0 - maxNMJOccupancy - 0.7 * Math.min(1.0, propofolCe / 4.0) - 0.5 * Math.min(1.5, agentMac));
+          if (patientAfterFluidics.neostigmineWeakness) {
+              dilatorMuscleTone = Math.min(0.79, dilatorMuscleTone);
+          }
           st.patient.dilatorMuscleTone = dilatorMuscleTone;
 
           // Airway Obstruction Index
@@ -3434,7 +3698,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               poPHCollapseRolled: st.patient.poPHCollapseRolled,
               fluidOverloadEdemaRolled: st.patient.fluidOverloadEdemaRolled,
               normepSeizureRolled: st.patient.normepSeizureRolled,
-              laudanosineSeizureRolled: st.patient.laudanosineSeizureRolled
+              laudanosineSeizureRolled: st.patient.laudanosineSeizureRolled,
+              neostigmineWeakness: st.patient.neostigmineWeakness || false,
+              transientBradycardia: st.patient.transientBradycardia || false,
+              maxNMJOccupancy: maxNMJOccupancy
           };
 
           const finalVitals = {
@@ -3604,6 +3871,9 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           }
           if (isNaN(targetTofRatio) || targetTofRatio < 0) targetTofRatio = 0;
           targetTofRatio = Math.min(1.0, targetTofRatio);
+          if (finalPatient.neostigmineWeakness) {
+              targetTofRatio = Math.min(0.89, targetTofRatio);
+          }
 
           if (finalPatient.airwaySecured && st.surgicalPhase === 'Induction') {
               setSurgicalPhase('Maintenance');
@@ -3627,6 +3897,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                                       const dosingWeight = medData.dosingWeight === 'IBW' ? safePatientIbw : (medData.dosingWeight === 'LBW' ? safePatientLbw : safePatientWeight);
                                       if (medInf.unit.includes('mcg/kg/min')) {
                                           medInf.rate = parseFloat(((model.currentInfusionRate * 1000 * 60) / dosingWeight).toFixed(2));
+                                      } else if (medInf.unit.includes('mL/kg/min') || medInf.unit.includes('ml/kg/min')) {
+                                          medInf.rate = parseFloat(((model.currentInfusionRate * 60) / dosingWeight).toFixed(2));
                                       } else if (medInf.unit.includes('mg/kg/hr')) {
                                           medInf.rate = parseFloat(((model.currentInfusionRate * 3600) / dosingWeight).toFixed(2));
                                       } else if (medInf.unit.includes('mcg/kg/hr')) {
