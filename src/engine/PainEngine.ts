@@ -198,8 +198,13 @@ export class PainEngine {
 
     const opioidAnalgesia = 1.0 - (1.0 - fentEff) * (1.0 - remiEff) * (1.0 - sufentEff) * (1.0 - morphineEff) * (1.0 - hydroEff);
 
-    // Other Analgesics
-    const ketamineEff = getDrugEffect('Ketamine', 0.5, 2.0);
+    // Other Analgesics. Esketamine (S(+)-isomer) is 3-4x more potent as an analgesic than racemic
+    // ketamine (Ch23, Miller's 9th Ed) — modeled with a proportionally lower c50 (midpoint 3.5x:
+    // 0.5/3.5 = 0.143), then merged with racemic ketamine's effect via independent-probability
+    // combination, consistent with how this engine already combines multiple opioids above.
+    const racemicKetamineEff = getDrugEffect('Ketamine', 0.5, 2.0);
+    const esketamineEff = getDrugEffect('Esketamine', 0.143, 2.0);
+    const ketamineEff = 1.0 - (1.0 - racemicKetamineEff) * (1.0 - esketamineEff);
     const lidocaineModel = activeMeds?.find(m => m.name === 'Lidocaine');
     const lidoCe = lidocaineModel ? lidocaineModel.Ce : 0;
     const lidoEff = lidoCe > 0 ? (Math.pow(lidoCe, 1.5) / (Math.pow(lidoCe, 1.5) + Math.pow(3.0, 1.5))) : 0;

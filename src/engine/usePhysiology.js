@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { MEDICATIONS, FLUIDS, INHALATIONAL_AGENTS, calculateIBW, calculateLBW, calculateAgeAdjustedMAC, calculateLungVolumes } from './Pharmacology.js';
+import { MEDICATIONS, FLUIDS, INHALATIONAL_AGENTS, calculateIBW, calculateLBW, calculateHumeLBM, calculateJanmahasatianFFM, calculateCBW, calculateMFFM, calculatePKM, calculateAgeAdjustedMAC, calculateLungVolumes, calculateLink25GasMixture } from './Pharmacology.js';
 import { PKPDModel } from './PKPDEngine';
 import { GasKineticsModel } from './GasKineticsEngine';
 import { getAnatomicalParameter, extractTextbookRules } from '../testing/oracle_query.ts';
@@ -12,6 +12,55 @@ import { ConsciousnessEngine } from './ConsciousnessEngine';
 import { GastrointestinalEngine } from './GastrointestinalEngine';
 import { HepaticEngine } from './HepaticEngine';
 import { RenalEngine } from './RenalEngine';
+import { CerebralEngine } from './CerebralEngine';
+
+export function resolveDosingWeight(medData, type, patient) {
+  const tbw = typeof patient.weight === 'number' && Number.isFinite(patient.weight) && patient.weight > 0 ? patient.weight : 70;
+  const ibw = typeof patient.ibw === 'number' && Number.isFinite(patient.ibw) && patient.ibw > 0 ? patient.ibw : 70;
+  const lbw = typeof patient.lbw === 'number' && Number.isFinite(patient.lbw) && patient.lbw > 0 ? patient.lbw : 60; // Janmahasatian
+  const lbm = typeof patient.lbm === 'number' && Number.isFinite(patient.lbm) && patient.lbm > 0 ? patient.lbm : lbw; // Hume
+  const ffm = typeof patient.ffm === 'number' && Number.isFinite(patient.ffm) && patient.ffm > 0 ? patient.ffm : lbw; // Janmahasatian
+  const cbw = typeof patient.cbw === 'number' && Number.isFinite(patient.cbw) && patient.cbw > 0 ? patient.cbw : ibw;
+  const mffm = typeof patient.mffm === 'number' && Number.isFinite(patient.mffm) && patient.mffm > 0 ? patient.mffm : ffm;
+  const pkm = typeof patient.pkm === 'number' && Number.isFinite(patient.pkm) && patient.pkm > 0 ? patient.pkm : ibw;
+
+  // Chapter 18:
+  // Propofol: bolus is scaled to LBM (Hume), infusions to TBW or CBW. Let's use CBW as default for obese (BMI >= 30) infusion maintenance, TBW for lean.
+  if (medData.name === 'Propofol') {
+    const isObese = (tbw / Math.pow((patient.height || 170) / 100, 2)) >= 30.0;
+    if (type === 'Bolus') {
+      return lbm;
+    } else { // Infusion
+      return isObese ? cbw : tbw;
+    }
+  }
+
+  // Remifentanil: bolus to TBW, infusions to IBW.
+  if (medData.name === 'Remifentanil') {
+    if (type === 'Bolus') {
+      return tbw;
+    } else { // Infusion
+      return ibw;
+    }
+  }
+
+  // Fentanyl: pharmacokinetic mass (PKM)
+  if (medData.name === 'Fentanyl') {
+    return pkm;
+  }
+
+  // Otherwise check the config
+  const key = medData.dosingWeight;
+  if (key === 'IBW') return ibw;
+  if (key === 'LBW') return lbw;
+  if (key === 'LBM') return lbm;
+  if (key === 'FFM') return ffm;
+  if (key === 'CBW') return cbw;
+  if (key === 'MFFM') return mffm;
+  if (key === 'PKM') return pkm;
+  
+  return tbw;
+}
 
 export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, gasSettings, logEvent, msmaidsComplete }) {
   const [timeVal, setTimeState] = useState(0);
@@ -150,7 +199,9 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           metHb: 0.8, coHb: activeCase.id === 'trauma' ? 12.0 : 1.0, cyanide: 0.0, lacticAcid: safePatientObj.isSeptic ? 4.5 : 1.0,
           cao2: 20.0, cvo2: 15.0, p50: 26.6, r_ratio: 0.90,
           lesTone: 25.0, gastricPressure: 7.0, bowelGasVolume: 1.0, gutMotility: 1.0, inflammatoryIleus: 0.0, postoperativeIleus: 0.0,
-          mPAP: 15.0, HVPG: 5.0, pbf: 1000.0, habf: 300.0, thbf: 1300.0, renalArteryResistance: 1.0, cvp: 5.0
+          mPAP: 15.0, HVPG: 5.0, pbf: 1000.0, habf: 300.0, thbf: 1300.0, renalArteryResistance: 1.0, cvp: 5.0,
+          mapUnder60Time: 0.0, mapUnder55Time: 0.0,
+          mapUnder60AlertTriggered: false, mapUnder55AlertTriggered: false
         });
         setTargetVitals({ ...safeBaseVitals });
         
@@ -175,7 +226,13 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
         setPatient({
           ...safePatientObj, height: clampedHeight, weight: clampedWeight, sex, ebv, ebl: safePatientObj.ebl || 0, bleedRate: baseBleedRate,
-          ibw: calculateIBW(clampedHeight, sex), lbw: calculateLBW(clampedHeight, clampedWeight, sex),
+          ibw: calculateIBW(clampedHeight, sex), 
+          lbw: calculateLBW(clampedHeight, clampedWeight, sex),
+          lbm: calculateHumeLBM(clampedHeight, clampedWeight, sex),
+          ffm: calculateJanmahasatianFFM(clampedHeight, clampedWeight, sex),
+          cbw: calculateCBW(clampedHeight, clampedWeight, sex),
+          mffm: calculateMFFM(clampedHeight, clampedWeight, sex),
+          pkm: calculatePKM(clampedWeight),
           lungVolumes: lungVols,
           position: position,
           isApneic: false, isParalyzed: false, isTopicalized: false,
@@ -218,6 +275,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           isSeizure: false,
           celiacBlockActive: safePatientObj.celiacBlockActive || false,
           epiduralBlockActive: safePatientObj.epiduralBlockActive || false,
+          epiduralLevel: typeof safePatientObj.epiduralLevel === 'number' ? safePatientObj.epiduralLevel : null,
           swallowingActive: safePatientObj.swallowingActive || false,
           manipulationIndex: typeof safePatientObj.manipulationIndex === 'number' ? safePatientObj.manipulationIndex : 0.0,
           hasRegurgitated: false,
@@ -310,11 +368,26 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           })(),
           vasopressinLevel: 0.1,
           aldosteroneLevel: 0.1,
+          angiotensinIILevel: 0.1,
           osm: 285.0,
           hasAki: false,
           hasPrerenalOliguria: false,
           hasFluidOverloadEdema: false,
           netFluidBalance: 0.0,
+          mapUnder60Time: 0.0,
+          mapUnder55Time: 0.0,
+          mapUnder60AlertTriggered: false,
+          mapUnder55AlertTriggered: false,
+          cortexRbf: 1034.0,
+          medullaRbf: 66.0,
+          cortexPo2: 50.0,
+          medullaPo2: 8.0,
+          cortexO2Extraction: 0.18,
+          medullaO2Extraction: 0.79,
+          glomerularCapillaryPressure: 60.0,
+          bowmanSpacePressure: 18.0,
+          glomerularOncoticPressure: 32.0,
+          netFiltrationPressure: 10.0,
 
           // Consciousness & Memory states
           lcActivity: 1.0,
@@ -351,6 +424,11 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           tmnPropofolResistant: safePatientObj.tmnPropofolResistant || false,
           narcolepsy: safePatientObj.narcolepsy || false,
           alpha2AKnockout: safePatientObj.alpha2AKnockout || false,
+          sleepStage: safePatientObj.sleepStage || 'W',
+          sleepTimeInStage: safePatientObj.sleepTimeInStage || 0,
+          sleepDebt: typeof safePatientObj.sleepDebt === 'number' ? safePatientObj.sleepDebt : 0.0,
+          postOpSleepNight: typeof safePatientObj.postOpSleepNight === 'number' ? safePatientObj.postOpSleepNight : 0,
+          remReboundIntensity: typeof safePatientObj.remReboundIntensity === 'number' ? safePatientObj.remReboundIntensity : 1.0,
           
           isAwarenessActive: false,
           ptsdScore: 0.0,
@@ -367,6 +445,13 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           displayEmergenceLag: false,
           isF6Active: false,
           isF3Active: false,
+          rightAmygdaloHippocampalConn: 1.0,
+          leftAmygdaloHippocampalConn: 1.0,
+          nbmHippocampalConn: 1.0,
+          soPhaseCouplingDecay: 0.0,
+          hippocampalRecollection: 1.0,
+          perirhinalFamiliarity: 1.0,
+          caudateProcedural: 1.0,
           isTASK1Knockout: safePatientObj.isTASK1Knockout || false,
           isTASK3Knockout: safePatientObj.isTASK3Knockout || false,
           isTREK1Knockout: safePatientObj.isTREK1Knockout || false,
@@ -411,6 +496,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           isAirwayObstruction: false,
           bronchialSmoothMuscleCa: 1.0,
           atelectasis: 0.0,
+          recruitmentTime: 0.0,
           isO2PipelineCrossover: false,
           isO2CylinderOpen: false,
           isO2PipelineDisconnected: false,
@@ -427,7 +513,22 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           isLAST: false,
           lastSeizureTriggered: false,
           hasMetHbLog: false,
-          lastMetHbLogTime: 0
+          lastMetHbLogTime: 0,
+
+          // Cerebral states (Chapter 11)
+          cbf: 50.0,
+          cmro2: 3.3,
+          cpp: 80.0,
+          cbv: 1.0,
+          icp: 10.0,
+          brainVolume: 1300.0,
+          csfVolume: 130.0,
+          intracranialVolumeOffset: safePatientObj.intracranialVolumeOffset || 0.0,
+          complianceState: safePatientObj.complianceState || 'normal',
+          hasCerebralIschemia: false,
+          rso2: 70.0,
+          isBBBOpen: safePatientObj.isBBBOpen || false,
+          cerebralElastance: safePatientObj.cerebralElastance
         });
         
         setTime(0); setActiveMeds([]); setIntravascularVolume(0); setSurgicalPhase('Pre-Op');
@@ -785,7 +886,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
         return false;
     }
 
-    const dosingWeight = medData.dosingWeight === 'IBW' ? safePatientIbw : (medData.dosingWeight === 'LBW' ? safePatientLbw : safePatientWeight);
+    const dosingWeight = resolveDosingWeight(medData, 'Bolus', currentPatient);
     const safeUnit = typeof unit === 'string' ? unit : '';
     if (safeUnit.includes('mcg/kg/min')) doseInMg = (doseInMg * dosingWeight) / 1000;
     else if (safeUnit.includes('mcg')) doseInMg = doseInMg / 1000;
@@ -993,6 +1094,33 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     });
   };
 
+  // Thoracic Epidural / Celiac Plexus Block (Ch15, Miller's 9th Ed: regional sympathetic
+  // blockade of the GI tract). Epidural coverage of gut/splanchnic sympathetic outflow is
+  // dermatome-graded by `epiduralLevel` (TABLE 15.2); celiac plexus block targets the ganglion
+  // directly (Fig 15.4/15.5) for complete splanchnic block regardless of level.
+  const placeEpidural = (level) => {
+    const safeLevel = typeof level === 'number' && Number.isFinite(level) ? level : 8;
+    setPatient(p => {
+      logEvent(`🦴 Thoracic epidural catheter placed at T${safeLevel}, local anesthetic bolus dosed and active.`);
+      return { ...p, epiduralBlockActive: true, epiduralLevel: safeLevel };
+    });
+  };
+
+  const removeEpidural = () => {
+    setPatient(p => {
+      logEvent("⏹ Thoracic epidural infusion stopped/catheter removed.");
+      return { ...p, epiduralBlockActive: false };
+    });
+  };
+
+  const toggleCeliacBlock = () => {
+    setPatient(p => {
+      const newState = !p.celiacBlockActive;
+      logEvent(newState ? "🩹 Celiac plexus block performed — complete splanchnic sympathetic block achieved." : "⏹ Celiac plexus block resolved/reversed.");
+      return { ...p, celiacBlockActive: newState };
+    });
+  };
+
   const deliverShock = (joules, isSync) => {
     const currentPatient = stateRef.current.patient || patient;
     const bloodLossRatio = (currentPatient.ebl || 0) / (currentPatient.ebv || 5000);
@@ -1003,7 +1131,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
       currentPatient.bmi || 25,
       currentPatient.position || 'Supine',
       currentPatient.copd || false,
-      currentPatient.restrictive || false
+      currentPatient.restrictive || false,
+      !!currentPatient.airwaySecured || !!currentPatient.isParalyzed
     );
     const currentFRC_L = patLungVols.frc_L;
 
@@ -1279,6 +1408,26 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               return Math.max(0, effOccupancy);
           };
 
+          // Chapter 12: Potentiation of NMBDs by non-NMBA drugs (Box 12.1, Fig 12.5, Miller 9th Ed)
+          const lidocaineModel = st.activeMeds?.find(m => m.name === 'Lidocaine');
+          const lidocaineCe = lidocaineModel ? lidocaineModel.Ce : 0;
+          const verapamilModel = st.activeMeds?.find(m => m.name === 'Verapamil');
+          const verapamilCe = verapamilModel ? verapamilModel.Ce : 0;
+          const magnesiumModel = st.activeMeds?.find(m => m.name === 'Magnesium Sulfate');
+          const magnesiumCe = magnesiumModel ? magnesiumModel.Ce : 0;
+
+          const ageForVols = st.patient.age || 40;
+          const sevoMacForVols = st.gasModels?.sevoflurane ? st.gasModels.sevoflurane.Fb / calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.sevoflurane.mac40, ageForVols) : 0;
+          const isoMacForVols = st.gasModels?.isoflurane ? st.gasModels.isoflurane.Fb / calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.isoflurane.mac40, ageForVols) : 0;
+          const haloMacForVols = st.gasModels?.halothane ? st.gasModels.halothane.Fb / calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.halothane.mac40, ageForVols) : 0;
+          const desMacForVols = st.gasModels?.desflurane ? st.gasModels.desflurane.Fb / calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.desflurane.mac40, ageForVols) : 0;
+          const volatilesMac = sevoMacForVols + isoMacForVols + haloMacForVols + desMacForVols;
+
+          const potentiationMult = (1.0 + volatilesMac * 0.5) *
+                                   (1.0 + (lidocaineCe / (lidocaineCe + 3.0)) * 0.4) *
+                                   (1.0 + (verapamilCe / (verapamilCe + 0.3)) * 0.4) *
+                                   (1.0 + (magnesiumCe / (magnesiumCe + 1.0)) * 1.0);
+
           if (st.activeMeds) {
               st.activeMeds.forEach(model => {
                   const matchingId = Object.keys(MEDICATIONS).find(key => MEDICATIONS[key].name === model.name);
@@ -1288,7 +1437,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                           const safePatientWeight = typeof st.patient.weight === 'number' && Number.isFinite(st.patient.weight) && st.patient.weight > 0 ? st.patient.weight : 70;
                           const safePatientIbw = typeof st.patient.ibw === 'number' && Number.isFinite(st.patient.ibw) && st.patient.ibw > 0 ? st.patient.ibw : 70;
                           const safePatientLbw = typeof st.patient.lbw === 'number' && Number.isFinite(st.patient.lbw) && st.patient.lbw > 0 ? st.patient.lbw : 60;
-                          const dosingWeight = medData.dosingWeight === 'IBW' ? safePatientIbw : (medData.dosingWeight === 'LBW' ? safePatientLbw : safePatientWeight);
+                          const dosingWeight = resolveDosingWeight(medData, 'Infusion', st.patient);
                           
                           let activeUnit = '';
                           for (const line of st.patient.accessLines || []) {
@@ -1320,8 +1469,21 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                       }
                   }
 
+                  // Update patient age/sex/height and PK parameters dynamically (Miller 9th Ed, Ch 18)
+                  model.patientAge = st.patient.age || 40;
+                  model.patientSex = st.patient.sex || 'male';
+                  model.patientHeight = st.patient.height || 170;
+                  if (matchingId) {
+                      model.updateModelParameters(model.tciMode !== 'none' ? model.tciModelName : (MEDICATIONS[matchingId]?.pkModel || 'none'), st.patient);
+                  }
+
                   const isNDMR = model.classes.includes('NDMR');
-                  const pdSens = (isNDMR && hasMG) ? 4.0 : 1.0;
+                  let pdSens = 1.0;
+                  if (isNDMR) {
+                      const hasPediatricMG = (st.patient.age && st.patient.age < 2.0);
+                      pdSens = (hasMG || hasPediatricMG) ? 4.0 : 1.0;
+                      pdSens *= potentiationMult;
+                  }
                   const effects = model.tick(1, coRatio, v1VolumeRatio, renalRatio, pdSens, hepaticRatio, bcheMultiplier, hofmannMultiplier, cysteineCe);
                   
                   if (model.name === 'Atracurium') {
@@ -1363,13 +1525,13 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                   let occupancy = effects.receptorOccupancy;
                   if (model.classes.includes('NDMR')) {
                       occupancy = applyDisplacement(occupancy);
-                      if (st.patient.nAChR_state === 'downregulated') {
+                      if (st.patient.nAChR_state === 'downregulated' || (st.patient.age && st.patient.age < 2.0)) {
                           occupancy = Math.min(1.0, occupancy * 2.0);
                       } else if (st.patient.nAChR_state === 'upregulated') {
                           occupancy = occupancy * 0.5;
                       }
                   } else if (model.classes.includes('Depolarizing NMBA')) {
-                      if (st.patient.nAChR_state === 'downregulated') {
+                      if (st.patient.nAChR_state === 'downregulated' || (st.patient.age && st.patient.age < 2.0)) {
                           occupancy = occupancy * 0.5;
                       } else if (st.patient.nAChR_state === 'upregulated') {
                           occupancy = Math.min(1.0, occupancy * 1.5);
@@ -1380,6 +1542,14 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               
               drugSvrMod = Math.max(0.55, drugSvrMod);
               drugInotropyMod = Math.max(0.50, drugInotropyMod);
+          }
+
+          // Chapter 18: PRIS hemodynamic overrides (Miller's 9th Ed, Ch 18 p. 463)
+          if (st.patient.prisActive) {
+              const minutesExceeded = Math.max(0, (st.patient.prisAccumulator || 0) - 120);
+              totalHrDelta -= 0.2 * minutesExceeded;
+              drugInotropyMod *= Math.max(0.3, 1.0 - 0.005 * minutesExceeded);
+              drugSvrMod *= Math.max(0.4, 1.0 - 0.003 * minutesExceeded);
           }
 
           // Apply active metabolites of Midazolam and Ketamine to global effects
@@ -1415,25 +1585,66 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const cw002Model = st.activeMeds?.find(m => m.name === 'CW002');
           const cw002Ce = cw002Model ? cw002Model.Ce : 0;
 
-          const rocOccupancy = applyDisplacement(rocuroniumCe <= 0.15 ? (rocuroniumCe / 0.15) * 0.70 : 0.70 + Math.min(0.30, (rocuroniumCe - 0.15) * 0.5));
+          const rocCeEff = rocuroniumCe * potentiationMult;
+          let rocOccupancy = applyDisplacement(rocCeEff <= 0.15 ? (rocCeEff / 0.15) * 0.70 : 0.70 + Math.min(0.30, (rocCeEff - 0.15) * 0.5));
+          if (st.patient.nAChR_state === 'downregulated' || (st.patient.age && st.patient.age < 2.0)) {
+              rocOccupancy = Math.min(1.0, rocOccupancy * 2.0);
+          } else if (st.patient.nAChR_state === 'upregulated') {
+              rocOccupancy = rocOccupancy * 0.5;
+          }
           if (rocOccupancy > maxNMJOccupancy) maxNMJOccupancy = rocOccupancy;
 
-          const vecOccupancy = applyDisplacement(vecuroniumCe <= 0.05 ? (vecuroniumCe / 0.05) * 0.70 : 0.70 + Math.min(0.30, (vecuroniumCe - 0.05) * 1.5));
+          const vecCeEff = vecuroniumCe * potentiationMult;
+          let vecOccupancy = applyDisplacement(vecCeEff <= 0.05 ? (vecCeEff / 0.05) * 0.70 : 0.70 + Math.min(0.30, (vecCeEff - 0.05) * 1.5));
+          if (st.patient.nAChR_state === 'downregulated' || (st.patient.age && st.patient.age < 2.0)) {
+              vecOccupancy = Math.min(1.0, vecOccupancy * 2.0);
+          } else if (st.patient.nAChR_state === 'upregulated') {
+              vecOccupancy = vecOccupancy * 0.5;
+          }
           if (vecOccupancy > maxNMJOccupancy) maxNMJOccupancy = vecOccupancy;
 
-          const cisOccupancy = applyDisplacement(cisatracuriumCe <= 0.08 ? (cisatracuriumCe / 0.08) * 0.70 : 0.70 + Math.min(0.30, (cisatracuriumCe - 0.08) * 1.0));
+          const cisCeEff = cisatracuriumCe * potentiationMult;
+          let cisOccupancy = applyDisplacement(cisCeEff <= 0.08 ? (cisCeEff / 0.08) * 0.70 : 0.70 + Math.min(0.30, (cisCeEff - 0.08) * 1.0));
+          if (st.patient.nAChR_state === 'downregulated' || (st.patient.age && st.patient.age < 2.0)) {
+              cisOccupancy = Math.min(1.0, cisOccupancy * 2.0);
+          } else if (st.patient.nAChR_state === 'upregulated') {
+              cisOccupancy = cisOccupancy * 0.5;
+          }
           if (cisOccupancy > maxNMJOccupancy) maxNMJOccupancy = cisOccupancy;
 
-          const suxOccupancy = succinylcholineCe <= 0.08 ? (succinylcholineCe / 0.08) * 0.70 : 0.70 + Math.min(0.30, (succinylcholineCe - 0.08) * 1.0);
+          let suxOccupancy = succinylcholineCe <= 0.08 ? (succinylcholineCe / 0.08) * 0.70 : 0.70 + Math.min(0.30, (succinylcholineCe - 0.08) * 1.0);
+          if (st.patient.nAChR_state === 'downregulated' || (st.patient.age && st.patient.age < 2.0)) {
+              suxOccupancy = suxOccupancy * 0.5;
+          } else if (st.patient.nAChR_state === 'upregulated') {
+              suxOccupancy = Math.min(1.0, suxOccupancy * 1.5);
+          }
           if (suxOccupancy > maxNMJOccupancy) maxNMJOccupancy = suxOccupancy;
 
-          const atrOccupancy = applyDisplacement(atracuriumCe <= 0.08 ? (atracuriumCe / 0.08) * 0.70 : 0.70 + Math.min(0.30, (atracuriumCe - 0.08) * 1.0));
+          const atrCeEff = atracuriumCe * potentiationMult;
+          let atrOccupancy = applyDisplacement(atrCeEff <= 0.08 ? (atrCeEff / 0.08) * 0.70 : 0.70 + Math.min(0.30, (atrCeEff - 0.08) * 1.0));
+          if (st.patient.nAChR_state === 'downregulated' || (st.patient.age && st.patient.age < 2.0)) {
+              atrOccupancy = Math.min(1.0, atrOccupancy * 2.0);
+          } else if (st.patient.nAChR_state === 'upregulated') {
+              atrOccupancy = atrOccupancy * 0.5;
+          }
           if (atrOccupancy > maxNMJOccupancy) maxNMJOccupancy = atrOccupancy;
 
-          const gantOccupancy = applyDisplacement(gantacuriumCe <= 0.04 ? (gantacuriumCe / 0.04) * 0.70 : 0.70 + Math.min(0.30, (gantacuriumCe - 0.04) * 2.0));
+          const gantCeEff = gantacuriumCe * potentiationMult;
+          let gantOccupancy = applyDisplacement(gantCeEff <= 0.04 ? (gantCeEff / 0.04) * 0.70 : 0.70 + Math.min(0.30, (gantCeEff - 0.04) * 2.0));
+          if (st.patient.nAChR_state === 'downregulated' || (st.patient.age && st.patient.age < 2.0)) {
+              gantOccupancy = Math.min(1.0, gantOccupancy * 2.0);
+          } else if (st.patient.nAChR_state === 'upregulated') {
+              gantOccupancy = gantOccupancy * 0.5;
+          }
           if (gantOccupancy > maxNMJOccupancy) maxNMJOccupancy = gantOccupancy;
 
-          const cwOccupancy = applyDisplacement(cw002Ce <= 0.03 ? (cw002Ce / 0.03) * 0.70 : 0.70 + Math.min(0.30, (cw002Ce - 0.03) * 2.5));
+          const cwCeEff = cw002Ce * potentiationMult;
+          let cwOccupancy = applyDisplacement(cwCeEff <= 0.03 ? (cwCeEff / 0.03) * 0.70 : 0.70 + Math.min(0.30, (cwCeEff - 0.03) * 2.5));
+          if (st.patient.nAChR_state === 'downregulated' || (st.patient.age && st.patient.age < 2.0)) {
+              cwOccupancy = Math.min(1.0, cwOccupancy * 2.0);
+          } else if (st.patient.nAChR_state === 'upregulated') {
+              cwOccupancy = cwOccupancy * 0.5;
+          }
           if (cwOccupancy > maxNMJOccupancy) maxNMJOccupancy = cwOccupancy;
 
           // Active Metabolites
@@ -1446,7 +1657,11 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const midazolamModel = st.activeMeds?.find(m => m.name === 'Midazolam');
           const midazolamCe = midazolamModel ? midazolamModel.Ce : 0;
           const ketamineModel = st.activeMeds?.find(m => m.name === 'Ketamine');
-          const ketamineCe = ketamineModel ? ketamineModel.Ce : 0;
+          const esketamineModel = st.activeMeds?.find(m => m.name === 'Esketamine');
+          // Esketamine (S(+)-isomer) is 3-4x more potent than racemic ketamine (Ch23, Miller's 9th
+          // Ed); its Ce is converted to a racemic-ketamine-equivalent concentration (midpoint ratio
+          // 3.5x) so it correctly drives the same downstream NMDA/emergence-delirium thresholds.
+          const ketamineCe = (ketamineModel ? ketamineModel.Ce : 0) + (esketamineModel ? esketamineModel.Ce * 3.5 : 0);
           const dexmedModel = st.activeMeds?.find(m => m.name === 'Dexmedetomidine');
           const dexmedCe = dexmedModel ? dexmedModel.Ce : 0;
           const propofolModel = st.activeMeds?.find(m => m.name === 'Propofol');
@@ -1572,6 +1787,36 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               cyanideVO2Mod = Math.max(0.1, 1 - currentCyanide * 2.0);
           }
 
+          // Chapter 18: Propofol Infusion Syndrome (PRIS) tracking (Miller's 9th Ed, Ch 18 p. 463)
+          const propofolInfRate = propofolModel ? propofolModel.currentInfusionRate : 0;
+          const safeWeightForPris = st.patient.weight || 70;
+          const propofolInfMcgKgMin = propofolModel ? (propofolModel.currentInfusionRate * 1000 * 60) / safeWeightForPris : 0;
+
+          let prisAccumulator = st.patient.prisAccumulator || 0;
+          let prisActive = st.patient.prisActive || false;
+
+          if (propofolInfMcgKgMin > 67.0) { // > 67 mcg/kg/min (4 mg/kg/hr)
+              prisAccumulator += 1; // 1 tick = 1 patient minute
+          } else {
+              prisAccumulator = Math.max(0, prisAccumulator - 0.5); // decay when rate is below threshold
+          }
+
+          if (prisAccumulator > 120) { // > 2 hours
+              if (!prisActive) {
+                  prisActive = true;
+                  logEvent("⚠️ ALERT: Propofol Infusion Syndrome (PRIS) triggered! Progressive metabolic acidosis, myocardial depression, and bradycardia.");
+              }
+          } else {
+              if (prisActive && prisAccumulator < 90) {
+                  prisActive = false;
+                  logEvent("✅ Propofol Infusion Syndrome (PRIS) resolving as propofol infusion has been reduced/stopped.");
+              }
+          }
+          st.patient.prisAccumulator = prisAccumulator;
+          st.patient.prisActive = prisActive;
+          patientAfterFluidics.prisAccumulator = prisAccumulator;
+          patientAfterFluidics.prisActive = prisActive;
+
           // Lactic Acid modeling (anaerobic metabolism during shock, arrest, or sepsis)
           const baselineLactate = st.patient.isSeptic ? 4.5 : 1.0;
           let currentLactate = st.patient.lacticAcid || baselineLactate;
@@ -1591,6 +1836,11 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           } else {
               // Normal perfusion allows hepatic/renal lactate clearance towards baseline
               currentLactate -= (currentLactate - baselineLactate) * 0.005;
+          }
+
+          if (prisActive) {
+              // PRIS causes progressive lactic acid increase (+0.02 mmol/L per tick)
+              currentLactate += 0.02;
           }
           currentLactate = Math.max(0.5, Math.min(25.0, currentLactate));
 
@@ -1784,39 +2034,29 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           }
 
           if (st.gasSettings) {
-              const o2F = typeof st.gasSettings.o2Flow === 'number' && Number.isFinite(st.gasSettings.o2Flow) ? st.gasSettings.o2Flow : 0;
-              const airF = typeof st.gasSettings.airFlow === 'number' && Number.isFinite(st.gasSettings.airFlow) ? st.gasSettings.airFlow : 0;
-              const n2oF = typeof st.gasSettings.n2oFlow === 'number' && Number.isFinite(st.gasSettings.n2oFlow) ? st.gasSettings.n2oFlow : 0;
+              // Link-25 proportioning + oxygen supply failure protection device ("fail-safe
+              // valve") — Ch22, Miller's 9th Ed. See calculateLink25GasMixture() for citations.
+              const gasMix = calculateLink25GasMixture(st.gasSettings, hasO2Supply, o2SourceIsO2, o2SourceIsN2O);
 
-              const isO2PressureLow = o2F > 0 && !hasO2Supply;
-              if (isO2PressureLow && !st.patient.hasLowO2PressureLog) {
+              if (gasMix.isO2PressureLow && !st.patient.hasLowO2PressureLog) {
                   st.patient.hasLowO2PressureLog = true;
                   logEvent("🚨 CRITICAL WARNING: Oxygen pipeline pressure is 0 psi and backup cylinder is closed! Oxygen supply pressure failure!");
               }
-              if (!isO2PressureLow && st.patient.hasLowO2PressureLog) {
+              if (!gasMix.isO2PressureLow && st.patient.hasLowO2PressureLog) {
                   st.patient.hasLowO2PressureLog = false;
               }
 
-              const actualO2FromFlowmeter = o2SourceIsO2 ? o2F : 0;
-              const actualN2OFromFlowmeter = n2oF + (o2SourceIsN2O ? o2F : 0);
-
-              const actualO2 = actualO2FromFlowmeter + airF * 0.21;
-              const actualN2O = actualN2OFromFlowmeter;
-              const actualN2 = airF * 0.79;
-              
-              const totalFGF = actualO2 + actualN2O + actualN2;
-              
-              if (totalFGF > 0.001) {
-                  deliveredFiO2 = (actualO2 / totalFGF) * 100;
-                  n2oPercent = (actualN2O / totalFGF) * 100;
-                  freshGasFlow = totalFGF;
-              } else {
-                  deliveredFiO2 = 21;
-                  n2oPercent = 0;
-                  freshGasFlow = 0;
+              if (gasMix.failSafeN2OCutoff && gasMix.n2oDialedFlow > 0 && !st.patient.hasFailSafeValveLog) {
+                  st.patient.hasFailSafeValveLog = true;
+                  logEvent("🚨 Oxygen supply failure protection device (\"fail-safe valve\") has shut off Nitrous Oxide flow due to loss of O2 supply pressure.");
               }
-              if (isNaN(deliveredFiO2) || !Number.isFinite(deliveredFiO2)) deliveredFiO2 = 21;
-              if (isNaN(n2oPercent) || !Number.isFinite(n2oPercent)) n2oPercent = 0;
+              if (!(gasMix.failSafeN2OCutoff && gasMix.n2oDialedFlow > 0) && st.patient.hasFailSafeValveLog) {
+                  st.patient.hasFailSafeValveLog = false;
+              }
+
+              deliveredFiO2 = Number.isFinite(gasMix.deliveredFiO2) ? gasMix.deliveredFiO2 : 21;
+              n2oPercent = Number.isFinite(gasMix.n2oPercent) ? gasMix.n2oPercent : 0;
+              freshGasFlow = gasMix.freshGasFlow;
           }
 
           // Crossover warning log
@@ -1901,7 +2141,24 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                               if (st.vitals.temp < 36.0) macModifier -= (36.0 - st.vitals.temp) * 0.05;
                               if (st.patient.isSeptic) macModifier -= 0.1;
                               if (currentHb < 5.0) macModifier -= 0.1;
-                              macModifier = Math.max(0.4, macModifier);
+
+                              // Opioid-induced volatile MAC reduction (Miller's 9th Ed, Ch 18 Fig 18.26)
+                              let opioidRatioSum = 0;
+                              if (st.activeMeds) {
+                                  st.activeMeds.forEach(m => {
+                                      if ((m.classes?.some(c => c.includes('Opioid')) || m.name?.toLowerCase().includes('fentanyl') || m.name?.toLowerCase().includes('morphine') || m.name?.toLowerCase().includes('remifentanil')) && m.Ce > 0) {
+                                          const c50 = m.pd.c50 || 0.001;
+                                          opioidRatioSum += m.Ce / c50;
+                                      }
+                                  });
+                              }
+                              if (opioidRatioSum > 0) {
+                                  // Synergistic non-linear reduction with a 65% ceiling (multiplier = 0.35)
+                                  const fractionRed = 0.65 * (opioidRatioSum / (opioidRatioSum + 1.0));
+                                  macModifier *= (1.0 - fractionRed);
+                              }
+
+                              macModifier = Math.max(0.2, macModifier);
                               
                               const safeAdjMac = Math.max(0.01, calculateAgeAdjustedMAC(agentData.mac40, st.patient.age || 40) * macModifier);
                               
@@ -1992,7 +2249,11 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               methohexitalCe,
               gabapentinCe,
               pregabalinCe,
-              topiramateCe
+              topiramateCe,
+              suvorexantCe: st.activeMeds?.find(m => m.name === 'Suvorexant')?.Ce || 0,
+              surgicalStimulus: st.surgicalPhase === 'Incision' || st.surgicalPhase === 'Maintenance',
+              spo2: st.vitals.spo2,
+              paco2: st.vitals.paco2
           });
 
           // Chapter 19: Compute receptor-binding occupancies (0.0 - 1.0)
@@ -2013,8 +2274,6 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const hcn_mult = st.patient.isHCN1Knockout ? 0.25 : 1.0;
           const hcn_inhibition = Math.max(0.0, Math.min(1.0, hcn_mult * (hcn_sum / (1.0 + hcn_sum))));
 
-          const lidocaineModel = st.activeMeds?.find(m => m.name === 'Lidocaine');
-          const lidocaineCe = lidocaineModel ? lidocaineModel.Ce : 0;
           const nav_sum = (lidocaineCe / 2.0) + (sevoMac + isoMac + haloMac + desMac + (f3Ce_total / 1.2) + (sIsoCe_total / 0.9) + (rIsoCe_total / 1.8)) * 0.3;
           const nav_blockade = Math.max(0.0, Math.min(1.0, nav_sum / (1.0 + nav_sum)));
 
@@ -2100,8 +2359,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           // B. Physiological Loop: Retrograde Facilitation of Pre-induction Memory
           let retrogradeFacilitationRatio = 1.0;
           if (st.patient.preopMemoryEncoded) {
-              if ((propofolCe > 0.01 && propofolCe < 0.5) || (midazolamCe > 0.001 && midazolamCe < 0.05)) {
+              if ((propofolCe > 0.01 && propofolCe < 0.5) || (midazolamCe > 0.001 && midazolamCe < 0.05) || (ketamineCe > 0.01 && ketamineCe < 0.5)) {
                   retrogradeFacilitationRatio = 1.3;
+              } else if (dexmedCe > 0.01) {
+                  retrogradeFacilitationRatio = 0.7; // Dexmedetomidine reduces pre-induction memory retention
               }
           }
 
@@ -2126,13 +2387,20 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               }
 
               // If midazolam or low-dose sevoflurane is present during this window:
-              const isEraseAgentPresent = midazolamCe > 0.01 || (sevoMac > 0.05 && sevoMac < 0.3);
+              // Modified range to exclude very low enhancing doses (sevoMac >= 0.10)
+              const isEraseAgentPresent = midazolamCe > 0.01 || (sevoMac >= 0.10 && sevoMac < 0.3);
               if (isEraseAgentPresent) {
                   fearConditioning = Math.max(0.0, fearConditioning - 0.005);
                   if (fearConditioning === 0.0 && !fearExtinguished) {
                       fearExtinguished = true;
                       logEvent("✅ SUCCESS: Traumatic fear memory successfully extinguished during the reconsolidation window!");
                   }
+              }
+
+              // Very low, non-sedating dose of sevoflurane (0.11%, or ~0.055 MAC) enhances fear conditioning
+              const isSevoEnhancePresent = sevoMac >= 0.04 && sevoMac <= 0.08;
+              if (isSevoEnhancePresent && !fearExtinguished) {
+                  fearConditioning = Math.min(2.0, fearConditioning + 0.002);
               }
           }
 
@@ -2483,9 +2751,13 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           st.patient.surfactantProduction = surfactantProduction;
 
           // 3. Hypoxic Pulmonary Vasoconstriction (HPV) Inhibition
+          // 20-30% HPV depression at 1 MAC, 50% at MAC 2 for older halogenated agents
+          // (isoflurane, halothane). Modern agents (sevoflurane, desflurane) have little
+          // effect; IV anesthetics do not inhibit HPV. Fig 13.22 & p.2348, Miller's 9th Ed.
           let hpvInhibition = 0.0;
-          if (activeAgent && activeAgent !== 'xenon') {
-              hpvInhibition = Math.min(0.80, agentMac * 0.20); // 20% at 1 MAC
+          if (activeAgent) {
+              const hpvPotency = INHALATIONAL_AGENTS[activeAgent]?.hpvPotency ?? 0.0;
+              hpvInhibition = Math.min(0.90, agentMac * 0.25 * hpvPotency);
           }
           st.patient.hpvInhibition = hpvInhibition;
 
@@ -2506,7 +2778,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           st.patient.isParadoxicalBreathing = isParadoxicalBreathing;
 
           // 5. Genioglossus muscle tone & upper airway obstruction
-          dilatorMuscleTone = Math.max(0.01, 1.0 - maxNMJOccupancy - 0.7 * Math.min(1.0, propofolCe / 4.0) - 0.5 * Math.min(1.5, agentMac));
+          const remAtoniaPenalty = st.patient.sleepStage === 'R' ? 0.85 : 0.0;
+          dilatorMuscleTone = Math.max(0.01, 1.0 - maxNMJOccupancy - 0.7 * propofolCe - 0.5 * agentMac - remAtoniaPenalty);
           if (patientAfterFluidics.neostigmineWeakness) {
               dilatorMuscleTone = Math.min(0.79, dilatorMuscleTone);
           }
@@ -2516,6 +2789,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let isAirwayObstruction = st.patient.isAirwayObstruction || false;
           const isOsa = st.patient.pulmonaryComorbidity?.toLowerCase().includes('osa') || st.patient.osa || false;
           const pcrit = isOsa ? 1.0 : -5.0;
+          st.patient.pcrit = pcrit;
+          patientAfterFluidics.pcrit = pcrit;
           let airwayObstructionIndex = 0.0;
           
           if (!st.patient.airwaySecured && st.patient.ventilationStatus === 'spontaneous') {
@@ -2541,11 +2816,31 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           }
           st.patient.bronchialSmoothMuscleCa = bronchialSmoothMuscleCa;
 
-          // 7. Atelectasis accumulation
+          // 7. Atelectasis accumulation and recruitment (Fig 13.19 & Fig 13.20, Miller's 9th Ed)
           let atelectasis = st.patient.atelectasis !== undefined ? st.patient.atelectasis : 0.0;
           const currentFiO2Val = st.patient.airwaySecured ? Number(deliveredFiO2) : Number(st.patient.currentFiO2 || 21);
           const currentPeepVal = st.ventSettings?.peep || 0;
-          
+          const prevPipVal = st.vitals.pip || 0;
+          const currentAirwayPressure = Math.max(prevPipVal, currentPeepVal);
+
+          // Track recruitment time for PAW >= 40 cmH2O (sustained vital capacity maneuver)
+          let recruitmentTime = st.patient.recruitmentTime || 0;
+          if (currentAirwayPressure >= 40.0) {
+              recruitmentTime += 1.0; // 1 second per tick
+              if (recruitmentTime >= 7.0) { // Fig 13.19: 40 cmH2O for 7-8 seconds successfully opens almost all atelectasis
+                  atelectasis = 0.0;
+                  recruitmentTime = 0.0;
+                  logEvent("✅ SUCCESS: Alveolar recruitment maneuver completed (sustained PAW >= 40 cmH2O for 7s). Atelectasis fully resolved!");
+              }
+          } else if (currentAirwayPressure >= 30.0) {
+              // Fig 13.19: PAW >= 30 cmH2O required for initial opening
+              atelectasis = Math.max(0.0, atelectasis - 0.08); // rapid opening at 30-40 cmH2O
+              recruitmentTime = 0.0;
+          } else {
+              recruitmentTime = 0.0;
+          }
+          st.patient.recruitmentTime = recruitmentTime;
+
           if (currentFiO2Val > 21) {
               const rateBase = 0.0005 * ((currentFiO2Val - 21) / 79.0) - 0.0002 * currentPeepVal;
               const paralyzeFactor = st.patient.isParalyzed ? 2.0 : 1.0;
@@ -2623,6 +2918,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               isAirwayObstruction: st.patient.isAirwayObstruction,
               bronchialSmoothMuscleCa: st.patient.bronchialSmoothMuscleCa,
               atelectasis: st.patient.atelectasis,
+              recruitmentTime: st.patient.recruitmentTime,
               isO2PipelineCrossover: st.patient.isO2PipelineCrossover,
               isO2CylinderOpen: st.patient.isO2CylinderOpen,
               isO2PipelineDisconnected: st.patient.isO2PipelineDisconnected,
@@ -2789,6 +3085,13 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           
           let currentK = fluidicsOutput.electrolytes.k;
           let stunning = st.patient.myocardialStunning || 0;
+
+          // Chapter 12: Succinylcholine dynamic potassium leak maintenance in upregulation (Fig 12.9, Miller 9th Ed)
+          const suxModelForLeak = st.activeMeds?.find(m => m.name === 'Succinylcholine');
+          const suxCeForLeak = suxModelForLeak ? suxModelForLeak.Ce : 0;
+          if (st.patient.nAChR_state === 'upregulated' && suxCeForLeak > 0.01) {
+              currentK = Math.min(10.0, currentK + 0.05);
+          }
           
           if (prisTriggered) {
               const isInfusing = propofolModel && propofolModel.currentInfusionRate > 0;
@@ -3048,20 +3351,30 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               }
           }
 
-          // Prevention/Resolution by Ketamine or Magnesium
-          const magnesiumModel = st.activeMeds?.find(m => m.name === 'Magnesium Sulfate');
-          const magnesiumCe = magnesiumModel ? magnesiumModel.Ce : 0;
-
-          if (remifentanilHyperalgesiaActive && (ketamineCe > 0.05 || magnesiumCe > 1.0)) {
+          // Lidocaine, Ketamine, or Magnesium reverses OIH
+          if (remifentanilHyperalgesiaActive && (ketamineCe > 0.05 || magnesiumCe > 1.0 || lidocaineCe > 1.0)) {
               remifentanilHyperalgesiaActive = false;
               remifentanilInfusionDuration = 0; // reset
-              logEvent("✅ SUCCESS: NMDA antagonist administered! Central hyperalgesia pathways blocked, successfully reversing opioid-induced hyperalgesia.");
+              logEvent("✅ SUCCESS: Non-opioid adjuvant administered! Central hyperalgesia pathways blocked, successfully reversing opioid-induced hyperalgesia.");
           }
 
+          // Slow recovery of OIH: half-life of 15 ticks (minutes)
+          if (remifentanilHyperalgesiaActive) {
+              remifentanilInfusionDuration *= 0.955; // decay
+              if (remifentanilInfusionDuration < 1.0) {
+                  remifentanilHyperalgesiaActive = false;
+                  remifentanilInfusionDuration = 0;
+                  logEvent("✅ Opioid-Induced Hyperalgesia and tolerance resolved. Pain threshold restored to baseline.");
+              }
+          }
+
+          const opioidToleranceMultiplier = remifentanilHyperalgesiaActive ? 2.0 : 1.0;
           st.patient.remifentanilInfusionDuration = remifentanilInfusionDuration;
           st.patient.remifentanilHyperalgesiaActive = remifentanilHyperalgesiaActive;
+          st.patient.opioidToleranceMultiplier = opioidToleranceMultiplier;
           patientAfterFluidics.remifentanilInfusionDuration = remifentanilInfusionDuration;
           patientAfterFluidics.remifentanilHyperalgesiaActive = remifentanilHyperalgesiaActive;
+          patientAfterFluidics.opioidToleranceMultiplier = opioidToleranceMultiplier;
 
           // 3. Sphincter of Oddi Spasm
           let sphincterOfOddiSpasmActive = st.patient.sphincterOfOddiSpasmActive || false;
@@ -3293,7 +3606,11 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               cvp: cvp,
               surgicalPhase: st.surgicalPhase,
               renalRatio: renalRatio,
-              FiO2: deliveredFiO2
+              FiO2: deliveredFiO2,
+              sevoMac: sevoMac,
+              isoMac: isoMac,
+              desMac: desMac,
+              haloMac: haloMac
           });
 
           if (hepaticOutput.events && hepaticOutput.events.length > 0) {
@@ -3312,6 +3629,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           st.patient.hpsShunt = hepaticOutput.hpsShunt;
           st.patient.varicealBleedRolled = hepaticOutput.varicealBleedRolled;
           st.patient.poPHCollapseRolled = hepaticOutput.poPHCollapseRolled;
+          st.patient.operativeMortality = hepaticOutput.operativeMortality;
+          st.patient.encephalopathyDescription = hepaticOutput.encephalopathyDescription;
 
           patientAfterFluidics.creatinine = hepaticOutput.creatinine;
           patientAfterFluidics.varicealBleedingActive = hepaticOutput.varicealBleedingActive;
@@ -3324,6 +3643,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           patientAfterFluidics.hpsShunt = hepaticOutput.hpsShunt;
           patientAfterFluidics.varicealBleedRolled = hepaticOutput.varicealBleedRolled;
           patientAfterFluidics.poPHCollapseRolled = hepaticOutput.poPHCollapseRolled;
+          patientAfterFluidics.operativeMortality = hepaticOutput.operativeMortality;
+          patientAfterFluidics.encephalopathyDescription = hepaticOutput.encephalopathyDescription;
 
           // Renal Engine Tick
           const netFluidBalance = (st.patient.netFluidBalance || 0.0) + fluidicsOutput.intravascularVolumeAdded_mL - (st.patient.urineOutputRate || 70.0) * (1.0 / 3600.0);
@@ -3351,7 +3672,12 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                   uopAnuriaTimer: st.vitals.uopAnuriaTimer,
                   vasopressinLevel: st.vitals.vasopressinLevel,
                   aldosteroneLevel: st.vitals.aldosteroneLevel,
-                  osm: st.vitals.osm
+                  osm: st.vitals.osm,
+                  spo2: st.vitals.spo2 || 98.0,
+                  mapUnder60Time: st.vitals.mapUnder60Time,
+                  mapUnder55Time: st.vitals.mapUnder55Time,
+                  mapUnder60AlertTriggered: st.vitals.mapUnder60AlertTriggered,
+                  mapUnder55AlertTriggered: st.vitals.mapUnder55AlertTriggered
               },
               time: st.time,
               electrolytes: st.electrolytes
@@ -3392,12 +3718,27 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           st.patient.uopAnuriaTimer = renalOutput.uopAnuriaTimer;
           st.patient.vasopressinLevel = renalOutput.vasopressinLevel;
           st.patient.aldosteroneLevel = renalOutput.aldosteroneLevel;
+          st.patient.angiotensinIILevel = renalOutput.angiotensinIILevel;
           st.patient.osm = renalOutput.osm;
           st.patient.hasAki = renalOutput.hasAki;
           st.patient.hasPrerenalOliguria = renalOutput.hasPrerenalOliguria;
           st.patient.hasFluidOverloadEdema = renalOutput.hasFluidOverloadEdema;
           st.patient.netFluidBalance = netFluidBalance;
           st.patient.fluidOverloadEdemaRolled = renalOutput.fluidOverloadEdemaRolled;
+          st.patient.mapUnder60Time = renalOutput.mapUnder60Time;
+          st.patient.mapUnder55Time = renalOutput.mapUnder55Time;
+          st.patient.mapUnder60AlertTriggered = renalOutput.mapUnder60AlertTriggered;
+          st.patient.mapUnder55AlertTriggered = renalOutput.mapUnder55AlertTriggered;
+          st.patient.cortexRbf = renalOutput.cortexRbf;
+          st.patient.medullaRbf = renalOutput.medullaRbf;
+          st.patient.cortexPo2 = renalOutput.cortexPo2;
+          st.patient.medullaPo2 = renalOutput.medullaPo2;
+          st.patient.cortexO2Extraction = renalOutput.cortexO2Extraction;
+          st.patient.medullaO2Extraction = renalOutput.medullaO2Extraction;
+          st.patient.glomerularCapillaryPressure = renalOutput.glomerularCapillaryPressure;
+          st.patient.bowmanSpacePressure = renalOutput.bowmanSpacePressure;
+          st.patient.glomerularOncoticPressure = renalOutput.glomerularOncoticPressure;
+          st.patient.netFiltrationPressure = renalOutput.netFiltrationPressure;
 
           patientAfterFluidics.gfr = renalOutput.gfr;
           patientAfterFluidics.rbf = renalOutput.rbf;
@@ -3413,12 +3754,27 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           patientAfterFluidics.uopAnuriaTimer = renalOutput.uopAnuriaTimer;
           patientAfterFluidics.vasopressinLevel = renalOutput.vasopressinLevel;
           patientAfterFluidics.aldosteroneLevel = renalOutput.aldosteroneLevel;
+          patientAfterFluidics.angiotensinIILevel = renalOutput.angiotensinIILevel;
           patientAfterFluidics.osm = renalOutput.osm;
           patientAfterFluidics.hasAki = renalOutput.hasAki;
           patientAfterFluidics.hasPrerenalOliguria = renalOutput.hasPrerenalOliguria;
           patientAfterFluidics.hasFluidOverloadEdema = renalOutput.hasFluidOverloadEdema;
           patientAfterFluidics.netFluidBalance = netFluidBalance;
           patientAfterFluidics.fluidOverloadEdemaRolled = renalOutput.fluidOverloadEdemaRolled;
+          patientAfterFluidics.mapUnder60Time = renalOutput.mapUnder60Time;
+          patientAfterFluidics.mapUnder55Time = renalOutput.mapUnder55Time;
+          patientAfterFluidics.mapUnder60AlertTriggered = renalOutput.mapUnder60AlertTriggered;
+          patientAfterFluidics.mapUnder55AlertTriggered = renalOutput.mapUnder55AlertTriggered;
+          patientAfterFluidics.cortexRbf = renalOutput.cortexRbf;
+          patientAfterFluidics.medullaRbf = renalOutput.medullaRbf;
+          patientAfterFluidics.cortexPo2 = renalOutput.cortexPo2;
+          patientAfterFluidics.medullaPo2 = renalOutput.medullaPo2;
+          patientAfterFluidics.cortexO2Extraction = renalOutput.cortexO2Extraction;
+          patientAfterFluidics.medullaO2Extraction = renalOutput.medullaO2Extraction;
+          patientAfterFluidics.glomerularCapillaryPressure = renalOutput.glomerularCapillaryPressure;
+          patientAfterFluidics.bowmanSpacePressure = renalOutput.bowmanSpacePressure;
+          patientAfterFluidics.glomerularOncoticPressure = renalOutput.glomerularOncoticPressure;
+          patientAfterFluidics.netFiltrationPressure = renalOutput.netFiltrationPressure;
 
           // Gastric Aspiration triggers
           let hasAspirated = st.patient.hasAspirated || giOutput.hasAspirated || false;
@@ -3594,7 +3950,9 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               newPaCO2: respOutput.newPaCO2,
               activeMeds: st.activeMeds || [],
               getAnatomicalParameter,
-              currentHb
+              currentHb,
+              vasopressinLevel: renalOutput.vasopressinLevel,
+              angiotensinIILevel: renalOutput.angiotensinIILevel
           });
 
           // Log CV events
@@ -3635,6 +3993,24 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               meldScore: st.patient.meldScore,
               hpsShunt: st.patient.hpsShunt,
               hasTIPS: st.patient.hasTIPS,
+              operativeMortality: st.patient.operativeMortality,
+              encephalopathyDescription: st.patient.encephalopathyDescription,
+              
+              // Renal microenvironment states
+              mapUnder60Time: st.patient.mapUnder60Time,
+              mapUnder55Time: st.patient.mapUnder55Time,
+              mapUnder60AlertTriggered: st.patient.mapUnder60AlertTriggered,
+              mapUnder55AlertTriggered: st.patient.mapUnder55AlertTriggered,
+              cortexRbf: st.patient.cortexRbf,
+              medullaRbf: st.patient.medullaRbf,
+              cortexPo2: st.patient.cortexPo2,
+              medullaPo2: st.patient.medullaPo2,
+              cortexO2Extraction: st.patient.cortexO2Extraction,
+              medullaO2Extraction: st.patient.medullaO2Extraction,
+              glomerularCapillaryPressure: st.patient.glomerularCapillaryPressure,
+              bowmanSpacePressure: st.patient.bowmanSpacePressure,
+              glomerularOncoticPressure: st.patient.glomerularOncoticPressure,
+              netFiltrationPressure: st.patient.netFiltrationPressure,
               isO2PipelineCrossover: st.patient.isO2PipelineCrossover,
               isO2CylinderOpen: st.patient.isO2CylinderOpen,
               isO2PipelineDisconnected: st.patient.isO2PipelineDisconnected,
@@ -3704,8 +4080,64 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               maxNMJOccupancy: maxNMJOccupancy
           };
 
+          // Cerebral Engine Tick (Chapter 11)
+          const cerebralOutput = CerebralEngine.tick(1, {
+              patient: st.patient,
+              vitals: {
+                  cbf: st.patient.cbf,
+                  cmro2: st.patient.cmro2,
+                  cpp: st.patient.cpp,
+                  cbv: st.patient.cbv,
+                  icp: st.patient.icp,
+                  rso2: st.patient.rso2
+              },
+              time: st.time
+          }, st.activeMeds || [], {
+              map: cvOutput.vitals.map || 90.0,
+              sys: cvOutput.vitals.sys || 120.0,
+              paco2: respOutput.newPaCO2 || 40.0,
+              pao2: respOutput.vitals.pao2 || 100.0,
+              spo2: respOutput.vitals.spo2 || 98.0,
+              temp: newTemp,
+              cvp: cvp,
+              sevoMac: sevoMac,
+              isoMac: isoMac,
+              desMac: desMac,
+              haloMac: haloMac,
+              n2oMac: n2oMac,
+              xenonMac: xenonMac,
+              positionHydrostaticMod: positionHydrostaticMod
+          });
+
+          if (cerebralOutput.events && cerebralOutput.events.length > 0) {
+              cerebralOutput.events.forEach(evt => logEvent(evt));
+          }
+
+          st.patient.cbf = cerebralOutput.cbf;
+          st.patient.cmro2 = cerebralOutput.cmro2;
+          st.patient.cpp = cerebralOutput.cpp;
+          st.patient.cbv = cerebralOutput.cbv;
+          st.patient.icp = cerebralOutput.icp;
+          st.patient.brainVolume = cerebralOutput.brainVolume;
+          st.patient.csfVolume = cerebralOutput.csfVolume;
+          st.patient.hasCerebralIschemia = cerebralOutput.hasCerebralIschemia;
+          st.patient.rso2 = cerebralOutput.rso2;
+          st.patient.neuronalInjury = cerebralOutput.neuronalInjury;
+
+          finalPatient.cbf = cerebralOutput.cbf;
+          finalPatient.cmro2 = cerebralOutput.cmro2;
+          finalPatient.cpp = cerebralOutput.cpp;
+          finalPatient.cbv = cerebralOutput.cbv;
+          finalPatient.icp = cerebralOutput.icp;
+          finalPatient.brainVolume = cerebralOutput.brainVolume;
+          finalPatient.csfVolume = cerebralOutput.csfVolume;
+          finalPatient.hasCerebralIschemia = cerebralOutput.hasCerebralIschemia;
+          finalPatient.rso2 = cerebralOutput.rso2;
+          finalPatient.neuronalInjury = cerebralOutput.neuronalInjury;
+
           const finalVitals = {
               ...cvOutput.vitals,
+              cmap: Math.max(0, cvOutput.vitals.map + positionHydrostaticMod),
               spo2: respOutput.vitals.spo2,
               etco2: respOutput.vitals.etco2,
               rr: respOutput.vitals.rr,
@@ -3721,6 +4153,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               pao2: respOutput.vitals.pao2,
               compl: Math.round(respOutput.compliance),
               res: Math.round(respOutput.resistance),
+              shunt: respOutput.actualShunt,
+              vdVt: respOutput.vdVtRatio,
               cao2: respOutput.vitals.cao2,
               cvo2: respOutput.vitals.cvo2,
               temp: newTemp,
@@ -3742,7 +4176,31 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               habf: hepaticOutput.habf,
               thbf: hepaticOutput.thbf,
               renalArteryResistance: hepaticOutput.renalArteryResistance,
-              cvp: cvp
+              cvp: cvp,
+
+              // Renal microenvironment vitals
+              mapUnder60Time: renalOutput.mapUnder60Time,
+              mapUnder55Time: renalOutput.mapUnder55Time,
+              mapUnder60AlertTriggered: renalOutput.mapUnder60AlertTriggered,
+              mapUnder55AlertTriggered: renalOutput.mapUnder55AlertTriggered,
+              cortexRbf: renalOutput.cortexRbf,
+              medullaRbf: renalOutput.medullaRbf,
+              cortexPo2: renalOutput.cortexPo2,
+              medullaPo2: renalOutput.medullaPo2,
+              cortexO2Extraction: renalOutput.cortexO2Extraction,
+              medullaO2Extraction: renalOutput.medullaO2Extraction,
+              glomerularCapillaryPressure: renalOutput.glomerularCapillaryPressure,
+              bowmanSpacePressure: renalOutput.bowmanSpacePressure,
+              glomerularOncoticPressure: renalOutput.glomerularOncoticPressure,
+              netFiltrationPressure: renalOutput.netFiltrationPressure,
+
+              // Cerebral vitals (Chapter 11)
+              cbf: cerebralOutput.cbf,
+              cmro2: cerebralOutput.cmro2,
+              cpp: cerebralOutput.cpp,
+              cbv: cerebralOutput.cbv,
+              icp: cerebralOutput.icp,
+              rso2: cerebralOutput.rso2
           };
 
           // Apply natural wave-like fluctuations in non-arrest states
@@ -3894,7 +4352,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                               if (line.activeMedInfusions) {
                                   const medInf = line.activeMedInfusions.find(mi => mi.medId === matchingId);
                                   if (medInf) {
-                                      const dosingWeight = medData.dosingWeight === 'IBW' ? safePatientIbw : (medData.dosingWeight === 'LBW' ? safePatientLbw : safePatientWeight);
+                                      const dosingWeight = resolveDosingWeight(medData, 'Infusion', st.patient);
                                       if (medInf.unit.includes('mcg/kg/min')) {
                                           medInf.rate = parseFloat(((model.currentInfusionRate * 1000 * 60) / dosingWeight).toFixed(2));
                                       } else if (medInf.unit.includes('mL/kg/min') || medInf.unit.includes('ml/kg/min')) {
@@ -4011,5 +4469,5 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     };
   };
 
-  return { time, setTime, vitals, setVitals, targetVitals, setTargetVitals, patient, setPatient, processMed, pushMed, pushFluid, updateFluidRate, removeFluid, activeMeds, intravascularVolume, electrolytes, coags, deliverShock, toggleCPR, surgicalPhase, setSurgicalPhase, createSnapshot, restoreSnapshot };
+  return { time, setTime, vitals, setVitals, targetVitals, setTargetVitals, patient, setPatient, processMed, pushMed, pushFluid, updateFluidRate, removeFluid, activeMeds, intravascularVolume, electrolytes, coags, deliverShock, toggleCPR, placeEpidural, removeEpidural, toggleCeliacBlock, surgicalPhase, setSurgicalPhase, createSnapshot, restoreSnapshot };
 }

@@ -48,7 +48,7 @@ export interface MedicationProfile {
   classes: string[];
   routes: string[];
   types: ('Bolus' | 'Infusion' | 'Stop Infusion')[];
-  dosingWeight: 'TBW' | 'IBW' | 'LBW';
+  dosingWeight: 'TBW' | 'IBW' | 'LBW' | 'LBM' | 'FFM' | 'CBW' | 'MFFM' | 'PKM';
   metabolism: string;
   proteinBinding?: number;
   synergyGroup?: string;
@@ -139,7 +139,7 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
   },
   remifentanil: { 
     name: 'Remifentanil', classes: ['Opioid (Ultra-short)'], routes: ['IV'], types: ['Infusion', 'Bolus'], dosingWeight: 'IBW',
-    metabolism: 'Nonspecific Blood & Tissue Esterases', proteinBinding: 0.70, synergyGroup: 'Opioid',
+    metabolism: 'Nonspecific Blood & Tissue Esterases', proteinBinding: 0.70, synergyGroup: 'Opioid', pkModel: 'Minto',
     targetReceptor: 'Mu-Opioid (u1/u2)', intracellularCascade: 'Mu (Gi-coupled) -> inhibits adenylate cyclase (decreased cAMP) -> closes VGCCs, opens K+ channels (hyperpolarization)',
     indications: { 'Maintenance': { dose: '0.1-0.5', unit: 'mcg/kg/min', type: 'Infusion' }, 'Intubation Spike': { dose: '1.0', unit: 'mcg/kg', type: 'Bolus' } },
     pk: { V1: 5.0, V2: 10.0, V3: 15.0, k10: 1.5, k12: 0.8, k21: 0.5, k13: 0.2, k31: 0.1, ke0: 2.5, coSensitivity: 0.1 },
@@ -876,5 +876,14 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
     pk: { V1: 20.0, V2: 35.0, V3: 0, k10: 0.03, k12: 0.05, k21: 0.04, k13: 0, k31: 0, ke0: 0.4, coSensitivity: 0.2 },
     pd: { c50: 4.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
     notes: 'Sulfamate-substituted monosaccharide anticonvulsant. Attenuates chronic/neuropathic pain and tension/migraine headaches. Associated with weight loss and mild cognitive slowing.'
+  },
+  suvorexant: {
+    name: 'Suvorexant', classes: ['Dual Orexin Receptor Antagonist'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP3A4)', proteinBinding: 0.99, synergyGroup: 'Sedative', pkModel: 'Standard Compartmental',
+    targetReceptor: 'OX1R/OX2R', intracellularCascade: 'Reversibly binds and blocks OX1R/OX2R, inhibiting orexinergic wakefulness drive',
+    indications: { 'Insomnia': { dose: '10-20', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.08, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.1 },
+    pd: { c50: 2.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0, inducesApneaAtCe: 999 },
+    notes: 'Dual orexin receptor antagonist. Blocks wake-promoting neuropeptides orexin A and B. Can cause daytime drowsiness. Contraindicated in narcolepsy.'
   }
 };

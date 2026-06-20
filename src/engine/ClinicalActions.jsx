@@ -4,6 +4,7 @@ export const CLINICAL_ACTIONS = {
   "dexmedetomidine": { type: "medication", drug: "dexmedetomidine", dose: 1, route: "IV", drugType: "Bolus", unit: "mcg/kg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "etomidate": { type: "medication", drug: "etomidate", dose: 20, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "ketamine": { type: "medication", drug: "ketamine", dose: 100, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
+  "esketamine": { type: "medication", drug: "esketamine", dose: 50, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "midazolam": { type: "medication", drug: "midazolam", dose: 2, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "propofol": { type: "medication", drug: "propofol", dose: 150, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
 

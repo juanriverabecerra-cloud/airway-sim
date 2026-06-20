@@ -118,11 +118,8 @@ export class DynamicMedicationRegistry {
     // 1. Scan textbook matrices (structured figure tables)
     for (const matrix of physiologicalMatrices) {
       if (matrix.is_authoritative !== 1) continue;
-      if (matrix.archetype === 'COORDINATE X-Y GRAPHS & COMPLEMENTARY PANELS' || 
-          matrix.caption.toLowerCase().includes('pharmacokinetics') || 
-          matrix.caption.toLowerCase().includes('pharmacodynamics') ||
-          matrix.caption.toLowerCase().includes('dosing') ||
-          matrix.caption.toLowerCase().includes('affinity')) {
+      if (matrix.archetype === 'COORDINATE X-Y GRAPHS & COMPLEMENTARY PANELS' ||
+          this.isPharmacologyTopic(matrix.caption)) {
         try {
           const payload = JSON.parse(matrix.structured_payload);
           const rows = payload.matrix_rows || (payload.details && payload.details.matrix_rows);
@@ -135,9 +132,19 @@ export class DynamicMedicationRegistry {
       }
     }
 
-    // 2. Scan textbook prose for raw markdown tables
+    // 2. Scan textbook prose for raw markdown tables. This must apply the SAME
+    // topical gate as the matrix scan above — without it, every table in the
+    // entire textbook (clinical scoring systems, classifications, equipment
+    // specs, anything with a column header that loosely matches "agent") gets
+    // run through the "drug name" heuristic. In practice that registered
+    // common English words and medical eponyms/acronyms (Child-Pugh, Hunt-Hess,
+    // ASIA impairment scale, "MAC" as in alveolar concentration, "the", "data")
+    // as fake medications, which then poisoned extractTextbookRules()'s
+    // condition-matching — a garbage one-word "condition" matches almost every
+    // sentence in the corpus via its \bWORD\b regex and starves out real ones.
     for (const prose of textbookProse) {
       if (prose.is_authoritative !== 1) continue;
+      if (!this.isPharmacologyTopic(prose.section_heading) && !this.isPharmacologyTopic(prose.chapter_title)) continue;
       if (prose.body_text && prose.body_text.includes('|')) {
         const rows = this.parseMarkdownTable(prose.body_text);
         if (rows.length > 0) {
@@ -194,6 +201,24 @@ export class DynamicMedicationRegistry {
   }
 
   /**
+   * Whether a table's caption/heading indicates it actually describes drug
+   * pharmacokinetics/pharmacodynamics, as opposed to being some other kind of
+   * clinical table (scoring system, classification, equipment spec) that
+   * happens to have a column header loosely matching "agent"/"drug".
+   */
+  private static isPharmacologyTopic(text: string | undefined | null): boolean {
+    if (!text) return false;
+    const lower = text.toLowerCase();
+    return lower.includes('pharmacokinetic') ||
+           lower.includes('pharmacodynamic') ||
+           lower.includes('dosing') ||
+           lower.includes('affinity') ||
+           lower.includes('medication') ||
+           lower.includes(' drug') ||
+           lower.startsWith('drug');
+  }
+
+  /**
    * Parses markdown tables into row-column lists.
    */
   private static parseMarkdownTable(text: string): string[][] {
@@ -235,12 +260,26 @@ export class DynamicMedicationRegistry {
 
         // Skip if already hardcoded
         const key = drugName.toLowerCase().replace(/[^a-z0-9]/g, '');
+        // The length check above is on the RAW cell text, which can pass while
+        // still sanitizing down to almost nothing (e.g. "α, β" -> "", or
+        // "(a)" -> "a"), since non-alphanumeric characters are stripped for
+        // the key. A 1-2 character key is registered as a "medication
+        // condition" elsewhere and matched via \bKEY\b against every sentence
+        // in the corpus — "a" alone matches the English article in nearly
+        // every sentence, silently winning over any real condition and
+        // breaking textbook rule extraction entirely (this happened in
+        // practice, hence this guard; 3 is the real minimum since "sux" is a
+        // legitimate 3-character hardcoded condition elsewhere).
+        if (key.length < 3) continue;
         if (MEDICATIONS[key] && !this.dynamicMeds[key]) continue;
 
-        // Extract parameters
+        // Extract parameters. Real-world extracted tables can be jagged (a row
+        // with fewer cells than the header row, e.g. a trailing empty cell
+        // that didn't round-trip through markdown) — skip columns the row
+        // doesn't actually have rather than indexing past its end.
         const extracted: Record<string, any> = {};
         for (let c = 0; c < headers.length; c++) {
-          if (c === drugColIdx) continue;
+          if (c === drugColIdx || c >= row.length) continue;
           const val = parseFloat(row[c]);
           if (!isNaN(val)) {
             extracted[headers[c]] = val;
@@ -249,10 +288,25 @@ export class DynamicMedicationRegistry {
           }
         }
 
+        // "Any column with 'drug'/'medication'/'agent' in its header" is a
+        // loose heuristic — across hundreds of real, diverse extracted tables
+        // it also matches plain English words and abbreviations that happen
+        // to sit in such a column for an unrelated table ("the", "data",
+        // "time", "risk", "MAC" as in Minimum Alveolar Concentration, not a
+        // drug name...). A row that doesn't carry at least one real numeric
+        // parameter isn't actually defining a medication's PK/PD — it's noise
+        // — and registering it pollutes extractTextbookRules()'s condition
+        // list, where a common-word "condition" matches nearly every sentence
+        // in the corpus and silently starves out real matches (this happened
+        // in practice: "a" and then "map"/"the" etc. each broke rule
+        // extraction for the whole corpus in turn until this guard was added).
+        const numericParamCount = Object.values(extracted).filter(v => typeof v === 'number').length;
+        if (numericParamCount === 0) continue;
+
         const profile = this.buildProfile(drugName, extracted);
         this.dynamicMeds[key] = profile;
       }
-    } 
+    }
     // 2. Row-oriented Single-Drug Table
     // Context label contains the drug name, and rows are key-value pairs (e.g., [ "V1", "8.0" ])
     else {

@@ -22,6 +22,10 @@ export interface ConsciousnessInputs {
   gabapentinCe?: number;
   pregabalinCe?: number;
   topiramateCe?: number;
+  suvorexantCe?: number;
+  surgicalStimulus?: boolean;
+  spo2?: number;
+  paco2?: number;
 }
 
 export class ConsciousnessEngine {
@@ -49,6 +53,19 @@ export class ConsciousnessEngine {
     let orexin = typeof patient.orexinLevel === 'number' ? patient.orexinLevel : (patient.narcolepsy ? 0.1 : 1.0);
     let soPower = typeof patient.slowOscillationPower === 'number' ? patient.slowOscillationPower : 0.1;
 
+    // Retrieve sleep states (Chapter 10)
+    let sleepStage = patient.sleepStage || 'W';
+    let sleepTimeInStage = typeof patient.sleepTimeInStage === 'number' ? patient.sleepTimeInStage : 0;
+    let sleepDebt = typeof patient.sleepDebt === 'number' ? patient.sleepDebt : 0.0;
+    let postOpSleepNight = typeof patient.postOpSleepNight === 'number' ? patient.postOpSleepNight : 0;
+    let remReboundIntensity = typeof patient.remReboundIntensity === 'number' ? patient.remReboundIntensity : 1.0;
+
+    // Inputs (Chapter 10)
+    const suvorexantCe = inputs.suvorexantCe || 0;
+    const surgicalStimulus = !!inputs.surgicalStimulus;
+    const spo2 = typeof inputs.spo2 === 'number' ? inputs.spo2 : 98.0;
+    const paco2 = typeof inputs.paco2 === 'number' ? inputs.paco2 : 40.0;
+
     // Chapter 19: Molecular receptor inputs & chiral potencies
     const f3CeVal = inputs.f3Ce || 0;
     const sIsoCe = inputs.sIsofluraneCe || 0;
@@ -75,7 +92,7 @@ export class ConsciousnessEngine {
       // Competitive antagonism: Atipamezole blocks Dexmedetomidine at Alpha-2 receptors in the LC
       const effectiveDexCe = inputs.dexmedCe / (1.0 + inputs.atipamezoleCe * 8.0);
       
-      // Locus Ceruleus noradrenergic activity deactivation
+      // Locus Ceruleus noradrenergic activity deactivation (Table 10.5, MnPO reciprocal inhibition)
       const lcTarget = Math.max(0.01, 1.0 
         - 0.9 * (patient.alpha2AKnockout ? 0.0 : effectiveDexCe) // alpha-2A receptor knockout confers dexmed resistance in LC
         - 0.5 * inputs.propofolCe 
@@ -83,6 +100,7 @@ export class ConsciousnessEngine {
         - 0.4 * inputs.haloMac * volatileHypnoticMultiplier
         + 0.3 * inputs.ketamineCe // Ketamine increases LC activity
         - 0.8 * vlpo
+        - 0.5 * mnpo // Median Preoptic Nucleus reciprocal inhibition (Ch. 10)
         - 0.15 * gabapentinoidEff // Gabapentinoids blunt noradrenergic outflow
         - 0.10 * topiramateEff
       );
@@ -95,6 +113,7 @@ export class ConsciousnessEngine {
         - 0.7 * effectiveBarbiturateCe 
         - 0.6 * inputs.haloMac * volatileHypnoticMultiplier
         - 0.8 * vlpo
+        - 0.6 * mnpo // Median Preoptic Nucleus reciprocal inhibition (Ch. 10)
       );
       tmn += (tmnTarget - tmn) * 0.1 * subDt;
 
@@ -108,6 +127,15 @@ export class ConsciousnessEngine {
         + 0.15 * topiramateEff // Topiramate enhances GABA-A sleep drive
       );
       vlpo += (vlpoTarget - vlpo) * 0.1 * subDt;
+
+      // MnPO sleep-pressure activity activation (Chapter 10, Median Preoptic Nucleus)
+      const mnpoTarget = Math.min(1.0,
+        0.75 * inputs.propofolCe
+        + 0.6 * effectiveBarbiturateCe
+        + 0.8 * effectiveDexCe
+        + 0.4 * activeIsoMac * volatileHypnoticMultiplier
+      );
+      mnpo += (mnpoTarget - mnpo) * 0.1 * subDt;
 
       // Orexin arousal drive depletion (spared by halothane)
       const orexinBase = patient.narcolepsy ? 0.1 : 1.0;
@@ -184,7 +212,92 @@ export class ConsciousnessEngine {
     const alpha4Gabaa = patient.alpha4Knockout ? 0.0 : (activeIsoMac * 1.5) / (1.0 + activeIsoMac * 1.5);
 
     // 4. Memory Decay & Consolidation (Power Law: m(t) = lambda * t^(-psi))
-    const baseArousal = Math.max(0.01, lc * 0.4 + tmn * 0.4 + orexin * 0.2);
+    const orexinEffective = orexin / (1.0 + suvorexantCe * 5.0); // Competitive orexin antagonism (Ch. 10)
+    const baseArousal = Math.max(0.01, lc * 0.4 + tmn * 0.4 + orexinEffective * 0.2);
+
+    // Sleep Stage Transitions (Chapter 10 / AASM Sleep Architecture)
+    const W_drive = (lc + tmn + orexinEffective) / 3.0;
+    const S_drive = (vlpo + mnpo) / 2.0;
+
+    sleepTimeInStage += dt;
+    if (sleepStage === 'W') {
+      sleepDebt = Math.min(24.0, sleepDebt + dt / 3600.0);
+    } else {
+      sleepDebt = Math.max(0.0, sleepDebt - dt / 3600.0);
+    }
+
+    // Cortical Arousal triggers: force immediate transition to Wake ('W')
+    // 1. Hypoxia (spo2 < 85%) or Hypercapnia (paco2 > 50 mmHg)
+    // 2. Surgical stimulus while NOT anesthetized (propofolCe < 1.0 and activeIsoMac < 0.4)
+    const isAnesthetized = inputs.propofolCe >= 1.0 || activeIsoMac >= 0.4 || inputs.sevoMac >= 0.4 || inputs.thiopentalCe >= 1.0 || inputs.midazolamCe >= 0.08;
+    const isArousalTriggered = (spo2 < 85.0) || (paco2 > 50.0) || (surgicalStimulus && !isAnesthetized);
+
+    if (isArousalTriggered) {
+      if (sleepStage !== 'W') {
+        sleepStage = 'W';
+        sleepTimeInStage = 0;
+      }
+    } else {
+      // Normal Sleep Stage Transitions
+      if (sleepStage === 'W') {
+        if (S_drive > 0.6 && W_drive < 0.4) {
+          sleepStage = 'N1';
+          sleepTimeInStage = 0;
+        }
+      } else if (sleepStage === 'N1') {
+        if (sleepTimeInStage >= 300) {
+          sleepStage = 'N2';
+          sleepTimeInStage = 0;
+        } else if (W_drive >= 0.6 || S_drive <= 0.3) {
+          sleepStage = 'W';
+          sleepTimeInStage = 0;
+        }
+      } else if (sleepStage === 'N2') {
+        const H_sleep = Math.min(1.0, sleepDebt / 16.0);
+        // Transition to N3: driven by sleep debt and slow wave delta power
+        // Night 1 post-op suppresses N3 & REM sleep
+        if (H_sleep > 0.7 && soPower > 1.5 && postOpSleepNight !== 1) {
+          sleepStage = 'N3';
+          sleepTimeInStage = 0;
+        } else {
+          // Transition to R (REM): pontine REM-on pathways are disinhibited by low monoaminergic tone
+          const P_rem_on_base = Math.max(0.0, 1.0 - lc - tmn);
+          let P_rem_on = P_rem_on_base;
+          if (postOpSleepNight === 1) {
+            P_rem_on *= 0.1; // Suppress REM sleep
+          } else if (postOpSleepNight >= 2 && postOpSleepNight <= 4) {
+            const R_rebound = 2.5 * sleepDebt;
+            P_rem_on = Math.min(1.0, P_rem_on * (1.0 + R_rebound));
+          }
+          if (P_rem_on > 0.75 && postOpSleepNight !== 1) {
+            sleepStage = 'R';
+            sleepTimeInStage = 0;
+          } else if (W_drive >= 0.6 || S_drive <= 0.3) {
+            sleepStage = 'W';
+            sleepTimeInStage = 0;
+          }
+        }
+      } else if (sleepStage === 'N3') {
+        if (sleepTimeInStage > 1800 || soPower <= 1.2) {
+          sleepStage = 'N2';
+          sleepTimeInStage = 0;
+        } else if (W_drive >= 0.6 || S_drive <= 0.3) {
+          sleepStage = 'W';
+          sleepTimeInStage = 0;
+        }
+      } else if (sleepStage === 'R') {
+        if (sleepTimeInStage > 600 || lc > 0.4 || tmn > 0.4) {
+          sleepStage = 'N2';
+          sleepTimeInStage = 0;
+        } else if (W_drive >= 0.6 || S_drive <= 0.3) {
+          sleepStage = 'W';
+          sleepTimeInStage = 0;
+        }
+      }
+    }
+
+    // REM Rebound Drive Intensity
+    remReboundIntensity = parseFloat((postOpSleepNight >= 2 && postOpSleepNight <= 4 ? 2.5 * sleepDebt : 1.0).toFixed(3));
     
     // Encoding Strength (lambda) - Thiopental, Dexmedetomidine, Scopolamine, High-dose midazolam cause encoding failure
     let lambda = Math.max(0.0, baseArousal * (1.0 
@@ -237,6 +350,22 @@ export class ConsciousnessEngine {
     }
     const amygdaloHippocampal = Math.max(0.0, Math.min(1.0, thetaPower * (thetaFreq / 7.0) * thalamocortical));
 
+    // Chapter 9: Bilateral Amygdalo-Hippocampal & NBM Pathways (Fig. 9.5 & Page 263-264)
+    // Sevoflurane 0.25% (~0.125 MAC) removes right amygdalo-hippocampal and NBM connectivity, while sparing left amygdalo-hippocampal connectivity.
+    const rightAmygdaloHippocampal = Math.max(0.0, 1.0 - (inputs.sevoMac / 0.125) - (inputs.propofolCe / 0.5) - (inputs.midazolamCe / 0.03));
+    const leftAmygdaloHippocampal = Math.max(0.0, 1.0 - (inputs.sevoMac / 0.25) - (inputs.propofolCe / 0.5) - (inputs.midazolamCe / 0.03));
+    const nbmHippocampal = Math.max(0.0, 1.0 - (inputs.sevoMac / 0.125) - (inputs.propofolCe / 0.5) - (inputs.midazolamCe / 0.03));
+
+    // Chapter 9: Slow Oscillation Phase Coupling Decay (Page 255)
+    // Power increases and phase coupling decays across distance within 5 seconds of propofol-induced unconsciousness.
+    const soPhaseCouplingDecay = Math.min(1.0, soPower / (soPower + 1.2));
+
+    // Chapter 9: Multiple Memory Systems - Recollection vs. Familiarity vs. Procedural (Page 256-257)
+    // Recollection (hippocampus) is highly sensitive; familiarity (perirhinal) and procedural (caudate) are spared at sedative/low doses.
+    const hippocampalRecollection = Math.max(0.0, Math.min(1.0, lambda * (1.0 - alpha5Gabaa) * (1.0 - alpha4Gabaa) * (1.0 - (inputs.propofolCe / 0.4)) * (1.0 - (inputs.midazolamCe / 0.04))));
+    const perirhinalFamiliarity = Math.max(0.0, Math.min(1.0, baseArousal * (1.0 - 0.4 * inputs.propofolCe - 0.3 * inputs.midazolamCe - 0.1 * inputs.dexmedCe)));
+    const caudateProcedural = Math.max(0.0, Math.min(1.0, baseArousal * (1.0 - 0.1 * inputs.propofolCe - 0.1 * inputs.midazolamCe)));
+
     // 7. Hysteresis / Neural Inertia
     // Emergence lag from volatile agents and propofol
     const anestheticPressure = inputs.sevoMac + activeIsoMac + inputs.haloMac + inputs.propofolCe / 2.5;
@@ -253,6 +382,7 @@ export class ConsciousnessEngine {
       lcActivity: parseFloat(lc.toFixed(3)),
       tmnActivity: parseFloat(tmn.toFixed(3)),
       vlpoActivity: parseFloat(vlpo.toFixed(3)),
+      mnpoActivity: parseFloat(mnpo.toFixed(3)),
       ldtPptActivity: parseFloat(ldtPpt.toFixed(3)),
       prfActivity: parseFloat(prf.toFixed(3)),
       vtaActivity: parseFloat(vta.toFixed(3)),
@@ -277,9 +407,21 @@ export class ConsciousnessEngine {
       hippocampalThetaFreq: parseFloat(thetaFreq.toFixed(2)),
       hippocampalThetaPower: parseFloat(thetaPower.toFixed(2)),
       amygdaloHippocampalConn: parseFloat(amygdaloHippocampal.toFixed(3)),
+      rightAmygdaloHippocampalConn: parseFloat(rightAmygdaloHippocampal.toFixed(3)),
+      leftAmygdaloHippocampalConn: parseFloat(leftAmygdaloHippocampal.toFixed(3)),
+      nbmHippocampalConn: parseFloat(nbmHippocampal.toFixed(3)),
+      soPhaseCouplingDecay: parseFloat(soPhaseCouplingDecay.toFixed(3)),
+      hippocampalRecollection: parseFloat(hippocampalRecollection.toFixed(3)),
+      perirhinalFamiliarity: parseFloat(perirhinalFamiliarity.toFixed(3)),
+      caudateProcedural: parseFloat(caudateProcedural.toFixed(3)),
       neuralInertiaLag: parseFloat(inertiaLag.toFixed(3)),
       isF6Active,
-      isF3Active
+      isF3Active,
+      sleepStage,
+      sleepTimeInStage,
+      sleepDebt: parseFloat(sleepDebt.toFixed(6)),
+      postOpSleepNight,
+      remReboundIntensity
     };
   }
 }

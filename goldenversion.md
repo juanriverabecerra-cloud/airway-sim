@@ -125,6 +125,9 @@ This document represents the unified, consolidated, and authoritative system arc
     *   [6.69 Cocaine Sympathomimetic Net Blockade](#669-cocaine-sympathomimetic-net-blockade)
     *   [6.70 Methemoglobinemia Induction & Methylene Blue Rescue](#670-methemoglobinemia-induction--methylene-blue-rescue)
     *   [6.71 Local Anesthetic Systemic Toxicity (LAST) & Lipid Sink Rescue](#671-local-anesthetic-systemic-toxicity-last--lipid-sink-rescue)
+    *   [6.72 Anesthetic-Induced Cardiac Ischemic Preconditioning (KATP Channels)](#672-anesthetic-induced-cardiac-ischemic-preconditioning-katp-channels)
+    *   [6.73 Desflurane High-Density Paradoxical Airway Resistance Increase](#673-desflurane-high-density-paradoxical-airway-resistance-increase)
+    *   [6.74 Oxygen Supply Failure Protection Device ("Fail-Safe Valve")](#674-oxygen-supply-failure-protection-device-fail-safe-valve)
     *   [7. Attending Direct Chat, Advisor & NLP Engine](#7-attending-direct-chat-advisor--nlp-engine)
         *   [7.1 Automated Guidance Evaluator](#71-automated-guidance-evaluator)
         *   [7.2 Conversational NLP Chat Portal](#72-conversational-nlp-chat-portal)
@@ -245,9 +248,18 @@ Every clock tick, the simulator extracts parameters from `stateRef.current`, exe
         *   **Ideal Body Weight (IBW)**:
             $$IBW_{\text{male}} = 50.0 + 2.3 \cdot \left(\frac{\text{Height [cm]}}{2.54} - 60\right)$$
             $$IBW_{\text{female}} = 45.5 + 2.3 \cdot \left(\frac{\text{Height [cm]}}{2.54} - 60\right)$$
-        *   **Lean Body Weight (LBW)**:
+        *   **Lean Body Weight (LBW) / Janmahasatian FFM**:
             $$LBW_{\text{male}} = \frac{9270 \cdot \text{Weight [kg]}}{6680 + 216 \cdot BMI}$$
             $$LBW_{\text{female}} = \frac{9270 \cdot \text{Weight [kg]}}{8780 + 244 \cdot BMI}$$
+        *   **Hume Lean Body Mass (LBM)** (James formula variation):
+            $$LBM_{\text{male}} = 1.10 \cdot Weight - 128.0 \cdot \left(\frac{Weight}{Height}\right)^2$$
+            $$LBM_{\text{female}} = 1.07 \cdot Weight - 148.0 \cdot \left(\frac{Weight}{Height}\right)^2$$
+        *   **Corrected Body Weight (CBW)**:
+            $$CBW = IBW + 0.4 \cdot (Weight - IBW)$$
+        *   **Modified Fat-Free Mass (MFFM)**:
+            $$MFFM = FFM + 0.4 \cdot (Weight - FFM)$$
+        *   **Pharmacokinetic Mass (PKM)** (Shibutani Fentanyl mass formula):
+            $$PKM = \frac{52.0}{1.0 + \frac{196.4 \cdot e^{-0.025 \cdot Weight} - 53.66}{100}}$$
         *   **Estimated Blood Volume (EBV)**: Calculated based on patient sex (65 mL/kg for females, 75 mL/kg for males) multiplied by total weight.
         *   **Predicted Lung Volumes**: TLC, FRC, RV, FVC, and FEV1 are calculated using ECCS/ERS 1993 formulas, scaled exponentially based on position, restrictive/obstructive disease, and obesity factors.
 5.  **State Hook Initialization**:
@@ -328,7 +340,11 @@ The cardiovascular engine calculates the patient's continuous perfusion status e
     $$MAP_{\text{exact}} = \frac{CO \cdot SVR}{80} + \Delta P_{\text{pressor}} + \Delta P_{\text{sepsis}} - \text{Stunning}_{\text{MAP\_penalty}}$$
     *   *Systemic Vascular Resistance ($SVR$)*: Normal range is $900 - 1400\text{ dyn}\cdot\text{s}\cdot\text{cm}^{-5}$. Updates dynamically based on vasodilation, vasoactive infusions, and autonomic reflexes. Under celiac or thoracic epidural sympathetic blockade (TEA):
         $$\text{targetSVR} *= (1.0 - 0.15 \cdot \text{SympatheticBlock})$$
-        where $\text{SympatheticBlock} = 1.0$ if celiac or thoracic epidural block is active, else $0.0$.
+        where $\text{SympatheticBlock} = 1.0$ if a celiac plexus block is active, else $\text{epiduralCoverageFraction}$ if a thoracic epidural is active (`epiduralBlockActive`), else $0.0$.
+        *   *Dermatomal Epidural Coverage (Ch15, TABLE 15.2, Miller's 9th Ed)*: Splanchnic vasculature follows the same visceral sympathetic chain (T5-L1 via the celiac plexus, spanning liver/biliary through sigmoid/rectum) as the GI organs it perfuses. A celiac plexus block targets the ganglion directly (Fig 15.4/15.5) for complete splanchnic block regardless of level. A thoracic epidural's effect is graded by the dermatomal overlap between its insertion-level block span and this T5-L1 range:
+            $$\text{epiduralCoverageFraction} = \text{calculateDermatomalBlockFraction}(\text{epiduralLevel}, 5, 13)$$
+            $$\text{calculateDermatomalBlockFraction}(L, R_{lo}, R_{hi}) = \text{clamp}\left(\frac{\min(L+4, R_{hi}) - \max(L-4, R_{lo})}{R_{hi} - R_{lo}}, 0, 1\right)$$
+            where $L$ is the catheter's thoracic dermatome (e.g. $8$ for T8), the $\pm 4$ segment spread is a standard clinical estimate (not a textbook-sourced constant) for a therapeutic epidural bolus, and $[R_{lo}, R_{hi}]$ is the target organ's dermatomal range on a $T1\text{-}T12, L1\text{-}L5$ integer scale ($T1=1 \ldots T12=12, L1=13 \ldots$). If `epiduralBlockActive` is set with no `epiduralLevel` specified, coverage defaults to $1.0$ (back-compatible with the prior all-or-nothing boolean). Implemented once in `Pharmacology.js` (`calculateDermatomalBlockFraction`) and consumed by both `CardiovascularEngine.ts` (this section) and `GastrointestinalEngine.ts` (§4.11) with organ-specific ranges, rather than duplicated inline. The UI exposes a "Place Thoracic Epidural" level selector (T4-T12) and a "Celiac Plexus Block" toggle in the Lines & Resus panel — both flags were previously inert (set only in test fixtures, with no live in-session control).
     *   *Pressor Pressure Shift (\Delta P_{\text{pressor}})*:
         $$\Delta P_{\text{pressor}} = \frac{\text{EffectiveVolume} - EBV - \text{splanchnicPoolingOffset}}{250} \cdot 8$$
         where $\text{splanchnicPoolingOffset} = 1000 \cdot (V_{\text{splanchnic}} - 1.0)\text{ mL}$. Sympathetic block dilates mesenteric capacitance vessels, causing relative splanchnic pooling ($V_{\text{splanchnic}} > 1.0$). This is reversed by alpha-1 adrenergic receptor stimulation:
@@ -338,14 +354,22 @@ The cardiovascular engine calculates the patient's continuous perfusion status e
     *   *Stunning MAP Penalty (\text{Stunning}_{\text{MAP\_penalty}})*: If myocardial stunning is present, MAP is reduced by the stunning percentage.
 2.  **Cardiac Output (CO)**:
     $$CO = \frac{HR \cdot SV}{1000} \quad \text{[L/min]}$$
+    *   *Cross-check (Fick Principle, Fig 14.7, Miller's 9th Ed)*: $CO = \frac{VO_2}{CaO_2 - CvO_2}$. The simulator runs the inverse direction (computing $CvO_2$ from a dynamically-derived $CO$ via the Fick equation in §4.8) rather than deriving $CO$ from measured $O_2$ contents, since $CO$ is itself a primary state variable here rather than a clinical measurement to be inferred.
     *   *Stroke Volume ($SV$)*: Derived from Frank-Starling preload curves, contractility, and stunning factors:
-        $$SV = \min\left(SV_{\text{max}}, SV_{\text{base}} \cdot Preload_{SV} \cdot \max(0.1, Inotropy) \cdot CHF_{\text{penalty}} \cdot AFib_{\text{penalty}}\right)$$
-        *   *Frank-Starling Preload Stroke Volume ($Preload_{SV}$)*: Models stroke volume variation as a function of LVEDP:
-            $$Preload_{SV} = 1.2 \cdot \left(1.0 - e^{-0.15 \cdot LVEDP}\right) \cdot \left(1.0 - 1.2 \cdot \text{BloodLossRatio}\right)$$
+        $$SV = \min\left(SV_{\text{max}}, SV_{\text{base}} \cdot Preload_{SV} \cdot \max(0.1, Inotropy) \cdot CHF_{\text{penalty}} \cdot AFib_{\text{penalty}} \cdot Neurohormonal_{\text{inotropy}}\right)$$
+        *   *Frank-Starling Preload Stroke Volume ($Preload_{SV}$)*: Models stroke volume variation as a function of LVEDP (Fig 14.3/14.5, Miller's 9th Ed: sarcomere length-tension relationship; leftward/rightward curve shifts denote inotropic state):
+            $$Preload_{SV} = 1.2 \cdot \left(1.0 - e^{-0.15 \cdot LVEDP_{\text{Starling}}}\right) \cdot \left(1.0 - 1.2 \cdot \text{BloodLossRatio}\right)$$
+            where $LVEDP_{\text{Starling}} = \min(LVEDP, 12.0)$ for Severe Aortic Stenosis patients (see below), else $LVEDP_{\text{Starling}} = LVEDP$.
         *   *Left Ventricular End-Diastolic Pressure ($LVEDP$)*: Calculated dynamically from intravascular volume offsets and myocardial inotropy:
-            $$LVEDP = \max\left(2.0, \min\left(40.0, 8.0 + 4.0 \cdot \frac{\text{EffectiveVolume} - EBV}{250} + \frac{5.0}{Inotropy}\right)\right)$$
+            $$LVEDP = \max\left(2.0, \min\left(40.0, 8.0 + 4.0 \cdot AS_{\text{stiffness}} \cdot \frac{\text{EffectiveVolume} - EBV}{250} + \frac{5.0}{Inotropy}\right)\right)$$
+            where $AS_{\text{stiffness}} = 1.4$ for Severe Aortic Stenosis (diastolic stiffness from concentric LV hypertrophy), else $1.0$.
         *   *Inotropy ($Inotropy$)*:
             $$Inotropy = \max\left(0.01, 1.0 - \frac{\text{Stunning}}{100} + \text{Inotropy}_{\text{drugs}} + \text{Spike}_{\text{contractility}}\right)$$
+        *   *Severe Aortic Stenosis ($SV_{\text{max}}$ fixed-orifice cap)*: $SV_{\text{max}} = SV_{\text{base}} \cdot 1.10$ (vs. $1.6$ normally; $1.0$ for CHF). The fixed valvular orifice prevents recruiting additional forward stroke volume regardless of preload or inotropic state — the classic teaching point that AS patients cannot compensate for acute SVR drops by raising $CO$ (Fig 14.4, Miller's 9th Ed; Laplace's law $\sigma = \frac{P \cdot R}{2h}$ — compensatory LV hypertrophy normalizes wall stress despite elevated LV pressure, but yields a diastolically stiff, preload-capped ventricle). Triggered by `patient.as` (existing case-builder flag) or `patient.aorticStenosis`.
+        *   *Neurohormonal Cardiac Support ($Neurohormonal_{\text{inotropy}}$, TABLE 14.1, Miller's 9th Ed)*: Vasopressin and Angiotensin II exert direct $+$inotropy/$+$chronotropy via V1a/AT1 myocardial receptors, becoming consequential mainly when markedly elevated above their `RenalEngine.ts` baseline ($\approx 0.1$) during hypovolemia/stress:
+            $$Neurohormonal_{\text{inotropy}} = 1.0 + 0.15 \cdot \max(0, AVP - 0.1) + 0.10 \cdot \max(0, Ang II - 0.1)$$
+            $$Neurohormonal_{\text{HRdelta}} = 8.0 \cdot \max(0, AVP - 0.1) + 6.0 \cdot \max(0, Ang II - 0.1) \quad \text{[bpm, added to } totalHrDelta\text{]}$$
+            Aldosterone's "Cardiac Action" cell is blank in Table 14.1 (mineralocorticoid/fibrotic, not contractile) and is intentionally **not** given a direct inotropic/chronotropic effect — only its release-driving upstream hormone, Angiotensin II, is. $Ang II$ is computed in `RenalEngine.ts` as the explicit RAAS intermediate upstream of the pre-existing `aldosteroneLevel` (same sympathetic/hypovolemic afferents, not a separately-sourced textbook constant).
 3.  **Systolic (SBP) & Diastolic (DBP) Pressures**:
     Systolic and diastolic pressures are derived from MAP and Pulse Pressure ($PP$, mmHg), which scales with stroke volume:
     $$PP = 40 \cdot \frac{SV}{SV_{\text{base}}}$$
@@ -384,9 +408,9 @@ ight)$$
     $$Supply_{\text{myo}} = CPP_{\text{coronary}} \cdot \text{DiastoleTimeRatio} \cdot CaO_2 \cdot \text{coronaryStenosisMod} \cdot 8.5$$
     where $CaO_2 = Hb \cdot 1.34 \cdot (SpO_2 / 100) + PaO_2 \cdot 0.0031$, and $\text{coronaryStenosisMod} = 0.40$ if CAD patient, else $1.0$.
 *   **Ischemia & Stunning Accumulation**:
-    If oxygen demand exceeds supply, stunning accumulates at a rate proportional to the deficit:
+    If oxygen demand exceeds supply, stunning accumulates at a rate proportional to the deficit, blunted by anesthetic-induced ischemic preconditioning (§6.72, Ch19 Miller's 9th Ed: KATP-channel-mediated, shared by anesthetic and ischemic preconditioning):
     $$\text{StunningRate} = \max\left(0, \frac{MVO_2 - Supply_{\text{myo}}}{10000} \cdot 0.381
-ight) \quad [\%/\text{s}]$$
+ight) \cdot \left(1.0 - \min(0.3, 0.3 \cdot \text{Volatile}_{\text{MAC}})\right) \quad [\%/\text{s}]$$
     Stunning restricts inotropy and contractility. It decays slowly by $0.2\%$ per second once oxygen supply exceeds demand.
 
 #### 4.4 Cardiac Arrest & Resuscitation Loop
@@ -442,17 +466,31 @@ ight) \quad [\%/\text{s}]$$
     - *Xenon Viscous Airway Resistance*: Xenon's high density and viscosity increase total airway resistance:
         $$\text{xenonResistanceMultiplier} = 1.0 + 0.4 \cdot \left(\frac{etAgent}{70.0}\right) \cdot (1.0 + (\text{bronchospasm} ? 1.5 : 0.0))$$
         $$\text{Resistance}_{\text{final}} *= \text{xenonResistanceMultiplier}$$
+    - *Desflurane High-Density Paradoxical Resistance Increase (Ch21, Miller's 9th Ed, p.543)*: Unlike other volatiles, which bronchodilate, desflurane's increased inspired gas density raises total respiratory system resistance $R(rs)$ by up to $26\%$ at 1.5 MAC (no significant effect reported at 1.0 MAC), driven by desflurane's own end-tidal concentration (not cumulative anesthetic-depth MAC, since this is gas-density-specific and unaffected by co-administered N2O):
+        $$\text{Desflurane}_{\text{MACeq}} = \frac{etAgent}{6.0} \quad \text{(}mac40 = 6.0\text{ vol\%, TABLE 20.1/21.1)}$$
+        $$\text{desfluraneResistanceMultiplier} = 1.0 + 0.26 \cdot \min\left(1.0, \frac{\text{Desflurane}_{\text{MACeq}} - 1.0}{0.5}\right) \quad \text{if } \text{Desflurane}_{\text{MACeq}} > 1.0$$
+        $$\text{Resistance}_{\text{final}} *= \text{desfluraneResistanceMultiplier}$$
 
 #### 4.6.1 Predicted Lung Volumes (ECCS/ERS 1993)
 
     *   *Male Predicted FRC*: $FRC_{\text{pred}} = 2.34 \cdot H + 0.009 \cdot A - 1.09$
     *   *Female Predicted FRC*: $FRC_{\text{pred}} = 2.24 \cdot H + 0.001 \cdot A - 1.00$
 *   **Volume Corrections**:
-    $$\text{Volume}_{\text{final}} = \text{Volume}_{\text{pred}} \cdot \text{Disease}_{\text{scale}} \cdot e^{-0.02 \cdot (BMI - 25)} \cdot \text{Position}_{\text{factor}}$$
+    $$\text{Volume}_{\text{final}} = \text{Volume}_{\text{pred}} \cdot \text{Disease}_{\text{scale}} \cdot e^{-0.02 \cdot (BMI - 25)} \cdot \text{Position}_{\text{factor}} \cdot \text{Anesthesia}_{\text{FRC\_factor}}$$
     *   $\text{Position}_{\text{factor}}$: Sitting ($1.0$), Supine/Sniffing ($0.80$), Trendelenburg ($0.70$).
+    *   $\text{Anesthesia}_{\text{FRC\_factor}}$: General anesthesia induces a further, position-independent FRC decrease via cranial diaphragm shift and reduced thoracic transverse diameter, on top of the postural drop (Fig 13.13, Miller's 9th Ed): $0.85$ if the patient is paralyzed or intubated (`isAnesthetized`), else $1.0$. This is computed once, canonically, inside `RespiratoryEngine.calculateLungVolumes()`; `Pharmacology.js`'s `calculateLungVolumes()` is a thin delegating wrapper to this single source of truth (eliminating a previously divergent duplicate implementation that was also missing the Closing Capacity field).
 *   **Pulmonary Compliance & Resistance**:
-    *   *Compliance ($C$, mL/cmH2O)*: Baseline is $65$. Modified by position (Trendelenburg decreases compliance by $20\%$), obesity ($-25$), and sepsis ($-20$).
-    *   *Resistance ($R$, cmH2O/L/s)*: Baseline is $5$. Elevated by obesity ($+3$), bronchospasm ($+40$), bucking ($+15$), and laryngospasm ($R = 999$).
+    *   *Compliance ($C$, mL/cmH2O)*: Baseline is $65$. Modified by position (Trendelenburg decreases compliance by $20\%$), obesity ($-25$), sepsis ($-20$), and COPD GOLD stage/asthma (`pulmComplianceBonus`, see below).
+    *   *Resistance ($R$, cmH2O/L/s)*: Baseline is $5$. Elevated by obesity ($+3$), bronchospasm ($+40$), bucking ($+15$), COPD GOLD stage/asthma (`pulmResistanceBonus`), and laryngospasm ($R = 999$).
+    *   *COPD GOLD Stage & Asthma Bonuses*: Matched most-specific-first (GOLD IV before III before II before I), since `'copd gold i'` is a substring of `'copd gold ii/iii/iv'` and would otherwise always match first:
+
+        | Stage | Compliance Bonus | Resistance Bonus | Dead-Space Multiplier |
+        |---|---|---|---|
+        | GOLD I | $+5$ | $+5$ | $\times 1.10$ |
+        | GOLD II | $+10$ | $+10$ | $\times 1.30$ |
+        | GOLD III | $+15$ | $+18$ | $\times 1.60$ |
+        | GOLD IV | $+20$ | $+25$ | $\times 2.00$ |
+        | Asthma | $-12$ | $+20$ | $\times 1.15$ |
 *   **Ventilator Pressures & Tidal Volume ($V_{TE}$)**:
     *   *VCV Mode*: $V_{TE} = \text{dialed } V_T$. Peak inspiratory pressure is calculated as:
         $$PIP = P_{\text{plat}} + \left(\text{Flow} \cdot R \cdot 5\right) \quad \text{where } P_{\text{plat}} = PEEP + \frac{V_{TE}}{C}$$
@@ -494,7 +532,8 @@ ight) \quad [\%/\text{s}]$$
 
 
 
-    $$V_A = (V_T - V_D) \cdot RR \quad \text{[L/min]} \quad \text{where } V_D = \frac{IBW_{\text{kg}} \cdot 2.2}{1000}\text{ L}$$
+    $$V_A = (V_T - V_D) \cdot RR \quad \text{[L/min]} \quad \text{where } V_D = \frac{IBW_{\text{kg}} \cdot 2.2}{1000} \cdot \text{deadSpaceMultiplier}\text{ L}$$
+    *   *Dead-Space Pathophysiology (`deadSpaceMultiplier`)*: V/Q mismatch from destroyed capillary bed (emphysema) or airway obstruction can dramatically increase $V_D/V_T$ — a key point of Miller's 9th Ed Ch13: "dead space ventilation can be...increased...to more than 80% of minute ventilation" in severe COPD (Table 13.2). The multiplier is applied per COPD GOLD stage/asthma severity (see §4.6.1 table above); $V_D/V_T$ ratio is exposed on `RespiratoryOutput.vdVtRatio` and surfaced on the Vent Monitor UI.
 *   **Apnea CO2 Accumulation (Eger & Severinghaus)**:
     When tidal exchange is absent ($V_A \le 0.1\text{ L/min}$):
     *   During the first minute of apnea: $\frac{d(PaCO_2)}{dt} = +\frac{6}{60}\text{ mmHg/s}$
@@ -519,21 +558,23 @@ ight) \quad [\%/\text{s}]$$
     If $CBF < 45\%$, mucus accumulates, driving ciliary atelectasis:
     $$\text{ciliaryAtelectasisAccumulation} += 0.015 \cdot \left(\frac{45.0 - CBF}{100.0}\right) \quad [\text{per second}]$$
     If $\text{ciliaryAtelectasisAccumulation} > 3.0$, a mucus plug forms (`isMucusPlugged = true`), adding a $+20\text{ cmH2O/L/s}$ resistance penalty.
-*   **Shunt Fraction with HPV Inhibition Penalty**:
-    Hypoxic pulmonary vasoconstriction (HPV) shifts blood flow away from hypoxic lung zones, reducing shunt fraction by $50\%$. Volatile agents inhibit HPV dose-dependently, increasing shunt contribution:
-    $$\text{hpvInhibition} = \min\left(0.80, \text{Volatile}_{\text{MAC}} \cdot 0.20\right) \quad \text{(Xenon has no HPV inhibition)}$$
+*   **Hypoxic Pulmonary Vasoconstriction (HPV) Inhibition**:
+    Hypoxic pulmonary vasoconstriction (HPV) shifts blood flow away from hypoxic lung zones, reducing shunt fraction. Older halogenated volatile agents (isoflurane, halothane) inhibit HPV dose-dependently: 20-30% depression at 1.0 MAC, 50% depression at MAC 2.0 (Fig 13.22 & p.2348, Miller's 9th Ed). Modern volatiles (sevoflurane, desflurane) have comparatively little effect, and IV anesthetics do not inhibit HPV at all:
+    $$\text{hpvInhibition} = \min\left(0.90, \text{Volatile}_{\text{MAC}} \cdot 0.25 \cdot \text{hpvPotency}_{\text{agent}}\right)$$
+    where $\text{hpvPotency}_{\text{agent}}$ is a per-agent constant defined in `INHALATIONAL_AGENTS`: $1.0$ for isoflurane/halothane/methoxyflurane, $0.15$ for sevoflurane/desflurane, and $0.0$ for xenon/nitrous oxide.
     $$\text{shunt}_{\text{HPV\_penalty}} = 0.25 \cdot \text{atelectasis} \cdot \text{hpvInhibition}$$
-    $$\text{actualShunt} = \max(0.02, \text{baselineShunt} - \text{shuntReduction} + \text{hpsShunt} + 0.15 \cdot \text{atelectasis} + \text{shunt}_{\text{HPV\_penalty}})$$
+*   **FRC & Closing Capacity (CC) Relationship**:
+    Closing capacity (CC) represents the lung volume at which dependent airways collapse during expiration, independent of position or obesity (Fig 13.9, Miller's 9th Ed):
+    $$CC_{\text{L}} = FRC_{\text{upright\_baseline}} \cdot (0.50 + 0.0075 \cdot \text{Age})$$
+    where $FRC_{\text{upright\_baseline}}$ is baseline FRC in the upright position. When actual recruited FRC ($FRC_{\text{actual}}$) falls below closing capacity ($CC_{\text{L}}$), airway closure occurs, causing additional right-to-left shunt:
+    $$\text{airwayClosureFraction} = \max\left(0, \frac{CC_{\text{L}} - FRC_{\text{actual}}}{CC_{\text{L}}}\right)$$
+    $$\text{shunt}_{\text{airway\_closure}} = 0.12 \cdot \text{airwayClosureFraction} \quad \text{(Table 13.2, Miller\'s 9th Ed)}$$
+*   **Shunt Fraction Equation**:
+    $$\text{actualShunt} = \max(0.02, \text{baselineShunt} - \text{shuntReduction} + \text{hpsShunt} + 0.15 \cdot \text{atelectasis} + \text{shunt}_{\text{HPV\_penalty}} + \text{shunt}_{\text{airway\_closure}})$$
 *   **Alveolar Recruitment**:
-    PEEP recruits collapsed units gradually, while a sustained inflation recruitment maneuver (airway pressure held $\ge 30\text{ cmH2O}$ for $\ge 10\text{ seconds}$) instantly restores volume:
-    $$\text{recruitment}_{\text{PEEP}} = -0.005 \cdot \text{PEEP} \quad (\text{per second})$$
-    $$\text{If } P_{\text{airway}} \ge 30\text{ cmH2O for } \ge 10\text{ seconds} \rightarrow \text{Atelectasis} = 0.0$$
-*   **Hypoxic Pulmonary Vasoconstriction (HPV) & Shunt**:
-    HPV protects against hypoxemia by diverting blood flow away from collapsed hypoxic units, reducing shunt contribution by $50\%$. Volatiles inhibit HPV dose-dependently:
-    $$\text{hpvInhibition} = \min\left(1.0, \text{Volatile}_{\text{MAC}} \cdot 0.67\right)$$
-    $$\text{hpvProtection} = 0.50 \cdot (1 - \text{hpvInhibition})$$
-    $$\text{shunt}_{\text{atelectasis}} = 0.30 \cdot \text{Atelectasis} \cdot (1 - \text{hpvProtection})$$
-    $$\text{actualShunt} = \text{baselineShunt} + \text{shunt}_{\text{atelectasis}}$$
+    PEEP recruits collapsed units gradually, while a sustained inflation recruitment maneuver overcomes critical opening pressure (PAW \ge 30\text{ cmH2O} for initial opening, and \ge 40\text{ cmH2O} for 7-8 seconds for full recruitment, Fig 13.19, Miller\'s 9th Ed):
+    $$\text{If } P_{\text{airway}} \ge 40\text{ cmH2O for } \ge 7\text{ seconds} \rightarrow \text{Atelectasis} = 0.0$$
+    $$\text{If } 30 \le P_{\text{airway}} < 40\text{ cmH2O} \rightarrow \frac{d(\text{Atelectasis})}{dt} = -0.08\text{ s}^{-1}$$
 *   **FRC & Compliance Corrections**:
     $$FRC_{\text{actual}} = FRC_{\text{baseline}} \cdot (1.0 - 0.35 \cdot \text{Atelectasis})$$
     $$Compliance_{\text{actual}} = Compliance_{\text{baseline}} \cdot (1.0 - 0.40 \cdot \text{Atelectasis})$$
@@ -578,6 +619,9 @@ ight) \quad [\%/\text{s}]$$
     - *Moderate Hypotension* ($MAP$ reduced by $<33\%$): hypercapnia ($+1.3\% \text{ CBF per mmHg}$), hypocapnia ($-1.3\% \text{ CBF per mmHg}$).
     - *Severe Hypotension* ($MAP$ reduced by $>66\%$): CO2 reactivity is fully abolished ($0\% \text{ CBF per mmHg}$).
     - *Limits*: CBF vasoconstriction plateaus below $PaCO_2 = 25\text{ mmHg}$; vasodilation plateaus above $75-80\text{ mmHg}$. Reactivity is transient, returning to baseline over $6-8\text{ hours}$ due to active bicarbonate extrusion and CSF pH normalization.
+*   **Focal Cerebral Ischemia & Neuronal Injury (`patient.neuronalInjury`, §6.37)**: Triggered when $CBF < 20\text{ mL/100 g/min}$ (`hasCerebralIschemia`). Cumulative injury (0-100 index) accumulates proportionally to the CBF deficit below threshold, blunted by Xenon/Sevoflurane TREK-1-mediated neuroprotection (Ch19, Miller's 9th Ed, p.1537):
+    $$\frac{d(\text{NeuronalInjury})}{dt} = \max(0, 20.0 - CBF) \cdot 0.05 \cdot TREK1_{\text{factor}}$$
+    where $TREK1_{\text{factor}} = 0.5$ if (Xenon $\ge 0.05$ MAC or Sevoflurane $\ge 0.05$ MAC) and `isTREK1Knockout === false`, else $1.0$. Isoflurane/desflurane/halothane/nitrous oxide do not trigger this protection. The index does not decay once $CBF$ normalizes, reflecting the largely irreversible nature of ischemic neuronal injury.
 
 #### 4.11 Gastrointestinal Physiology & Lower Esophageal Barrier Pressure (`GastrointestinalEngine.ts`)
 The gastrointestinal engine models the lower esophageal sphincter ($LES$) tone, intragastric pressure ($P_{\text{gastric}}$), nitrous oxide ($N_2O$) bowel gas diffusion dynamics, and gut motility.
@@ -615,8 +659,8 @@ The hepatic physiological engine simulates liver perfusion, portal blood flow, h
     $$HABF = 300.0 + \max(0.0, 0.5 \cdot (1000.0 - PBF)) \cdot HABR_{\text{efficiency}} \quad \text{[mL/min]}$$
     $$THBF = PBF + HABF$$
     where the compensatory capacity is governed by the HABR efficiency:
-    $$HABR_{\text{efficiency}} = \max(0.0, 1.0 - 0.6 \cdot \text{Volatile}_{\text{MAC}}) \cdot \max\left(0.1, \min\left(1.0, \frac{MAP - 40.0}{20.0}\right)\right)$$
-    - *Volatile Blunting*: Volatile anesthetics (Sevoflurane, Isoflurane, Desflurane) dose-dependently blunt the arterial dilation response by up to $60\%$.
+    $$HABR_{\text{efficiency}} = \max(0.0, 1.0 - \text{Halothane}_{\text{MAC}}) \cdot \max\left(0.1, \min\left(1.0, \frac{MAP - 40.0}{20.0}\right)\right)$$
+    - *Volatile Influence*: The buffer response is preserved under Isoflurane, Sevoflurane, and Desflurane anesthesia (maintaining $THBF$), but Halothane does not preserve it and dose-dependently inhibits it.
     - *Hypotensive Blunting*: When Mean Arterial Pressure ($MAP$) falls below $60\text{ mmHg}$, local autoregulation is impaired, abolishing the buffer response at $MAP \le 40\text{ mmHg}$.
 
 3.  **Portal Venous Pressure Gradient (HVPG) & TIPS Decompression**:
@@ -625,17 +669,27 @@ The hepatic physiological engine simulates liver perfusion, portal blood flow, h
     A Transjugular Intrahepatic Portosystemic Shunt (TIPS) decompresses the portal system by creating a low-resistance pathway from the portal vein to the hepatic vein:
     $$\text{If patient has TIPS} \rightarrow HVPG = \min(12.0, HVPG)$$
 
-4.  **Child-Pugh Classification**:
-    Grades hepatic dysfunction based on scoring ($1-3\text{ points}$ each) five clinical parameters:
+4.  **Child-Pugh Classification & Operative Mortality**:
+    Grades hepatic dysfunction and predicts 30-day postoperative mortality (Table 16.5, Miller's 9th Ed) based on scoring ($1-3\text{ points}$ each) five clinical parameters:
     - *Bilirubin (mg/dL)*: $<2.0$ ($1\text{ pt}$), $2.0-3.0$ ($2\text{ pts}$), $>3.0$ ($3\text{ pts}$)
     - *Albumin (g/dL)*: $>3.5$ ($1\text{ pt}$), $2.8-3.5$ ($2\text{ pts}$), $<2.8$ ($3\text{ pts}$)
     - *INR*: $<1.7$ ($1\text{ pt}$), $1.7-2.3$ ($2\text{ pts}$), $>2.3$ ($3\text{ pts}$)
     - *Ascites*: None ($1\text{ pt}$), Slight/Controlled ($2\text{ pts}$), Moderate/Refractory ($3\text{ pts}$)
     - *Encephalopathy Grade*: None ($1\text{ pt}$), Grade 1-2 ($2\text{ pts}$), Grade 3-4 ($3\text{ pts}$)
-    - *Classes*: Class A ($5-6\text{ points}$), Class B ($7-9\text{ points}$), Class C ($\ge 10\text{ points}$)
+    - *Classes & Estimated Operative Mortality*:
+      - Class A ($5-6\text{ points}$): $2-10\%$ mortality
+      - Class B ($7-9\text{ points}$): $12-31\%$ mortality
+      - Class C ($\ge 10\text{ points}$): $12-82\%$ mortality
 
-5.  **Model for End-Stage Liver Disease (MELD)**:
-    Predicts 3-month mortality and guides organ allocation using clinical laboratory values:
+5.  **West Haven Criteria for Hepatic Encephalopathy**:
+    Classifies brain dysfunction from hepatic insufficiency into four progressive grades (Table 16.4, Miller's 9th Ed):
+    - *Grade I*: Trivial lack of awareness, shortened attention span, disordered sleep.
+    - *Grade II*: Lethargy, behavioral change, asterixis.
+    - *Grade III*: Somnolence, confusion, gross disorientation, bizarre behavior.
+    - *Grade IV*: Coma.
+
+6.  **Model for End-Stage Liver Disease (MELD)**:
+    Predicts 3-month survival and guides organ allocation using clinical laboratory values:
     $$MELD = 3.78 \cdot \ln(\max(1.0, \text{bilirubin})) + 11.2 \cdot \ln(\max(1.0, \text{INR})) + 9.57 \cdot \ln(\max(1.0, \text{creatinine})) + 6.43$$
     clamped to integer values between $6$ and $40$.
 
@@ -660,16 +714,25 @@ The renal physiological engine simulates renal perfusion, glomerular filtration,
       $$VasoScale_{\text{final}} = \min(1.35, VasoScale + 2.5 \cdot \text{Fenoldopam}_{\text{Ce}})$$
       $$RBF = \max\left(30.0, \min(1600.0, 1100.0 \cdot CO_{\text{ratio}} \cdot RBF_{\text{auto, final}} \cdot VasoScale_{\text{final}} \cdot (1.0 - 0.4 \cdot \text{akiDamage}))\right)$$
 
-3.  **Glomerular Filtration Rate (GFR)**:
-    Filtration is driven by hydrostatic pressure and ceases below $RPP$ of $45\text{ mmHg}$ (MAP ~50 mmHg):
-    $$\text{If } RPP < 80.0 \rightarrow GFR_{\text{auto}} = \max\left(0.0, \frac{RPP - 45.0}{35.0}\right)$$
-    $$\text{If } RPP \ge 80.0 \land RPP \le 180.0 \rightarrow GFR_{\text{auto}} = 1.0$$
-    $$\text{If } RPP > 180.0 \rightarrow GFR_{\text{auto}} = \min\left(1.3, 1.0 + \frac{RPP - 180.0}{180.0} \cdot 0.1\right)$$
-    - *PEEP transmission penalty*: $GFR_{\text{PEEP}} = \max(0.55, 1.0 - 0.018 \cdot PEEP)$
-    - *Anesthetic MAC penalty*: $GFR_{\text{MAC}} = \max(0.4, 1.0 - 0.25 \cdot \text{Volatile}_{\text{MAC}})$
-    - *Efferent Vasoconstriction (AVP / Ang II)*: Constriction of the efferent arteriole preserves filtration pressure:
+3.  **Glomerular Filtration Rate (GFR) physics-based model**:
+    GFR is directly proportional to the Net Filtration Pressure ($NFP$), which is the balance of hydrostatic and oncotic pressures in the glomerular capillary and Bowman space (Table 17.2, Fig 17.8, Miller's 9th Ed):
+    $$P_{\text{gc}} = 60.0 \cdot \text{finalPgScale} \cdot GFR_{\text{efferentMod}} \cdot VasoScale_{\text{final}} \cdot GFR_{\text{MAC}} \quad \text{[mmHg]}$$
+    $$P_{\text{bs}} = 18.0 + 0.5 \cdot PEEP \quad \text{[mmHg]}$$
+    $$\pi_{\text{gc}} = 32.0 \cdot \left(\frac{\text{Albumin}}{4.0}\right) \quad \text{[mmHg]}$$
+    $$NFP = \max(0.0, P_{\text{gc}} - P_{\text{bs}} - \pi_{\text{gc}}) \quad \text{[mmHg]}$$
+    $$GFR = \max(0.0, \min(180.0, 12.5 \cdot NFP \cdot (1.0 - \text{akiDamage}))) \quad \text{[mL/min]}$$
+    where:
+    - *Capillary Pressure Autoregulation*: Glomerular capillary pressure is buffered across the autoregulatory range ($80\text{--}180\text{ mmHg}$) using a pressure-dependent scale factor ($pGc_{\text{auto}}$) which drops linearly below MAP of $90\text{ mmHg}$ and ceases diuresis completely at MAP $\le 50\text{ mmHg}$:
+      $$\text{If } MAP < 90.0 \rightarrow pGc_{\text{auto}} = \max\left(0.78, 0.78 + 0.22 \cdot \frac{MAP - 50.0}{40.0}\right)$$
+      $$\text{If } MAP \ge 90.0 \land MAP \le 180.0 \rightarrow pGc_{\text{auto}} = 1.0$$
+      $$\text{If } MAP > 180.0 \rightarrow pGc_{\text{auto}} = 1.0 + \frac{MAP - 180.0}{180.0} \cdot 0.1$$
+      $$\text{finalPgScale} = \text{autoregEffect} \cdot pGc_{\text{auto}} + (1.0 - \text{autoregEffect}) \cdot \left(\frac{MAP}{100.0}\right)$$
+    - *PEEP transmission*: Bowman space pressure ($P_{\text{bs}}$) rises with PEEP backpressure ($0.5\text{ mmHg}$ increase per $1\text{ cmH2O}$ PEEP).
+    - *Oncotic Pressure*: $\pi_{\text{gc}}$ scales linearly with serum albumin level (normal $4.0\text{ g/dL}$).
+    - *Volatile Blunting & Penalties*: MAC blunts GFR autoregulation ($\text{autoregEffect} = \max(0.0, 1.0 - 0.5 \cdot \text{Volatile}_{\text{MAC}})$) and depresses GFR dose-dependently:
+      $$GFR_{\text{MAC}} = \max(0.4, 1.0 - 0.25 \cdot \text{Volatile}_{\text{MAC}})$$
+    - *Efferent Vasoconstriction*: AVP/Ang II constricts the efferent arteriole to preserve $P_{\text{gc}}$:
       $$GFR_{\text{efferentMod}} = 1.0 + \min(0.25, (\text{Vasopressin}_{\text{Ce}} \cdot 5.0 + \text{Symp} \cdot 0.4) \cdot (1.0 - 0.5 \cdot \text{Volatile}_{\text{MAC}}))$$
-      $$GFR = \max\left(0.0, \min(180.0, 125.0 \cdot GFR_{\text{auto}} \cdot GFR_{\text{PEEP}} \cdot GFR_{\text{MAC}} \cdot GFR_{\text{efferentMod}} \cdot (1.0 - \text{akiDamage}))\right)$$
 
 4.  **Urine Output (UOP) and Water Balance**:
     Urine flow rates scale with GFR and are regulated by ADH (vasopressin) water absorption and loops diuretics:
@@ -694,6 +757,21 @@ ight)\right)$$
     - **Stage 1**: Creatinine rise $\ge 1.5\text{x}$ baseline OR oliguria duration $\ge 6\text{ hours}$.
     - **Stage 2**: Creatinine rise $\ge 2.0\text{x}$ baseline OR oliguria duration $\ge 12\text{ hours}$.
     - **Stage 3**: Creatinine rise $\ge 3.0\text{x}$ baseline OR creatinine $\ge 4.0\text{ mg/dL}$ OR oliguria $\ge 24\text{ hours}$ OR anuria $\ge 12\text{ hours}$.
+
+7.  **Cortical vs. Medullary Perfusion & Oxygenation**:
+    The renal cortex and medulla receive distinct blood flows and exhibit different oxygenation profiles, leaving the medulla highly vulnerable to ischemic injury under mild hypoperfusion (Table 17.1, Miller's 9th Ed):
+    $$cortexRbf = 0.94 \cdot RBF \quad \text{[mL/min]}$$
+    $$medullaRbf = 0.06 \cdot RBF \quad \text{[mL/min]}$$
+    $$cortexPo2 = \max\left(0.0, \min\left(100.0, 50.0 \cdot \frac{cortexRbf}{1034.0} \cdot \frac{SpO_2}{98.0}\right)\right) \quad \text{[mmHg]}$$
+    $$medullaPo2 = \max\left(0.0, \min\left(25.0, 8.0 \cdot \frac{medullaRbf}{66.0} \cdot \frac{SpO_2}{98.0}\right)\right) \quad \text{[mmHg]}$$
+    $$cortexO2Extraction = \max\left(0.0, \min\left(1.0, 0.18 \cdot \frac{1034.0}{\max(50.0, cortexRbf)}\right)\right)$$
+    $$medullaO2Extraction = \max\left(0.0, \min\left(1.0, 0.79 + 0.16 \cdot \max\left(0.0, 1.0 - \frac{medullaRbf}{66.0}\right)\right)\right)$$
+    where the medulla is flagged with acute hypoxia if $medullaPo2 < 6.0\text{ mmHg}$.
+
+8.  **Hypotension Exposure AKI Risk Thresholds**:
+    Cumulative exposure to intraoperative hypotension is strongly associated with postoperative acute kidney injury (Page 460, Miller's 9th Ed). The simulator tracks cumulative exposure time to MAP < 60 mmHg and MAP < 55 mmHg:
+    - **MAP < 60 mmHg Alert**: Triggered when cumulative time under 60 mmHg exceeds 11 minutes (660 seconds). Adds a persistent ischemic injury rate of $+0.003/\text{s}$ to `dDamage`.
+    - **MAP < 55 mmHg Alert**: Triggered when cumulative time under 55 mmHg exceeds 10 minutes (600 seconds). Adds a persistent ischemic injury rate of $+0.003/\text{s}$ to `dDamage`.
 
 ---
 
@@ -722,6 +800,16 @@ Medications are modeled using a mammillary three-compartment model (Central $V_1
     $$\frac{dA_1}{dt} = \text{InfusionRate} - (k_{10} + k_{12} + k_{13}) \cdot A_1 + k_{21} \cdot A_2 + k_{31} \cdot A_3$$
     $$\frac{dA_2}{dt} = k_{12} \cdot A_1 - k_{21} \cdot A_2 \quad \text{and} \quad \frac{dA_3}{dt} = k_{13} \cdot A_1 - k_{31} \cdot A_3$$
     $$\frac{dC_e}{dt} = k_{e0} \cdot (C_p - C_e) \quad \text{where } C_p = \frac{A_1}{V_1}$$
+
+*   **Minto Remifentanil PK Model**:
+    The Minto three-compartment model dynamically calculates volumes and clearances based on age and Hume lean body mass ($LBM$) centered at age 40 and LBM 55 kg (Miller's 9th Ed, Ch 18 p. 485):
+    - $V_1 = 5.1 - 0.0201 \cdot (Age - 40) + 0.072 \cdot (LBM - 55)\text{ L}$
+    - $V_2 = 9.82 - 0.0811 \cdot (Age - 40) + 0.108 \cdot (LBM - 55)\text{ L}$
+    - $V_3 = 5.42\text{ L}$
+    - $Cl_1 = 2.6 - 0.0162 \cdot (Age - 40) + 0.0191 \cdot (LBM - 55)\text{ L/min}$
+    - $Cl_2 = 2.05 - 0.0301 \cdot (Age - 40)\text{ L/min}$
+    - $Cl_3 = 0.076 - 0.00113 \cdot (Age - 40)\text{ L/min}$
+    - $ke_0 = 0.595 - 0.007 \cdot (Age - 40)\text{ min}^{-1}$
 
 #### 5.2 Numerical Integration (Euler Sub-stepping)
 To maintain numerical stability when simulating high drug concentration changes (such as large rapid boluses), the solver splits the 1-second clock tick ($dt = 1$) into 10 sub-steps ($dt_{\text{sub}} = 0.1\text{ s}$):
@@ -769,7 +857,19 @@ for (let i = 0; i < subSteps; i++) {
 
 #### 5.5 Receptor-Level Pharmacodynamics (Sigmoid Emax Hill Equation)
 Effect-site concentrations ($C_e$) drive clinical responses using the Hill equation:
-$$Effect = \frac{E_{\max} \cdot C_e^\gamma}{EC_{50}^\gamma + C_e^\gamma} \quad \text{implemented ratio-wise as} \quad Effect = \frac{\text{Ratio}^\gamma}{1.0 + \text{Ratio}^\gamma} \quad \text{where } \text{Ratio} = \frac{C_e}{EC_{50}}$$
+$$Effect = \frac{E_{\max} \cdot C_{e,\text{active}}^\gamma}{EC_{50,\text{effective}}^\gamma + C_{e,\text{active}}^\gamma} \quad \text{implemented ratio-wise as} \quad Effect = \frac{\text{Ratio}^\gamma}{1.0 + \text{Ratio}^\gamma} \quad \text{where } \text{Ratio} = \frac{C_{e,\text{active}}}{EC_{50,\text{effective}}}$$
+
+*   **Age-Dependent PD Sensitivity Scaling** (Miller's 9th Ed, Ch 18 p. 486):
+    Elderly patients exhibit heightened brain sensitivity to sedatives and opioids. The simulator scales the effective effect-site concentration via an age sensitivity multiplier ($AgeSens$, clamped between $0.2$ and $4.0$):
+    - *Propofol*: $AgeSens = 1.0 + (Age - 40) \cdot 0.025$ (yielding 65% dose reduction at age 80 relative to age 20).
+    - *Opioids*: $AgeSens = 1.0 + (Age - 40) \cdot 0.018$ (yielding 55% dose reduction at age 80 relative to age 20).
+    - *Other Sedatives*: $AgeSens = 1.0 + (Age - 40) \cdot 0.015$.
+    The active effect-site concentration is computed as: $C_{e,\text{active}} = C_e \cdot pdSensitivityCoeff \cdot AgeSens$.
+
+*   **Opioid Tolerance Sensitivity Scaling**:
+    Chronic opioid exposure or acute tolerance shifts the pharmacodynamic sensitivity threshold:
+    $$EC_{50,\text{effective}} = EC_{50} \cdot \text{opioidToleranceMultiplier}$$
+    where the `opioidToleranceMultiplier` is normally $1.0$, but rises to $2.0$ (doubling the threshold) in acute tolerance and Opioid-Induced Hyperalgesia (OIH).
 
 #### 5.6 Receptor-Level Vasoactive Chronotropic & Vasomotor Coupling
 Vasoactive medications act directly on cardiovascular receptors ($\alpha_1, \beta_1, \beta_2, V_1$):
@@ -831,6 +931,14 @@ Neuromuscular blocking agents (NMBAs) block nicotinic acetylcholine receptors ($
     - *Fentanyl*: $CSHT = 5.0 + 300.0 \cdot \frac{t_{\text{inf}}^{1.2}}{t_{\text{inf}}^{1.2} + 120.0}\text{ minutes}$
     - *Sufentanil*: $CSHT = 4.0 + 80.0 \cdot \frac{t_{\text{inf}}}{t_{\text{inf}} + 240.0}\text{ minutes}$
     - *Midazolam*: $CSHT = 5.0 + 150.0 \cdot \frac{t_{\text{inf}}}{t_{\text{inf}} + 180.0}\text{ minutes}$
+
+*   **Context-Sensitive 80% Decrement Times ($CSDT_{80}$)**:
+    Empirical fits matching Figure 18.16 of Miller's 9th Ed are calculated dynamically based on active infusion duration ($t_{\text{inf}}$ in minutes):
+    - *Remifentanil*: $CSDT_{80} = 9.0\text{ minutes}$ (context-insensitive).
+    - *Propofol*: $CSDT_{80} = 10.0 + 120.0 \cdot \frac{t_{\text{inf}}}{t_{\text{inf}} + 90.0}\text{ minutes}$
+    - *Fentanyl*: $CSDT_{80} = 30.0 + 600.0 \cdot \frac{t_{\text{inf}}^{1.1}}{t_{\text{inf}}^{1.1} + 120.0}\text{ minutes}$
+    - *Sufentanil*: $CSDT_{80} = 20.0 + 320.0 \cdot \frac{t_{\text{inf}}}{t_{\text{inf}} + 180.0}\text{ minutes}$
+    - *Midazolam*: $CSDT_{80} = 30.0 + 450.0 \cdot \frac{t_{\text{inf}}}{t_{\text{inf}} + 150.0}\text{ minutes}$
 *   **Drug Chelation Reversal (Sugammadex)**:
     Sugammadex encapsulates steroidal NMBAs (Rocuronium, Vecuronium) in the plasma ($V_1$), removing active drug molecules from circulation:
     $$A_{1,\text{effective}} = A_{1,\text{initial}} \cdot (1 - ChelateRatio)$$
@@ -956,14 +1064,16 @@ Neuromuscular blocking agents (NMBAs) block nicotinic acetylcholine receptors ($
     
     | Anesthetic Agent | Blood/Gas ($\lambda_{bg}$) | Oil/Gas ($\lambda_{og}$) | Brain/Blood ($\lambda_{	ext{brain}/b}$) | Muscle/Blood ($\lambda_{	ext{muscle}/b}$) | Fat/Blood ($\lambda_{	ext{fat}/b}$) | Vessel-Poor/Blood ($\lambda_{	ext{vpt}/b}$) |
     | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-    | **Nitrous Oxide** | $0.47$ | $1.4$ | $1.1$ | $1.2$ | $2.3$ | $1.2$ |
-    | **Halothane** | $2.50$ | $197.0$ | $2.7$ | $3.3$ | $65.0$ | $2.3$ |
-    | **Methoxyflurane** | $12.00$ | $950.0$ | $2.0$ | $4.7$ | $76.0$ | $1.2$ |
-    | **Enflurane** | $1.90$ | $98.5$ | $1.4$ | $3.3$ | $36.0$ | $2.0$ |
+    | **Nitrous Oxide** | $0.47$ | $1.3$ | $1.1$ | $1.2$ | $2.3$ | $1.4$ |
+    | **Halothane** | $2.50$ | $197.0$ | $2.7$ | $2.5$ | $65.0$ | $2.3$ |
+    | **Methoxyflurane** | $12.00$ | $950.0$ | $2.0$ | $1.6$ | $76.0$ | $1.2$ |
+    | **Enflurane** | $1.90$ | $98.5$ | $1.4$ | $1.7$ | $36.0$ | $2.0$ |
     | **Isoflurane** | $1.40$ | $90.8$ | $1.5$ | $2.9$ | $45.0$ | $2.0$ |
     | **Desflurane** | $0.45$ | $19.0$ | $1.3$ | $2.0$ | $27.0$ | $2.0$ |
     | **Sevoflurane** | $0.65$ | $47.0$ | $1.7$ | $3.1$ | $48.0$ | $2.0$ |
     | **Xenon** | $0.14$ | $1.9$ | $1.2$ | $1.2$ | $16.5$ | $1.2$ |
+
+    *(Table corrected against the chapter's raw extracted data, Ch20 — the Muscle/Blood column previously contained transcription errors for Halothane, Methoxyflurane, and Enflurane; N2O's Oil/Gas and VPT/Blood values were also corrected. `GasKineticsEngine.ts`'s muscle compartment (`lambda_mg`) is now sourced per-agent from this Muscle/Blood column via `muscleBgPartition` in `Pharmacology.js`, replacing a previous flat $1.5$ constant applied to every agent regardless of its actual muscle solubility.)*
 
 *   **Vaporizer Output & Circuit Wash-in Kinetics**:
     Anesthetic gas wash-in replaces the volume of the breathing circuit ($V_{	ext{circ}}$) with fresh gas flow ($FGF$) from the vaporizer. Vaporizer output delivery (in L/min of gas-phase agent) is:
@@ -1098,6 +1208,7 @@ The simulator integrates the comparative pharmacodynamics and receptor-level int
 *   **Ketamine (NMDA Receptor Blockade)**:
     - *Mechanism*: Non-competitive antagonist of N-methyl-D-aspartate (NMDA) receptors. Restricts excitatory glutamate neurotransmission, producing dissociative anesthesia and analgesia.
     - *Washout Agitation*: Rapid clearance can lead to emergence delirium and intense psychotomimetic surges, characterized by tachycardia, hypertension, and sialorrhea.
+    - *Esketamine (S(+)-Isomer)*: "The S(+)-isomer (Ketanest) is 3 to 4 times more potent as an analgesic with a faster clearance and recovery and with fewer psychomimetic side effects" (Ch23, Miller's 9th Ed). Modeled as a distinct medication (`esketamine` in `Pharmacology.js`) with $c_{50} = c_{50,\text{ketamine}} / 3.5$ (midpoint of the cited 3-4x range); PK compartment volumes/rate constants are kept identical to racemic ketamine since the source does not quantify "faster clearance" with a specific number. Its $C_e$ is converted to a racemic-ketamine-equivalent concentration ($\times 3.5$) wherever it must be pooled with racemic ketamine's $C_e$ for shared downstream effects (NMDA/CMRO2 contribution in `CerebralEngine.ts`, emergence-delirium/norketamine thresholds in `usePhysiology.js`, sedative-detection in `AttendingEngine.js`); its own dedicated analgesic effect in `PainEngine.ts` uses its own potency-scaled $c_{50}$ directly and is merged with racemic ketamine's analgesia via the same independent-probability combination already used for opioids.
 
 *   **Benzodiazepines (GABA-A Alpha-Subtypes & Reversal)**:
     - *Mechanism*: Positive allosteric modulators that bind to the interface of $\alpha$ and $\gamma$ subunits on GABA-A receptors.
@@ -1110,7 +1221,7 @@ The simulator integrates the comparative pharmacodynamics and receptor-level int
 #### 5.16 Active Metabolites Kinetics: 1-Hydroxymidazolam & Norketamine
 Active metabolites of intravenous anesthetics are cleared by distinct metabolic routes:
 - **1-Hydroxymidazolam**: Midazolam undergoes hepatic CYP3A4/5 metabolism to 1-hydroxymidazolam. This metabolite retains significant sedative potency ($60-80\%$ of parent) and is cleared exclusively by renal excretion (glucuronidated to 1-hydroxymidazolam glucuronide). In renal impairment, this active metabolite accumulates, causing prolonged, refractory sedation.
-- **Norketamine**: Ketamine is metabolized by CYP2B6/3A4 to norketamine, which retains $20-30\%$ of parent anesthetic potency and undergoes hepatic elimination.
+- **Norketamine**: Ketamine is metabolized by CYP2B6/3A4 to norketamine, which retains $20-30\%$ of parent anesthetic potency and undergoes hepatic elimination. Esketamine contributes to the same norketamine pool via its racemic-equivalent $C_e$ (§5.15).
 
 #### 5.17 Opioid Physiology & Pharmacodynamics
 Opioids selectively bind to G-protein coupled Mu-opioid receptors ($\mu_1, \mu_2$), triggering Gi-protein activation, inhibition of adenylate cyclase, decreased intracellular cAMP, closing of voltage-gated calcium channels, and opening of inward-rectifying potassium channels. This hyperpolarizes neurons, suppressing nociceptive transmission.
@@ -1327,16 +1438,19 @@ To prevent airway collapse and respiratory failure in patients with sleep-disord
 *   **Trigger Conditions**: Preoxygenation with $FiO_2 = 1.0$ (or prolonged exposure to high $FiO_2 > 0.8$) combined with loss of diaphragmatic tone (general anesthesia induction with muscle relaxation) and a lack of positive end-expiratory pressure (PEEP $= 0$).
 *   **Physiological Impact**: Oxygen is rapidly absorbed from alveolar units, leading to gas volume depletion and collapse (atelectasis). This decreases Functional Residual Capacity ($FRC$) by up to $35\%$ and reduces lung compliance by up to $40\%$ (worsening airway pressure: $PIP$ surges by $+50\%$).
     - *Right-to-Left Shunt*: Atelectasis creates non-ventilated but perfused lung segments. The shunt fraction ($Q_s/Q_t$) rises to $>35\%$, causing rapid arterial oxygen desaturation ($SpO_2 < 85\%$) within $60-90\text{ seconds}$ of apnea.
-    - *Volatile-Induced HPV Inhibition*: If high-dose volatile anesthetic ($>1.0\text{ MAC}$) is administered, the protective Hypoxic Pulmonary Vasoconstriction (HPV) reflex is inhibited, expanding blood flow through the collapsed zones, further worsening shunt and accelerating hypoxemia.
+    - *Volatile-Induced HPV Inhibition*: Volatile anesthetic exposure inhibits the protective Hypoxic Pulmonary Vasoconstriction (HPV) reflex dose-dependently ($hpvInhibition = \min(0.90, MAC \cdot 0.50)$; 1.0 MAC reduces response by 50%, Fig 13.22, Miller\'s 9th Ed). This expands perfusion to collapsed regions, exacerbating shunt.
+    - *Airway Closure (FRC vs CC)*: Aging (>45 years in supine) and obesity (BMI >30) elevate closing capacity ($CC$) relative to FRC. When $FRC < CC$, dependent airways close and add up to $12\%$ additional shunt ($shunt_{\text{airway\_closure}} = 0.12 \cdot airwayClosureFraction$, Fig 13.9/Table 13.2).
 *   **Mitigation / Resolution**:
     1.  *Reduce FiO2*: Keep $FiO_2$ at $0.8$ or lower during induction if possible.
-    2.  *PEEP*: Apply positive end-expiratory pressure ($\ge 5-10\text{ cmH2O}$) to resist collapse and gradually recruit alveoli.
-    3.  *Recruitment Maneuver*: Deliver sustained positive airway pressure ($30-40\text{ cmH2O}$) for $\ge 10\text{ seconds}$.
+    2.  *PEEP*: Apply positive end-expiratory pressure (\ge 5-10\text{ cmH2O}) to resist collapse and gradually recruit alveoli.
+    3.  *Recruitment Maneuver*: Deliver sustained positive airway pressure ($30-40\text{ cmH2O}$) for \ge 7\text{ seconds}$.
 
 #### 6.21 Alveolar Recruitment Maneuver
-*   **Trigger Conditions**: Active absorption atelectasis is present (`atelectasisFraction > 0.15`), and the clinician applies sustained airway pressure of $\ge 30-40\text{ cmH2O}$ for $\ge 10\text{ seconds}$ (manually squeezing the reservoir bag or using ventilator recruitment mode).
-*   **Physiological Impact**: The high transpulmonary pressure overcomes the critical opening pressure of collapsed alveoli, splinting them open. This instantly resets `atelectasisFraction = 0.0`, restoring baseline compliance and FRC, reducing $PIP$, and correcting the right-to-left shunt ($Q_s/Q_t$ returns to baseline $5\%$).
-*   **Hemodynamic Safety Interlock**: Squeezing the reservoir bag to maintain airway pressure at $40\text{ cmH2O}$ severely restricts venous return to the right atrium (decreases cardiac preload). This triggers a transient drop in cardiac output ($CO$ drops up to $-30\%$) and MAP during the maneuver. Clinicians must verify adequate intravascular volume before execution and limit duration to $\le 15\text{ seconds}$ to prevent circulatory shock.
+*   **Trigger Conditions**: Active absorption atelectasis is present (`atelectasis > 0.0`), and the clinician applies sustained airway pressure (PIP or PEEP) of \ge 30\text{ cmH2O} for initial opening, or \ge 40\text{ cmH2O} for \ge 7\text{ seconds} (manually squeezing the reservoir bag or using ventilator recruitment mode).
+*   **Physiological Impact**: The high transpulmonary pressure overcomes the critical opening pressure of collapsed alveoli, splinting them open. This resets `atelectasis = 0.0`, restoring baseline compliance and FRC, reducing $PIP$, and correcting the right-to-left shunt ($Q_s/Q_t$ returns to baseline).
+*   **Hemodynamic Safety Interlock**: Squeezing the reservoir bag to maintain airway pressure at \ge 30\text{ cmH2O} restricts venous return to the right atrium (decreases cardiac preload and stroke volume). This triggers a transient drop in cardiac output and MAP during the maneuver, scaling stroke volume by up to $30\%$ at $40\text{ cmH2O}$:
+    $$\text{StrokeVolume}_{\text{recruitment\_preload\_factor}} = \max\left(0.70, 1.0 - 0.015 \cdot (PIP - 20)\right)$$
+    Clinicians must verify adequate intravascular volume before execution and limit duration to \le 15\text{ seconds}$ to prevent circulatory shock.
 
 #### 6.22 Bezold-Jarisch Reflex
 *   **Trigger Conditions**: Active when `myocardialStunning > 25.0` or `bloodLossRatio > 0.35` (low ventricular volume), stimulating ventricular mechanoreceptors and unmyelinated vagal C-fibers.
@@ -1362,19 +1476,21 @@ To prevent airway collapse and respiratory failure in patients with sleep-disord
 Postoperative ileus is a multifactorial bowel motility dysfunction governed by surgical bowel manipulation, opioid-induced mu-receptor activation, and sympathetic inhibitory drive.
 
 *   **Gut Motility Index ($motility_{\text{gut}}$)**:
-    $$motility_{\text{gut}} = (1.0 - \text{Opioid}_{\text{block}}) \cdot (1.0 - \text{Sympathetic}_{\text{inhibition}}) \cdot (1.0 - \text{Inflammatory}_{\text{ileus}})$$
+    $$motility_{\text{gut}} = (1.0 - \text{Opioid}_{\text{block}}) \cdot (1.0 - \text{Sympathetic}_{\text{inhibition}}) \cdot (1.0 - \text{Inflammatory}_{\text{ileus}}) \cdot (1.0 - \text{Volatile}_{\text{motility\_depression}})$$
     - *Opioid-Induced Mu Blockade (\text{Opioid}_{\text{block}})*:
       $$\text{Opioid}_{\text{block}} = \frac{Ce_{\text{opioid}}}{Ce_{\text{opioid}} + EC50_{\text{opioid}}}$$
       Opioids bind to enteric $\mu$-receptors, suppressing acetylcholine release and inhibiting peristalsis. This blockade can be reversed by Naloxone or peripheral $\mu$-antagonists (e.g. Alvimopan, Methylnaltrexone).
     - *Sympathetic Inhibitory Drive (\text{Sympathetic}_{\text{inhibition}})*:
       $$\text{Sympathetic}_{\text{inhibition}} = \min\left(0.9, 0.4 \cdot \frac{C_{\text{cat}}}{40} \cdot (1.0 - \text{SympatheticBlock})\right)$$
-      Catecholamine stress increases sympathetic outflow, stimulating $\alpha$-receptors on cholinergic nerves to inhibit motility. A celiac plexus or thoracic epidural block (TEA) blocks this inhibitory pathway (`SympatheticBlock = 1.0`), preserving motility.
+      Catecholamine stress increases sympathetic outflow, stimulating $\alpha$-receptors on cholinergic nerves to inhibit motility — "Inhibition of GI tract activity is directly proportional to the amount of norepinephrine secreted from sympathetic stimulation" (Ch15, Miller's 9th Ed). A celiac plexus block fully blocks this inhibitory pathway (`SympatheticBlock = 1.0`); a thoracic epidural blocks it in proportion to its dermatomal coverage of the gut's T9-L1 sympathetic supply (`SympatheticBlock = epiduralCoverageFraction`, see §4.1/TABLE 15.2), preserving motility.
+    - *Direct Volatile Depression (\text{Volatile}_{\text{motility\_depression}})*: Mechanistically distinct from the opioid and sympathetic-stress pathways above — volatile anesthetics directly depress spontaneous electrical/contractile bowel activity via the enteric nervous system and GI smooth muscle (Ch15, Miller's 9th Ed). Comparative human studies cited in the chapter found propofol-remifentanil TIVA produced greater intestinal motility than sevoflurane-remifentanil at equivalent depth. No specific percentage is given in the source text, so this reuses the same $0.3/\text{MAC}$ dose-coefficient already established for volatile depression of LES tone in this engine (rather than inventing an unsourced new constant):
+      $$\text{Volatile}_{\text{motility\_depression}} = \min\left(0.6, 0.3 \cdot \text{Volatile}_{\text{MAC}}\right)$$
     - *Inflammatory Ileus (\text{Inflammatory}_{\text{ileus}})*:
       $$\frac{d(\text{Inflammatory}_{\text{ileus}})}{dt} = +0.00015 \cdot \text{manipulationIndex} \cdot (1.0 - \text{epiduralAnalgesiaBonus})$$
-      Surgical bowel manipulation recruits inflammatory cells (macrophages/mast cells) to the muscularis, releasing nitric oxide and prostaglandins that paralyze smooth muscle. This accumulation is mitigated by thoracic epidural analgesia (`epiduralAnalgesiaBonus = 0.36`).
+      Surgical bowel manipulation recruits inflammatory cells (macrophages/mast cells) to the muscularis, releasing nitric oxide and prostaglandins that paralyze smooth muscle. This accumulation is mitigated by thoracic epidural analgesia, scaled by dermatomal coverage rather than all-or-nothing: $\text{epiduralAnalgesiaBonus} = 0.36 \cdot \text{SympatheticBlock}$ (Cochrane review: ~36h ileus-duration reduction with adequately-positioned thoracic epidural analgesia for abdominal surgery).
 *   **Postoperative Ileus Duration ($POI_{\text{hours}}$)**:
     $$POI_{\text{hours}} = 72.0 \cdot \text{manipulationIndex} \cdot (1.0 - \text{SympatheticBlock} \cdot 0.36) \cdot \left(1.0 + 0.5 \cdot \max(0, \text{bowelGasVolume} - 1.0)\right)$$
-    POI duration represents the clinical recovery time (in hours) before return of bowel function, prolonged by bowel gas distension and shortened by epidural analgesia.
+    POI duration represents the clinical recovery time (in hours) before return of bowel function, prolonged by bowel gas distension and shortened by dermatomally-adequate epidural analgesia or a celiac plexus block.
 
 #### 6.26 Swallowing Apnea Reflex & Pharyngeal Protection
 *   **Trigger Conditions**: Swallowing is a complex reflex coordinated by the brainstem swallowing center. Afferent signals from CN V, VII, IX, and X initiate a motor sequence that pulls the larynx anteriorly and superiorly, closing the epiglottis.
@@ -1450,11 +1566,11 @@ Postoperative ileus is a multifactorial bowel motility dysfunction governed by s
 *   **Resolution Criteria**: Maintain higher anesthetic concentrations (dialed volatile agent) to overcome receptor-level resistance.
 
 #### 6.37 Xenon & Sevoflurane TREK-1 Mediated Neuroprotection
-*   **Trigger Conditions**: Active administration of Xenon or Sevoflurane in a patient with focal cerebral ischemia (`hasCerebralIschemia === true`) and `isTREK1Knockout === false`.
-*   **Physiological Impact**: Selective activation of TREK-1 leak channels hyperpolarizes neurons, preventing calcium overload and glutamate excitotoxicity:
-    - Reduces ischemic stunning accumulation rate by $50\%$:
-      $$\text{StunningRate} = \max\left(0, \frac{MVO_2 - Supply_{\text{myo}}}{10000} \cdot 0.381\right) \cdot 0.5$$
-*   **Resolution Criteria**: Ischemic event resolves, or anesthetic agent washed out.
+*   **Trigger Conditions**: Active administration of Xenon or Sevoflurane ($\ge 0.05$ MAC) in a patient with focal cerebral ischemia (`hasCerebralIschemia === true`, $CBF < 20\text{ mL/100 g/min}$) and `isTREK1Knockout === false`. Implemented in `CerebralEngine.ts` (§4.10), not the cardiac stunning loop — TREK-1's neuroprotective role is specific to neurons (Ch19, Miller's 9th Ed, p.1537: "The K+ channel TREK-1 also contributes to the neuroprotective effects of xenon and sevoflurane"), distinct from the KATP-channel-mediated *cardiac* preconditioning described in §6.71-adjacent §4.3.
+*   **Physiological Impact**: Selective activation of TREK-1 leak channels hyperpolarizes neurons, preventing calcium overload and glutamate excitotoxicity, blunting cumulative cerebral neuronal injury accumulation (`patient.neuronalInjury`, 0-100 index):
+    $$\frac{d(\text{NeuronalInjury})}{dt} = \max(0, 20.0 - CBF) \cdot 0.05 \cdot TREK1_{\text{factor}}$$
+    where $TREK1_{\text{factor}} = 0.5$ if xenon or sevoflurane is active and TREK-1 is intact, else $1.0$. Isoflurane, desflurane, halothane, and nitrous oxide do **not** trigger this protection (the source ties the effect specifically to xenon/sevoflurane). The source gives no specific magnitude for the protective effect, so the $0.5$ factor is a conservative illustrative class-average assumption, not a textbook-derived constant.
+*   **Resolution Criteria**: Ischemic event resolves ($CBF \ge 20$), halting further injury accumulation (the index does not spontaneously decay, consistent with the irreversible nature of ischemic neuronal injury).
 
 
 #### 6.38 Halothane-Induced Hepatitis Crisis Loop
@@ -1520,9 +1636,9 @@ Postoperative ileus is a multifactorial bowel motility dysfunction governed by s
 *   **Mitigation / Resolution**: Open the backup oxygen cylinder (`isO2CylinderOpen = true`) and disconnect the pipeline from the wall outlet (`isO2PipelineDisconnected = true`).
 
 #### 6.46 Link-25 Proportioning System and Hypoxic Mixture Protection
-*   **Trigger Conditions**: User attempts to adjust nitrous oxide flow rate relative to oxygen flow rate.
-*   **Physiological Impact**: The Link-25 system mechanically links the $O_2$ and $N_2O$ flow control valves, enforcing a minimum ratio of $1:3$ ($o2Flow \ge n2oFlow / 3.0$). This guarantees a minimum inspired oxygen concentration ($FiO_2 \ge 25\%$) when ventilating with an oxygen-nitrous mixture.
-*   **Mitigation / Resolution**: Enforced automatically by the anesthesia machine flow control system.
+*   **Trigger Conditions**: User attempts to adjust nitrous oxide flow rate relative to oxygen flow rate. Implemented in the shared, unit-tested `calculateLink25GasMixture()` (`Pharmacology.js`), called from both `usePhysiology.js` (the physiology tick) and `BottomBar.jsx` (the live FGF/FiO2 dial preview, so the displayed delivered FiO2 reflects Link-25/fail-safe-valve protection rather than the raw unprotected dial ratio).
+*   **Physiological Impact**: A 15-tooth N2O sprocket and 29-tooth O2 sprocket joined by a chain mechanically enforce a maximum $3:1$ $N_2O:O_2$ flow ratio (Ch22, Miller's 9th Ed, p.583), modeled as a floor on O2 flow: $o2Flow \ge n2oFlow / 3.0$ — a simplified stateless equivalent of the source's bidirectional description (it can also lower N2O flow when O2 is reduced) that guarantees the same minimum inspired oxygen concentration ($FiO_2 \ge 25\%$) regardless of which dial the user is conceptually turning.
+*   **Mitigation / Resolution**: Enforced automatically by the anesthesia machine flow control system. **Not protective during pipeline crossover/contamination** — Link-25 constrains dialed flow *rates*, not gas *identity*, so a contaminated "O2" channel still satisfies the ratio while delivering the wrong gas (see §6.45/§6.74 below).
 
 #### 6.47 APL Valve Mechanical Model and Low-Pressure Leak Kinetics
 *   **Trigger Conditions**: Attempting manual/assisted ventilation with the APL (adjustable pressure limiting) valve set to low pressures (`aplValveSetting < 15.0`).
@@ -1601,8 +1717,8 @@ Postoperative ileus is a multifactorial bowel motility dysfunction governed by s
 
 #### 6.57 Remifentanil-Induced Hyperalgesia (OIH)
 *   **Trigger Conditions**: Discontinuation of high-dose Remifentanil infusion after prolonged exposure (`remifentanilInfusionDuration > 180` seconds at rate $>0.15\text{ mcg/kg/min}$). Triggers probabilistically by default (15% baseline clinical incidence, increased 3x if female or highly anxious). Can be forced deterministically via `forceRemifentanilHyperalgesia: true` in patient state.
-*   **Physiological Impact**: Central glutamate and substance P sensitization causes a $2.5\text{x}$ amplification of sympathetic pain spikes and nociceptive response.
-*   **Mitigation / Resolution**: Prevented or resolved by NMDA antagonists such as Ketamine (`ketamineCe > 0.05`) or Magnesium Sulfate (`magnesiumCe > 1.0`).
+*   **Physiological Impact**: Central glutamate and substance P sensitization causes a $2.5\text{x}$ amplification of sympathetic pain spikes and nociceptive response, and sets the `opioidToleranceMultiplier` to $2.0$ (effectively doubling the $EC_{50}$ threshold for all opioids).
+*   **Mitigation / Resolution**: Prevented or resolved by NMDA antagonists such as Ketamine (`ketamineCe > 0.05`) or Magnesium Sulfate (`magnesiumCe > 1.0`), or by sodium channel blockade via Lidocaine (`lidocaineCe > 1.0`). If resolved, or when recovering naturally, `remifentanilInfusionDuration` decays at $4.5\%$/tick (half-life of 15 ticks/minutes), restoring the `opioidToleranceMultiplier` back to $1.0$ as hyperalgesia resolves.
 
 #### 6.58 Sphincter of Oddi Spasm & Biliary Colic
 *   **Trigger Conditions**: Opioid agonist accumulation (`morphineCe > 0.04` or `fentanylCe > 0.001`). Triggers probabilistically by default (2% baseline clinical incidence, increased 4x if elderly [age >50] or 10x if prior biliary disease/cholecystectomy). Can be forced deterministically via `forceSphincterOfOddiSpasm: true` in patient state.
@@ -1713,6 +1829,25 @@ Postoperative ileus is a multifactorial bowel motility dysfunction governed by s
     - *Lipid Sink Rescue*: Intravenous lipid emulsion (Intralipid 20%) creates a lipid phase in the intravascular compartment. Highly lipophilic local anesthetics partition into this lipid phase, decreasing the active unbound free drug concentration ($ceFree$):
       $$f_{\text{LipidBound}} = \frac{k_{\text{lipid}} \cdot V_{\text{lipid}}}{1.0 + k_{\text{lipid}} \cdot V_{\text{lipid}}}$$
       where $V_{\text{lipid}} = \text{lipidSinkVol} / EBV$. Intralipid partitions local anesthetics based on their octanol/buffer partition coefficients: Bupivacaine/Levobupivacaine ($k_{\text{lipid}} = 120$), Tetracaine ($80$), Ropivacaine ($60$), Cocaine ($30$), Lidocaine ($15$), Chloroprocaine ($0.5$).
+
+#### 6.72 Anesthetic-Induced Cardiac Ischemic Preconditioning (KATP Channels)
+*   **Trigger Conditions**: Any active volatile anesthetic (`currentMac > 0`) during myocardial ischemia (`isCurrentlyIschemic === true`, §4.3). Implemented in `CardiovascularEngine.ts`.
+*   **Physiological Impact**: "Anesthetic-induced and ischemic cardiac preconditioning share critical signaling mechanisms...particularly sarcolemmal and/or mitochondrial KATP channels" (Ch19, Miller's 9th Ed, p.1709). Volatile anesthetics blunt myocardial stunning accumulation dose-dependently, capped at 1 MAC:
+    $$\text{StunningRate} = \max\left(0, \frac{MVO_2 - Supply_{\text{myo}}}{10000} \cdot 0.381\right) \cdot (1.0 - \min(0.3, 0.3 \cdot \text{Volatile}_{\text{MAC}}))$$
+    Grounds the existing isoflurane "Cardioprotective (ischemic preconditioning)" description in `Pharmacology.js`, previously flavor text with no backing physiology. The source gives no specific magnitude, so the $30\%$ maximum reduction is a conservative illustrative class-average assumption, not a textbook-derived constant.
+*   **Resolution Criteria**: Ischemic event resolves (coronary supply meets demand), or the volatile anesthetic is washed out.
+
+#### 6.73 Desflurane High-Density Paradoxical Airway Resistance Increase
+*   **Trigger Conditions**: Active administration of Desflurane with own end-tidal-concentration-equivalent $> 1.0$ MAC ($etAgent / 6.0 > 1.0$, i.e. $etAgent > 6.0\%$). Implemented in `RespiratoryEngine.ts`.
+*   **Physiological Impact**: Unlike other volatiles, which bronchodilate via reduced airway smooth muscle calcium sensitivity (§4.6), desflurane's increased inspired gas density paradoxically raises total respiratory system resistance — measured at up to $+26\%$ R(rs) at 1.5 MAC, with no significant effect at 1.0 MAC (Ch21, Miller's 9th Ed, p.543, citing a randomized clinical trial using the end-inspiratory occlusion technique):
+    $$\text{desfluraneResistanceMultiplier} = 1.0 + 0.26 \cdot \min\left(1.0, \frac{(etAgent/6.0) - 1.0}{0.5}\right)$$
+    Gated on desflurane's own end-tidal concentration rather than cumulative anesthetic-depth MAC, since this is a gas-density property specific to desflurane's own partial pressure and unaffected by co-administered agents (e.g. N2O).
+*   **Resolution Criteria**: Reduce desflurane concentration below 1.0 MAC-equivalent, or switch to an alternative volatile agent.
+
+#### 6.74 Oxygen Supply Failure Protection Device ("Fail-Safe Valve")
+*   **Trigger Conditions**: O2 supply pressure is lost (`!hasO2Supply` — pipeline disconnected with backup cylinder closed, or empty cylinder). Implemented in `calculateLink25GasMixture()` (`Pharmacology.js`), distinct from the Link-25 dialed-flow-ratio system (§6.46).
+*   **Physiological Impact**: Responds to low O2 *supply pressure* (an ISO-standard safeguard) by shutting off N2O flow entirely — modeled as a binary valve (Ch22, Miller's 9th Ed, p.901-909): $effectiveN2OFlow = 0$ if `!hasO2Supply`, else dialed `n2oFlow`. Previously undocumented and unimplemented — a user could dial 100% N2O with zero O2 supply and the simulator would deliver it unimpeded.
+*   **Resolution Criteria**: Restoring O2 supply pressure (reconnecting pipeline or opening the backup cylinder) re-enables N2O flow. **The source explicitly notes this valve is a misnomer** — it provides no protection during pipeline crossover/contamination, since it only senses pressure, not gas identity: "If a gas other than oxygen pressurizes the oxygen circuit as a result of hospital pipeline contamination or crossover, the fail-safe valves will remain open... only the inspired oxygen concentration monitor and clinical acumen would protect the patient."
 
 ### 7. Attending Direct Chat, Advisor & NLP Engine
 
@@ -2087,7 +2222,7 @@ The simulator parses clinical textbooks into runtime rules and profiles during b
 1.  [`App.jsx`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/App.jsx): Main coordinator of state. Orchestrates modal toggles, snap/restore, pre-op staging, and timeline phase locks.
 2.  [`usePhysiology.js`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/usePhysiology.js): Central mathematical simulation thread. Drives gas kinetics, fluid volumes, hemodynamic changes, and timeline auto-advancements.
 3.  [`ConsciousnessEngine.ts`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/ConsciousnessEngine.ts): Specialized sleep-wake nuclei, connectivity pathway, receptor binding, and memory system sub-engine.
-4.  [`Pharmacology.js`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/Pharmacology.js): Library defining all reference data, predicted lung capacities, and drug metabolic rates.
+4.  [`Pharmacology.js`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/Pharmacology.js): Library defining all reference data and drug metabolic rates. `calculateLungVolumes()` is a thin wrapper delegating to the single canonical implementation in `RespiratoryEngine.ts`. `calculateDermatomalBlockFraction()` is the shared dermatomal regional-block coverage helper consumed by `CardiovascularEngine.ts` and `GastrointestinalEngine.ts`. `calculateLink25GasMixture()` implements the Link-25 proportioning system and oxygen supply failure protection device, consumed by `usePhysiology.js`.
 5.  [`ClinicalAiChat.js`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/ClinicalAiChat.js): Natural language state evaluator and response compiler for the Attending chat window.
 6.  [`CaseManager.jsx`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/components/controls/CaseManager.jsx): Controls preset clinical scenarios and hosts the customized physiology builder interface.
 7.  [`ActionPanel.jsx`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/components/controls/ActionPanel.jsx): Primary intervention console hosting surgical timeline locks, positioning, and ACLS maneuvers.
@@ -2095,7 +2230,13 @@ The simulator parses clinical textbooks into runtime rules and profiles during b
 9.  [`MemoryPanel.jsx`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/components/controls/MemoryPanel.jsx): Overlay panel showing subcortical activities, connectivities, memory states, and fear memory retrieval triggers.
 10. [`AttendingPanel.jsx`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/components/controls/AttendingPanel.jsx): Dual-tab sidebar panel hosting the automatic clinical monitor and conversational chat.
 11. [`HepaticEngine.ts`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts): Pure physical sub-engine coordinating liver perfusion, portal blood flow, HVPG dynamics, hepatorenal AKI, and PoPH-induced right heart overload.
-12. [`RenalEngine.ts`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RenalEngine.ts): Pure physical sub-engine coordinating renal perfusion pressure, GFR/RBF autoregulation, ADH/aldosterone loops, loop/osmotic diuretics, BUN/creatinine kinetics, and KDIGO AKI staging.
+12. [`RenalEngine.ts`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RenalEngine.ts): Pure physical sub-engine coordinating renal perfusion pressure, GFR/RBF autoregulation, ADH/aldosterone/Angiotensin II (RAAS) loops, loop/osmotic diuretics, BUN/creatinine kinetics, and KDIGO AKI staging.
+13. [`CardiovascularEngine.ts`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/CardiovascularEngine.ts): Pure physical sub-engine coordinating hemodynamics, Frank-Starling/LVEDP mechanics, myocardial ischemia (with KATP-channel anesthetic preconditioning), arrest/resuscitation, autonomic reflexes, neurohormonal (vasopressin/Angiotensin II) cardiac support, fixed-orifice Aortic Stenosis physiology, and dermatomally-graded splanchnic sympathetic blockade.
+14. [`GastrointestinalEngine.ts`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/GastrointestinalEngine.ts): Pure physical sub-engine coordinating LES tone, intragastric pressure/regurgitation-aspiration triggers, N2O bowel gas expansion, and gut motility/postoperative ileus (opioid, sympathetic-stress, direct volatile, and dermatomally-graded regional-block pathways).
+15. [`CerebralEngine.ts`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/CerebralEngine.ts): Pure physical sub-engine coordinating CBF/CMRO2 autoregulation and coupling, CO2 reactivity, Monro-Kellie ICP elastance, and focal cerebral ischemia neuronal injury with TREK-1-mediated (Xenon/Sevoflurane) neuroprotection.
+16. [`GasKineticsEngine.ts`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/GasKineticsEngine.ts): Multi-compartment (VRG/Muscle/Fat) inhalational anesthetic uptake/distribution physics engine — alveolar gas equation, concentration/second-gas effects, Riley shunt admixing, BBB effect-site delay. A stale duplicate `GasKineticsEngine.js` (silently shadowing this canonical `.ts` file in module resolution) was removed during the Ch20 audit — see §12.
+15. [`PKPDEngine.ts`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/PKPDEngine.ts): Pure physical sub-engine coordinating multi-compartment pharmacokinetics (Euler integration, Dynamic V1, CSHT, and CSDT80 fits) and receptor-level pharmacodynamics (Emax Hill equations, receptor chronotropic/vasomotor coupling, and age-dependent sensitivity adjustments).
+16. [`PreOpEMR.jsx`](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/components/modals/PreOpEMR.jsx): Interactive clinical pre-operative evaluation wizard. Summarizes patient history, calculates pre-op risk scores (RCRI, METs, ASA), predicted spirometry, and displays textbook-derived dosing weight scalars (LBM, FFM, CBW, MFFM, PKM) from Chapter 18.
 
 ---
 
@@ -2113,34 +2254,46 @@ To establish clinical enhancements, it is necessary to identify where the curren
 | **Thermoregulation & Cooling Rates** | Hardcoded cooling constants ($0.0008^{\circ}\text{C/s}$ under volatile gas) and fluid cooling weights ($0.07$ and $0.05$) in [usePhysiology.js](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/usePhysiology.js#L1133-L1149). | None. | Thermodynamic parameters are hardcoded rates. The engine does not evaluate patient body surface area or ambient room temperature. |
 | **Upper Airway Patency & Collapse** | Hardcoded Mallampati integer logic with static positioning/obesity offsets in [ProceduralEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/ProceduralEngine.ts#L24-L63). | None. | Grade view shifts are simplified integers ($+1, -2$), ignoring physiological distributions, anatomical variation, and dynamic laryngoscope force. |
 | **Loop Gain & CSR Oscillations** | Static respiratory response curves in [RespiratoryEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RespiratoryEngine.ts). | None. | Loop gain components are not dynamically simulated. Cheyne-Stokes respiration is unmodeled, preventing the assessment of periodic hypoxemia under low cardiac output. |
+| **Desflurane Paradoxical Airway Resistance Increase** | Desflurane's own end-tidal concentration now raises total airway resistance (up to $+26\%$ at 1.5 MAC-equivalent) instead of bronchodilating like other volatiles, in [RespiratoryEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RespiratoryEngine.ts) (§4.6/§6.73). | Chapter 21, p.543 (randomized clinical trial, end-inspiratory occlusion technique: desflurane caused a maximum increase in R(rs) by 26% at 1.5 MAC, no significant effect at 1.0 MAC). | None. Previously every volatile agent (including desflurane) used the same universal bronchodilation formula with no agent-specific exception for desflurane's density-driven resistance increase. |
 | **Sleep Stage Hypnogram & REM Atonia** | Simplified sleep-wake nuclei states inside [ConsciousnessEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/ConsciousnessEngine.ts). | None. | Postoperative sleep stages are not tracked. The simulator cannot represent sleep debt accumulation, REM sleep rebound, or postoperative sleep apnea exacerbation. |
-| **Cerebral Blood Flow Autoregulation** | None. | None. | Cerebral blood flow is not calculated dynamically. MAP-dependent perfusion shifts, uncoupling by volatiles, and CO2 reactivity are unmodeled. |
-| **Intracranial Compliance & ICP** | Static MAP-to-ICP estimation stubs. | None. | ICP compliance curves (Monro-Kellie) are absent. The simulator cannot model hematoma mass effect, brain swelling, or herniation. |
-| **Cushing's Reflex** | None. | None. | Cushing's triad (hypertension, bradycardia, irregular breathing) under elevated ICP is unmodeled, preventing TBI crisis simulation. |
+| **Cerebral Blood Flow Autoregulation** | CBF is dynamically calculated from CPP with a pressure-passive plateau (LLA 65-70 mmHg, ULA 150 mmHg), volatile-dependent autoregulation attenuation/uncoupling, and linear CO2 reactivity, in [CerebralEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/CerebralEngine.ts) (§4.10). | Chapter 11/19. | None. *(Stale entry corrected — this was previously implemented but not reflected here.)* |
+| **Intracranial Compliance & ICP** | Exponential volume-pressure elastance model (Monro-Kellie) with `'normal'`/`'impaired'`/`'exhausted'` compliance states, driven by CBV and `intracranialVolumeOffset` (hematoma/edema/tumor), in [CerebralEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/CerebralEngine.ts) (§4.10). | Chapter 11. | None. *(Stale entry corrected.)* |
+| **Cushing's Reflex** | Bradycardia and SVR surge dynamically triggered when `icp > 20` and `cpp < 50` in [CardiovascularEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/CardiovascularEngine.ts) (§6.15). | Chapter 11. | None. *(Stale entry corrected.)* |
+| **Focal Cerebral Ischemia: Neuronal Injury & TREK-1 Neuroprotection** | `hasCerebralIschemia` ($CBF<20$) now accumulates a cumulative `neuronalInjury` index proportional to CBF deficit, blunted 50% by Xenon/Sevoflurane (TREK-1 K2P channel activation, abolished by `isTREK1Knockout`) in [CerebralEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/CerebralEngine.ts) (§4.10/§6.37). | Chapter 19, p.1537 ("TREK-1 also contributes to the neuroprotective effects of xenon and sevoflurane"). | None. Previously `hasCerebralIschemia` was a stateless boolean alert with no quantitative injury accumulator at all, and a prior `goldenversion.md` draft of §6.37 incorrectly cited the unrelated cardiac myocardial-stunning formula for this cerebral mechanism. |
+| **Anesthetic-Induced Cardiac Ischemic Preconditioning (KATP)** | Volatile anesthetics now blunt myocardial stunning accumulation during ischemia, dose-dependently capped at 1 MAC (30% max reduction), in [CardiovascularEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/CardiovascularEngine.ts) (§4.3/§6.72). | Chapter 19, p.1709 (anesthetic-induced and ischemic cardiac preconditioning share KATP-channel signaling mechanisms). | None. Previously isoflurane's "Cardioprotective (ischemic preconditioning)" description in `Pharmacology.js` was flavor text with no backing physiology. |
 | **Neuromuscular Junction Receptor Subtypes** | Simple occupancy calculations in [usePhysiology.js](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/usePhysiology.js). | None. | No distinction between mature, immature, and presynaptic receptor pools. Safety margin and fade are calculated using postjunctional approximations. |
 | **Phase II Succinylcholine block** | None. | None. | Succinylcholine exhibits Phase I behavior indefinitely, failing to model fade or desensitization under high/repeated doses. |
 | **Neostigmine weakness & ceiling** | None. | None. | Neostigmine reverses neuromuscular blockade linearly without a ceiling limit, and does not model depolarizing weakness from overdose. |
-| **Alveolar Atelectasis & Shunt** | Simple PEEP-based shunt reduction in [RespiratoryEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RespiratoryEngine.ts). | None. | Alveolar collapse (absorption atelectasis) is not simulated dynamically as a function of FiO2 and airway pressure, and does not alter compliance or FRC. |
-| **Hypoxic Pulmonary Vasoconstriction (HPV)** | None. | None. | Volatile anesthetics do not alter pulmonary vascular shunt. Protective diversion of blood flow in hypoxic zones and its inhibition are unmodeled. |
-| **Alveolar Recruitment Maneuver** | None. | None. | Sustained positive pressure maneuvers do not affect alveolar volume or cardiovascular preload. |
-| **Diastolic Perfusion & LVEDP** | None. | None. | Coronary perfusion pressure is assumed constant and is independent of left ventricular end-diastolic pressure or diastolic cycle duration. |
-| **Autonomic Reflexes** | Simple baroreceptor heart rate drop in [CardiovascularEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/CardiovascularEngine.ts). | None. | Bezold-Jarisch, Bainbridge, and Oculocardiac reflexes are unmodeled; heart rate changes do not depend on ventricular volume or trigeminal afferents. |
+| **Alveolar Atelectasis & Shunt** | Atelectasis dynamically accumulates based on $FiO_2$ ($FiO_2 > 21\%$), paralysis, and obesity factors in [usePhysiology.js](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/usePhysiology.js). It alters recruited $FRC$ and $Compliance$, and increases right-to-left shunt fraction ($Q_s/Q_t$). | Chapter 13 (Atelectasis propensity vs. $FiO_2$, Fig 13.20). | None. Implemented with dynamic atelectasis and shunt fraction equations. |
+| **Hypoxic Pulmonary Vasoconstriction (HPV)** | Volatile anesthetics inhibit HPV response dose- and agent-dependently: $hpvInhibition = \min(0.90, MAC \cdot 0.25 \cdot hpvPotency_{\text{agent}})$, reproducing 20-30% depression at 1 MAC and 50% at MAC 2 for isoflurane/halothane, while sevoflurane/desflurane (low `hpvPotency`) and IV agents have little-to-no effect, expanding blood flow through hypoxic zones and increasing shunt contribution in [usePhysiology.js](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/usePhysiology.js), [Pharmacology.js](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/Pharmacology.js) (`INHALATIONAL_AGENTS[*].hpvPotency`), and [RespiratoryEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RespiratoryEngine.ts). | Chapter 13 (Inhaled anesthetics depress HPV 20-30% at 1 MAC, 50% at MAC 2 for older agents; modern volatiles have little effect, Fig 13.22 & p.2348). | None. Implemented with per-agent HPV potency and a corrected dose-response curve. |
+| **Anesthesia-Induced FRC Reduction** | `calculateLungVolumes()` applies a further $\times 0.85$ FRC multiplier once the patient is paralyzed or intubated (`isAnesthetized`), independent of the existing postural FRC factor, inside [RespiratoryEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RespiratoryEngine.ts). | Chapter 13 (Fig 13.13: anesthesia induces cranial diaphragm shift and reduced thoracic transverse diameter, further lowering FRC beyond posture alone). | None. Implemented as a distinct, position-independent multiplier. |
+| **Dead-Space Pathophysiology (VD/VT) in Obstructive Disease** | Physiologic dead space ($V_D$) is scaled by a `deadSpaceMultiplier` ($1.10\times$ to $2.00\times$) keyed to COPD GOLD stage/asthma severity in [RespiratoryEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RespiratoryEngine.ts); the resulting $V_D/V_T$ ratio is exposed on `RespiratoryOutput.vdVtRatio` and the Vent Monitor UI. | Chapter 13 key point & Table 13.2 (dead space ventilation can rise to >80% of minute ventilation in severe COPD; emphysema scores highest for V/Q mismatch contribution). | None. Implemented with a severity-graded multiplier on the anatomic Radford-nomogram dead space. |
+| **Alveolar Recruitment Maneuver** | Sustained airway pressure (PIP/PEEP) \ge 40\text{ cmH2O} for \ge 7\text{ seconds} clears atelectasis completely. Airway pressure \ge 30\text{ cmH2O} initiates gradual opening (decline of $0.08$/tick) in [usePhysiology.js](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/usePhysiology.js). High airway pressure (\ge 30\text{ cmH2O}) restricts venous return, scaling stroke volume down to $70\%$ in [CardiovascularEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/CardiovascularEngine.ts). | Chapter 13 (Vital capacity maneuver recruitment pressures, Fig 13.19). | None. Implemented with dynamic recruitment timer and venous return preload/SV scaling. |
+| **Diastolic Perfusion & LVEDP** | Left ventricular end-diastolic pressure ($LVEDP$) and diastolic cycle duration ($diastoleTimeRatio$) are calculated dynamically based on intravascular volume, heart rate, and contractility, which determines coronary perfusion pressure ($CPP_{\text{coronary}} = DBP - LVEDP$) and myocardial oxygen balance in [CardiovascularEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/CardiovascularEngine.ts). | Chapter 13 (Table 13.2 / coronary physiology). | None. Implemented with dynamic LVEDP, DBP - LVEDP perfusion pressure, and diastolic time ratio scaling. |
+| **Autonomic Reflexes** | Bezold-Jarisch, Bainbridge, and Oculocardiac reflexes are modeled dynamically, altering heart rate and SVR based on ventricular volume, right atrial pressure (LVEDP), and extraocular traction in [CardiovascularEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/CardiovascularEngine.ts). | Chapter 13 / reflex pathways. | None. Implemented with dynamic reflex trigger loops. |
 | **Splanchnic Blood Pooling** | Sympathetic block blunts SVR and sequesters 300mL blood volume in splanchnic dilations, reversed by alpha-1 agonists in [CardiovascularEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/CardiovascularEngine.ts). | None. | Celiac plexus and thoracic epidural blocks do not cause splanchnic venous dilation, blood volume sequestration, or MAP shifts. |
+| **Neurohormonal Cardiac Support (Vasopressin & Angiotensin II)** | `RenalEngine.ts`'s pre-existing `vasopressinLevel`/`aldosteroneLevel` RAAS proxy is extended with an explicit `angiotensinIILevel` intermediate; both vasopressin and angiotensin II feed a direct $+$inotropy/$+$chronotropy term into [CardiovascularEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/CardiovascularEngine.ts), wired through `usePhysiology.js`. | Chapter 14, TABLE 14.1 (Actions of Hormones on Cardiac Function). | None. Aldosterone is deliberately excluded from any direct cardiac inotropic/chronotropic effect since Table 14.1's "Cardiac Action" cell for Aldosterone is blank. |
+| **Severe Aortic Stenosis: Fixed-Orifice Physiology** | The pre-existing but previously inert `patient.as` case-builder flag now caps `maxSV` (1.10x vs. 1.6x normal), caps the LVEDP visible to the Frank-Starling preload formula at 12 mmHg, and stiffens the LVEDP-volume relationship (1.4x), in [CardiovascularEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/CardiovascularEngine.ts). | Chapter 14, Fig 14.4 (Laplace's law: $\sigma = P \cdot R / 2h$; compensatory LV hypertrophy in AS). | None. Resting (compensated) hemodynamics are unaffected; only preload-recruitment reserve and the SVR-drop intolerance teaching point are now modeled. |
 | **LES Barrier & Aspiration** | Propofol/volatiles depress LES; sux fasciculations spike gastric pressure; low barrier pressure triggers regurgitation/aspiration in [GastrointestinalEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/GastrointestinalEngine.ts). | None. | Lower esophageal sphincter barrier pressure is unmodeled; stomach fullness, sux administration, and positive pressure ventilation do not cause regurgitation or aspiration pneumonitis. |
 | **Nitrous Oxide Bowel Expansion** | Alveolar N2O diffuses into the bowel, causing gas volume expansion up to 2.5 in [GastrointestinalEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/GastrointestinalEngine.ts). | None. | Inhalational N2O exposure does not expand bowel gas volume or alter abdominal distension. |
-| **Postoperative Ileus (POI)** | Gut motility is blocked by opioids, stress-induced sympathetics, and surgery; epidural block protects motility in [GastrointestinalEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/GastrointestinalEngine.ts). | None. | Postoperative bowel motility recovery is constant and independent of surgical manipulation, opioid use, or sympathetic nerve blockade. |
+| **Postoperative Ileus (POI)** | Gut motility is blocked by opioids, stress-induced sympathetics, direct volatile depression, and surgery; epidural/celiac block protects motility in [GastrointestinalEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/GastrointestinalEngine.ts). | Chapter 15 (key points; "Volatile anesthetics depress the spontaneous, electrical... bowel activity"). | None. Postoperative bowel motility recovery now also scales with volatile MAC directly (independent of the opioid/stress pathways) and with epidural dermatomal coverage rather than a flat boolean. |
+| **Dermatomal Regional Block Coverage (Epidural/Celiac)** | `patient.epiduralBlockActive`/`celiacBlockActive` were previously inert flags (set only in test fixtures, with no live in-session UI control). Added `epiduralLevel` + `calculateDermatomalBlockFraction()` (shared in [Pharmacology.js](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/Pharmacology.js)), consumed by both [CardiovascularEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/CardiovascularEngine.ts) (splanchnic vasculature, T5-L1) and [GastrointestinalEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/GastrointestinalEngine.ts) (gut ileus substrate, T9-L1); a "Place Thoracic Epidural" (T4-T12) + "Celiac Plexus Block" control was added to the Lines & Resus panel. | Chapter 15, TABLE 15.2 (Summary of Visceral Innervation on Gastrointestinal Tract) & Fig 15.1/15.4/15.5. | None. Implemented with a back-compatible graded-coverage model (defaults to full coverage if no level is specified). |
 | **Swallowing Apnea** | Swallowing temporarily overrides and inhibits spontaneous breathing drive and mechanical ventilation in [RespiratoryEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RespiratoryEngine.ts). | None. | Swallowing events do not arrest spontaneous respiration or mechanical ventilation. |
-| **Hepatic Blood Flow & HABR** | Portal and arterial flows calculated dynamically based on CO ratio and cirrhosis; HABR blunted by Sevoflurane and hypotension in [HepaticEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts). | None. | Dual-supply hepatic circulation (PBF/HABF) and hepatic arterial buffer response auto-compensation are unmodeled. |
-| **Portal Hypertension & Variceal Bleeding** | HVPG rises with cirrhosis and falls with TIPS; pressure surges trigger bleeding; terlipressin constricts splanchnics and stops bleed in [HepaticEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts). | None. | Portal venous pressure gradient is not simulated; gastroesophageal varices rupture and active hematemesis are unmodeled. |
-| **Hepatorenal Syndrome (HRS)** | Splanchnic vasodilation raises renal resistance, leading to AKI and progressive creatinine accumulation in [HepaticEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts). | None. | Renal artery resistance is independent of liver cirrhosis and splanchnic tone; creatinine does not accumulate in liver failure. |
-| **Portopulmonary Hypertension (PoPH)** | Cirrhosis raises mPAP; hypoxia/hypercapnia/acidosis stressors trigger acute RV failure and PEA arrest in [HepaticEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts) and [CardiovascularEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/CardiovascularEngine.ts). | None. | Portopulmonary hypertension and stressful triggers of right ventricular failure/PEA cardiac arrest are unmodeled. |
-| **Hepatopulmonary Syndrome (HPS)** | Cirrhosis induces intrapulmonary vascular dilations creating right-to-left shunt, blunted by oxygen in [HepaticEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts) and [RespiratoryEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RespiratoryEngine.ts). | None. | Liver-induced intrapulmonary shunts and their responsive hypoxemia are unmodeled. |
-| **Low-CVP Hepatic Resection** | Venous back-bleeding scales with CVP; low-CVP fluid restriction reduces surgical blood loss in [HepaticEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts). | None. | Hepatic parenchymal bleeding rate is constant and independent of central venous pressure. |
-| **Renal Blood Flow & GFR Autoregulation** | RBF and GFR are dynamically calculated based on RPP (incorporating CVP and PEEP backpressure). Autoregulation blunted by MAC and volatiles in [RenalEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RenalEngine.ts). | None. | Renal blood flow and glomerular filtration are hardcoded constants or unmodeled. |
-| **KDIGO AKI Staging & Diuresis** | Staging is computed dynamically from creatinine ratios and oliguria/anuria timers. Loop diuretics (Furosemide) and osmotic agents (Mannitol) stimulate diuresis in [RenalEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RenalEngine.ts). | None. | AKI staging is unmodeled; UOP does not scale with GFR or diuretics. |
-| **Front-End & Back-End Kinetics** | Dynamic V1 scaling is driven by cardiac output and blood volume ratios; cumulative active infusion time is tracked in seconds to calculate context-sensitive half-times (CSHT) in [PKPDEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/PKPDEngine.ts). | None. | Central volume V1 is constant (or scales only with hemodilution); infusion durations and context-sensitive half-times are unmodeled. |
-| **GABA-Opioid Synergistic Hypnosis** | Sedative and opioid effects are combined synergistically using an inward-bowing isobologram interaction formula to calculate aggregate hypnosis in [usePhysiology.js](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/usePhysiology.js). | None. | Medication hypnosis levels are combined using an independent probability formula. |
-| **Volatile Gas Kinetics & Second Gas Effect** | Alveolar gas concentration ($F_A$) models multi-gas interaction for the concentration and second gas effects. Dynamic solubility-based tissue partition coefficients ($\lambda_{fg}$) are calculated from oil-gas partition values. Diffusion hypoxia dilution occurs on room air when N2O is stopped. | None. | Alveolar gas kinetics are independent of co-administered gas uptake; partition coefficients are static constants; diffusion hypoxia and FRC oxygen buffer dilution are unmodeled. |
+| **Hepatic Blood Flow & HABR** | Portal and arterial flows calculated dynamically based on CO ratio and cirrhosis; HABR blunted by Halothane (Sevoflurane/Isoflurane/Desflurane preserve it) and hypotension in [HepaticEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts). | Chapter 16 (Key Points, page 435; volatile effects on HABR). | Dual-supply hepatic circulation (PBF/HABF) and hepatic arterial buffer response auto-compensation are unmodeled. |
+| **Portal Hypertension & Variceal Bleeding** | HVPG rises with cirrhosis and falls with TIPS; pressure surges trigger bleeding; terlipressin constricts splanchnics and stops bleed in [HepaticEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts). | Chapter 16 (Child-Pugh, MELD, variceal bleeding). | Portal venous pressure gradient is not simulated; gastroesophageal varices rupture and active hematemesis are unmodeled. |
+| **Hepatorenal Syndrome (HRS)** | Splanchnic vasodilation raises renal resistance, leading to AKI and progressive creatinine accumulation in [HepaticEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts). | Chapter 16 (Renal Failure and Hepatorenal Syndrome, page 433). | Renal artery resistance is independent of liver cirrhosis and splanchnic tone; creatinine does not accumulate in liver failure. |
+| **Portopulmonary Hypertension (PoPH)** | Cirrhosis raises mPAP; hypoxia/hypercapnia/acidosis stressors trigger acute RV failure and PEA arrest in [HepaticEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts) and [CardiovascularEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/CardiovascularEngine.ts). | Chapter 16 (Portopulmonary Hypertension, page 434). | Portopulmonary hypertension and stressful triggers of right ventricular failure/PEA cardiac arrest are unmodeled. |
+| **Hepatopulmonary Syndrome (HPS)** | Cirrhosis induces intrapulmonary vascular dilations creating right-to-left shunt, blunted by oxygen in [HepaticEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts) and [RespiratoryEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RespiratoryEngine.ts). | Chapter 16 (Hepatopulmonary Syndrome, page 434). | Liver-induced intrapulmonary shunts and their responsive hypoxemia are unmodeled. |
+| **Low-CVP Hepatic Resection** | Venous back-bleeding scales with CVP; low-CVP fluid restriction reduces surgical blood loss in [HepaticEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/HepaticEngine.ts). | Chapter 16 (Anesthetic Considerations for Procedures Involving the Liver, page 436). | Hepatic parenchymal bleeding rate is constant and independent of central venous pressure. |
+| **Renal Blood Flow & GFR Autoregulation** | RBF and GFR are dynamically calculated based on RPP (incorporating CVP and PEEP backpressure). Autoregulation blunted by MAC and volatiles in [RenalEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RenalEngine.ts). | Chapter 17 (Glomerular filtration pressure balance, Table 17.2, Fig 17.8; Cortical vs. Medullary flow and oxygenation, Table 17.1). | None. Implemented with physics-based capillary, Bowman space, oncotic, and net filtration pressures, and cortical/medullary PO2 and blood flow partitioning. |
+| **KDIGO AKI Staging & Diuresis** | Staging is computed dynamically from creatinine ratios and oliguria/anuria timers. Loop diuretics (Furosemide) and osmotic agents (Mannitol) stimulate diuresis in [RenalEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/RenalEngine.ts). | Chapter 17 (Hypotension time-thresholds for acute kidney injury: MAP < 60 mmHg for > 11 min or MAP < 55 mmHg for > 10 min, page 460). | None. Implemented with cumulative exposure timers triggering a persistent ischemic injury rate (+0.003/s). |
+| **Front-End & Back-End Kinetics** | Dynamic V1 scaling is driven by cardiac output and blood volume ratios; cumulative active infusion time is tracked in seconds to calculate context-sensitive half-times (CSHT) and 80% decrement times (CSDT80) in [PKPDEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/PKPDEngine.ts). | Chapter 18 (Back-end kinetics, decrement times, Minto model). | None. Implemented with dynamic V1, CSHT/CSDT80 curves, age PD adjustments, and Minto PK scaling. |
+| **GABA-Opioid Synergistic Hypnosis** | Sedative and opioid effects are combined synergistically using an inward-bowing isobologram interaction formula to calculate aggregate hypnosis in [usePhysiology.js](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/usePhysiology.js). | Chapter 18 (Figure 18.30 GABA-opioid interaction, isobologram interaction models). | None. Implemented using the inward-bowing synergistic interaction isobole. |
+| **Esketamine (S(+)-Ketamine)** | Previously absent — only the racemic mixture (`ketamine`) was a selectable medication, despite esketamine being a distinct, clinically used FDA-relevant drug with a quantified potency difference. Added as a new medication in [Pharmacology.js](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/Pharmacology.js) with a potency-scaled $c_{50}$, wired into all 4 production call sites that previously keyed only on the literal name `'Ketamine'` ([CerebralEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/CerebralEngine.ts), [PainEngine.ts](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/PainEngine.ts), [AttendingEngine.js](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/AttendingEngine.js), [usePhysiology.js](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/usePhysiology.js)). | Chapter 23 ("The S(+)-isomer (Ketanest) is 3 to 4 times more potent as an analgesic..."). | None. PK compartment kinetics intentionally left identical to racemic ketamine — the source does not quantify "faster clearance" with a specific number. |
+| **Volatile Gas Kinetics & Second Gas Effect** | Alveolar gas concentration ($F_A$) models multi-gas interaction for the concentration and second gas effects. Dynamic solubility-based tissue partition coefficients ($\lambda_{fg}$, $\lambda_{mg}$) are calculated from agent-specific oil-gas and muscle-blood partition values (TABLE 20.1/20.2). Diffusion hypoxia dilution occurs on room air when N2O is stopped. | Chapter 20. | None. *(Stale entry corrected — this was already implemented; the muscle compartment previously used one flat $1.5$ constant for every agent regardless of TABLE 20.2's actual per-agent values, now fixed.)* |
+| **`GasKineticsEngine.js`/`.ts` Duplicate File** | A stale `.js` duplicate of `GasKineticsEngine.ts` existed in the same directory; bare `import ... from './GasKineticsEngine'` statements resolved to the stale `.js` file, silently shadowing fixes made to the canonical `.ts` file (discovered when the Ch20 muscle-partition fix had no effect until the duplicate was deleted). | None — a code-hygiene bug, not textbook content. | Resolved by deleting `GasKineticsEngine.js`; all imports are extension-less and now resolve correctly to the `.ts` file with no path changes required. |
+| **Link-25 Proportioning System** | §6.46 documented `o2Flow >= n2oFlow/3.0` enforcement as an implemented safety feature, and a unit test exercised an algorithm claiming to verify it — but the live gas-mixing pipeline in `usePhysiology.js` never actually enforced any ratio; a user could dial an arbitrarily hypoxic N2O:O2 mixture with zero protection. The "passing" test was a standalone local re-implementation, never wired to real code. | Chapter 22, p.583 (Link-25 mechanical sprocket/chain system, max 3:1 N2O:O2 ratio). | None. Extracted into a real, shared, unit-tested `calculateLink25GasMixture()` in [Pharmacology.js](file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/engine/Pharmacology.js), now actually called from `usePhysiology.js`. |
+| **Oxygen Supply Failure Protection Device ("Fail-Safe Valve")** | Not implemented or documented anywhere prior to this audit — N2O flow continued unimpeded even with zero O2 supply pressure (pipeline disconnected + cylinder closed). | Chapter 22, p.901-909 (ISO-standard oxygen supply failure protection device / "fail-safe valve"). | None. Implemented in `calculateLink25GasMixture()` (§6.74) — binary N2O cutoff on loss of O2 supply pressure, explicitly not protective against pipeline crossover per the source. |
 | **Inhaled Anesthetics Molecular Targets** | Receptors (GABA-A, Glycine, NMDA, K2P, HCN, Na+ channels, nAChRs) drive target occupancies. Supports genetic knockouts (TASK-1/3, TREK-1, HCN1) and nonimmobilizers (F6). | None. | Molecular target binding occupancies are unmodeled; MAC and sedative values are aggregated without detailed receptor-level pathway modeling. |
 
 ---

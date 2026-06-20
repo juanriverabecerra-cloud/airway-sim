@@ -43,6 +43,8 @@ export interface RespiratoryPatientState {
   hasPneumothorax?: boolean;
   opioidRigidityActive?: boolean;
   renarcotizationActive?: boolean;
+  icp?: number;
+  cpp?: number;
 }
 
 export interface RespiratoryVitalsState {
@@ -109,6 +111,8 @@ export interface RespiratoryOutput {
   pip: number;
   vte: number;
   fico2?: number;
+  actualShunt?: number;
+  vdVtRatio?: number;
 }
 
 export class RespiratoryEngine {
@@ -123,7 +127,8 @@ export class RespiratoryEngine {
     bmi: number,
     position: string = 'Supine',
     isCopd: boolean = false,
-    isRestrictive: boolean = false
+    isRestrictive: boolean = false,
+    isAnesthetized: boolean = false
   ) {
     let hCm = Number(heightCm);
     if (isNaN(hCm) || !Number.isFinite(hCm) || hCm <= 0) {
@@ -194,6 +199,9 @@ export class RespiratoryEngine {
       fev1 = fvc * 0.81;
     }
 
+    const frc_upright_baseline = frc; // FRC baseline before obesity and position scaling
+    const cc_L = frc_upright_baseline * (0.50 + 0.0075 * safeAge); // Fig 13.9, Miller's 9th Ed
+
     const obesityFactor = safeBmi > 25 ? Math.exp(-0.02 * (safeBmi - 25)) : 1.0;
     frc *= obesityFactor;
 
@@ -210,6 +218,12 @@ export class RespiratoryEngine {
     };
     const posFactor = positionFactors[safePosition] || 0.80;
     frc *= posFactor;
+
+    // General anesthesia induces a further, position-independent FRC decrease (cranial
+    // diaphragm shift + reduced thoracic transverse diameter) on top of the postural drop.
+    // Fig 13.13, Miller's 9th Ed.
+    const anesthesiaFrcFactor = isAnesthetized ? 0.85 : 1.0;
+    frc *= anesthesiaFrcFactor;
 
     frc  = Math.max(0.5, frc);
     tlc  = Math.max(2.0, tlc);
@@ -254,8 +268,11 @@ export class RespiratoryEngine {
       vd_mL: Math.round(vd * 1000),
       frc_L: parseFloat(frc.toFixed(2)),
       tlc_L: parseFloat(tlc.toFixed(2)),
+      cc_L: parseFloat(cc_L.toFixed(2)),
+      cc_mL: Math.round(cc_L * 1000),
       obesityFactor: parseFloat(obesityFactor.toFixed(3)),
       positionFactor: posFactor,
+      anesthesiaFrcFactor,
       fev1PercentPredicted,
       fvcPercentPredicted,
       fev1FvcRatio
@@ -340,6 +357,7 @@ export class RespiratoryEngine {
     const isApneic = isParalyzed || safePatient.swallowingActive || safePatient.opioidRigidityActive || safePatient.renarcotizationActive || (safeVitals.rr !== undefined && Number.isFinite(safeVitals.rr) ? safeVitals.rr < 1 : false);
 
     // Calculate current volumes
+    const isAnesthetized = isParalyzed || !!safePatient.airwaySecured;
     const currentLungVols = this.calculateLungVolumes(
       safePatient.height || 170,
       safePatient.age || 40,
@@ -347,7 +365,8 @@ export class RespiratoryEngine {
       safePatient.bmi || 25,
       safePatient.position || 'Supine',
       safePatient.copd || false,
-      safePatient.restrictive || false
+      safePatient.restrictive || false,
+      isAnesthetized
     );
       const currentFRC_L = currentLungVols.frc_L;
 
@@ -475,15 +494,23 @@ export class RespiratoryEngine {
     // Pulmonary compliance & resistance loops
     let pulmComplianceBonus = 0;
     let pulmResistanceBonus = 0;
+    // Alveolar dead-space multiplier: V/Q mismatch from destroyed capillary bed (emphysema)
+    // or airway obstruction can dramatically increase VD/VT (key point & Table 13.2, Miller's
+    // 9th Ed: "dead space ventilation can be...increased...to more than 80% of minute
+    // ventilation" in severe COPD). Asthma's dead-space contribution is comparatively minor
+    // (Table 13.2: VQ mismatch '++', vs '+++' for emphysema).
+    let deadSpaceMultiplier = 1.0;
     const pulmComorbStr = typeof safePatient.pulmonaryComorbidity === 'string' ? safePatient.pulmonaryComorbidity.toLowerCase() : '';
     if (pulmComorbStr) {
-      if (pulmComorbStr.includes('copd gold i')) { pulmComplianceBonus = 5; pulmResistanceBonus = 5; }
-      else if (pulmComorbStr.includes('copd gold ii')) { pulmComplianceBonus = 10; pulmResistanceBonus = 10; }
-      else if (pulmComorbStr.includes('copd gold iii')) { pulmComplianceBonus = 15; pulmResistanceBonus = 18; }
-      else if (pulmComorbStr.includes('copd gold iv')) { pulmComplianceBonus = 20; pulmResistanceBonus = 25; }
-      else if (pulmComorbStr.includes('asthma')) { pulmComplianceBonus = -12; pulmResistanceBonus = 20; }
+      // Checked most-specific-first: 'copd gold i' is a substring of 'gold ii'/'iii'/'iv',
+      // so it must be evaluated last among the GOLD stages or it would always match first.
+      if (pulmComorbStr.includes('copd gold iv')) { pulmComplianceBonus = 20; pulmResistanceBonus = 25; deadSpaceMultiplier = 2.00; }
+      else if (pulmComorbStr.includes('copd gold iii')) { pulmComplianceBonus = 15; pulmResistanceBonus = 18; deadSpaceMultiplier = 1.60; }
+      else if (pulmComorbStr.includes('copd gold ii')) { pulmComplianceBonus = 10; pulmResistanceBonus = 10; deadSpaceMultiplier = 1.30; }
+      else if (pulmComorbStr.includes('copd gold i')) { pulmComplianceBonus = 5; pulmResistanceBonus = 5; deadSpaceMultiplier = 1.10; }
+      else if (pulmComorbStr.includes('asthma')) { pulmComplianceBonus = -12; pulmResistanceBonus = 20; deadSpaceMultiplier = 1.15; }
     } else {
-      if (safePatient.copd) { pulmComplianceBonus = 15; pulmResistanceBonus = 18; }
+      if (safePatient.copd) { pulmComplianceBonus = 15; pulmResistanceBonus = 18; deadSpaceMultiplier = 1.30; }
     }
 
     let currentCompliance = 65;
@@ -532,7 +559,24 @@ export class RespiratoryEngine {
     currentCompliance = Math.max(2, currentCompliance);
 
     let currentResistance = 5;
-    if (safePatient.isObese) currentResistance += 3;
+    let upperAirwayRes = 0;
+    if (!safePatient.airwaySecured && safePatient.ventilationStatus === 'spontaneous') {
+      const R_base = 5.0;
+      const dilatorTone = typeof safePatient.dilatorMuscleTone === 'number' ? safePatient.dilatorMuscleTone : 1.0;
+      const pcrit = typeof safePatient.pcrit === 'number' ? safePatient.pcrit : (safePatient.osa || safePatient.pulmonaryComorbidity?.toLowerCase().includes('osa') ? 1.0 : -5.0);
+      const pAirway = typeof safeInputs.peep === 'number' ? safeInputs.peep : (safeVitals.peep || 0);
+
+      // OSA Collapse Crisis (Ch. 10): Sleep stage REM (R) or N3, or dilator tone < 0.35 and collapse pressure exceeds airway pressure
+      const isOsaCollapse = (safePatient.sleepStage === 'R' || safePatient.sleepStage === 'N3' || dilatorTone < 0.35) && (pcrit > pAirway);
+      if (isOsaCollapse) {
+        upperAirwayRes = 999.0;
+      } else {
+        upperAirwayRes = (R_base / Math.pow(dilatorTone, 2.5)) * Math.max(1.0, Math.exp(0.5 * (pcrit - pAirway)));
+      }
+      currentResistance = upperAirwayRes;
+    } else {
+      if (safePatient.isObese) currentResistance += 3;
+    }
     currentResistance += pulmResistanceBonus;
     currentResistance += aspirationResistancePenalty;
     currentResistance += anaphylaxisResistancePenalty;
@@ -555,6 +599,21 @@ export class RespiratoryEngine {
     if (safeInputs.agent === 'xenon' && typeof safeInputs.etAgent === 'number' && safeInputs.etAgent > 0) {
       const xenonResistanceMultiplier = 1.0 + 0.4 * (safeInputs.etAgent / 70.0) * (1.0 + (safePatient.bronchospasm ? 1.5 : 0.0));
       currentResistance *= xenonResistanceMultiplier;
+    }
+
+    // Desflurane high-density paradoxical airway resistance increase (Ch21, Miller's 9th Ed,
+    // p.543): unlike other volatiles, which bronchodilate, desflurane's increased inspired gas
+    // density raises total respiratory system resistance R(rs) by up to 26% at 1.5 MAC, with no
+    // significant effect reported at 1.0 MAC. Uses desflurane's own end-tidal concentration (as
+    // with the Xenon density effect above) rather than cumulative anesthetic-depth MAC, since this
+    // is a gas-density property specific to desflurane's own partial pressure, not co-administered
+    // agents (e.g. N2O). mac40 = 6.0 vol% (TABLE 20.1/21.1, Miller's 9th Ed).
+    if (safeInputs.agent === 'desflurane' && typeof safeInputs.etAgent === 'number' && safeInputs.etAgent > 0) {
+      const desfluraneMacEquivalent = safeInputs.etAgent / 6.0;
+      if (desfluraneMacEquivalent > 1.0) {
+        const desfluraneResistanceMultiplier = 1.0 + 0.26 * Math.min(1.0, (desfluraneMacEquivalent - 1.0) / 0.5);
+        currentResistance *= desfluraneResistanceMultiplier;
+      }
     }
 
     // Mucus plug resistance penalty
@@ -595,6 +654,19 @@ export class RespiratoryEngine {
       
       // Gasping Vt multiplier (irregular deep/shallow breaths, on average deeper)
       vtGaspMultiplier = 1.0 + (Math.sin(timeSec * 0.3) * 0.4 + 0.3) * gaspSeverity;
+    }
+
+    // Cushing's reflex breathing changes: gasping or central apnea (Miller's 9th Ed Ch 11)
+    if (safePatient.icp && safePatient.cpp && safePatient.icp > 20.0 && safePatient.cpp < 50.0 && !isParalyzed) {
+      if (safePatient.cpp < 40.0) {
+        targetRR = 0; // central apnea
+      } else {
+        const gaspSeverity = (50.0 - safePatient.cpp) / 10.0;
+        const timeSec = typeof st.time === 'number' ? st.time : 0;
+        const rrOsc = Math.sin(timeSec * 0.4) * 3 + (timeSec % 7 < 3 ? -4 : 2);
+        targetRR = Math.max(4, targetRR + rrOsc * gaspSeverity);
+        vtGaspMultiplier = Math.max(vtGaspMultiplier, 1.0 + (Math.sin(timeSec * 0.3) * 0.4 + 0.3) * gaspSeverity);
+      }
     }
 
     if (safePatient.airwaySecured && ventSettings) {
@@ -653,11 +725,14 @@ export class RespiratoryEngine {
     if (isNaN(ibwVal) || !Number.isFinite(ibwVal) || ibwVal <= 0) {
       ibwVal = 70.0;
     }
-    const deadSpace = (ibwVal * 2.2) / 1000;
+    const deadSpace = ((ibwVal * 2.2) / 1000) * deadSpaceMultiplier;
     const tidalVolLiters = (safePatient.airwaySecured ? (newVte / 1000) : ((ibwVal * 7) / 1000)) * vtGaspMultiplier;
     const currentAlvVent_L_min = Math.max(0, (tidalVolLiters - deadSpace) * targetRR);
     const baseTidalVolLiters = (ibwVal * 7) / 1000;
     const baseAlvVent_L_min = (baseTidalVolLiters - deadSpace) * 12;
+    // VD/VT: physiologic dead space fraction of tidal volume. Can exceed 0.8 in severe
+    // obstructive disease (key point, Miller's 9th Ed Ch13).
+    const vdVtRatio = tidalVolLiters > 0.01 ? Math.min(0.95, deadSpace / tidalVolLiters) : 0;
 
     let targetPaCO2;
     let targetEtco2 = 0;
@@ -752,7 +827,14 @@ export class RespiratoryEngine {
       const atelectasis = safePatient.atelectasis || 0.0;
       const hpvInhibition = safeInputs.hpvInhibition !== undefined ? safeInputs.hpvInhibition : (safePatient.hpvInhibition || 0.0);
       const shuntHpvPenalty = 0.25 * atelectasis * hpvInhibition;
-      const actualShunt = Math.max(0.02, baselineShunt - shuntReduction + hpsShunt + 0.15 * atelectasis + shuntHpvPenalty);
+      
+      // Airway Closure Shunt calculation (Fig 13.9 & Table 13.2, Miller's 9th Ed)
+      const airwayClosureFraction = recruitedFRC_L < currentLungVols.cc_L
+        ? (currentLungVols.cc_L - recruitedFRC_L) / currentLungVols.cc_L
+        : 0.0;
+      const airwayClosureShunt = 0.12 * airwayClosureFraction; // Up to 12% additional shunt due to dependent airway closure
+      
+      const actualShunt = Math.max(0.02, baselineShunt - shuntReduction + hpsShunt + 0.15 * atelectasis + shuntHpvPenalty + airwayClosureShunt);
     const arterialO2Content = (capillaryO2Content * (1 - actualShunt)) + (venousO2Content * actualShunt);
 
     const contentDenom = Math.max(0.1, safeCurrentHb * 1.34);
@@ -792,7 +874,7 @@ export class RespiratoryEngine {
     if (Math.abs(targetRR - (safeVitals.rr || 12)) < 1.5) newRr = targetRR;
     if (Math.abs(targetEtco2 - (safeVitals.etco2 || 40)) < 1.5) newEtco2 = targetEtco2;
 
-    if (safePatient.swallowingActive) {
+    if (safePatient.swallowingActive || (safePatient.icp && safePatient.cpp && safePatient.icp > 20.0 && safePatient.cpp < 40.0)) {
       newRr = 0;
     }
 
@@ -832,7 +914,9 @@ export class RespiratoryEngine {
       resistance: currentResistance,
       pip: newPip,
       vte: newVte,
-      fico2: Math.round(fico2)
+      fico2: Math.round(fico2),
+      actualShunt,
+      vdVtRatio
     };
   }
 }

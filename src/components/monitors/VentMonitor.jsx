@@ -167,28 +167,68 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
         <div className="bg-slate-900/60 border border-slate-800/80 rounded p-1.5 flex flex-col justify-between hover:border-yellow-500/30 transition-all overflow-hidden">
           <div className="flex justify-between items-center w-full border-b border-slate-900/40 pb-0.5">
             <span className="text-yellow-500 font-bold text-[9px] lg:text-[10px] leading-none uppercase">Pulmonary Telemetry</span>
+            <div className="flex gap-1">
+              {patient?.recruitmentTime > 0 && (
+                <span className="text-[7px] bg-amber-500/20 text-amber-300 px-1 py-0.5 rounded font-black animate-pulse">
+                  RECRUITING ({Math.round(patient.recruitmentTime)}s)
+                </span>
+              )}
+              {patient?.lungVolumes && patient?.lungVolumes?.frc_L < patient?.lungVolumes?.cc_L && (
+                <span className="text-[7px] bg-rose-500/20 text-rose-300 px-1 py-0.5 rounded font-black animate-pulse" title="FRC is below Closing Capacity; airway closure is causing shunt!">
+                  AIRWAY CLOSURE
+                </span>
+              )}
+              {patient?.atelectasis > 0.01 && (
+                <span className="text-[7px] bg-orange-500/20 text-orange-400 px-1 py-0.5 rounded font-black animate-pulse" title={`Alveolar atelectasis is ${Math.round(patient.atelectasis * 100)}%`}>
+                  ATELECTASIS ({Math.round(patient.atelectasis * 100)}%)
+                </span>
+              )}
+            </div>
           </div>
-          <div className="flex-1 flex justify-between items-stretch gap-1.5 mt-1">
+          <div className="flex-1 flex justify-between items-stretch gap-1 mt-1">
             {/* EtCO2 Card */}
             <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-yellow-500/20 transition-all overflow-hidden">
-              <span className="text-[7.5px] lg:text-[8.5px] text-yellow-600 font-bold uppercase tracking-wider leading-none">EtCO2 (mmHg)</span>
-              <div className="flex-1 flex items-center justify-center">
-                <span className={`${ventValClass2} font-black text-yellow-400 leading-none`}>
+              <span className="text-[7.5px] lg:text-[8.5px] text-yellow-600 font-bold uppercase tracking-wider leading-none">EtCO2</span>
+              <div className="flex-grow flex items-center justify-center">
+                <span className="text-xl font-black text-yellow-400 leading-none">
                   {vitals?.etco2 ?? '--'}
                 </span>
+              </div>
+            </div>
+
+            {/* Shunt & FRC/CC Card */}
+            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-emerald-500/20 transition-all overflow-hidden">
+              <span className="text-[7.5px] lg:text-[8.5px] text-emerald-500 font-bold uppercase tracking-wider leading-none">Shunt / FRC</span>
+              <div className="flex-grow flex flex-col items-center justify-center leading-none mt-0.5">
+                <span className="text-[14px] font-black text-emerald-400">
+                  {vitals?.shunt !== undefined ? `${(vitals.shunt * 100).toFixed(1)}%` : '--'}
+                </span>
+                {patient?.lungVolumes && (
+                  <span className="text-[6.5px] text-slate-400 mt-0.5 font-mono leading-none">
+                    F:{patient.lungVolumes.frc_L.toFixed(1)}/C:{patient.lungVolumes.cc_L.toFixed(1)}L
+                  </span>
+                )}
+                {vitals?.vdVt !== undefined && (
+                  <span
+                    className={`text-[6.5px] mt-0.5 font-mono leading-none ${vitals.vdVt > 0.5 ? 'text-rose-400' : 'text-slate-500'}`}
+                    title="Physiologic dead space fraction of tidal volume (VD/VT) — key point, Miller's 9th Ed Ch13"
+                  >
+                    VD/VT:{(vitals.vdVt * 100).toFixed(0)}%
+                  </span>
+                )}
               </div>
             </div>
 
             {/* I:E Ratio Card */}
             <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-cyan-500/20 transition-all overflow-hidden">
               <span className="text-[7.5px] lg:text-[8.5px] text-cyan-600 font-bold uppercase tracking-wider leading-none">I:E Ratio</span>
-              <div className="flex-grow flex items-center justify-center gap-1.5 leading-none">
-                <span className="text-xs font-bold text-slate-400">1:</span>
+              <div className="flex-grow flex items-center justify-center gap-0.5 leading-none">
+                <span className="text-[9px] font-bold text-slate-400">1:</span>
                 {setVentSettings ? (
                   <select 
                     value={ventSettings?.ieRatio || 2}
                     onChange={(e) => setVentSettings({...ventSettings, ieRatio: parseFloat(e.target.value)})}
-                    className="bg-black/50 border border-slate-800 text-[10px] text-slate-200 rounded px-1.5 py-0.5 outline-none cursor-pointer leading-none font-bold"
+                    className="bg-black/50 border border-slate-800 text-[9px] text-slate-200 rounded px-1 py-0.5 outline-none cursor-pointer leading-none font-bold font-mono"
                   >
                     <option value={1}>1.0</option>
                     <option value={1.5}>1.5</option>
@@ -198,7 +238,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
                     <option value={4}>4.0</option>
                   </select>
                 ) : (
-                  <span className="text-slate-300 text-xs font-bold">{ventSettings?.ieRatio || 2}</span>
+                  <span className="text-slate-300 text-[10px] font-bold">{ventSettings?.ieRatio || 2}</span>
                 )}
               </div>
             </div>

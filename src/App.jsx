@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import './App.css';
 import { usePhysiology } from './engine/usePhysiology';
 import { ProceduralEngine } from './engine/ProceduralEngine';
@@ -21,9 +21,15 @@ import { EkgModal } from './components/modals/EkgModal';
 
 // Attending Engine & Panel
 import { evaluateAttendingGuidance } from './engine/AttendingEngine';
-import AttendingPanel from './components/controls/AttendingPanel';
 import FidelityPanel from './components/controls/FidelityPanel';
 import { CLINICAL_ACTIONS } from './engine/ClinicalActions';
+
+// Lazy-loaded: this panel (via ClinicalAiChat -> KnowledgeSearch) eagerly
+// fetches and parses the full textbook search index on module load. Splitting
+// it into its own chunk means that fetch only starts once a case is actually
+// active and the panel mounts, instead of on every app boot regardless of
+// whether the user ever opens the attending chat that session.
+const AttendingPanel = lazy(() => import('./components/controls/AttendingPanel'));
 
 
 // eslint-disable-next-line no-unused-vars
@@ -137,7 +143,7 @@ export default function App() {
   const {
     time, setTime, vitals, setVitals, setTargetVitals, patient, setPatient,
     processMed, pushMed, pushFluid, updateFluidRate, removeFluid, activeMeds, intravascularVolume, electrolytes, coags,
-    deliverShock, toggleCPR, surgicalPhase, setSurgicalPhase, createSnapshot, restoreSnapshot
+    deliverShock, toggleCPR, placeEpidural, removeEpidural, toggleCeliacBlock, surgicalPhase, setSurgicalPhase, createSnapshot, restoreSnapshot
   } = usePhysiology({
     activeCase,
     isRunning,
@@ -246,6 +252,9 @@ export default function App() {
   const handleProcessMed = (...args) => { saveState(); processMed(...args); };
   const handlePushMed = (...args) => { saveState(); pushMed(...args); };
   const handleToggleCPR = () => { saveState(); toggleCPR(); };
+  const handlePlaceEpidural = (level) => { saveState(); placeEpidural(level); };
+  const handleRemoveEpidural = () => { saveState(); removeEpidural(); };
+  const handleToggleCeliacBlock = () => { saveState(); toggleCeliacBlock(); };
   const handleDeliverShock = (...args) => { saveState(); deliverShock(...args); };
   const handleOptimizeAirway = (...args) => { saveState(); optimizeAirway(...args); };
   const handleSetVentSettings = (update) => { saveState(); setVentSettings(update); };
@@ -993,6 +1002,21 @@ export default function App() {
           'Blood Lactate': { val: (patient.lacticAcid !== undefined ? patient.lacticAcid : 1.0).toFixed(1) + ' mmol/L', range: '0.5 - 2.0 mmol/L', alert: (patient.lacticAcid !== undefined ? patient.lacticAcid : 1.0) > 2.0 },
           'Plasma Lipids': { val: patient.prisTriggered ? '⚠️ LIPEMIC' : 'Clear', range: 'Clear', alert: !!patient.prisTriggered }
         };
+
+        if (patient.glomerularCapillaryPressure !== undefined) {
+          results['P_gc (Glomerular Capillary)'] = { val: patient.glomerularCapillaryPressure.toFixed(1) + ' mmHg', range: '55.0 - 65.0 mmHg', alert: false };
+          results['P_bs (Bowman Space)'] = { val: patient.bowmanSpacePressure.toFixed(1) + ' mmHg', range: '15.0 - 20.0 mmHg', alert: false };
+          results['pi_gc (Oncotic Pressure)'] = { val: patient.glomerularOncoticPressure.toFixed(1) + ' mmHg', range: '28.0 - 34.0 mmHg', alert: false };
+          results['Net Filtration Pressure (NFP)'] = { val: patient.netFiltrationPressure.toFixed(1) + ' mmHg', range: '8.0 - 12.0 mmHg', alert: patient.netFiltrationPressure < 8.0 };
+          results['Cortical Renal Blood Flow'] = { val: patient.cortexRbf.toFixed(0) + ' mL/min', range: '800 - 1200 mL/min', alert: false };
+          results['Medullary Renal Blood Flow'] = { val: patient.medullaRbf.toFixed(0) + ' mL/min', range: '50 - 80 mL/min', alert: patient.medullaRbf < 50.0 };
+          results['Cortical PO2'] = { val: patient.cortexPo2.toFixed(1) + ' mmHg', range: '45.0 - 55.0 mmHg', alert: patient.cortexPo2 < 40.0 };
+          results['Medullary PO2'] = { val: patient.medullaPo2.toFixed(1) + ' mmHg', range: '6.5 - 9.5 mmHg', alert: patient.medullaPo2 < 6.0 };
+          results['Cortical O2 Extraction'] = { val: (patient.cortexO2Extraction * 100).toFixed(0) + '%', range: '15 - 22%', alert: false };
+          results['Medullary O2 Extraction'] = { val: (patient.medullaO2Extraction * 100).toFixed(0) + '%', range: '75 - 85%', alert: patient.medullaO2Extraction > 0.85 };
+          results['MAP < 60 mmHg Exposure'] = { val: (patient.mapUnder60Time / 60).toFixed(1) + ' min', range: '< 11.0 min', alert: patient.mapUnder60Time > 11.0 * 60 };
+          results['MAP < 55 mmHg Exposure'] = { val: (patient.mapUnder55Time / 60).toFixed(1) + ' min', range: '< 10.0 min', alert: patient.mapUnder55Time > 10.0 * 60 };
+        }
       } else if (type === 'Coagulation') {
         const tempFactor = vitals.temp < 36.0 ? Math.pow(1.15, 36.0 - vitals.temp) : 1.0;
         const ptVal = (12.0 + (coags.r_offset || 0) * 1.8) * tempFactor;
@@ -1029,6 +1053,27 @@ export default function App() {
           'Total Bilirubin': { val: biliVal.toFixed(1) + ' mg/dL', range: '0.2 - 1.2 mg/dL', alert: biliVal > 1.2 },
           'Albumin': { val: albVal.toFixed(1) + ' g/dL', range: '3.5 - 5.0 g/dL', alert: albVal < 3.5 }
         };
+        if (patient.childPughClass) {
+          results['Child-Pugh Classification'] = {
+            val: `Class ${patient.childPughClass} (Score: ${patient.childPughScore || 5})`,
+            range: `Estimated Operative Mortality: ${patient.operativeMortality || '2-10%'}`,
+            alert: patient.childPughClass !== 'A'
+          };
+        }
+        if (patient.meldScore !== undefined) {
+          results['MELD Score'] = {
+            val: patient.meldScore,
+            range: '6 - 40 (Lower is better)',
+            alert: patient.meldScore > 15
+          };
+        }
+        if (patient.encephalopathyGrade !== undefined) {
+          results['Hepatic Encephalopathy'] = {
+            val: `Grade ${patient.encephalopathyGrade}`,
+            range: patient.encephalopathyDescription || 'Normal mental status',
+            alert: patient.encephalopathyGrade > 0
+          };
+        }
       } else if (type === 'Thyroid') {
         const isHyper = patient.hyperthyroid || patient.thyroid === 'hyper';
         const isHypo = patient.hypothryoid || patient.thyroid === 'hypo';
@@ -1364,6 +1409,9 @@ export default function App() {
              formatTime={formatTime}
              setAccessModal={setAccessModal}
              generateLab={generateLab}
+             placeEpidural={handlePlaceEpidural}
+             removeEpidural={handleRemoveEpidural}
+             toggleCeliacBlock={handleToggleCeliacBlock}
           />
         </div>
         
@@ -1554,23 +1602,25 @@ export default function App() {
       )}
 
       {activeCase && (
-        <AttendingPanel
-          vitals={vitals}
-          patient={patient}
-          activeMeds={activeMeds}
-          surgicalPhase={surgicalPhase}
-          time={time}
-          logs={logs}
-          attendingMode={attendingMode}
-          setAttendingMode={setAttendingMode}
-          primaryGuidance={attendingGuidance.primaryGuidance}
-          fullAudit={attendingGuidance.fullAudit}
-          activeAlertsCount={attendingGuidance.activeAlertsCount}
-          formatTime={formatTime}
-          generateClinicalHint={generateClinicalHint}
-          onActionClick={handleExecuteClinicalAction}
-          nearFutureForecast={attendingGuidance.nearFutureForecast}
-        />
+        <Suspense fallback={null}>
+          <AttendingPanel
+            vitals={vitals}
+            patient={patient}
+            activeMeds={activeMeds}
+            surgicalPhase={surgicalPhase}
+            time={time}
+            logs={logs}
+            attendingMode={attendingMode}
+            setAttendingMode={setAttendingMode}
+            primaryGuidance={attendingGuidance.primaryGuidance}
+            fullAudit={attendingGuidance.fullAudit}
+            activeAlertsCount={attendingGuidance.activeAlertsCount}
+            formatTime={formatTime}
+            generateClinicalHint={generateClinicalHint}
+            onActionClick={handleExecuteClinicalAction}
+            nearFutureForecast={attendingGuidance.nearFutureForecast}
+          />
+        </Suspense>
       )}
 
     </div>

@@ -153,7 +153,7 @@ export const Pharmacopoeia = ({
   useEffect(() => {
     setTciMode('none');
     setTciTarget('');
-    if (medInput.drug === 'ketamine') {
+    if (medInput.drug === 'ketamine' || medInput.drug === 'esketamine') {
       setTciModel('Domino');
     } else {
       setTciModel('Schnider');
@@ -227,6 +227,7 @@ export const Pharmacopoeia = ({
   const GROUPS = {
     induction: [
       'dexmedetomidine',
+      'esketamine',
       'etomidate',
       'f3',
       'f6',
@@ -446,7 +447,7 @@ export const Pharmacopoeia = ({
               </button>
             </div>
 
-            {['propofol', 'ketamine'].includes(medId) && (
+            {['propofol', 'ketamine', 'esketamine'].includes(medId) && (
               <div className="flex flex-col gap-1.5 border-t border-slate-800/60 pt-2 mt-1 font-mono">
                 <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Target Controlled Infusion (TCI)</div>
                 <div className="flex gap-2">

@@ -188,13 +188,16 @@ describe('Respiratory & Blood Gas Engine Regression Tests', () => {
       }
 
       // Check remaining O2 buffers
-      // Healthy starting FRC was ~3.03 L. Apnea consumption = 250mL/min = 0.25 L/min = 4.167 mL/sec
+      // Healthy starting FRC was ~3.03 L preoxygenated, but paralysis triggers general
+      // anesthesia's further ~15% FRC reduction (Fig 13.13, Miller's 9th Ed) once the
+      // engine recruits FRC internally: 3.03 * 0.85 = 2.5755 L effective buffer ceiling.
+      // Apnea consumption = 250mL/min = 0.25 L/min = 4.167 mL/sec.
       // Over 120s, healthy patient consumes 120 * (0.25 / 60) = 0.50 L of oxygen.
-      // So healthy O2 buffer should be around 3.03 - 0.50 = 2.53 L.
-      // Obese starting FRC was ~1.92 L. Consumes same 0.50 L of oxygen.
-      // So obese O2 buffer should be around 1.92 - 0.50 = 1.42 L.
-      expect(healthyState.patient.oxygenBuffer).toBeCloseTo(2.53, 1);
-      expect(obeseState.patient.oxygenBuffer).toBeCloseTo(1.42, 1);
+      // So healthy O2 buffer should be around 2.5755 - 0.50 = 2.08 L.
+      // Obese starting FRC was ~1.92 L -> 1.92 * 0.85 = 1.632 L. Consumes same 0.50 L of oxygen.
+      // So obese O2 buffer should be around 1.632 - 0.50 = 1.13 L.
+      expect(healthyState.patient.oxygenBuffer).toBeCloseTo(2.08, 1);
+      expect(obeseState.patient.oxygenBuffer).toBeCloseTo(1.13, 1);
 
       // Both should still be very well saturated since preoxygenation was complete and buffers are > 1L.
       expect(healthyState.vitals.spo2).toBe(100);

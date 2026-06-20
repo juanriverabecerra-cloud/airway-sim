@@ -37,6 +37,11 @@ export class PKPDModel {
   dynamicV1: number = 0; // Dynamic central volume of distribution (L)
   infusionDurationSeconds: number = 0; // Cumulative duration of active infusion (seconds)
   csht: number = 0; // Context-sensitive half-time (minutes)
+  csdt80: number = 0; // Context-sensitive 80% decrement time (minutes)
+  patientAge: number = 40;
+  patientSex: string = 'male';
+  patientHeight: number = 170;
+  opioidToleranceMultiplier: number = 1.0;
 
   tciMode: 'none' | 'Cp' | 'Ce' = 'none';
   tciTarget: number = 0;
@@ -109,6 +114,11 @@ export class PKPDModel {
     const height = patient.height || 170;
     const sex = patient.sex || 'male';
 
+    this.patientAge = age;
+    this.patientSex = sex;
+    this.patientHeight = height;
+    this.opioidToleranceMultiplier = patient.opioidToleranceMultiplier || 1.0;
+
     if (modelName === 'Marsh') {
       this.pk.V1 = 0.228 * weight;
       this.pk.V2 = 0.363 * weight;
@@ -160,6 +170,30 @@ export class PKPDModel {
       this.pk.k21 = 0.2470;
       this.pk.k31 = 0.0146;
       this.pk.ke0 = 0.15;
+    } else if (modelName === 'Minto') {
+      // Calculate James LBM formula locally to avoid circular import dependency
+      const safeSex = typeof sex === 'string' && sex.trim().toLowerCase() === 'female' ? 'female' : 'male';
+      let lbm = 0;
+      if (safeSex === 'male') {
+        lbm = 1.10 * weight - 128.0 * Math.pow(weight / height, 2);
+      } else {
+        lbm = 1.07 * weight - 148.0 * Math.pow(weight / height, 2);
+      }
+      lbm = Math.max(15.0, Math.max(weight * 0.25, lbm)); // clamp LBM
+
+      // Minto equations centered at age 40 and LBM 55 kg (Miller's 9th Ed, Ch 18 p. 485)
+      this.pk.V1 = 5.1 - 0.0201 * (age - 40) + 0.072 * (lbm - 55);
+      this.pk.V2 = 9.82 - 0.0811 * (age - 40) + 0.108 * (lbm - 55);
+      this.pk.V3 = 5.42;
+      const Cl1 = 2.6 - 0.0162 * (age - 40) + 0.0191 * (lbm - 55);
+      const Cl2 = 2.05 - 0.0301 * (age - 40);
+      const Cl3 = 0.076 - 0.00113 * (age - 40);
+      this.pk.k10 = Cl1 / this.pk.V1;
+      this.pk.k12 = Cl2 / this.pk.V1;
+      this.pk.k13 = Cl3 / this.pk.V1;
+      this.pk.k21 = Cl2 / this.pk.V2;
+      this.pk.k31 = Cl3 / this.pk.V3;
+      this.pk.ke0 = 0.595 - 0.007 * (age - 40);
     }
   }
 
@@ -329,6 +363,21 @@ export class PKPDModel {
       this.csht = 0;
     }
 
+    // Calculate Context-Sensitive 80% Decrement Time (CSDT80) in minutes (Fig 18.16, Miller 9th Ed)
+    if (this.name === 'Remifentanil') {
+      this.csdt80 = 9.0;
+    } else if (this.name === 'Propofol') {
+      this.csdt80 = 10.0 + 120.0 * tInf / (tInf + 90.0);
+    } else if (this.name === 'Fentanyl') {
+      this.csdt80 = 30.0 + 600.0 * Math.pow(tInf, 1.1) / (Math.pow(tInf, 1.1) + 120.0);
+    } else if (this.name === 'Sufentanil') {
+      this.csdt80 = 20.0 + 320.0 * tInf / (tInf + 180.0);
+    } else if (this.name === 'Midazolam') {
+      this.csdt80 = 30.0 + 450.0 * tInf / (tInf + 150.0);
+    } else {
+      this.csdt80 = 0;
+    }
+
     // Dynamic V1 based on hemorrhage / massive fluid resuscitation and cardiac output (front-end recirculatory model)
     const dynamicV1 = Math.max(0.1, this.pk.V1 * safeV1VolumeRatio * (0.6 + 0.4 * safeCoRatio));
     this.dynamicV1 = dynamicV1;
@@ -393,18 +442,42 @@ export class PKPDModel {
 
     if (!this.pd) return effects;
 
+    // Age-dependent pharmacodynamic sensitivity scaling (Miller 9th Ed, Ch 18 p. 486)
+    let ageSens = 1.0;
+    const ageVal = this.patientAge || 40;
+    if (this.classes.includes('Sedative') || 
+        this.classes.includes('Hypnotic') || 
+        this.classes.includes('Dissociative') || 
+        this.classes.includes('Opioid') ||
+        this.classes.includes('Opioid (Ultra-short)')) {
+      if (this.name === 'Propofol') {
+        // Propofol sensitivity: 20yo -> 0.5, 80yo -> 1.4 (65% dose reduction relative to 20yo)
+        ageSens = 1.0 + (ageVal - 40) * 0.025;
+      } else if (this.classes.includes('Opioid') || this.classes.includes('Opioid (Ultra-short)')) {
+        // Opioid sensitivity: 20yo -> 0.64, 80yo -> 1.44 (55% dose reduction relative to 20yo)
+        ageSens = 1.0 + (ageVal - 40) * 0.018;
+      } else {
+        ageSens = 1.0 + (ageVal - 40) * 0.015;
+      }
+      ageSens = Math.max(0.2, Math.min(4.0, ageSens));
+    }
+
     let fraction = 0;
-    if (this.pd.c50 && this.pd.c50 > 0) {
+    let c50 = this.pd.c50;
+    if (this.classes.includes('Opioid') || this.classes.includes('Opioid (Ultra-short)')) {
+      c50 *= (this.opioidToleranceMultiplier || 1.0);
+    }
+    if (c50 && c50 > 0) {
       const gamma = Math.max(0.001, Math.min(100.0, this.pd.gamma || 1.0));
       const safeCe = Math.max(0, this.Ce); 
-      const activeCe = safeCe * pdSensitivityCoeff;
+      const activeCe = safeCe * pdSensitivityCoeff * ageSens;
       if (activeCe > 0) {
         // Base-ratio division to mathematically prevent floating point overflows to Infinity
-        if (activeCe >= this.pd.c50) {
-          const ratio = this.pd.c50 / activeCe;
+        if (activeCe >= c50) {
+          const ratio = c50 / activeCe;
           fraction = 1.0 / (1.0 + Math.pow(ratio, gamma));
         } else {
-          const ratio = activeCe / this.pd.c50;
+          const ratio = activeCe / c50;
           const power = Math.pow(ratio, gamma);
           fraction = power / (1.0 + power);
         }

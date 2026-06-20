@@ -32,6 +32,13 @@ describe('Chapter 9 Consciousness, Connectivities, and Memory Systems Unit Tests
     hippocampalThetaFreq: 7.0,
     hippocampalThetaPower: 1.0,
     amygdaloHippocampalConn: 1.0,
+    rightAmygdaloHippocampalConn: 1.0,
+    leftAmygdaloHippocampalConn: 1.0,
+    nbmHippocampalConn: 1.0,
+    soPhaseCouplingDecay: 0.0,
+    hippocampalRecollection: 1.0,
+    perirhinalFamiliarity: 1.0,
+    caudateProcedural: 1.0,
     neuralInertiaLag: 0.0,
     alpha5Knockout: false,
     alpha4Knockout: false,
@@ -113,4 +120,44 @@ describe('Chapter 9 Consciousness, Connectivities, and Memory Systems Unit Tests
     expect(outputBRes.alpha5GabaaOccupancy).toBe(0.0);
     expect(outputBRes.ltpInductionInhibited).toBe(false);
   });
+
+  it('should verify Sevoflurane 0.25% (0.125 MAC) removes right amygdala and NBM positive influence on hippocampus but spares left amygdala', () => {
+    const patient = createBaselinePatient();
+    const inputs = createBaselineInputs();
+    inputs.sevoMac = 0.125; // 0.25% sevoflurane
+
+    const output = ConsciousnessEngine.tick(1, patient, {}, inputs);
+
+    expect(output.rightAmygdaloHippocampalConn).toBeCloseTo(0.0, 2);
+    expect(output.nbmHippocampalConn).toBeCloseTo(0.0, 2);
+    expect(output.leftAmygdaloHippocampalConn).toBeGreaterThan(0.4);
+  });
+
+  it('should verify Propofol induces slow oscillation phase coupling decay rapidly', () => {
+    let patient = createBaselinePatient();
+    const inputs = createBaselineInputs();
+    inputs.propofolCe = 2.0;
+
+    // Run for 10 seconds to allow slow oscillation power to build up
+    for (let t = 0; t < 10; t++) {
+      const output = ConsciousnessEngine.tick(1, patient, {}, inputs);
+      Object.assign(patient, output);
+    }
+
+    expect(patient.slowOscillationPower).toBeGreaterThan(4.0);
+    expect(patient.soPhaseCouplingDecay).toBeGreaterThan(0.7);
+  });
+
+  it('should verify recollection memory is highly sensitive to low-dose propofol while familiarity and procedural memory are spared', () => {
+    const patient = createBaselinePatient();
+    const inputs = createBaselineInputs();
+    inputs.propofolCe = 0.35; // Light sedative dose
+
+    const output = ConsciousnessEngine.tick(1, patient, {}, inputs);
+
+    expect(output.hippocampalRecollection).toBeLessThan(0.3);
+    expect(output.perirhinalFamiliarity).toBeGreaterThan(0.6);
+    expect(output.caudateProcedural).toBeGreaterThan(0.8);
+  });
 });
+

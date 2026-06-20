@@ -1,7 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
-import { PDFParse } from 'pdf-parse';
+import { PipelineOrchestrator } from '../orchestrator.ts';
+import { TokenOptimizer } from './token_optimizer.ts';
+import { KnowledgeStore } from '../store.ts';
 
 let dirname = '';
 try {
@@ -10,45 +12,14 @@ try {
   dirname = path.dirname(fileURLToPath(import.meta.url));
 }
 
-async function parseSinglePdf(pdfPath: string, filename: string): Promise<any> {
-  const buffer = fs.readFileSync(pdfPath);
-  const pdf = new PDFParse({ data: new Uint8Array(buffer) });
-  await pdf.load();
-  const result = await pdf.getText();
-
-  const fragments = result.pages.map((p: any) => {
-    const pageNumStr = String(p.num).padStart(3, '0');
-    return {
-      id: `PAGE_${pageNumStr}`,
-      sourceFile: filename,
-      pageNumber: p.num,
-      contentType: 'text',
-      rawText: p.text,
-      characterCount: p.text.length,
-      parsedSections: []
-    };
-  });
-
-  return {
-    parse_metadata: {
-      source_file: filename,
-      source_path: pdfPath,
-      file_size_bytes: buffer.length,
-      file_type: '.pdf',
-      parsed_at: new Date().toISOString(),
-      parser_version: '3.0.0 (pdf-parse)',
-      total_pages: result.total,
-      total_characters_extracted: fragments.reduce((sum: number, f: any) => sum + f.characterCount, 0),
-      extraction_success: true,
-      warnings: []
-    },
-    fragments,
-    visual_data_engines: []
-  };
-}
-
 async function main() {
-  const args = process.argv.slice(2);
+  const rawArgs = process.argv.slice(2);
+  // --force re-processes every matched PDF regardless of the JSON's mtime —
+  // needed after a parser code change, since the source PDFs themselves
+  // haven't changed (mtime-based skip only catches a changed PDF, not a
+  // changed parser).
+  const force = rawArgs.includes('--force');
+  const args = rawArgs.filter(a => a !== '--force');
   const sourceMaterialDir = path.resolve(dirname, '../../airway_ingest/source_material');
   const parsedTextsDir = path.resolve(dirname, '../../parsed texts');
 
@@ -65,14 +36,14 @@ async function main() {
   if (args.length === 0) {
     console.log(`Scanning default directory: ${sourceMaterialDir} for new/modified PDFs...`);
     const files = fs.readdirSync(sourceMaterialDir).filter(f => f.toLowerCase().endsWith('.pdf'));
-    
+
     for (const file of files) {
       const pdfPath = path.join(sourceMaterialDir, file);
       const jsonFilename = file.replace(/\.pdf$/i, '') + '.json';
       const jsonPath = path.join(parsedTextsDir, jsonFilename);
 
       let needsProcessing = true;
-      if (fs.existsSync(jsonPath)) {
+      if (!force && fs.existsSync(jsonPath)) {
         const pdfStat = fs.statSync(pdfPath);
         const jsonStat = fs.statSync(jsonPath);
         if (jsonStat.mtimeMs >= pdfStat.mtimeMs) {
@@ -91,7 +62,7 @@ async function main() {
         console.error(`ERROR: Path not found: ${resolved}`);
         process.exit(1);
       }
-      
+
       const stat = fs.statSync(resolved);
       if (stat.isFile()) {
         if (resolved.toLowerCase().endsWith('.pdf')) {
@@ -108,7 +79,7 @@ async function main() {
           const jsonPath = path.join(parsedTextsDir, jsonFilename);
 
           let needsProcessing = true;
-          if (fs.existsSync(jsonPath)) {
+          if (!force && fs.existsSync(jsonPath)) {
             const pdfStat = fs.statSync(pdfPath);
             const jsonStat = fs.statSync(jsonPath);
             if (jsonStat.mtimeMs >= pdfStat.mtimeMs) {
@@ -131,57 +102,72 @@ async function main() {
 
   console.log(`Found ${toProcess.length} PDF(s) needing parsing/ingestion.`);
 
-  const processedJsonPaths: string[] = [];
+  // Every insertProse/insertMatrix call normally re-saves the whole database
+  // to disk (a multi-megabyte export+write). For a batch of many chapters
+  // that dominates runtime, so defer it and flush periodically/at the end
+  // instead. flush() still runs the same per-row INSERTs into the in-memory
+  // db immediately — only the disk write is batched.
+  await KnowledgeStore.init();
+  KnowledgeStore.setDeferSave(true);
+
+  const orchestrator = new PipelineOrchestrator();
+  let successCount = 0;
+  let failureCount = 0;
 
   for (const item of toProcess) {
     console.log(`\nParsing: ${item.filename}...`);
+
+    const jsonFilename = item.filename.replace(/\.pdf$/i, '') + '.json';
+    const outputPath = path.join(parsedTextsDir, jsonFilename);
+
+    // Copy PDF to source_material folder if parsed from outside, so future
+    // mtime-based "needs processing" checks work against a stable location.
+    const targetPdfPath = path.join(sourceMaterialDir, item.filename);
+    if (path.resolve(item.pdfPath) !== path.resolve(targetPdfPath)) {
+      fs.copyFileSync(item.pdfPath, targetPdfPath);
+      console.log(`  Copied source PDF to: ${targetPdfPath}`);
+    }
+
+    // skipFinalize: true — defer the global reindex/deploy/snapshot step until
+    // the whole batch is done, instead of repeating it after every single file.
+    const ok = await orchestrator.run(item.pdfPath, outputPath, { skipFinalize: true });
+    if (ok) {
+      successCount++;
+    } else {
+      failureCount++;
+      console.error(`✗ Failed parsing ${item.filename}.`);
+    }
+
+    // Periodic safety checkpoint: if a long batch dies partway through,
+    // don't lose everything ingested so far.
+    if (successCount > 0 && successCount % 10 === 0) {
+      KnowledgeStore.flush();
+      console.log(`  [CHECKPOINT] Flushed database after ${successCount} chapters.`);
+    }
+  }
+
+  console.log(`\n[BATCH SUMMARY] ${successCount} succeeded, ${failureCount} failed.`);
+
+  // Stop deferring before recalculateAuthority/deploy — both need the actual
+  // disk write to happen for real now.
+  KnowledgeStore.setDeferSave(false);
+
+  if (successCount > 0) {
+    console.log('\n[AUTO-HYDRATION] Re-indexing and compiling database snapshot...');
     try {
-      const outputJson = await parseSinglePdf(item.pdfPath, item.filename);
-      const jsonFilename = item.filename.replace(/\.pdf$/i, '') + '.json';
-      const outputPath = path.join(parsedTextsDir, jsonFilename);
-      
-      fs.writeFileSync(outputPath, JSON.stringify(outputJson, null, 2), 'utf-8');
-      console.log(`✓ Saved structured JSON to: ${outputPath}`);
-
-      // Copy PDF to source_material folder if parsed from outside
-      const targetPdfPath = path.join(sourceMaterialDir, item.filename);
-      if (path.resolve(item.pdfPath) !== path.resolve(targetPdfPath)) {
-        fs.copyFileSync(item.pdfPath, targetPdfPath);
-        console.log(`✓ Copied source PDF to: ${targetPdfPath}`);
-      }
-
-      processedJsonPaths.push(outputPath);
+      TokenOptimizer.compileGlobalDatabaseAndIndex();
+      console.log('\n======================================================================');
+      console.log(`Ingestion Complete! The simulator has successfully updated the database.`);
+      console.log('======================================================================\n');
     } catch (err: any) {
-      console.error(`✗ Failed parsing ${item.filename}:`, err.message);
+      console.error('✗ Ingestion Compilation Failed:', err.message);
+      KnowledgeStore.close();
       process.exit(1);
     }
   }
 
-  console.log('\n[AUTO-HYDRATION] Re-indexing and compiling database snapshot...');
-  try {
-    const { TokenOptimizer } = await import('./token_optimizer.ts');
-    const { KnowledgeStore } = await import('../store.ts');
-
-    await KnowledgeStore.init();
-
-    // Ingest each newly parsed json document into SQLite database
-    for (const jsonPath of processedJsonPaths) {
-      const doc = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
-      TokenOptimizer.optimizeAndInsert(doc);
-    }
-
-    // Run global authority rank recalculation, deployment, and indexing ONCE at the end
-    TokenOptimizer.compileGlobalDatabaseAndIndex();
-
-    KnowledgeStore.close();
-
-    console.log('\n======================================================================');
-    console.log(`Ingestion Complete! The simulator has successfully updated the database.`);
-    console.log('======================================================================\n');
-  } catch (err: any) {
-    console.error('✗ Ingestion Compilation Failed:', err.message);
-    process.exit(1);
-  }
+  KnowledgeStore.close();
+  process.exit(failureCount > 0 ? 1 : 0);
 }
 
 main();

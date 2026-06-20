@@ -7,6 +7,7 @@ export interface GastrointestinalPatientState {
   hasAspirated?: boolean;
   manipulationIndex?: number; // 1.0 for open, 0.3 for laparoscopic, 0.0 for none
   epiduralBlockActive?: boolean;
+  epiduralLevel?: number; // Thoracic dermatome of catheter insertion (e.g. 8 for T8)
   celiacBlockActive?: boolean;
   swallowingActive?: boolean;
 }
@@ -31,6 +32,12 @@ export interface GastrointestinalOutput {
   hasAspirated: boolean;
   events: string[];
 }
+
+import { calculateDermatomalBlockFraction } from './Pharmacology.js';
+
+// TABLE 15.2, Miller's 9th Ed: small bowel, cecum, ascending and transverse colon (the
+// principal substrate of postoperative ileus) are supplied T9-L1 via the celiac plexus.
+const GUT_ILEUS_RANGE: [number, number] = [9, 13]; // T9 .. L1 (L1 = 13 on a T1-T12,L1-L5 scale)
 
 export class GastrointestinalEngine {
   /**
@@ -121,23 +128,42 @@ export class GastrointestinalEngine {
     const sparingFactor = 1.0 - 0.40 * Math.max(acetEff, ketoEff);
     const gutOpioidBlock = opioidBlock * sparingFactor;
 
-    // Sympathetic block
+    // Sympathetic block. Celiac plexus block targets the celiac ganglion directly (Fig 15.4/
+    // 15.5, Miller's 9th Ed) — the final common sympathetic relay for "the majority of the GI
+    // tract up to the rectum" (Fig 15.1 caption) — so it is modeled as complete splanchnic
+    // block. A thoracic epidural's effect is graded by dermatomal overlap with the gut's
+    // ileus-relevant innervation (TABLE 15.2) via `epiduralLevel`.
     const epiduralActive = !!patient.epiduralBlockActive;
     const celiacActive = !!patient.celiacBlockActive;
-    const sympatheticBlock = (epiduralActive || celiacActive) ? 1.0 : 0.0;
+    const epiduralCoverageFraction = epiduralActive
+      ? calculateDermatomalBlockFraction(patient.epiduralLevel, GUT_ILEUS_RANGE[0], GUT_ILEUS_RANGE[1])
+      : 0.0;
+    const sympatheticBlock = celiacActive ? 1.0 : epiduralCoverageFraction;
     
     const sympatheticInhibition = Math.min(0.9, 0.4 * (safeCcat / 40.0) * (1.0 - sympatheticBlock));
 
     // Inflammatory ileus accumulation (based on manipulation and epidural protection)
     let inflammatoryIleus = typeof vitals.inflammatoryIleus === 'number' && Number.isFinite(vitals.inflammatoryIleus) ? vitals.inflammatoryIleus : 0.0;
     const manipulationIndex = typeof patient.manipulationIndex === 'number' && Number.isFinite(patient.manipulationIndex) ? patient.manipulationIndex : 0.0;
-    const epiduralAnalgesiaBonus = epiduralActive ? 0.36 : 0.0; // Cochrane review: 36h reduction
+    // Cochrane review: thoracic epidural analgesia for abdominal surgery reduces ileus duration
+    // by ~36h, but only when the catheter level actually covers the operated gut segment's
+    // sympathetic supply — scaled by dermatomal coverage rather than treated as all-or-nothing.
+    const epiduralAnalgesiaBonus = 0.36 * (celiacActive ? 1.0 : epiduralCoverageFraction);
     
     const dInflam = 0.00015 * manipulationIndex * (1.0 - epiduralAnalgesiaBonus);
     inflammatoryIleus = Math.max(0.0, Math.min(1.0, inflammatoryIleus + dInflam * safeDt));
 
+    // Direct volatile depression of GI smooth muscle/enteric neuron activity (Ch15, Miller's
+    // 9th Ed: "Volatile anesthetics depress the spontaneous, electrical... bowel activity";
+    // propofol-remifentanil TIVA produced greater intestinal motility than sevoflurane-
+    // remifentanil in head-to-head studies). This is mechanistically distinct from the systemic
+    // opioid-receptor and sympathetic-stress pathways above. No specific percentage is given in
+    // the source text, so this reuses the same dose-coefficient (0.3/MAC) already established
+    // for volatile depression of LES tone elsewhere in this engine, rather than inventing a new one.
+    const volatileMotilityDepression = Math.min(0.6, 0.3 * safeMac);
+
     // Gut motility calculation
-    const gutMotility = (1.0 - gutOpioidBlock) * (1.0 - sympatheticInhibition) * (1.0 - inflammatoryIleus);
+    const gutMotility = (1.0 - gutOpioidBlock) * (1.0 - sympatheticInhibition) * (1.0 - inflammatoryIleus) * (1.0 - volatileMotilityDepression);
 
     // Postoperative Ileus hours (reduced by up to 25% by nonopioids)
     let postoperativeIleus = typeof vitals.postoperativeIleus === 'number' && Number.isFinite(vitals.postoperativeIleus) ? vitals.postoperativeIleus : 0.0;

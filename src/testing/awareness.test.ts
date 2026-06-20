@@ -55,6 +55,13 @@ describe('Connected Intraoperative Awareness & Cognitive Crises Unit Tests', () 
     hippocampalThetaFreq: 7.0,
     hippocampalThetaPower: 1.0,
     amygdaloHippocampalConn: 1.0,
+    rightAmygdaloHippocampalConn: 1.0,
+    leftAmygdaloHippocampalConn: 1.0,
+    nbmHippocampalConn: 1.0,
+    soPhaseCouplingDecay: 0.0,
+    hippocampalRecollection: 1.0,
+    perirhinalFamiliarity: 1.0,
+    caudateProcedural: 1.0,
     neuralInertiaLag: 0.0,
     alpha5Knockout: false,
     alpha4Knockout: false,
@@ -171,9 +178,13 @@ describe('Connected Intraoperative Awareness & Cognitive Crises Unit Tests', () 
     }
 
     let retrogradeFacilitationRatio = 1.0;
+    const ketamineCe = inputs.ketamineCe || 0;
+    const dexmedCe = inputs.dexmedCe || 0;
     if (patient.preopMemoryEncoded) {
-        if ((propofolCe > 0.01 && propofolCe < 0.5) || (midazolamCe > 0.001 && midazolamCe < 0.05)) {
+        if ((propofolCe > 0.01 && propofolCe < 0.5) || (midazolamCe > 0.001 && midazolamCe < 0.05) || (ketamineCe > 0.01 && ketamineCe < 0.5)) {
             retrogradeFacilitationRatio = 1.3;
+        } else if (dexmedCe > 0.01) {
+            retrogradeFacilitationRatio = 0.7;
         }
     }
 
@@ -190,12 +201,17 @@ describe('Connected Intraoperative Awareness & Cognitive Crises Unit Tests', () 
 
     if (reconsolidationWindowOpen) {
         reconsolidationTimer = Math.max(0, reconsolidationTimer - 1);
-        const isEraseAgentPresent = midazolamCe > 0.01 || (sevoMac > 0.05 && sevoMac < 0.3);
+        const isEraseAgentPresent = midazolamCe > 0.01 || (sevoMac >= 0.10 && sevoMac < 0.3);
         if (isEraseAgentPresent) {
             fearConditioning = Math.max(0.0, fearConditioning - 0.005);
             if (fearConditioning === 0.0 && !fearExtinguished) {
                 fearExtinguished = true;
             }
+        }
+
+        const isSevoEnhancePresent = sevoMac >= 0.04 && sevoMac <= 0.08;
+        if (isSevoEnhancePresent && !fearExtinguished) {
+            fearConditioning = Math.min(2.0, fearConditioning + 0.002);
         }
     }
 
@@ -323,5 +339,40 @@ describe('Connected Intraoperative Awareness & Cognitive Crises Unit Tests', () 
 
     expect(patient.fearConditioning).toBe(0.0);
     expect(patient.fearExtinguished).toBe(true);
+  });
+
+  it('should verify Ketamine enhances retrograde facilitation, whereas Dexmedetomidine reduces it', () => {
+    const patientA = createBaselinePatient();
+    const vitalsA = createBaselineVitals();
+    const inputsA = createBaselineInputs();
+    inputsA.ketamineCe = 0.2; // Ketamine in retrograde range
+
+    runAwarenessLogic(patientA, vitalsA, inputsA, 0.0, 'Pre-Op');
+    expect(patientA.retrogradeFacilitationRatio).toBe(1.3);
+
+    const patientB = createBaselinePatient();
+    const vitalsB = createBaselineVitals();
+    const inputsB = createBaselineInputs();
+    inputsB.dexmedCe = 0.5; // Dexmedetomidine in preop
+
+    runAwarenessLogic(patientB, vitalsB, inputsB, 0.0, 'Pre-Op');
+    expect(patientB.retrogradeFacilitationRatio).toBe(0.7);
+  });
+
+  it('should verify very low-dose Sevoflurane (0.11% / 0.055 MAC) enhances fear conditioning during reconsolidation', () => {
+    const patient = createBaselinePatient();
+    const vitals = createBaselineVitals();
+    const inputs = createBaselineInputs();
+    inputs.sevoMac = 0.055; // 0.11% Sevoflurane
+
+    patient.fearMemoryRetrieved = true;
+
+    // Run a few ticks to verify build up
+    runAwarenessLogic(patient, vitals, inputs, 0.0, 'Pre-Op');
+    const initialFear = patient.fearConditioning;
+    expect(initialFear).toBe(1.002); // starts at 1.0 upon retrieval, enhanced by 0.002 on tick
+
+    runAwarenessLogic(patient, vitals, inputs, 0.0, 'Pre-Op');
+    expect(patient.fearConditioning).toBeGreaterThan(initialFear);
   });
 });

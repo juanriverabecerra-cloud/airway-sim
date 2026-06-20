@@ -15,6 +15,7 @@ export interface RenalPatientState {
   baselineBun?: number;
   vasopressinLevel?: number;
   aldosteroneLevel?: number;
+  angiotensinIILevel?: number;
   osm?: number;
   hasAki?: boolean;
   hasPrerenalOliguria?: boolean;
@@ -31,6 +32,21 @@ export interface RenalPatientState {
   renalFailure?: boolean;
   isRenal?: boolean;
   age?: number;
+  albumin?: number; // Added for glomerular pressures calculation
+  mapUnder60Time?: number;
+  mapUnder55Time?: number;
+  mapUnder60AlertTriggered?: boolean;
+  mapUnder55AlertTriggered?: boolean;
+  cortexRbf?: number;
+  medullaRbf?: number;
+  cortexPo2?: number;
+  medullaPo2?: number;
+  cortexO2Extraction?: number;
+  medullaO2Extraction?: number;
+  glomerularCapillaryPressure?: number;
+  bowmanSpacePressure?: number;
+  glomerularOncoticPressure?: number;
+  netFiltrationPressure?: number;
 }
 
 export interface RenalVitalsState {
@@ -48,7 +64,13 @@ export interface RenalVitalsState {
   uopAnuriaTimer?: number;
   vasopressinLevel?: number;
   aldosteroneLevel?: number;
+  angiotensinIILevel?: number;
   osm?: number;
+  spo2?: number; // Added for renal PO2 calculations
+  mapUnder60Time?: number;
+  mapUnder55Time?: number;
+  mapUnder60AlertTriggered?: boolean;
+  mapUnder55AlertTriggered?: boolean;
 }
 
 export interface RenalOutput {
@@ -66,12 +88,29 @@ export interface RenalOutput {
   uopAnuriaTimer: number;
   vasopressinLevel: number;
   aldosteroneLevel: number;
+  angiotensinIILevel: number;
   osm: number;
   hasAki: boolean;
   hasPrerenalOliguria: boolean;
   hasFluidOverloadEdema: boolean;
   events: string[];
   fluidOverloadEdemaRolled?: boolean;
+  
+  // Chapter 17 specific variables
+  mapUnder60Time: number;
+  mapUnder55Time: number;
+  mapUnder60AlertTriggered: boolean;
+  mapUnder55AlertTriggered: boolean;
+  cortexRbf: number;
+  medullaRbf: number;
+  cortexPo2: number;
+  medullaPo2: number;
+  cortexO2Extraction: number;
+  medullaO2Extraction: number;
+  glomerularCapillaryPressure: number;
+  bowmanSpacePressure: number;
+  glomerularOncoticPressure: number;
+  netFiltrationPressure: number;
 }
 
 export class RenalEngine {
@@ -158,27 +197,36 @@ export class RenalEngine {
     
     const rbf = Math.max(30.0, Math.min(1600.0, 1100.0 * coRatio * finalRbfAuto * finalVasoScale * (1.0 - 0.4 * akiDamage)));
 
-    // 4. Glomerular Filtration Rate (GFR) Autoregulation & Hormonal Maintenance
-    let gfrAuto = 1.0;
-    if (rpp < 80.0) {
-      gfrAuto = Math.max(0.0, (rpp - 45.0) / 35.0); // GFR ceases when filtration pressure ceases (MAP ~ 50 mmHg, RPP ~ 45 mmHg)
-    } else if (rpp > 180.0) {
-      gfrAuto = 1.0 + ((rpp - 180.0) / 180.0) * 0.1;
-    }
-    gfrAuto = Math.min(1.3, gfrAuto);
-
-    // GFR PEEP transmission penalty
-    const gfrPeep = Math.max(0.55, 1.0 - 0.018 * peep);
-    
-    // GFR anesthetic MAC penalty (depresses GFR dose-dependently)
+    // 4. Glomerular Filtration Rate (GFR) physics-based model (Table 17.2, Fig 17.8, Miller's 9th Ed)
     const gfrMac = Math.max(0.4, 1.0 - 0.25 * currentMac);
-
-    // Efferent arteriolar constriction (AVP / Ang II) maintains filtration pressure when RBF drops
     const avpCe = vasopressinModel ? vasopressinModel.Ce : 0.0;
     const efferentVasoconstriction = Math.min(0.25, (avpCe * 5.0 + symp * 0.4) * (1.0 - currentMac * 0.5));
     const gfrEfferentMod = 1.0 + efferentVasoconstriction;
 
-    const gfr = Math.max(0.0, Math.min(180.0, 125.0 * gfrAuto * gfrPeep * gfrMac * gfrEfferentMod * (1.0 - akiDamage)));
+    // Glomerular Capillary Pressure (P_gc) with Autoregulation (Table 17.2, Fig 17.8/17.9)
+    let pGcAuto = 1.0;
+    if (inputs.map < 90.0) {
+      // Linear decrease from normal MAP=90 (pGc=60) down to MAP=50 (pGc=46.8, where NFP becomes 0)
+      pGcAuto = Math.max(0.78, 0.78 + 0.22 * ((inputs.map - 50.0) / 40.0));
+    } else if (inputs.map > 180.0) {
+      pGcAuto = 1.0 + ((inputs.map - 180.0) / 180.0) * 0.1;
+    }
+    const passivePgScale = inputs.map / 100.0;
+    const finalPgScale = autoregEffect * pGcAuto + (1.0 - autoregEffect) * passivePgScale;
+    const pGc = Math.max(0.0, Math.min(120.0, 60.0 * finalPgScale * gfrEfferentMod * finalVasoScale * gfrMac));
+
+    // Bowman Space Hydrostatic Pressure (P_bs)
+    const pBs = 18.0 + 0.5 * peep;
+
+    // Glomerular Oncotic Pressure (pi_gc)
+    const albumin = typeof patient.albumin === 'number' && Number.isFinite(patient.albumin) ? patient.albumin : 4.0;
+    const piGc = 32.0 * (albumin / 4.0);
+
+    // Net Filtration Pressure (NFP)
+    const nfp = Math.max(0.0, pGc - pBs - piGc);
+
+    // GFR Calculation (directly proportional to NFP)
+    const gfr = Math.max(0.0, Math.min(180.0, 12.5 * nfp * (1.0 - akiDamage)));
 
     // 5. Plasma Osmolality (Osm)
     const electrolytes = st.electrolytes || { na: 140.0, k: 4.0 };
@@ -196,6 +244,12 @@ export class RenalEngine {
     
     const vasopressinLevel = Math.max(0.05, Math.min(1.0, 0.1 + (osm - 280.0) / 20.0 + avpVol + avpStress));
     const aldosteroneLevel = Math.max(0.05, Math.min(1.0, 0.1 + 0.65 * symp + 0.25 * vasopressinLevel));
+    // Renin-Angiotensin II: the proximate RAAS secretagogue for aldosterone release, driven by the
+    // same sympathetic/hypovolemic afferents already used above (juxtaglomerular beta-1 stimulation
+    // and reduced renal perfusion). Exposed separately because Table 14.1 (Miller's 9th Ed) lists a
+    // direct +inotropy/+chronotropy cardiac action for Angiotensin distinct from Aldosterone (whose
+    // cardiac action cell is blank/mineralocorticoid-only) — see CardiovascularEngine.ts.
+    const angiotensinIILevel = Math.max(0.05, Math.min(1.0, 0.1 + 0.7 * symp + 0.5 * avpVol));
 
     // 7. Urine Output (UOP) Flow rate
     const furosemideModel = activeMeds.find(m => m.name === 'Furosemide');
@@ -213,6 +267,15 @@ export class RenalEngine {
     const urineOutput = parseFloat(Math.max(0.0, prevUop + (uopMlMin * (safeDt / 60.0))).toFixed(2));
     const urineOutputRate = parseFloat((uopMlMin * 60.0).toFixed(2));
 
+    // Cortical vs. Medullary perfusion & oxygenation (Table 17.1, Miller's 9th Ed)
+    const cortexRbf = 0.94 * rbf;
+    const medullaRbf = 0.06 * rbf;
+    const spo2 = typeof vitals.spo2 === 'number' && Number.isFinite(vitals.spo2) ? vitals.spo2 : 98.0;
+    const cortexPo2 = Math.max(0.0, Math.min(100.0, 50.0 * (cortexRbf / 1034.0) * (spo2 / 98.0)));
+    const medullaPo2 = Math.max(0.0, Math.min(25.0, 8.0 * (medullaRbf / 66.0) * (spo2 / 98.0)));
+    const cortexO2Extraction = Math.max(0.0, Math.min(1.0, 0.18 * (1034.0 / Math.max(50.0, cortexRbf))));
+    const medullaO2Extraction = Math.max(0.0, Math.min(1.0, 0.79 + 0.16 * Math.max(0.0, 1.0 - (medullaRbf / 66.0))));
+
     // 8. AKI Staging and Damage Accumulation
     let dDamage = 0.0;
     
@@ -222,6 +285,34 @@ export class RenalEngine {
     }
     if (inputs.map < 55.0) {
       dDamage += ((55.0 - inputs.map) / 5.0) * 0.00045;
+    }
+
+    // Cumulative Hypotension AKI Thresholds (Ch 17, Miller's 9th Ed)
+    let mapUnder60Time = typeof patient.mapUnder60Time === 'number' ? patient.mapUnder60Time : 0.0;
+    let mapUnder55Time = typeof patient.mapUnder55Time === 'number' ? patient.mapUnder55Time : 0.0;
+    let mapUnder60AlertTriggered = !!patient.mapUnder60AlertTriggered;
+    let mapUnder55AlertTriggered = !!patient.mapUnder55AlertTriggered;
+
+    if (inputs.map < 60.0) {
+      mapUnder60Time += safeDt * 60;
+    }
+    if (inputs.map < 55.0) {
+      mapUnder55Time += safeDt * 60;
+    }
+
+    if (mapUnder60Time > 11 * 60) {
+      if (!mapUnder60AlertTriggered) {
+        mapUnder60AlertTriggered = true;
+        events.push("🚨 CLINICAL WARNING: Cumulative exposure to MAP < 60 mmHg has exceeded 11 minutes (Kheterpal et al., Anesthesiology 2007). Ischemic renal tubular stress is active, increasing the risk of Acute Kidney Injury.");
+      }
+      dDamage += 0.003;
+    }
+    if (mapUnder55Time > 10 * 60) {
+      if (!mapUnder55AlertTriggered) {
+        mapUnder55AlertTriggered = true;
+        events.push("🚨 CLINICAL WARNING: Cumulative exposure to MAP < 55 mmHg has exceeded 10 minutes (Kheterpal et al., Anesthesiology 2007). Accelerating ischemic injury to renal parenchyma.");
+      }
+      dDamage += 0.003;
     }
 
     // Nephrotoxins & Pigment injury
@@ -350,12 +441,27 @@ export class RenalEngine {
       uopAnuriaTimer,
       vasopressinLevel: parseFloat(vasopressinLevel.toFixed(3)),
       aldosteroneLevel: parseFloat(aldosteroneLevel.toFixed(3)),
+      angiotensinIILevel: parseFloat(angiotensinIILevel.toFixed(3)),
       osm: parseFloat(osm.toFixed(2)),
       hasAki,
       hasPrerenalOliguria,
       hasFluidOverloadEdema,
       events,
-      fluidOverloadEdemaRolled
+      fluidOverloadEdemaRolled,
+      mapUnder60Time,
+      mapUnder55Time,
+      mapUnder60AlertTriggered,
+      mapUnder55AlertTriggered,
+      cortexRbf: parseFloat(cortexRbf.toFixed(2)),
+      medullaRbf: parseFloat(medullaRbf.toFixed(2)),
+      cortexPo2: parseFloat(cortexPo2.toFixed(2)),
+      medullaPo2: parseFloat(medullaPo2.toFixed(2)),
+      cortexO2Extraction: parseFloat(cortexO2Extraction.toFixed(4)),
+      medullaO2Extraction: parseFloat(medullaO2Extraction.toFixed(4)),
+      glomerularCapillaryPressure: parseFloat(pGc.toFixed(2)),
+      bowmanSpacePressure: parseFloat(pBs.toFixed(2)),
+      glomerularOncoticPressure: parseFloat(piGc.toFixed(2)),
+      netFiltrationPressure: parseFloat(nfp.toFixed(2))
     };
   }
 }

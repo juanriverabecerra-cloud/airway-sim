@@ -76,7 +76,10 @@ export function evaluateAttendingGuidance(params) {
   // Active drugs concentration levels
   const propofolCe = activeMeds.find(m => m.name === 'Propofol')?.Ce || 0;
   const etomidateCe = activeMeds.find(m => m.name === 'Etomidate')?.Ce || 0;
-  const ketamineCe = activeMeds.find(m => m.name === 'Ketamine')?.Ce || 0;
+  // Esketamine (S(+)-isomer) is 3-4x more potent than racemic ketamine (Ch23, Miller's 9th Ed);
+  // its Ce is converted to a racemic-equivalent concentration (midpoint ratio 3.5x) for this
+  // generic "is a ketamine-class drug active" check.
+  const ketamineCe = (activeMeds.find(m => m.name === 'Ketamine')?.Ce || 0) + (activeMeds.find(m => m.name === 'Esketamine')?.Ce || 0) * 3.5;
 
   const rocuroniumCe = activeMeds.find(m => m.name === 'Rocuronium')?.Ce || 0;
   const succinylcholineCe = activeMeds.find(m => m.name === 'Succinylcholine')?.Ce || 0;

@@ -310,6 +310,16 @@ export class TokenOptimizer {
     // Recalculate authority mappings (Miller > other, newer > older)
     KnowledgeStore.recalculateAuthority();
 
+    // Reclaim space from this run's DELETE+re-INSERT cycles before deploying —
+    // otherwise the shipped file carries free-list bloat from every chapter
+    // that was just cleared and re-ingested.
+    console.log(`  [DATABASE VACUUM] Reclaiming free space from re-ingestion...`);
+    try {
+      KnowledgeStore.vacuum();
+    } catch (vacuumErr: any) {
+      console.error(`  [VACUUM ERROR] Failed to vacuum database: ${vacuumErr.message}`);
+    }
+
     // 3. Copy SQLite database to public asset directory for client availability
     console.log(`  [DATABASE DEPLOYMENT] Deploying SQLite database asset to public/ folder...`);
     try {

@@ -319,4 +319,143 @@ describe('Chapter 17 Renal Physiology and Pathophysiology Unit Tests', () => {
       expect(outOverload.pip).toBeGreaterThan(outNormal.pip);
     });
   });
+
+  describe('Chapter 17 Renal Microenvironment & Pressures', () => {
+    it('should calculate glomerular capillary, Bowman space, and oncotic pressures correctly', () => {
+      const patient = { weight: 70.0, albumin: 4.0 };
+      const vitals = {};
+      const outputNormal = RenalEngine.tick(1, { patient, vitals, time: 0 }, [], {
+        coRatio: 1.0,
+        map: 100.0,
+        sys: 130.0,
+        cvp: 5.0,
+        peep: 0.0,
+        temp: 37.0,
+        currentMac: 0.0,
+        C_cat: 0.0,
+        ebl: 0.0,
+        ebv: 5000.0,
+        netFluidBalance: 0.0
+      });
+
+      expect(outputNormal.glomerularCapillaryPressure).toBeCloseTo(60.0, 1);
+      expect(outputNormal.bowmanSpacePressure).toBeCloseTo(18.0, 1);
+      expect(outputNormal.glomerularOncoticPressure).toBeCloseTo(32.0, 1);
+      expect(outputNormal.netFiltrationPressure).toBeCloseTo(10.0, 1);
+
+      // Verify that PEEP transmits backpressure to Bowman space
+      const outputPeep = RenalEngine.tick(1, { patient, vitals, time: 0 }, [], {
+        coRatio: 1.0,
+        map: 100.0,
+        sys: 130.0,
+        cvp: 5.0,
+        peep: 10.0, // 10 cmH2O PEEP
+        temp: 37.0,
+        currentMac: 0.0,
+        C_cat: 0.0,
+        ebl: 0.0,
+        ebv: 5000.0,
+        netFluidBalance: 0.0
+      });
+      expect(outputPeep.bowmanSpacePressure).toBe(23.0); // 18 + 0.5 * 10 = 23
+      expect(outputPeep.netFiltrationPressure).toBe(5.0); // 60 - 23 - 32 = 5
+      expect(outputPeep.gfr).toBe(12.5 * 5.0); // 62.5
+    });
+
+    it('should partition RBF into cortical and medullary flows and compute PO2 & O2 extraction ratios', () => {
+      const patient = { weight: 70.0 };
+      const vitals = { spo2: 98.0 };
+      const output = RenalEngine.tick(1, { patient, vitals, time: 0 }, [], {
+        coRatio: 1.0,
+        map: 100.0,
+        sys: 130.0,
+        cvp: 5.0,
+        peep: 0.0,
+        temp: 37.0,
+        currentMac: 0.0,
+        C_cat: 0.0,
+        ebl: 0.0,
+        ebv: 5000.0,
+        netFluidBalance: 0.0
+      });
+
+      expect(output.cortexRbf).toBeCloseTo(1100.0 * 0.94, 1);
+      expect(output.medullaRbf).toBeCloseTo(1100.0 * 0.06, 1);
+      expect(output.cortexPo2).toBeCloseTo(50.0, 1);
+      expect(output.medullaPo2).toBeCloseTo(8.0, 1);
+      expect(output.cortexO2Extraction).toBeCloseTo(0.18, 2);
+      expect(output.medullaO2Extraction).toBeCloseTo(0.79, 2);
+
+      // Verify medullary hypoxia under hypoperfusion
+      const outputHypo = RenalEngine.tick(1, { patient, vitals, time: 0 }, [], {
+        coRatio: 0.5, // 50% cardiac output
+        map: 65.0,
+        sys: 90.0,
+        cvp: 5.0,
+        peep: 0.0,
+        temp: 37.0,
+        currentMac: 0.0,
+        C_cat: 20.0,
+        ebl: 1500.0,
+        ebv: 5000.0,
+        netFluidBalance: 0.0
+      });
+      // medullaRbf should drop, medullaPo2 should be low, medullaO2Extraction should increase
+      expect(outputHypo.medullaRbf).toBeLessThan(66.0);
+      expect(outputHypo.medullaPo2).toBeLessThan(8.0);
+      expect(outputHypo.medullaO2Extraction).toBeGreaterThan(0.79);
+    });
+
+    it('should track cumulative hypotension duration and trigger AKI damage on crossing thresholds', () => {
+      const patient = {
+        weight: 70.0,
+        mapUnder60Time: 0,
+        mapUnder55Time: 0,
+        mapUnder60AlertTriggered: false,
+        mapUnder55AlertTriggered: false,
+        akiDamage: 0.0
+      };
+      const vitals = {};
+      const inputsHypo60 = {
+        coRatio: 1.0,
+        map: 58.0, // MAP < 60 but >= 55
+        sys: 85.0,
+        cvp: 5.0,
+        peep: 0.0,
+        temp: 37.0,
+        currentMac: 0.0,
+        C_cat: 0.0,
+        ebl: 0.0,
+        ebv: 5000.0,
+        netFluidBalance: 0.0
+      };
+
+      // Tick 11 times. Since 1 simulation tick = 1 min = 60s in timer:
+      // Threshold is > 11 min (660 seconds). At tick 11, timer becomes 11 * 60 = 660, not yet > 660.
+      // At tick 12, timer becomes 12 * 60 = 720, which is > 660.
+      let currentPatient = { ...patient };
+      for (let i = 0; i < 11; i++) {
+        const out = RenalEngine.tick(1, { patient: currentPatient, vitals, time: i }, [], inputsHypo60);
+        currentPatient = {
+          ...currentPatient,
+          mapUnder60Time: out.mapUnder60Time,
+          mapUnder55Time: out.mapUnder55Time,
+          mapUnder60AlertTriggered: out.mapUnder60AlertTriggered,
+          mapUnder55AlertTriggered: out.mapUnder55AlertTriggered,
+          akiDamage: out.akiDamage
+        };
+      }
+      expect(currentPatient.mapUnder60Time).toBe(660);
+      expect(currentPatient.mapUnder60AlertTriggered).toBe(false);
+
+      // 12th tick crosses the 11 minutes (660 seconds) threshold
+      const out12 = RenalEngine.tick(1, { patient: currentPatient, vitals, time: 11 }, [], inputsHypo60);
+      expect(out12.mapUnder60Time).toBe(720);
+      expect(out12.mapUnder60AlertTriggered).toBe(true);
+      expect(out12.events).toContainEqual(expect.stringContaining("exposure to MAP < 60 mmHg has exceeded 11 minutes"));
+      
+      // AKI damage should have accelerated due to the persistent injury rate (+0.003/s * 1s dt)
+      expect(out12.akiDamage).toBeGreaterThan(currentPatient.akiDamage + 0.0029);
+    });
+  });
 });

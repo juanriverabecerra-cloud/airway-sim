@@ -45,6 +45,8 @@ export interface HepaticOutput {
   events: string[];
   varicealBleedRolled?: boolean;
   poPHCollapseRolled?: boolean;
+  operativeMortality: string;
+  encephalopathyDescription: string;
 }
 
 export class HepaticEngine {
@@ -67,6 +69,10 @@ export class HepaticEngine {
       surgicalPhase: string;
       renalRatio: number;
       FiO2: number;
+      sevoMac?: number;
+      isoMac?: number;
+      desMac?: number;
+      haloMac?: number;
     }
   ): HepaticOutput {
     const events: string[] = [];
@@ -93,13 +99,14 @@ export class HepaticEngine {
     // PBF is reduced by cirrhosis and scales with cardiac output ratio
     const pbf = 1000.0 * Math.max(0.1, inputs.coRatio) * (1.0 - 0.5 * cirrhosisFactor);
 
-    // Volatiles (Sevoflurane/Isoflurane/Desflurane) blunt HABR by up to 60%
-    const volatileModel = activeMeds.find(m => m.name === 'Sevoflurane' || m.name === 'Isoflurane' || m.name === 'Desflurane');
-    const volatileMac = volatileModel ? 1.0 : 0.0; // simple MAC indicator
+    // Volatiles (Sevoflurane/Isoflurane/Desflurane) preserve HABR, but Halothane blunts it dose-dependently (Table 16.5 / Key Points, Miller's 9th Ed)
+    const hasHalothaneMed = activeMeds.some(m => m.name === 'Halothane');
+    const haloMacInput = typeof inputs.haloMac === 'number' && Number.isFinite(inputs.haloMac) ? inputs.haloMac : 0.0;
+    const haloMac = Math.max(haloMacInput, hasHalothaneMed ? 1.0 : 0.0);
     
     // HABR is also blunted by hypotension (MAP < 60 mmHg)
     const mapBlunting = Math.max(0.1, Math.min(1.0, (inputs.map - 40.0) / 20.0));
-    const habrEfficiency = Math.max(0.0, 1.0 - 0.6 * volatileMac) * mapBlunting;
+    const habrEfficiency = Math.max(0.0, 1.0 - haloMac) * mapBlunting;
 
     // Hepatic Arterial Buffer Response (HABR): compensates for drops in portal inflow
     const habf = 300.0 + Math.max(0.0, 0.5 * (1000.0 - pbf)) * habrEfficiency;
@@ -253,6 +260,26 @@ export class HepaticEngine {
     if (cpPoints >= 7 && cpPoints <= 9) childPughClass = 'B';
     else if (cpPoints >= 10) childPughClass = 'C';
 
+    // Table 16.5, Miller's 9th Ed: Child-Pugh Score / Class estimated operative mortality
+    let operativeMortality = '2-10%';
+    if (childPughClass === 'B') {
+      operativeMortality = '12-31%';
+    } else if (childPughClass === 'C') {
+      operativeMortality = '12-82%';
+    }
+
+    // Table 16.4, Miller's 9th Ed: West Haven Criteria for Hepatic Encephalopathy
+    let encephalopathyDescription = 'Normal mental status';
+    if (encephalopathyGrade === 1) {
+      encephalopathyDescription = 'Grade I: Trivial lack of awareness; shortened attention span; disordered sleep';
+    } else if (encephalopathyGrade === 2) {
+      encephalopathyDescription = 'Grade II: Lethargy; behavioral change; asterixis';
+    } else if (encephalopathyGrade === 3) {
+      encephalopathyDescription = 'Grade III: Somnolence; confusion; gross disorientation; bizarre behavior';
+    } else if (encephalopathyGrade === 4) {
+      encephalopathyDescription = 'Grade IV: Coma';
+    }
+
     // 9. MELD Score Calculation
     // meld = 3.78*ln(bilirubin) + 11.2*ln(inr) + 9.57*ln(creatinine) + 6.43
     const safeBiliForLn = Math.max(1.0, bilirubin);
@@ -287,7 +314,9 @@ export class HepaticEngine {
       hpsShunt: parseFloat(hpsShunt.toFixed(4)),
       events,
       varicealBleedRolled,
-      poPHCollapseRolled
+      poPHCollapseRolled,
+      operativeMortality,
+      encephalopathyDescription
     };
   }
 }

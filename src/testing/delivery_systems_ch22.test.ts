@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { RespiratoryEngine, RespiratoryPatientState, RespiratoryVitalsState, RespiratoryDrugEffects } from '../engine/RespiratoryEngine';
 import { CardiovascularEngine, PatientState as CvPatientState, VitalsState as CvVitalsState, CardiovascularDrugEffects } from '../engine/CardiovascularEngine';
+import { calculateLink25GasMixture } from '../engine/Pharmacology';
 
 describe('Chapter 22: Anesthesia Delivery Systems & Safety', () => {
 
@@ -148,41 +149,59 @@ describe('Chapter 22: Anesthesia Delivery Systems & Safety', () => {
     getAnatomicalParameter: (kw: string, defVal: number) => defVal
   });
 
-  describe('1. Link-25 Proportioning System', () => {
-    it('should verify linkage increases O2 when N2O is raised, and decreases N2O when O2 is lowered', () => {
-      const applyLink25 = (update: { o2Flow?: number; airFlow?: number; n2oFlow?: number }, prev: { o2Flow: number; airFlow: number; n2oFlow: number }) => {
-        const next = { ...prev, ...update };
-        let finalO2 = next.o2Flow;
-        let finalN2O = next.n2oFlow;
-        
-        if (next.n2oFlow > prev.n2oFlow) {
-          if (finalO2 < finalN2O / 3.0) {
-            finalO2 = finalN2O / 3.0;
-          }
-        } else if (next.o2Flow < prev.o2Flow) {
-          if (finalN2O > finalO2 * 3.0) {
-            finalN2O = finalO2 * 3.0;
-          }
-        } else {
-          if (finalO2 < finalN2O / 3.0) {
-            finalO2 = finalN2O / 3.0;
-          }
+  describe('1. Link-25 Proportioning System & Oxygen Supply Failure Protection Device', () => {
+    // NOTE: this previously tested a standalone local re-implementation of the Link-25 algorithm
+    // that was never actually wired into usePhysiology.js — the live gas-mixing pipeline had no
+    // enforcement at all (a user could dial a fully hypoxic N2O:O2 mixture with no protection).
+    // Fixed by extracting the real logic into calculateLink25GasMixture() in Pharmacology.js and
+    // calling it from usePhysiology.js; these tests now exercise that real, shared function.
+    it('should raise effective O2 flow to maintain a minimum 1:3 O2:N2O ratio (max 3:1 N2O:O2)', () => {
+      const result = calculateLink25GasMixture({ o2Flow: 2.0, airFlow: 0, n2oFlow: 9.0 }, true, true, false);
+      expect(result.o2F).toBeCloseTo(3.0, 2); // 9.0 / 3.0
+    });
+
+    it('should not alter O2 flow when the dialed O2:N2O ratio already satisfies the minimum', () => {
+      const result = calculateLink25GasMixture({ o2Flow: 5.0, airFlow: 0, n2oFlow: 3.0 }, true, true, false);
+      expect(result.o2F).toBeCloseTo(5.0, 2);
+    });
+
+    it('should guarantee a minimum 25% delivered FiO2 from an N2O/O2 mixture regardless of how aggressively N2O is dialed', () => {
+      const result = calculateLink25GasMixture({ o2Flow: 0.1, airFlow: 0, n2oFlow: 10.0 }, true, true, false);
+      expect(result.deliveredFiO2).toBeGreaterThanOrEqual(25.0 - 0.01);
+    });
+
+    it('should shut off N2O flow entirely when O2 supply pressure is lost (fail-safe valve)', () => {
+      const result = calculateLink25GasMixture({ o2Flow: 2.0, airFlow: 0, n2oFlow: 6.0 }, false, false, false);
+      expect(result.failSafeN2OCutoff).toBe(true);
+      expect(result.effectiveN2OFlow).toBe(0);
+      expect(result.n2oPercent).toBe(0);
+    });
+
+    it('should NOT protect against hypoxic delivery during pipeline crossover (fail-safe only senses pressure, not gas identity)', () => {
+      // Crossover: the "O2" channel is pressurized (hasO2Supply=true) but is actually delivering N2O.
+      const result = calculateLink25GasMixture({ o2Flow: 2.0, airFlow: 0, n2oFlow: 0 }, true, false, true);
+      expect(result.failSafeN2OCutoff).toBe(false); // pressure reads fine, valve stays open
+      expect(result.deliveredFiO2).toBeLessThan(5); // delivered gas is actually all N2O, not O2 -> hypoxic
+      expect(result.n2oPercent).toBeGreaterThan(90);
+    });
+
+    it('should remain finite and bounded across a wide range of dialed flows and supply states', () => {
+      const scenarios = [
+        { o2Flow: 0, airFlow: 0, n2oFlow: 0 },
+        { o2Flow: 15, airFlow: 10, n2oFlow: 15 },
+        { o2Flow: -1, airFlow: 0, n2oFlow: -5 },
+        { o2Flow: NaN, airFlow: 0, n2oFlow: 5 }
+      ];
+      for (const s of scenarios) {
+        for (const hasO2Supply of [true, false]) {
+          const result = calculateLink25GasMixture(s, hasO2Supply, hasO2Supply, false);
+          expect(Number.isFinite(result.deliveredFiO2)).toBe(true);
+          expect(Number.isFinite(result.n2oPercent)).toBe(true);
+          expect(Number.isFinite(result.freshGasFlow)).toBe(true);
+          expect(result.deliveredFiO2).toBeGreaterThanOrEqual(0);
+          expect(result.deliveredFiO2).toBeLessThanOrEqual(100);
         }
-        return {
-          o2Flow: Math.round(finalO2 * 10) / 10,
-          n2oFlow: Math.round(finalN2O * 10) / 10,
-          airFlow: next.airFlow
-        };
-      };
-
-      const prev = { o2Flow: 2.0, airFlow: 0.0, n2oFlow: 0.0 };
-      const next1 = applyLink25({ n2oFlow: 9.0 }, prev);
-      expect(next1.o2Flow).toBe(3.0);
-      expect(next1.n2oFlow).toBe(9.0);
-
-      const next2 = applyLink25({ o2Flow: 1.0 }, { o2Flow: 3.0, airFlow: 0.0, n2oFlow: 9.0 });
-      expect(next2.o2Flow).toBe(1.0);
-      expect(next2.n2oFlow).toBe(3.0);
+      }
     });
   });
 

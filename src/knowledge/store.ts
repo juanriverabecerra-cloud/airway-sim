@@ -159,6 +159,20 @@ export class KnowledgeStore {
   }
 
   /**
+   * Reclaims space left behind by DELETE+re-INSERT cycles (every re-ingestion
+   * of a chapter clears its old rows first). SQLite doesn't shrink the file
+   * automatically — those pages just go on a free list for reuse — so a
+   * database that's been re-ingested many times can be substantially larger
+   * on disk than its actual row content, which matters here since this file
+   * is fetched in full by the browser on first use.
+   */
+  public static vacuum(): void {
+    const db = this.getDb();
+    db.run('VACUUM');
+    this.flush();
+  }
+
+  /**
    * Recalculates the is_authoritative flags for all records in the database
    * using a strict textbook authority priority hierarchy:
    *   1. Miller's always wins
@@ -216,12 +230,42 @@ export class KnowledgeStore {
     console.log("  ✓ Recalculated authority states across all ingested records.");
   }
 
+  private static deferSave = false;
+
   /**
-   * Saves the in-memory database to disk.
+   * While true, save() becomes a no-op instead of writing the whole database
+   * to disk. Every insert/clear/recalculate call here calls save() internally
+   * (by design, so a single insertProse() call is durable on its own) — but
+   * that means a batch of N inserts does N full multi-megabyte export+write
+   * cycles, which dominates runtime once you're ingesting many chapters in
+   * one run. Callers doing a batch should setDeferSave(true), do their work,
+   * then setDeferSave(false) (or call flush()) once at the end.
+   */
+  public static setDeferSave(value: boolean): void {
+    this.deferSave = value;
+  }
+
+  /**
+   * Saves the in-memory database to disk (unless deferred via setDeferSave).
    */
   public static save(): void {
     if (process.env.VITEST || process.env.NODE_ENV === 'test') {
       return; // Do not persist to disk during test runs
+    }
+    if (this.deferSave) {
+      return; // Batched — caller is responsible for calling flush() later.
+    }
+    this.flush();
+  }
+
+  /**
+   * Forces an immediate write to disk regardless of setDeferSave, e.g. right
+   * before a step that reads the on-disk file directly (like deploying a copy
+   * to public/) so it isn't left looking at stale data.
+   */
+  public static flush(): void {
+    if (process.env.VITEST || process.env.NODE_ENV === 'test') {
+      return;
     }
     if (this.db) {
       const binaryArray = this.db.export();
@@ -234,7 +278,7 @@ export class KnowledgeStore {
    */
   public static close(): void {
     if (this.db) {
-      this.save();
+      this.flush();
       this.db.close();
       this.db = null;
       this.initPromise = null;

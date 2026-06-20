@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { X, Activity, FileText, ClipboardList, CheckSquare, ShieldAlert, Award, Play, ArrowLeft, ArrowRight } from 'lucide-react';
-import { calculateLungVolumes, calculateIBW, calculateLBW } from '../../engine/Pharmacology';
+import { calculateLungVolumes, calculateIBW, calculateLBW, calculateHumeLBM, calculateJanmahasatianFFM, calculateCBW, calculateMFFM, calculatePKM } from '../../engine/Pharmacology';
 
 export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logEvent, intraop = false }) => {
   const [activeTab, setActiveTab] = useState('chart'); // 'chart' | 'orders' | 'results' | 'risk' | 'plan'
@@ -14,6 +14,11 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
   const bmi = weightKg / Math.pow(heightCm / 100, 2);
   const ibw = calculateIBW(heightCm, sex);
   const lbw = calculateLBW(heightCm, weightKg, sex);
+  const humeLbm = calculateHumeLBM(heightCm, weightKg, sex);
+  const ffm = calculateJanmahasatianFFM(heightCm, weightKg, sex);
+  const cbw = calculateCBW(heightCm, weightKg, sex);
+  const mffm = calculateMFFM(heightCm, weightKg, sex);
+  const pkm = calculatePKM(weightKg);
   const bsa = Math.sqrt((heightCm * weightKg) / 3600); // Mosteller formula
   const ebv = sex === 'male' ? weightKg * 70 : weightKg * 65;
 
@@ -1212,6 +1217,29 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                   <div>
                     <span className="text-slate-500 block text-[10px] uppercase font-bold">BSA (Mosteller)</span>
                     <span className="text-cyan-400 font-extrabold text-base">{bsa.toFixed(2)} m²</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-6 text-sm mt-6 pt-6 border-t border-slate-800/50">
+                  <div>
+                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Hume LBM</span>
+                    <span className="text-indigo-400 font-extrabold text-base">{humeLbm.toFixed(1)} kg</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Janmahasatian FFM</span>
+                    <span className="text-indigo-400 font-extrabold text-base">{ffm.toFixed(1)} kg</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Corrected Weight (CBW)</span>
+                    <span className="text-indigo-400 font-extrabold text-base">{cbw.toFixed(1)} kg</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Modified FFM (MFFM)</span>
+                    <span className="text-indigo-400 font-extrabold text-base">{mffm.toFixed(1)} kg</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-500 block text-[10px] uppercase font-bold">Pharmacokinetic Mass (PKM)</span>
+                    <span className="text-indigo-400 font-extrabold text-base">{pkm.toFixed(1)} kg</span>
                   </div>
                 </div>
               </div>

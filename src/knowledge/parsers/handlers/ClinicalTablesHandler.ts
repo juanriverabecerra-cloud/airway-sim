@@ -14,8 +14,22 @@ export class ClinicalTablesHandler implements IArchetypeHandler {
   }
 
   public async handle(engine: VisualDataEngine): Promise<VisualDataEngine> {
+    // Native, already-structured tables (extracted directly from the PDF's own
+    // ruling-line geometry via PyMuPDF's find_tables(), with exact cell text —
+    // no OCR involved) arrive with matrix_rows pre-populated and no bounding
+    // boxes to reconstruct from. Reconstructing from bbox-clustering in that
+    // case would discard a more accurate structure in favor of a noisier one.
+    const existingDetails = engine.details as { matrix_rows?: string[][] } | undefined;
+    if (existingDetails?.matrix_rows && existingDetails.matrix_rows.length > 0) {
+      return {
+        ...engine,
+        archetype: L2S_CONFIG.archetypes.CLINICAL_TABLES.id,
+        details: existingDetails
+      };
+    }
+
     const text_bounding_boxes = engine.text_bounding_boxes || [];
-    
+
     // Structure physical row/column intersections from spatial coordinates
     // Group boxes that are horizontally adjacent as cells, and vertically grouped as rows
     const threshold_y = 15; // Vertical distance to group as a row

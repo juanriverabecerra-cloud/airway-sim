@@ -1,10 +1,23 @@
-import { INHALATIONAL_AGENTS } from '../../engine/Pharmacology';
+import { INHALATIONAL_AGENTS, calculateLink25GasMixture } from '../../engine/Pharmacology';
 
 export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSettings, patient, setPatient, logEvent }) => {
   // === PHYSIOLOGICAL STOICHIOMETRY ===
-  const totalFGF = gasSettings.o2Flow + gasSettings.airFlow + gasSettings.n2oFlow;
-  // Air is ~21% oxygen.
-  const deliveredFiO2 = totalFGF > 0 ? Math.round(((gasSettings.o2Flow * 100) + (gasSettings.airFlow * 21)) / totalFGF) : 21;
+  // Mirrors usePhysiology.js's gas-source derivation so this preview reflects the same Link-25 +
+  // fail-safe-valve-protected mixture the engine will actually deliver (Ch22, Miller's 9th Ed).
+  const isPipelineConnected = !patient?.isO2PipelineDisconnected;
+  const isCrossover = !!patient?.isO2PipelineCrossover;
+  const isCylinderOpen = !!patient?.isO2CylinderOpen;
+  let hasO2Supply = false, o2SourceIsO2 = false, o2SourceIsN2O = false;
+  if (isPipelineConnected) {
+    hasO2Supply = true;
+    if (isCrossover) { o2SourceIsN2O = true; } else { o2SourceIsO2 = true; }
+  } else if (isCylinderOpen) {
+    hasO2Supply = true;
+    o2SourceIsO2 = true;
+  }
+  const gasMix = calculateLink25GasMixture(gasSettings, hasO2Supply, o2SourceIsO2, o2SourceIsN2O);
+  const totalFGF = gasMix.freshGasFlow;
+  const deliveredFiO2 = Math.round(gasMix.deliveredFiO2);
   const isHypoxic = deliveredFiO2 < 25;
  
   // === VAPORIZER MECHANICAL LIMITS ===

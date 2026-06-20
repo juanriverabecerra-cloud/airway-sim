@@ -19,10 +19,15 @@ export const LinesResusPanel = ({
   time,
   formatTime,
   setAccessModal,
-  generateLab
+  generateLab,
+  placeEpidural,
+  removeEpidural,
+  toggleCeliacBlock
 }) => {
   const isCodeActive = !!(patient?.cprActive || patient?.isArrest);
   const [showCPRDefib, setShowCPRDefib] = useState(isCodeActive);
+  const [showRegional, setShowRegional] = useState(false);
+  const [epiduralLevelInput, setEpiduralLevelInput] = useState(8);
 
   useEffect(() => {
     if (isCodeActive) {
@@ -214,6 +219,73 @@ export const LinesResusPanel = ({
                 </button>
               </div>
             )}
+          </div>
+        )}
+      </div>
+
+      {/* Regional / Neuraxial Sympathetic Blocks (Ch15, Miller's 9th Ed) */}
+      <div className="border border-indigo-500/20 bg-indigo-950/5 rounded-xl overflow-hidden shrink-0">
+        <button
+          onClick={() => setShowRegional(!showRegional)}
+          className="w-full flex items-center justify-between px-3 py-1.5 bg-indigo-950/20 border-b border-white/5 font-mono text-[9px] font-black text-indigo-400 uppercase tracking-wider hover:bg-indigo-950/30 transition-all"
+        >
+          <span className="flex items-center gap-1.5">
+            <Syringe size={12} className={patient?.epiduralBlockActive || patient?.celiacBlockActive ? "text-indigo-400 animate-pulse" : "text-indigo-500"}/>
+            Regional / Neuraxial Blocks
+          </span>
+          <span>{showRegional ? '▲' : '▼'}</span>
+        </button>
+        {showRegional && (
+          <div className="p-2.5 flex flex-col gap-2 font-mono">
+            {/* Thoracic Epidural */}
+            <div className="bg-slate-950/60 border border-white/5 rounded-lg p-2 flex flex-col gap-1.5">
+              <span className="text-[9px] font-bold text-indigo-300">Thoracic Epidural</span>
+              {patient?.epiduralBlockActive ? (
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] text-emerald-400 font-bold">Active at T{patient.epiduralLevel ?? '?'}</span>
+                  <button
+                    onClick={() => { if (removeEpidural) removeEpidural(); }}
+                    className="glass-button text-[8px] border border-slate-800 px-2 py-1 rounded-md"
+                  >
+                    STOP
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <select
+                    value={epiduralLevelInput}
+                    onChange={(e) => setEpiduralLevelInput(parseInt(e.target.value))}
+                    className="bg-slate-950 border border-white/5 rounded-lg p-1 text-[9px] text-slate-300 outline-none flex-1 h-7"
+                  >
+                    {[4, 5, 6, 7, 8, 9, 10, 11, 12].map(lvl => (
+                      <option key={lvl} value={lvl}>T{lvl}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => { if (placeEpidural) placeEpidural(epiduralLevelInput); }}
+                    className="glass-button glass-button-cyan text-[8px] border border-cyan-700 px-2 h-7 rounded-md text-cyan-200"
+                  >
+                    PLACE
+                  </button>
+                </div>
+              )}
+              <span className="text-[7.5px] text-slate-500 leading-snug">Sympathetic coverage of gut/splanchnic outflow is graded by insertion level (TABLE 15.2, Miller's 9th Ed) — a mid-thoracic catheter (T8-T9) best covers small bowel/colon innervation (T9-L1).</span>
+            </div>
+            {/* Celiac Plexus Block */}
+            <div className="bg-slate-950/60 border border-white/5 rounded-lg p-2 flex flex-col gap-1.5">
+              <span className="text-[9px] font-bold text-indigo-300">Celiac Plexus Block</span>
+              <button
+                onClick={() => { if (toggleCeliacBlock) toggleCeliacBlock(); }}
+                className={`w-full py-1.5 rounded-lg text-[9px] font-black border transition active:scale-97 ${
+                  patient?.celiacBlockActive
+                    ? 'bg-emerald-600/30 border-emerald-500 text-emerald-200'
+                    : 'glass-button border-slate-800 text-indigo-300'
+                }`}
+              >
+                {patient?.celiacBlockActive ? 'ACTIVE — REVERSE' : 'PERFORM BLOCK'}
+              </button>
+              <span className="text-[7.5px] text-slate-500 leading-snug">Targets the celiac ganglion directly (Fig 15.4/15.5) — complete splanchnic sympathetic block of "the majority of the GI tract up to the rectum" regardless of level.</span>
+            </div>
           </div>
         )}
       </div>

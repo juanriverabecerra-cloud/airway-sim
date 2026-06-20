@@ -77,6 +77,8 @@ describe('Chapter 16 Hepatic Physiology and Pathophysiology Unit Tests', () => {
 
       expect(output.childPughScore).toBe(13);
       expect(output.childPughClass).toBe('C');
+      expect(output.operativeMortality).toBe('12-82%');
+      expect(output.encephalopathyDescription).toBe('Grade II: Lethargy; behavioral change; asterixis');
       // MELD calculation: 3.78*ln(3.5) + 11.2*ln(2.5) + 9.57*ln(2.8) + 6.43
       // ln(3.5) = 1.2527 -> 3.78*1.2527 = 4.735
       // ln(2.5) = 0.9163 -> 11.2*0.9163 = 10.26
@@ -85,15 +87,14 @@ describe('Chapter 16 Hepatic Physiology and Pathophysiology Unit Tests', () => {
       expect(output.meldScore).toBe(31);
     });
 
-    it('should blunt HABR response under Sevoflurane (volatile MAC active) and hypotension', () => {
+    it('should preserve HABR response under Sevoflurane but blunt it under Halothane', () => {
       const patient = {
         cirrhosisFactor: 0.0
       };
       const vitals = {};
-      const activeMeds = [{ name: 'Sevoflurane', Ce: 1.0 }]; // active volatile
 
-      // Test with Sevoflurane (reduces HABR efficiency by 60% -> efficiency is 0.4)
-      const outputSevo = HepaticEngine.tick(1, { patient, vitals, time: 10 }, activeMeds, {
+      // Test with Sevoflurane (preserves HABR -> efficiency is 1.0)
+      const outputSevo = HepaticEngine.tick(1, { patient, vitals, time: 10 }, [], {
         coRatio: 0.7, // PBF drops to 700 mL/min
         map: 90.0,
         sys: 120.0,
@@ -103,21 +104,40 @@ describe('Chapter 16 Hepatic Physiology and Pathophysiology Unit Tests', () => {
         cvp: 5.0,
         surgicalPhase: 'Pre-Op',
         renalRatio: 1.0,
-        FiO2: 21.0
+        FiO2: 21.0,
+        sevoMac: 1.0
       });
 
       // PBF = 1000 * 0.7 = 700 mL/min
-      // HABR efficiency = max(0, 1 - 0.6) * 1.0 = 0.4
-      // HABF compensatory flow = 0.5 * (1000 - 700) * 0.4 = 150 * 0.4 = 60 mL/min
-      // HABF total = 300 + 60 = 360 mL/min
+      // HABR efficiency = max(0, 1 - 0.0) * 1.0 = 1.0 (preserved)
+      // HABF compensatory flow = 0.5 * (1000 - 700) * 1.0 = 150 mL/min
+      // HABF total = 300 + 150 = 450 mL/min
       expect(outputSevo.pbf).toBe(700.0);
-      expect(outputSevo.habf).toBe(360.0);
+      expect(outputSevo.habf).toBe(450.0);
 
-      // Test with Sevoflurane + Hypotension (MAP = 50 mmHg -> mapBlunting is (50-40)/20 = 0.5)
-      // HABR efficiency = 0.4 * 0.5 = 0.2
-      // HABF compensatory flow = 150 * 0.2 = 30 mL/min
-      // HABF total = 300 + 30 = 330 mL/min
-      const outputHypo = HepaticEngine.tick(1, { patient, vitals, time: 10 }, activeMeds, {
+      // Test with Halothane (blunts HABR -> haloMac = 1.0 -> efficiency is 0.0)
+      const outputHalo = HepaticEngine.tick(1, { patient, vitals, time: 10 }, [], {
+        coRatio: 0.7,
+        map: 90.0,
+        sys: 120.0,
+        spo2: 98.0,
+        paco2: 40.0,
+        temp: 37.0,
+        cvp: 5.0,
+        surgicalPhase: 'Pre-Op',
+        renalRatio: 1.0,
+        FiO2: 21.0,
+        haloMac: 1.0
+      });
+
+      // PBF = 700 mL/min
+      // HABR efficiency = 0.0
+      // HABF total = 300 + 0 = 300 mL/min
+      expect(outputHalo.habf).toBe(300.0);
+
+      // Test with Halothane + Hypotension (MAP = 50 mmHg -> mapBlunting is (50-40)/20 = 0.5)
+      // Since Halothane is 1.0, efficiency is still 0.0.
+      const outputHypo = HepaticEngine.tick(1, { patient, vitals, time: 10 }, [], {
         coRatio: 0.7,
         map: 50.0,
         sys: 75.0,
@@ -127,10 +147,11 @@ describe('Chapter 16 Hepatic Physiology and Pathophysiology Unit Tests', () => {
         cvp: 5.0,
         surgicalPhase: 'Pre-Op',
         renalRatio: 1.0,
-        FiO2: 21.0
+        FiO2: 21.0,
+        haloMac: 1.0
       });
 
-      expect(outputHypo.habf).toBe(330.0);
+      expect(outputHypo.habf).toBe(300.0);
     });
 
     it('should trigger variceal bleeding on hypertensive surge and resolve with Terlipressin', () => {

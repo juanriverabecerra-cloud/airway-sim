@@ -9,6 +9,8 @@
  * - CA-1 Integration: Exact receptor affinities and fluid stoichiometry
  */
 
+import { RespiratoryEngine } from './RespiratoryEngine';
+
 export function calculateIBW(heightCm, sex) {
   let hCm = Number(heightCm);
   if (isNaN(hCm) || !Number.isFinite(hCm) || hCm <= 0) {
@@ -65,6 +67,56 @@ export function calculateLBW(heightCm, weightKg, sex) {
   }
 }
 
+export function calculateHumeLBM(heightCm, weightKg, sex) {
+  let hCm = Number(heightCm);
+  if (isNaN(hCm) || !Number.isFinite(hCm) || hCm <= 0) hCm = 170.0;
+  hCm = Math.max(50.0, Math.min(250.0, hCm));
+
+  let wKg = Number(weightKg);
+  if (isNaN(wKg) || !Number.isFinite(wKg) || wKg <= 0) wKg = 70.0;
+  wKg = Math.max(5.0, Math.min(300.0, wKg));
+
+  let safeSex = 'male';
+  if (typeof sex === 'string' && sex.trim().toLowerCase() === 'female') {
+    safeSex = 'female';
+  }
+
+  let lbm = 0;
+  if (safeSex === 'male') {
+    lbm = 1.10 * wKg - 128.0 * Math.pow(wKg / hCm, 2);
+  } else {
+    lbm = 1.07 * wKg - 148.0 * Math.pow(wKg / hCm, 2);
+  }
+  // Clamp LBM to prevent negative values in extreme obesity
+  return Math.max(15.0, Math.max(wKg * 0.25, lbm));
+}
+
+export function calculateJanmahasatianFFM(heightCm, weightKg, sex) {
+  return calculateLBW(heightCm, weightKg, sex);
+}
+
+export function calculateCBW(heightCm, weightKg, sex) {
+  const ibw = calculateIBW(heightCm, sex);
+  let wKg = Number(weightKg);
+  if (isNaN(wKg) || !Number.isFinite(wKg) || wKg <= 0) wKg = 70.0;
+  return ibw + 0.4 * (wKg - ibw);
+}
+
+export function calculateMFFM(heightCm, weightKg, sex) {
+  const ffm = calculateLBW(heightCm, weightKg, sex);
+  let wKg = Number(weightKg);
+  if (isNaN(wKg) || !Number.isFinite(wKg) || wKg <= 0) wKg = 70.0;
+  return ffm + 0.4 * (wKg - ffm);
+}
+
+export function calculatePKM(weightKg) {
+  let wKg = Number(weightKg);
+  if (isNaN(wKg) || !Number.isFinite(wKg) || wKg <= 0) wKg = 70.0;
+  const expTerm = Math.exp(-0.025 * wKg);
+  const fraction = (196.4 * expTerm - 53.66) / 100.0;
+  return 52.0 / (1.0 + fraction);
+}
+
 export function calculateAgeAdjustedMAC(mac40, age) {
   let m40 = Number(mac40);
   if (isNaN(m40) || !Number.isFinite(m40) || m40 < 0) {
@@ -83,59 +135,74 @@ export function calculateAgeAdjustedMAC(mac40, age) {
 }
 
 export const INHALATIONAL_AGENTS = {
-  sevoflurane: { 
-    name: 'Sevoflurane', mac40: 2.0, bgPartition: 0.65, oilGasPartition: 47, brainBgPartition: 1.7, vaporPress: 160, 
-    sysMax: -30, diaMax: -25, hrMax: 0, rrMax: -15, 
-    description: 'Sweet smelling, low pungency. Ideal for inhalational induction. Breaks down to Compound A. Produces fluoride ions.' 
+  sevoflurane: {
+    // TABLE 20.1/20.2, Miller's 9th Ed: MAC 2.05%, blood/gas 0.65, oil/gas 47-54 (low end used),
+    // CNS lambda 1.7, muscle lambda 3.1, vapor pressure 157 mmHg.
+    name: 'Sevoflurane', mac40: 2.05, bgPartition: 0.65, oilGasPartition: 47, brainBgPartition: 1.7, muscleBgPartition: 3.1, vaporPress: 157,
+    sysMax: -30, diaMax: -25, hrMax: 0, rrMax: -15, hpvPotency: 0.15, // "little effect" on HPV vs older agents, Ch13 p.1342, Miller's 9th Ed
+    description: 'Sweet smelling, low pungency. Ideal for inhalational induction. Breaks down to Compound A. Produces fluoride ions.'
   },
   methoxyflurane: {
-    name: 'Methoxyflurane', mac40: 0.16, bgPartition: 12.0, oilGasPartition: 950.0, brainBgPartition: 2.0, vaporPress: 23,
-    sysMax: -20, diaMax: -20, hrMax: 0, rrMax: -15,
+    // TABLE 20.1/20.2, Miller's 9th Ed: MAC 0.2%, blood/gas 12, oil/gas 950, CNS lambda 2.0,
+    // muscle lambda 1.6, vapor pressure 22.5 mmHg.
+    name: 'Methoxyflurane', mac40: 0.2, bgPartition: 12.0, oilGasPartition: 950.0, brainBgPartition: 2.0, muscleBgPartition: 1.6, vaporPress: 22.5,
+    sysMax: -20, diaMax: -20, hrMax: 0, rrMax: -15, hpvPotency: 1.0, // older halogenated agent, grouped with halothane/isoflurane
     description: 'Highly potent, extremely soluble. Inhalation analgesic. Associated with fluoride nephrotoxicity.'
   },
-  desflurane: { 
-    name: 'Desflurane', mac40: 6.0, bgPartition: 0.45, oilGasPartition: 19, brainBgPartition: 1.3, vaporPress: 669, 
-    sysMax: -25, diaMax: -25, hrMax: 15, rrMax: -15,
+  desflurane: {
+    // TABLE 20.1/20.2, Miller's 9th Ed: MAC 6.0%, blood/gas 0.45, oil/gas 19, CNS lambda 1.3,
+    // muscle lambda 2.0, vapor pressure 664 mmHg.
+    name: 'Desflurane', mac40: 6.0, bgPartition: 0.45, oilGasPartition: 19, brainBgPartition: 1.3, muscleBgPartition: 2.0, vaporPress: 664,
+    sysMax: -25, diaMax: -25, hrMax: 15, rrMax: -15, hpvPotency: 0.15, // "little effect" on HPV vs older agents, Ch13 p.1342, Miller's 9th Ed
     description: 'Pungent, rapid offset. Risk of sympathetic surge/tachycardia if rapidly increased. Boils at sea level.'
   },
-  isoflurane: { 
-    name: 'Isoflurane', mac40: 1.2, bgPartition: 1.46, oilGasPartition: 98, brainBgPartition: 1.6, vaporPress: 240, 
-    sysMax: -35, diaMax: -35, hrMax: 5, rrMax: -15,
+  isoflurane: {
+    // TABLE 20.1/20.2, Miller's 9th Ed: MAC 1.28%, blood/gas 1.4, oil/gas 90.8, CNS lambda 1.5,
+    // muscle lambda 2.9, vapor pressure 238 mmHg.
+    name: 'Isoflurane', mac40: 1.28, bgPartition: 1.4, oilGasPartition: 90.8, brainBgPartition: 1.5, muscleBgPartition: 2.9, vaporPress: 238,
+    sysMax: -35, diaMax: -35, hrMax: 5, rrMax: -15, hpvPotency: 1.0, // depresses HPV 50% at MAC 2, Ch13 p.2348/Fig 13.22, Miller's 9th Ed
     description: 'Highly potent, slow kinetics. Potent vasodilator. Cardioprotective (ischemic preconditioning).'
   },
-  halothane: { 
-    name: 'Halothane', mac40: 0.75, bgPartition: 2.54, oilGasPartition: 224, brainBgPartition: 2.9, vaporPress: 243, 
-    sysMax: -20, diaMax: -20, hrMax: -15, rrMax: -10,
-    description: 'Highly soluble, slow onset/offset. Sensitizes myocardium to catecholamines.' 
+  halothane: {
+    // TABLE 20.1/20.2, Miller's 9th Ed: MAC 0.75%, blood/gas 2.5, oil/gas 197, CNS lambda 2.7,
+    // muscle lambda 2.5, vapor pressure 243 mmHg.
+    name: 'Halothane', mac40: 0.75, bgPartition: 2.5, oilGasPartition: 197, brainBgPartition: 2.7, muscleBgPartition: 2.5, vaporPress: 243,
+    sysMax: -20, diaMax: -20, hrMax: -15, rrMax: -10, hpvPotency: 1.0, // depresses HPV 50% at MAC 2, Ch13 p.2348/Fig 13.22, Miller's 9th Ed
+    description: 'Highly soluble, slow onset/offset. Sensitizes myocardium to catecholamines.'
   },
-  xenon: { 
-    name: 'Xenon', mac40: 71, bgPartition: 0.115, oilGasPartition: 1.9, brainBgPartition: 1.2, vaporPress: 9999, 
-    sysMax: 0, diaMax: 0, hrMax: -5, rrMax: -5,
-    description: 'Inert noble gas. NMDA antagonist. Extremely rapid onset/offset. Cardio-stable.' 
+  xenon: {
+    // Not in TABLE 20.1 (post-dates this chapter's reference table); values retained from prior sourcing.
+    name: 'Xenon', mac40: 71, bgPartition: 0.115, oilGasPartition: 1.9, brainBgPartition: 1.2, vaporPress: 9999,
+    sysMax: 0, diaMax: 0, hrMax: -5, rrMax: -5, hpvPotency: 0.0,
+    description: 'Inert noble gas. NMDA antagonist. Extremely rapid onset/offset. Cardio-stable.'
   },
-  n2o: { 
-    name: 'Nitrous Oxide', mac40: 104, bgPartition: 0.46, oilGasPartition: 1.4, brainBgPartition: 1.1, vaporPress: 38770, 
-    sysMax: 5, diaMax: 5, hrMax: 5, rrMax: -5,
+  n2o: {
+    // TABLE 20.1/20.2, Miller's 9th Ed: MAC 104%, blood/gas 0.47, oil/gas 1.3, CNS lambda 1.1,
+    // muscle lambda 1.2, vapor pressure 43,880 mmHg.
+    name: 'Nitrous Oxide', mac40: 104, bgPartition: 0.47, oilGasPartition: 1.3, brainBgPartition: 1.1, muscleBgPartition: 1.2, vaporPress: 43880,
+    sysMax: 5, diaMax: 5, hrMax: 5, rrMax: -5, hpvPotency: 0.0, // not a halogenated agent; no significant HPV inhibition reported, Ch13
     description: 'Low potency. Diffuses into air-filled cavities (pneumothorax, bowel, ETT cuff). NMDA antagonist analgesic.'
   },
   f6: {
     name: 'F6 (Nonimmobilizer)', mac40: 9999.0, bgPartition: 1.5, oilGasPartition: 60, brainBgPartition: 1.4, vaporPress: 180,
-    sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0,
+    sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0, hpvPotency: 1.0,
     description: 'Amnestic cyclobutane nonimmobilizer. Selectively blocks learning/episodic memory with zero MAC contribution.'
   },
   f3: {
     name: 'F3 (Anesthetic)', mac40: 1.2, bgPartition: 1.0, oilGasPartition: 70, brainBgPartition: 1.5, vaporPress: 240,
-    sysMax: -20, diaMax: -20, hrMax: 0, rrMax: -10,
+    sysMax: -20, diaMax: -20, hrMax: 0, rrMax: -10, hpvPotency: 1.0,
     description: 'Halogenated cyclobutane volatile anesthetic. Produces immobility, sedation, and amnesia.'
   },
   s_isoflurane: {
-    name: 'S-Isoflurane', mac40: 0.9, bgPartition: 1.46, oilGasPartition: 98, brainBgPartition: 1.6, vaporPress: 240,
-    sysMax: -30, diaMax: -30, hrMax: 5, rrMax: -15,
+    // Stereoisomer of isoflurane: identical physicochemical partition properties (TABLE 20.1/20.2);
+    // only MAC potency differs (receptor stereoselectivity).
+    name: 'S-Isoflurane', mac40: 0.9, bgPartition: 1.4, oilGasPartition: 90.8, brainBgPartition: 1.5, muscleBgPartition: 2.9, vaporPress: 238,
+    sysMax: -30, diaMax: -30, hrMax: 5, rrMax: -15, hpvPotency: 1.0,
     description: 'Active stereoisomer of Isoflurane. Twice as potent as R-Isoflurane.'
   },
   r_isoflurane: {
-    name: 'R-Isoflurane', mac40: 1.8, bgPartition: 1.46, oilGasPartition: 98, brainBgPartition: 1.6, vaporPress: 240,
-    sysMax: -15, diaMax: -15, hrMax: 5, rrMax: -10,
+    name: 'R-Isoflurane', mac40: 1.8, bgPartition: 1.4, oilGasPartition: 90.8, brainBgPartition: 1.5, muscleBgPartition: 2.9, vaporPress: 238,
+    sysMax: -15, diaMax: -15, hrMax: 5, rrMax: -10, hpvPotency: 1.0,
     description: 'Chiral enantiomer of Isoflurane. Lower potency, requires higher concentration.'
   }
 };
@@ -160,7 +227,7 @@ export const MEDICATIONS = {
     pd: { c50: 0.3, gamma: 3, sysMax: -5, diaMax: -5, hrMax: 0, rrMax: -12, inducesApneaAtCe: 0.4 },
     notes: 'Maintains hemodynamic stability (minimal direct cardiac or SVR changes). Side effects include severe myoclonus, thrombophlebitis, and transient adrenocortical inhibition (lasts 4-8 hours due to 11-beta-hydroxylase blockade). High PONV risk.'
   },
-  ketamine: { 
+  ketamine: {
     name: 'Ketamine', classes: ['Dissociative', 'Analgesic'], routes: ['IV', 'IM'], types: ['Bolus', 'Infusion'], dosingWeight: 'IBW',
     metabolism: 'Hepatic (CYP3A4/2C9) to active Norketamine', proteinBinding: 0.12, synergyGroup: 'Dissociative', pkModel: 'Domino/Clements250',
     targetReceptor: 'NMDA Antagonist', intracellularCascade: 'Non-competitive NMDA receptor antagonist -> blocks Glutamate/Ca2+ influx',
@@ -168,6 +235,20 @@ export const MEDICATIONS = {
     pk: { V1: 20.0, V2: 45.0, V3: 150, k10: 0.15, k12: 0.2, k21: 0.1, k13: 0.05, k31: 0.02, ke0: 1.5, coSensitivity: 0.4 },
     pd: { c50: 1.0, gamma: 2, sysMax: 30, diaMax: 20, hrMax: 20, rrMax: -2, inducesApneaAtCe: 5.0 },
     notes: 'Sympathomimetic (increases BP, HR, and CO via neuronal uptake blockade of catecholamines; can cause profound hypotension in catech-depleted shock). Increases secretions (often co-admin Glycopyrrolate) and triggers emergence delirium/hallucinations (prevented by Midazolam).'
+  },
+  esketamine: {
+    // Ch23, Miller's 9th Ed: "The S(+)-isomer (Ketanest) is 3 to 4 times more potent as an
+    // analgesic with a faster clearance and recovery and with fewer psychomimetic side effects."
+    // Potency scaled by the midpoint of the cited 3-4x range (c50 = racemic ketamine's 1.0 / 3.5).
+    // PK compartment volumes/rate constants are kept identical to racemic ketamine, since the
+    // source does not quantify "faster clearance" with a specific number (no parameter invented).
+    name: 'Esketamine', classes: ['Dissociative', 'Analgesic'], routes: ['IV', 'IM'], types: ['Bolus', 'Infusion'], dosingWeight: 'IBW',
+    metabolism: 'Hepatic (CYP3A4/2C9) to active Norketamine', proteinBinding: 0.12, synergyGroup: 'Dissociative', pkModel: 'Domino/Clements250',
+    targetReceptor: 'NMDA Antagonist', intracellularCascade: 'Non-competitive NMDA receptor antagonist -> blocks Glutamate/Ca2+ influx',
+    indications: { 'Induction': { dose: '0.5-1.0', unit: 'mg/kg', type: 'Bolus' }, 'Pain/Agitation': { dose: '0.05-0.15', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 45.0, V3: 150, k10: 0.15, k12: 0.2, k21: 0.1, k13: 0.05, k31: 0.02, ke0: 1.5, coSensitivity: 0.4 },
+    pd: { c50: 0.29, gamma: 2, sysMax: 30, diaMax: 20, hrMax: 20, rrMax: -2, inducesApneaAtCe: 1.43 },
+    notes: 'S(+)-enantiomer of ketamine. 3-4x more potent analgesic than the racemate, with fewer psychomimetic side effects (Ch23, Miller\'s 9th Ed). Shares the same sympathomimetic, secretory, and emergence-delirium liabilities as racemic ketamine (see ketamine notes); contributes to the shared ketamine-class Ce pool for those effects, scaled by its potency ratio.'
   },
   midazolam: { 
     name: 'Midazolam', classes: ['Benzodiazepine'], routes: ['IV', 'IM'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
@@ -237,7 +318,7 @@ export const MEDICATIONS = {
   },
   remifentanil: { 
     name: 'Remifentanil', classes: ['Opioid (Ultra-short)'], routes: ['IV'], types: ['Infusion', 'Bolus'], dosingWeight: 'IBW',
-    metabolism: 'Nonspecific Blood & Tissue Esterases', proteinBinding: 0.70, synergyGroup: 'Opioid',
+    metabolism: 'Nonspecific Blood & Tissue Esterases', proteinBinding: 0.70, synergyGroup: 'Opioid', pkModel: 'Minto',
     targetReceptor: 'Mu-Opioid (u1/u2)', intracellularCascade: 'Mu (Gi-coupled) -> inhibits adenylate cyclase (decreased cAMP) -> closes VGCCs, opens K+ channels (hyperpolarization)',
     indications: { 'Maintenance': { dose: '0.1-0.5', unit: 'mcg/kg/min', type: 'Infusion' }, 'Intubation Spike': { dose: '1.0', unit: 'mcg/kg', type: 'Bolus' } },
     pk: { V1: 5.0, V2: 10.0, V3: 15.0, k10: 1.5, k12: 0.8, k21: 0.5, k13: 0.2, k31: 0.1, ke0: 2.5, coSensitivity: 0.1 }, 
@@ -870,158 +951,99 @@ export const MEDICATIONS = {
     pk: { V1: 20.0, V2: 35.0, V3: 0, k10: 0.03, k12: 0.05, k21: 0.04, k13: 0, k31: 0, ke0: 0.4, coSensitivity: 0.2 },
     pd: { c50: 4.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
     notes: 'Sulfamate-substituted monosaccharide anticonvulsant. Attenuates chronic/neuropathic pain and tension/migraine headaches. Associated with weight loss and mild cognitive slowing.'
+  },
+  suvorexant: {
+    name: 'Suvorexant', classes: ['Dual Orexin Receptor Antagonist'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP3A4)', proteinBinding: 0.99, synergyGroup: 'Sedative', pkModel: 'Standard Compartmental',
+    mechanism: 'Antagonist', targetReceptor: 'OX1R/OX2R', intracellularCascade: 'Reversibly binds and blocks OX1R/OX2R, inhibiting orexinergic wakefulness drive',
+    indications: { 'Insomnia': { dose: '10-20', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.08, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.1 },
+    pd: { c50: 2.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0, inducesApneaAtCe: 999 },
+    notes: 'Dual orexin receptor antagonist. Blocks wake-promoting neuropeptides orexin A and B. Can cause daytime drowsiness. Contraindicated in narcolepsy.'
   }
 };
 
-export function calculateLungVolumes(heightCm, age, sex, bmi, position = 'Supine', isCopd = false, isRestrictive = false) {
-    // Validate heightCm: must be a positive finite number. Default to 170.0 cm.
-    let hCm = Number(heightCm);
-    if (isNaN(hCm) || !Number.isFinite(hCm) || hCm <= 0) {
-        hCm = 170.0;
+export function calculateLungVolumes(heightCm, age, sex, bmi, position = 'Supine', isCopd = false, isRestrictive = false, isAnesthetized = false) {
+    // Delegates to the single canonical implementation (avoids divergent duplicate logic).
+    return RespiratoryEngine.calculateLungVolumes(heightCm, age, sex, bmi, position, isCopd, isRestrictive, isAnesthetized);
+}
+
+/**
+ * Computes the fraction of a target organ/vascular bed's sympathetic supply silenced by a
+ * thoracic epidural local anesthetic block, using the dermatomal innervation map in
+ * TABLE 15.2 (Summary of Visceral Innervation on Gastrointestinal Tract), Miller's 9th Ed.
+ * A therapeutic epidural bolus is assumed to spread ~4 dermatomes cranial and caudal from the
+ * catheter insertion level (~8-10 total segments) — not a textbook-sourced constant, but a
+ * standard clinical estimate used only to translate a single insertion level into a band.
+ * Returns 0 (no block) to 1 (the organ's entire sympathetic range is covered).
+ */
+export function calculateDermatomalBlockFraction(epiduralLevel, organRangeLowT, organRangeHighT, spread = 4) {
+    if (typeof epiduralLevel !== 'number' || !Number.isFinite(epiduralLevel)) {
+        return 1.0; // Back-compat: epiduralBlockActive set with no level specified assumes full coverage.
     }
-    hCm = Math.max(50.0, Math.min(250.0, hCm));
+    const blockLow = epiduralLevel - spread;
+    const blockHigh = epiduralLevel + spread;
+    const overlap = Math.max(0, Math.min(blockHigh, organRangeHighT) - Math.max(blockLow, organRangeLowT));
+    const organRangeSpan = Math.max(1, organRangeHighT - organRangeLowT);
+    return Math.max(0, Math.min(1.0, overlap / organRangeSpan));
+}
 
-    // Validate age: clamp between 1 and 120. Default to 40.
-    let safeAge = Number(age);
-    if (isNaN(safeAge) || !Number.isFinite(safeAge) || safeAge <= 0) {
-        safeAge = 40.0;
+/**
+ * Computes the delivered gas mixture from the anesthesia workstation flowmeters, applying the
+ * two independent gas-supply safety interlocks described in Ch22 (Inhaled Anesthetics: Delivery
+ * Systems), Miller's 9th Ed:
+ *
+ * 1. Link-25 mechanical proportioning system (p.583): a 15-tooth N2O sprocket and 29-tooth O2
+ *    sprocket joined by a chain mechanically enforce a maximum 3:1 N2O:O2 flow ratio. Modeled
+ *    here as a stateless floor on O2 flow (`o2F = max(dialedO2F, n2oFlow/3)`) — a simplified
+ *    equivalent of the source's bidirectional description (it can also lower N2O flow when O2
+ *    is reduced) that guarantees the same minimum-FiO2 safety outcome regardless of which dial
+ *    the user is conceptually turning. This constrains dialed flow RATES, not gas identity, so
+ *    it provides no protection during pipeline crossover (see (2) below).
+ * 2. Oxygen supply failure protection device / "fail-safe valve" (p.901-909): responds to low O2
+ *    SUPPLY PRESSURE (distinct from the dialed-flow-ratio system above) by shutting off N2O flow
+ *    entirely (binary valve). Per the source this is explicitly NOT protective during pipeline
+ *    crossover/contamination, since the valve only senses pressure, not gas identity.
+ *
+ * @param gasSettings { o2Flow, airFlow, n2oFlow } dialed flowmeter settings (L/min)
+ * @param hasO2Supply whether the O2 supply (pipeline or backup cylinder) is currently pressurized
+ * @param o2SourceIsO2 true if the O2 flowmeter channel is actually delivering O2
+ * @param o2SourceIsN2O true if the O2 flowmeter channel is contaminated and actually delivering N2O (crossover)
+ */
+export function calculateLink25GasMixture(gasSettings, hasO2Supply, o2SourceIsO2, o2SourceIsN2O) {
+    const dialedO2F = typeof gasSettings?.o2Flow === 'number' && Number.isFinite(gasSettings.o2Flow) ? gasSettings.o2Flow : 0;
+    const airF = typeof gasSettings?.airFlow === 'number' && Number.isFinite(gasSettings.airFlow) ? gasSettings.airFlow : 0;
+    const n2oF = typeof gasSettings?.n2oFlow === 'number' && Number.isFinite(gasSettings.n2oFlow) ? gasSettings.n2oFlow : 0;
+
+    // 1. Link-25 proportioning: floor O2 flow at a minimum 1:3 ratio to dialed N2O flow.
+    const o2F = Math.max(dialedO2F, n2oF / 3.0);
+
+    const isO2PressureLow = o2F > 0 && !hasO2Supply;
+
+    // 2. Oxygen supply failure protection device ("fail-safe valve"): cuts N2O flow if O2 supply
+    // pressure is lost. Does not protect against crossover (handled via o2SourceIsN2O below).
+    const failSafeN2OCutoff = !hasO2Supply;
+    const effectiveN2OFlow = failSafeN2OCutoff ? 0 : n2oF;
+
+    const actualO2FromFlowmeter = o2SourceIsO2 ? o2F : 0;
+    const actualN2OFromFlowmeter = effectiveN2OFlow + (o2SourceIsN2O ? o2F : 0);
+
+    const actualO2 = actualO2FromFlowmeter + airF * 0.21;
+    const actualN2O = actualN2OFromFlowmeter;
+    const actualN2 = airF * 0.79;
+
+    const totalFGF = actualO2 + actualN2O + actualN2;
+
+    let deliveredFiO2 = 21;
+    let n2oPercent = 0;
+    let freshGasFlow = 0;
+    if (totalFGF > 0.001) {
+        deliveredFiO2 = (actualO2 / totalFGF) * 100;
+        n2oPercent = (actualN2O / totalFGF) * 100;
+        freshGasFlow = totalFGF;
     }
-    safeAge = Math.max(1.0, Math.min(120.0, safeAge));
 
-    // Validate sex: default to 'male'.
-    let safeSex = 'male';
-    if (typeof sex === 'string') {
-        const trimmed = sex.trim().toLowerCase();
-        if (trimmed === 'female') {
-            safeSex = 'female';
-        }
-    }
-    const isMale = safeSex === 'male';
-
-    // Validate bmi: clamp between 10 and 100. Default to 25.0.
-    let safeBmi = Number(bmi);
-    if (isNaN(safeBmi) || !Number.isFinite(safeBmi) || safeBmi <= 0) {
-        safeBmi = 25.0;
-    }
-    safeBmi = Math.max(10.0, Math.min(100.0, safeBmi));
-
-    // Validate position: fallback to 'Supine'
-    const safePosition = typeof position === 'string' ? position : 'Supine';
-
-    const H = hCm / 100; // Convert to meters
-    
-    // ECCS/ERS 1993 Reference Equations (Quanjer et al.) - Predicted/Baseline values
-    let fvc_pred, fev1_pred, tlc_pred, rv_pred, frc_pred;
-    if (isMale) {
-        fvc_pred  = 5.76 * H - 0.026 * safeAge - 4.34;  // Liters
-        fev1_pred = 4.30 * H - 0.029 * safeAge - 2.49;
-        tlc_pred  = 7.99 * H - 7.08;
-        rv_pred   = 1.31 * H + 0.022 * safeAge - 1.23;
-        frc_pred  = 2.34 * H + 0.009 * safeAge - 1.09;
-    } else {
-        fvc_pred  = 4.43 * H - 0.026 * safeAge - 2.89;
-        fev1_pred = 3.95 * H - 0.025 * safeAge - 2.60;
-        tlc_pred  = 6.60 * H - 5.79;
-        rv_pred   = 1.81 * H + 0.016 * safeAge - 2.00;
-        frc_pred  = 2.24 * H + 0.001 * safeAge - 1.00;
-    }
-
-    // Initialize actual parameters with predicted baselines
-    let fvc;
-    let fev1;
-    let tlc = tlc_pred;
-    let rv = rv_pred;
-    let frc = frc_pred;
-
-    // Apply disease corrections (prior to position/obesity scaling on FRC)
-    if (isCopd) {
-        rv = rv_pred * 1.40;
-        frc = frc_pred * 1.35;
-        tlc = tlc_pred * 1.05; // Hyperinflation/air trapping
-        fvc = fvc_pred * 0.86;
-        fev1 = fvc * 0.44;     // Classic obstructive ratio < 70% (44%)
-    } else if (isRestrictive) {
-        rv = rv_pred * 0.52;
-        frc = frc_pred * 0.52;
-        tlc = tlc_pred * 0.52; // Severe volume restriction
-        fvc = fvc_pred * 0.48;
-        fev1 = fvc * 0.84;     // Normal ratio (84%), but proportional loss in volumes
-    } else {
-        fvc = fvc_pred * 0.98;
-        fev1 = fvc * 0.81;     // Healthy normal ratio (81%)
-    }
-    
-    // Obesity correction — Pelosi et al. 1998
-    // FRC decreases exponentially as BMI increases above 25
-    const obesityFactor = safeBmi > 25 ? Math.exp(-0.02 * (safeBmi - 25)) : 1.0;
-    frc *= obesityFactor;
-    
-    // Positional FRC correction — Rehder et al. 1977
-    const positionFactors = {
-        'Sitting': 1.00,        // Reference upright position
-        'Ramped': 0.90,         // Semi-upright
-        'Rev Trendelenburg': 0.90,
-        'Supine': 0.80,         // -20% from upright
-        'Sniffing': 0.80,
-        'Prone': 0.85,          // Better than supine (weight off diaphragm)
-        'Lateral': 0.82,
-        'Lithotomy': 0.72,      // Legs up compress diaphragm
-        'Trendelenburg': 0.70   // Worst — abdominal contents push cephalad
-    };
-    const posFactor = positionFactors[safePosition] || 0.80;
-    frc *= posFactor;
-    
-    // Ensure all values are physiologically plausible minimums
-    frc  = Math.max(0.5, frc);
-    tlc  = Math.max(2.0, tlc);
-    rv   = Math.max(0.5, rv);
-    fvc  = Math.max(1.0, fvc);
-    fev1 = Math.max(0.5, fev1);
-    
-    // Derived volumes
-    const vc  = Math.max(0.5, tlc - rv);
-    const erv = Math.max(0, frc - rv);
-    // VT = 7 mL/kg IBW (Devine formula inline replaced with robust calculateIBW)
-    const ibwKg = calculateIBW(hCm, safeSex);
-    const vt_L = 0.007 * ibwKg;
-    const irv = Math.max(0, vc - vt_L - erv);
-    
-    // Anatomic dead space — Radford nomogram approximation (~2.2 mL/kg IBW)
-    const vd = ibwKg * 2.2 / 1000; // Liters
-
-    // Guard final predictions to prevent non-finite division
-    if (!Number.isFinite(fev1_pred) || fev1_pred <= 0) fev1_pred = 3.5;
-    if (!Number.isFinite(fvc_pred) || fvc_pred <= 0) fvc_pred = 4.5;
-    if (!Number.isFinite(fev1) || fev1 <= 0) fev1 = 2.8;
-    if (!Number.isFinite(fvc) || fvc <= 0) fvc = 3.8;
-
-    // Clinical spirometry metrics
-    let fev1PercentPredicted = Math.round((fev1 / fev1_pred) * 100);
-    let fvcPercentPredicted = Math.round((fvc / fvc_pred) * 100);
-    let fev1FvcRatio = Math.round((fev1 / fvc) * 100);
-
-    if (isNaN(fev1PercentPredicted) || !Number.isFinite(fev1PercentPredicted)) fev1PercentPredicted = 80;
-    if (isNaN(fvcPercentPredicted) || !Number.isFinite(fvcPercentPredicted)) fvcPercentPredicted = 80;
-    if (isNaN(fev1FvcRatio) || !Number.isFinite(fev1FvcRatio)) fev1FvcRatio = 80;
-    
-    return {
-        frc_mL:  Math.round(frc * 1000),
-        tlc_mL:  Math.round(tlc * 1000),
-        rv_mL:   Math.round(rv * 1000),
-        vc_mL:   Math.round(vc * 1000),
-        erv_mL:  Math.round(erv * 1000),
-        irv_mL:  Math.round(irv * 1000),
-        fvc_mL:  Math.round(fvc * 1000),
-        fev1_mL: Math.round(fev1 * 1000),
-        vd_mL:   Math.round(vd * 1000),
-        frc_L:   parseFloat(frc.toFixed(2)),
-        tlc_L:   parseFloat(tlc.toFixed(2)),
-        obesityFactor: parseFloat(obesityFactor.toFixed(3)),
-        positionFactor: posFactor,
-        fev1PercentPredicted,
-        fvcPercentPredicted,
-        fev1FvcRatio
-    };
+    return { o2F, effectiveN2OFlow, deliveredFiO2, n2oPercent, freshGasFlow, isO2PressureLow, failSafeN2OCutoff, n2oDialedFlow: n2oF };
 }
 
 export const FLUIDS = {

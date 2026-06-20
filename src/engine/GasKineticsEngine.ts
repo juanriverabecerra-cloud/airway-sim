@@ -4,6 +4,7 @@ export interface InhalationalAgentProfile {
   bgPartition: number;
   oilGasPartition?: number;
   brainBgPartition?: number;
+  muscleBgPartition?: number;
 }
 
 export class GasKineticsModel {
@@ -25,17 +26,21 @@ export class GasKineticsModel {
   
   // Tissue/Blood Solubility Coefficients
   lambda_vrg: number;
-  lambda_mg: number = 1.5; 
+  lambda_mg: number;
   lambda_fg: number;
 
   constructor(agent: InhalationalAgentProfile) {
     this.name = agent?.name || 'Unknown';
     this.mac40 = Number.isFinite(agent?.mac40) && agent.mac40 > 0 ? agent.mac40 : 1.0;
-    this.bgPartition = Number.isFinite(agent?.bgPartition) && agent.bgPartition > 0 ? Math.max(0.01, agent.bgPartition) : 0.5; 
+    this.bgPartition = Number.isFinite(agent?.bgPartition) && agent.bgPartition > 0 ? Math.max(0.01, agent.bgPartition) : 0.5;
     this.oilGasPartition = agent?.oilGasPartition;
-    
+
     this.lambda_vrg = Number.isFinite(agent?.brainBgPartition) && agent.brainBgPartition > 0 ? agent.brainBgPartition : 1.2;
-    
+    // Muscle:blood partition coefficient (TABLE 20.2, Miller's 9th Ed) — agent-specific, ranges
+    // from 1.2 (N2O) to 3.1 (Sevoflurane). Falls back to the prior flat default for agents not
+    // covered by this chapter's reference table (e.g. Xenon).
+    this.lambda_mg = Number.isFinite(agent?.muscleBgPartition) && agent.muscleBgPartition > 0 ? agent.muscleBgPartition : 1.5;
+
     if (Number.isFinite(this.oilGasPartition) && this.oilGasPartition > 0) {
       this.lambda_fg = this.oilGasPartition / this.bgPartition;
     } else {

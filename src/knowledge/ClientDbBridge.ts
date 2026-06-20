@@ -285,21 +285,31 @@ export class ClientDbBridge {
   }
 
   public static queryProseById(id: string): ProseRecord | null {
+    // Deliberately does NOT resync on every call (unlike the bulk getters
+    // above). This is called once per search RESULT to resolve its full
+    // record — searchKnowledge() can call it dozens of times per query, and
+    // syncNodeCaches() re-queries and re-sorts the entire (now much larger)
+    // prose table on every invocation. init() already populated allProse at
+    // least once; callers needing fresher data after an explicit write should
+    // use getAllProse()/getAuthoritativeProse() instead, which do still resync.
     this.init();
-    if (!this.isBrowser) {
-      this.syncNodeCaches();
-    }
     return this.allProse.find(p => p.id === id) || null;
   }
 
   public static queryMatrixById(id: string): MatrixRecord | null {
+    // See queryProseById above — same reasoning, same fix.
     this.init();
-    if (!this.isBrowser) {
-      this.syncNodeCaches();
-    }
     return this.allMatrices.find(m => m.id === id) || null;
   }
 }
 
-// Self initialize
-ClientDbBridge.init();
+// Deliberately no top-level self-init call here. Every accessor above
+// (getAllProse, queryProseById, etc.) already calls this.init() defensively
+// before reading cached state, so callers get correct lazy-on-first-use
+// behavior without it. A module-level init() call here used to mean that
+// merely importing this module anywhere in the dependency graph — which
+// usePhysiology.js does transitively, just to reference DynamicMedicationRegistry,
+// completely independent of whether a case has even started — triggered the
+// full medical_truth.db fetch (tens of MB) immediately on every app boot,
+// before the user had done anything. Removing it defers that fetch to the
+// first actual data access (first case start, first search, etc.) instead.

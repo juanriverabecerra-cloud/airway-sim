@@ -1,3 +1,5 @@
+import { calculateDermatomalBlockFraction } from './Pharmacology.js';
+
 export interface PatientState {
   isArrest: boolean;
   cardiacRhythm: string;
@@ -24,6 +26,8 @@ export interface PatientState {
   hasCAD?: boolean;
   chf?: boolean;
   ef?: number;
+  as?: boolean;
+  aorticStenosis?: boolean;
   afib?: boolean;
   hasAFib?: boolean;
   onBetaBlocker?: boolean;
@@ -41,6 +45,7 @@ export interface PatientState {
   patientBaseDBP?: number;
   oculocardiacTriggered?: boolean;
   epiduralBlockActive?: boolean;
+  epiduralLevel?: number;
   celiacBlockActive?: boolean;
   hasPoPHCollapse?: boolean;
   ischemiaActive?: boolean;
@@ -48,6 +53,8 @@ export interface PatientState {
   ischemiaSevereLogged?: boolean;
   hasPneumothorax?: boolean;
   adrenalSuppressionActive?: boolean;
+  icp?: number;
+  cpp?: number;
 }
 
 export interface VitalsState {
@@ -69,6 +76,7 @@ export interface VitalsState {
   diastoleTimeRatio?: number;
   mvo2?: number;
   mvo2Supply?: number;
+  pip?: number;
 }
 
 export interface CardiovascularDrugEffects {
@@ -122,6 +130,8 @@ export class CardiovascularEngine {
       activeMeds: { name: string; A1: number }[];
       getAnatomicalParameter: (keyword: string, defaultValue: number) => number;
       currentHb?: number;
+      vasopressinLevel?: number;
+      angiotensinIILevel?: number;
     }
   ): ResuscitationOutput {
     const events: string[] = [];
@@ -148,6 +158,8 @@ export class CardiovascularEngine {
     const safeBuffer = typeof inputs.currentBuffer === 'number' && Number.isFinite(inputs.currentBuffer) ? Math.max(0, inputs.currentBuffer) : 0.5;
     const safeFRC_L = typeof inputs.currentFRC_L === 'number' && Number.isFinite(inputs.currentFRC_L) && inputs.currentFRC_L > 0 ? inputs.currentFRC_L : 2.4;
     const safeNewTemp = typeof inputs.newTemp === 'number' && Number.isFinite(inputs.newTemp) ? Math.max(20, Math.min(45, inputs.newTemp)) : 37;
+    const safeVasopressinLevel = typeof inputs.vasopressinLevel === 'number' && Number.isFinite(inputs.vasopressinLevel) ? Math.max(0, Math.min(1.0, inputs.vasopressinLevel)) : 0.1;
+    const safeAngiotensinIILevel = typeof inputs.angiotensinIILevel === 'number' && Number.isFinite(inputs.angiotensinIILevel) ? Math.max(0, Math.min(1.0, inputs.angiotensinIILevel)) : 0.1;
 
     const safeDrugSvrMod = typeof drugEffects.drugSvrMod === 'number' && Number.isFinite(drugEffects.drugSvrMod) ? Math.max(0.1, drugEffects.drugSvrMod) : 1.0;
     const safeDrugInotropyMod = typeof drugEffects.drugInotropyMod === 'number' && Number.isFinite(drugEffects.drugInotropyMod) ? Math.max(0.1, drugEffects.drugInotropyMod) : 1.0;
@@ -300,7 +312,14 @@ export class CardiovascularEngine {
       ? (patient.intravascularVolume || 0) - safeEbv 
       : (patient.intravascularVolume || 0);
 
-    const sympatheticBlock = (patient.epiduralBlockActive || patient.celiacBlockActive) ? 1.0 : 0.0;
+    // Splanchnic vasculature follows the same visceral sympathetic chain as the GI organs it
+    // perfuses (TABLE 15.2, Miller's 9th Ed: T5-L1 via the celiac plexus, spanning liver/
+    // biliary through sigmoid/rectum). Celiac plexus block silences this directly; a thoracic
+    // epidural's effect is graded by dermatomal overlap via `epiduralLevel`.
+    const epiduralSplanchnicCoverage = patient.epiduralBlockActive
+      ? calculateDermatomalBlockFraction(patient.epiduralLevel, 5, 13)
+      : 0.0;
+    const sympatheticBlock = patient.celiacBlockActive ? 1.0 : epiduralSplanchnicCoverage;
     const hasNeoSynephrine = inputs.activeMeds.some(m => m.name === 'Phenylephrine' && m.A1 > 0.1);
     const hasNorepi = inputs.activeMeds.some(m => m.name === 'Norepinephrine' && m.A1 > 0.1);
     const hasEpi = inputs.activeMeds.some(m => m.name === 'Epinephrine' && m.A1 > 0.1);
@@ -316,9 +335,17 @@ export class CardiovascularEngine {
     }
     const inotropyInitial = Math.max(0.01, (1.0 - (newStunning / 100) + safeContractilitySympatheticSpike + (safeDrugInotropyMod - 1.0)) * lastInotropyScale);
 
+    // Severe Aortic Stenosis (Fig 14.4, Miller's 9th Ed): the fixed outflow obstruction drives
+    // compensatory concentric LV hypertrophy via Laplace's law (wall stress = P*R/(2*wall thickness)) —
+    // increased wall thickness normalizes wall stress despite elevated LV pressure, but the resulting
+    // ventricle is diastolically stiff and preload-dependent (requires higher filling pressure for the
+    // same end-diastolic volume) with little reserve to recruit additional stroke volume.
+    const isAorticStenosis = !!(patient.as || patient.aorticStenosis);
+
     // Left Ventricular End-Diastolic Pressure (LVEDP)
     const baseLVEDP = 8.0;
-    const lvedpVal = Math.max(2.0, Math.min(40.0, baseLVEDP + 4.0 * ((effectiveIntravascularVolume - safeEbv) / 250) + 5.0 / inotropyInitial));
+    const asStiffnessMultiplier = isAorticStenosis ? 1.4 : 1.0;
+    const lvedpVal = Math.max(2.0, Math.min(40.0, baseLVEDP + 4.0 * asStiffnessMultiplier * ((effectiveIntravascularVolume - safeEbv) / 250) + 5.0 / inotropyInitial));
 
     // Coronary Perfusion Pressure (CPP_coronary = DBP - LVEDP)
     const cppCoronaryVal = Math.max(5.0, safeDia - lvedpVal);
@@ -343,10 +370,18 @@ export class CardiovascularEngine {
     const supplyVal = cppCoronaryVal * diastoleTimeRatioVal * caO2Val * coronaryStenosisModVal * 8.5;
 
     // Ischemia & Stunning Loop
+    // Anesthetic-Induced Ischemic Preconditioning (Ch19, Miller's 9th Ed: "Anesthetic-induced and
+    // ischemic cardiac preconditioning share critical signaling mechanisms...particularly
+    // sarcolemmal and/or mitochondrial KATP channels"). Volatile anesthetics activate these same
+    // KATP-channel pathways, blunting stunning accumulation during myocardial ischemia. The source
+    // gives no specific magnitude, so a conservative illustrative 30% reduction at >=1 MAC is used
+    // (class-average fallback convention), consistent with isoflurane's existing "cardioprotective
+    // (ischemic preconditioning)" description in Pharmacology.js.
+    const anestheticPreconditioning = Math.min(0.3, 0.3 * safeCurrentMac);
     let stunningIncrease = 0;
     const isCurrentlyIschemic = (supplyVal < mvo2Val) && !isArrestState;
     if (isCurrentlyIschemic) {
-      stunningIncrease = Math.round((mvo2Val - supplyVal) * 0.0000381 * 10) / 10;
+      stunningIncrease = Math.round((mvo2Val - supplyVal) * 0.0000381 * (1.0 - anestheticPreconditioning) * 10) / 10;
       newStunning = Math.min(60, Math.max(0, newStunning + stunningIncrease));
     }
 
@@ -374,6 +409,9 @@ export class CardiovascularEngine {
         if (patient.cad || patient.hasCAD) {
           details.push(`Coronary Artery Disease limits flow reserve`);
         }
+        if (isAorticStenosis) {
+          details.push(`Fixed valvular orifice (Aortic Stenosis) prevents compensatory stroke volume increase, and concentric LV hypertrophy elevates myocardial oxygen demand`);
+        }
         if (details.length === 0) {
           details.push(`Increased cardiac workload (MVO2: ${Math.round(mvo2Val)}) exceeds coronary delivery`);
         }
@@ -392,6 +430,9 @@ export class CardiovascularEngine {
         }
         if (safeCurrentHb < 9.0) {
           interventions.push(`Consider blood transfusion (PRBC)`);
+        }
+        if (isAorticStenosis) {
+          interventions.push(`Maintain sinus rhythm and avoid further tachycardia; treat with phenylephrine/norepinephrine rather than fluid boluses if the cause is reduced SVR`);
         }
         if (interventions.length === 0) {
           interventions.push(`Deepen anesthetic or reduce surgical stress to lower heart rate and afterload`);
@@ -418,9 +459,21 @@ export class CardiovascularEngine {
 
     const inotropyFinal = Math.max(0.01, (1.0 - (newStunning / 100) + safeContractilitySympatheticSpike + (safeDrugInotropyMod - 1.0)) * lastInotropyScale);
 
-    // Frank-Starling stroke volume preload factor
-    const starlingPreloadSV = 1.2 * (1.0 - Math.exp(-0.15 * lvedpVal));
+    // Frank-Starling stroke volume preload factor. AS flattens the curve's upper recruitable range
+    // (Fig 14.5) by capping the LVEDP this formula can "see" — resting hemodynamics at normal filling
+    // pressure are unaffected, but the fixed orifice prevents translating extra preload into extra
+    // forward stroke volume once filling pressure climbs.
+    const starlingEffectiveLvedp = isAorticStenosis ? Math.min(lvedpVal, 12.0) : lvedpVal;
+    const starlingPreloadSV = 1.2 * (1.0 - Math.exp(-0.15 * starlingEffectiveLvedp));
     const preloadSV = Math.max(0.1, starlingPreloadSV * (1.0 - safeBloodLossRatio * 1.2));
+
+    // Neurohormonal cardiac support (TABLE 14.1, Miller's 9th Ed): vasopressin and angiotensin II
+    // exert direct +inotropy/+chronotropy via V1a/AT1 myocardial receptors. Both rise above their
+    // RenalEngine.ts baseline (~0.1) during hypovolemia/stress, becoming clinically relevant mainly
+    // in shock states. Aldosterone's cardiac action cell is blank in Table 14.1 (mineralocorticoid/
+    // fibrotic, not contractile) and is intentionally NOT given a direct inotropic/chronotropic effect.
+    const neurohormonalInotropy = 1.0 + 0.15 * Math.max(0, safeVasopressinLevel - 0.1) + 0.10 * Math.max(0, safeAngiotensinIILevel - 0.1);
+    const neurohormonalHrDelta = 8.0 * Math.max(0, safeVasopressinLevel - 0.1) + 6.0 * Math.max(0, safeAngiotensinIILevel - 0.1);
 
     const shiveringHRDriveVal = (safeShiveringMultiplier > 1.0) ? ((safeShiveringMultiplier - 1.0) * 15) : 0;
 
@@ -462,7 +515,7 @@ export class CardiovascularEngine {
     }
 
     const baseHR = typeof patient.patientBaseHR === 'number' && Number.isFinite(patient.patientBaseHR) && patient.patientBaseHR > 0 ? patient.patientBaseHR : 70;
-    let targetHR = Math.max(0, baseHR + totalHrDelta + adjustedAutonomicHrMod + adjustedHypovolemicTachy + safeHrSympatheticSpike + shiveringHRDriveVal + afibHRFlutter + safeAnaphylaxisHrMod + hrBainbridge);
+    let targetHR = Math.max(0, baseHR + totalHrDelta + adjustedAutonomicHrMod + adjustedHypovolemicTachy + safeHrSympatheticSpike + shiveringHRDriveVal + afibHRFlutter + safeAnaphylaxisHrMod + hrBainbridge + neurohormonalHrDelta);
     let lastHrPenalty = 0;
     if (tCv >= 0.5) {
       lastHrPenalty = 25.0 * (tCv - 0.5);
@@ -477,6 +530,12 @@ export class CardiovascularEngine {
     }
     (patient as any).prInterval = prInterval;
     (patient as any).qrsDuration = qrsDuration;
+
+    // Cushing's reflex bradycardia (Table 11.1, Fig. 11.3, Miller's 9th Ed)
+    if (patient.icp && patient.cpp && patient.icp > 20.0 && patient.cpp < 50.0) {
+      targetHR = Math.max(35, Math.min(targetHR, 35 + Math.max(0, patient.cpp) * 0.2));
+    }
+
     const safeRuleHrScale = typeof drugEffects.ruleHrScale === 'number' && Number.isFinite(drugEffects.ruleHrScale) ? drugEffects.ruleHrScale : 1.0;
     const safeRuleHrOffset = typeof drugEffects.ruleHrOffset === 'number' && Number.isFinite(drugEffects.ruleHrOffset) ? drugEffects.ruleHrOffset : 0;
     targetHR = targetHR * safeRuleHrScale + safeRuleHrOffset;
@@ -491,20 +550,35 @@ export class CardiovascularEngine {
     }
     
     const baseSV = typeof patient.patientBaseSV === 'number' && Number.isFinite(patient.patientBaseSV) && patient.patientBaseSV > 0 ? patient.patientBaseSV : 70;
-    const maxSV = baseSV * (patient.chf ? 1.0 : 1.6);
+    // Fixed valvular orifice: stroke volume cannot be recruited upward to compensate for vasodilation
+    // or hypovolemia, the classic teaching point making AS patients intolerant of acute SVR drops.
+    const maxSV = baseSV * (patient.chf ? 1.0 : (isAorticStenosis ? 1.10 : 1.6));
 
     // AFib SV Penalty (15% reduction)
     const afibSVModifier = (patient.afib || patient.hasAFib || patient.cardiacRhythm === 'afib') ? 0.85 : 1.0;
 
-    let currentSV = Math.min(maxSV, baseSV * preloadSV * Math.max(0.1, inotropyFinal) * chfInotropicPenalty * afibSVModifier);
+    let currentSV = Math.min(maxSV, baseSV * preloadSV * Math.max(0.1, inotropyFinal) * chfInotropicPenalty * afibSVModifier * neurohormonalInotropy);
     if (patient.hasPneumothorax) {
       currentSV *= 0.3; // 70% drop in SV due to vena cava compression
+    }
+    const pipVal = vitals.pip || 0;
+    if (pipVal >= 30.0) {
+      // Fig 13.19 / §6.21: high airway pressure restricts venous return (decreases cardiac preload and SV by up to 30%)
+      const recruitmentPreloadMod = Math.max(0.70, 1.0 - 0.015 * (pipVal - 20.0));
+      currentSV *= recruitmentPreloadMod;
     }
     currentSV = Math.max(0.1, currentSV);
 
     // SVR computation
     const baseSVR = typeof patient.patientBaseSVR === 'number' && Number.isFinite(patient.patientBaseSVR) && patient.patientBaseSVR > 0 ? patient.patientBaseSVR : 1200;
     let targetSVR = (baseSVR * safeDrugSvrMod * (patient.isSeptic ? 0.6 : 1.0) * safeAnaphylaxisSvrMod * (bjActive ? 0.75 : 1.0) * (1.0 - 0.15 * sympatheticBlock)) + safeSvrSympatheticSpike;
+
+    // Cushing's reflex SVR surge (Miller 9th Ed Ch 11)
+    if (patient.icp && patient.cpp && patient.icp > 20.0 && patient.cpp < 50.0) {
+      const cushingSvrMultiplier = 1.0 + 1.5 * (1.0 - Math.max(0, patient.cpp) / 50.0);
+      targetSVR *= cushingSvrMultiplier;
+    }
+
     targetSVR = Math.max(50, targetSVR);
 
     const targetCO = Math.max(0, Math.min(30.0, (targetHR * currentSV) / 1000));

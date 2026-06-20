@@ -6,6 +6,7 @@ import type { SourceFragment, ParsedDocument, VisualDataEngine } from './types/i
 import { DataHygieneProcessor } from './parsers/DataHygieneProcessor.ts';
 import { StrategyRouter } from './parsers/StrategyRouter.ts';
 import { TokenOptimizer } from './utils/token_optimizer.ts';
+import { KnowledgeStore } from './store.ts';
 
 let dirname = '';
 try {
@@ -33,12 +34,16 @@ export class PipelineOrchestrator {
 
   /**
    * Run the parsing pipeline on a single source file.
-   * 
+   *
    * @param sourceFilePath - Absolute path to the source file
    * @param outputPath - Absolute path where the parsed JSON should be saved
+   * @param options.skipFinalize - When processing many files in a batch, skip the
+   *   global reindex/deploy/snapshot step after each individual file (it would
+   *   otherwise re-run once per file) and call PipelineOrchestrator.finalize()
+   *   once after the whole batch completes instead.
    * @returns true if parsing and saving completed successfully, false on errors
    */
-  public async run(sourceFilePath: string, outputPath: string): Promise<boolean> {
+  public async run(sourceFilePath: string, outputPath: string, options: { skipFinalize?: boolean } = {}): Promise<boolean> {
     const fileName = path.basename(sourceFilePath);
     const fileExt = path.extname(sourceFilePath).toLowerCase();
 
@@ -165,15 +170,21 @@ export class PipelineOrchestrator {
     console.log(`  ✓ Success! Raw extracted document saved to: ${outputPath}`);
     console.log(`  Output size:  ${outputSize.toLocaleString()} bytes`);
 
-    // Run local LLM Token Optimization & Stripper Utility
-    console.log(`\n[STEP 5] Running local LLM Token Optimization & Stripper utility...`);
+    // Insert into the knowledge database (clears any prior rows for this filename first)
+    console.log(`\n[STEP 5] Inserting parsed document into the knowledge database...`);
     try {
-      const optResult = TokenOptimizer.optimizeAndSerialize(outputDoc, outputPath);
-      console.log(`  ✓ Success! Saved ${optResult.partsCount} LLM-optimized part(s) under '/parsed texts/llm_optimized/'`);
-      console.log(`  Total estimated LLM tokens: ${optResult.totalTokens.toLocaleString()}`);
+      // Idempotent: cheap no-op if a caller (e.g. a batch driver) already
+      // initialized the store. Required here because nothing previously called
+      // this before optimizeAndInsert() — it would throw "Database not
+      // initialized" the moment the orchestrator was actually run.
+      await KnowledgeStore.init();
+      TokenOptimizer.optimizeAndInsert(outputDoc);
+      if (!options.skipFinalize) {
+        TokenOptimizer.compileGlobalDatabaseAndIndex();
+      }
     } catch (optErr: unknown) {
       const errMsg = optErr instanceof Error ? optErr.message : String(optErr);
-      console.error(`  [TOKEN OPTIMIZER ERROR] Failed to optimize mirror: ${errMsg}`);
+      console.error(`  [TOKEN OPTIMIZER ERROR] Failed to insert/compile database: ${errMsg}`);
     }
 
     // Print warnings if any
