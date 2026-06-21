@@ -55,6 +55,7 @@ export interface PatientState {
   adrenalSuppressionActive?: boolean;
   icp?: number;
   cpp?: number;
+  ziconotideHypotensionActive?: boolean;
 }
 
 export interface VitalsState {
@@ -271,6 +272,9 @@ export class CardiovascularEngine {
     let baroreflexGain = Math.max(0, 1.0 - safeCurrentMac * 0.67);
     if (patient.isAwarenessActive) {
       baroreflexGain = 0; // Overridden by central sympathetic surge during awareness crisis
+    }
+    if (patient.ziconotideHypotensionActive) {
+      baroreflexGain *= 0.15; // reduces baroreflexGain by 85%
     }
     const baseSBP_set = patient.patientBaseSBP || 120;
     const baseDBP_set = patient.patientBaseDBP || 80;
@@ -573,6 +577,16 @@ export class CardiovascularEngine {
     const baseSVR = typeof patient.patientBaseSVR === 'number' && Number.isFinite(patient.patientBaseSVR) && patient.patientBaseSVR > 0 ? patient.patientBaseSVR : 1200;
     let targetSVR = (baseSVR * safeDrugSvrMod * (patient.isSeptic ? 0.6 : 1.0) * safeAnaphylaxisSvrMod * (bjActive ? 0.75 : 1.0) * (1.0 - 0.15 * sympatheticBlock)) + safeSvrSympatheticSpike;
 
+    if (patient.ziconotideHypotensionActive) {
+      const pos = patient.position || 'Supine';
+      const isSittingOrRevT = pos === 'Sitting' || pos === 'Beach Chair' || pos === 'Rev Trendelenburg';
+      if (isSittingOrRevT) {
+        targetSVR *= 0.65; // 35% reduction total
+      } else {
+        targetSVR *= 0.80; // 20% reduction at baseline
+      }
+    }
+
     // Cushing's reflex SVR surge (Miller 9th Ed Ch 11)
     if (patient.icp && patient.cpp && patient.icp > 20.0 && patient.cpp < 50.0) {
       const cushingSvrMultiplier = 1.0 + 1.5 * (1.0 - Math.max(0, patient.cpp) / 50.0);
@@ -599,6 +613,13 @@ export class CardiovascularEngine {
     let exactMap = ((newCO * newSVR) / 80) + pressorMAPShift + sepsisMAPShift;
     if (patient.hasPneumothorax) {
       exactMap = Math.max(15, exactMap - 30); // 30 mmHg MAP drop
+    }
+    if (patient.ziconotideHypotensionActive) {
+      const pos = patient.position || 'Supine';
+      const isSittingOrRevT = pos === 'Sitting' || pos === 'Beach Chair' || pos === 'Rev Trendelenburg';
+      if (isSittingOrRevT) {
+        exactMap = Math.max(15, exactMap - 15); // drop MAP by an additional 15 mmHg
+      }
     }
     const safeRuleMapScale = typeof drugEffects.ruleMapScale === 'number' && Number.isFinite(drugEffects.ruleMapScale) ? drugEffects.ruleMapScale : 1.0;
     const safeRuleMapOffset = typeof drugEffects.ruleMapOffset === 'number' && Number.isFinite(drugEffects.ruleMapOffset) ? drugEffects.ruleMapOffset : 0;

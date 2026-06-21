@@ -58,7 +58,7 @@ export const getMedColor = (medId) => {
     };
   }
   // Anticholinergics / Reversals -> Green
-  if (['atropine', 'sugammadex', 'neostigmine', 'glycopyrrolate', 'atipamezole', 'methylphenidate', 'scopolamine', 'edrophonium', 'pyridostigmine'].some(k => id.includes(k))) {
+  if (['atropine', 'sugammadex', 'neostigmine', 'glycopyrrolate', 'atipamezole', 'methylphenidate', 'scopolamine', 'edrophonium', 'pyridostigmine', 'dantrolene'].some(k => id.includes(k))) {
     return {
       active: 'border-emerald-500/80 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.25)] bg-emerald-950/10 font-bold',
       btn: 'glass-button-emerald',
@@ -77,8 +77,18 @@ export const getMedColor = (medId) => {
       focus: 'focus:border-rose-500 focus:ring-rose-500'
     };
   }
+  // Dextrose -> Amber
+  if (['dextrose'].some(k => id.includes(k))) {
+    return {
+      active: 'border-amber-400/80 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.25)] bg-amber-950/10 font-bold',
+      btn: 'glass-button-amber',
+      subBorder: 'border-amber-900/50',
+      text: 'text-amber-400',
+      focus: 'focus:border-amber-500 focus:ring-amber-500'
+    };
+  }
   // Nonopioid Pain Meds -> Indigo
-  if (['acetaminophen', 'ketorolac', 'gabapentin', 'pregabalin', 'mexiletine', 'topiramate'].some(k => id.includes(k))) {
+  if (['acetaminophen', 'ketorolac', 'gabapentin', 'pregabalin', 'mexiletine', 'topiramate', 'carbamazepine', 'oxcarbazepine', 'lamotrigine', 'zonisamide', 'levetiracetam', 'ziconotide'].some(k => id.includes(k))) {
     return {
       active: 'border-indigo-500/80 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.25)] bg-indigo-950/10 font-bold',
       btn: 'glass-button-indigo',
@@ -89,7 +99,7 @@ export const getMedColor = (medId) => {
   }
 
   // Local Anesthetics -> Cyan
-  if (['bupivacaine', 'ropivacaine', 'levobupivacaine', 'tetracaine', 'chloroprocaine', 'benzocaine', 'prilocaine'].some(k => id.includes(k))) {
+  if (['bupivacaine', 'ropivacaine', 'levobupivacaine', 'tetracaine', 'chloroprocaine', 'benzocaine', 'prilocaine', 'mepivacaine'].some(k => id.includes(k))) {
     return {
       active: 'border-cyan-500/80 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.25)] bg-cyan-950/10 font-bold',
       btn: 'glass-button-cyan',
@@ -155,6 +165,14 @@ export const Pharmacopoeia = ({
     setTciTarget('');
     if (medInput.drug === 'ketamine' || medInput.drug === 'esketamine') {
       setTciModel('Domino');
+    } else if (medInput.drug === 'remifentanil') {
+      setTciModel('Minto');
+    } else if (medInput.drug === 'sufentanil') {
+      setTciModel('Gepts');
+    } else if (medInput.drug === 'fentanyl') {
+      setTciModel('Shafer');
+    } else if (medInput.drug === 'alfentanil') {
+      setTciModel('Maitre');
     } else {
       setTciModel('Schnider');
     }
@@ -239,30 +257,44 @@ export const Pharmacopoeia = ({
     ],
     analgesia: [
       'acetaminophen',
+      'alfentanil',
       'benzocaine',
       'bupivacaine',
+      'carbamazepine',
       'chloroprocaine',
       'fentanyl',
       'gabapentin',
       'hydromorphone',
       'ketorolac',
+      'lamotrigine',
+      'levetiracetam',
       'levobupivacaine',
+      'mepivacaine',
       'mexiletine',
       'morphine',
+      'oxcarbazepine',
       'pregabalin',
       'prilocaine',
       'remifentanil',
       'ropivacaine',
       'sufentanil',
       'tetracaine',
-      'topiramate'
+      'topiramate',
+      'ziconotide',
+      'zonisamide'
     ],
     paralytics: [
       'atipamezole',
+      'atracurium',
       'cisatracurium',
+      'cw002',
       'edrophonium',
+      'gantacurium',
       'glycopyrrolate',
+      'l_cysteine',
+      'mivacurium',
       'neostigmine',
+      'pancuronium',
       'pyridostigmine',
       'rocuronium',
       'scopolamine',
@@ -293,6 +325,8 @@ export const Pharmacopoeia = ({
       'albuterol',
       'bicarbonate',
       'calcium',
+      'dantrolene',
+      'dextrose',
       'furosemide',
       'intralipid',
       'magnesium',
@@ -447,7 +481,7 @@ export const Pharmacopoeia = ({
               </button>
             </div>
 
-            {['propofol', 'ketamine', 'esketamine'].includes(medId) && (
+            {['propofol', 'ketamine', 'esketamine', 'remifentanil', 'sufentanil', 'fentanyl', 'alfentanil'].includes(medId) && (
               <div className="flex flex-col gap-1.5 border-t border-slate-800/60 pt-2 mt-1 font-mono">
                 <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Target Controlled Infusion (TCI)</div>
                 <div className="flex gap-2">
@@ -473,6 +507,14 @@ export const Pharmacopoeia = ({
                           <option value="Paedfusor">Paedfusor (Pediatric)</option>
                           <option value="Kataria">Kataria (Pediatric)</option>
                         </>
+                      ) : medId === 'remifentanil' ? (
+                        <option value="Minto">Minto (Remifentanil)</option>
+                      ) : medId === 'sufentanil' ? (
+                        <option value="Gepts">Gepts (Sufentanil)</option>
+                      ) : medId === 'fentanyl' ? (
+                        <option value="Shafer">Shafer (Fentanyl)</option>
+                      ) : medId === 'alfentanil' ? (
+                        <option value="Maitre">Maitre (Alfentanil)</option>
                       ) : (
                         <option value="Domino">Domino (Ketamine)</option>
                       )}

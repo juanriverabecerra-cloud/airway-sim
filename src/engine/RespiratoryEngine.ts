@@ -523,6 +523,8 @@ export class RespiratoryEngine {
       currentCompliance *= 0.80; // 20% compliance reduction
     } else if (safePatient.position === 'Lithotomy') {
       currentCompliance -= 10;
+    } else if (safePatient.position === 'Prone' && !safePatient.proneSupportsPlaced) {
+      currentCompliance *= 0.70; // 30% compliance reduction due to unmitigated abdominal compression
     }
     currentCompliance -= aspirationCompliancePenalty;
     currentCompliance -= anaphylaxisCompliancePenalty;

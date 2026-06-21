@@ -13,6 +13,8 @@ import { GastrointestinalEngine } from './GastrointestinalEngine';
 import { HepaticEngine } from './HepaticEngine';
 import { RenalEngine } from './RenalEngine';
 import { CerebralEngine } from './CerebralEngine';
+import { createQualityEvent } from './OutcomeScoringEngine.ts';
+import { HERBAL_MEDICINES, DIETARY_SUPPLEMENTS } from './CAMKnowledgeEngine';
 
 export function resolveDosingWeight(medData, type, patient) {
   const tbw = typeof patient.weight === 'number' && Number.isFinite(patient.weight) && patient.weight > 0 ? patient.weight : 70;
@@ -150,6 +152,32 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     setSurgicalPhaseState(next);
   };
 
+  // Structured, scorable quality-of-care event log (distinct from the narrative `logEvent`
+  // text log). Introduced as part of the Ch9-30 retroactive sweep to give a future
+  // debrief/outcome-score feature (see OutcomeScoringEngine.ts) real data to consume.
+  // Mapping from the simulator's existing 5-stage surgical timeline to the broader 4-phase
+  // continuum-of-care model (PreOp/Intraoperative/PACU/PostDischarge) used by quality events.
+  const mapSurgicalPhaseToCareOfPhase = (surgPhase) => {
+    if (surgPhase === 'Pre-Op') return 'PreOp';
+    if (surgPhase === 'PACU') return 'PACU';
+    return 'Intraoperative';
+  };
+
+  const logQualityEvent = (input) => {
+    const currentPhase = input?.phase || mapSurgicalPhaseToCareOfPhase(stateRef.current.surgicalPhase);
+    const event = createQualityEvent({
+      ...input,
+      time: typeof input?.time === 'number' ? input.time : stateRef.current.time,
+      phase: currentPhase
+    });
+    const currentPatient = stateRef.current.patient || patientVal;
+    const existingEvents = Array.isArray(currentPatient.qualityEvents) ? currentPatient.qualityEvents : [];
+    setPatient(prev => ({ ...prev, qualityEvents: [...existingEvents, event] }));
+    if (logEvent && event.description) {
+      logEvent(`📋 [${event.category}/${event.severity.toUpperCase()}] ${event.description}`);
+    }
+  };
+
   const time = timeVal;
   const vitals = vitalsVal;
   const targetVitals = targetVitalsVal;
@@ -191,7 +219,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
         setVitals({ 
           ...safeBaseVitals, pip: 0, pplat: 0, vte: 0, bis: 98, temp: 37.0, 
-          tofCount: 4, tofRatio: 1.0, mac: 0, etAgent: 0, etN2O: 0, 
+          tofCount: 4, tofRatio: 1.0, perceivedTofCount: 4, perceivedTofRatio: 1.0, mac: 0, etAgent: 0, etN2O: 0,
           pao2: safePatientObj.isObese ? 75 : 100, 
           paco2: safePatientObj.isObese ? 52 : 40, 
           ph: safePatientObj.isSeptic ? 7.22 : (safePatientObj.isObese ? 7.36 : 7.4), 
@@ -239,7 +267,11 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           airwaySecured: false, airwayExamined: false, ventilationStatus: 'spontaneous',
           hasIV: false, hasALine: false, currentO2Device: 'Room Air', currentO2Flow: 0, currentFiO2: 21,
           oxygenBuffer: lungVols.frc_L * 0.21, 
-          hasBisMonitor: false, hasTofMonitor: false,
+          hasBisMonitor: false, hasTofMonitor: false, tofMonitorMode: 'quantitative',
+          qualityEvents: [],
+          // Captured once at case start for PACU/Aldrete-style readiness scoring ("circulation
+          // within 20% of baseline" criterion) - see OutcomeScoringEngine.ts.
+          baselineMap: Math.round(initialMap), baselineHr: baseHr,
           isArrest: false, cardiacRhythm: 'normal', cprActive: false, ischemicDamage: 0, biologicalDeath: false, myocardialStunning: 0,
           arrestThreshold: 1200, codeStartTime: null, apneaStartTime: null,
           shuntFraction: activeCase.id === 'trauma' ? 0.20 : (safePatientObj.isObese ? 0.12 : 0.05),
@@ -272,6 +304,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           stomach: activeCase.id === 'obese' ? 'full' : (activeCase.id === 'trauma' ? 'full' : 'empty'),
           fluidInfusing: null,
           suxPotassiumLeaked: false,
+          mhActive: false,
+          charcoalFiltersPlaced: false,
+          mhStartTime: null,
+          dantroleneGiven: false,
           isSeizure: false,
           celiacBlockActive: safePatientObj.celiacBlockActive || false,
           epiduralBlockActive: safePatientObj.epiduralBlockActive || false,
@@ -494,6 +530,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           dilatorMuscleTone: 1.0,
           airwayObstructionIndex: 0.0,
           isAirwayObstruction: false,
+          postExtubationLaryngealEdema: false,
           bronchialSmoothMuscleCa: 1.0,
           atelectasis: 0.0,
           recruitmentTime: 0.0,
@@ -528,7 +565,11 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           hasCerebralIschemia: false,
           rso2: 70.0,
           isBBBOpen: safePatientObj.isBBBOpen || false,
-          cerebralElastance: safePatientObj.cerebralElastance
+          cerebralElastance: safePatientObj.cerebralElastance,
+          urinaryRetentionActive: false,
+          bladderVolume: 0.0,
+          hasFoley: false,
+          opioidReceptorGenotype: safePatientObj.opioidReceptorGenotype || 'A118A'
         });
         
         setTime(0); setActiveMeds([]); setIntravascularVolume(0); setSurgicalPhase('Pre-Op');
@@ -818,6 +859,20 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
     const medData = MEDICATIONS[medId]; if (!medData) return false;
 
+    // PharmacologicChoice quality event: administering a penicillin-class drug to a
+    // documented-allergic patient is itself a decision error worth recording, independent of
+    // whether anaphylaxis actually occurs this tick (that probabilistic outcome is handled
+    // separately in the main tick loop's anaphylaxis trigger logic).
+    if (medId === 'unasyn' && (currentPatient.penicillinAllergy || (currentPatient.allergies || '').toLowerCase().includes('penicillin'))) {
+        logQualityEvent({
+            category: 'PharmacologicChoice', severity: 'critical',
+            description: 'Administered a penicillin-class antibiotic (Ampicillin/Sulbactam) to a patient with a documented penicillin allergy.',
+            idealAction: 'Verify allergy history before administering a penicillin-class drug; select a non-cross-reacting alternative.',
+            actualAction: `Administered ${medId} despite documented penicillin allergy.`,
+            impact: 'Risk of IgE-mediated anaphylaxis (vasoplegic shock, bronchospasm) - probabilistically elevated 4x in patients with COPD/asthma/atopy/high anxiety.',
+        });
+    }
+
     const safePatientWeight = typeof currentPatient.weight === 'number' && Number.isFinite(currentPatient.weight) && currentPatient.weight > 0 ? currentPatient.weight : 70;
     const safePatientIbw = typeof currentPatient.ibw === 'number' && Number.isFinite(currentPatient.ibw) && currentPatient.ibw > 0 ? currentPatient.ibw : 70;
     const safePatientLbw = typeof currentPatient.lbw === 'number' && Number.isFinite(currentPatient.lbw) && currentPatient.lbw > 0 ? currentPatient.lbw : 60;
@@ -946,17 +1001,72 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
  
       if (medId === 'succinylcholine') {
         let leak = 0.5; 
-        if (currentPatient.nAChR_state === 'upregulated') {
+        let logMsg = `⚡ Succinylcholine administered. Normal transient potassium release (+0.5 mEq/L) observed.`;
+        
+        if (currentPatient.dmd || currentPatient.bmd) {
+          leak = Math.max(0, 9.0 - (stateRef.current.electrolytes?.k || 4.0));
+          logMsg = `🚨🚨 CRITICAL CLINICAL EMERGENCY: Succinylcholine given to patient with ${currentPatient.dmd ? 'Duchenne' : 'Becker'} Muscular Dystrophy! Triggered massive rhabdomyolysis and life-threatening hyperkalemic cardiac arrest!`;
+          setPatient(prev => ({
+              ...prev,
+              isArrest: true,
+              cardiacRhythm: 'pea',
+              suxArrestTriggered: true
+          }));
+          logQualityEvent({
+              category: 'PharmacologicChoice',
+              severity: 'critical',
+              description: `Succinylcholine administered to patient with ${currentPatient.dmd ? 'Duchenne' : 'Becker'} Muscular Dystrophy, triggering severe hyperkalemic cardiac arrest.`,
+              idealAction: 'Avoid succinylcholine in patients with muscular dystrophy; use non-depolarizing muscle relaxants.',
+              actualAction: 'Administered Succinylcholine.',
+              impact: 'Acute rhabdomyolysis, lethal hyperkalemia, and PEA cardiac arrest.',
+              chapterSource: "Miller's Anesthesia Chapter 35"
+          });
+        } else if (currentPatient.nAChR_state === 'upregulated') {
           leak = getAnatomicalParameter("Succinylcholine upregulated potassium leak", 5.2);
-          logEvent(`🚨 CRITICAL CLINICAL EMERGENCY: Succinylcholine given to patient with nAChR upregulation! Extrajunctional receptors opened, triggering massive potassium leak (+${leak.toFixed(1)} mEq/L)!`);
-        } else {
-          logEvent(`⚡ Succinylcholine administered. Normal transient potassium release (+0.5 mEq/L) observed.`);
+          logMsg = `🚨 CRITICAL CLINICAL EMERGENCY: Succinylcholine given to patient with nAChR upregulation! Extrajunctional receptors opened, triggering massive potassium leak (+${leak.toFixed(1)} mEq/L)!`;
+        } else if (currentPatient.cmt) {
+          leak = 4.2;
+          logMsg = `🚨 CRITICAL CLINICAL EMERGENCY: Succinylcholine given to patient with Charcot-Marie-Tooth! Extra-junctional receptors opened, triggering severe potassium leak (+4.2 mEq/L)!`;
+        } else if (currentPatient.cip) {
+          leak = 4.8;
+          logMsg = `🚨 CRITICAL CLINICAL EMERGENCY: Succinylcholine given to patient with Critical Illness Polyneuropathy! Extra-junctional receptors opened, triggering severe potassium leak (+4.8 mEq/L)!`;
+        } else if (currentPatient.hyperPP) {
+          // Chapter 35: Succinylcholine CONTRAINDICATED in HyperPP — aggravates myotonia, masseter spasm,
+          // prolonged weakness, and worsens hyperkalemia via NaV1.4 channelopathy (Miller 9th Ed, Ch 35 p. 1139)
+          leak = 2.5;
+          logMsg = `🚨 CRITICAL: Succinylcholine given to patient with Hyperkalemic Periodic Paralysis! Prolonged muscle weakness, masseter spasm, and aggravated hyperkalemia (+2.5 mEq/L) triggered via NaV1.4 channelopathy!`;
+          setPatient(prev => ({ ...prev, hyperPPAttackActive: true }));
+          logQualityEvent({
+              category: 'PharmacologicChoice',
+              severity: 'critical',
+              description: 'Succinylcholine administered to patient with Hyperkalemic Periodic Paralysis (HyperPP). This is CONTRAINDICATED — aggravates myotonia via NaV1.4 sustained sodium currents, causing masseter spasm and prolonged flaccid weakness.',
+              idealAction: 'Avoid succinylcholine entirely in HyperPP; use non-depolarizing muscle relaxants.',
+              actualAction: 'Administered Succinylcholine.',
+              impact: 'Masseter spasm, prolonged skeletal muscle weakness, hyperkalemic exacerbation.',
+              chapterSource: "Miller's Anesthesia Chapter 35"
+          });
         }
+        
+        logEvent(logMsg);
         setElectrolytes(prev => ({ ...prev, k: prev.k + leak }));
         setPatient(prev => ({ ...prev, suxPotassiumLeaked: true }));
       }
 
       if (medId === 'neostigmine' || medId === 'pyridostigmine' || medId === 'edrophonium') {
+        // Chapter 35: Cholinesterase inhibitors CONTRAINDICATED in HyperPP — aggravate myotonia (Miller 9th Ed, Ch 35 p. 1139)
+        if (currentPatient.hyperPP) {
+            setPatient(prev => ({ ...prev, hyperPPAttackActive: true }));
+            logEvent(`🚨 CRITICAL: ${medData.name} administered to patient with Hyperkalemic Periodic Paralysis! Cholinesterase inhibitors aggravate myotonia in HyperPP patients — prolonged muscle stiffness and respiratory compromise triggered.`);
+            logQualityEvent({
+                category: 'PharmacologicChoice',
+                severity: 'major',
+                description: `${medData.name} administered to patient with Hyperkalemic Periodic Paralysis (HyperPP). Cholinesterase inhibitors are CONTRAINDICATED — they aggravate NaV1.4 myotonia.`,
+                idealAction: 'Use sugammadex for NMB reversal in HyperPP patients; avoid neostigmine/pyridostigmine.',
+                actualAction: `Administered ${medData.name}.`,
+                impact: 'Aggravated myotonia, masseter spasm, respiratory muscle stiffness.',
+                chapterSource: "Miller's Anesthesia Chapter 35"
+            });
+        }
         const glyco = currentActiveMeds.find(m => m.name === 'Glycopyrrolate');
         const glycoCe = glyco ? glyco.Ce : 0;
         const atropine = currentActiveMeds.find(m => m.name === 'Atropine');
@@ -1336,7 +1446,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               else hepaticRatio = 0.80;
           }
 
-          const hasMG = st.patient.hasMG || st.patient.myastheniaGravis || (st.patient.neurologicComorbidity && st.patient.neurologicComorbidity.toLowerCase().includes('myasthenia'));
+          const hasMG = st.patient.mg || st.patient.hasMG || st.patient.myastheniaGravis || (st.patient.neurologicComorbidity && st.patient.neurologicComorbidity.toLowerCase().includes('myasthenia'));
           
           let totalHrDelta = 0;
           let totalRrDelta = 0;
@@ -1483,6 +1593,39 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                       const hasPediatricMG = (st.patient.age && st.patient.age < 2.0);
                       pdSens = (hasMG || hasPediatricMG) ? 4.0 : 1.0;
                       pdSens *= potentiationMult;
+                      if (st.patient.cmt) {
+                          pdSens *= 2.0;
+                      }
+                      if (st.patient.elms) {
+                          pdSens *= 4.0;
+                      }
+                      if (st.patient.cip) {
+                          pdSens *= 0.5;
+                      }
+                      // Chapter 35: HypoPP patients — long-acting NDMRs cause postoperative paralytic events;
+                      // short/intermediate-acting (atracurium, mivacurium) documented safe (Miller 9th Ed, Ch 35 p. 1140)
+                      if (st.patient.hypoPP && (model.name === 'Pancuronium' || model.name === 'dTubocurarine')) {
+                          pdSens *= 3.0; // Long-acting NDMRs cause prolonged paralysis
+                      }
+                  } else if (model.name === 'Succinylcholine') {
+                      if (st.patient.cmt) {
+                          pdSens *= 0.5;
+                      }
+                      if (st.patient.elms) {
+                          pdSens *= 2.0;
+                      }
+                      if (st.patient.cip) {
+                          pdSens *= 1.5;
+                      }
+                      // Chapter 35: Succinylcholine in HyperPP causes contracture-like response and
+                      // prolonged weakness (Miller 9th Ed, Ch 35 p. 1139)
+                      if (st.patient.hyperPP) {
+                          pdSens *= 3.0;
+                      }
+                      // Chapter 35: HypoPP — contracture-like responses to succinylcholine reported (Miller 9th Ed, Ch 35 p. 1140)
+                      if (st.patient.hypoPP) {
+                          pdSens *= 2.0;
+                      }
                   }
                   const effects = model.tick(1, coRatio, v1VolumeRatio, renalRatio, pdSens, hepaticRatio, bcheMultiplier, hofmannMultiplier, cysteineCe);
                   
@@ -1672,6 +1815,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let currentVec3oh = st.patient.vec3oh || 0;
           let currentNormep = st.patient.normep || 0;
           let currentM6g = st.patient.m6g || 0;
+          let currentM3g = st.patient.m3g || 0;
           let currentLaudanosine = st.patient.laudanosine || 0;
           // currentHydroxyMidazolam and currentNorketamine are already declared and initialized above
 
@@ -1687,11 +1831,13 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               currentNormep = Math.max(0, currentNormep - 0.002 * renalMult);
           }
 
-          if (morCe > 0.01) {
-              currentM6g = Math.max(0, currentM6g + morCe * 0.01 - 0.002 * renalMult);
-          } else {
-              currentM6g = Math.max(0, currentM6g - 0.002 * renalMult);
-          }
+          // Morphine conjugation pathways (Miller 9th Ed, Ch 24 p. 716/728)
+          const m6g_formed = morCe > 0.01 ? (morCe * 0.015 * hepaticRatio) * 0.10 * 1.617 : 0;
+          const m3g_formed = morCe > 0.01 ? (morCe * 0.015 * hepaticRatio) * 0.60 * 1.617 : 0;
+          const m6g_cleared = 0.003 * renalRatio * currentM6g;
+          const m3g_cleared = 0.003 * renalRatio * currentM3g;
+          currentM6g = Math.max(0, currentM6g + m6g_formed - m6g_cleared);
+          currentM3g = Math.max(0, currentM3g + m3g_formed - m3g_cleared);
 
           if (midazolamCe > 0.01) {
               currentHydroxyMidazolam = Math.max(0, currentHydroxyMidazolam + midazolamCe * 0.02 - 0.003 * renalMult);
@@ -1711,6 +1857,13 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
           if (currentVec3oh > 0) {
               maxNMJOccupancy = Math.min(1.0, maxNMJOccupancy + applyDisplacement(currentVec3oh * 0.8));
+          }
+
+          const dantroleneModelForPd = st.activeMeds?.find(m => m.name === 'Dantrolene');
+          const dantroleneCeForPd = dantroleneModelForPd ? dantroleneModelForPd.Ce : 0;
+          const dantroleneEffect = dantroleneCeForPd > 0 ? (dantroleneCeForPd / (dantroleneCeForPd + 1.5)) : 0;
+          if (dantroleneEffect > 0) {
+              maxNMJOccupancy = 1.0 - (1.0 - maxNMJOccupancy) * (1.0 - dantroleneEffect);
           }
 
           let isSeizure = false;
@@ -1764,9 +1917,42 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               }
           }
 
+          // Morphine-3-Glucuronide (M3G) seizures (Miller 9th Ed, Ch 24 p. 728)
+          if (currentM3g < 0.2) {
+              st.patient.m3gSeizureRolled = undefined;
+          }
+          if (currentM3g > 1.0 && !st.patient.m3gSeizureTriggered && st.patient.m3gSeizureRolled === undefined) {
+              const baseProb = 0.15;
+              const hasRisk = (st.patient.epilepsy || st.patient.seizureHistory) ? 3.0 : 1.0;
+              const prob = Math.min(1.0, baseProb * hasRisk);
+              st.patient.m3gSeizureRolled = Math.random() < prob;
+              if (st.patient.forceM3gSeizure || st.patient.m3gSeizureRolled) {
+                  st.patient.m3gSeizureTriggered = true;
+                  logEvent("🚨 CRITICAL EMERGENCY: High levels of active metabolite Morphine-3-Glucuronide (M3G) have accumulated in renal failure, triggering myoclonus and generalized seizures!");
+              } else {
+                  st.patient.m3gSeizureRolled = false;
+                  logEvent("⚠️ Clinical Note: Morphine-3-Glucuronide (M3G) levels are elevated. Fortunately, generalized seizures were not triggered.");
+              }
+          }
+          if (st.patient.m3gSeizureTriggered) {
+              if (propofolCe > 1.2 || midazolamCe > 0.08) {
+                  st.patient.m3gSeizureTriggered = false;
+                  st.patient.forceM3gSeizure = false;
+                  logEvent("✅ SUCCESS: Anticonvulsant sedative administered. M3G-induced seizure activity aborted.");
+              } else {
+                  isSeizure = true;
+                  seizureMetabolicMultiplier = 8.0;
+              }
+          }
+
+          // Morphine-6-Glucuronide (M6G) respiratory depression (Miller 9th Ed, Ch 24 p. 728)
           let m6gRrDelta = 0;
-          if (currentM6g > 0.8) {
-              m6gRrDelta = -10;
+          if (currentM6g > 0.01) {
+              const gamma = 1.5;
+              const ratio = currentM6g / 0.08;
+              const power = Math.pow(ratio, gamma);
+              const fraction = power / (1.0 + power);
+              m6gRrDelta = -14.0 * fraction;
           }
           if (naloxoneCe > 0) {
               const naloxoneAntagonism = naloxoneCe / (naloxoneCe + 0.001);
@@ -1917,6 +2103,14 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                   ccCnsRatio = 8.0;
                   pb = 0.55;
                   kLipid = 10.0;
+              } else if (m.name === 'Mepivacaine') {
+                  // Table 29.2, Miller's 9th Ed: intermediate potency (1.5x Procaine, between Procaine's 1x
+                  // and Prilocaine's 1.8x) and hydrophobicity (136 vs. Lidocaine's 366). thresholdCns/kLipid
+                  // interpolated from the already-implemented intermediate-potency LAs accordingly.
+                  thresholdCns = 1.8;
+                  ccCnsRatio = 7.0;
+                  pb = 0.75;
+                  kLipid = 6.0;
               }
 
               if (thresholdCns > 0 && ce > 0) {
@@ -1943,7 +2137,23 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               if (tCns >= 1.3 * anticonvulsantFactor) {
                   st.patient.lastSeizureTriggered = true;
                   logEvent("🚨 CRITICAL EMERGENCY: Local Anesthetic Systemic Toxicity (LAST) CNS toxicity has triggered generalized tonic-clonic seizures!");
+                  logQualityEvent({
+                      category: 'Vigilance', severity: 'critical',
+                      description: 'Local Anesthetic Systemic Toxicity (LAST) reached the CNS seizure threshold.',
+                      idealAction: 'Use incremental dosing, aspirate before injection, and respect maximum local anesthetic dose limits; recognize early LAST signs (perioral numbness, tinnitus) before progression to seizure.',
+                      actualAction: 'Cumulative free local anesthetic concentration exceeded the CNS toxicity threshold.',
+                      impact: 'Risk of progression to cardiovascular collapse if untreated; requires immediate seizure control and may require Intralipid rescue.',
+                      chapterSource: 'Ch29, Miller\'s 9th Ed'
+                  });
               }
+          }
+
+          // Carbamazepine dyscrasia agranulocytic sepsis metabolic check
+          const cbzModelForMet = st.activeMeds?.find(m => m.name === 'Carbamazepine');
+          const cbzCeForMet = cbzModelForMet ? cbzModelForMet.Ce : 0;
+          const cbzDyscrasiaActiveForMet = cbzCeForMet > 6.0 || !!st.patient.forceCarbamazepineDyscrasia;
+          if (cbzDyscrasiaActiveForMet) {
+              seizureMetabolicMultiplier = Math.max(seizureMetabolicMultiplier, 2.0);
           }
 
           // Methemoglobinemia kinetics
@@ -2105,6 +2315,21 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           let n2oUptake_L_sec = 0;
 
           if (st.gasModels && Object.keys(st.gasModels).length > 0) {
+              if (st.patient.charcoalFiltersPlaced) {
+                  Object.keys(st.gasModels).forEach(key => {
+                      const model = st.gasModels[key];
+                      if (model) {
+                          model.Fi *= 0.25;
+                          model.Fa *= 0.25;
+                          model.Fb *= 0.25;
+                          model.F_vrg *= 0.25;
+                          model.F_mg *= 0.25;
+                          model.F_fg *= 0.25;
+                          model.F_dial = 0;
+                      }
+                  });
+              }
+
               const isParalyzed = maxNMJOccupancy > 0.90;
               const isApneic = isParalyzed || (st.vitals.rr !== undefined ? st.vitals.rr < 1 : false);
               const effectiveMv = st.patient.airwaySecured ? (st.vitals.mv || 0) : (isApneic ? 0 : 6.0);
@@ -2112,7 +2337,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
               // 1. Tick N2O first to calculate its uptake rate for the Second Gas Effect
               if (st.gasModels.n2o && INHALATIONAL_AGENTS.n2o) {
-                  st.gasModels.n2o.setDial(st.patient.airwaySecured ? n2oPercent : 0);
+                  st.gasModels.n2o.setDial((st.patient.airwaySecured && !st.patient.charcoalFiltersPlaced) ? n2oPercent : 0);
                   const n2oState = st.gasModels.n2o.tick(1, effectiveMv, currentCOForPK, currentFRC, st.patient.ibw, st.patient.shuntFraction, freshGasFlow);
                   currentEtN2O = n2oState.Fa;
                   currentFiN2O = st.gasModels.n2o.Fi * 100;
@@ -2128,7 +2353,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                   const model = st.gasModels[key];
                   const agentData = INHALATIONAL_AGENTS[key];
                   if (key !== 'n2o' && agentData) {
-                      if (st.gasSettings && st.gasSettings.agent === key && st.patient.airwaySecured) model.setDial(st.gasSettings.dial || 0);
+                      if (st.gasSettings && st.gasSettings.agent === key && st.patient.airwaySecured && !st.patient.charcoalFiltersPlaced) model.setDial(st.gasSettings.dial || 0);
                       else model.setDial(0);
                       
                       const gasState = model.tick(1, effectiveMv, currentCOForPK, currentFRC, st.patient.ibw, st.patient.shuntFraction, freshGasFlow, n2oUptake_L_sec);
@@ -2226,13 +2451,30 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const topiramateModel = st.activeMeds?.find(m => m.name === 'Topiramate');
           const topiramateCe = topiramateModel ? topiramateModel.Ce : 0;
 
+          let effectivePropofolCe = propofolCe;
+          let effectiveThiopentalCe = thiopentalCe;
+          let effectiveMidazolamCe = midazolamCe;
+          let effectiveEtomidateCe = etomidateCe;
+          let effectiveMethohexitalCe = methohexitalCe;
+
+          if (st.patient.mitochondrial) {
+              effectivePropofolCe *= 2.0;
+              effectiveThiopentalCe *= 2.0;
+              effectiveMidazolamCe *= 2.0;
+              effectiveEtomidateCe *= 2.0;
+              effectiveMethohexitalCe *= 2.0;
+          }
+          if (st.patient.cmt) {
+              effectiveThiopentalCe *= 2.0;
+          }
+
           const consciousnessOutput = ConsciousnessEngine.tick(1, st.patient, st.vitals, {
-              propofolCe,
+              propofolCe: effectivePropofolCe,
               dexmedCe,
-              thiopentalCe,
-              midazolamCe,
+              thiopentalCe: effectiveThiopentalCe,
+              midazolamCe: effectiveMidazolamCe,
               ketamineCe,
-              etomidateCe,
+              etomidateCe: effectiveEtomidateCe,
               atipamezoleCe,
               methylphenidateCe,
               scopolamineCe,
@@ -2246,7 +2488,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               sIsofluraneCe: sIsoCe_total,
               rIsofluraneCe: rIsoCe_total,
               f6Ce: f6Ce_total,
-              methohexitalCe,
+              methohexitalCe: effectiveMethohexitalCe,
               gabapentinCe,
               pregabalinCe,
               topiramateCe,
@@ -2257,10 +2499,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           });
 
           // Chapter 19: Compute receptor-binding occupancies (0.0 - 1.0)
-          const gabaa_sum = (propofolCe / 2.5) + (midazolamCe / 0.05) + (etomidateCe / 0.3) + (thiopentalCe / 1.0) + (methohexitalCe * (15.0 / 3.5) / 1.0) + sevoMac + isoMac + haloMac + desMac + (f3Ce_total / 1.2) + (sIsoCe_total / 0.9) + (rIsoCe_total / 1.8);
+          const gabaa_sum = (effectivePropofolCe / 2.5) + (effectiveMidazolamCe / 0.05) + (effectiveEtomidateCe / 0.3) + (effectiveThiopentalCe / 1.0) + (effectiveMethohexitalCe * (15.0 / 3.5) / 1.0) + sevoMac + isoMac + haloMac + desMac + (f3Ce_total / 1.2) + (sIsoCe_total / 0.9) + (rIsoCe_total / 1.8);
           const gabaa_occupancy = Math.max(0.0, Math.min(1.0, gabaa_sum / (1.0 + gabaa_sum)));
 
-          const glycine_sum = sevoMac + isoMac + haloMac + desMac + (f3Ce_total / 1.2) + (sIsoCe_total / 0.9) + (rIsoCe_total / 1.8) + (propofolCe / 5.0);
+          const glycine_sum = sevoMac + isoMac + haloMac + desMac + (f3Ce_total / 1.2) + (sIsoCe_total / 0.9) + (rIsoCe_total / 1.8) + (effectivePropofolCe / 5.0);
           const glycine_occupancy = Math.max(0.0, Math.min(1.0, glycine_sum / (1.0 + glycine_sum)));
 
           const k2p_sum = sevoMac + isoMac + haloMac + desMac + n2oMac + xenonMac + (f3Ce_total / 1.2) + (sIsoCe_total / 0.9) + (rIsoCe_total / 1.8);
@@ -2298,7 +2540,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
           // Chapter 9: Clinical Crises & Reflex Loops
           const isParalyzed = maxNMJOccupancy > 0.90;
-          const isLightAnesthesia = currentMac < 0.4 && (propofolCe < 0.8) && (thiopentalCe < 1.0) && (midazolamCe < 0.05) && (etomidateCe < 0.1);
+          const isLightAnesthesia = currentMac < 0.4 && (effectivePropofolCe < 0.8) && (effectiveThiopentalCe < 1.0) && (effectiveMidazolamCe < 0.05) && (effectiveEtomidateCe < 0.1);
           const surgicalStimulus = st.surgicalPhase === 'Incision' || st.surgicalPhase === 'Maintenance';
           const hasAwarenessTrigger = isParalyzed && isLightAnesthesia && surgicalStimulus;
 
@@ -2453,9 +2695,65 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           if (currentMac > 0.5 && st.time < 1800) {
               tempDropRate = 0.0008;
           }
+          if (st.patient.mitochondrial) {
+              tempDropRate *= 2.0;
+          }
           let newTemp = (st.vitals.temp || 37.0) - tempDropRate + (fluidicsOutput.fluidInducedTempDrop || 0);
           if (st.patient.cprActive) newTemp -= 0.002;
           newTemp += ruleTempOffset;
+
+          // Malignant Hyperthermia logic (Ch35)
+          const suxModelForMh = st.activeMeds?.find(m => m.name === 'Succinylcholine');
+          const suxCeForMh = suxModelForMh ? suxModelForMh.Ce : 0;
+          
+          let mhActive = st.patient.mhActive || false;
+          let mhStartTime = st.patient.mhStartTime !== undefined ? st.patient.mhStartTime : null;
+          
+          if (st.patient.mhSusceptible && !mhActive) {
+              if (currentEtAgent > 0.01 || suxCeForMh > 0.01) {
+                  mhActive = true;
+                  mhStartTime = st.time;
+                  logQualityEvent({
+                      category: 'CrisisManagement',
+                      severity: 'critical',
+                      description: `Malignant Hyperthermia crisis triggered by exposure to ${currentEtAgent > 0.01 ? 'volatile agent' : 'succinylcholine'} in a susceptible patient.`,
+                      idealAction: 'Avoid volatile anesthetics and succinylcholine; use Total Intravenous Anesthesia (TIVA).',
+                      actualAction: `Administered ${currentEtAgent > 0.01 ? 'volatile agent' : 'succinylcholine'}.`,
+                      impact: 'Severe hypermetabolic state, hypercapnia, lactic acidosis, life-threatening hyperkalemia, and cardiovascular collapse.',
+                      chapterSource: "Miller's Anesthesia Chapter 35"
+                  });
+              }
+          }
+
+          const dantroleneModelForMh = st.activeMeds?.find(m => m.name === 'Dantrolene');
+          const dantroleneCeForMh = dantroleneModelForMh ? dantroleneModelForMh.Ce : 0;
+          const isHalothaneActiveInCircuit = st.gasModels?.halothane && st.gasModels.halothane.Fa > 0.01;
+          const magnesiumModelForMh = st.activeMeds?.find(m => m.name === 'Magnesium Sulfate');
+          const magnesiumCeForMh = magnesiumModelForMh ? magnesiumModelForMh.Ce : 0;
+          const isReversedByDantrolene = dantroleneCeForMh > 0.5 || (isHalothaneActiveInCircuit && dantroleneCeForMh > 0.25 && magnesiumCeForMh > 0.1);
+          
+          if (mhActive && isReversedByDantrolene) {
+              mhActive = false;
+              st.patient.mhActive = false;
+              patientAfterFluidics.mhActive = false;
+              logEvent("✅ SUCCESS: Dantrolene administered. Malignant Hyperthermia crisis resolved. Hypermetabolic state terminating.");
+          }
+
+          let mhMetabolicMultiplier = 1.0;
+          if (mhActive) {
+              mhMetabolicMultiplier = 5.0;
+              if (st.patient.coolingMeasuresActive) {
+                  newTemp = Math.max(38.0, newTemp - 0.15);
+              } else {
+                  newTemp = Math.min(43.0, newTemp + 0.05);
+              }
+          }
+
+          // Save the updated MH variables
+          st.patient.mhActive = mhActive;
+          st.patient.mhStartTime = mhStartTime;
+          patientAfterFluidics.mhActive = mhActive;
+          patientAfterFluidics.mhStartTime = mhStartTime;
 
           let shiveringMultiplier = 1.0;
           if (newTemp < 35.5 && currentMac < 0.2 && maxNMJOccupancy < 0.5 && st.surgicalPhase === 'Emergence') {
@@ -2463,6 +2761,15 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           }
           if (st.patient.serotoninSyndromeTriggered) {
               newTemp += 0.05;
+          }
+          if (st.patient.carbamazepineDyscrasiaActive) {
+              if (newTemp < 39.5) {
+                  newTemp = Math.min(39.5, newTemp + 0.05);
+              }
+          } else {
+              if (newTemp > 37.0 && !st.patient.serotoninSyndromeTriggered && !st.patient.isHepatitisActive && !mhActive) {
+                  newTemp = Math.max(37.0, newTemp - 0.05);
+              }
           }
 
           // === CHAPTER 20: METABOLISM & TOXICITY LOOPS ===
@@ -2795,9 +3102,16 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           
           if (!st.patient.airwaySecured && st.patient.ventilationStatus === 'spontaneous') {
               airwayObstructionIndex = Math.max(0.0, Math.min(1.0, (1.0 - dilatorMuscleTone) * (pcrit + 6.0) / 7.0));
+              if (st.patient.postExtubationLaryngealEdema) {
+                  airwayObstructionIndex = Math.max(airwayObstructionIndex, 0.8);
+              }
               if (airwayObstructionIndex > 0.6 && !isAirwayObstruction) {
                   isAirwayObstruction = true;
-                  logEvent("🚨 CRITICAL ALERT: Upper airway obstruction! Genioglossus muscle tone is insufficient to maintain pharyngeal patency. Patient is snoring/obstructed.");
+                  if (st.patient.postExtubationLaryngealEdema) {
+                      logEvent("🚨 CRITICAL ALERT: Severe post-extubation stridor and laryngeal edema! Airway is obstructed due to prolonged head-down positioning without a cuff leak test.");
+                  } else {
+                      logEvent("🚨 CRITICAL ALERT: Upper airway obstruction! Genioglossus muscle tone is insufficient to maintain pharyngeal patency. Patient is snoring/obstructed.");
+                  }
               }
           }
           if (st.patient.airwaySecured || st.patient.ventilationStatus !== 'spontaneous' || airwayObstructionIndex <= 0.3) {
@@ -2928,14 +3242,248 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               stuckExpiratoryValve: st.patient.stuckExpiratoryValve,
               stuckInspiratoryValve: st.patient.stuckInspiratoryValve,
               aplValveSetting: st.patient.aplValveSetting,
-              hasPneumothorax: st.patient.hasPneumothorax
+              hasPneumothorax: st.patient.hasPneumothorax,
+              postExtubationLaryngealEdema: st.patient.postExtubationLaryngealEdema,
+              charcoalFiltersPlaced: st.patient.charcoalFiltersPlaced
           });
 
-          const totalMetabolicMultiplier = shiveringMultiplier * seizureMetabolicMultiplier;
+          const totalMetabolicMultiplier = shiveringMultiplier * seizureMetabolicMultiplier * mhMetabolicMultiplier;
           const VO2_sec = (0.250 * totalMetabolicMultiplier * cyanideVO2Mod) / 60;
           // eslint-disable-next-line no-unused-vars
           const VCO2_sec = (0.200 * totalMetabolicMultiplier) / 60;
-          const opioidRRDrop = opioidEff * 10;
+          let opioidRRDrop = opioidEff * 10;
+
+          // Gabapentinoid-Opioid Synergistic Respiratory Depression (GOSRD)
+          const gabapentinModelForGosrd = st.activeMeds?.find(m => m.name === 'Gabapentin');
+          const gabapentinCeForGosrd = gabapentinModelForGosrd ? gabapentinModelForGosrd.Ce : 0;
+          const pregabalinModelForGosrd = st.activeMeds?.find(m => m.name === 'Pregabalin');
+          const pregabalinCeForGosrd = pregabalinModelForGosrd ? pregabalinModelForGosrd.Ce : 0;
+
+          const gabapentinEffForGosrd = gabapentinCeForGosrd > 0 ? (Math.pow(gabapentinCeForGosrd, 1.5) / (Math.pow(gabapentinCeForGosrd, 1.5) + Math.pow(5.0, 1.5))) : 0;
+          const pregabalinEffForGosrd = pregabalinCeForGosrd > 0 ? (Math.pow(pregabalinCeForGosrd, 1.5) / (Math.pow(pregabalinCeForGosrd, 1.5) + Math.pow(3.0, 1.5))) : 0;
+          const gabapentinoidEffForGosrd = 1.0 - (1.0 - gabapentinEffForGosrd) * (1.0 - pregabalinEffForGosrd);
+
+          let hasGOSRD = false;
+          if ((gabapentinCeForGosrd > 2.0 || pregabalinCeForGosrd > 1.5) && opioidEff > 0.15) {
+              hasGOSRD = true;
+              opioidRRDrop = Math.min(18.0, opioidRRDrop * (1.0 + 2.0 * gabapentinoidEffForGosrd));
+          }
+
+          if (hasGOSRD && !st.patient.hasGOSRD) {
+              logEvent("🚨 CLINICAL ALERT: Gabapentinoid-Opioid Synergistic Respiratory Depression (GOSRD) active! Combined therapy profoundly depresses respiratory rate.");
+              logQualityEvent({
+                  category: 'Vigilance', severity: 'moderate',
+                  description: 'Gabapentinoid-opioid synergistic respiratory depression (GOSRD) developed.',
+                  idealAction: 'Reduce/avoid co-administering gabapentinoids with opioids in patients already requiring significant opioid dosing, or monitor ventilation more closely if combined.',
+                  actualAction: 'Both drug classes were active simultaneously at synergistic concentrations.',
+                  impact: 'Respiratory rate is depressed beyond what either drug class alone would cause.',
+                  chapterSource: 'Ch25, Miller\'s 9th Ed'
+              });
+          } else if (!hasGOSRD && st.patient.hasGOSRD) {
+              logEvent("✅ SUCCESS: Gabapentinoid-Opioid Synergistic Respiratory Depression resolved.");
+          }
+          st.patient.hasGOSRD = hasGOSRD;
+          patientAfterFluidics.hasGOSRD = hasGOSRD;
+
+          // === Chapter 33: CAM & Herbal Medication Quality Hooks ===
+          if (!st.patient.loggedCAMEvents) {
+              st.patient.loggedCAMEvents = {};
+          }
+          if (!patientAfterFluidics.loggedCAMEvents) {
+              patientAfterFluidics.loggedCAMEvents = {};
+          }
+
+          // 1. Herbal screening omission
+          const hasHerbalOrDietary = (st.patient.herbalSupplements?.length > 0 || st.patient.dietarySupplements?.length > 0);
+          if (hasHerbalOrDietary && !st.patient.herbalScreeningDone && st.surgicalPhase !== 'Pre-Op' && !st.patient.loggedCAMEvents?.herbalOmission) {
+              st.patient.loggedCAMEvents.herbalOmission = true;
+              patientAfterFluidics.loggedCAMEvents = { ...st.patient.loggedCAMEvents, herbalOmission: true };
+              logQualityEvent({
+                  category: 'ChecklistAdherence',
+                  severity: 'moderate',
+                  description: 'Omission of preoperative herbal and dietary supplement screening for a patient taking active outpatient CAM therapies.',
+                  idealAction: 'Perform comprehensive preoperative herbal and dietary supplement assessment to determine perioperative risks and planning (Ch33).',
+                  actualAction: 'Induction/surgery started without conducting outpatient herbal medication assessment.',
+                  impact: 'Increased risk of unrecognized herb-drug interactions, bleeding, or hemodynamic instability.',
+                  chapterSource: 'Ch33, Miller\'s 9th Ed'
+              });
+          }
+
+          // 2. Valerian + sedative synergy
+          const hasValerianKava = st.patient.herbalSupplements?.some(h => h === 'valerian' || h === 'kava');
+          const activeGabaSedative = st.activeMeds?.find(m => (m.name === 'Midazolam' || m.name === 'Propofol') && m.Ce > 0.01);
+          if (hasValerianKava && activeGabaSedative && !st.patient.loggedCAMEvents?.valerianSynergy) {
+              st.patient.loggedCAMEvents.valerianSynergy = true;
+              patientAfterFluidics.loggedCAMEvents = { ...st.patient.loggedCAMEvents, valerianSynergy: true };
+              logQualityEvent({
+                  category: 'PharmacologicChoice',
+                  severity: 'minor',
+                  description: `Valerian/Kava potentiates GABA-ergic sedatives. Patient is receiving active sedative ${activeGabaSedative.name} in system.`,
+                  idealAction: 'Consider lowering doses of volatile anesthetics or intravenous sedatives/hypnotics in patients taking valerian or kava (Ch33).',
+                  actualAction: `Standard dosing of ${activeGabaSedative.name} was administered.`,
+                  impact: 'Additive or synergistic sedation, potentially delaying emergence or causing prolonged somnolence.',
+                  chapterSource: 'Ch33, Miller\'s 9th Ed'
+              });
+          }
+
+          // 3. St. John's Wort CYP3A4 induction
+          const hasSjw = st.patient.herbalSupplements?.some(h => h === 'stjohnswort' || h === 'st. john\'s wort' || h === "st. john's wort" || h === 'stJohnsWort');
+          const activeCyp3a4Substrate = st.activeMeds?.find(m => (m.name === 'Alfentanil' || m.name === 'Midazolam' || m.name === 'Lidocaine' || m.name === 'Fentanyl' || m.name === 'Ondansetron') && m.Ce > 0.01);
+          if (hasSjw && activeCyp3a4Substrate && !st.patient.loggedCAMEvents?.sjwInduction) {
+              st.patient.loggedCAMEvents.sjwInduction = true;
+              patientAfterFluidics.loggedCAMEvents = { ...st.patient.loggedCAMEvents, sjwInduction: true };
+              logQualityEvent({
+                  category: 'PharmacologicChoice',
+                  severity: 'moderate',
+                  description: `St. John's Wort induces CYP3A4, which increases the metabolism of administered ${activeCyp3a4Substrate.name}.`,
+                  idealAction: 'Be prepared to administer larger or more frequent doses of CYP3A4 substrates (alfentanil, midazolam, lidocaine, fentanyl, etc.) or discontinue St. John\'s Wort >= 5 days before surgery (Ch33).',
+                  actualAction: `Administered standard dose of CYP3A4 substrate ${activeCyp3a4Substrate.name} in presence of St. John's Wort.`,
+                  impact: 'Subtherapeutic drug concentrations or rapid clearance, potentially requiring rescue dosing.',
+                  chapterSource: 'Ch33, Miller\'s 9th Ed'
+              });
+          }
+
+          // 4. Bleeding risk herbs + neuraxial
+          const bleedingCAMs = ['garlic', 'ginkgo', 'ginseng', 'sawPalmetto', 'ginger', 'green tea', 'fishOil', 'glucosamineChondroitin'];
+          const hasBleedingCAM = st.patient.herbalSupplements?.some(h => bleedingCAMs.includes(h)) || st.patient.dietarySupplements?.some(s => bleedingCAMs.includes(s));
+          const hasNeuraxialActive = st.patient.hasNeuraxial || st.patient.anesthesiaType?.neuraxial;
+          if (hasBleedingCAM && hasNeuraxialActive && !st.patient.loggedCAMEvents?.bleedingNeuraxial) {
+              st.patient.loggedCAMEvents.bleedingNeuraxial = true;
+              patientAfterFluidics.loggedCAMEvents = { ...st.patient.loggedCAMEvents, bleedingNeuraxial: true };
+              logQualityEvent({
+                  category: 'Vigilance',
+                  severity: 'major',
+                  description: 'Attempted neuraxial anesthesia in a patient taking active outpatient herbal medications/dietary supplements that inhibit platelet aggregation.',
+                  idealAction: 'Ensure all antiplatelet herbal therapies (garlic, ginkgo, ginseng, ginger, fish oil) are discontinued for the appropriate duration prior to neuraxial techniques to minimize epidural hematoma risk (Ch33).',
+                  actualAction: 'Neuraxial technique initiated while antiplatelet herbal/dietary supplements were active.',
+                  impact: 'Significantly elevated risk of spontaneous or traumatic epidural hematoma and spinal cord compression.',
+                  chapterSource: 'Ch33, Miller\'s 9th Ed'
+              });
+          }
+
+          // 5. Ephedra + volatile anesthetic
+          const hasEphedra = st.patient.herbalSupplements?.some(h => h === 'ephedra' || h === 'ma huang');
+          const activeVolatile = st.gasSettings?.agent;
+          if (hasEphedra && activeVolatile && activeVolatile !== 'room_air' && activeVolatile !== 'none' && !st.patient.loggedCAMEvents?.ephedraArrhythmia) {
+              st.patient.loggedCAMEvents.ephedraArrhythmia = true;
+              patientAfterFluidics.loggedCAMEvents = { ...st.patient.loggedCAMEvents, ephedraArrhythmia: true };
+              logQualityEvent({
+                  category: 'CrisisManagement',
+                  severity: 'major',
+                  description: `Ephedra (Ma Huang) combined with volatile anesthetic (${activeVolatile}) increases risk of ventricular arrhythmias and hemodynamic instability.`,
+                  idealAction: 'Avoid volatile anesthetics (especially halothane which sensitizes the myocardium) or discontinue Ephedra >= 24 hours prior to surgery. Be prepared to treat tachyarrhythmias and hypertension with beta-blockers (Ch33).',
+                  actualAction: `Volatile agent ${activeVolatile} was administered in the presence of active ephedra/sympathomimetics.`,
+                  impact: 'Predisposition to myocardial ischemia, stroke, and life-threatening ventricular arrhythmias.',
+                  chapterSource: 'Ch33, Miller\'s 9th Ed'
+              });
+          }
+
+          // 6. P6 stimulation for PONV
+          if (st.patient.p6StimulationApplied && !st.patient.loggedCAMEvents?.p6Stimulation) {
+              st.patient.loggedCAMEvents.p6Stimulation = true;
+              patientAfterFluidics.loggedCAMEvents = { ...st.patient.loggedCAMEvents, p6Stimulation: true };
+              logQualityEvent({
+                  category: 'PharmacologicChoice',
+                  severity: 'info',
+                  description: 'P6 acupressure (PC6 Nei Guan point) applied to reduce postoperative nausea and vomiting.',
+                  idealAction: 'Initiate P6 stimulation prior to induction of anesthesia. Efficacy is similar to pharmacological antiemetic drugs (Ch33).',
+                  actualAction: 'P6 acupressure successfully applied.',
+                  impact: 'Prophylactic PONV reduction via endogenous opioid pathway activation.',
+                  chapterSource: 'Ch33, Miller\'s 9th Ed'
+              });
+          }
+
+          // === Chapter 34: Patient Positioning Quality Hooks ===
+          if (!st.patient.loggedPositioningEvents) {
+              st.patient.loggedPositioningEvents = {};
+          }
+          if (!patientAfterFluidics.loggedPositioningEvents) {
+              patientAfterFluidics.loggedPositioningEvents = {};
+          }
+
+          // Track time in head-down or prone positions for airway edema risk
+          if (pos === 'Trendelenburg' || pos === 'Prone') {
+              st.patient.timeInHeadDown = (st.patient.timeInHeadDown || 0) + 1;
+              patientAfterFluidics.timeInHeadDown = st.patient.timeInHeadDown;
+          }
+
+          // 1. Positioning screening omission
+          if (!st.patient.positioningAssessmentDone && st.surgicalPhase !== 'Pre-Op' && !st.patient.loggedPositioningEvents?.omission) {
+              st.patient.loggedPositioningEvents.omission = true;
+              patientAfterFluidics.loggedPositioningEvents = { ...st.patient.loggedPositioningEvents, omission: true };
+              logQualityEvent({
+                  category: 'ChecklistAdherence',
+                  severity: 'moderate',
+                  description: 'Omission of preoperative patient positioning risk assessment.',
+                  idealAction: 'Perform comprehensive preoperative patient positioning screening to identify risk factors for nerve or visual injuries (Ch34).',
+                  actualAction: 'Induction/surgery started without conducting positioning risk assessment.',
+                  impact: 'Increased risk of positioning-related injuries including peripheral neuropathies or perioperative visual loss (POVL).',
+                  chapterSource: 'Ch34, Miller\'s 9th Ed'
+              });
+          }
+
+          // 2. Brachial plexus / ulnar nerve injury risk (Supine or Prone)
+          const inSupineOrProne = pos === 'Supine' || pos === 'Prone';
+          const activeSurgicalPhase = st.surgicalPhase === 'Incision' || st.surgicalPhase === 'Maintenance';
+          if (inSupineOrProne && activeSurgicalPhase && !st.patient.armsPositionedCorrectly && !st.patient.loggedPositioningEvents?.armNerveRisk) {
+              st.patient.loggedPositioningEvents.armNerveRisk = true;
+              patientAfterFluidics.loggedPositioningEvents = { ...st.patient.loggedPositioningEvents, armNerveRisk: true };
+              logQualityEvent({
+                  category: 'Vigilance',
+                  severity: 'minor',
+                  description: `Patient arms are not padded or positioned correctly in ${pos} position during active surgery.`,
+                  idealAction: 'Position hand/forearm in supinated or neutral position and limit arm abduction to <90 degrees to protect ulnar and brachial plexus nerves (Ch34).',
+                  actualAction: 'Surgical phase active without arm padding or hyperabduction safeguards verified.',
+                  impact: 'High risk of postoperative ulnar neuropathy (14% of claims) or brachial plexus stretch injury (19% of claims).',
+                  chapterSource: 'Ch34, Miller\'s 9th Ed'
+              });
+          }
+
+          // 3. Peroneal nerve compression risk (Lithotomy)
+          if (pos === 'Lithotomy' && activeSurgicalPhase && !st.patient.peronealNervePadded && !st.patient.loggedPositioningEvents?.peronealRisk) {
+              st.patient.loggedPositioningEvents.peronealRisk = true;
+              patientAfterFluidics.loggedPositioningEvents = { ...st.patient.loggedPositioningEvents, peronealRisk: true };
+              logQualityEvent({
+                  category: 'Vigilance',
+                  severity: 'moderate',
+                  description: 'Patient legs/stirrups are unpadded in Lithotomy position, risking peroneal nerve compression.',
+                  idealAction: 'Ensure stirrups and knee support areas are padded, avoiding pressure on the peroneal nerve at the fibular head (Ch34).',
+                  actualAction: 'Active surgery in Lithotomy position without verifying fibular head padding.',
+                  impact: 'Vulnerability to common peroneal nerve palsy, resulting in postoperative foot drop.',
+                  chapterSource: 'Ch34, Miller\'s 9th Ed'
+              });
+          }
+
+          // 4. Prolonged Lithotomy compartment syndrome risk
+          if (pos === 'Lithotomy' && activeSurgicalPhase && (st.time - (st.patient.lastLegsLoweredTime || 0) > 120) && !st.patient.loggedPositioningEvents?.compartmentRisk) {
+              st.patient.loggedPositioningEvents.compartmentRisk = true;
+              patientAfterFluidics.loggedPositioningEvents = { ...st.patient.loggedPositioningEvents, compartmentRisk: true };
+              logQualityEvent({
+                  category: 'Vigilance',
+                  severity: 'major',
+                  description: 'Prolonged lithotomy positioning (>2 hours) without periodic lower extremity reperfusion.',
+                  idealAction: 'Periodically lower legs out of stirrups to the level of the heart if surgical time exceeds 2-3 hours to prevent compartment syndrome (Ch34).',
+                  actualAction: 'Lithotomy duration exceeded 120 minutes without leg lowering maneuver.',
+                  impact: 'Risk of lower extremity ischemia, rhabdomyolysis, edema, and compartment syndrome.',
+                  chapterSource: 'Ch34, Miller\'s 9th Ed'
+              });
+          }
+
+          // 5. Prone POVL vigilance omission (prolonged prone spine fusion, Wilson frame, without checks)
+          const isProlongedProne = st.time > 120;
+          if (pos === 'Prone' && isProlongedProne && (st.time - (st.patient.lastHeadEyeCheckTime || 0) > 20) && !st.patient.loggedPositioningEvents?.povlVigilance) {
+              st.patient.loggedPositioningEvents.povlVigilance = true;
+              patientAfterFluidics.loggedPositioningEvents = { ...st.patient.loggedPositioningEvents, povlVigilance: true };
+              logQualityEvent({
+                  category: 'Vigilance',
+                  severity: 'major',
+                  description: 'Neglected periodic face and eye pressure checks during prolonged prone positioning.',
+                  idealAction: 'Verify head alignment and ensure no direct pressure on eyes or malar bones at least every 20 minutes (Ch34).',
+                  actualAction: 'Prone positioning check interval exceeded 20 minutes.',
+                  impact: 'High risk of direct eye compression (causing CRAO) or ischemic optic neuropathy (ION) leading to permanent blindness.',
+                  chapterSource: 'Ch34, Miller\'s 9th Ed'
+              });
+          }
 
           // Pain Engine Tick
           if (st.surgicalPhase === 'Incision' && st.patient.incisionStartTime === undefined) {
@@ -2961,10 +3509,24 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           if (painOutput.somaticResponse.triggerLaryngospasm) {
               finalLaryngospasm = true;
               logEvent("🚨 CRITICAL ALERT: Laryngospasm triggered due to airway manipulation under inadequate anesthesia! Airway resistance is now infinite.");
+              logQualityEvent({
+                  category: 'Vigilance', severity: 'major',
+                  description: 'Laryngospasm triggered by airway manipulation under inadequate anesthetic depth.',
+                  idealAction: 'Ensure adequate anesthetic depth (or paralysis) before airway manipulation/instrumentation.',
+                  actualAction: 'Airway was manipulated while anesthetic depth was insufficient to suppress airway reflexes.',
+                  impact: 'Complete airway obstruction; risk of hypoxemia/negative-pressure pulmonary edema if not promptly resolved.',
+              });
           }
           if (painOutput.somaticResponse.triggerBronchospasm) {
               finalBronchospasm = true;
               logEvent("🚨 CRITICAL ALERT: Bronchospasm triggered due to airway manipulation/pain under inadequate anesthesia! Compliance is halved and resistance is elevated.");
+              logQualityEvent({
+                  category: 'Vigilance', severity: 'major',
+                  description: 'Bronchospasm triggered by airway manipulation/pain under inadequate anesthetic depth.',
+                  idealAction: 'Ensure adequate anesthetic depth before airway manipulation; consider bronchodilator pretreatment in reactive-airway patients.',
+                  actualAction: 'Airway was manipulated while anesthetic depth was insufficient.',
+                  impact: 'Reduced compliance and elevated airway resistance; risk of hypoxemia and barotrauma.',
+              });
           }
 
           // Spasm Resolution
@@ -3022,6 +3584,11 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
                   st.patient.anaphylaxisTriggered = true;
                   st.patient.anaphylaxisTime = st.time;
                   logEvent(`🚨 CRITICAL EMERGENCY: Penicillin-containing Ampicillin/Sulbactam administered to a patient with severe Penicillin Allergy! Triggered hyperacute IgE-mediated anaphylactic shock! (Profound vasoplegic hypotension, severe bronchospasm, extreme airway resistance).`);
+                  logQualityEvent({
+                      category: 'CrisisManagement', severity: 'critical',
+                      description: 'IgE-mediated anaphylactic shock triggered by penicillin-class antibiotic administered to an allergic patient.',
+                      impact: 'Vasoplegic shock and bronchospasm; requires immediate epinephrine, fluid resuscitation, and airway support.',
+                  });
               } else {
                   st.patient.penicillinAnaphylaxisRolled = false;
                   logEvent(`⚠️ Clinical Note: Penicillin-containing Ampicillin/Sulbactam administered to allergy-documented patient. Fortunately, no acute anaphylaxis occurred (only ~2% baseline clinical incidence).`);
@@ -3077,6 +3644,13 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               if (st.patient.forcePris || st.patient.prisRolled) {
                   prisTriggered = true;
                   logEvent(`🚨 CRITICAL EMERGENCY: Propofol Infusion Syndrome (PRIS) triggered! The patient has developed profound metabolic acidosis, hyperkalemia, rhabdomyolysis, and progressive myocardial failure!`);
+                  logQualityEvent({
+                      category: 'Vigilance', severity: 'critical',
+                      description: 'Propofol Infusion Syndrome (PRIS) developed after prolonged high-dose propofol infusion.',
+                      idealAction: 'Avoid sustained propofol infusion rates above ~67 mcg/kg/min (4 mg/kg/hr) for more than 48 hours; use an alternative sedative for prolonged cases.',
+                      actualAction: 'High-dose propofol infusion was sustained beyond the recognized risk window.',
+                      impact: 'Metabolic acidosis, hyperkalemia, rhabdomyolysis, and progressive myocardial failure - high mortality if unrecognized.',
+                  });
               } else {
                   st.patient.prisRolled = false;
                   logEvent(`⚠️ Clinical Note: Propofol infusion rate was maintained above 67 mcg/kg/min for a prolonged period. Fortunately, PRIS did not manifest (occurs in <5% of cases). Close monitoring of pH and potassium is advised.`);
@@ -3091,6 +3665,136 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           const suxCeForLeak = suxModelForLeak ? suxModelForLeak.Ce : 0;
           if (st.patient.nAChR_state === 'upregulated' && suxCeForLeak > 0.01) {
               currentK = Math.min(10.0, currentK + 0.05);
+          }
+          
+          // Malignant Hyperthermia dynamic changes (Ch35)
+          let delayedDantroleneLogged = st.patient.delayedDantroleneLogged || false;
+          if (mhActive) {
+              currentK = Math.min(10.0, currentK + 0.08);
+              currentLactate = Math.min(25.0, currentLactate + 0.1);
+              totalHrDelta += 35;
+              
+              if (dantroleneCeForMh < 0.01 && mhStartTime !== null && (st.time - mhStartTime > 180)) {
+                  if (!delayedDantroleneLogged) {
+                      delayedDantroleneLogged = true;
+                      logQualityEvent({
+                          category: 'CrisisManagement',
+                          severity: 'major',
+                          description: 'Delayed dantrolene administration (>3 minutes since MH onset) in active Malignant Hyperthermia crisis.',
+                          idealAction: 'Administer Dantrolene 2.5 mg/kg IV bolus immediately upon suspicion of MH.',
+                          actualAction: 'No Dantrolene administered after 3 minutes of active MH.',
+                          impact: 'Profound hypermetabolic organ injury and progressive severe hyperkalemia.',
+                          chapterSource: "Miller's Anesthesia Chapter 35"
+                      });
+                  }
+              }
+              
+              const hasCCBActive = st.activeMeds?.some(m => (m.name === 'Verapamil' || m.name === 'Nicardipine') && m.Ce > 0.01);
+              if (hasCCBActive && dantroleneCeForMh > 0.01) {
+                  currentK = 9.5;
+                  patientAfterFluidics.isArrest = true;
+                  patientAfterFluidics.cardiacRhythm = 'pea';
+                  logQualityEvent({
+                      category: 'PharmacologicChoice',
+                      severity: 'critical',
+                      description: 'Lethal drug-drug interaction: co-administration of Calcium Channel Blockers (verapamil/nicardipine) with Dantrolene during active Malignant Hyperthermia causes severe hyperkalemia and acute myocardial collapse.',
+                      idealAction: 'Avoid Calcium Channel Blockers when Dantrolene is administered.',
+                      actualAction: 'Co-administered calcium channel blockers with Dantrolene.',
+                      impact: 'Lethal hyperkalemia and cardiovascular collapse (PEA arrest).',
+                      chapterSource: "Miller's Anesthesia Chapter 35"
+                  });
+              }
+          }
+          
+          // Mitochondrial myopathy lactic acidosis on LR
+          let isLRInfusionActive = false;
+          if (st.patient.accessLines) {
+              st.patient.accessLines.forEach(line => {
+                  if (line.activeInfusions && line.activeInfusions.length > 0 && !line.failed) {
+                      const currentInf = line.activeInfusions[0];
+                      if (currentInf && currentInf.name === 'Lactated Ringers (LR)' && currentInf.currentRate > 0) {
+                          isLRInfusionActive = true;
+                      }
+                  }
+              });
+          }
+          if (st.patient.mitochondrial && isLRInfusionActive) {
+              currentLactate = Math.min(25.0, currentLactate + 0.1);
+          }
+          
+          // DMD/BMD Succinylcholine PEA arrest (defensive pass in case not caught in processMed)
+          let suxArrestTriggered = st.patient.suxArrestTriggered || false;
+          if (suxCeForLeak > 0.01 && (st.patient.dmd || st.patient.bmd)) {
+              currentK = 9.0;
+              patientAfterFluidics.isArrest = true;
+              patientAfterFluidics.cardiacRhythm = 'pea';
+              if (!suxArrestTriggered) {
+                  suxArrestTriggered = true;
+                  logQualityEvent({
+                      category: 'PharmacologicChoice',
+                      severity: 'critical',
+                      description: `Succinylcholine administered to patient with ${st.patient.dmd ? 'Duchenne' : 'Becker'} Muscular Dystrophy, triggering severe hyperkalemic cardiac arrest.`,
+                      idealAction: 'Avoid succinylcholine in patients with muscular dystrophy; use non-depolarizing muscle relaxants.',
+                      actualAction: 'Administered Succinylcholine.',
+                      impact: 'Acute rhabdomyolysis, lethal hyperkalemia, and PEA cardiac arrest.',
+                      chapterSource: "Miller's Anesthesia Chapter 35"
+                  });
+              }
+          }
+
+          st.patient.delayedDantroleneLogged = delayedDantroleneLogged;
+          st.patient.suxArrestTriggered = suxArrestTriggered;
+          patientAfterFluidics.delayedDantroleneLogged = delayedDantroleneLogged;
+          patientAfterFluidics.suxArrestTriggered = suxArrestTriggered;
+
+          // Chapter 35: Periodic Paralysis Electrolyte Dynamics (Miller 9th Ed, Ch 35 pp. 1138-1140)
+          // HyperPP: NaV1.4 gain-of-function → baseline K+ drift upward during stress/cold/fasting
+          if (st.patient.hyperPP) {
+              const hyperPPKDrift = 0.02; // Mild K+ rise per tick from Na+ channel leak
+              currentK = Math.min(7.0, currentK + hyperPPKDrift);
+              // If attack is active (triggered by sux or neostigmine), accelerate
+              if (st.patient.hyperPPAttackActive) {
+                  currentK = Math.min(8.5, currentK + 0.05);
+              }
+          }
+          // HypoPP: Glucose-containing IVF or catecholamines shift K+ intracellularly → hypokalemia → paralysis
+          if (st.patient.hypoPP) {
+              let isDextroseInfusionActive = false;
+              if (st.patient.accessLines) {
+                  st.patient.accessLines.forEach(line => {
+                      if (line.activeInfusions && line.activeInfusions.length > 0 && !line.failed) {
+                          const currentInf = line.activeInfusions[0];
+                          if (currentInf && (currentInf.name === 'D5W' || currentInf.name === 'D5NS' || currentInf.name === 'D5LR' ||
+                              (currentInf.name && currentInf.name.includes('Dextrose'))) && currentInf.currentRate > 0) {
+                              isDextroseInfusionActive = true;
+                          }
+                      }
+                  });
+              }
+              if (isDextroseInfusionActive) {
+                  // Glucose triggers intracellular K+ shift → progressive hypokalemia
+                  currentK = Math.max(1.5, currentK - 0.04);
+                  if (!st.patient.hypoPPDextroseWarned) {
+                      st.patient.hypoPPDextroseWarned = true;
+                      patientAfterFluidics.hypoPPDextroseWarned = true;
+                      logEvent(`⚠️ WARNING: Glucose-containing IV fluid administered to patient with Hypokalemic Periodic Paralysis! Glucose triggers intracellular potassium shift, precipitating paralytic attack.`);
+                      logQualityEvent({
+                          category: 'FluidManagement',
+                          severity: 'major',
+                          description: 'Glucose-containing IV fluid administered to patient with Hypokalemic Periodic Paralysis (HypoPP). Glucose triggers insulin-mediated intracellular K+ shift, precipitating paralytic attacks.',
+                          idealAction: 'Use potassium-free, non-glucose-containing maintenance fluids (e.g., NS) in HypoPP patients.',
+                          actualAction: 'Administered glucose-containing IV fluid.',
+                          impact: 'Progressive hypokalemia and postoperative flaccid paralysis.',
+                          chapterSource: "Miller's Anesthesia Chapter 35"
+                      });
+                  }
+              }
+              // Epinephrine-containing LAs also precipitate hypokalemia via beta-adrenergic K+ shift
+              const epinephrineModel = st.activeMeds?.find(m => m.name === 'Epinephrine');
+              const epinephrineCe = epinephrineModel ? epinephrineModel.Ce : 0;
+              if (epinephrineCe > 0.01) {
+                  currentK = Math.max(1.5, currentK - 0.02);
+              }
           }
           
           if (prisTriggered) {
@@ -3376,13 +4080,20 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           patientAfterFluidics.remifentanilHyperalgesiaActive = remifentanilHyperalgesiaActive;
           patientAfterFluidics.opioidToleranceMultiplier = opioidToleranceMultiplier;
 
+          const meperidineModel = st.activeMeds?.find(m => m.name === 'Meperidine');
+          const meperidineCe = meperidineModel ? meperidineModel.Ce : 0;
+          const nitroglycerinModel = st.activeMeds?.find(m => m.name === 'Nitroglycerin');
+          const nitroglycerinCe = nitroglycerinModel ? nitroglycerinModel.Ce : 0;
+
           // 3. Sphincter of Oddi Spasm
           let sphincterOfOddiSpasmActive = st.patient.sphincterOfOddiSpasmActive || false;
-          if (morphineCe < 0.01 && fentanylCe < 0.0002) {
+          const oddiStimulation = 20 * morphineCe + 500 * fentanylCe + 3000 * sufentanilCe + 80 * hydromorphoneCe + 800 * remifentanilCe - 5 * meperidineCe;
+          
+          if (oddiStimulation < 0.2) {
               st.patient.sphincterOfOddiRolled = undefined;
           }
           if (!sphincterOfOddiSpasmActive) {
-              const hasTriggerAgonists = morphineCe > 0.04 || fentanylCe > 0.001;
+              const hasTriggerAgonists = oddiStimulation > 0.8;
               if (hasTriggerAgonists && st.patient.sphincterOfOddiRolled === undefined) {
                   if (st.patient.sphincterOfOddiRolled === undefined) {
                       const baseProb = 0.02;
@@ -3416,6 +4127,9 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               } else if (atropineCe > 0.01) {
                   sphincterOfOddiSpasmActive = false;
                   logEvent("✅ SUCCESS: Atropine administered! Muscarinic receptor blockade has relaxed the sphincter of Oddi and resolved spasm.");
+              } else if (nitroglycerinCe > 0.01) {
+                  sphincterOfOddiSpasmActive = false;
+                  logEvent("✅ SUCCESS: Nitroglycerin administered! Nitric oxide-mediated smooth muscle relaxation has resolved sphincter of Oddi spasm.");
               } else {
                   oddiHrMod = 15;
                   oddiMapMod = 20;
@@ -3460,6 +4174,69 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           }
           st.patient.opioidPruritusActive = opioidPruritusActive;
           patientAfterFluidics.opioidPruritusActive = opioidPruritusActive;
+
+          // 4b. Opioid-Induced Urinary Retention
+          let urinaryRetentionActive = st.patient.urinaryRetentionActive || false;
+          let bladderVolume = st.patient.bladderVolume || 0.0;
+          let hasFoley = st.patient.hasFoley || false;
+
+          if (hasFoley) {
+              urinaryRetentionActive = false;
+          }
+
+          if (opioidEff < 0.05) {
+              st.patient.urinaryRetentionRolled = undefined;
+          }
+
+          if (!urinaryRetentionActive && !hasFoley) {
+              if (opioidEff > 0.3 && st.patient.urinaryRetentionRolled === undefined) {
+                  const baseProb = 0.15;
+                  const isMale = st.patient.sex === 'male';
+                  const isElderly = typeof st.patient.age === 'number' && st.patient.age > 60;
+                  let modifier = 1.0;
+                  if (isMale && isElderly) {
+                      modifier = 3.0; // BPH + aging detrusor
+                  } else if (isMale) {
+                      modifier = 1.8;
+                  } else if (isElderly) {
+                      modifier = 1.5;
+                  }
+                  const prob = Math.min(1.0, baseProb * modifier);
+                  st.patient.urinaryRetentionRolled = Math.random() < prob;
+                  
+                  if (st.patient.forceUrinaryRetention || st.patient.urinaryRetentionRolled) {
+                      urinaryRetentionActive = true;
+                      logEvent("🚨 CLINICAL ALERT: Opioid administration has induced urinary retention! Detrusor relaxation and sphincter contraction prevent voiding.");
+                  } else {
+                      st.patient.urinaryRetentionRolled = false;
+                  }
+              }
+          }
+
+          // Resolution criteria: Naloxone or Foley catheter placement
+          if (urinaryRetentionActive) {
+              if (naloxoneCe > 0.001) {
+                  urinaryRetentionActive = false;
+                  logEvent("✅ SUCCESS: Naloxone administered! Competitive mu-receptor antagonism has resolved urinary retention.");
+              } else if (hasFoley) {
+                  urinaryRetentionActive = false;
+                  logEvent("✅ SUCCESS: Foley catheter inserted. Bladder drained and urinary retention resolved.");
+              }
+          }
+
+          let retentionHrMod = 0;
+          let retentionMapMod = 0;
+          if (urinaryRetentionActive) {
+              retentionHrMod = 5;
+              retentionMapMod = 5;
+          }
+
+          st.patient.urinaryRetentionActive = urinaryRetentionActive;
+          st.patient.bladderVolume = bladderVolume;
+          st.patient.hasFoley = hasFoley;
+          patientAfterFluidics.urinaryRetentionActive = urinaryRetentionActive;
+          patientAfterFluidics.bladderVolume = bladderVolume;
+          patientAfterFluidics.hasFoley = hasFoley;
 
           // 5. Naloxone Sympathetic Surge
           let naloxoneSurgeTriggered = st.patient.naloxoneSurgeTriggered || false;
@@ -3521,9 +4298,85 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           st.patient.renarcotizationActive = renarcotizationActive;
           patientAfterFluidics.renarcotizationActive = renarcotizationActive;
 
+          // 6b. Carbamazepine agranulocytosis & sepsis
+          const cbzModel = st.activeMeds?.find(m => m.name === 'Carbamazepine');
+          const cbzCe = cbzModel ? cbzModel.Ce : 0;
+          let cbzDyscrasiaActive = st.patient.carbamazepineDyscrasiaActive || false;
+
+          if (!cbzDyscrasiaActive) {
+              if (cbzCe > 6.0 || !!st.patient.forceCarbamazepineDyscrasia) {
+                  cbzDyscrasiaActive = true;
+                  logEvent("🚨 CRITICAL EMERGENCY: Carbamazepine has triggered acute severe agranulocytosis and dyscrasia! Agranulocytic sepsis manifests with hyperpyrexia, hypermetabolism, and severe vasodilation.");
+              }
+          } else {
+              if (cbzCe < 4.0 && !st.patient.forceCarbamazepineDyscrasia) {
+                  cbzDyscrasiaActive = false;
+                  logEvent("✅ SUCCESS: Carbamazepine dyscrasia and agranulocytic sepsis resolved. Bone marrow suppression has ceased.");
+              }
+          }
+
+          let cbzWBC = typeof st.patient.whiteBloodCellCount === 'number' ? st.patient.whiteBloodCellCount : 7.5;
+          if (cbzDyscrasiaActive) {
+              cbzWBC = 0.5;
+              drugSvrMod *= 0.70; // 30% reduction in SVR
+              ruleHrOffset += 30; // HR rise +30 bpm
+          } else {
+              if (cbzWBC < 7.5) {
+                  cbzWBC = Math.min(7.5, cbzWBC + 0.1);
+              }
+          }
+
+          st.patient.carbamazepineDyscrasiaActive = cbzDyscrasiaActive;
+          st.patient.whiteBloodCellCount = cbzWBC;
+          patientAfterFluidics.carbamazepineDyscrasiaActive = cbzDyscrasiaActive;
+          patientAfterFluidics.whiteBloodCellCount = cbzWBC;
+
+          // 6c. Ziconotide Postural Hypotension
+          const zicModel = st.activeMeds?.find(m => m.name === 'Ziconotide');
+          const zicCe = zicModel ? zicModel.Ce : 0;
+          let zicHypotensionActive = zicCe > 0.002;
+
+          if (zicHypotensionActive && !st.patient.ziconotideHypotensionActive) {
+              logEvent("🚨 CLINICAL ALERT: Ziconotide has induced postural hypotension! Selective N-type calcium channel blockade has blunted sympathetic vascular tone.");
+          } else if (!zicHypotensionActive && st.patient.ziconotideHypotensionActive) {
+              logEvent("✅ SUCCESS: Ziconotide postural hypotension has resolved.");
+          }
+          st.patient.ziconotideHypotensionActive = zicHypotensionActive;
+          patientAfterFluidics.ziconotideHypotensionActive = zicHypotensionActive;
+
+          // 6d. Oxcarbazepine Hyponatremia
+          const oxcModel = st.activeMeds?.find(m => m.name === 'Oxcarbazepine');
+          const oxcCe = oxcModel ? oxcModel.Ce : 0;
+          let sodiumLevel = typeof st.patient.sodiumLevel === 'number' ? st.patient.sodiumLevel : 140.0;
+          let isHyponatremic = !!st.patient.isHyponatremic;
+
+          if (oxcCe > 4.0) {
+              sodiumLevel = Math.max(122.0, sodiumLevel - 0.1);
+          } else {
+              if (sodiumLevel < 140.0) {
+                  sodiumLevel = Math.min(140.0, sodiumLevel + 0.1);
+              }
+          }
+
+          if (sodiumLevel < 125.0) {
+              if (!isHyponatremic) {
+                  isHyponatremic = true;
+                  logEvent("🚨 CLINICAL ALERT: Patient has developed severe hyponatremia (Sodium < 125 mEq/L) due to Oxcarbazepine-induced water retention!");
+              }
+          } else {
+              if (isHyponatremic && sodiumLevel >= 128.0) {
+                  isHyponatremic = false;
+                  logEvent("✅ SUCCESS: Hyponatremia has resolved. Sodium level restored above clinical alert threshold.");
+              }
+          }
+          st.patient.sodiumLevel = sodiumLevel;
+          st.patient.isHyponatremic = isHyponatremic;
+          patientAfterFluidics.sodiumLevel = sodiumLevel;
+          patientAfterFluidics.isHyponatremic = isHyponatremic;
+
           // Apply clinical offsets
-          ruleHrOffset += deliriumHrMod + arterialIschemiaHrMod + oddiHrMod + surgeHrMod;
-          ruleMapOffset += deliriumMapMod + arterialIschemiaMapMod + oddiMapMod + surgeMapMod;
+          ruleHrOffset += deliriumHrMod + arterialIschemiaHrMod + oddiHrMod + surgeHrMod + retentionHrMod;
+          ruleMapOffset += deliriumMapMod + arterialIschemiaMapMod + oddiMapMod + surgeMapMod + retentionMapMod;
 
           // Position modifiers
           let positionPreloadMod = 0;
@@ -3538,7 +4391,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           } else if (pos === 'Lithotomy') {
               positionPreloadMod = 400; 
           } else if (pos === 'Prone') {
-              positionPreloadMod = -100; 
+              positionPreloadMod = st.patient.proneSupportsPlaced ? -100 : -350; 
           }
 
           // Gastrointestinal Engine Tick
@@ -3739,6 +4592,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           st.patient.bowmanSpacePressure = renalOutput.bowmanSpacePressure;
           st.patient.glomerularOncoticPressure = renalOutput.glomerularOncoticPressure;
           st.patient.netFiltrationPressure = renalOutput.netFiltrationPressure;
+          st.patient.bladderVolume = renalOutput.bladderVolume;
+          st.patient.urinaryRetentionActive = renalOutput.urinaryRetentionActive;
 
           patientAfterFluidics.gfr = renalOutput.gfr;
           patientAfterFluidics.rbf = renalOutput.rbf;
@@ -3775,6 +4630,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           patientAfterFluidics.bowmanSpacePressure = renalOutput.bowmanSpacePressure;
           patientAfterFluidics.glomerularOncoticPressure = renalOutput.glomerularOncoticPressure;
           patientAfterFluidics.netFiltrationPressure = renalOutput.netFiltrationPressure;
+          patientAfterFluidics.bladderVolume = renalOutput.bladderVolume;
+          patientAfterFluidics.urinaryRetentionActive = renalOutput.urinaryRetentionActive;
 
           // Gastric Aspiration triggers
           let hasAspirated = st.patient.hasAspirated || giOutput.hasAspirated || false;
@@ -4043,6 +4900,18 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               sphincterOfOddiSpasmActive: st.patient.sphincterOfOddiSpasmActive,
               opioidPruritusActive: st.patient.opioidPruritusActive,
               renarcotizationActive: st.patient.renarcotizationActive,
+              sodiumLevel: st.patient.sodiumLevel,
+              whiteBloodCellCount: st.patient.whiteBloodCellCount,
+              hasGOSRD: st.patient.hasGOSRD,
+              ziconotideHypotensionActive: st.patient.ziconotideHypotensionActive,
+              forceCarbamazepineDyscrasia: st.patient.forceCarbamazepineDyscrasia,
+              isHyponatremic: st.patient.isHyponatremic,
+              carbamazepineDyscrasiaActive: st.patient.carbamazepineDyscrasiaActive,
+              urinaryRetentionActive: st.patient.urinaryRetentionActive || false,
+              bladderVolume: st.patient.bladderVolume || 0,
+              hasFoley: st.patient.hasFoley || false,
+              opioidReceptorGenotype: st.patient.opioidReceptorGenotype || 'A118A',
+              forceUrinaryRetention: st.patient.forceUrinaryRetention || false,
               naloxoneSurgeTriggered: st.patient.naloxoneSurgeTriggered,
               naloxoneSurgeActive: st.patient.naloxoneSurgeActive,
               naloxoneSurgeTime: st.patient.naloxoneSurgeTime,
@@ -4333,6 +5202,18 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               targetTofRatio = Math.min(0.89, targetTofRatio);
           }
 
+          // Chapter 28, Miller's 9th Ed (Fig 28.2, p.835): qualitative (manual tactile/visual peripheral
+          // nerve stimulator) monitoring cannot detect fade once the true TOF ratio exceeds ~0.30-0.40 -
+          // a clinician relying on it perceives full recovery (no fade) despite clinically significant
+          // residual blockade up to a ratio of 0.89. Twitch COUNT (0-4 missing twitches) is still reliably
+          // perceived, since gross absence of a twitch is visually/tactilely obvious; only the FADE RATIO
+          // within an intact 4/4 train is imperceptible above this threshold.
+          const QUALITATIVE_FADE_DETECTION_THRESHOLD = 0.40;
+          const perceivedTofCount = targetTofCount;
+          const perceivedTofRatio = (targetTofCount === 4 && targetTofRatio > QUALITATIVE_FADE_DETECTION_THRESHOLD)
+              ? 1.0
+              : targetTofRatio;
+
           if (finalPatient.airwaySecured && st.surgicalPhase === 'Induction') {
               setSurgicalPhase('Maintenance');
               logEvent(`➡️ Airway Secured. Surgical Timeline Auto-Advanced: MAINTENANCE phase initiated.`);
@@ -4386,6 +5267,8 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               bsr: bsrVal,
               tofCount: targetTofCount,
               tofRatio: targetTofRatio,
+              perceivedTofCount: perceivedTofCount,
+              perceivedTofRatio: perceivedTofRatio,
               t1: t1,
               t2: t2,
               t3: t3,
@@ -4469,5 +5352,5 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     };
   };
 
-  return { time, setTime, vitals, setVitals, targetVitals, setTargetVitals, patient, setPatient, processMed, pushMed, pushFluid, updateFluidRate, removeFluid, activeMeds, intravascularVolume, electrolytes, coags, deliverShock, toggleCPR, placeEpidural, removeEpidural, toggleCeliacBlock, surgicalPhase, setSurgicalPhase, createSnapshot, restoreSnapshot };
+  return { time, setTime, vitals, setVitals, targetVitals, setTargetVitals, patient, setPatient, processMed, pushMed, pushFluid, updateFluidRate, removeFluid, activeMeds, intravascularVolume, electrolytes, coags, deliverShock, toggleCPR, placeEpidural, removeEpidural, toggleCeliacBlock, surgicalPhase, setSurgicalPhase, createSnapshot, restoreSnapshot, logQualityEvent };
 }

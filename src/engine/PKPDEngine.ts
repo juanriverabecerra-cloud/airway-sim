@@ -42,6 +42,7 @@ export class PKPDModel {
   patientSex: string = 'male';
   patientHeight: number = 170;
   opioidToleranceMultiplier: number = 1.0;
+  opioidReceptorGenotype: string = 'A118A';
 
   tciMode: 'none' | 'Cp' | 'Ce' = 'none';
   tciTarget: number = 0;
@@ -118,6 +119,7 @@ export class PKPDModel {
     this.patientSex = sex;
     this.patientHeight = height;
     this.opioidToleranceMultiplier = patient.opioidToleranceMultiplier || 1.0;
+    this.opioidReceptorGenotype = patient.opioidReceptorGenotype || 'A118A';
 
     if (modelName === 'Marsh') {
       this.pk.V1 = 0.228 * weight;
@@ -194,6 +196,40 @@ export class PKPDModel {
       this.pk.k21 = Cl2 / this.pk.V2;
       this.pk.k31 = Cl3 / this.pk.V3;
       this.pk.ke0 = 0.595 - 0.007 * (age - 40);
+    } else if (modelName === 'Gepts') {
+      // Sufentanil/Gepts model (Table 26.7, Miller's 9th Ed) - fixed (non-covariate-scaled) parameters
+      this.pk.V1 = 14.3;
+      this.pk.V2 = 63.4;
+      this.pk.V3 = 251.9;
+      this.pk.k10 = 0.0645;
+      this.pk.k12 = 0.1086;
+      this.pk.k13 = 0.0229;
+      this.pk.k21 = 0.0245;
+      this.pk.k31 = 0.0013;
+      // ke0 intentionally left at the medication's existing static default - Table 26.7 lists ke0 as "NA" for the Gepts model
+    } else if (modelName === 'Shafer') {
+      // Fentanyl/Shafer model (Table 26.7, Miller's 9th Ed) - fixed (non-covariate-scaled) parameters
+      this.pk.V1 = 6.09;
+      this.pk.V2 = 28.1;
+      this.pk.V3 = 228.0;
+      this.pk.k10 = 0.083;
+      this.pk.k12 = 0.4713;
+      this.pk.k13 = 0.22496;
+      this.pk.k21 = 0.1021;
+      this.pk.k31 = 0.00601;
+      this.pk.ke0 = 0.147;
+    } else if (modelName === 'Maitre') {
+      // Alfentanil/Maitre model (Table 26.7, Miller's 9th Ed) - sex- and age-dependent
+      const safeSex = typeof sex === 'string' && sex.trim().toLowerCase() === 'female' ? 'female' : 'male';
+      this.pk.V1 = safeSex === 'female' ? 1.15 * 0.111 * weight : 0.111 * weight;
+      this.pk.V2 = 12.0;
+      this.pk.V3 = 10.5;
+      this.pk.k10 = (age < 40 ? 0.356 : (0.356 - 0.00269 * (age - 40))) / this.pk.V1;
+      this.pk.k12 = 0.104;
+      this.pk.k13 = 0.017;
+      this.pk.k21 = 0.067;
+      this.pk.k31 = age < 40 ? 0.0126 : (0.0126 - 0.000113 * (age - 40));
+      this.pk.ke0 = 0.77;
     }
   }
 
@@ -308,7 +344,10 @@ export class PKPDModel {
     let k10Raw = this.pk.k10 || 0;
 
     // Apply Chapter 27 dynamic clearance multipliers
-    if (this.name === 'Succinylcholine') {
+    if (this.name === 'Succinylcholine' || this.name === 'Mivacurium') {
+      // Table 27.1, Miller's 9th Ed: Mivacurium is hydrolyzed by the same plasma
+      // butyrylcholinesterase enzyme as Succinylcholine, and its block is similarly
+      // prolonged under heterozygous/atypical genotypes, pregnancy, or cirrhosis.
       k10Raw *= safeBcheMultiplier;
     } else if (this.name === 'Atracurium' || this.name === 'Cisatracurium') {
       k10Raw *= safeHofmannMultiplier;
@@ -463,38 +502,70 @@ export class PKPDModel {
     }
 
     let fraction = 0;
-    let c50 = this.pd.c50;
+    let fractionResp = 0;
+    let c50Hyp = this.pd.c50;
+    let c50Resp = this.pd.c50;
+
     if (this.classes.includes('Opioid') || this.classes.includes('Opioid (Ultra-short)')) {
-      c50 *= (this.opioidToleranceMultiplier || 1.0);
+      const tol = this.opioidToleranceMultiplier || 1.0;
+      c50Hyp = this.pd.c50 * tol;
+      c50Resp = this.pd.c50 * tol;
+      if (this.opioidReceptorGenotype === 'A118G') {
+        c50Hyp *= 3.0; // 3x higher requirement/lower sensitivity for analgesia/hypnosis
+      }
     }
-    if (c50 && c50 > 0) {
+
+    if (c50Hyp && c50Hyp > 0) {
       const gamma = Math.max(0.001, Math.min(100.0, this.pd.gamma || 1.0));
       const safeCe = Math.max(0, this.Ce); 
       const activeCe = safeCe * pdSensitivityCoeff * ageSens;
       if (activeCe > 0) {
-        // Base-ratio division to mathematically prevent floating point overflows to Infinity
-        if (activeCe >= c50) {
-          const ratio = c50 / activeCe;
+        if (activeCe >= c50Hyp) {
+          const ratio = c50Hyp / activeCe;
           fraction = 1.0 / (1.0 + Math.pow(ratio, gamma));
         } else {
-          const ratio = activeCe / c50;
+          const ratio = activeCe / c50Hyp;
           const power = Math.pow(ratio, gamma);
           fraction = power / (1.0 + power);
         }
       }
     }
     if (isNaN(fraction) || !isFinite(fraction)) {
-      fraction = 0.5; // Defensive fallback
+      fraction = 0.5;
     }
     fraction = Math.max(0, Math.min(1.0, fraction));
     if (fraction < 1e-15) fraction = 0.0;
     if (fraction > 1.0 - 1e-15) fraction = 1.0;
 
+    if (c50Resp && c50Resp > 0) {
+      const gamma = Math.max(0.001, Math.min(100.0, this.pd.gamma || 1.0));
+      const safeCe = Math.max(0, this.Ce); 
+      const activeCe = safeCe * pdSensitivityCoeff * ageSens;
+      if (activeCe > 0) {
+        if (activeCe >= c50Resp) {
+          const ratio = c50Resp / activeCe;
+          fractionResp = 1.0 / (1.0 + Math.pow(ratio, gamma));
+        } else {
+          const ratio = activeCe / c50Resp;
+          const power = Math.pow(ratio, gamma);
+          fractionResp = power / (1.0 + power);
+        }
+      }
+    }
+    if (isNaN(fractionResp) || !isFinite(fractionResp)) {
+      fractionResp = 0.5;
+    }
+    fractionResp = Math.max(0, Math.min(1.0, fractionResp));
+    if (fractionResp < 1e-15) fractionResp = 0.0;
+    if (fractionResp > 1.0 - 1e-15) fractionResp = 1.0;
+
     // Direct Deltas for non-vasopressor agents (Sedatives, Opioids)
     if (this.pd.sysMax && !this.pd.receptors) effects.sysDelta = this.pd.sysMax * fraction;
     if (this.pd.diaMax && !this.pd.receptors) effects.diaDelta = this.pd.diaMax * fraction;
-    if (this.pd.hrMax && !this.pd.receptors) effects.hrDelta = this.pd.hrMax * fraction;
-    if (this.pd.rrMax) effects.rrDelta = this.pd.rrMax * fraction;
+    if (this.pd.hrMax && !this.pd.receptors) effects.hrDelta = this.pd.hrMax * fractionResp;
+    if (this.pd.rrMax) {
+      effects.rrDelta = this.pd.rrMax * (this.classes.includes('Opioid') || this.classes.includes('Opioid (Ultra-short)') ? fractionResp : fraction);
+    }
 
     // HIGH-FIDELITY VASOPRESSOR / RECEPTOR COUPLING (CA-1 Integration)
     if (this.pd.receptors) {

@@ -1,8 +1,20 @@
 import { Brain, ShieldAlert, Award } from 'lucide-react';
+import { calculatePacuReadiness } from '../../engine/OutcomeScoringEngine.ts';
 
-export const MemoryPanel = ({ patient, vitals, setPatient, logEvent, toggleBis, toggleTof }) => {
+export const MemoryPanel = ({ patient, vitals, setPatient, logEvent, toggleBis, toggleTof, toggleTofMode, surgicalPhase }) => {
   const isBis = patient?.hasBisMonitor;
   const isTof = patient?.hasTofMonitor;
+  // Visible from Emergence onward, since that's when recovery readiness actually becomes
+  // a real decision the user needs to make before transferring the patient to PACU.
+  const showPacuReadiness = surgicalPhase === 'Emergence' || surgicalPhase === 'PACU';
+  const pacuReadiness = showPacuReadiness ? calculatePacuReadiness(vitals, patient) : null;
+  const isQualitativeTof = isTof && patient?.tofMonitorMode === 'qualitative';
+  // Chapter 28, Miller's 9th Ed: a manual/tactile peripheral nerve stimulator cannot reliably perceive
+  // fade once the true TOF ratio exceeds ~0.30-0.40, so a clinician relying on it sees "no fade" (falsely
+  // reassuring) despite clinically significant residual blockade. Quantitative (AMG) monitoring shows the
+  // true value at all times.
+  const displayTofCount = isQualitativeTof ? vitals?.perceivedTofCount : vitals?.tofCount;
+  const displayTofRatio = isQualitativeTof ? vitals?.perceivedTofRatio : vitals?.tofRatio;
 
   const triggerFearRecall = () => {
     if (patient?.fearMemoryRetrieved) return;
@@ -51,8 +63,48 @@ export const MemoryPanel = ({ patient, vitals, setPatient, logEvent, toggleBis, 
           >
             {patient?.hasTofMonitor ? '✓ TOF On' : 'Attach TOF'}
           </button>
+          {isTof && (
+            <button
+              onClick={() => { if (toggleTofMode) toggleTofMode(); }}
+              title="Chapter 28: Qualitative (manual tactile/visual PNS) monitoring cannot reliably detect fade above a TOF ratio of ~0.40, unlike Quantitative (AMG) monitoring."
+              className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border transition-all ${
+                isQualitativeTof
+                  ? 'bg-amber-950/50 text-amber-400 border-amber-600 shadow-[0_0_8px_rgba(245,158,11,0.35)]'
+                  : 'bg-slate-950/40 border-white/5 text-slate-500 hover:text-slate-400 font-normal'
+              }`}
+            >
+              {isQualitativeTof ? '◔ Qualitative (Manual)' : '◉ Quantitative (AMG)'}
+            </button>
+          )}
         </div>
       </div>
+
+      {pacuReadiness && (
+        <div className="bg-slate-950/45 p-3 rounded-lg border border-slate-900 flex flex-col gap-2.5">
+          <div className="text-[10px] font-black uppercase tracking-widest text-emerald-400 mb-0.5 flex items-center justify-between border-b border-slate-900 pb-1.5">
+            <span>PACU Readiness (Aldrete-style)</span>
+            <span className={`px-1.5 py-0.5 rounded text-[8.5px] font-extrabold uppercase border ${pacuReadiness.isReadyForDischarge ? 'bg-emerald-950/40 text-emerald-400 border-emerald-500/20' : 'bg-red-950/40 text-red-400 border-red-500/20'}`}>
+              {pacuReadiness.totalScore}/{pacuReadiness.maxScore}
+            </span>
+          </div>
+          <div className="grid grid-cols-1 gap-1 text-[9.5px] font-mono">
+            {Object.values(pacuReadiness.criteria).map((c) => (
+              <div key={c.label} className="flex items-center justify-between bg-slate-900/30 px-2 py-1 rounded border border-slate-850">
+                <span className="text-slate-400">{c.label}</span>
+                <span className="flex items-center gap-2">
+                  <span className="text-slate-500">{c.detail}</span>
+                  <span className={`font-black ${c.points === 2 ? 'text-emerald-400' : c.points === 1 ? 'text-amber-400' : 'text-red-400'}`}>{c.points}/{c.maxPoints}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className={`text-[9.5px] leading-snug ${pacuReadiness.isReadyForDischarge ? 'text-emerald-400' : 'text-amber-400'}`}>
+            {pacuReadiness.isReadyForDischarge
+              ? 'Meets conventional PACU transfer readiness (score ≥ 9/10, no criterion at 0).'
+              : 'Below conventional PACU transfer readiness. Transferring now will be recorded as a quality-of-care event.'}
+          </div>
+        </div>
+      )}
 
       {!isBis && !isTof ? (
         <div className="flex flex-col gap-4 py-8">
@@ -87,10 +139,15 @@ export const MemoryPanel = ({ patient, vitals, setPatient, logEvent, toggleBis, 
             <div className="bg-slate-950/45 p-3 rounded-lg border border-slate-900 flex flex-col gap-3">
               <div className="text-[10px] font-black uppercase tracking-widest text-orange-400 mb-0.5 flex items-center justify-between border-b border-slate-900 pb-1.5">
                 <span>Neuromuscular Transmission (TOF)</span>
-                <span className="bg-slate-900 text-orange-400 px-1.5 py-0.5 rounded text-[8.5px] font-extrabold uppercase border border-orange-500/10">
-                  ACTIVE
+                <span className={`px-1.5 py-0.5 rounded text-[8.5px] font-extrabold uppercase border ${isQualitativeTof ? 'bg-amber-950/40 text-amber-400 border-amber-500/20' : 'bg-slate-900 text-orange-400 border-orange-500/10'}`}>
+                  {isQualitativeTof ? 'MANUAL PNS' : 'ACTIVE (AMG)'}
                 </span>
               </div>
+              {isQualitativeTof && (
+                <div className="text-[9px] text-amber-400/90 leading-snug bg-amber-950/20 border border-amber-900/30 rounded p-1.5">
+                  Manual tactile/visual assessment cannot detect fade once the true TOF ratio exceeds ~40% (Ch28, Miller's 9th Ed). Values below reflect what a clinician would perceive, not ground truth.
+                </div>
+              )}
 
               {/* Genotype Parameters summary */}
               <div className="text-[9.5px] text-slate-400 font-mono flex justify-between bg-slate-900/30 p-2 rounded border border-slate-850">
@@ -106,9 +163,13 @@ export const MemoryPanel = ({ patient, vitals, setPatient, logEvent, toggleBis, 
                   { label: 'T3', val: vitals?.t3 },
                   { label: 'T4', val: vitals?.t4 }
                 ].map((twitch, idx) => {
-                  const val = typeof twitch.val === 'number' && isFinite(twitch.val) ? twitch.val : 1.0;
+                  const rawVal = typeof twitch.val === 'number' && isFinite(twitch.val) ? twitch.val : 1.0;
+                  const isBlocked = rawVal <= 0.001;
+                  // Qualitative (tactile/visual) assessment can perceive whether a twitch is present or
+                  // absent, but not grade its relative height - so display it as either fully present or
+                  // absent rather than the true continuous height (Ch28, Miller's 9th Ed).
+                  const val = isQualitativeTof ? (isBlocked ? 0 : 1.0) : rawVal;
                   const percent = Math.round(val * 100);
-                  const isBlocked = val <= 0.001;
                   return (
                     <div key={idx} className="flex flex-col items-center gap-1.5 w-12">
                       <span className="text-[9px] font-bold text-slate-500 font-mono">{twitch.label}</span>
@@ -137,13 +198,13 @@ export const MemoryPanel = ({ patient, vitals, setPatient, logEvent, toggleBis, 
                 <div className="bg-slate-900/40 p-2 border border-slate-850 rounded flex flex-col justify-between">
                   <span className="text-[8.5px] text-slate-500 uppercase block mb-1">TOF Count</span>
                   <span className="font-black text-xs text-orange-400">
-                    {vitals?.tofCount !== undefined ? `${vitals.tofCount}/4` : '4/4'}
+                    {displayTofCount !== undefined ? `${displayTofCount}/4` : '4/4'}
                   </span>
                 </div>
                 <div className="bg-slate-900/40 p-2 border border-slate-850 rounded flex flex-col justify-between">
                   <span className="text-[8.5px] text-slate-500 uppercase block mb-1">TOF Ratio</span>
                   <span className="font-black text-xs text-orange-400">
-                    {vitals?.tofCount === 4 && vitals?.tofRatio !== undefined ? `${Math.round(vitals.tofRatio * 100)}%` : 'N/A'}
+                    {displayTofCount === 4 && displayTofRatio !== undefined ? `${Math.round(displayTofRatio * 100)}%` : 'N/A'}
                   </span>
                 </div>
               </div>
@@ -152,23 +213,23 @@ export const MemoryPanel = ({ patient, vitals, setPatient, logEvent, toggleBis, 
               <div className="bg-slate-900/40 p-2 border border-slate-855 rounded flex justify-between items-center p-2 border border-slate-850 text-[10px]">
                 <span className="text-slate-500 uppercase font-black text-[9px]">Block Depth</span>
                 <span className="font-black uppercase text-orange-400">
-                  {vitals?.tofCount === 0 ? 'Profound Block (occupancy > 95%)' : 
-                   vitals?.tofCount === 1 ? 'Deep Block (occupancy ~ 90%)' :
-                   vitals?.tofCount === 2 || vitals?.tofCount === 3 ? 'Moderate Block (occupancy 75-85%)' :
-                   vitals?.tofRatio < 0.90 ? 'Residual Block (occupancy < 75%)' : 'Fully Recovered'}
+                  {displayTofCount === 0 ? 'Profound Block (occupancy > 95%)' :
+                   displayTofCount === 1 ? 'Deep Block (occupancy ~ 90%)' :
+                   displayTofCount === 2 || displayTofCount === 3 ? 'Moderate Block (occupancy 75-85%)' :
+                   displayTofRatio < 0.90 ? 'Residual Block (occupancy < 75%)' : 'Fully Recovered'}
                 </span>
               </div>
 
               {/* Reversal / Extubation Safety Alert */}
               <div className={`p-2 rounded-lg border text-[9.5px] leading-normal flex items-start gap-1.5 ${
-                vitals?.tofCount === 4 && vitals?.tofRatio >= 0.90 
-                  ? 'bg-emerald-950/30 border-emerald-900/40 text-emerald-400' 
+                displayTofCount === 4 && displayTofRatio >= 0.90
+                  ? 'bg-emerald-950/30 border-emerald-900/40 text-emerald-400'
                   : 'bg-red-950/30 border-red-900/40 text-red-400 animate-pulse border-dashed'
               }`}>
-                {vitals?.tofCount === 4 && vitals?.tofRatio >= 0.90 ? (
+                {displayTofCount === 4 && displayTofRatio >= 0.90 ? (
                   <>
-                    <span className="font-black uppercase block shrink-0 text-emerald-400">✓ SAFE:</span>
-                    <span>TOF Ratio is ≥ 90%. Neuromuscular transmission is adequately restored for safe extubation.</span>
+                    <span className="font-black uppercase block shrink-0 text-emerald-400">✓ SAFE{isQualitativeTof ? ' (perceived)' : ''}:</span>
+                    <span>TOF Ratio is ≥ 90%. Neuromuscular transmission is adequately restored for safe extubation.{isQualitativeTof && vitals?.tofRatio < 0.90 ? ' ⚠️ This reading may be a false negative — manual assessment cannot detect residual fade above a 40% true ratio.' : ''}</span>
                   </>
                 ) : (
                   <>

@@ -47,6 +47,10 @@ export interface RenalPatientState {
   bowmanSpacePressure?: number;
   glomerularOncoticPressure?: number;
   netFiltrationPressure?: number;
+  bladderVolume?: number;
+  urinaryRetentionActive?: boolean;
+  hasFoley?: boolean;
+  forceUrinaryRetention?: boolean;
 }
 
 export interface RenalVitalsState {
@@ -264,8 +268,31 @@ export class RenalEngine {
 
     const uopMlMin = (gfr * 0.01) * (1.0 - 0.92 * vasopressinLevel * (1.0 - diureticEffect)) * diureticMultiplier;
     const prevUop = typeof patient.urineOutput === 'number' && Number.isFinite(patient.urineOutput) ? patient.urineOutput : 0.0;
-    const urineOutput = parseFloat(Math.max(0.0, prevUop + (uopMlMin * (safeDt / 60.0))).toFixed(2));
-    const urineOutputRate = parseFloat((uopMlMin * 60.0).toFixed(2));
+    
+    let bladderVolume = typeof patient.bladderVolume === 'number' && Number.isFinite(patient.bladderVolume) ? patient.bladderVolume : 0.0;
+    let urinaryRetentionActive = !!patient.urinaryRetentionActive;
+    const hasFoley = !!patient.hasFoley;
+    
+    let uopMlMinBody = uopMlMin;
+    let drainedVolume = 0.0;
+    
+    if (urinaryRetentionActive && !hasFoley) {
+      const produced = uopMlMin * (safeDt / 60.0);
+      bladderVolume += produced;
+      uopMlMinBody = 0.0;
+    } else {
+      if (bladderVolume > 0.0) {
+        drainedVolume = bladderVolume;
+        bladderVolume = 0.0;
+      }
+      uopMlMinBody = uopMlMin;
+      if (hasFoley) {
+        urinaryRetentionActive = false;
+      }
+    }
+    
+    const urineOutput = parseFloat(Math.max(0.0, prevUop + drainedVolume + (uopMlMinBody * (safeDt / 60.0))).toFixed(2));
+    const urineOutputRate = parseFloat((uopMlMinBody * 60.0).toFixed(2));
 
     // Cortical vs. Medullary perfusion & oxygenation (Table 17.1, Miller's 9th Ed)
     const cortexRbf = 0.94 * rbf;
@@ -461,7 +488,9 @@ export class RenalEngine {
       glomerularCapillaryPressure: parseFloat(pGc.toFixed(2)),
       bowmanSpacePressure: parseFloat(pBs.toFixed(2)),
       glomerularOncoticPressure: parseFloat(piGc.toFixed(2)),
-      netFiltrationPressure: parseFloat(nfp.toFixed(2))
+      netFiltrationPressure: parseFloat(nfp.toFixed(2)),
+      bladderVolume: parseFloat(bladderVolume.toFixed(2)),
+      urinaryRetentionActive
     };
   }
 }

@@ -448,6 +448,7 @@ function extractSources(text) {
 export default function AttendingPanel({
   vitals,
   patient,
+  caseId,
   activeMeds,
   surgicalPhase,
   time,
@@ -631,6 +632,7 @@ export default function AttendingPanel({
         const attendingReply = getAttendingResponse(actionKey, {
           vitals,
           patient,
+          caseId,
           activeMeds,
           surgicalPhase,
           time,
@@ -676,6 +678,7 @@ export default function AttendingPanel({
       localReply = getAttendingResponse(currentInput, {
         vitals,
         patient,
+        caseId,
         activeMeds,
         surgicalPhase,
         time,
@@ -1928,7 +1931,7 @@ Rules:
               let localReply = '';
               try {
                 localReply = getAttendingResponse(q, {
-                  vitals, patient, activeMeds, surgicalPhase, time, logs
+                  vitals, patient, caseId, activeMeds, surgicalPhase, time, logs
                 }, conversationHistoryRef.current);
 
                 const educationalPattern = /\b(how\s+(does|do|is|are|did|would|should|can|could)|explain|what\s+(is|are|does|causes?)|why\s+(does|do|is|are|would)|mechanism|pharmacology|pharmacokinetics|pharmacodynamics|teach\s+me|tell\s+me\s+about|describe|work[s]?\b)/i;

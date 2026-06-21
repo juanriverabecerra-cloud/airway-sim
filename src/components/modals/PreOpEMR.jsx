@@ -1,8 +1,302 @@
 import { useState, useEffect } from 'react';
 import { X, Activity, FileText, ClipboardList, CheckSquare, ShieldAlert, Award, Play, ArrowLeft, ArrowRight } from 'lucide-react';
 import { calculateLungVolumes, calculateIBW, calculateLBW, calculateHumeLBM, calculateJanmahasatianFFM, calculateCBW, calculateMFFM, calculatePKM } from '../../engine/Pharmacology';
+import { HERBAL_MEDICINES, DIETARY_SUPPLEMENTS } from '../../engine/CAMKnowledgeEngine';
+import { POSITIONS_DATA, NERVES_DATA, POVL_DATA, checkPovlRisk } from '../../engine/PositioningKnowledgeEngine';
 
-export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logEvent, intraop = false }) => {
+// Revised Cardiac Risk Index (RCRI), Lee et al. - the 6 criteria cited in Chapter 30, Miller's 9th Ed
+// ("Risk of Anesthesia"): high-risk surgery, ischemic heart disease, congestive heart failure,
+// cerebrovascular disease, preoperative insulin treatment, and serum creatinine > 2.0 mg/dL.
+export const calculateRcriFactors = (patient, id) => {
+  const safePatient = patient || {};
+  const safeId = id || '';
+  const pmhx = (safePatient.pmhx || '').toLowerCase();
+
+  // High-risk surgical procedure (intraperitoneal, intrathoracic, or suprainguinal vascular)
+  const rcriHighRisk = !!(safePatient.trauma || safePatient.isSeptic || ['cardiac', 'thoracic', 'neuro', 'vascular', 'urology', 'transplant', 'obgyn'].includes(safeId) || ['CABG', 'Craniotomy', 'Laparotomy', 'Thoracotomy', 'AAA Repair', 'Nephrectomy', 'Liver Transplant', 'C-Section'].some(p => (safePatient.procedure || '').includes(p)));
+
+  // History of ischemic heart disease (CAD, prior MI, or angina - includes the standalone "MI" abbreviation
+  // via a word-boundary match so it doesn't false-positive on substrings like "admit" or "vomiting")
+  const rcriIhd = !!(safePatient.cad || pmhx.includes('cad') || pmhx.includes('coronary') || pmhx.includes('ischemic') || pmhx.includes('angina') || pmhx.includes('myocardial infarction') || /\bmi\b/.test(pmhx) || safeId === 'cardiac');
+
+  // History of congestive heart failure
+  const rcriChf = !!(safePatient.chf || pmhx.includes('heart failure') || pmhx.includes('chf') || (safePatient.ef && safePatient.ef < 40) || safeId === 'cardiac' || safeId === 'bariatric');
+
+  // History of cerebrovascular disease
+  const rcriCva = !!(safePatient.cva || pmhx.includes('stroke') || pmhx.includes('cva') || pmhx.includes('tia'));
+
+  // Preoperative treatment with insulin
+  const rcriInsulin = !!(safePatient.insulin || pmhx.includes('insulin') || safeId === 'bariatric');
+
+  // Preoperative serum creatinine > 2.0 mg/dL
+  const rcriCr = !!(safePatient.gfr < 40 || safePatient.creatinine > 2.0 || (safePatient.renalComorbidity && !safePatient.renalComorbidity.includes('stage 1') && !safePatient.renalComorbidity.includes('stage 2')) || safeId === 'urology');
+
+  const factorCount = [rcriHighRisk, rcriIhd, rcriChf, rcriCva, rcriInsulin, rcriCr].filter(Boolean).length;
+
+  return { rcriHighRisk, rcriIhd, rcriChf, rcriCva, rcriInsulin, rcriCr, factorCount };
+};
+
+// CDC Body Mass Index classification scheme (Table 31.3, Ch31 "Preoperative Evaluation")
+export const classifyBmi = (bmi) => {
+  const safeBmi = Number.isFinite(bmi) ? bmi : 22;
+  if (safeBmi < 18.5) return 'Underweight';
+  if (safeBmi < 25) return 'Normal Weight';
+  if (safeBmi < 30) return 'Overweight';
+  if (safeBmi < 35) return 'Obese Class I';
+  if (safeBmi < 40) return 'Obese Class II';
+  return 'Obese Class III';
+};
+
+// Duke Activity Status Index (DASI) — Hlatky MA et al., Am J Cardiol. 1989;64:651-654,
+// cited by Ch31 (Table 31.2) as the preferred structured questionnaire for preoperative
+// functional capacity. Ch31's own scanned table did not OCR with item-level text, so the
+// 12 items/weights below are the standard published DASI instrument (disclosed estimate
+// of the instrument itself, not of the conversion formula, which Ch31 states explicitly):
+// Estimated METs = [(0.43 × DASI score) + 9.6] / 3.5 (Ch31, p.6).
+export const DASI_ITEMS = [
+  { id: 'selfCare', label: 'Can you take care of yourself (eating, dressing, bathing, using the toilet)?', weight: 2.75 },
+  { id: 'walkIndoors', label: 'Can you walk indoors, such as around your house?', weight: 1.75 },
+  { id: 'walkBlock', label: 'Can you walk a block or two on level ground?', weight: 2.75 },
+  { id: 'climbStairs', label: 'Can you climb a flight of stairs or walk up a hill?', weight: 5.50 },
+  { id: 'runShort', label: 'Can you run a short distance?', weight: 8.00 },
+  { id: 'lightHousework', label: 'Can you do light work around the house like dusting or washing dishes?', weight: 2.70 },
+  { id: 'moderateHousework', label: 'Can you do moderate work like vacuuming, sweeping, or carrying groceries?', weight: 3.50 },
+  { id: 'heavyHousework', label: 'Can you do heavy work like scrubbing floors or moving heavy furniture?', weight: 8.00 },
+  { id: 'yardwork', label: 'Can you do yardwork like raking leaves, weeding, or pushing a power mower?', weight: 4.50 },
+  { id: 'sexualRelations', label: 'Can you have sexual relations?', weight: 5.25 },
+  { id: 'moderateRecreation', label: 'Can you participate in moderate recreation (golf, bowling, dancing, doubles tennis)?', weight: 6.00 },
+  { id: 'strenuousSports', label: 'Can you participate in strenuous sports (swimming, singles tennis, basketball, skiing)?', weight: 7.50 }
+];
+
+export const calculateDasiMets = (dasiAnswers) => {
+  const safeAnswers = dasiAnswers || {};
+  const dasiScore = DASI_ITEMS.reduce((sum, item) => sum + (safeAnswers[item.id] ? item.weight : 0), 0);
+  const estimatedMets = (0.43 * dasiScore + 9.6) / 3.5;
+  // AHA/ACC threshold (Ch31, p.16): >= 4 METs proceed to surgery; < 4 METs consider stress testing
+  const capacityLevel = estimatedMets >= 4 ? 'adequate' : 'poor';
+  return { dasiScore: Math.round(dasiScore * 100) / 100, estimatedMets: Math.round(estimatedMets * 10) / 10, capacityLevel };
+};
+
+// Box 31.1 "Components of the Airway Examination" — concerning thresholds as stated in Ch31.
+// The simulator does not track literal cm measurements for these exam components, so the
+// numeric estimates below are a disclosed best-reasoned mapping from existing patient flags
+// (Mallampati class, neck mobility, trauma) onto the chapter's published concerning thresholds.
+export const assessAirwayExamBox311 = (patient) => {
+  const safePatient = patient || {};
+  const mallampatiClass = safePatient.mallampati || 1;
+  const neckReduced = (safePatient.neckMobility === 'reduced' || safePatient.neckMobility === 'limited' || !!safePatient.trauma);
+  const interincisorDistanceCm = neckReduced || mallampatiClass >= 3 ? 2.5 : 4.5;
+  const thyromentalDistanceCm = mallampatiClass >= 3 ? 5.0 : 7.5;
+  return {
+    interincisorDistanceCm,
+    interincisorConcerning: interincisorDistanceCm < 3, // Box 31.1: concerning if < 3 cm
+    thyromentalDistanceCm,
+    thyromentalConcerning: thyromentalDistanceCm < 6, // Box 31.1: concerning if < 6 cm
+    mallampatiConcerning: mallampatiClass >= 3, // Box 31.1: concerning if Mallampati class >= 3
+    neckExtensionConcerning: neckReduced
+  };
+};
+
+// CHA2DS2-VASc score, used by Ch31 to decide whether perioperative bridging anticoagulation
+// is warranted in patients with atrial fibrillation (CHF=1, HTN=1, Age>=75=2, Diabetes=1,
+// Stroke/TIA=2, Vascular disease=1, Age 65-74=1, Female sex=1).
+export const calculateCha2ds2VascScore = (patient) => {
+  const p = patient || {};
+  let score = 0;
+  if (p.chf) score += 1;
+  if (p.htn) score += 1;
+  if ((p.age || 0) >= 75) score += 2;
+  else if ((p.age || 0) >= 65) score += 1;
+  if (p.diabetes) score += 1;
+  if (p.cva) score += 2;
+  if (p.cad) score += 1; // vascular disease proxy
+  if (p.sex === 'female') score += 1;
+  return score;
+};
+
+// Myasthenia Gravis Postoperative Ventilation Risk Calculator (Box 35.8, Ch 35, Miller's 9th Ed)
+export const calculateMyastheniaPostopVentRisk = (patient, caseId = '') => {
+  const safePatient = patient || {};
+  const pmhx = (safePatient.pmhx || '').toLowerCase();
+  
+  const hasCopd = !!(safePatient.copd || safePatient.chronicPulmonaryDisease || pmhx.includes('copd') || pmhx.includes('asthma') || pmhx.includes('emphysema') || pmhx.includes('bronchitis') || pmhx.includes('chronic obstructive pulmonary disease'));
+  const vc = safePatient.vitalCapacity !== undefined ? safePatient.vitalCapacity : 3.5;
+  const duration = safePatient.mgDurationYears !== undefined ? safePatient.mgDurationYears : 0;
+  const pyrDose = safePatient.pyridostigmineDoseMgPerDay !== undefined ? safePatient.pyridostigmineDoseMgPerDay : 0;
+  const bulbar = !!safePatient.bulbarSymptoms;
+  const crisis = !!safePatient.historyMyasthenicCrisis;
+  const antiAChR = safePatient.antiAchR !== undefined ? safePatient.antiAchR : 0;
+  const decrement = !!safePatient.decrementalResponse;
+  
+  // For intraoperative blood loss > 1000 mL, check if expected blood loss > 1000
+  const expectedBloodLoss = safePatient.expectedBloodLoss !== undefined ? safePatient.expectedBloodLoss : (caseId === 'myasthenia_gravis' ? 1200 : 0);
+  const bloodLoss = expectedBloodLoss > 1000;
+  
+  const factors = {
+    vitalCapacity: vc < 2.9,
+    duration: duration > 6,
+    pyridostigmine: pyrDose > 750,
+    pulmonary: hasCopd,
+    bulbar: bulbar,
+    crisis: crisis,
+    bloodLoss: bloodLoss,
+    antibody: antiAChR > 100,
+    decrement: decrement
+  };
+  
+  const score = Object.values(factors).filter(Boolean).length;
+  
+  let riskLevel = 'Low';
+  let recommendation = 'Standard extubation criteria apply. Monitor closely in PACU.';
+  if (score >= 3) {
+    riskLevel = 'High';
+    recommendation = 'High risk for postoperative ventilation. Plan for delayed extubation or ICU admission.';
+  } else if (score >= 1) {
+    riskLevel = 'Intermediate';
+    recommendation = 'Intermediate risk. Caution with extubation; ensure complete recovery of neuromuscular function.';
+  }
+  
+  return { factors, score, riskLevel, recommendation };
+};
+
+// Perioperative anticoagulant/antiplatelet management plan (Ch31, "Atrial Fibrillation" and
+// "Preoperative Antiplatelet Therapy" sections). Aspirin continuation criteria, warfarin
+// 5-day hold + INR recheck, and LMWH/UFH neuraxial timing intervals are directly stated in
+// the chapter text. DOAC eGFR-tiered hold windows are a disclosed best-reasoned estimate:
+// Ch31's own Tables 31.11/31.12 are scanned table images that did not extract as text, so
+// the intervals below follow standard published ACC/ASRA practice pending future ingestion
+// of the literal table data.
+export const calculateAnticoagulationPlan = (patient, options) => {
+  const p = patient || {};
+  const opts = options || {};
+  const plannedNeuraxial = !!opts.plannedNeuraxial;
+  const gfr = Number.isFinite(p.gfr) ? p.gfr : 90;
+  const plan = [];
+
+  if (p.cad) {
+    plan.push({
+      drug: 'Aspirin',
+      action: 'Continue perioperatively',
+      rationale: 'Ch31: aspirin should be continued in patients with high-grade ischemic heart disease, prior PCI, or high-risk cerebrovascular disease — withdrawal risks a rebound hypercoagulable state without proven bleeding benefit for most procedures. Continuation is not a contraindication to neuraxial blocks.'
+    });
+  }
+
+  if (p.afib) {
+    const cha2ds2vasc = calculateCha2ds2VascScore(p);
+    let bridgingDecision;
+    if (cha2ds2vasc <= 4) bridgingDecision = 'Omit bridging therapy (low thromboembolic risk).';
+    else if (cha2ds2vasc >= 7) bridgingDecision = 'Consider bridging therapy (high thromboembolic risk per CHA2DS2-VASc).';
+    else bridgingDecision = 'Individualize bridging decision — weigh bleeding risk against thromboembolic risk.';
+
+    let doacHoldHours;
+    if (gfr >= 50) doacHoldHours = 48;
+    else if (gfr >= 30) doacHoldHours = 72;
+    else if (gfr >= 15) doacHoldHours = 96;
+    else doacHoldHours = null; // Ch31: insufficient data at eGFR < 15, individualize with hematology
+
+    plan.push({
+      drug: 'DOAC (e.g., Apixaban)',
+      action: doacHoldHours ? `Hold ${doacHoldHours} hours before surgery` : 'Insufficient renal-clearance data — hold ≥4 days and consult hematology',
+      rationale: `Ch31: DOAC discontinuation timing is guided by drug class, procedural bleeding risk, and eGFR (current eGFR ${gfr} mL/min). Bridging is generally NOT needed for DOACs given their short half-life. ${bridgingDecision}`,
+      cha2ds2vasc
+    });
+
+    plan.push({
+      drug: 'Warfarin (if used instead of DOAC)',
+      action: 'Hold 5 days before surgery; recheck INR within 24h of surgery',
+      rationale: `Ch31: a longer interruption is needed if INR > 3.0; low-dose oral vitamin K is given for any INR > 1.5 on recheck. ${bridgingDecision}`
+    });
+  }
+
+  if (plannedNeuraxial) {
+    plan.push({
+      drug: 'Neuraxial-specific anticoagulant timing (ASRA)',
+      action: 'Prophylactic LMWH ≥12h before block · Therapeutic/bridging LMWH ≥24h before block · IV unfractionated heparin ≥6h before block',
+      rationale: 'Ch31: these are the minimum intervals cited for safe neuraxial instrumentation; fibrinolytic/thrombolytic therapy is an absolute contraindication to neuraxial technique.'
+    });
+  }
+
+  return plan;
+};
+
+// STOP-BANG Obstructive Sleep Apnea screening (Chung F. et al., Anesthesiology 2008/2016) — Ch32's
+// own KEY POINTS flag OSA as clinically important (increased sensitivity to hypnotic/opioid airway
+// depression, harder laryngoscopy/mask ventilation) but does not itself name a scoring instrument,
+// so this is a disclosed best-reasoned addition using the standard published 8-item tool rather than
+// a chapter-table transcription. Score 0-2 = low risk, 3-4 = intermediate risk, 5-8 = high risk.
+export const STOP_BANG_ITEMS = [
+  { id: 'snoring', label: 'Snoring: Do you snore loudly (louder than talking or loud enough to be heard through closed doors)?' },
+  { id: 'tiredness', label: 'Tiredness: Do you often feel tired, fatigued, or sleepy during daytime?' },
+  { id: 'observedApnea', label: 'Observed Apnea: Has anyone observed you stop breathing during sleep?' },
+  { id: 'pressure', label: 'Pressure: Do you have or are you being treated for high blood pressure?' },
+  { id: 'bmi', label: 'BMI: BMI more than 35 kg/m²?' },
+  { id: 'age', label: 'Age: Age over 50 years old?' },
+  { id: 'neckCircumference', label: 'Neck circumference: Neck circumference > 40 cm?' },
+  { id: 'gender', label: 'Gender: Male?' }
+];
+
+export const calculateStopBangScore = (answers) => {
+  const safeAnswers = answers || {};
+  const score = STOP_BANG_ITEMS.reduce((sum, item) => sum + (safeAnswers[item.id] ? 1 : 0), 0);
+  const riskLevel = score >= 5 ? 'high' : score >= 3 ? 'intermediate' : 'low';
+  return { score, riskLevel };
+};
+
+// Perioperative chronic cardiovascular medication management (Ch32 KEY POINTS + statin section).
+// Distinct from calculateAnticoagulationPlan (Ch31, anticoagulant/antiplatelet-specific) — this
+// covers chronic antihypertensive continuation and statin therapy.
+export const calculateChronicMedicationManagementPlan = (patient) => {
+  const p = patient || {};
+  const plan = [];
+
+  if (p.htn) {
+    plan.push({
+      drug: 'ACE Inhibitors / ARBs',
+      action: 'Hold the morning dose',
+      rationale: 'Ch32 KEY POINTS: for hypertensive patients, all antihypertensive drugs should be administered preoperatively as usual EXCEPT ACE inhibitors and angiotensin II receptor antagonists, which are held due to risk of refractory intraoperative hypotension after induction.'
+    });
+    plan.push({
+      drug: 'All Other Antihypertensives (beta-blockers, CCBs, diuretics, centrally-acting agents)',
+      action: 'Continue the morning dose as usual',
+      rationale: 'Ch32 KEY POINTS: routine continuation of all other antihypertensive classes is recommended. (Disclosed addendum, not directly chapter-sourced: abrupt withdrawal of centrally-acting agents such as clonidine carries a recognized rebound-hypertension risk and is a general reason not to omit these doses.)'
+    });
+  }
+
+  const statinIndicated = !!(p.cad || (p.diabetes && (p.age || 0) >= 40 && (p.age || 0) <= 75) || (p.ldl || 0) >= 190);
+  if (statinIndicated) {
+    plan.push({
+      drug: 'Statin (HMG-CoA reductase inhibitor)',
+      action: 'Continue perioperatively without interruption',
+      rationale: 'Ch32: statin therapy should be continued in patients already taking it. Indicated for documented cardiovascular disease (CAD/prior MI/angina/stroke/TIA/PAD), LDL ≥190 mg/dL, or diabetes age 40-75 — abrupt discontinuation forfeits anti-inflammatory/plaque-stabilizing benefit during the perioperative inflammatory state.'
+    });
+  }
+
+  return plan;
+};
+
+// Adequacy-of-blockade criteria for preoperative pheochromocytoma management (Ch32). Alpha-adrenergic
+// blockade (phenoxybenzamine 20-30 mg/70kg PO once or twice daily, titrated to 60-250 mg/day over a
+// preoperative course of at least 7-14 days, typically 2-6 weeks) must be established BEFORE adding
+// beta-adrenergic blockade (propranolol, only if persistent tachycardia/arrhythmia) — beta-blockade
+// without prior alpha-blockade risks unopposed alpha-vasoconstriction and malignant hypertension.
+// No simulator case preset currently models a pheochromocytoma patient, so this function is exported,
+// tested groundwork for a future case rather than a currently-wired live feature (see closing report).
+export const assessPheoBlockadeAdequacy = (criteria) => {
+  const c = criteria || {};
+  const bpControlled = !(typeof c.maxSbp48h === 'number' && typeof c.maxDbp48h === 'number') ? false : (c.maxSbp48h <= 165 && c.maxDbp48h <= 90);
+  const orthostasisAcceptable = !(typeof c.standingSbp === 'number' && typeof c.standingDbp === 'number') ? false : (c.standingSbp >= 80 && c.standingDbp >= 45);
+  const ecgClear = c.ecgStChangesPersistent !== true;
+  const pvcControlled = !(typeof c.pvcPer5Min === 'number') ? false : c.pvcPer5Min <= 1;
+  return {
+    bpControlled, // No in-hospital BP > 165/90 mmHg for 48h preoperatively
+    orthostasisAcceptable, // Orthostatic hypotension acceptable as long as standing BP >= 80/45 mmHg
+    ecgClear, // ECG free of non-permanent ST-T changes
+    pvcControlled, // No more than 1 PVC per 5 minutes
+    isAdequatelyBlocked: bpControlled && orthostasisAcceptable && ecgClear && pvcControlled
+  };
+};
+
+export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logEvent, logQualityEvent, intraop = false }) => {
   const [activeTab, setActiveTab] = useState('chart'); // 'chart' | 'orders' | 'results' | 'risk' | 'plan'
   
   // Extract patient/case details safely
@@ -66,11 +360,37 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     asa: '',
     mallampati: '',
     neckMobility: '',
-    npoStatus: ''
+    npoStatus: '',
+    herbalScreeningDone: false,
+    positioningAssessmentDone: false
   });
   const [assessmentVerified, setAssessmentVerified] = useState(false);
   const [assessmentErrors, setAssessmentErrors] = useState({});
   const [assessmentChecked, setAssessmentChecked] = useState(false);
+
+  // Duke Activity Status Index (DASI) — supplementary functional-capacity calculator (Ch31, Table 31.2).
+  // Not part of the graded RCRI/METs quiz; a real, reusable clinical tool the user can apply to any patient.
+  const [dasiAnswers, setDasiAnswers] = useState({});
+  const dasiResult = calculateDasiMets(dasiAnswers);
+
+  // STOP-BANG OSA risk score (Ch32) — supplementary tool. Objective items (BMI, age, sex, HTN)
+  // are auto-derived from the patient chart; subjective items (snoring, tiredness, observed apnea,
+  // neck circumference) are manually answered by the user, mirroring the real preoperative interview.
+  const [stopBangAnswers, setStopBangAnswers] = useState({});
+  useEffect(() => {
+    if (!stagedCase) return;
+    const p = stagedCase.patient || {};
+    const derivedBmi = (p.weight || 70) / Math.pow((p.height || 170) / 100, 2);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setStopBangAnswers(prev => ({
+      ...prev,
+      pressure: !!p.htn,
+      bmi: derivedBmi > 35,
+      age: (p.age || 0) > 50,
+      gender: p.sex === 'male'
+    }));
+  }, [stagedCase]);
+  const stopBangResult = calculateStopBangScore(stopBangAnswers);
 
   useEffect(() => {
     if (!stagedCase) return;
@@ -134,19 +454,8 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     const weightKg = patient.weight || 70;
     const bmi = weightKg / Math.pow(heightCm / 100, 2);
     
-    // 2. RCRI factors
-    // High-risk surgical procedure (intraperitoneal, intrathoracic, or suprainguinal vascular)
-    const rcriHighRisk = !!(patient.trauma || patient.isSeptic || ['cardiac', 'thoracic', 'neuro', 'vascular', 'urology', 'transplant', 'obgyn'].includes(id) || ['CABG', 'Craniotomy', 'Laparotomy', 'Thoracotomy', 'AAA Repair', 'Nephrectomy', 'Liver Transplant', 'C-Section'].some(p => (patient.procedure || '').includes(p)));
-    
-    const rcriIhd = !!(patient.cad || (patient.pmhx || '').toLowerCase().includes('cad') || (patient.pmhx || '').toLowerCase().includes('coronary') || (patient.pmhx || '').toLowerCase().includes('ischemic') || (patient.pmhx || '').toLowerCase().includes('angina') || id === 'cardiac');
-    
-    const rcriChf = !!(patient.chf || (patient.pmhx || '').toLowerCase().includes('heart failure') || (patient.pmhx || '').toLowerCase().includes('chf') || (patient.ef && patient.ef < 40) || id === 'cardiac' || id === 'bariatric');
-    
-    const rcriCva = !!(patient.cva || (patient.pmhx || '').toLowerCase().includes('stroke') || (patient.pmhx || '').toLowerCase().includes('cva') || (patient.pmhx || '').toLowerCase().includes('tia'));
-    
-    const rcriInsulin = !!(patient.insulin || (patient.pmhx || '').toLowerCase().includes('insulin') || id === 'bariatric');
-    
-    const rcriCr = !!(patient.gfr < 40 || patient.creatinine > 2.0 || (patient.renalComorbidity && !patient.renalComorbidity.includes('stage 1') && !patient.renalComorbidity.includes('stage 2')) || id === 'urology');
+    // 2. RCRI factors (Lee et al., cited in Chapter 30, Miller's 9th Ed)
+    const { rcriHighRisk, rcriIhd, rcriChf, rcriCva, rcriInsulin, rcriCr } = calculateRcriFactors(patient, id);
 
     // 3. METs Functional capacity
     let mets = 'adequate';
@@ -223,6 +532,24 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
       npoHistory += `NPO status is fully compliant with standard ASA guidelines (>= 6 hours for solids, >= 2 hours for clear liquids). Aspiration risk is low.`;
     }
 
+    const hasHerbs = (patient.herbalSupplements && patient.herbalSupplements.length > 0) || (patient.dietarySupplements && patient.dietarySupplements.length > 0);
+    let herbalHistory = "";
+    if (hasHerbs) {
+      const list = [
+        ...(patient.herbalSupplements || []).map(h => {
+          const herb = HERBAL_MEDICINES.find(hm => hm.id === h);
+          return herb ? herb.commonName : h;
+        }),
+        ...(patient.dietarySupplements || []).map(s => {
+          const supp = DIETARY_SUPPLEMENTS.find(sm => sm.id === s);
+          return supp ? supp.name : s;
+        })
+      ];
+      herbalHistory = `Patient reports taking: ${list.join(', ')}. These medications were continued up to the day of surgery.`;
+    } else {
+      herbalHistory = "Patient denies taking any complementary/alternative medicines, herbal extracts, or dietary supplements.";
+    }
+
     return {
       rcriHighRisk,
       rcriIhd,
@@ -238,7 +565,8 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
       medicalHistory,
       globalHistory,
       airwayExam,
-      npoHistory
+      npoHistory,
+      herbalHistory
     };
   };
 
@@ -328,6 +656,18 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
       hasError = true;
     }
 
+    // Check Herbal Screening
+    if (!assessment.herbalScreeningDone) {
+      errors.herbalScreeningDone = "You must confirm that you asked about complementary and alternative medicine (CAM) or herbal supplement usage. Anesthesia providers must routinely screen for these therapies (Ch33).";
+      hasError = true;
+    }
+
+    // Check Positioning Screening
+    if (!assessment.positioningAssessmentDone) {
+      errors.positioningAssessmentDone = "You must confirm that you performed the preoperative patient positioning risk assessment (Ch34).";
+      hasError = true;
+    }
+
     setAssessmentErrors(errors);
     setAssessmentChecked(true);
 
@@ -347,6 +687,8 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
         mallampati: truth.mallampati,
         neckMobility: truth.neckMobility,
         npoStatus: truth.npoStatus,
+        herbalScreeningDone: assessment.herbalScreeningDone,
+        positioningAssessmentDone: assessment.positioningAssessmentDone,
         verified: true
       };
       if (setStagedCase) {
@@ -758,7 +1100,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     if (orders.consults.endocrinology) {
       let advice = 'No active endocrinopathies requiring specialized management.';
       if (patient.diabetes) {
-        advice = 'DIABETIC MANAGEMENT PLAN. 1) Check fingerstick blood glucose immediately pre-op. 2) Hold rapid-acting insulin. Take 50% of usual long-acting insulin (glargine/detemir) morning of surgery. 3) Hold oral hypoglycemics (metformin) and GLP-1 agonists (semaglutide) as per guidelines. 4) Intra-op target glucose: 140 - 180 mg/dL. 5) Check glucose Q2 hours intra-op; treat with IV insulin sliding scale if > 180.';
+        advice = 'DIABETIC MANAGEMENT PLAN. 1) Check fingerstick blood glucose immediately pre-op. 2) Hold rapid-acting insulin. Take 50% of usual long-acting insulin (glargine/detemir) morning of surgery. 3) Hold oral hypoglycemics (metformin) and GLP-1 agonists (semaglutide) as per guidelines. 4) Intra-op target glucose per the WHO Surgical Safety Checklist bundle (Ch32): 100 - 180 mg/dL (6-10 mmol/L), acceptable range 70 - 215 mg/dL (4-12 mmol/L) — tighter control increases hypoglycemia risk without proven benefit. 5) Check glucose Q2 hours intra-op; treat with IV insulin sliding scale if > 180. 6) Screen for autonomic neuropathy (sinus arrhythmia on deep inspiration <5 bpm is associated with painless MI and cardiorespiratory arrest, Ch32) — if present, consider metoclopramide 10mg IV preop for gastroparesis-related aspiration risk.';
       }
       res.consults.endocrinology = {
         title: 'Endocrinology Consultation Note',
@@ -952,6 +1294,16 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
       });
     }
 
+    // ── Neuraxial planned without documented anticoagulant hold (Ch31) ──
+    if (hasNeuraxial && stagedCase.patient?.afib) {
+      const anticoagPlan = calculateAnticoagulationPlan(stagedCase.patient, { plannedNeuraxial: true });
+      const doacEntry = anticoagPlan.find(item => item.drug.includes('DOAC'));
+      advisories.push({
+        severity: 'warning',
+        message: `Patient has documented atrial fibrillation and is presumed to be on a DOAC. Ch31/ASRA guidance: ${doacEntry ? doacEntry.action : 'hold the anticoagulant per renal-function-adjusted guidance'} before instrumenting the neuraxis, with confirmation the hold window has actually elapsed (not just ordered). Proceeding with neuraxial blockade without a confirmed, sufficient anticoagulant-free interval risks spinal/epidural hematoma.`
+      });
+    }
+
     // ── GA + Regional (optimal multi-modal) ──
     if (hasGA && hasRegional && isElective) {
       advisories.push({
@@ -981,6 +1333,22 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
       advisories.push({
         severity: 'caution',
         message: `Direct Laryngoscopy (DL) is a suboptimal first-line approach given the patient's airway assessment: ${verifiedRisk.mallampati || 'Unknown'} Mallampati, ${verifiedRisk.neckMobility || 'Unknown'} neck mobility. ASA Difficult Airway Algorithm recommends Video Laryngoscopy (VL) as first attempt in anticipated difficulty, or Awake Fiberoptic Intubation (AFOI) if multiple predictors are present. DL first-pass success rate drops from ~95% (Class I) to ~60% (Class III-IV) in limited neck extension scenarios.`
+      });
+    }
+
+    // ── High OSA risk: difficult airway warning (Ch32) ──
+    if (hasGA && airway === 'DL' && stopBangResult.riskLevel === 'high') {
+      advisories.push({
+        severity: 'caution',
+        message: `STOP-BANG score ${stopBangResult.score}/8 (high risk for OSA). Ch32: OSA patients are more difficult to mask-ventilate and intubate via direct laryngoscopy due to redundant pharyngeal soft tissue. Consider Video Laryngoscopy as first-line and ensure a difficult-airway cart is immediately available.`
+      });
+    }
+
+    // ── High OSA risk without depth-of-anesthesia/NMB monitoring (Ch32) ──
+    if (hasGA && stopBangResult.riskLevel === 'high' && !monitors.bispectral && !monitors.nervStim) {
+      advisories.push({
+        severity: 'info',
+        message: `STOP-BANG score ${stopBangResult.score}/8 (high risk for OSA). Ch32 KEY POINT: OSA patients have increased sensitivity to the depressing effects of hypnotics and opioids on airway muscle tone and respiration. Consider BIS depth-of-anesthesia monitoring (to titrate to the lowest effective dose) and quantitative neuromuscular monitoring (to avoid residual paralysis compounding postoperative airway obstruction risk).`
       });
     }
 
@@ -1041,7 +1409,37 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     const activeTypes = Object.entries(anesthesiaPlan.types).filter(([,v]) => v).map(([k]) => k);
     const activeMonitors = Object.entries(anesthesiaPlan.monitors).filter(([,v]) => v).map(([k]) => k);
     logEvent(`📋 Pre-Op EMR Evaluation Complete. Plan locked: [${activeTypes.join(' + ')}] with ${anesthesiaPlan.airway} airway plan, monitoring: [${activeMonitors.join(', ')}]. Proceeding to OR.`);
-    
+
+    // Ch31 quality-of-care hook: flag proceeding with neuraxial blockade on an AF/anticoagulated
+    // patient without a confirmed anticoagulant-free interval — a real, preventable hematoma risk.
+    if (logQualityEvent && anesthesiaPlan.types.neuraxial && stagedCase.patient?.afib) {
+      logQualityEvent({
+        phase: 'PreOp',
+        category: 'ChecklistAdherence',
+        severity: 'major',
+        description: 'Neuraxial anesthesia plan locked for an atrial-fibrillation patient without confirming the DOAC/warfarin hold interval had elapsed (Ch31 ASRA timing guidance).',
+        idealAction: 'Confirm and document the anticoagulant-free interval (eGFR-adjusted for DOACs; 5 days + INR recheck for warfarin) before proceeding with neuraxial technique.',
+        actualAction: 'Anesthesia plan proceeded to OR with neuraxial technique selected on an anticoagulated patient.',
+        impact: 'Unconfirmed anticoagulant clearance before neuraxial instrumentation risks spinal/epidural hematoma.',
+        chapterSource: 'Ch31: Preoperative Evaluation — Atrial Fibrillation / Anticoagulant Management'
+      });
+    }
+
+    // Ch32 quality-of-care hook: flag locking a GA plan on a high-OSA-risk patient without
+    // depth-of-anesthesia/NMB monitoring to titrate against their known opioid/hypnotic sensitivity.
+    if (logQualityEvent && anesthesiaPlan.types.GA && stopBangResult.riskLevel === 'high' && !anesthesiaPlan.monitors.bispectral && !anesthesiaPlan.monitors.nervStim) {
+      logQualityEvent({
+        phase: 'PreOp',
+        category: 'Monitoring',
+        severity: 'moderate',
+        description: `General anesthesia plan locked for a high-OSA-risk patient (STOP-BANG ${stopBangResult.score}/8) without BIS or quantitative neuromuscular monitoring.`,
+        idealAction: 'Add BIS depth-of-anesthesia monitoring and quantitative NMB monitoring for high-OSA-risk patients given their heightened sensitivity to hypnotic/opioid airway-tone depression (Ch32).',
+        actualAction: 'Anesthesia plan proceeded to OR without these monitors despite a high STOP-BANG score.',
+        impact: 'Increases risk of relative anesthetic/opioid overdose and postoperative airway obstruction from unrecognized residual sedation or paralysis in a patient already prone to upper-airway collapse.',
+        chapterSource: 'Ch32: Anesthetic Implications of Concurrent Diseases — Obstructive Sleep Apnea'
+      });
+    }
+
     // Inject pre-op lab results into the stagedCase so they are carried forward
     const preOpLabRecords = {};
 
@@ -1113,6 +1511,11 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
         asaClass: verifiedRisk.asa || 'ASA II',
         rcriScore: verifiedRisk.rcriScore || 0,
         mets: verifiedRisk.mets || 'adequate',
+        // Ch32: STOP-BANG OSA risk, computed in the Risk Assessment tab and carried into the case
+        osaStopBangScore: stopBangResult.score,
+        osaRiskLevel: stopBangResult.riskLevel,
+        herbalScreeningDone: verifiedRisk.herbalScreeningDone || false,
+        positioningAssessmentDone: verifiedRisk.positioningAssessmentDone || false,
       }
     };
 
@@ -1196,7 +1599,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                   <div>
                     <span className="text-slate-500 block text-[10px] uppercase font-bold">Body Mass Index (BMI)</span>
                     <span className="text-white font-extrabold text-base">
-                      {bmi.toFixed(1)} kg/m² ({bmi > 35 ? 'Obese Class II' : bmi > 30 ? 'Obese Class I' : 'Normal'})
+                      {bmi.toFixed(1)} kg/m² ({classifyBmi(bmi)})
                     </span>
                   </div>
                 </div>
@@ -1375,6 +1778,15 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                     {patient.cirrhosis && <span className="bg-orange-950/40 border border-orange-800 text-orange-400 px-3 py-1 rounded-md text-xs font-bold">Liver Cirrhosis</span>}
                     {patient.diabetes && <span className="bg-yellow-950/40 border border-yellow-800 text-yellow-400 px-3 py-1 rounded-md text-xs font-bold">Diabetes Mellitus</span>}
                     {patient.mg && <span className="bg-purple-950/40 border border-purple-800 text-purple-400 px-3 py-1 rounded-md text-xs font-bold">Myasthenia Gravis</span>}
+                    {patient.mhSusceptible && <span className="bg-red-950/40 border border-red-800 text-red-400 px-3 py-1 rounded-md text-xs font-bold animate-pulse">Malignant Hyperthermia Susceptible</span>}
+                    {patient.dmd && <span className="bg-purple-950/40 border border-purple-800 text-purple-400 px-3 py-1 rounded-md text-xs font-bold">Duchenne Muscular Dystrophy</span>}
+                    {patient.bmd && <span className="bg-purple-950/40 border border-purple-800 text-purple-400 px-3 py-1 rounded-md text-xs font-bold">Becker Muscular Dystrophy</span>}
+                    {patient.cmt && <span className="bg-purple-950/40 border border-purple-800 text-purple-400 px-3 py-1 rounded-md text-xs font-bold">Charcot-Marie-Tooth</span>}
+                    {patient.elms && <span className="bg-purple-950/40 border border-purple-800 text-purple-400 px-3 py-1 rounded-md text-xs font-bold">Eaton-Lambert Myasthenic Syndrome</span>}
+                    {patient.cip && <span className="bg-purple-950/40 border border-purple-800 text-purple-400 px-3 py-1 rounded-md text-xs font-bold">Critical Illness Polyneuropathy</span>}
+                    {patient.mitochondrial && <span className="bg-purple-950/40 border border-purple-800 text-purple-400 px-3 py-1 rounded-md text-xs font-bold">Mitochondrial Myopathy</span>}
+                    {patient.hyperPP && <span className="bg-yellow-950/40 border border-yellow-700 text-yellow-400 px-3 py-1 rounded-md text-xs font-bold">Hyperkalemic Periodic Paralysis (HyperPP)</span>}
+                    {patient.hypoPP && <span className="bg-yellow-950/40 border border-yellow-700 text-yellow-400 px-3 py-1 rounded-md text-xs font-bold">Hypokalemic Periodic Paralysis (HypoPP)</span>}
                     {patient.isTrauma && <span className="bg-red-950 border border-red-500 text-red-200 px-3 py-1 rounded-md text-xs font-extrabold animate-pulse">LEVEL 1 TRAUMA</span>}
                     {patient.isSeptic && <span className="bg-red-950 border border-red-500 text-red-200 px-3 py-1 rounded-md text-xs font-extrabold animate-pulse">SEVERE SEPSIS</span>}
                     
@@ -1396,7 +1808,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                         {patient.cad && <span className="block">• Aspirin 81mg daily, Atorvastatin 40mg daily</span>}
                         {patient.chf && <span className="block">• Carvedilol 6.25mg BID, Lisinopril 10mg daily, Furosemide 40mg daily</span>}
                         {patient.copd && <span className="block">• Albuterol HFA PRN, Symbicort 160/4.5mcg BID</span>}
-                        {patient.afib && <span className="block">• Apixaban (Eliquis) 5mg BID (held 48 hours pre-op)</span>}
+                        {patient.afib && <span className="block">• Apixaban (Eliquis) 5mg BID</span>}
                         {!patient.diabetes && !patient.cad && !patient.chf && !patient.copd && !patient.afib && (
                           <span className="text-slate-500 italic">None reported.</span>
                         )}
@@ -1412,8 +1824,142 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                         )}
                       </div>
                     </div>
+                    {(() => {
+                      const anticoagPlan = calculateAnticoagulationPlan(patient, { plannedNeuraxial: !!anesthesiaPlan?.types?.neuraxial });
+                      if (anticoagPlan.length === 0) return null;
+                      return (
+                        <div className="pt-2 border-t border-slate-800">
+                          <span className="text-slate-500 font-bold uppercase block mb-1.5">Perioperative Medication Management (Ch31)</span>
+                          <div className="space-y-1.5">
+                            {anticoagPlan.map((item, idx) => (
+                              <div key={idx} className="bg-slate-900/60 border border-slate-800/80 rounded p-2">
+                                <span className="font-bold text-cyan-300 block">{item.drug}: <span className="text-white">{item.action}</span></span>
+                                <span className="text-[10px] text-slate-500 leading-snug block mt-0.5">{item.rationale}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {(() => {
+                      const chronicMedPlan = calculateChronicMedicationManagementPlan(patient);
+                      if (chronicMedPlan.length === 0) return null;
+                      return (
+                        <div className="pt-2 border-t border-slate-800">
+                          <span className="text-slate-500 font-bold uppercase block mb-1.5">Chronic Cardiovascular Medication Management (Ch32)</span>
+                          <div className="space-y-1.5">
+                            {chronicMedPlan.map((item, idx) => (
+                              <div key={idx} className="bg-slate-900/60 border border-slate-800/80 rounded p-2">
+                                <span className="font-bold text-emerald-300 block">{item.drug}: <span className="text-white">{item.action}</span></span>
+                                <span className="text-[10px] text-slate-500 leading-snug block mt-0.5">{item.rationale}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {(() => {
+                      const hasHerbs = (patient.herbalSupplements && patient.herbalSupplements.length > 0) || (patient.dietarySupplements && patient.dietarySupplements.length > 0);
+                      if (!hasHerbs) return null;
+                      return (
+                        <div className="pt-2 border-t border-slate-800">
+                          <span className="text-slate-500 font-bold uppercase block mb-1.5">Herbal & Dietary Supplement Disclosures (Ch33)</span>
+                          <div className="space-y-1.5">
+                            {patient.herbalSupplements?.map((herbId) => {
+                              const herb = HERBAL_MEDICINES.find(h => h.id === herbId);
+                              if (!herb) return null;
+                              return (
+                                <div key={herb.id} className="bg-slate-900/60 border border-slate-800 rounded p-2">
+                                  <div className="flex justify-between items-center">
+                                    <span className="font-bold text-teal-300">{herb.commonName} <span className="text-[9px] text-slate-400">({herb.scientificName})</span></span>
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-850 text-slate-300 font-mono">
+                                      Discon: {herb.discontinueDays !== null ? `>=${herb.discontinueDays}d` : 'No data'}
+                                    </span>
+                                  </div>
+                                  <div className="text-[10px] text-slate-300 mt-1">
+                                    <span className="font-bold text-slate-400">Effects: </span>{herb.pharmacologicEffects}
+                                  </div>
+                                  <div className="text-[10px] text-slate-300 mt-0.5">
+                                    <span className="font-bold text-slate-400">Concerns: </span>{herb.perioperativeConcerns.join('; ')}
+                                  </div>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {herb.concernTypes.includes('bleeding') && (
+                                      <span className="bg-red-950/40 text-red-400 text-[9px] px-1.5 py-0.5 rounded border border-red-900/30">🔴 Bleeding Risk</span>
+                                    )}
+                                    {herb.concernTypes.includes('sedation') && (
+                                      <span className="bg-amber-950/40 text-amber-400 text-[9px] px-1.5 py-0.5 rounded border border-amber-900/30">🟡 Sedation Synergy</span>
+                                    )}
+                                    {herb.concernTypes.includes('enzymeInduction') && (
+                                      <span className="bg-orange-950/40 text-orange-400 text-[9px] px-1.5 py-0.5 rounded border border-orange-900/30">🟠 CYP3A4 Inducer</span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            {patient.dietarySupplements?.map((suppId) => {
+                              const supp = DIETARY_SUPPLEMENTS.find(s => s.id === suppId);
+                              if (!supp) return null;
+                              return (
+                                <div key={supp.id} className="bg-slate-900/60 border border-slate-800 rounded p-2">
+                                  <div className="flex justify-between items-center">
+                                    <span className="font-bold text-teal-300">{supp.name}</span>
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-850 text-slate-300 font-mono">
+                                      Discon: &gt;={supp.discontinueDays}d
+                                    </span>
+                                  </div>
+                                  <div className="text-[10px] text-slate-300 mt-1">
+                                    <span className="font-bold text-slate-400">Effects: </span>{supp.pharmacologicEffects}
+                                  </div>
+                                  <div className="text-[10px] text-slate-300 mt-0.5">
+                                    <span className="font-bold text-slate-400">Concerns: </span>{supp.perioperativeConcerns.join('; ')}
+                                  </div>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    <span className="bg-red-950/40 text-red-400 text-[9px] px-1.5 py-0.5 rounded border border-red-900/30">🔴 Bleeding Risk</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
+              </div>
+
+              {/* Box 31.1 Airway Examination Card */}
+              <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-5">
+                <h4 className="text-indigo-400 font-bold text-xs uppercase tracking-wider mb-3 border-b border-slate-800 pb-1 flex justify-between">
+                  <span>Airway Examination (Box 31.1, Ch31)</span>
+                  <span className="text-[9px] text-slate-500 lowercase font-normal italic">Apfelbaum et al., ASA Difficult Airway Algorithm, 2013</span>
+                </h4>
+                {(() => {
+                  const airwayBox = assessAirwayExamBox311(patient);
+                  return (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                      <div className={`p-2.5 rounded-lg border ${airwayBox.interincisorConcerning ? 'border-red-700 bg-red-950/20' : 'border-slate-800 bg-slate-900/40'}`}>
+                        <span className="text-slate-500 block text-[9px] uppercase font-bold">Interincisor Distance</span>
+                        <span className={`font-bold ${airwayBox.interincisorConcerning ? 'text-red-400' : 'text-green-400'}`}>{airwayBox.interincisorDistanceCm.toFixed(1)} cm</span>
+                        <span className="text-[8px] text-slate-600 block">Concerning if &lt; 3 cm</span>
+                      </div>
+                      <div className={`p-2.5 rounded-lg border ${airwayBox.thyromentalConcerning ? 'border-red-700 bg-red-950/20' : 'border-slate-800 bg-slate-900/40'}`}>
+                        <span className="text-slate-500 block text-[9px] uppercase font-bold">Thyromental Distance</span>
+                        <span className={`font-bold ${airwayBox.thyromentalConcerning ? 'text-red-400' : 'text-green-400'}`}>{airwayBox.thyromentalDistanceCm.toFixed(1)} cm</span>
+                        <span className="text-[8px] text-slate-600 block">Concerning if &lt; 6 cm</span>
+                      </div>
+                      <div className={`p-2.5 rounded-lg border ${airwayBox.mallampatiConcerning ? 'border-red-700 bg-red-950/20' : 'border-slate-800 bg-slate-900/40'}`}>
+                        <span className="text-slate-500 block text-[9px] uppercase font-bold">Mallampati Class</span>
+                        <span className={`font-bold ${airwayBox.mallampatiConcerning ? 'text-red-400' : 'text-green-400'}`}>Class {patient.mallampati || 1}</span>
+                        <span className="text-[8px] text-slate-600 block">Concerning if ≥ Class 3</span>
+                      </div>
+                      <div className={`p-2.5 rounded-lg border ${airwayBox.neckExtensionConcerning ? 'border-red-700 bg-red-950/20' : 'border-slate-800 bg-slate-900/40'}`}>
+                        <span className="text-slate-500 block text-[9px] uppercase font-bold">Neck Extension</span>
+                        <span className={`font-bold ${airwayBox.neckExtensionConcerning ? 'text-red-400' : 'text-green-400'}`}>{airwayBox.neckExtensionConcerning ? 'Limited' : 'Full'}</span>
+                        <span className="text-[8px] text-slate-600 block">Concerning if unable to extend</span>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
@@ -1742,6 +2288,83 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                 </div>
               </div>
 
+              {/* ─── SUPPLEMENTARY TOOL: DASI FUNCTIONAL CAPACITY CALCULATOR (Ch31, Table 31.2) ─── */}
+              <div className="bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden">
+                <div className="bg-gradient-to-r from-cyan-950/40 to-blue-950/30 px-5 py-4 border-b border-slate-800">
+                  <h3 className="text-sm font-extrabold text-white">Supplementary Tool: Duke Activity Status Index (DASI)</h3>
+                  <p className="text-[10px] text-cyan-400 mt-0.5">Hlatky et al., Am J Cardiol 1989 — objective alternative to subjective METs estimation (19% sensitivity for detecting &lt;4 METs). Estimated METs = [(0.43 × DASI) + 9.6] / 3.5.</p>
+                </div>
+                <div className="px-5 py-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 mb-4">
+                    {DASI_ITEMS.map(item => (
+                      <label key={item.id} className="flex items-start gap-2 text-[11px] text-slate-300 cursor-pointer hover:text-white transition py-1 px-1.5 rounded hover:bg-slate-800/40">
+                        <input
+                          type="checkbox"
+                          checked={!!dasiAnswers[item.id]}
+                          onChange={(e) => setDasiAnswers(prev => ({ ...prev, [item.id]: e.target.checked }))}
+                          className="rounded bg-slate-950 border-slate-700 text-cyan-500 focus:ring-0 w-3.5 h-3.5 mt-0.5 shrink-0"
+                        />
+                        <span>{item.label} <span className="text-slate-600">({item.weight.toFixed(2)} pts)</span></span>
+                      </label>
+                    ))}
+                  </div>
+                  <div className={`p-4 rounded-lg border-2 flex items-center justify-between ${dasiResult.capacityLevel === 'adequate' ? 'border-green-500 bg-green-950/20' : 'border-orange-500 bg-orange-950/20'}`}>
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">DASI Score</span>
+                      <span className="text-2xl font-black text-white">{dasiResult.dasiScore} / 58.2</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">Estimated METs</span>
+                      <span className={`text-2xl font-black ${dasiResult.capacityLevel === 'adequate' ? 'text-green-400' : 'text-orange-400'}`}>{dasiResult.estimatedMets}</span>
+                    </div>
+                    <div className="text-right max-w-[200px]">
+                      <span className={`text-xs font-bold uppercase tracking-wide ${dasiResult.capacityLevel === 'adequate' ? 'text-green-400' : 'text-orange-400'}`}>
+                        {dasiResult.capacityLevel === 'adequate' ? '≥ 4 METs: Proceed to surgery' : '< 4 METs: Consider stress testing (AHA/ACC)'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* ─── SUPPLEMENTARY TOOL: STOP-BANG OSA RISK SCORE (Ch32) ─── */}
+              <div className="bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden">
+                <div className="bg-gradient-to-r from-purple-950/40 to-fuchsia-950/30 px-5 py-4 border-b border-slate-800">
+                  <h3 className="text-sm font-extrabold text-white">Supplementary Tool: STOP-BANG Obstructive Sleep Apnea Risk Score</h3>
+                  <p className="text-[10px] text-purple-400 mt-0.5">Chung et al. — Ch32 flags OSA as critical due to heightened sensitivity to hypnotic/opioid airway depression and harder laryngoscopy/mask ventilation. BMI, Age, Gender, and Pressure (HTN) are auto-derived from the chart; the rest reflect the patient interview.</p>
+                </div>
+                <div className="px-5 py-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5 mb-4">
+                    {STOP_BANG_ITEMS.map(item => {
+                      const isAutoDerived = ['pressure', 'bmi', 'age', 'gender'].includes(item.id);
+                      return (
+                        <label key={item.id} className={`flex items-start gap-2 text-[11px] py-1 px-1.5 rounded ${isAutoDerived ? 'text-slate-500' : 'text-slate-300 cursor-pointer hover:text-white hover:bg-slate-800/40 transition'}`}>
+                          <input
+                            type="checkbox"
+                            checked={!!stopBangAnswers[item.id]}
+                            disabled={isAutoDerived}
+                            onChange={(e) => setStopBangAnswers(prev => ({ ...prev, [item.id]: e.target.checked }))}
+                            className="rounded bg-slate-950 border-slate-700 text-purple-500 focus:ring-0 w-3.5 h-3.5 mt-0.5 shrink-0"
+                          />
+                          <span>{item.label}{isAutoDerived && <span className="text-[9px] text-slate-600"> (auto)</span>}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <div className={`p-4 rounded-lg border-2 flex items-center justify-between ${
+                    stopBangResult.riskLevel === 'high' ? 'border-red-500 bg-red-950/20' : stopBangResult.riskLevel === 'intermediate' ? 'border-yellow-500 bg-yellow-950/20' : 'border-green-500 bg-green-950/20'
+                  }`}>
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider block">STOP-BANG Score</span>
+                      <span className="text-2xl font-black text-white">{stopBangResult.score} / 8</span>
+                    </div>
+                    <span className={`text-xs font-bold uppercase tracking-wide ${
+                      stopBangResult.riskLevel === 'high' ? 'text-red-400' : stopBangResult.riskLevel === 'intermediate' ? 'text-yellow-400' : 'text-green-400'
+                    }`}>
+                      {stopBangResult.riskLevel === 'high' ? 'HIGH RISK OSA — anticipate difficult airway, increased opioid/hypnotic sensitivity' : stopBangResult.riskLevel === 'intermediate' ? 'INTERMEDIATE RISK OSA' : 'LOW RISK OSA'}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
               {/* ─── SECTION 2: ASA PHYSICAL STATUS ─── */}
               <div className="bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden">
@@ -1967,6 +2590,291 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
               </div>
 
 
+              {/* ─── SECTION 5: HERBAL MEDICINE & CAM ASSESSMENT ─── */}
+              <div className="bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden">
+                <div className="bg-gradient-to-r from-teal-950/40 to-emerald-950/30 px-5 py-4 border-b border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-teal-600/30 border border-teal-500/50 flex items-center justify-center text-teal-300 font-black text-sm">5</div>
+                    <div>
+                      <h3 className="text-base font-extrabold text-white">Herbal Medicine & CAM Assessment</h3>
+                      <p className="text-[10px] text-teal-400 mt-0.5">Screen for complementary and alternative therapies, identify concerns, and plan discontinuation (Ch33).</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Vignette */}
+                <div className="px-5 pt-4 pb-3">
+                  <div className="bg-slate-950/80 border border-slate-800/80 rounded-lg p-4">
+                    <span className="text-[9px] text-teal-500 uppercase font-bold tracking-widest block mb-2">🌿 Complementary & Alternative Medicine History</span>
+                    <p className="text-xs text-slate-300 leading-relaxed italic">
+                      "{groundTruth.herbalHistory}"
+                    </p>
+                  </div>
+                </div>
+
+                <div className="px-5 pb-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {[
+                      {
+                        value: true,
+                        label: 'Yes, herbal/supplement screening performed',
+                        desc: 'Conducted systematic preoperative inquiry. Sourced and documented all botanicals, vitamins, and CAM therapies (acupuncture, deep breathing) to determine interaction risks and planning.',
+                        color: 'teal'
+                      },
+                      {
+                        value: false,
+                        label: 'No screening / incomplete inquiry',
+                        desc: 'Failed to inquire about non-traditional remedies. Disregarding herbal medications poses unquantified bleeding (garlic, ginseng), sedation (valerian), or CYP3A4 metabolism (St. John\'s Wort) risks.',
+                        color: 'orange'
+                      }
+                    ].map(opt => (
+                      <button
+                        key={String(opt.value)}
+                        onClick={() => { setAssessment(prev => ({ ...prev, herbalScreeningDone: opt.value })); setAssessmentChecked(false); setAssessmentVerified(false); }}
+                        className={`px-4 py-4 rounded-lg border text-left transition-all duration-200 ${
+                          assessment.herbalScreeningDone === opt.value
+                            ? (assessmentChecked && assessmentErrors.herbalScreeningDone
+                                ? 'border-red-500 bg-red-950/30 text-white shadow-md shadow-red-500/10'
+                                : 'border-teal-500 bg-teal-950/40 text-white shadow-md shadow-teal-500/10')
+                            : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700 hover:text-slate-300'
+                        }`}
+                        style={assessment.herbalScreeningDone === opt.value ? (
+                          assessmentChecked && assessmentErrors.herbalScreeningDone
+                            ? { borderColor: '#ef4444', backgroundColor: 'rgba(127,29,29,0.3)', color: 'white', boxShadow: '0 4px 6px rgba(239,68,68,0.1)' }
+                            : { borderColor: opt.color === 'teal' ? '#14b8a6' : '#f97316', backgroundColor: opt.color === 'teal' ? 'rgba(13,148,136,0.4)' : 'rgba(124,45,18,0.4)', color: 'white', boxShadow: opt.color === 'teal' ? '0 4px 6px rgba(20,184,166,0.1)' : '0 4px 6px rgba(249,115,22,0.1)' }
+                        ) : {}}
+                      >
+                        <span className="text-sm font-black block">{opt.label}</span>
+                        <span className="text-[9px] text-slate-500 block mt-1.5 leading-snug">{opt.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {assessmentChecked && assessmentErrors.herbalScreeningDone && (
+                    <div className="mt-3 px-3 py-1.5 bg-red-950/50 border border-red-800/60 rounded text-[10px] text-red-300 font-bold leading-relaxed">
+                      ✗ {assessmentErrors.herbalScreeningDone}
+                    </div>
+                  )}
+
+                  {/* Chapter 33 Educational Insights */}
+                  {assessment.herbalScreeningDone === true && (patient.herbalSupplements?.length > 0 || patient.dietarySupplements?.length > 0) && (
+                    <div className="mt-4 p-4 bg-slate-950/50 border border-slate-805/80 border-slate-800 rounded-lg text-[11px] leading-relaxed">
+                      <span className="font-bold text-teal-400 block mb-1">📋 Active Outpatient CAM Risks Identified (Ch33):</span>
+                      <div className="space-y-2 mt-1.5">
+                        {patient.herbalSupplements?.map(herbId => {
+                          const herb = HERBAL_MEDICINES.find(h => h.id === herbId);
+                          if (!herb) return null;
+                          return (
+                            <div key={herb.id} className="border-l-2 border-teal-500/50 pl-2 text-slate-300">
+                              <span className="font-bold text-white">{herb.commonName}</span>: {herb.perioperativeConcerns.join('; ')}
+                              <span className="block text-[10px] text-slate-400 mt-0.5">
+                                Recommended Discontinuation: {herb.discontinueDays !== null ? `${herb.discontinueDays} days before surgery` : 'Taper gradually/No data'}.
+                              </span>
+                            </div>
+                          );
+                        })}
+                        {patient.dietarySupplements?.map(suppId => {
+                          const supp = DIETARY_SUPPLEMENTS.find(s => s.id === suppId);
+                          if (!supp) return null;
+                          return (
+                            <div key={supp.id} className="border-l-2 border-teal-500/50 pl-2 text-slate-300">
+                              <span className="font-bold text-white">{supp.name}</span>: {supp.perioperativeConcerns.join('; ')}
+                              <span className="block text-[10px] text-slate-400 mt-0.5">
+                                Recommended Discontinuation: {supp.discontinueDays} days before surgery.
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+
+              {/* ─── SECTION 6: PATIENT POSITIONING RISK ASSESSMENT ─── */}
+              <div className="bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden">
+                <div className="bg-gradient-to-r from-teal-950/40 to-emerald-950/30 px-5 py-4 border-b border-slate-800">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-teal-600/30 border border-teal-500/50 flex items-center justify-center text-teal-300 font-black text-sm">6</div>
+                    <div>
+                      <h3 className="text-base font-extrabold text-white">Patient Positioning Risk Assessment</h3>
+                      <p className="text-[10px] text-teal-400 mt-0.5">Screen for positioning-related cardiorespiratory changes and nerve/visual injuries (Ch34).</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Vignette */}
+                <div className="px-5 pt-4 pb-3">
+                  <div className="bg-slate-950/80 border border-slate-800/80 rounded-lg p-4">
+                    <span className="text-[9px] text-teal-500 uppercase font-bold tracking-widest block mb-2">📐 Planned Surgical Position & Procedure</span>
+                    <p className="text-xs text-slate-300 leading-relaxed italic">
+                      "Planned position: <span className="text-white font-bold">{patient.position || 'Supine'}</span> for <span className="text-white font-bold">{patient.procedure || 'Elective Surgery'}</span>. Expected duration: <span className="text-white font-bold">{stagedCase?.id === 'spine_prone' ? '7 hours' : '1.5 hours'}</span>."
+                    </p>
+                  </div>
+                </div>
+
+                <div className="px-5 pb-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {[
+                      {
+                        value: true,
+                        label: 'Yes, positioning risk assessment performed',
+                        desc: 'Evaluated surgical position cardiorespiratory modifications, peripheral nerve protection needs (padding, neutral alignment), and perioperative visual loss (POVL) risk factors.',
+                        color: 'teal'
+                      },
+                      {
+                        value: false,
+                        label: 'No screening / incomplete inquiry',
+                        desc: 'Omitted positioning risk evaluation. Omission increases vulnerability to ulnar neuropathy, brachial plexus stretch, common peroneal compression, or POVL.',
+                        color: 'orange'
+                      }
+                    ].map(opt => (
+                      <button
+                        key={String(opt.value)}
+                        onClick={() => { setAssessment(prev => ({ ...prev, positioningAssessmentDone: opt.value })); setAssessmentChecked(false); setAssessmentVerified(false); }}
+                        className={`px-4 py-4 rounded-lg border text-left transition-all duration-200 ${
+                          assessment.positioningAssessmentDone === opt.value
+                            ? (assessmentChecked && assessmentErrors.positioningAssessmentDone
+                                ? 'border-red-500 bg-red-950/30 text-white shadow-md shadow-red-500/10'
+                                : 'border-teal-500 bg-teal-950/40 text-white shadow-md shadow-teal-500/10')
+                            : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700 hover:text-slate-300'
+                        }`}
+                        style={assessment.positioningAssessmentDone === opt.value ? (
+                          assessmentChecked && assessmentErrors.positioningAssessmentDone
+                            ? { borderColor: '#ef4444', backgroundColor: 'rgba(127,29,29,0.3)', color: 'white', boxShadow: '0 4px 6px rgba(239,68,68,0.1)' }
+                            : { borderColor: opt.color === 'teal' ? '#14b8a6' : '#f97316', backgroundColor: opt.color === 'teal' ? 'rgba(13,148,136,0.4)' : 'rgba(124,45,18,0.4)', color: 'white', boxShadow: opt.color === 'teal' ? '0 4px 6px rgba(20,184,166,0.1)' : '0 4px 6px rgba(249,115,22,0.1)' }
+                        ) : {}}
+                      >
+                        <span className="text-sm font-black block">{opt.label}</span>
+                        <span className="text-[9px] text-slate-500 block mt-1.5 leading-snug">{opt.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                  {assessmentChecked && assessmentErrors.positioningAssessmentDone && (
+                    <div className="mt-3 px-3 py-1.5 bg-red-950/50 border border-red-800/60 rounded text-[10px] text-red-300 font-bold leading-relaxed">
+                      ✗ {assessmentErrors.positioningAssessmentDone}
+                    </div>
+                  )}
+
+                  {/* Chapter 34 Educational Insights */}
+                  {assessment.positioningAssessmentDone === true && (
+                    <div className="mt-4 p-4 bg-slate-950/50 border border-slate-800 rounded-lg text-[11px] leading-relaxed">
+                      <span className="font-bold text-teal-400 block mb-1">📋 Positioning Considerations & Guidelines (Ch34):</span>
+                      <div className="space-y-3 mt-1.5">
+                        {(() => {
+                          const pos = patient.position || 'Supine';
+                          const details = POSITIONS_DATA.find(p => p.name.includes(pos) || p.id === pos.toLowerCase().replace(' ', '_'));
+                          const relevantNerves = NERVES_DATA.filter(n => {
+                            if (pos === 'Supine' && (n.id === 'ulnar' || n.id === 'brachial_plexus')) return true;
+                            if (pos === 'Prone' && (n.id === 'ulnar' || n.id === 'brachial_plexus')) return true;
+                            if (pos === 'Lithotomy' && (n.id === 'common_peroneal' || n.id === 'sciatic')) return true;
+                            if (pos === 'Trendelenburg' && n.id === 'brachial_plexus') return true;
+                            if (pos === 'Sitting' && (n.id === 'brachial_plexus' || n.id === 'sciatic')) return true;
+                            return false;
+                          });
+
+                          return (
+                            <>
+                              {details && (
+                                <div className="border-l-2 border-teal-500/50 pl-2 text-slate-350">
+                                  <span className="font-bold text-white uppercase tracking-wider text-[10px] block mb-1">📐 Position Physiology ({pos})</span>
+                                  <span className="block text-slate-300"><span className="text-teal-400">Preload change:</span> {details.preloadChange}</span>
+                                  <span className="block text-slate-300"><span className="text-teal-400">Compliance effect:</span> {details.complianceImpact}</span>
+                                  <span className="block text-slate-300"><span className="text-teal-400">Hydrostatic effect:</span> {details.hydrostaticPressureGradient}</span>
+                                  <span className="block text-slate-300 mt-1">{details.cardiovascularSummary} {details.respiratorySummary}</span>
+                                </div>
+                              )}
+
+                              {relevantNerves.length > 0 && (
+                                <div className="border-l-2 border-amber-500/50 pl-2 text-slate-350 mt-2">
+                                  <span className="font-bold text-white uppercase tracking-wider text-[10px] block mb-1">⚡ Vulnerable Peripheral Nerves</span>
+                                  {relevantNerves.map(n => (
+                                    <div key={n.id} className="mt-1">
+                                      <span className="text-amber-400 font-bold">{n.nerveName}</span> ({n.closedClaimsPct} of claims):
+                                      <span className="block text-slate-400 text-[10px] pl-2">• Prevention: {n.prevention.join(' ')}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {pos === 'Prone' && (
+                                <div className="border-l-2 border-red-500/50 pl-2 text-slate-350 mt-2">
+                                  <span className="font-bold text-white uppercase tracking-wider text-[10px] block mb-1">👁 Perioperative Visual Loss (POVL) Risk (Table 34.4)</span>
+                                  <span className="block text-slate-350">
+                                    ION risk factors present: Male sex (OR 2.53), Obesity (OR 2.83), Wilson frame (OR 4.30), Anesthesia duration (OR 1.39/hr), blood loss (OR 1.34/1L).
+                                  </span>
+                                  <span className="block text-red-400 font-bold text-[10px] mt-1">
+                                    ⚠️ Action Required: Pad facial bones, avoid direct eye compression, maintain head neutral, perform checks every 20 mins.
+                                  </span>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* ─── SECTION 7: MYASTHENIA GRAVIS POSTOPERATIVE VENTILATION RISK (Box 35.8) ─── */}
+              {patient.mg && (() => {
+                const mgRisk = calculateMyastheniaPostopVentRisk(patient, stagedCase?.id || '');
+                return (
+                  <div className="bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden">
+                    <div className="bg-gradient-to-r from-purple-950/60 to-indigo-950/40 px-5 py-4 border-b border-slate-800">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-purple-600/30 border border-purple-500/50 flex items-center justify-center text-purple-300 font-black text-sm">7</div>
+                        <div>
+                          <h3 className="text-base font-extrabold text-white">Myasthenia Gravis Postoperative Ventilation Risk — Box 35.8</h3>
+                          <p className="text-[10px] text-purple-400 mt-0.5">Clinical scoring criteria for determining the necessity of postoperative mechanical ventilation.</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="px-5 py-4 space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <span className="text-[9px] uppercase font-bold tracking-widest text-slate-500 block mb-1">Scoring Criteria Review</span>
+                          {[
+                            { key: 'vitalCapacity', label: 'Vital capacity < 2.9 L', val: `${patient.vitalCapacity !== undefined ? patient.vitalCapacity : '3.5'} L` },
+                            { key: 'duration', label: 'Duration of MG > 6 years', val: `${patient.mgDurationYears !== undefined ? patient.mgDurationYears : '0'} years` },
+                            { key: 'pyridostigmine', label: 'Pyridostigmine dosage > 750 mg/day', val: `${patient.pyridostigmineDoseMgPerDay !== undefined ? patient.pyridostigmineDoseMgPerDay : '0'} mg` },
+                            { key: 'pulmonary', label: 'History of chronic pulmonary disease (COPD/Asthma)', val: mgRisk.factors.pulmonary ? 'Yes' : 'No' },
+                            { key: 'bulbar', label: 'Preoperative bulbar symptoms (dysphagia/ptosis)', val: patient.bulbarSymptoms ? 'Yes' : 'No' },
+                            { key: 'crisis', label: 'History of myasthenic crisis', val: patient.historyMyasthenicCrisis ? 'Yes' : 'No' },
+                            { key: 'bloodLoss', label: 'Intraoperative blood loss > 1000 mL (expected)', val: mgRisk.factors.bloodLoss ? 'Yes' : 'No' },
+                            { key: 'antibody', label: 'Serum anti-AChR antibody > 100 nmol/mL', val: `${patient.antiAchR !== undefined ? patient.antiAchR : '0'} nmol/mL` },
+                            { key: 'decrement', label: 'Pronounced decremental response on nerve stimulation', val: patient.decrementalResponse ? 'Yes' : 'No' }
+                          ].map(factor => (
+                            <div key={factor.key} className="flex justify-between items-center bg-slate-900/60 p-2 rounded border border-slate-800/80 text-xs">
+                              <span className="text-slate-350">{factor.label} <span className="text-slate-600">({factor.val})</span></span>
+                              {mgRisk.factors[factor.key] ? (
+                                <span className="bg-red-950/80 border border-red-800/50 text-red-400 px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider">Risk Present</span>
+                              ) : (
+                                <span className="text-slate-600 font-bold">Absent</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                        <div className={`p-5 rounded-xl border-2 flex flex-col justify-between ${mgRisk.riskLevel === 'High' ? 'border-red-500 bg-red-950/15' : mgRisk.riskLevel === 'Intermediate' ? 'border-orange-500 bg-orange-950/15' : 'border-green-500 bg-green-950/15'}`}>
+                          <div>
+                            <span className="text-[9px] uppercase font-bold tracking-widest text-slate-500 block mb-1">Postoperative ETT Risk Score</span>
+                            <span className="text-3xl font-black text-white">{mgRisk.score} / 9 Factors</span>
+                            <h4 className={`text-lg font-black mt-2 ${mgRisk.riskLevel === 'High' ? 'text-red-400' : mgRisk.riskLevel === 'Intermediate' ? 'text-orange-400' : 'text-green-400'}`}>
+                              {mgRisk.riskLevel} Ventilation Risk
+                            </h4>
+                          </div>
+                          <div className="border-t border-slate-800/80 pt-4 mt-4 text-xs font-bold leading-relaxed text-slate-300">
+                            <span className="text-[9px] uppercase font-bold tracking-widest text-slate-500 block mb-1">Clinical Recommendation</span>
+                            {mgRisk.recommendation}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* ─── VERIFICATION PANEL ─── */}
               {(() => {
                 const filled = {
@@ -1975,7 +2883,9 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                   asa: !!assessment.asa,
                   mallampati: !!assessment.mallampati,
                   neckMobility: !!assessment.neckMobility,
-                  npoStatus: !!assessment.npoStatus
+                  npoStatus: !!assessment.npoStatus,
+                  herbalScreeningDone: !!assessment.herbalScreeningDone,
+                  positioningAssessmentDone: !!assessment.positioningAssessmentDone
                 };
                 const totalFilled = Object.values(filled).filter(Boolean).length;
                 const allFilled = totalFilled === Object.keys(filled).length;
@@ -1997,7 +2907,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                         </div>
                         <div className="flex flex-col items-end gap-1">
                           <div className="flex gap-1">
-                            {['RCRI','METs','ASA','Airway','Neck','NPO'].map(l => (
+                            {['RCRI','METs','ASA','Airway','Neck','NPO','Herbal','Positioning'].map(l => (
                               <span key={l} className="text-[7px] px-1.5 py-0.5 rounded bg-green-950/60 text-green-400 border border-green-800/50 font-bold">{l} ✓</span>
                             ))}
                           </div>
@@ -2049,12 +2959,12 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                       <div className="flex items-center gap-3">
                         <div className={`w-3 h-3 rounded-full ${allFilled ? 'bg-cyan-500 animate-pulse' : 'bg-slate-700'}`} />
                         <span className={`text-xs font-bold ${allFilled ? 'text-cyan-400' : 'text-slate-500'}`}>
-                          {allFilled ? 'All fields selected — submit your assessment for verification.' : `Assessment in progress — ${6 - totalFilled} field(s) remaining.`}
+                          {allFilled ? 'All fields selected — submit your assessment for verification.' : `Assessment in progress — ${Object.keys(filled).length - totalFilled} field(s) remaining.`}
                         </span>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="flex gap-1">
-                          {Object.entries({ METs: filled.mets, ASA: filled.asa, Mallampati: filled.mallampati, Neck: filled.neckMobility, NPO: filled.npoStatus }).map(([label, done]) => (
+                          {Object.entries({ METs: filled.mets, ASA: filled.asa, Mallampati: filled.mallampati, Neck: filled.neckMobility, NPO: filled.npoStatus, Herbal: filled.herbalScreeningDone, Positioning: filled.positioningAssessmentDone }).map(([label, done]) => (
                             <span key={label} className={`text-[8px] px-1.5 py-0.5 rounded font-bold ${
                               done ? 'bg-green-950/50 text-green-400 border border-green-800/50' : 'bg-slate-900 text-slate-600 border border-slate-800'
                             }`}>{label}</span>

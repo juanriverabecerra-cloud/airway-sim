@@ -288,14 +288,27 @@ export const MEDICATIONS = {
   },
 
   // === OPIOIDS & ANALGESICS ===
-  fentanyl: { 
+  fentanyl: {
     name: 'Fentanyl', classes: ['Opioid'], routes: ['IV', 'IM'], types: ['Bolus', 'Infusion'], dosingWeight: 'IBW',
-    metabolism: 'Hepatic (CYP3A4) to inactive norfentanyl', proteinBinding: 0.84, synergyGroup: 'Opioid',
+    metabolism: 'Hepatic (CYP3A4) to inactive norfentanyl', proteinBinding: 0.84, synergyGroup: 'Opioid', pkModel: 'Shafer',
     targetReceptor: 'Mu-Opioid (u1/u2)', intracellularCascade: 'Mu (Gi-coupled) -> inhibits adenylate cyclase (decreased cAMP) -> closes VGCCs, opens K+ channels (hyperpolarization)',
     indications: { 'Analgesia': { dose: '25-100', unit: 'mcg', type: 'Bolus' }, 'Induction': { dose: '1-3', unit: 'mcg/kg', type: 'Bolus' } },
     pk: { V1: 13.0, V2: 30.0, V3: 250, k10: 0.05, k12: 0.1, k21: 0.05, k13: 0.05, k31: 0.01, ke0: 0.15, coSensitivity: 0.8 },
     pd: { c50: 0.002, gamma: 1.5, sysMax: -10, diaMax: -10, hrMax: -20, rrMax: -12, inducesApneaAtCe: 0.003 },
     notes: 'Highly lipophilic. Highly synergistic with volatiles/sedatives. Can cause chest wall rigidity (stiff joint syndrome) with large rapid boluses.'
+  },
+  alfentanil: {
+    name: 'Alfentanil', classes: ['Opioid'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP3A4)', proteinBinding: 0.92, synergyGroup: 'Opioid', pkModel: 'Maitre',
+    targetReceptor: 'Mu-Opioid (u1/u2)', intracellularCascade: 'Mu (Gi-coupled) -> inhibits adenylate cyclase (decreased cAMP) -> closes VGCCs, opens K+ channels (hyperpolarization)',
+    // Table 26.5, Miller's 9th Ed: Manual infusion scheme loading/maintenance doses (anesthesia range)
+    indications: { 'Analgesia': { dose: '10-25', unit: 'mcg/kg', type: 'Bolus' }, 'Induction': { dose: '50-150', unit: 'mcg/kg', type: 'Bolus' }, 'Maintenance': { dose: '0.5-3', unit: 'mcg/kg/min', type: 'Infusion' } },
+    // Default pk is the Maitre model (Table 26.7) evaluated for a 70 kg, age-40, male reference patient; updateModelParameters() recalculates per-patient when TCI is engaged.
+    pk: { V1: 7.77, V2: 12.0, V3: 10.5, k10: 0.0458, k12: 0.104, k21: 0.067, k13: 0.017, k31: 0.0126, ke0: 0.77, coSensitivity: 0.8 },
+    // Table 26.2, Miller's 9th Ed: C50 for incision/painful stimulus 200-300 ng/mL (midpoint 250 ng/mL); C50 for spontaneous ventilation suppression 170-230 ng/mL (midpoint 200 ng/mL) used as the apnea threshold.
+    // hrMax/sysMax/diaMax/rrMax are not quantified for alfentanil in this chapter; set via the class-average fallback pattern across the other Opioid-classed entries in this file (fentanyl, sufentanil, morphine, hydromorphone, remifentanil).
+    pd: { c50: 0.25, gamma: 1.5, sysMax: -13, diaMax: -13, hrMax: -18, rrMax: -14, inducesApneaAtCe: 0.2 },
+    notes: 'Rapid onset, short context-sensitive half-time relative to fentanyl due to a small V1 and high hepatic extraction. Table 26.7 (Miller\'s 9th Ed) gives the Maitre TCI model: V1 is sex-dependent (female V1 = 1.15x male V1 per kg), and k10/k31 are age-dependent above 40 years.'
   },
   hydromorphone: { 
     name: 'Hydromorphone', classes: ['Opioid'], routes: ['IV', 'IM'], types: ['Bolus', 'Infusion'], dosingWeight: 'IBW',
@@ -325,9 +338,9 @@ export const MEDICATIONS = {
     pd: { c50: 0.001, gamma: 2.5, sysMax: -20, diaMax: -15, hrMax: -30, rrMax: -14, inducesApneaAtCe: 0.0015 },
     notes: 'Context-independent half-life (constant 3-5 min offset regardless of infusion duration). Fast bolus causes severe bradycardia. Prolonged infusion at >0.15 mcg/kg/min triggers acute opioid tolerance and Opioid-Induced Hyperalgesia (OIH).'
   },
-  sufentanil: { 
+  sufentanil: {
     name: 'Sufentanil', classes: ['Opioid'], routes: ['IV', 'IM'], types: ['Bolus', 'Infusion'], dosingWeight: 'IBW',
-    metabolism: 'Hepatic', proteinBinding: 0.92, synergyGroup: 'Opioid',
+    metabolism: 'Hepatic', proteinBinding: 0.92, synergyGroup: 'Opioid', pkModel: 'Gepts',
     targetReceptor: 'Mu-Opioid (u1/u2)', intracellularCascade: 'Mu (Gi-coupled) -> inhibits adenylate cyclase (decreased cAMP) -> closes VGCCs, opens K+ channels (hyperpolarization)',
     indications: { 'Analgesia': { dose: '5-10', unit: 'mcg', type: 'Bolus' }, 'Induction': { dose: '0.1-0.3', unit: 'mcg/kg', type: 'Bolus' } },
     pk: { V1: 10.0, V2: 25.0, V3: 150, k10: 0.04, k12: 0.08, k21: 0.04, k13: 0.04, k31: 0.01, ke0: 0.12, coSensitivity: 0.8 },
@@ -381,8 +394,9 @@ export const MEDICATIONS = {
     metabolism: 'Hepatic (excreted unchanged in bile >70%, renal 10-20%)', proteinBinding: 0.30, mechanism: 'Antagonist', targetReceptor: 'nAChR (Antagonist)', intracellularCascade: 'Competitive antagonist -> blocks ACh binding -> prevents Na+ influx/depolarization',
     indications: { 'Intubation': { dose: '0.6', unit: 'mg/kg', type: 'Bolus' }, 'RSI': { dose: '1.2', unit: 'mg/kg', type: 'Bolus' } },
     pk: { V1: 16.0, V2: 30.0, V3: 0, k10: 0.08, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.3 },
-    pd: { c50: 1.5, gamma: 4, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: -20, inducesParalysisAtCe: 1.0, inducesApneaAtCe: 1.0, receptorAffinity: 0.70 },
-    notes: 'Rapid onset, intermediate-acting NDMR. Can be fully encapsulated and reversed by Sugammadex at any depth. Interacts with Sugammadex on a 1:1 molar basis.'
+    // hrMax: Table 27.10, Miller's 9th Ed - Rocuronium "Blocks weakly" cardiac muscarinic (M2) receptors, producing a mild vagolytic tachycardia (much weaker than Pancuronium's "Blocks moderately").
+    pd: { c50: 1.5, gamma: 4, sysMax: 0, diaMax: 0, hrMax: 6, rrMax: -20, inducesParalysisAtCe: 1.0, inducesApneaAtCe: 1.0, receptorAffinity: 0.70 },
+    notes: 'Rapid onset, intermediate-acting NDMR. Can be fully encapsulated and reversed by Sugammadex at any depth. Interacts with Sugammadex on a 1:1 molar basis. Weak vagolytic (mild tachycardia at high Ce, Table 27.10, Ch27, Miller\'s 9th Ed).'
   },
   succinylcholine: { 
     name: 'Succinylcholine', classes: ['Depolarizing NMBA'], routes: ['IV', 'IM'], types: ['Bolus'], dosingWeight: 'TBW',
@@ -409,13 +423,45 @@ export const MEDICATIONS = {
     pd: { c50: 0.2, gamma: 4, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: -20, inducesParalysisAtCe: 0.15, inducesApneaAtCe: 0.15, receptorAffinity: 0.75 },
     notes: 'Intermediate-acting NDMR. STRICT renal warning: Hepatic deacetylation forms 3-desacetylvecuronium, an active metabolite (has 80% potency of parent compound) which is renal-excreted and accumulates heavily in renal failure, causing severe prolonged paralysis. Can be reversed by Sugammadex.'
   },
+  dantrolene: {
+    name: 'Dantrolene', classes: ['Muscle Relaxant', 'MH Treatment'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP3A4) to active 5-hydroxydantrolene, renal excretion', proteinBinding: 0.90, mechanism: 'RyR1 Antagonist', targetReceptor: 'Ryanodine Receptor 1 (RyR1)',
+    intracellularCascade: 'Inhibits Ca2+ release from sarcoplasmic reticulum -> restores resting Ca2+ balance in muscle fibers',
+    indications: { 'MH Crisis': { dose: '2.5', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 25.0, V3: 0, k10: 0.00115, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.0 },
+    pd: { c50: 1.5, gamma: 2.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0, inducesParalysisAtCe: 999.0, inducesApneaAtCe: 999.0 },
+    notes: 'Direct-acting skeletal muscle relaxant (RyR1 antagonist). Used for treating Malignant Hyperthermia. Reconstitute in sterile water only. Reversal of hypermetabolic state. Side effects include muscle weakness (C50 1.5 for twitch depression), phlebitis, and respiratory insufficiency.'
+  },
   atracurium: {
     name: 'Atracurium', classes: ['NDMR'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'IBW',
     metabolism: 'Hofmann Elimination & Ester Hydrolysis', proteinBinding: 0.82, mechanism: 'Antagonist', targetReceptor: 'nAChR (Antagonist)', intracellularCascade: 'Competitive antagonist -> blocks ACh binding -> prevents Na+ influx/depolarization',
     indications: { 'Intubation': { dose: '0.4-0.5', unit: 'mg/kg', type: 'Bolus' }, 'Infusion': { dose: '5-10', unit: 'mcg/kg/min', type: 'Infusion' } },
     pk: { V1: 10.0, V2: 20.0, V3: 0, k10: 0.08, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.12, coSensitivity: 0.0 },
-    pd: { c50: 0.4, gamma: 4.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: -20, inducesParalysisAtCe: 0.25, inducesApneaAtCe: 0.25, receptorAffinity: 0.8 },
-    notes: 'Intermediate-acting benzylisoquinoline NDMR. Undergoes spontaneous chemical degradation (Hofmann elimination) and non-specific ester hydrolysis. Cleared independently of organ function, but generates active metabolite laudanosine, which can accumulate in renal failure and lower seizure threshold.'
+    // hrMax/sysMax/diaMax: Table 27.9/27.10, Miller's 9th Ed - "Slight" clinical histamine release (autonomic margin of safety 2.5x), causing mild transient hypotension with reflex/direct tachycardia at high Ce.
+    pd: { c50: 0.4, gamma: 4.0, sysMax: -8, diaMax: -6, hrMax: 8, rrMax: -20, inducesParalysisAtCe: 0.25, inducesApneaAtCe: 0.25, receptorAffinity: 0.8 },
+    notes: 'Intermediate-acting benzylisoquinoline NDMR. Undergoes spontaneous chemical degradation (Hofmann elimination) and non-specific ester hydrolysis. Cleared independently of organ function, but generates active metabolite laudanosine, which can accumulate in renal failure and lower seizure threshold. Histamine release causes slight, transient hypotension/tachycardia (Table 27.9/27.10, Ch27, Miller\'s 9th Ed).'
+  },
+  mivacurium: {
+    name: 'Mivacurium', classes: ['NDMR'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'IBW',
+    metabolism: 'Plasma Butyrylcholinesterase (same enzyme as Succinylcholine)', proteinBinding: 0.30, mechanism: 'Antagonist', targetReceptor: 'nAChR (Antagonist)', intracellularCascade: 'Competitive antagonist -> blocks ACh binding -> prevents Na+ influx/depolarization',
+    // Table 27.4, Miller's 9th Ed: Intubation 0.2-0.25 mg/kg; infusion 3-15 mcg/kg/min for 90-95% twitch inhibition.
+    indications: { 'Intubation': { dose: '0.2-0.25', unit: 'mg/kg', type: 'Bolus' }, 'Infusion': { dose: '3-15', unit: 'mcg/kg/min', type: 'Infusion' } },
+    // Table 27.2: short-acting (10-20 min clinical duration); k10 scaled faster than atracurium/cisatracurium/vecuronium accordingly, and further scaled by bcheMultiplier (Table 27.1) like Succinylcholine.
+    pk: { V1: 8.0, V2: 15.0, V3: 0, k10: 0.4, k12: 0.1, k21: 0.08, k13: 0, k31: 0, ke0: 0.12, coSensitivity: 0.0 },
+    // c50/inducesParalysisAtCe scaled from ED95 = 0.067 mg/kg (Table 27.3), comparable potency to Vecuronium. hrMax/sysMax/diaMax: Table 27.9's autonomic margin of safety (histamine potency 3.0, the highest of the benzylisoquinoliniums) - "Slight" clinical histamine release per Table 27.10, set modestly larger in magnitude than Atracurium's.
+    pd: { c50: 0.2, gamma: 4.0, sysMax: -10, diaMax: -8, hrMax: 10, rrMax: -20, inducesParalysisAtCe: 0.15, inducesApneaAtCe: 0.15, receptorAffinity: 0.78 },
+    notes: 'Short-acting benzylisoquinolinium NDMR (Table 27.2, Ch27, Miller\'s 9th Ed). Hydrolyzed by plasma butyrylcholinesterase - the same enzyme responsible for Succinylcholine metabolism - so block is similarly prolonged under heterozygous/atypical pseudocholinesterase genotypes, pregnancy, or cirrhosis (Table 27.1). Highest histamine-release potency of the benzylisoquinolinium NDMRs, causing slight transient hypotension/tachycardia. Reversible with Neostigmine/Edrophonium/Pyridostigmine like other nondepolarizers; NOT reversible with Sugammadex (not a steroidal compound).'
+  },
+  pancuronium: {
+    name: 'Pancuronium', classes: ['NDMR'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'IBW',
+    metabolism: 'Renal (mostly unchanged 40-70%), hepatic 10-20%', proteinBinding: 0.87, mechanism: 'Antagonist', targetReceptor: 'nAChR (Antagonist)', intracellularCascade: 'Competitive antagonist -> blocks ACh binding -> prevents Na+ influx/depolarization',
+    // Table 27.4, Miller's 9th Ed: Intubation 0.08-0.12 mg/kg.
+    indications: { 'Intubation': { dose: '0.08-0.1', unit: 'mg/kg', type: 'Bolus' } },
+    // PK aligned with the pre-existing meds.config.ts entry (Table 27.2: long-acting, >50 min clinical duration, slowest-clearing steroidal NDMR).
+    pk: { V1: 15.0, V2: 30.0, V3: 0, k10: 0.015, k12: 0.03, k21: 0.02, k13: 0, k31: 0, ke0: 0.05, coSensitivity: 0.1 },
+    // hrMax: Table 27.9/27.10 - Pancuronium "blocks moderately" cardiac muscarinic (M2) receptors, the strongest vagolytic tachycardia of any NDMR in this database (classic teaching point). sysMax/diaMax are 0 since ganglionic blockade margin is wide (>250x, Table 27.9) and histamine release is "None" (Table 27.10).
+    pd: { c50: 0.4, gamma: 4, sysMax: 0, diaMax: 0, hrMax: 20, rrMax: -20, inducesParalysisAtCe: 0.3, inducesApneaAtCe: 0.3, receptorAffinity: 0.8 },
+    notes: 'Long-acting steroidal NDMR (Table 27.2, Ch27, Miller\'s 9th Ed). Predominantly renally excreted unchanged, so accumulates significantly in renal failure. Vagolytic: blocks cardiac M2 muscarinic receptors moderately, causing the most pronounced tachycardia of any nondepolarizer (Table 27.10). NOT reversible with Sugammadex.'
   },
   gantacurium: {
     name: 'Gantacurium', classes: ['NDMR'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'IBW',
@@ -770,6 +816,22 @@ export const MEDICATIONS = {
     pd: { c50: 2.0, gamma: 1.5, sysMax: -5, diaMax: -5, hrMax: -5, rrMax: 0, ccCnsRatio: 8.0 },
     notes: 'Amide local anesthetic. Metabolized to o-toluidine, which oxidizes hemoglobin to methemoglobin, risking severe Methemoglobinemia.'
   },
+  mepivacaine: {
+    name: 'Mepivacaine', classes: ['Local Anesthetic'], routes: ['Infiltration', 'Epidural', 'IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic', proteinBinding: 0.75, mechanism: 'Blocker', targetReceptor: 'Sodium Channels',
+    // Table 29.4-29.7, Miller's 9th Ed: common infiltration/peripheral-block/epidural dosing range, mirroring the
+    // existing intermediate-acting amide LA entries (Prilocaine/Lidocaine) since this chapter does not tabulate
+    // an exact mg/kg ceiling for Mepivacaine specifically.
+    indications: { 'Local Infiltration': { dose: '1.0-2.0', unit: 'mg/kg', type: 'Bolus' } },
+    // Table 29.2: relative conduction-blocking potency 1.5x procaine (between Procaine's 1x and Prilocaine's 1.8x),
+    // pKa 7.7, hydrophobicity 136 (vs. Lidocaine's 366). PK/PD interpolated from the already-implemented
+    // intermediate-potency amide LAs (Lidocaine, Prilocaine) scaled by this relative potency/hydrophobicity
+    // ranking, since the chapter does not give compartment volumes/clearances directly - no entry is invented
+    // outside this textbook-anchored interpolation.
+    pk: { V1: 22.0, V2: 45.0, V3: 0, k10: 0.06, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.6, coSensitivity: 0.2, proteinBinding: 0.75, renalFraction: 0.0, hepaticFraction: 1.0 },
+    pd: { c50: 1.1, gamma: 1.5, sysMax: -8, diaMax: -8, hrMax: -8, rrMax: 0, ccCnsRatio: 7.0 },
+    notes: 'Amide local anesthetic, intermediate potency and duration (Table 29.2, Ch29, Miller\'s 9th Ed). Commonly used for peripheral nerve blocks and dental/infiltration anesthesia. CC/CNS cardiotoxicity ratio set by analogy to Lidocaine (same intermediate-potency class, similarly favorable systemic safety margin) - the chapter does not tabulate an exact ratio for Mepivacaine.'
+  },
   intralipid: {
     name: 'Intralipid 20%', classes: ['Rescue Agent', 'Lipid Emulsion'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
     metabolism: 'Lipolysis / Hepatic clearance', proteinBinding: 0.0, mechanism: 'Sequestration', targetReceptor: 'Lipid Sink',
@@ -843,6 +905,14 @@ export const MEDICATIONS = {
     pk: { V1: 12.0, V2: 18.0, V3: 0, k10: 0.05, k12: 0.04, k21: 0.04, k13: 0, k31: 0, ke0: 0.1 }, 
     pd: { c50: 0.1, gamma: 1, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
     notes: 'Penicillin antibiotic with beta-lactamase inhibitor. Highly effective for intra-abdominal and soft-tissue prophylaxis. Pushing this bolus in patients with documented severe penicillin allergy triggers life-threatening Penicillin Anaphylaxis (IgE-mediated severe vasodilation, hypotension, bradycardia, and severe bronchospasm/apnea).'
+  },
+  dextrose: {
+    name: 'Dextrose 50%', classes: ['Hypertonic Glucose'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Cellular metabolism', proteinBinding: 0.0, mechanism: 'Substrate', targetReceptor: 'GLUT Transporters',
+    indications: { 'Hypoglycemia': { dose: '25', unit: 'g', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.05, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.0, proteinBinding: 0.0, renalFraction: 0.0, hepaticFraction: 0.0 },
+    pd: { c50: 1.0, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Hypertonic dextrose (D50) used for treatment of acute hypoglycemia. Administered as a bolus of 25g/50mL. Corrects hypoglycemic states.'
   },
   methylphenidate: {
     name: 'Methylphenidate', classes: ['Dopamine Agonist', 'CNS Stimulant'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
@@ -960,6 +1030,54 @@ export const MEDICATIONS = {
     pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.08, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.1 },
     pd: { c50: 2.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0, inducesApneaAtCe: 999 },
     notes: 'Dual orexin receptor antagonist. Blocks wake-promoting neuropeptides orexin A and B. Can cause daytime drowsiness. Contraindicated in narcolepsy.'
+  },
+  carbamazepine: {
+    name: 'Carbamazepine', classes: ['Anticonvulsant', 'Sodium Channel Blocker'], routes: ['PO'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP3A4, active 10,11-epoxide)', proteinBinding: 0.75, mechanism: 'Blocker', targetReceptor: 'Fast Na+ Channels',
+    indications: { 'Trigeminal Neuralgia': { dose: '200', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 18.0, V2: 30.0, V3: 0, k10: 0.02, k12: 0.04, k21: 0.03, k13: 0, k31: 0, ke0: 0.35, coSensitivity: 0.2 },
+    pd: { c50: 6.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Approved for trigeminal neuralgia. Sodium channel blocker. Associated with hematologic toxicity (agranulocytosis, aplastic anemia) and drug-drug interactions.'
+  },
+  oxcarbazepine: {
+    name: 'Oxcarbazepine', classes: ['Anticonvulsant', 'Sodium Channel Blocker'], routes: ['PO'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (reduction to active monohydroxy derivative)', proteinBinding: 0.40, mechanism: 'Blocker', targetReceptor: 'Fast Na+ Channels',
+    indications: { 'Neuropathic Pain': { dose: '300', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 18.0, V2: 30.0, V3: 0, k10: 0.02, k12: 0.04, k21: 0.03, k13: 0, k31: 0, ke0: 0.35, coSensitivity: 0.2 },
+    pd: { c50: 8.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Carbamazepine analogue. Blocks sodium channels, stabilizes membranes. Lower drug-drug interactions, risk of hyponatremia.'
+  },
+  lamotrigine: {
+    name: 'Lamotrigine', classes: ['Anticonvulsant', 'Sodium Channel Blocker'], routes: ['PO'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic glucuronidation', proteinBinding: 0.55, mechanism: 'Blocker', targetReceptor: 'Sodium / Calcium Channels',
+    indications: { 'Neuropathic Pain': { dose: '100', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 18.0, V2: 30.0, V3: 0, k10: 0.025, k12: 0.04, k21: 0.03, k13: 0, k31: 0, ke0: 0.35, coSensitivity: 0.2 },
+    pd: { c50: 4.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Blocks sodium and calcium channels. Effective for trigeminal neuralgia and HIV neuropathy. Risk of Stevens-Johnson syndrome.'
+  },
+  zonisamide: {
+    name: 'Zonisamide', classes: ['Anticonvulsant', 'Sodium/Calcium Channel Blocker'], routes: ['PO'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP3A4 glucuronidation)', proteinBinding: 0.40, mechanism: 'Blocker', targetReceptor: 'Sodium / N-type Calcium Channels',
+    indications: { 'Neuropathic Pain': { dose: '100', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 18.0, V2: 30.0, V3: 0, k10: 0.025, k12: 0.04, k21: 0.03, k13: 0, k31: 0, ke0: 0.35, coSensitivity: 0.2 },
+    pd: { c50: 5.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Blocks sodium and N-type calcium channels. Effective for diabetic neuropathy and migraine prophylaxis.'
+  },
+  levetiracetam: {
+    name: 'Levetiracetam', classes: ['Anticonvulsant'], routes: ['IV', 'PO'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Renal (unchanged)', proteinBinding: 0.10, mechanism: 'Modulator', targetReceptor: 'SV2A / Calcium Channels',
+    indications: { 'Seizure Prophylaxis': { dose: '500', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 18.0, V2: 30.0, V3: 0, k10: 0.035, k12: 0.04, k21: 0.03, k13: 0, k31: 0, ke0: 0.4, coSensitivity: 0.2, renalFraction: 1.0 },
+    pd: { c50: 10.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'SV2A vesicle binder, blocks N-type calcium channels. Highly renal cleared.'
+  },
+  ziconotide: {
+    name: 'Ziconotide', classes: ['Nonopioid Analgesic', 'Calcium Channel Blocker'], routes: ['IT'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Systemic peptidase cleavage', proteinBinding: 0.50, mechanism: 'Blocker', targetReceptor: 'N-type Calcium Channels',
+    indications: { 'Severe Refractory Pain': { dose: '0.1', unit: 'mcg', type: 'Bolus' } },
+    pk: { V1: 12.0, V2: 0, V3: 0, k10: 0.05, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 },
+    pd: { c50: 0.005, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Synthetic omega-conotoxin. Potent selective N-type calcium channel blocker. Approved for intrathecal (IT) use. Side effects: postural hypotension, confusion.'
   }
 };
 

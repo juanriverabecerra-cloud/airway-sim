@@ -216,13 +216,25 @@ export class PainEngine {
     const pregabalinEff = getDrugEffect('Pregabalin', 3.0, 1.5);
     const mexiletineEff = getDrugEffect('Mexiletine', 1.0, 1.5);
     const topiramateEff = getDrugEffect('Topiramate', 4.0, 1.5);
+    const carbamazepineEff = getDrugEffect('Carbamazepine', 6.0, 1.5);
+    const oxcarbazepineEff = getDrugEffect('Oxcarbazepine', 8.0, 1.5);
+    const lamotrigineEff = getDrugEffect('Lamotrigine', 4.0, 1.5);
+    const zonisamideEff = getDrugEffect('Zonisamide', 5.0, 1.5);
+    const levetiracetamEff = getDrugEffect('Levetiracetam', 10.0, 1.5);
+    const ziconotideEff = getDrugEffect('Ziconotide', 0.005, 1.5);
 
     const nonopioidEff = 1.0 - (1.0 - acetaminophenEff * 0.35) *
                               (1.0 - ketorolacEff * 0.40) *
                               (1.0 - gabapentinEff * 0.30) *
                               (1.0 - pregabalinEff * 0.35) *
                               (1.0 - mexiletineEff * 0.25) *
-                              (1.0 - topiramateEff * 0.20);
+                              (1.0 - topiramateEff * 0.20) *
+                              (1.0 - carbamazepineEff * 0.25) *
+                              (1.0 - oxcarbazepineEff * 0.25) *
+                              (1.0 - lamotrigineEff * 0.30) *
+                              (1.0 - zonisamideEff * 0.20) *
+                              (1.0 - levetiracetamEff * 0.20) *
+                              (1.0 - ziconotideEff * 0.45);
 
     // Afferent Analgesia Blunting
     const analgesiaBlunting = 1.0 - (1.0 - opioidAnalgesia) * 

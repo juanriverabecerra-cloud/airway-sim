@@ -691,6 +691,15 @@ export const PreopModal = ({ show, close, patient, setPatient, logEvent }) => {
                 {patient?.chf && <span className="bg-orange-950 border border-orange-800 text-orange-300 px-2 py-0.5 rounded text-[10px] font-bold">Congestive Heart Failure</span>}
                 {patient?.diabetes && <span className="bg-yellow-950 border border-yellow-800 text-yellow-300 px-2 py-0.5 rounded text-[10px] font-bold">Diabetes Mellitus</span>}
                 {patient?.mg && <span className="bg-purple-950 border border-purple-800 text-purple-300 px-2 py-0.5 rounded text-[10px] font-bold">Myasthenia Gravis</span>}
+                {patient?.mhSusceptible && <span className="bg-red-950 border border-red-800 text-red-300 px-2 py-0.5 rounded text-[10px] font-bold animate-pulse">Malignant Hyperthermia Susceptible</span>}
+                {patient?.dmd && <span className="bg-purple-950 border border-purple-800 text-purple-300 px-2 py-0.5 rounded text-[10px] font-bold">Duchenne Muscular Dystrophy</span>}
+                {patient?.bmd && <span className="bg-purple-950 border border-purple-800 text-purple-300 px-2 py-0.5 rounded text-[10px] font-bold">Becker Muscular Dystrophy</span>}
+                {patient?.cmt && <span className="bg-purple-950 border border-purple-800 text-purple-300 px-2 py-0.5 rounded text-[10px] font-bold">Charcot-Marie-Tooth</span>}
+                {patient?.elms && <span className="bg-purple-950 border border-purple-800 text-purple-300 px-2 py-0.5 rounded text-[10px] font-bold">Eaton-Lambert Myasthenic Syndrome</span>}
+                {patient?.cip && <span className="bg-purple-950 border border-purple-800 text-purple-300 px-2 py-0.5 rounded text-[10px] font-bold">Critical Illness Polyneuropathy</span>}
+                {patient?.mitochondrial && <span className="bg-purple-950 border border-purple-800 text-purple-300 px-2 py-0.5 rounded text-[10px] font-bold">Mitochondrial Myopathy</span>}
+                {patient?.hyperPP && <span className="bg-yellow-950 border border-yellow-700 text-yellow-300 px-2 py-0.5 rounded text-[10px] font-bold">Hyperkalemic Periodic Paralysis</span>}
+                {patient?.hypoPP && <span className="bg-yellow-950 border border-yellow-700 text-yellow-300 px-2 py-0.5 rounded text-[10px] font-bold">Hypokalemic Periodic Paralysis</span>}
                 {patient?.isTrauma && <span className="bg-red-950 border border-red-500 text-red-200 px-2 py-0.5 rounded text-[10px] font-bold animate-pulse">TRAUMA / BURNS</span>}
               </div>
             </div>
@@ -1170,15 +1179,28 @@ export const ExtubationModal = ({ show, close, vitals, patient, logEvent, perfor
     setChecks(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const hasTofRatio = vitals?.tofCount === 4 && vitals?.tofRatio >= 0.90;
+  // Ch28, Miller's 9th Ed: when monitoring qualitatively (manual tactile/visual PNS), the
+  // displayed TOF count/ratio reflects what a clinician would actually perceive - which can
+  // be a false-positive "fully recovered" reading despite real residual blockade up to a
+  // true ratio of 0.89. This modal must use the same perceived values the bedside monitor
+  // displays, or the chapter's central safety lesson never has a real decision consequence.
+  const isQualitativeTof = patient?.tofMonitorMode === 'qualitative';
+  const displayedTofCount = isQualitativeTof ? vitals?.perceivedTofCount : vitals?.tofCount;
+  const displayedTofRatio = isQualitativeTof ? vitals?.perceivedTofRatio : vitals?.tofRatio;
+  const hasTofRatio = displayedTofCount === 4 && displayedTofRatio >= 0.90;
+  // Ground truth, used only for the post-extubation outcome/safety check below - never shown
+  // to the user when qualitative monitoring is selected, since that's the entire point.
+  const trueResidualBlock = !(vitals?.tofCount === 4 && vitals?.tofRatio >= 0.90);
   const isRrGood = vitals?.rr >= 6 && vitals?.rr <= 30;
   const isTvGood = vitals?.vte >= 5 * (patient?.weight || 70);
-  
+
   const allChecked = Object.values(checks).every(Boolean);
 
   const handleExtubateSubmit = () => {
     if (!hasTofRatio) {
       logEvent("⚠️ WARNING: Extubation attempted with incomplete neuromuscular block reversal! High risk of respiratory collapse and upper airway obstruction.");
+    } else if (isQualitativeTof && trueResidualBlock) {
+      logEvent("⚠️ WARNING: Qualitative (manual) monitoring reported the TOF ratio as fully recovered, but clinically significant residual blockade was actually still present. This is exactly the blind spot quantitative (AMG) monitoring exists to catch.");
     }
     logEvent("💨 Extubation checklist completed. ETT deflated, suctioned, and removed. Patient successfully transitioned to spontaneous breathing mask.");
     performExtubation();
@@ -1201,11 +1223,11 @@ export const ExtubationModal = ({ show, close, vitals, patient, logEvent, perfor
           
           <div className="grid grid-cols-2 gap-3 text-xs font-mono">
             <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-850 flex flex-col">
-              <span className="text-slate-400">TOF Recovery Ratio:</span>
+              <span className="text-slate-400">TOF Recovery Ratio{isQualitativeTof ? ' (Manual PNS)' : ' (AMG)'}:</span>
               <span className={`text-base font-black mt-1 ${hasTofRatio ? 'text-green-400' : 'text-red-400'}`}>
-                {vitals?.tofCount || 0}/4 ({vitals?.tofRatio ? `${(vitals.tofRatio*100).toFixed(0)}%` : '0%'})
+                {displayedTofCount || 0}/4 ({displayedTofRatio ? `${(displayedTofRatio*100).toFixed(0)}%` : '0%'})
               </span>
-              <span className="text-[10px] text-slate-500 mt-0.5">Target: 4/4 (Ratio &gt;= 90%)</span>
+              <span className="text-[10px] text-slate-500 mt-0.5">Target: 4/4 (Ratio &gt;= 90%){isQualitativeTof ? ' — manual assessment cannot detect fade above ~40%' : ''}</span>
             </div>
 
             <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-850 flex flex-col">

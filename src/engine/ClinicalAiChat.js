@@ -14,6 +14,8 @@
  */
 
 import { searchKnowledge, searchMatrices, getKnowledgeStats, getSearchTokens } from '../knowledge/KnowledgeSearch.js';
+import { calculateRcriFactors } from '../components/modals/PreOpEMR.jsx';
+import { calculatePacuReadiness } from './OutcomeScoringEngine.ts';
 
 function fmt(val, decimals = 0) {
   if (typeof val !== 'number' || !Number.isFinite(val)) {
@@ -312,6 +314,7 @@ function getAttendingResponseInternal(query, state) {
   const patient = safeState.patient || {};
   const activeMeds = Array.isArray(safeState.activeMeds) ? safeState.activeMeds : [];
   const surgicalPhase = safeState.surgicalPhase || 'Pre-Op';
+  const caseId = safeState.caseId || '';
 
 
   // 1. EXTRACT RELEVANT SIMULATION STATES
@@ -567,6 +570,75 @@ We are witnessing severe, progressive bradycardia (HR: ${fmt(hr)} bpm) due to un
     } else {
       msg += `**Clinical Evaluation**: The patient is NPO-compliant (solids > 8h, liquids > 2h). Gastric volume is low (${fmt(gastricVol)} mL). Standard induction and ventilation strategy is appropriate. Always check [npo history] before transferring the patient.`;
     }
+    return msg;
+  }
+
+  // D2. Preoperative Cardiac Risk / Case Preparation (Ch30, Miller's 9th Ed: RCRI)
+  if (q.includes('rcri') || q.includes('cardiac risk') || q.includes('risk score') || q.includes('risk factor') ||
+      q.includes('what should i expect') || q.includes('what should i prepare') || q.includes('prepare for this case') ||
+      q.includes('asa class') || q.includes('asa status') || q.includes('asa physical status')) {
+    const rcri = calculateRcriFactors(patient, caseId);
+    let msg = `### Preoperative Risk Assessment — Revised Cardiac Risk Index (RCRI)\n`;
+    msg += `*Lee et al., as cited in Ch30, Miller's 9th Ed ("Risk of Anesthesia")*\n\n`;
+    msg += `| Criterion | Present |\n| --- | --- |\n`;
+    msg += `| High-risk surgical procedure | ${rcri.rcriHighRisk ? '✅ Yes' : '— No'} |\n`;
+    msg += `| Ischemic heart disease | ${rcri.rcriIhd ? '✅ Yes' : '— No'} |\n`;
+    msg += `| Congestive heart failure | ${rcri.rcriChf ? '✅ Yes' : '— No'} |\n`;
+    msg += `| Cerebrovascular disease | ${rcri.rcriCva ? '✅ Yes' : '— No'} |\n`;
+    msg += `| Preoperative insulin treatment | ${rcri.rcriInsulin ? '✅ Yes' : '— No'} |\n`;
+    msg += `| Serum creatinine > 2.0 mg/dL | ${rcri.rcriCr ? '✅ Yes' : '— No'} |\n\n`;
+    msg += `**RCRI Score: ${rcri.factorCount}/6 independent risk factors present.**\n\n`;
+    if (rcri.factorCount === 0) {
+      msg += `No RCRI risk factors identified. "The rate of major cardiac complications increased with the number of risk factors" (Ch30) — this patient is at baseline cardiac risk for the planned procedure.`;
+    } else if (rcri.factorCount <= 2) {
+      msg += `A modest cardiac risk burden is present. Consider whether further preoperative cardiac workup, beta-blocker continuation, and intraoperative hemodynamic vigilance are warranted given the specific factor(s) above.`;
+    } else {
+      msg += `A substantial cardiac risk burden is present (${rcri.factorCount} factors). The RCRI's discrimination is only moderate, and per Ch30 it does not perform well predicting death or events specifically after vascular surgery — use this as one input among several (functional capacity, surgery-specific risk, biomarkers) rather than a sole determinant. Expect closer hemodynamic monitoring, a lower threshold for invasive arterial pressure monitoring, and a clear plan for managing intraoperative ischemia.`;
+    }
+    return msg;
+  }
+
+  // D3. PACU Readiness / Recovery Status
+  if (q.includes('pacu') || q.includes('ready for recovery') || q.includes('ready to extubate') || q.includes('discharge criteria') || q.includes('aldrete')) {
+    const readiness = calculatePacuReadiness(vitals, patient);
+    let msg = `### PACU Readiness (Aldrete-style Recovery Score)\n`;
+    msg += `**Score: ${readiness.totalScore}/${readiness.maxScore}**\n\n`;
+    Object.values(readiness.criteria).forEach(c => {
+      msg += `- **${c.label}**: ${c.points}/${c.maxPoints} — ${c.detail}\n`;
+    });
+    msg += `\n${readiness.isReadyForDischarge
+      ? 'Meets conventional PACU transfer readiness (score ≥ 9/10 with no criterion at 0).'
+      : 'Does **not** currently meet conventional PACU transfer readiness. Identify and correct the lowest-scoring criteria above before transfer if clinically feasible.'}`;
+    return msg;
+  }
+
+  // D4. Obstructive Sleep Apnea Risk (Ch32, STOP-BANG)
+  if (q.includes('osa') || q.includes('sleep apnea') || q.includes('stop-bang') || q.includes('stop bang')) {
+    const score = Number.isFinite(patient.osaStopBangScore) ? patient.osaStopBangScore : null;
+    const riskLevel = patient.osaRiskLevel || null;
+    let msg = `### Obstructive Sleep Apnea Risk — STOP-BANG\n`;
+    if (score === null) {
+      msg += `No STOP-BANG score has been computed for this patient yet — complete the supplementary STOP-BANG tool in the Pre-Op EMR's Risk Assessment tab to generate one.\n\n`;
+    } else {
+      msg += `**Score: ${score}/8 — ${riskLevel === 'high' ? 'HIGH RISK' : riskLevel === 'intermediate' ? 'INTERMEDIATE RISK' : 'LOW RISK'}**\n\n`;
+    }
+    msg += `Ch32 ("Anesthetic Implications of Concurrent Diseases") KEY POINT: OSA is important to recognize because of increased sensitivity to the depressing effects of hypnotics and opioids on airway muscle tone and respiration, as well as difficulty with laryngoscopy and mask ventilation.`;
+    if (riskLevel === 'high') {
+      msg += ` Given the high-risk score, favor Video Laryngoscopy over Direct Laryngoscopy, titrate opioids/hypnotics conservatively with BIS guidance, confirm full neuromuscular reversal (quantitative monitoring) before extubation, and extend PACU observation given the elevated risk of postoperative airway obstruction.`;
+    }
+    return msg;
+  }
+
+  // D5. Pheochromocytoma Perioperative Preparation (Ch32) — general knowledge-layer support;
+  // not yet grounded in live patient state since no case preset currently models a pheo patient.
+  if (q.includes('pheochromocytoma') || q.includes('pheo') || q.includes('alpha block') || q.includes('alpha-block')) {
+    let msg = `### Pheochromocytoma — Preoperative Adrenergic Blockade (Ch32)\n\n`;
+    msg += `**Sequence matters**: alpha-adrenergic blockade must be established BEFORE any beta-adrenergic blockade. Beta-blockade without prior alpha-blockade risks unopposed alpha-vasoconstriction and malignant hypertension.\n\n`;
+    msg += `- **Alpha-blockade**: phenoxybenzamine 20-30 mg/70kg PO once or twice daily, titrated to 60-250 mg/day; alternatives include prazosin, calcium channel blockers, clonidine, or magnesium. Typical course: at least 7-14 days (Endocrine Society 2014), most centers use 2-6 weeks.\n`;
+    msg += `- **Beta-blockade**: propranolol, added only if persistent tachycardia/arrhythmia after alpha-blockade is established.\n`;
+    msg += `- **Adequacy-of-blockade criteria**: (1) no in-hospital BP > 165/90 mmHg for 48h preop, (2) standing BP not below 80/45 mmHg, (3) ECG free of non-permanent ST-T changes, (4) ≤1 PVC per 5 minutes.\n`;
+    msg += `- **Intraoperative**: prefer phenylephrine for hypotension and nitroprusside/nicardipine for hypertension; avoid phentolamine (too slow onset/offset for acute swings during tumor manipulation).\n\n`;
+    msg += `No active case in this simulator is currently modeled as a pheochromocytoma resection, so this guidance is general reference rather than tied to this patient's live chart.`;
     return msg;
   }
 

@@ -39,7 +39,7 @@ export const PatientHeader = ({
             {/* Surgical Phase Timeline */}
             <div className="flex flex-wrap items-center gap-1.5 bg-slate-950/60 border border-white/5 p-1 rounded-xl font-mono text-[9px] font-black uppercase tracking-wider w-full xl:w-auto">
               <span className="text-slate-500 px-2 py-1 text-[8px] font-extrabold uppercase font-mono">CASE PHASE:</span>
-              {['Pre-Op', 'Induction', 'Incision', 'Maintenance', 'Emergence'].map((phase) => {
+              {['Pre-Op', 'Induction', 'Incision', 'Maintenance', 'Emergence', 'PACU'].map((phase) => {
                 const isLockedInduction = phase === 'Induction' && !msmaidsComplete && !patient?.emergentRSI;
                 const isActive = surgicalPhase === phase;
                 

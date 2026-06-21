@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, Suspense, lazy } from 'react';
 import './App.css';
 import { usePhysiology } from './engine/usePhysiology';
+import { calculatePacuReadiness } from './engine/OutcomeScoringEngine.ts';
 import { ProceduralEngine } from './engine/ProceduralEngine';
 import { Search, Activity } from 'lucide-react';
 import { CaseManager } from './components/controls/CaseManager';
@@ -36,9 +37,9 @@ const AttendingPanel = lazy(() => import('./components/controls/AttendingPanel')
 const CASES = [
   {
     id: 'normal', name: 'Elective Surgery (Perfect Baseline)', difficulty: 'Easy',
-    description: '45yo Female, ASA 1. Fasting for 12 hours. Normal neck anatomy, Mallampati I. Perfectly stable hemodynamics.',
+    description: '45yo Female, ASA 1. Fasting for 12 hours. Normal neck anatomy, Mallampati I. Perfectly stable hemodynamics. Patient takes garlic and fish oil daily, and valerian for sleep.',
     baseVitals: { hr: 72, sys: 120, dia: 80, spo2: 99, etco2: 0, rr: 12 },
-    patient: { age: 45, sex: 'female', weight: 60, height: 165, ibw: 56, bmi: 22.0, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: false, isObese: false, baseGrade: 1, isSeptic: false, hasCCollar: false, stomach: 'empty', limitedMouth: false, trauma: false, chronicBetaBlockade: true }
+    patient: { age: 45, sex: 'female', weight: 60, height: 165, ibw: 56, bmi: 22.0, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: false, isObese: false, baseGrade: 1, isSeptic: false, hasCCollar: false, stomach: 'empty', limitedMouth: false, trauma: false, chronicBetaBlockade: true, herbalSupplements: ['garlic', 'valerian'], dietarySupplements: ['fishOil'] }
   },
   {
     id: 'trauma', name: 'Motor Vehicle Trauma (Bloody Airway)', difficulty: 'Hard',
@@ -57,6 +58,12 @@ const CASES = [
     description: '50yo Male, BMI 45, severe Obstructive Sleep Apnea (OSA). Severely decreased Functional Residual Capacity (FRC).',
     baseVitals: { hr: 88, sys: 150, dia: 95, spo2: 94, etco2: 0, rr: 18 },
     patient: { age: 50, sex: 'male', weight: 142, height: 178, bmi: 44.8, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: false, isObese: true, baseGrade: 3, isSeptic: false, hasCCollar: false, stomach: 'full', limitedMouth: false, trauma: false, chronicHTN: true }
+  },
+  {
+    id: 'spine_prone', name: 'Prolonged Spine Fusion (Prone / POVL Risk)', difficulty: 'Hard',
+    description: '38yo Obese Male (BMI 36.3) scheduled for a 7-hour lumbar spine fusion in the Prone position. High risk of visceral IVC compression and perioperative visual loss (POVL).',
+    baseVitals: { hr: 75, sys: 130, dia: 85, spo2: 97, etco2: 0, rr: 14 },
+    patient: { age: 38, sex: 'male', weight: 110, height: 174, ibw: 69, bmi: 36.3, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: false, isObese: true, baseGrade: 2, isSeptic: false, hasCCollar: false, stomach: 'empty', limitedMouth: false, trauma: false, position: 'Prone', procedure: 'Lumbar Spine Fusion' }
   }
 ];
 
@@ -143,7 +150,7 @@ export default function App() {
   const {
     time, setTime, vitals, setVitals, setTargetVitals, patient, setPatient,
     processMed, pushMed, pushFluid, updateFluidRate, removeFluid, activeMeds, intravascularVolume, electrolytes, coags,
-    deliverShock, toggleCPR, placeEpidural, removeEpidural, toggleCeliacBlock, surgicalPhase, setSurgicalPhase, createSnapshot, restoreSnapshot
+    deliverShock, toggleCPR, placeEpidural, removeEpidural, toggleCeliacBlock, surgicalPhase, setSurgicalPhase, createSnapshot, restoreSnapshot, logQualityEvent
   } = usePhysiology({
     activeCase,
     isRunning,
@@ -291,14 +298,42 @@ export default function App() {
     if (val === 'Induction' && !msmaidsComplete && !patient?.emergentRSI && !patient?.isFuzzing) {
       logEvent("⚠️ CLINICAL INTERLOCK BLOCKED: Induction phase locked. Complete MSMAIDS pre-induction checklist first.");
       setMsmaidsModal(true);
-      return;
+      return false;
+    }
+    if (val === 'PACU' && logQualityEvent) {
+      // Aldrete-style PACU readiness check at the moment of transfer (see
+      // OutcomeScoringEngine.ts). Deliberately not a hard interlock like MSMAIDS - in real
+      // practice a patient can be transferred under-recovered, and that is itself the
+      // teaching point worth scoring rather than preventing outright.
+      const readiness = calculatePacuReadiness(vitals, patient);
+      if (!readiness.isReadyForDischarge) {
+        const failingCriteria = Object.values(readiness.criteria).filter(c => c.points < 2).map(c => `${c.label} (${c.detail})`).join('; ');
+        logQualityEvent({
+          category: 'PostopReadiness',
+          severity: readiness.totalScore <= 6 ? 'major' : 'moderate',
+          phase: 'Intraoperative',
+          description: `Patient transferred to PACU with an Aldrete-style readiness score of ${readiness.totalScore}/10 (below the conventional discharge-readiness threshold of 9/10).`,
+          idealAction: 'Address deficient recovery criteria before transfer when clinically feasible.',
+          actualAction: `Transferred with: ${failingCriteria}`,
+          impact: 'Increased risk of an adverse PACU event (airway obstruction, hypoxemia, hemodynamic instability, or delayed emergence) immediately after handoff.',
+        });
+      } else {
+        logQualityEvent({
+          category: 'PostopReadiness',
+          severity: 'info',
+          phase: 'Intraoperative',
+          description: `Patient transferred to PACU fully recovered (Aldrete-style readiness score ${readiness.totalScore}/10).`,
+        });
+      }
     }
     saveState();
     setSurgicalPhase(val);
+    return true;
   };
   const handleSetDefibSettings = (val) => { saveState(); setDefibSettings(val); };
   const handleToggleBis = () => { saveState(); setPatient(p => ({...p, hasBisMonitor: !p.hasBisMonitor})); logEvent(patient.hasBisMonitor ? "Removed BIS Monitor." : "Attached BIS Monitor."); };
   const handleToggleTof = () => { saveState(); setPatient(p => ({...p, hasTofMonitor: !p.hasTofMonitor})); logEvent(patient.hasTofMonitor ? "Removed TOF Monitor." : "Attached TOF Monitor."); };
+  const handleToggleTofMode = () => { saveState(); setPatient(p => ({...p, tofMonitorMode: p.tofMonitorMode === 'qualitative' ? 'quantitative' : 'qualitative'})); logEvent(patient.tofMonitorMode === 'qualitative' ? "Switched to Quantitative (AMG) Neuromuscular Monitoring." : "Switched to Qualitative (Manual Tactile/Visual) Neuromuscular Monitoring."); };
   const handleCheckRhythm = () => { saveState(); logEvent("⏸ Rhythm Check: CPR Paused. Assessing monitor..."); setPatient(p => ({ ...p, cprActive: false })); };
 
   const handleSurgicalCric = () => {
@@ -309,18 +344,76 @@ export default function App() {
 
   const handleExtubation = () => {
     saveState();
+    // Ground truth, computed here (not trusted from the modal/caller) so the check is
+    // consistent regardless of which UI path triggered extubation.
+    const trueResidualBlock = !(vitals?.tofCount === 4 && vitals?.tofRatio >= 0.90);
     logEvent("Airway removed / Extubated patient.");
+    const isLaryngealEdema = patient?.timeInHeadDown > 240 && !patient?.isCuffDeflated;
+    const isCuffDeflatedCheck = patient?.timeInHeadDown > 240 && patient?.isCuffDeflated;
+
     setPatient(p => ({
-        ...p, 
-        airwaySecured: false, 
-        ventilationStatus: p.isApneic ? 'failed' : 'spontaneous', 
-        tubePosition: null, 
-        currentO2Device: 'Room Air', 
-        currentFiO2: 21, 
+        ...p,
+        airwaySecured: false,
+        ventilationStatus: p.isApneic ? 'failed' : 'spontaneous',
+        tubePosition: null,
+        currentO2Device: 'Room Air',
+        currentFiO2: 21,
         currentO2Flow: 0,
         lastAirwayManipulationTime: time,
-        lastAirwayManipulationType: 'extubation'
+        lastAirwayManipulationType: 'extubation',
+        postExtubationLaryngealEdema: isLaryngealEdema ? true : p.postExtubationLaryngealEdema,
+        airwayObstructionIndex: isLaryngealEdema ? 0.8 : p.airwayObstructionIndex
     }));
+    // Ground-truth residual neuromuscular block check at the moment of extubation (Ch27/28).
+    // Recorded as a quality event regardless of which TOF monitoring mode was displayed to the
+    // user, since the clinical consequence (airway obstruction/respiratory failure risk) is
+    // real even if the qualitative monitor falsely reported full recovery.
+    if (logQualityEvent) {
+      if (trueResidualBlock) {
+        logQualityEvent({
+          category: 'CrisisManagement',
+          severity: 'major',
+          phase: 'Intraoperative',
+          description: 'Patient was extubated with clinically significant residual neuromuscular blockade present (true TOF ratio < 90%).',
+          idealAction: 'Confirm TOF ratio >= 90% via quantitative (AMG) monitoring before extubation, or administer further reversal agent.',
+          actualAction: 'Extubated before neuromuscular recovery was confirmed.',
+          impact: 'High risk of postoperative respiratory failure, airway obstruction, and need for reintubation.',
+          chapterSource: 'Ch27/28, Miller\'s 9th Ed'
+        });
+      } else {
+        logQualityEvent({
+          category: 'CrisisManagement',
+          severity: 'info',
+          phase: 'Intraoperative',
+          description: 'Patient was extubated with neuromuscular function adequately recovered (true TOF ratio >= 90%).',
+          chapterSource: 'Ch27/28, Miller\'s 9th Ed'
+        });
+      }
+
+      if (isLaryngealEdema) {
+        logQualityEvent({
+          category: 'Vigilance',
+          severity: 'moderate',
+          phase: 'Intraoperative',
+          description: 'Extubated patient with severe laryngeal edema without performing a cuff leak test first.',
+          idealAction: 'Perform a cuff leak test to assess airway patency before extubation in a patient who has undergone prolonged head-down (Trendelenburg/Prone) positioning (Ch34).',
+          actualAction: 'Patient extubated without a cuff leak test after prolonged head-down positioning.',
+          impact: 'Severe post-extubation airway obstruction/stridor requiring emergency intervention.',
+          chapterSource: 'Ch34, Miller\'s 9th Ed'
+        });
+      } else if (isCuffDeflatedCheck) {
+        logQualityEvent({
+          category: 'Vigilance',
+          severity: 'info',
+          phase: 'Intraoperative',
+          description: 'Cuff leak test successfully performed prior to extubation after prolonged head-down positioning.',
+          idealAction: 'Deflate cuff and check for leak before extubating if prone or Trendelenburg time is prolonged.',
+          actualAction: 'Cuff leak test checked and verified before extubation.',
+          impact: 'Confirms airway patency and minimizes risk of unanticipated post-extubation stridor.',
+          chapterSource: 'Ch34, Miller\'s 9th Ed'
+        });
+      }
+    }
   };
 
   const handleExecuteClinicalAction = (actionKey) => {
@@ -348,6 +441,47 @@ export default function App() {
         examineNpoHistory();
       } else if (action.action === 'airway_exam') {
         examineAirway();
+      } else if (action.action === 'apply_p6') {
+        setPatient(p => ({ ...p, p6StimulationApplied: true }));
+        logEvent("Applied P6 acupressure (PC6 Nei Guan point) to prevent postoperative nausea and vomiting (Ch33).");
+      } else if (action.action === 'ask_herbal') {
+        setPatient(p => ({ ...p, herbalScreeningDone: true }));
+        logEvent("Conducted comprehensive complementary and alternative medicine (CAM) preoperative assessment (Ch33).");
+      } else if (action.action === 'place_charcoal_filters') {
+        setPatient(p => ({ ...p, charcoalFiltersPlaced: true }));
+        logEvent("Placed charcoal filters in the breathing circuit. Volatile agent concentrations will decay rapidly to scrub the system (Ch35).");
+      } else if (action.action === 'apply_ice_packs') {
+        setPatient(p => ({ ...p, icePacksApplied: true, coolingMeasuresActive: true }));
+        logEvent("Applied ice packs to axillae, groin, and neck to initiate active surface cooling (Ch35).");
+      } else if (action.action === 'cold_saline_lavage') {
+        setPatient(p => ({ ...p, coldLavageActive: true, coolingMeasuresActive: true }));
+        logEvent("Initiated cold saline gastric and bladder lavage to facilitate internal cooling (Ch35).");
+      } else if (action.action === 'ask_positioning') {
+        setPatient(p => ({ ...p, positioningAssessmentDone: true }));
+        logEvent("Conducted comprehensive preoperative patient positioning risk assessment (Ch34).");
+      } else if (action.action === 'pad_arms') {
+        setPatient(p => ({ ...p, armsPositionedCorrectly: true }));
+        logEvent("Positioned and padded patient's arms, limiting abduction to <90 degrees and maintaining forearm supination/neutral (Ch34).");
+      } else if (action.action === 'pad_legs') {
+        setPatient(p => ({ ...p, peronealNervePadded: true }));
+        logEvent("Padded lower extremity stirrups and protected peroneal nerve at the fibular head (Ch34).");
+      } else if (action.action === 'place_prone_supports') {
+        setPatient(p => ({ ...p, proneSupportsPlaced: true }));
+        logEvent("Placed prone chest rolls/Wilson frame. Abdomen is hanging freely, preserving compliance and venous return (Ch34).");
+      } else if (action.action === 'lower_legs') {
+        setPatient(p => ({
+          ...p,
+          lastLegsLoweredTime: time,
+          legsLoweredCount: (p.legsLoweredCount || 0) + 1
+        }));
+        logEvent("Lowered legs out of stirrups to the level of the heart to allow reperfusion of lower extremities (Ch34).");
+      } else if (action.action === 'check_head_eyes') {
+        setPatient(p => ({
+          ...p,
+          lastHeadEyeCheckTime: time,
+          headEyeCheckCount: (p.headEyeCheckCount || 0) + 1
+        }));
+        logEvent("Checked face and head positioning: verified eyes are free of direct pressure and neck is aligned neutrally (Ch34).");
       } else if (action.action === 'place_piv') {
         setAccessModal({ show: true, category: 'Peripheral IV' });
       } else if (action.action === 'place_cvc') {
@@ -356,6 +490,8 @@ export default function App() {
         setAccessModal({ show: true, category: 'Intraosseous (IO)' });
       } else if (action.action === 'place_art') {
         setAccessModal({ show: true, category: 'Arterial Line' });
+      } else if (action.action === 'place_foley') {
+        placeFoley();
       } else if (action.action === 'msmaids') {
         setMsmaidsModal(true);
       } else if (action.action === 'preop') {
@@ -441,15 +577,18 @@ export default function App() {
           induction: 'Induction',
           incision: 'Incision',
           maintenance: 'Maintenance',
-          emergence: 'Emergence'
+          emergence: 'Emergence',
+          pacu: 'PACU'
         };
         const targetPhase = phaseMap[rawPhase];
-        if (targetPhase === 'Induction' && !msmaidsComplete && !patient?.emergentRSI && !patient?.isFuzzing) {
-          logEvent("⚠️ CLINICAL INTERLOCK BLOCKED: Induction phase locked. Complete MSMAIDS pre-induction checklist first.");
-          setMsmaidsModal(true);
-        } else {
-          setSurgicalPhase(targetPhase);
-          logEvent(`Surgical phase advanced to ${targetPhase}.`);
+        if (targetPhase) {
+          // Route through the single chokepoint (handleSetSurgicalPhase) so the MSMAIDS
+          // interlock and PACU readiness quality-event check both apply consistently,
+          // regardless of whether the transition was triggered from the UI or the chat.
+          const succeeded = handleSetSurgicalPhase(targetPhase);
+          if (succeeded) {
+            logEvent(`Surgical phase advanced to ${targetPhase}.`);
+          }
         }
       } else if (action.action.startsWith('pocus_')) {
         const rawPocus = action.action.replace('pocus_', '');
@@ -611,7 +750,27 @@ export default function App() {
       forceVaricealBleed: selectedCase.patient?.forceVaricealBleed || false,
       forcePoPHCollapse: selectedCase.patient?.forcePoPHCollapse || false,
       forceFluidOverloadEdema: selectedCase.patient?.forceFluidOverloadEdema || false,
-      forceNormepSeizure: selectedCase.patient?.forceNormepSeizure || false
+      forceNormepSeizure: selectedCase.patient?.forceNormepSeizure || false,
+      sodiumLevel: selectedCase.patient?.sodiumLevel !== undefined ? selectedCase.patient.sodiumLevel : 140.0,
+      whiteBloodCellCount: selectedCase.patient?.whiteBloodCellCount !== undefined ? selectedCase.patient.whiteBloodCellCount : 7.5,
+      hasGOSRD: false,
+      ziconotideHypotensionActive: false,
+      forceCarbamazepineDyscrasia: selectedCase.patient?.forceCarbamazepineDyscrasia || false,
+      isHyponatremic: false,
+      herbalSupplements: selectedCase.patient?.herbalSupplements || [],
+      dietarySupplements: selectedCase.patient?.dietarySupplements || [],
+      herbalScreeningDone: false,
+      p6StimulationApplied: false,
+      position: selectedCase.patient?.position || 'Supine',
+      positioningAssessmentDone: false,
+      armsPositionedCorrectly: false,
+      peronealNervePadded: false,
+      proneSupportsPlaced: false,
+      lastLegsLoweredTime: 0,
+      legsLoweredCount: 0,
+      lastHeadEyeCheckTime: 0,
+      headEyeCheckCount: 0,
+      postExtubationLaryngealEdema: false
     });
     if (selectedCase.preOpLabs) {
       setLabs(selectedCase.preOpLabs);
@@ -635,6 +794,18 @@ export default function App() {
       const isDeflated = !p.isCuffDeflated;
       logEvent(`💨 Cuff Leak Test performed: ETT cuff ${isDeflated ? 'deflated' : 're-inflated'}. ${isDeflated ? 'Audible high-volume leak heard around the tube, confirming minimal to no airway/laryngeal edema. Extubation is highly favored.' : 'Cuff pressure restored to 25 cmH2O.'}`);
       return { ...p, isCuffDeflated: isDeflated };
+    });
+  };
+
+  const placeFoley = () => {
+    saveState();
+    setPatient(p => {
+      if (p.hasFoley) {
+        logEvent("⚠️ Clinical Note: Foley catheter is already in place.");
+        return p;
+      }
+      logEvent("🩺 CLINICAL PROCEDURE: Foley catheter successfully inserted. Bladder drained.");
+      return { ...p, hasFoley: true };
     });
   };
 
@@ -1264,6 +1435,7 @@ export default function App() {
             setStagedCase={setStagedCase}
             onStart={startCase}
             logEvent={logEvent}
+            logQualityEvent={logQualityEvent}
           />
         )}
       </div>
@@ -1457,15 +1629,17 @@ export default function App() {
              logEvent={logEvent}
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <MemoryPanel 
+            <MemoryPanel
                patient={patient}
                vitals={vitals}
                setPatient={setPatient}
                logEvent={logEvent}
                toggleBis={handleToggleBis}
                toggleTof={handleToggleTof}
+               toggleTofMode={handleToggleTofMode}
+               surgicalPhase={surgicalPhase}
             />
-            <LogPanel 
+            <LogPanel
                logs={logs} 
                formatTime={formatTime} 
                onActionClick={handleExecuteClinicalAction}
@@ -1564,6 +1738,7 @@ export default function App() {
           setStagedCase={activeCase ? () => {} : setStagedCase}
           onStart={activeCase ? () => {} : startCase}
           logEvent={logEvent}
+          logQualityEvent={logQualityEvent}
           intraop={!!activeCase}
         />
       )}
@@ -1606,6 +1781,7 @@ export default function App() {
           <AttendingPanel
             vitals={vitals}
             patient={patient}
+            caseId={activeCase?.id}
             activeMeds={activeMeds}
             surgicalPhase={surgicalPhase}
             time={time}

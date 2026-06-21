@@ -3,6 +3,14 @@ import { MEDICATIONS_CONFIG } from '../engine/config/meds.config';
 import { MEDICATIONS } from '../engine/Pharmacology';
 import { PKPDModel } from '../engine/PKPDEngine';
 
+function tickEffects(model: PKPDModel, ticks: number, bcheMultiplier = 1.0) {
+  let effects;
+  for (let t = 0; t < ticks; t++) {
+    effects = model.tick(1, 1.0, 1.0, 1.0, 1.0, 1.0, bcheMultiplier);
+  }
+  return effects!;
+}
+
 describe('Chapter 27: Pharmacology of Neuromuscular Blocking Drugs (NMBDs)', () => {
 
   describe('1. Medication Configurations', () => {
@@ -396,6 +404,106 @@ describe('Chapter 27: Pharmacology of Neuromuscular Blocking Drugs (NMBDs)', () 
       // Prolonged exposure (100mg, 130 ticks of active drug) -> transitions to Phase II
       suxPhase2Accumulation = 0;
       expect(checkSuxPhaseII(true, 100, 130)).toBe(true);
+    });
+  });
+
+  describe('6. Mivacurium & Pancuronium Medication Profiles (Table 27.2, 27.9, 27.10)', () => {
+    it('should verify mivacurium and pancuronium exist in both MEDICATIONS and MEDICATIONS_CONFIG', () => {
+      expect(MEDICATIONS.mivacurium).toBeDefined();
+      expect(MEDICATIONS.pancuronium).toBeDefined();
+      expect(MEDICATIONS_CONFIG.mivacurium).toBeDefined();
+      expect(MEDICATIONS_CONFIG.pancuronium).toBeDefined();
+      expect(MEDICATIONS.mivacurium.classes).toContain('NDMR');
+      expect(MEDICATIONS.pancuronium.classes).toContain('NDMR');
+    });
+
+    it('should prolong Mivacurium block under atypical pseudocholinesterase genotype, mirroring Succinylcholine (Table 27.1)', () => {
+      const mivaNormal = new PKPDModel(MEDICATIONS_CONFIG.mivacurium, 70);
+      mivaNormal.giveBolus(15);
+      const mivaAtypical = new PKPDModel(MEDICATIONS_CONFIG.mivacurium, 70);
+      mivaAtypical.giveBolus(15);
+
+      for (let t = 0; t < 300; t++) {
+        mivaNormal.tick(1, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);   // bcheMultiplier = 1.0 (normal)
+        mivaAtypical.tick(1, 1.0, 1.0, 1.0, 1.0, 1.0, 0.01); // bcheMultiplier = 0.01 (atypical)
+      }
+
+      expect(mivaNormal.Ce).toBeLessThan(mivaAtypical.Ce);
+    });
+
+    it('should NOT alter Atracurium/Cisatracurium clearance via bcheMultiplier (only Hofmann elimination applies to them)', () => {
+      const atrA = new PKPDModel(MEDICATIONS_CONFIG.atracurium, 70);
+      atrA.giveBolus(35);
+      const atrB = new PKPDModel(MEDICATIONS_CONFIG.atracurium, 70);
+      atrB.giveBolus(35);
+
+      for (let t = 0; t < 60; t++) {
+        atrA.tick(1, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+        atrB.tick(1, 1.0, 1.0, 1.0, 1.0, 1.0, 0.01, 1.0); // bcheMultiplier should be ignored for Atracurium
+      }
+      expect(atrA.Ce).toBeCloseTo(atrB.Ce, 6);
+    });
+
+    it('should produce mild histamine-mediated hypotension/tachycardia for Atracurium and Mivacurium at high Ce', () => {
+      const atr = new PKPDModel(MEDICATIONS_CONFIG.atracurium, 70);
+      atr.giveBolus(35); // 0.5 mg/kg, paralytic dose
+      const atrEffects = tickEffects(atr, 30);
+      expect(atrEffects.sysDelta).toBeLessThan(0);
+      expect(atrEffects.hrDelta).toBeGreaterThan(0);
+
+      const miva = new PKPDModel(MEDICATIONS_CONFIG.mivacurium, 70);
+      miva.giveBolus(17.5); // 0.25 mg/kg, paralytic dose
+      const mivaEffects = tickEffects(miva, 30);
+      expect(mivaEffects.sysDelta).toBeLessThan(0);
+      expect(mivaEffects.hrDelta).toBeGreaterThan(0);
+    });
+
+    it('should produce vagolytic tachycardia with NO hypotension for Pancuronium, and a weaker version than Pancuronium for Rocuronium at equal saturation (Table 27.10)', () => {
+      // Compare the intrinsic hrMax magnitude at matched receptor-saturation (Ce = c50, i.e. fractionResp = 0.5 for both),
+      // isolating the textbook's comparative muscarinic-blockade claim from each drug's distinct PK onset kinetics.
+      const panc = new PKPDModel(MEDICATIONS_CONFIG.pancuronium, 70);
+      panc.Ce = panc.pd.c50;
+      const pancEffects = panc.getEffects();
+      expect(pancEffects.hrDelta).toBeCloseTo(panc.pd.hrMax * 0.5, 5);
+      expect(pancEffects.sysDelta).toBe(0);
+      expect(pancEffects.diaDelta).toBe(0);
+
+      const roc = new PKPDModel(MEDICATIONS_CONFIG.rocuronium, 70);
+      roc.Ce = roc.pd.c50;
+      const rocEffects = roc.getEffects();
+      expect(rocEffects.hrDelta).toBeCloseTo(roc.pd.hrMax * 0.5, 5);
+      expect(rocEffects.hrDelta).toBeGreaterThan(0);
+      expect(rocEffects.hrDelta).toBeLessThan(pancEffects.hrDelta);
+    });
+
+    it('should produce NO hemodynamic effect for Cisatracurium or Vecuronium (Table 27.10: "None")', () => {
+      const cis = new PKPDModel(MEDICATIONS_CONFIG.cisatracurium, 70);
+      cis.giveBolus(14); // 0.2 mg/kg
+      const cisEffects = tickEffects(cis, 60);
+      expect(cisEffects.hrDelta).toBe(0);
+      expect(cisEffects.sysDelta).toBe(0);
+
+      const vec = new PKPDModel(MEDICATIONS_CONFIG.vecuronium, 70);
+      vec.giveBolus(7); // 0.1 mg/kg
+      const vecEffects = tickEffects(vec, 60);
+      expect(vecEffects.hrDelta).toBe(0);
+      expect(vecEffects.sysDelta).toBe(0);
+    });
+
+    it('should remain finite and bounded across a wide range of Mivacurium/Pancuronium concentrations', () => {
+      for (const dose of [0, 5, 17.5, 50, 200]) {
+        const miva = new PKPDModel(MEDICATIONS_CONFIG.mivacurium, 70);
+        miva.giveBolus(dose);
+        const mEff = tickEffects(miva, 60);
+        expect(Number.isFinite(miva.Ce)).toBe(true);
+        expect(Number.isFinite(mEff.hrDelta)).toBe(true);
+
+        const panc = new PKPDModel(MEDICATIONS_CONFIG.pancuronium, 70);
+        panc.giveBolus(dose);
+        const pEff = tickEffects(panc, 60);
+        expect(Number.isFinite(panc.Ce)).toBe(true);
+        expect(Number.isFinite(pEff.hrDelta)).toBe(true);
+      }
     });
   });
 });

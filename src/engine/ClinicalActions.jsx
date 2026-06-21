@@ -10,6 +10,7 @@ export const CLINICAL_ACTIONS = {
 
   // === OPIOIDS & ANALGESICS ===
   "fentanyl": { type: "medication", drug: "fentanyl", dose: 100, route: "IV", drugType: "Bolus", unit: "mcg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
+  "alfentanil": { type: "medication", drug: "alfentanil", dose: 1000, route: "IV", drugType: "Bolus", unit: "mcg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "hydromorphone": { type: "medication", drug: "hydromorphone", dose: 0.5, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "morphine": { type: "medication", drug: "morphine", dose: 4, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "remifentanil": { type: "medication", drug: "remifentanil", dose: 70, route: "IV", drugType: "Bolus", unit: "mcg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
@@ -18,13 +19,16 @@ export const CLINICAL_ACTIONS = {
   // === PARALYTICS & REVERSALS ===
   "cisatracurium": { type: "medication", drug: "cisatracurium", dose: 10, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "glycopyrrolate": { type: "medication", drug: "glycopyrrolate", dose: 0.2, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
+  "mivacurium": { type: "medication", drug: "mivacurium", dose: 15, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "neostigmine": { type: "medication", drug: "neostigmine", dose: 3.5, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "edrophonium": { type: "medication", drug: "edrophonium", dose: 70, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
+  "pancuronium": { type: "medication", drug: "pancuronium", dose: 7, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "pyridostigmine": { type: "medication", drug: "pyridostigmine", dose: 15, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "rocuronium": { type: "medication", drug: "rocuronium", dose: 50, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "succinylcholine": { type: "medication", drug: "succinylcholine", dose: 100, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "sugammadex": { type: "medication", drug: "sugammadex", dose: 200, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "vecuronium": { type: "medication", drug: "vecuronium", dose: 10, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
+  "dantrolene": { type: "medication", drug: "dantrolene", dose: 200, route: "IV", drugType: "Bolus", unit: "mg", color: "text-emerald-400 border-emerald-800 bg-emerald-950/40 hover:bg-emerald-900/60 shadow-[0_0_8px_rgba(16,185,129,0.15)]" },
 
   // === INOTROPES & VASOPRESSORS ===
   "dobutamine": { type: "medication", drug: "dobutamine", dose: 5, route: "IV", drugType: "Bolus", unit: "mcg/kg/min", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
@@ -68,6 +72,7 @@ export const CLINICAL_ACTIONS = {
   "lidocaine": { type: "medication", drug: "lidocaine", dose: 100, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "benzocaine": { type: "medication", drug: "benzocaine", dose: 1, route: "Topical", drugType: "Bolus", unit: "sprays", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "prilocaine": { type: "medication", drug: "prilocaine", dose: 100, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
+  "mepivacaine": { type: "medication", drug: "mepivacaine", dose: 100, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "albuterol": { type: "medication", drug: "albuterol", dose: 2.5, route: "Inhaled (via ETT)", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
 
   // === RESUSCITATION FLUIDS ===
@@ -99,6 +104,10 @@ export const CLINICAL_ACTIONS = {
   "place io": { type: "procedure", action: "place_io", color: "text-emerald-400 border-emerald-800 bg-emerald-950/40 hover:bg-emerald-900/60 shadow-[0_0_8px_rgba(16,185,129,0.15)]" },
   "place arterial line": { type: "procedure", action: "place_art", color: "text-emerald-400 border-emerald-800 bg-emerald-950/40 hover:bg-emerald-900/60 shadow-[0_0_8px_rgba(16,185,129,0.15)]" },
   "arterial line": { type: "procedure", action: "place_art", color: "text-emerald-400 border-emerald-800 bg-emerald-950/40 hover:bg-emerald-900/60 shadow-[0_0_8px_rgba(16,185,129,0.15)]" },
+  "place foley": { type: "procedure", action: "place_foley", color: "text-emerald-400 border-emerald-800 bg-emerald-950/40 hover:bg-emerald-900/60 shadow-[0_0_8px_rgba(16,185,129,0.15)]" },
+  "place foley catheter": { type: "procedure", action: "place_foley", color: "text-emerald-400 border-emerald-800 bg-emerald-950/40 hover:bg-emerald-900/60 shadow-[0_0_8px_rgba(16,185,129,0.15)]" },
+  "foley catheter": { type: "procedure", action: "place_foley", color: "text-emerald-400 border-emerald-800 bg-emerald-950/40 hover:bg-emerald-900/60 shadow-[0_0_8px_rgba(16,185,129,0.15)]" },
+  "foley": { type: "procedure", action: "place_foley", color: "text-emerald-400 border-emerald-800 bg-emerald-950/40 hover:bg-emerald-900/60 shadow-[0_0_8px_rgba(16,185,129,0.15)]" },
 
   // === CHECKLISTS & PROTOCOLS ===
   "msmaids checklist": { type: "procedure", action: "msmaids", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)]" },
@@ -109,6 +118,12 @@ export const CLINICAL_ACTIONS = {
   "post-intubation check": { type: "procedure", action: "post_intub", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)]" },
   "extubation check": { type: "procedure", action: "extub", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)]" },
   "cuff leak test": { type: "procedure", action: "cuff_leak", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)]" },
+  "place charcoal filters": { type: "procedure", action: "place_charcoal_filters", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)]" },
+  "charcoal filters": { type: "procedure", action: "place_charcoal_filters", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)]" },
+  "apply ice packs": { type: "procedure", action: "apply_ice_packs", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)]" },
+  "ice packs": { type: "procedure", action: "apply_ice_packs", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)]" },
+  "cold saline lavage": { type: "procedure", action: "cold_saline_lavage", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)]" },
+  "gastric lavage": { type: "procedure", action: "cold_saline_lavage", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)]" },
 
   // === ACLS, CPR & DEFIB ===
   "cpr": { type: "procedure", action: "cpr", color: "text-rose-500 border-rose-800 bg-rose-950/40 hover:bg-rose-900/60 shadow-[0_0_8px_rgba(244,63,94,0.15)]" },
@@ -166,6 +181,12 @@ export const CLINICAL_ACTIONS = {
   "lateral": { type: "procedure", action: "pos_lateral", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)]" },
   "prone": { type: "procedure", action: "pos_prone", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)]" },
   "sitting": { type: "procedure", action: "pos_sitting", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)]" },
+  "ask about positioning risks": { type: "procedure", action: "ask_positioning", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)]" },
+  "pad arms and limit abduction": { type: "procedure", action: "pad_arms", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)]" },
+  "pad stirrups and fibular head": { type: "procedure", action: "pad_legs", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)]" },
+  "place prone supports": { type: "procedure", action: "place_prone_supports", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)]" },
+  "lower legs for reperfusion": { type: "procedure", action: "lower_legs", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)]" },
+  "check face and eye pressure": { type: "procedure", action: "check_head_eyes", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)]" },
 
   // === CHARTS & TELEMETRY UI ===
   "review chart": { type: "ui", action: "review_chart", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)]" },
@@ -264,7 +285,13 @@ export const CLINICAL_ACTIONS = {
   "pull back ett": { type: "procedure", action: "pull_back", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)] font-mono" },
   "remove tube": { type: "procedure", action: "remove_tube", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)] font-mono" },
   "remove ett": { type: "procedure", action: "remove_tube", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)] font-mono" },
-  "remove": { type: "procedure", action: "remove_tube", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)] font-mono" }
+  "remove": { type: "procedure", action: "remove_tube", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)] font-mono" },
+  "apply p6 acupressure": { type: "procedure", action: "apply_p6", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)] font-mono" },
+  "p6 acupressure": { type: "procedure", action: "apply_p6", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)] font-mono" },
+  "p6": { type: "procedure", action: "apply_p6", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)] font-mono" },
+  "ask about herbal medicines": { type: "procedure", action: "ask_herbal", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)] font-mono" },
+  "ask herbal": { type: "procedure", action: "ask_herbal", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)] font-mono" },
+  "herbal screening": { type: "procedure", action: "ask_herbal", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)] font-mono" }
 
   // DEVELOPER NOTE: If any new feature or action is added to the simulator in the future, make sure to add it to this CLINICAL_ACTIONS dictionary so it becomes available to the Attending engine.
 };

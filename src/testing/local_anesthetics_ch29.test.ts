@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { MEDICATIONS_CONFIG } from '../engine/config/meds.config';
 import { MEDICATIONS } from '../engine/Pharmacology';
+import { PKPDModel } from '../engine/PKPDEngine';
 
 describe('Chapter 29: Local Anesthetics', () => {
 
@@ -8,7 +9,7 @@ describe('Chapter 29: Local Anesthetics', () => {
     const expectedMeds = [
       'bupivacaine', 'ropivacaine', 'levobupivacaine',
       'cocaine', 'tetracaine', 'chloroprocaine',
-      'benzocaine', 'prilocaine', 'intralipid', 'methyleneBlue'
+      'benzocaine', 'prilocaine', 'mepivacaine', 'intralipid', 'methyleneBlue'
     ];
 
     it('should verify all new medications exist in MEDICATIONS_CONFIG and MEDICATIONS', () => {
@@ -195,6 +196,34 @@ describe('Chapter 29: Local Anesthetics', () => {
       // freeCe = 1.0 * 1.0 * (1.0 - 0.0476) = 0.9524
       expect(freeWithLipid).toBeCloseTo(0.95238, 5);
       expect(freeWithLipid).toBeGreaterThan(0.95);
+    });
+  });
+
+  describe('7. Mepivacaine Medication Profile Fidelity (Table 29.2)', () => {
+    it('should be present in both MEDICATIONS and MEDICATIONS_CONFIG as an intermediate-potency amide LA', () => {
+      expect(MEDICATIONS.mepivacaine).toBeDefined();
+      expect(MEDICATIONS_CONFIG.mepivacaine).toBeDefined();
+      expect(MEDICATIONS.mepivacaine.classes).toContain('Local Anesthetic');
+    });
+
+    it('should rank potency/toxicity between Procaine-class and Prilocaine per Table 29.2 (1.5x vs 1x and 1.8x procaine)', () => {
+      // Mepivacaine's CNS threshold (1.8) sits between Lidocaine's (1.5, higher relative potency 2x)
+      // and Prilocaine's (2.0, lower relative potency 1.8x) in the existing usePhysiology.js LAST model,
+      // consistent with Table 29.2's potency ranking: Procaine(1) < Mepivacaine(1.5) < Prilocaine(1.8) < Lidocaine(2).
+      expect(MEDICATIONS.mepivacaine.pd.ccCnsRatio).toBe(7.0);
+      expect(MEDICATIONS.mepivacaine.pd.ccCnsRatio).toBe(MEDICATIONS.lidocaine.pd.ccCnsRatio);
+    });
+
+    it('should remain finite and bounded across a wide range of doses', () => {
+      const mep = new PKPDModel(MEDICATIONS.mepivacaine, 70);
+      mep.giveBolus(200); // ~2.8 mg/kg, a large infiltration dose
+      let eff;
+      for (let t = 0; t < 600; t++) {
+        eff = mep.tick(1, 1.0, 1.0, 1.0, 1.0, 1.0);
+      }
+      expect(Number.isFinite(mep.Ce)).toBe(true);
+      expect(Number.isFinite(eff.hrDelta)).toBe(true);
+      expect(mep.Ce).toBeGreaterThanOrEqual(0);
     });
   });
 });

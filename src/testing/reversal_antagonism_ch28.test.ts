@@ -159,4 +159,46 @@ describe('Chapter 28: Reversal (Antagonism) of Neuromuscular Blockade', () => {
       expect(capTofRatio(1.0, false)).toBe(1.0);
     });
   });
+
+  describe('5. Qualitative vs. Quantitative Neuromuscular Monitoring Blind Spot (Fig 28.2, p.835)', () => {
+    // Replicates the usePhysiology.js perceivedTofRatio/perceivedTofCount derivation
+    const QUALITATIVE_FADE_DETECTION_THRESHOLD = 0.40;
+    const calcPerceived = (targetTofCount: number, targetTofRatio: number) => {
+      const perceivedTofCount = targetTofCount;
+      const perceivedTofRatio = (targetTofCount === 4 && targetTofRatio > QUALITATIVE_FADE_DETECTION_THRESHOLD)
+        ? 1.0
+        : targetTofRatio;
+      return { perceivedTofCount, perceivedTofRatio };
+    };
+
+    it('should perceive full recovery (ratio = 1.0) for true TOF ratios above the 0.40 detection threshold despite real residual blockade', () => {
+      // True ratio 0.50-0.89 is clinically significant residual blockade, but invisible to manual assessment
+      expect(calcPerceived(4, 0.50).perceivedTofRatio).toBe(1.0);
+      expect(calcPerceived(4, 0.70).perceivedTofRatio).toBe(1.0);
+      expect(calcPerceived(4, 0.89).perceivedTofRatio).toBe(1.0);
+    });
+
+    it('should accurately perceive the true ratio once it falls at or below the 0.40 detection threshold', () => {
+      expect(calcPerceived(4, 0.40).perceivedTofRatio).toBe(0.40);
+      expect(calcPerceived(4, 0.20).perceivedTofRatio).toBe(0.20);
+      expect(calcPerceived(4, 0.0).perceivedTofRatio).toBe(0.0);
+    });
+
+    it('should always perceive TOF count accurately (gross twitch absence is reliably visible/tactile, unlike fade ratio)', () => {
+      expect(calcPerceived(0, 0).perceivedTofCount).toBe(0);
+      expect(calcPerceived(1, 0).perceivedTofCount).toBe(1);
+      expect(calcPerceived(2, 0).perceivedTofCount).toBe(2);
+      expect(calcPerceived(3, 0).perceivedTofCount).toBe(3);
+      expect(calcPerceived(4, 0.99).perceivedTofCount).toBe(4);
+    });
+
+    it('should produce a false-positive "safe to extubate" reading under qualitative monitoring at a true ratio of 0.50-0.89', () => {
+      const isSafeToExtubate = (tofCount: number, tofRatio: number) => tofCount === 4 && tofRatio >= 0.90;
+      const trueRatio = 0.65; // clinically unsafe — high risk of residual paresis
+      const { perceivedTofCount, perceivedTofRatio } = calcPerceived(4, trueRatio);
+
+      expect(isSafeToExtubate(4, trueRatio)).toBe(false); // ground truth: NOT safe
+      expect(isSafeToExtubate(perceivedTofCount, perceivedTofRatio)).toBe(true); // qualitative monitor falsely reports safe
+    });
+  });
 });

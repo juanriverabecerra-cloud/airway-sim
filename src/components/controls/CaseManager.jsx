@@ -188,6 +188,38 @@ const PRESETS = [
     burns: false, immobility: false, cp: 'C', htn: false, as: false,
     cirrhosis: true, childPugh: 'C',
     anemia: true, coagulopathy: true, thrombocytopenia: true
+  },
+  {
+    id: 'mh_susceptible',
+    name: 'Neuromuscular - Malignant Hyperthermia Susceptible',
+    specialty: 'General Surgery',
+    description: 'Laparoscopic hernia repair in a patient with a family history of Malignant Hyperthermia. Volatiles/Succinylcholine triggered.',
+    age: 32, sex: 'male', height: 180, weight: 85,
+    hr: 72, sys: 120, dia: 80, spo2: 99, rr: 12, temp: 37.0,
+    mallampati: 1, neckMobility: 'normal', airwayBlood: false,
+    obese: false, septic: false, trauma: false, copd: false, chf: false,
+    position: 'Supine', procedure: 'Laparoscopic Inguinal Hernia Repair',
+    ebl: 'Low', duration: 60, penicillinAllergy: false,
+    npoSolids: 8, npoLiquids: 4, ef: 65, gfr: 100,
+    betaBlocker: false, cad: false, afib: false, mg: false,
+    burns: false, immobility: false, cp: 'none', htn: false, as: false,
+    mhSusceptible: true
+  },
+  {
+    id: 'myasthenia_gravis',
+    name: 'Neuromuscular - Myasthenia Gravis',
+    specialty: 'Thoracic',
+    description: 'Transsternal thymectomy for a patient with severe generalized Myasthenia Gravis. High NDMR sensitivity, postoperative ventilation risk.',
+    age: 44, sex: 'female', height: 165, weight: 60,
+    hr: 80, sys: 115, dia: 70, spo2: 97, rr: 14, temp: 36.8,
+    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
+    obese: false, septic: false, trauma: false, copd: false, chf: false,
+    position: 'Supine', procedure: 'Transsternal Thymectomy',
+    ebl: 'High', duration: 120, penicillinAllergy: false,
+    npoSolids: 8, npoLiquids: 4, ef: 60, gfr: 90,
+    betaBlocker: false, cad: false, afib: false, mg: true,
+    burns: false, immobility: false, cp: 'none', htn: false, as: false,
+    mgDurationYears: 8, pyridostigmineDoseMgPerDay: 480, bulbarSymptoms: true, historyMyasthenicCrisis: false, antiAchR: 120, decrementalResponse: true, vitalCapacity: 2.5
   }
 ];
 
@@ -216,7 +248,23 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
     isTASK3Knockout: false,
     isTREK1Knockout: false,
     isHCN1Knockout: false,
-    butyrylcholinesteraseVariant: 'normal'
+    butyrylcholinesteraseVariant: 'normal',
+    mhSusceptible: false,
+    dmd: false,
+    bmd: false,
+    cmt: false,
+    elms: false,
+    cip: false,
+    mitochondrial: false,
+    hyperPP: false,
+    hypoPP: false,
+    mgDurationYears: 0,
+    pyridostigmineDoseMgPerDay: 0,
+    bulbarSymptoms: false,
+    historyMyasthenicCrisis: false,
+    antiAchR: 0,
+    decrementalResponse: false,
+    vitalCapacity: 3.5
   });
 
   const [activePresetId, setActivePresetId] = useState('general');
@@ -476,7 +524,24 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
         isTREK1Knockout: !!data.isTREK1Knockout,
         isHCN1Knockout: !!data.isHCN1Knockout,
         butyrylcholinesteraseVariant: data.butyrylcholinesteraseVariant || 'normal',
-        dibucaineNumber: data.butyrylcholinesteraseVariant === 'heterozygous' ? 50 : (data.butyrylcholinesteraseVariant === 'atypical' ? 20 : 80)
+        dibucaineNumber: data.butyrylcholinesteraseVariant === 'heterozygous' ? 50 : (data.butyrylcholinesteraseVariant === 'atypical' ? 20 : 80),
+        mhSusceptible: !!data.mhSusceptible,
+        mg: !!data.mg,
+        dmd: !!data.dmd,
+        bmd: !!data.bmd,
+        cmt: !!data.cmt,
+        elms: !!data.elms,
+        cip: !!data.cip,
+        mitochondrial: !!data.mitochondrial,
+        hyperPP: !!data.hyperPP,
+        hypoPP: !!data.hypoPP,
+        mgDurationYears: data.mgDurationYears !== undefined ? data.mgDurationYears : (data.id === 'myasthenia_gravis' ? 8 : 0),
+        pyridostigmineDoseMgPerDay: data.pyridostigmineDoseMgPerDay !== undefined ? data.pyridostigmineDoseMgPerDay : (data.id === 'myasthenia_gravis' ? 480 : 0),
+        bulbarSymptoms: data.bulbarSymptoms !== undefined ? !!data.bulbarSymptoms : (data.id === 'myasthenia_gravis'),
+        historyMyasthenicCrisis: data.historyMyasthenicCrisis !== undefined ? !!data.historyMyasthenicCrisis : false,
+        antiAchR: data.antiAchR !== undefined ? data.antiAchR : (data.id === 'myasthenia_gravis' ? 120 : 0),
+        decrementalResponse: data.decrementalResponse !== undefined ? !!data.decrementalResponse : (data.id === 'myasthenia_gravis'),
+        vitalCapacity: data.vitalCapacity !== undefined ? data.vitalCapacity : (data.id === 'myasthenia_gravis' ? 2.5 : 3.5)
       }
     };
     setStagedCase(newCase);
@@ -932,6 +997,33 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
                     </label>
                     <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300" title="Triggers upregulated nAChR state with fatal hyperkalemic arrest on Succinylcholine!">
                       <input type="checkbox" checked={customForm.burns || customForm.immobility} onChange={e => setCustomForm({...customForm, burns: e.target.checked, immobility: e.target.checked})} className="accent-red-500" /> Upregulated AChR ⚠️
+                    </label>
+                    <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300">
+                      <input type="checkbox" checked={customForm.mhSusceptible} onChange={e => setCustomForm({...customForm, mhSusceptible: e.target.checked})} className="accent-red-500" /> MH Susceptible ⚠️
+                    </label>
+                    <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300">
+                      <input type="checkbox" checked={customForm.dmd} onChange={e => setCustomForm({...customForm, dmd: e.target.checked})} className="accent-red-500" /> DMD ⚠️
+                    </label>
+                    <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300">
+                      <input type="checkbox" checked={customForm.bmd} onChange={e => setCustomForm({...customForm, bmd: e.target.checked})} className="accent-red-500" /> Becker Dystrophy ⚠️
+                    </label>
+                    <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300">
+                      <input type="checkbox" checked={customForm.cmt} onChange={e => setCustomForm({...customForm, cmt: e.target.checked})} className="accent-green-500" /> Charcot-Marie-Tooth
+                    </label>
+                    <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300">
+                      <input type="checkbox" checked={customForm.elms} onChange={e => setCustomForm({...customForm, elms: e.target.checked})} className="accent-green-500" /> Eaton-Lambert
+                    </label>
+                    <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300">
+                      <input type="checkbox" checked={customForm.cip} onChange={e => setCustomForm({...customForm, cip: e.target.checked})} className="accent-green-500" /> Critical Illness Poly.
+                    </label>
+                    <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300">
+                      <input type="checkbox" checked={customForm.mitochondrial} onChange={e => setCustomForm({...customForm, mitochondrial: e.target.checked})} className="accent-green-500" /> Mitochondrial Myo.
+                    </label>
+                    <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300" title="HyperPP: SCN4A channelopathy. Succinylcholine & neostigmine CONTRAINDICATED; K+ triggers attacks.">
+                      <input type="checkbox" checked={customForm.hyperPP} onChange={e => setCustomForm({...customForm, hyperPP: e.target.checked, hypoPP: e.target.checked ? false : customForm.hypoPP})} className="accent-yellow-500" /> HyperPP ⚠️
+                    </label>
+                    <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300" title="HypoPP: CACNA1S/SCN4A channelopathy. Avoid glucose IVF, long-acting NMBAs, & catecholamines; possible MH link.">
+                      <input type="checkbox" checked={customForm.hypoPP} onChange={e => setCustomForm({...customForm, hypoPP: e.target.checked, hyperPP: e.target.checked ? false : customForm.hyperPP})} className="accent-yellow-500" /> HypoPP ⚠️
                     </label>
                   </div>
                   <div className="flex flex-col gap-1 mt-1 pb-1.5 border-b border-slate-800/35">

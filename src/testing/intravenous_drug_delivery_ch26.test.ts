@@ -80,14 +80,112 @@ describe('Chapter 26: Intravenous Drug Delivery Systems & TCI Tests', () => {
     it('should correctly set parameters for Ketamine / Domino model', () => {
       const ketamine = new PKPDModel(MEDICATIONS_CONFIG.ketamine, 70);
       const patient = createPatient();
-      
+
       ketamine.setTci('Cp', 1.5, 'Domino', patient);
-      
+
       expect(ketamine.pk.V1).toBeCloseTo(0.063 * 70, 2);
       expect(ketamine.pk.V2).toBeCloseTo(0.207 * 70, 2);
       expect(ketamine.pk.V3).toBeCloseTo(1.51 * 70, 2);
       expect(ketamine.pk.k10).toBe(0.4381);
       expect(ketamine.pk.ke0).toBe(0.15);
+    });
+
+    it('should correctly set parameters for Sufentanil / Gepts model (Table 26.7)', () => {
+      const sufentanil = new PKPDModel(MEDICATIONS_CONFIG.sufentanil, 70);
+      const patient = createPatient();
+
+      sufentanil.setTci('Cp', 0.3, 'Gepts', patient);
+
+      expect(sufentanil.pk.V1).toBe(14.3);
+      expect(sufentanil.pk.V2).toBe(63.4);
+      expect(sufentanil.pk.V3).toBe(251.9);
+      expect(sufentanil.pk.k10).toBe(0.0645);
+      expect(sufentanil.pk.k12).toBe(0.1086);
+      expect(sufentanil.pk.k13).toBe(0.0229);
+      expect(sufentanil.pk.k21).toBe(0.0245);
+      expect(sufentanil.pk.k31).toBe(0.0013);
+    });
+
+    it('should correctly set parameters for Fentanyl / Shafer model (Table 26.7)', () => {
+      const fentanyl = new PKPDModel(MEDICATIONS_CONFIG.fentanyl, 70);
+      const patient = createPatient();
+
+      fentanyl.setTci('Ce', 0.002, 'Shafer', patient);
+
+      expect(fentanyl.pk.V1).toBe(6.09);
+      expect(fentanyl.pk.V2).toBe(28.1);
+      expect(fentanyl.pk.V3).toBe(228.0);
+      expect(fentanyl.pk.k10).toBe(0.083);
+      expect(fentanyl.pk.k12).toBe(0.4713);
+      expect(fentanyl.pk.k13).toBe(0.22496);
+      expect(fentanyl.pk.k21).toBe(0.1021);
+      expect(fentanyl.pk.k31).toBe(0.00601);
+      expect(fentanyl.pk.ke0).toBe(0.147);
+    });
+
+    it('should correctly set sex-dependent V1 for Alfentanil / Maitre model (Table 26.7)', () => {
+      const maleAlfentanil = new PKPDModel(MEDICATIONS_CONFIG.alfentanil, 70);
+      maleAlfentanil.setTci('Cp', 0.3, 'Maitre', createPatient(40, 70, 170, 'male'));
+      expect(maleAlfentanil.pk.V1).toBeCloseTo(0.111 * 70, 3);
+
+      const femaleAlfentanil = new PKPDModel(MEDICATIONS_CONFIG.alfentanil, 70);
+      femaleAlfentanil.setTci('Cp', 0.3, 'Maitre', createPatient(40, 70, 170, 'female'));
+      expect(femaleAlfentanil.pk.V1).toBeCloseTo(1.15 * 0.111 * 70, 3);
+
+      expect(maleAlfentanil.pk.V2).toBe(12.0);
+      expect(maleAlfentanil.pk.V3).toBe(10.5);
+      expect(maleAlfentanil.pk.k12).toBe(0.104);
+      expect(maleAlfentanil.pk.k13).toBe(0.017);
+      expect(maleAlfentanil.pk.k21).toBe(0.067);
+      expect(maleAlfentanil.pk.ke0).toBe(0.77);
+    });
+
+    it('should apply the age>40 correction terms to Alfentanil k10/k31 (Table 26.7)', () => {
+      const youngPatient = createPatient(30, 70, 170, 'male');
+      const oldPatient = createPatient(60, 70, 170, 'male');
+
+      const young = new PKPDModel(MEDICATIONS_CONFIG.alfentanil, 70);
+      young.setTci('Cp', 0.3, 'Maitre', youngPatient);
+      const old = new PKPDModel(MEDICATIONS_CONFIG.alfentanil, 70);
+      old.setTci('Cp', 0.3, 'Maitre', oldPatient);
+
+      // Age <= 40: k31 = 0.0126 flat; Age > 40: k31 = 0.0126 - 0.000113*(age-40)
+      expect(young.pk.k31).toBeCloseTo(0.0126, 5);
+      expect(old.pk.k31).toBeCloseTo(0.0126 - 0.000113 * 20, 5);
+      expect(old.pk.k31).toBeLessThan(young.pk.k31);
+
+      // Age <= 40: k10 = 0.356/V1 flat; Age > 40: k10 = (0.356 - 0.00269*(age-40))/V1
+      const expectedOldK10 = (0.356 - 0.00269 * 20) / old.pk.V1;
+      expect(old.pk.k10).toBeCloseTo(expectedOldK10, 5);
+      expect(old.pk.k10).toBeLessThan(young.pk.k10);
+    });
+  });
+
+  describe('5. Alfentanil Medication Profile Fidelity (Table 26.2, 26.4, 26.5)', () => {
+    it('should be present in the medication database with the Maitre TCI model assigned', () => {
+      expect(MEDICATIONS_CONFIG.alfentanil).toBeDefined();
+      expect(MEDICATIONS_CONFIG.alfentanil.pkModel).toBe('Maitre');
+      expect(MEDICATIONS_CONFIG.alfentanil.classes).toContain('Opioid');
+    });
+
+    it('should set c50 from the midpoint of Table 26.2\'s incision/painful-stimulus C50 range (200-300 ng/mL)', () => {
+      expect(MEDICATIONS_CONFIG.alfentanil.pd.c50).toBeCloseTo(0.25, 3);
+    });
+
+    it('should set the apnea threshold from the midpoint of Table 26.2\'s spontaneous-ventilation C50 range (170-230 ng/mL)', () => {
+      expect(MEDICATIONS_CONFIG.alfentanil.pd.inducesApneaAtCe).toBeCloseTo(0.2, 3);
+    });
+
+    it('should produce finite, bounded TCI behavior identical in kind to the other opioids', () => {
+      const alfentanil = new PKPDModel(MEDICATIONS_CONFIG.alfentanil, 70);
+      const patient = createPatient();
+      alfentanil.setTci('Ce', 0.25, 'Maitre', patient);
+      for (let t = 0; t < 600; t++) {
+        alfentanil.tick(1, 1.0, 1.0, 1.0, 1.0, 1.0);
+      }
+      expect(Number.isFinite(alfentanil.Ce)).toBe(true);
+      expect(alfentanil.Ce).toBeCloseTo(0.25, 1);
+      expect(alfentanil.Cp).toBeGreaterThanOrEqual(0);
     });
   });
 

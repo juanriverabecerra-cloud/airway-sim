@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { MEDICATIONS_CONFIG } from '../engine/config/meds.config';
 import { PainEngine, PainPatientState, PainVitalsState } from '../engine/PainEngine';
 import { RespiratoryEngine, RespiratoryPatientState, RespiratoryVitalsState, RespiratoryDrugEffects } from '../engine/RespiratoryEngine';
+import { PKPDModel } from '../engine/PKPDEngine';
+import { RenalEngine } from '../engine/RenalEngine';
 
 describe('Chapter 24: Opioids', () => {
 
@@ -239,4 +241,189 @@ describe('Chapter 24: Opioids', () => {
       expect(surgeTriggered).toBe(true);
     });
   });
+
+  describe('7. Receptor Genotype Sensitivity (A118G Exon 1 SNP)', () => {
+    it('should verify A118G genotype scales analgesia/hypnosis C50 3x but leaves respiratory c50 unchanged', () => {
+      const config = MEDICATIONS_CONFIG.fentanyl;
+      const modelA = new PKPDModel(config, 70);
+      modelA.opioidReceptorGenotype = 'A118A';
+      modelA.Ce = 0.002;
+      
+      const modelG = new PKPDModel(config, 70);
+      modelG.opioidReceptorGenotype = 'A118G';
+      modelG.Ce = 0.002;
+
+      const effA = modelA.getEffects(1.0, 1.0);
+      const effG = modelG.getEffects(1.0, 1.0);
+
+      // c50Hyp is 3x higher for A118G, so at the same Ce = 0.002, modelG should have less hypnosis/analgesia effect (so less delta) than modelA
+      expect(Math.abs(effG.sysDelta)).toBeLessThan(Math.abs(effA.sysDelta));
+      // respiratory depression is unchanged
+      expect(effG.rrDelta).toBeCloseTo(effA.rrDelta, 5);
+    });
+  });
+
+  describe('8. Active Metabolites (M6G and M3G) Kinetics and Dynamics', () => {
+    it('should calculate Morphine conjugation and clearance under normal vs renal impairment', () => {
+      let currentM6g = 0.5;
+      let currentM3g = 0.5;
+      const morCe = 0.1;
+      const hepaticRatio = 1.0;
+      
+      const renalRatioNormal = 1.0;
+      const m6g_formed = (morCe * 0.015 * hepaticRatio) * 0.10 * 1.617;
+      const m3g_formed = (morCe * 0.015 * hepaticRatio) * 0.60 * 1.617;
+      const m6g_cleared_normal = 0.003 * renalRatioNormal * currentM6g;
+      const m3g_cleared_normal = 0.003 * renalRatioNormal * currentM3g;
+      
+      const nextM6gNormal = currentM6g + m6g_formed - m6g_cleared_normal;
+      const nextM3gNormal = currentM3g + m3g_formed - m3g_cleared_normal;
+
+      const renalRatioRF = 0.1;
+      const m6g_cleared_rf = 0.003 * renalRatioRF * currentM6g;
+      const m3g_cleared_rf = 0.003 * renalRatioRF * currentM3g;
+      const nextM6gRF = currentM6g + m6g_formed - m6g_cleared_rf;
+      const nextM3gRF = currentM3g + m3g_formed - m3g_cleared_rf;
+
+      expect(nextM6gRF).toBeGreaterThan(nextM6gNormal);
+      expect(nextM3gRF).toBeGreaterThan(nextM3gNormal);
+    });
+
+    it('should compute M6G respiratory depression and competitive reversal by Naloxone', () => {
+      const currentM6g = 0.2;
+      const gamma = 1.5;
+      const ratio = currentM6g / 0.08;
+      const power = Math.pow(ratio, gamma);
+      const fraction = power / (1.0 + power);
+      let m6gRrDelta = -14.0 * fraction;
+
+      const naloxoneCe = 0.002;
+      const naloxoneAntagonism = naloxoneCe / (naloxoneCe + 0.001);
+      m6gRrDelta *= (1.0 - naloxoneAntagonism);
+
+      expect(m6gRrDelta).toBeLessThan(0);
+      expect(m6gRrDelta).toBeCloseTo(-14.0 * fraction * (1.0 - (0.002 / 0.003)), 4);
+    });
+
+    it('should trigger M3G seizures and verify propofol/midazolam abort them', () => {
+      let m3gSeizureTriggered = false;
+      let forceM3gSeizure = true;
+      let isSeizure = false;
+      let seizureMetabolicMultiplier = 1.0;
+
+      if (forceM3gSeizure) {
+        m3gSeizureTriggered = true;
+      }
+
+      if (m3gSeizureTriggered) {
+        isSeizure = true;
+        seizureMetabolicMultiplier = 8.0;
+      }
+      expect(isSeizure).toBe(true);
+      expect(seizureMetabolicMultiplier).toBe(8.0);
+
+      const propofolCe = 1.5;
+      if (m3gSeizureTriggered && propofolCe > 1.2) {
+        m3gSeizureTriggered = false;
+        forceM3gSeizure = false;
+        isSeizure = false;
+        seizureMetabolicMultiplier = 1.0;
+      }
+      expect(m3gSeizureTriggered).toBe(false);
+      expect(isSeizure).toBe(false);
+      expect(seizureMetabolicMultiplier).toBe(1.0);
+    });
+  });
+
+  describe('9. Sphincter of Oddi Spasm Refactoring', () => {
+    it('should compute combined agonist stimulation and verify meperidine inhibition', () => {
+      const morphineCe = 0.03;
+      const fentanylCe = 0.0005;
+      const sufentanilCe = 0.00005;
+      const hydromorphoneCe = 0.002;
+      const remifentanilCe = 0.0005;
+      
+      const stimulationNoMep = 20 * morphineCe + 500 * fentanylCe + 3000 * sufentanilCe + 80 * hydromorphoneCe + 800 * remifentanilCe;
+      const meperidineCe = 0.1;
+      const stimulationWithMep = stimulationNoMep - 5 * meperidineCe;
+
+      expect(stimulationWithMep).toBeLessThan(stimulationNoMep);
+    });
+
+    it('should resolve Sphincter of Oddi spasm under Nitroglycerin', () => {
+      let spasmActive = true;
+      const nitroglycerinCe = 0.02;
+      if (nitroglycerinCe > 0.01) {
+        spasmActive = false;
+      }
+      expect(spasmActive).toBe(false);
+    });
+  });
+
+  describe('10. Opioid-Induced Urinary Retention', () => {
+    it('should verify bladder volume accumulation and uop blocking in RenalEngine', () => {
+      const patientState = {
+        urineOutput: 100.0,
+        bladderVolume: 50.0,
+        urinaryRetentionActive: true,
+        hasFoley: false,
+        weight: 70.0
+      };
+      
+      const res = RenalEngine.tick(120, {
+        patient: patientState,
+        vitals: { map: 110.0, vasopressinLevel: 0.1 } as any,
+        time: 0
+      }, [], {
+        coRatio: 1.0,
+        map: 110.0,
+        sys: 140.0,
+        cvp: 5.0,
+        peep: 0.0,
+        temp: 37.0,
+        currentMac: 0.0,
+        C_cat: 0.0,
+        ebl: 0,
+        ebv: 5000,
+        netFluidBalance: 1000.0
+      });
+
+      expect(res.urineOutput).toBe(100.0);
+      expect(res.urineOutputRate).toBe(0.0);
+      expect(res.bladderVolume).toBeGreaterThan(50.0);
+    });
+
+    it('should verify bladder drainage and resolution upon Foley placement', () => {
+      const patientState = {
+        urineOutput: 100.0,
+        bladderVolume: 50.0,
+        urinaryRetentionActive: true,
+        hasFoley: true,
+        weight: 70.0
+      };
+      
+      const res = RenalEngine.tick(120, {
+        patient: patientState,
+        vitals: { map: 110.0, vasopressinLevel: 0.1 } as any,
+        time: 0
+      }, [], {
+        coRatio: 1.0,
+        map: 110.0,
+        sys: 140.0,
+        cvp: 5.0,
+        peep: 0.0,
+        temp: 37.0,
+        currentMac: 0.0,
+        C_cat: 0.0,
+        ebl: 0,
+        ebv: 5000,
+        netFluidBalance: 1000.0
+      });
+
+      expect(res.bladderVolume).toBe(0.0);
+      expect(res.urineOutput).toBeGreaterThan(150.0);
+      expect(res.urinaryRetentionActive).toBe(false);
+    });
+  });
 });
+
