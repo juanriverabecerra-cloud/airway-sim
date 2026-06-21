@@ -6,8 +6,8 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
 
   // Derive the morphological shape of the waveform based on the active ventilator mode
   const ventMorphology = ventSettings?.mode === 'VCV' ? 'vcv' : 'pcv';
-  const ventValClass3 = "text-2xl @[200px]:text-3xl @[240px]:text-4xl @[280px]:text-5xl @[345px]:text-6xl @[410px]:text-7xl";
-  const ventValClass2 = "text-3xl @[200px]:text-4xl @[240px]:text-5xl @[280px]:text-6xl @[345px]:text-7xl @[410px]:text-8xl";
+  const ventValClass3 = "text-2xl @[200px]:text-3xl @[240px]:text-4xl @[280px]:text-4xl @[345px]:text-5xl @[410px]:text-5xl";
+  const ventValClass2 = "text-3xl @[200px]:text-4xl @[240px]:text-5xl @[280px]:text-5xl @[345px]:text-6xl @[410px]:text-6xl";
 
   return (
     <div className="glass-panel glass-emerald crt-monitor p-2 flex flex-col md:grid md:grid-cols-4 gap-2 min-h-[300px] md:min-h-0 md:h-[280px] lg:h-[420px] relative overflow-hidden">

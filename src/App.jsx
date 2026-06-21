@@ -1409,7 +1409,7 @@ export default function App() {
 
   if (!activeCase) {
     return (
-      <div className="min-h-screen bg-[#060913] text-slate-100 p-8 font-sans flex flex-col items-center justify-center relative overflow-hidden">
+      <div className="min-h-screen bg-[#060913] text-slate-100 p-4 sm:p-8 font-sans flex flex-col items-center justify-start sm:justify-center relative overflow-y-auto overflow-x-hidden">
         {/* Ambient background decoration */}
         <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-cyan-900/15 rounded-full blur-[140px] pointer-events-none"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-indigo-900/15 rounded-full blur-[140px] pointer-events-none"></div>

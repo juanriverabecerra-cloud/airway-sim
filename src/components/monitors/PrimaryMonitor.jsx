@@ -17,8 +17,8 @@ export const PrimaryMonitor = ({
   activeMeds,
   onEkgClick
 }) => {
-  const hrSpO2Class = "text-3xl @[200px]:text-4xl @[240px]:text-5xl @[280px]:text-6xl @[345px]:text-7xl @[410px]:text-8xl";
-  const bpClass = "text-2xl @[200px]:text-3xl @[240px]:text-4xl @[280px]:text-5xl @[345px]:text-6xl @[410px]:text-7xl";
+  const hrSpO2Class = "text-3xl @[200px]:text-4xl @[240px]:text-5xl @[280px]:text-5xl @[345px]:text-6xl @[410px]:text-6xl";
+  const bpClass = "text-2xl @[200px]:text-3xl @[240px]:text-4xl @[280px]:text-4xl @[345px]:text-5xl @[410px]:text-5xl";
   const mapClass = "text-xs @[200px]:text-sm @[240px]:text-base @[280px]:text-lg @[345px]:text-xl @[410px]:text-2xl";
   const advClass = "text-sm @[200px]:text-base @[240px]:text-lg @[280px]:text-xl @[345px]:text-2xl @[410px]:text-3xl";
   const tempBisClass = "text-base @[200px]:text-lg @[240px]:text-xl @[280px]:text-2xl @[345px]:text-3xl @[410px]:text-4xl";

@@ -625,8 +625,8 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
   if (stagedCase) {
     const b = stagedCase.preOpBriefing || { hpi: '', pmhx: '', vitals: '', airway: '', rationale: '' };
     return (
-      <div className="glass-panel glass-blue p-6 w-full max-w-3xl flex flex-col gap-6 text-slate-100 font-mono animate-in slide-in-from-bottom-4">
-        <div className="flex justify-between items-center border-b border-white/5 pb-4">
+      <div className="glass-panel glass-blue p-4 sm:p-6 w-full max-w-3xl flex flex-col gap-6 text-slate-100 font-sans animate-in slide-in-from-bottom-4">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b border-white/5 pb-4 gap-2">
           <h2 className="text-3xl font-black text-blue-400 flex items-center gap-3 drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]"><FileText size={28}/> Pre-Op Briefing (EMR)</h2>
           <span className={`px-3 py-1 rounded-lg border font-bold text-xs ${stagedCase.difficulty === 'Easy' ? 'bg-green-950/40 border-green-500/40 text-green-400' : stagedCase.difficulty === 'Medium' ? 'bg-yellow-950/40 border-yellow-500/40 text-yellow-400' : 'bg-red-950/40 border-red-500/40 text-red-400'}`}>
             {stagedCase.difficulty} Case
@@ -672,10 +672,10 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
   }
 
   return (
-    <div className="glass-panel glass-blue p-6 w-full max-w-6xl flex flex-col gap-6 text-slate-100 font-mono">
-      <div className="flex justify-between items-center border-b border-white/5 pb-4">
-        <h2 className="text-3xl font-black text-blue-400 flex items-center gap-3 drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]"><Activity size={28}/> Anesthesia Clinical Builder</h2>
-        <div className="flex items-center gap-2">
+    <div className="glass-panel glass-blue p-4 sm:p-6 w-full max-w-6xl flex flex-col gap-6 text-slate-100 font-sans">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-center border-b border-white/5 pb-4 gap-4">
+        <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-blue-400 flex items-center gap-3 drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]"><Activity size={28}/> Anesthesia Clinical Builder</h2>
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full sm:w-auto justify-start sm:justify-end">
           <button onClick={() => setActiveTab('presets')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${activeTab === 'presets' ? 'glass-button-blue text-white shadow-md' : 'glass-button text-slate-400 hover:text-slate-200'}`}>Clinical Specialty Presets</button>
           <button onClick={() => setActiveTab('custom')} className={`px-4 py-2 text-xs font-bold rounded-lg transition-all duration-200 cursor-pointer ${activeTab === 'custom' ? 'glass-button-blue text-white shadow-md' : 'glass-button text-slate-400 hover:text-slate-200'}`}>High-Fidelity Customizer</button>
           <button 

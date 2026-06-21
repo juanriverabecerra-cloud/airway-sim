@@ -76,7 +76,7 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
     <div className="flex flex-col md:flex-row md:flex-wrap xl:flex-nowrap gap-3 glass-panel glass-cyan p-3 shadow-2xl">
       
       {/* 1. Fresh Gas Flow & Stoichiometry */}
-      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-[1_1_280px]" style={{ minWidth: 0 }}>
+      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-initial md:flex-[1_1_280px]" style={{ minWidth: 0 }}>
         <div className="flex justify-between items-center mb-1 px-1 border-b border-white/5 pb-1">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center">Fresh Gas</span>
             <div className="flex gap-2">
@@ -115,13 +115,13 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
       </div>
 
       {/* 2. Vaporizer & Mechanical Limiters */}
-      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-[1_1_280px]" style={{ minWidth: 0 }}>
+      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-initial md:flex-[1_1_280px]" style={{ minWidth: 0 }}>
         <div className="flex justify-between items-center mb-1 px-1">
           <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest">Vaporizer</span>
           <span className="text-[9px] text-cyan-300 font-bold bg-cyan-950/30 px-1.5 py-0.5 rounded-md border border-cyan-900/30 font-mono">1.0 MAC = {INHALATIONAL_AGENTS[gasSettings.agent]?.mac40}%</span>
         </div>
         <div className="flex gap-2 h-full items-center">
-          <select value={gasSettings.agent} style={{ textAlignLast: 'center' }} onChange={handleAgentChange} className="flex-1 glass-input text-xs font-bold text-cyan-300 border border-white/10 rounded-lg outline-none appearance-none px-2 py-2 text-center h-full cursor-pointer hover:border-cyan-500/80 transition font-mono">
+          <select value={gasSettings.agent} style={{ textAlignLast: 'center' }} onChange={handleAgentChange} className="flex-1 glass-input text-xs font-bold text-cyan-300 border border-white/10 rounded-lg outline-none appearance-none px-2 py-2 text-center h-9 sm:h-10 cursor-pointer hover:border-cyan-500/80 transition font-mono">
             <option value="sevoflurane">Sevoflurane</option>
             <option value="desflurane">Desflurane</option>
             <option value="isoflurane">Isoflurane</option>
@@ -133,7 +133,7 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
             <option value="s_isoflurane">S-Isoflurane</option>
             <option value="r_isoflurane">R-Isoflurane</option>
           </select>
-          <div className="flex items-center justify-between bg-slate-950/60 rounded-lg border border-white/5 w-28 sm:w-32 px-0.5 py-0.5 sm:px-1 sm:py-1 h-full shadow-inner">
+          <div className="flex items-center justify-between bg-slate-950/60 rounded-lg border border-white/5 w-28 sm:w-32 px-0.5 py-0.5 sm:px-1 sm:py-1 h-9 sm:h-10 shadow-inner">
             <button onClick={() => handleDialChange(-1)} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-cyan font-bold text-xs sm:text-base cursor-pointer">-</button>
             <span className={`text-base sm:text-lg font-black text-center flex-1 font-mono ${gasSettings.dial >= currentMaxDial ? 'text-red-400 animate-pulse' : 'text-white'}`}>
                 {gasSettings.dial.toFixed(1)}<span className="text-[9px] sm:text-[10px] text-cyan-500 ml-0.5">%</span>
@@ -145,7 +145,7 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
       
       {/* 3. Ventilator Settings */}
       {patient?.airwaySecured && (
-        <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-[2_1_450px] md:w-full xl:w-auto">
+        <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-initial md:flex-[2_1_450px] md:w-full xl:w-auto">
           <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center mb-1">Ventilator Setup</span>
           <div className="flex flex-wrap md:flex-nowrap gap-2">
             
@@ -202,7 +202,7 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
       )}
 
       {/* 4. Circuit & APL Setup */}
-      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-[1_1_250px]" style={{ minWidth: 0 }}>
+      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-initial md:flex-[1_1_250px]" style={{ minWidth: 0 }}>
         <div className="flex justify-between items-center mb-1 px-1 border-b border-white/5 pb-1">
           <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Breathing Circuit</span>
           <span className="text-[10px] text-emerald-300 font-bold font-mono">APL: {patient?.aplValveSetting || 0} cmH2O</span>
@@ -217,13 +217,13 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
                 setPatient(p => ({ ...p, breathingCircuitType: val }));
               }
             }} 
-            className="flex-1 glass-input text-xs font-bold text-emerald-300 border border-white/10 rounded-lg outline-none appearance-none px-2 py-2 text-center h-full cursor-pointer hover:border-emerald-500/80 transition font-mono"
+            className="flex-1 glass-input text-xs font-bold text-emerald-300 border border-white/10 rounded-lg outline-none appearance-none px-2 py-2 text-center h-9 sm:h-10 cursor-pointer hover:border-emerald-500/80 transition font-mono"
           >
             <option value="circle">Circle System</option>
             <option value="Mapleson A">Mapleson A</option>
             <option value="Mapleson D">Mapleson D</option>
           </select>
-          <div className="flex items-center justify-between bg-slate-950/60 rounded-lg border border-white/5 w-28 sm:w-32 px-0.5 py-0.5 sm:px-1 sm:py-1 h-full shadow-inner">
+          <div className="flex items-center justify-between bg-slate-950/60 rounded-lg border border-white/5 w-28 sm:w-32 px-0.5 py-0.5 sm:px-1 sm:py-1 h-9 sm:h-10 shadow-inner">
             <button 
               onClick={() => {
                 const currentVal = typeof patient?.aplValveSetting === 'number' ? patient.aplValveSetting : 0;
@@ -256,7 +256,7 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
       </div>
 
       {/* 5. Troubleshooting & Safety Overrides */}
-      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-[1_1_220px]" style={{ minWidth: 0 }}>
+      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-initial md:flex-[1_1_220px]" style={{ minWidth: 0 }}>
         <div className="flex justify-between items-center mb-1 px-1 border-b border-white/5 pb-1">
           <span className="text-[10px] text-red-400 font-bold uppercase tracking-widest flex items-center gap-1 font-mono">⚠️ Machine Safety</span>
           <div className="flex gap-1">
