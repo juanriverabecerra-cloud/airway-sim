@@ -63,6 +63,20 @@ Read the chapter in full and sort its content along two independent axes:
     `docs/engines/clinical_events.md` to check it isn't already modeled under a different
     name.
 
+  WAVEFORM FIGURES — if this chapter's JSON has any `visual_data_engines` entries with
+  `archetype: "CONTINUOUS_WAVEFORM"` (ECG, capnography, EEG, pleth, or arterial-line
+  tracings — check `details.modality` to tell them apart), directly Read() each such
+  figure's `image_path` PNG yourself before treating its `details` as complete. Phase 2
+  vision enrichment (see `docs/ingestion_pipeline.md` §9.5) already attempts a structured
+  read — `details.ecg_findings`/`capnography_findings` if populated — but your own
+  multimodal reading of the actual pixels is free, can confirm or correct that
+  enrichment, and can be grounded in the specific engine parameters you're about to touch
+  (`EkgModel.js`'s `LEAD_PROFILES`/`stShift` family, `EtCo2Model.js`'s named-pattern
+  branches) in a way a generic upfront extraction schema can't. If a figure's `archetype`
+  is still the old `CONTINUOUS_WAVEFORM_EEG` or its `details` looks suspiciously
+  empty/generic, that chapter was likely ingested before the 2026-06 pipeline fix — flag
+  it rather than assuming the data is complete.
+
   AXIS 2 — Phase of care this content actually applies to:
     PreOp, Intraoperative, PACU/Post-op, or Cross-cutting (applies across phases).
     Do not default to "intraoperative" just because that's been the focus so far — check

@@ -92,13 +92,16 @@ export class PipelineOrchestrator {
     }
     visual_data_engines = routedEngines;
 
-    // Phase 2: Optional Visual Semantic Enrichment (asynchronous queue)
-    const runVision = process.env.RUN_VISION === 'true';
+    // Phase 2: Visual Semantic Enrichment (asynchronous queue) — on by default;
+    // set RUN_VISION=false to skip (e.g. no API key configured, or a fast offline-only run).
+    const runVision = process.env.RUN_VISION !== 'false';
     if (runVision && visual_data_engines.length > 0) {
-      console.log(`\n[PHASE 2] Starting optional visual semantic enrichment...`);
-      visual_data_engines = await this.extractor.enrichVisuals(visual_data_engines);
+      console.log(`\n[PHASE 2] Starting visual semantic enrichment...`);
+      const enrichResult = await this.extractor.enrichVisuals(visual_data_engines);
+      visual_data_engines = enrichResult.engines;
+      warnings.push(...enrichResult.warnings);
     } else {
-      console.log(`\n[PHASE 2] Skipping visual semantic enrichment (RUN_VISION is false or no figures found).`);
+      console.log(`\n[PHASE 2] Skipping visual semantic enrichment (RUN_VISION=false or no figures found).`);
     }
 
     // Step 2: Summarize extraction results

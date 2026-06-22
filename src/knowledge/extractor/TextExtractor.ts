@@ -87,28 +87,33 @@ export class TextExtractor {
   }
 
   /**
-   * Phase 2: Optional Visual Semantic Enrichment Queue
+   * Phase 2: Visual Semantic Enrichment Queue
    * Queues cropped figures for deep vision enrichment, with throttling and rate-limit resilience.
+   * Returns warnings alongside the (possibly-unenriched) engines so a figure that silently
+   * fell back to Phase-1-only data is visible in the final document, not just a console log.
    */
-  public async enrichVisuals(visualEngines: VisualDataEngine[]): Promise<VisualDataEngine[]> {
+  public async enrichVisuals(visualEngines: VisualDataEngine[]): Promise<{ engines: VisualDataEngine[], warnings: string[] }> {
     const provider = process.env.VISION_PROVIDER || 'gemini';
     console.log(`  [VISION ENRICHER] Starting Phase 2 visual semantic enrichment using provider: ${provider}`);
-    
+
     const enrichedEngines: VisualDataEngine[] = [];
-    
+    const warnings: string[] = [];
+
     for (let i = 0; i < visualEngines.length; i++) {
       const engine = visualEngines[i];
       console.log(`  [VISION ENRICHER] Processing figure ${i + 1}/${visualEngines.length}: ${engine.id}`);
-      
+
       if (!engine.image_path || !fs.existsSync(engine.image_path)) {
-        console.warn(`  [VISION ENRICHER WARNING] No local image cropped at path: ${engine.image_path}. Skipping.`);
+        const msg = `Phase 2 vision enrichment skipped for ${engine.id}: no local image cropped at path "${engine.image_path}". Figure retained with Phase 1 (unenriched) data only.`;
+        console.warn(`  [VISION ENRICHER WARNING] ${msg}`);
+        warnings.push(msg);
         enrichedEngines.push(engine);
         continue;
       }
-      
+
       try {
         let enrichedData: any = null;
-        
+
         if (provider === 'gemini') {
           // Call python multimodal vision enricher for standalone image
           const scriptPath = path.resolve(dirname, 'multimodal_extract.py');
@@ -127,7 +132,7 @@ export class TextExtractor {
           
           const parsed = JSON.parse(result.trim());
           if (parsed && parsed.pages && parsed.pages[0] && parsed.pages[0].figures && parsed.pages[0].figures[0]) {
-            enrichedData = parsed.pages[0].figures[0];
+            enrichedData = this.sanitizeVisionStrings(parsed.pages[0].figures[0]);
           }
         } else if (provider === 'ollama') {
           // Ollama Vision API integration
@@ -144,36 +149,81 @@ export class TextExtractor {
 
           const response = await this.callOllamaApi(prompt, imageBase64);
           if (response && response.figures && response.figures[0]) {
-            enrichedData = response.figures[0];
+            enrichedData = this.sanitizeVisionStrings(response.figures[0]);
           }
         }
         
         if (enrichedData) {
+          // Merge, don't replace: Gemini's raw archetype-5 enum strings (e.g.
+          // "PHYSIOLOGICAL WAVEFORMS & TRACINGS") use a different vocabulary than
+          // StrategyRouter's internal archetype IDs (e.g. "CONTINUOUS_WAVEFORM") —
+          // overwriting wholesale would silently undo StrategyRouter's classification
+          // (including the modality tag) every time Phase 2 succeeds. StrategyRouter
+          // already ran a deliberate classification pass; keep its archetype as
+          // authoritative and only layer Gemini's richer per-figure details on top.
+          const mergedDetails = { ...(engine.details || {}), ...(enrichedData.details || {}) } as any;
+          // Phase 2 actually looked at the pixels — if it populated a modality-specific
+          // findings object, trust that over (or in place of) the caption-keyword guess.
+          if (mergedDetails.ecg_findings && Object.values(mergedDetails.ecg_findings).some(v => v)) {
+            mergedDetails.modality = 'ecg';
+          } else if (mergedDetails.capnography_findings && Object.values(mergedDetails.capnography_findings).some(v => v)) {
+            mergedDetails.modality = 'capnography';
+          }
           enrichedEngines.push({
             ...engine,
-            archetype: enrichedData.archetype || engine.archetype,
             caption: enrichedData.caption || engine.caption,
-            details: enrichedData.details || engine.details
+            details: mergedDetails
           });
           console.log(`  [VISION ENRICHER] Successfully enriched ${engine.id} details.`);
         } else {
-          console.warn(`  [VISION ENRICHER WARNING] Vision API returned no enriched data for ${engine.id}.`);
+          const msg = `Phase 2 vision enrichment returned no data for ${engine.id} (provider: ${provider}). Figure retained with Phase 1 (unenriched) data only.`;
+          console.warn(`  [VISION ENRICHER WARNING] ${msg}`);
+          warnings.push(msg);
           enrichedEngines.push(engine);
         }
       } catch (err: unknown) {
         const errMsg = err instanceof Error ? err.message : String(err);
-        console.error(`  [VISION ENRICHER ERROR] Enrichment failed for ${engine.id}: ${errMsg}`);
+        const msg = `Phase 2 vision enrichment failed for ${engine.id}: ${errMsg}. Figure retained with Phase 1 (unenriched) data only.`;
+        console.error(`  [VISION ENRICHER ERROR] ${msg}`);
+        warnings.push(msg);
         enrichedEngines.push(engine);
       }
-      
+
       // Throttle queue to prevent rate limit bottlenecks
       if (i < visualEngines.length - 1) {
         console.log(`  [VISION ENRICHER] Throttling: waiting 2 seconds before next request...`);
         await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
-    
-    return enrichedEngines;
+
+    return { engines: enrichedEngines, warnings };
+  }
+
+  /**
+   * Defensive cleanup for vision-model free-text fields. Small/fast models
+   * occasionally degenerate into repeating the same character or token
+   * hundreds of times within an otherwise-valid JSON string value (seen in
+   * practice: a "source_marker" field that was almost entirely repeated
+   * newlines). No legitimate value in this schema is ever more than a short
+   * phrase, so collapse runaway repetition and cap length rather than letting
+   * a single bad field bloat/pollute the committed chapter JSON.
+   */
+  private sanitizeVisionStrings(value: any, maxLen = 400): any {
+    if (typeof value === 'string') {
+      const collapsed = value.replace(/(\s)\1{2,}/g, '$1').trim();
+      return collapsed.length > maxLen ? collapsed.slice(0, maxLen) + '…' : collapsed;
+    }
+    if (Array.isArray(value)) {
+      return value.map(v => this.sanitizeVisionStrings(v, maxLen));
+    }
+    if (value && typeof value === 'object') {
+      const out: any = {};
+      for (const k of Object.keys(value)) {
+        out[k] = this.sanitizeVisionStrings(value[k], maxLen);
+      }
+      return out;
+    }
+    return value;
   }
 
   /**

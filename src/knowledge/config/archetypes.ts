@@ -15,7 +15,7 @@ export interface ArchetypeConfigEntry {
              | 'COORDINATE X-Y GRAPHS & COMPLEMENTARY PANELS' 
              | 'ANATOMICAL NETWORKS & MICROCIRCUIT MAPS' 
              | 'PHYSIOLOGICAL WAVEFORMS & TRACINGS'
-             | 'CONTINUOUS_WAVEFORM_EEG'
+             | 'CONTINUOUS_WAVEFORM'
              | 'TIMELINE_STEP_CHART_HYPNOGRAM';
   readonly keywords: readonly string[];
 }
@@ -79,8 +79,18 @@ export const L2S_CONFIG: L2SConfig = {
       keywords: ["diagram", "circuit", "network", "pathway", "cascade", "loop", "flowchart", "map", "ascending arousal system"]
     },
     CONTINUOUS_WAVEFORM: {
-      id: "CONTINUOUS_WAVEFORM_EEG",
-      keywords: ["recording", "eeg", "ecg", "waveform", "signal", "tracing", "lead", "wave"]
+      id: "CONTINUOUS_WAVEFORM",
+      // Deliberately no bare "lead" or "wave" — those substring-match prose like
+      // "leadership"/"misleading"/"wavelength" against full-sentence captions.
+      // Compound phrases stay specific to the actual modalities this archetype covers.
+      keywords: [
+        "recording", "signal", "waveform", "tracing",
+        "ecg", "ekg", "electrocardiogram", "ecg lead", "limb lead", "lead placement", "lead ii", "lead v1",
+        "eeg", "electroencephalogram", "polysomnography",
+        "capnogram", "capnography", "etco2", "end-tidal co2",
+        "plethysmogram", "pleth waveform",
+        "arterial line trace", "arterial waveform"
+      ]
     },
     TIMELINE_STEP_CHART: {
       id: "TIMELINE_STEP_CHART_HYPNOGRAM",

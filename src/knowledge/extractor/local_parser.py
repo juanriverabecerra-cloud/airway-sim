@@ -765,8 +765,14 @@ def extract_figures_from_scanned_page(page, page_num, source_file, scratch_dir, 
         text_bounding_boxes = cluster_ocr_phrases(out_path)
         cap_lower = cap_text.lower()
         archetype = "COORDINATE X-Y GRAPHS & COMPLEMENTARY PANELS"
-        if "eeg" in cap_lower or "electroencephalogram" in cap_lower:
-            archetype = "CONTINUOUS_WAVEFORM_EEG"
+        # This initial guess gets superseded by the TS-side StrategyRouter's own
+        # (more complete) keyword match — see archetypes.ts's CONTINUOUS_WAVEFORM
+        # config — but keep it modality-neutral so it isn't misleading in the interim.
+        if any(kw in cap_lower for kw in (
+            "eeg", "electroencephalogram", "ecg", "ekg", "electrocardiogram",
+            "capnogr", "etco2", "plethysmogr", "waveform", "tracing"
+        )):
+            archetype = "CONTINUOUS_WAVEFORM"
         elif "hypnogram" in cap_lower:
             archetype = "TIMELINE_STEP_CHART_HYPNOGRAM"
 
@@ -1015,6 +1021,16 @@ def extract_pdf(file_path):
                 cx = (bbox[0] + bbox[2]) / 2.0
                 return 'left' if cx < mid_x else 'right'
 
+            # Greedy nearest-neighbor assignment of embedded images to captions,
+            # computed globally across the whole page BEFORE any cropping happens.
+            # Matching each caption independently against "whichever image is
+            # closest" lets two different captions both claim the SAME image when
+            # they sit close together on the page (e.g. two stacked figures sharing
+            # one nearby embedded diagram) — exactly the bug that caused two
+            # genuinely distinct figures (an ECG strip and a lead-placement diagram)
+            # to crop to identical pixels. Each image can satisfy at most one
+            # caption; the globally-closest (caption, image) pairing wins first.
+            all_candidate_pairs = []
             for cap_idx, cap_block, cap_text in captions:
                 cap_bbox = cap_block[:4]
                 cap_center_y = (cap_bbox[1] + cap_bbox[3]) / 2
@@ -1026,9 +1042,6 @@ def extract_pdf(file_path):
                 same_col_imgs = [img for img in images if _column_of(img['bbox']) == _column_of(cap_bbox)]
                 candidate_imgs = same_col_imgs if same_col_imgs else images
 
-                closest_img = None
-                min_dist = float('inf')
-
                 for img in candidate_imgs:
                     img_bbox = img['bbox']
                     img_center_y = (img_bbox[1] + img_bbox[3]) / 2
@@ -1036,9 +1049,21 @@ def extract_pdf(file_path):
                     # Vertical proximity dominates; horizontal offset is a tiebreaker
                     # so stacked figures within the same column don't get conflated.
                     dist = abs(img_center_y - cap_center_y) + 0.25 * abs(img_center_x - cap_center_x)
-                    if dist < min_dist:
-                        min_dist = dist
-                        closest_img = img
+                    if dist < 400:
+                        all_candidate_pairs.append((dist, cap_idx, img))
+
+            all_candidate_pairs.sort(key=lambda t: t[0])
+            assigned_image_for_caption = {}
+            claimed_image_xrefs = set()
+            for dist, cap_idx, img in all_candidate_pairs:
+                if cap_idx in assigned_image_for_caption or img['xref'] in claimed_image_xrefs:
+                    continue
+                assigned_image_for_caption[cap_idx] = (img, dist)
+                claimed_image_xrefs.add(img['xref'])
+
+            for cap_idx, cap_block, cap_text in captions:
+                cap_bbox = cap_block[:4]
+                closest_img, min_dist = assigned_image_for_caption.get(cap_idx, (None, float('inf')))
 
                 if closest_img and min_dist < 400:
                     xref = closest_img['xref']
@@ -1165,8 +1190,17 @@ def extract_pdf(file_path):
                         drawings_below = []
                         for d in drawings:
                             r = d["rect"]
-                            # Exclude full-width line borders or extremely thin lines
-                            if r.width >= page.rect.width * 0.98 or r.height < 1.5:
+                            # Exclude full-bleed page-border/rule lines only — a real
+                            # waveform trace (ECG/capnography strip) is ALSO thin and
+                            # often page-wide, so width/height alone can't distinguish
+                            # them. A rule line is drawn as 1-2 path items; a trace is
+                            # drawn as many connected segments tracing an oscillation.
+                            # Require both conditions before excluding, so a thin-but-
+                            # complex path (the trace) survives even if a thin-and-simple
+                            # one (the rule line) still gets filtered out.
+                            is_full_bleed = r.width >= page.rect.width * 0.98 or r.height >= page.rect.height * 0.98
+                            is_simple_rule = len(d.get("items", [])) <= 2
+                            if is_full_bleed and is_simple_rule:
                                 continue
                             
                             # Clamped to page bounds
@@ -1239,8 +1273,14 @@ def extract_pdf(file_path):
                             details = {}
                             
                             cap_lower = cap_text.lower()
-                            if "eeg" in cap_lower or "electroencephalogram" in cap_lower:
-                                archetype = "CONTINUOUS_WAVEFORM_EEG"
+                            # Modality-neutral guess; the TS-side StrategyRouter (see
+                            # archetypes.ts's CONTINUOUS_WAVEFORM config) has final say
+                            # and additionally classifies which modality this is.
+                            if any(kw in cap_lower for kw in (
+                                "eeg", "electroencephalogram", "ecg", "ekg", "electrocardiogram",
+                                "capnogr", "etco2", "plethysmogr", "waveform", "tracing"
+                            )):
+                                archetype = "CONTINUOUS_WAVEFORM"
                                 details = {
                                     "nodes": {},
                                     "source_target_vectors": [],

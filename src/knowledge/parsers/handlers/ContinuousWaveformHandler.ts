@@ -50,7 +50,8 @@ export class ContinuousWaveformHandler implements IArchetypeHandler {
       })),
       labels: text_bounding_boxes
         .filter(box => box && typeof box.text === 'string')
-        .map(box => box.text.replace(" [uncertain]", "").trim())
+        .map(box => box.text.replace(" [uncertain]", "").trim()),
+      modality: this.detectModality(engine.caption || '')
     };
 
     return {
@@ -58,5 +59,31 @@ export class ContinuousWaveformHandler implements IArchetypeHandler {
       archetype: L2S_CONFIG.archetypes.CONTINUOUS_WAVEFORM.id,
       details
     };
+  }
+
+  /**
+   * Which physiological signal this tracing actually shows. Runs as a separate,
+   * narrower pass after the broad archetype-level keyword gate (supports()) already
+   * decided "this is some kind of continuous waveform" — keeps modality disambiguation
+   * out of the routing decision itself, matching this file's existing layering.
+   */
+  private detectModality(caption: string): 'ecg' | 'capnography' | 'eeg' | 'pleth' | 'arterial_line' | 'other' {
+    const c = caption.toLowerCase();
+    if (/\becg\b|\bekg\b|electrocardiogram|\blead (i{1,3}|v[1-6]|avr|avl|avf)\b|limb lead|precordial lead|qrs|p[- ]?wave|st segment|heart block|asystole|arrhythmia|tachycardia|bradycardia|fibrillation/.test(c)) {
+      return 'ecg';
+    }
+    if (/capnogr|etco2|end[- ]tidal co2|shark[- ]?fin|curare cleft|cardiogenic oscillation/.test(c)) {
+      return 'capnography';
+    }
+    if (/\beeg\b|electroencephalogram|polysomnograph|hypnogram/.test(c)) {
+      return 'eeg';
+    }
+    if (/plethysmogr|pulse ox.*trace|spo2.*trace/.test(c)) {
+      return 'pleth';
+    }
+    if (/arterial line|arterial (blood )?pressure trace|a-line trace/.test(c)) {
+      return 'arterial_line';
+    }
+    return 'other';
   }
 }

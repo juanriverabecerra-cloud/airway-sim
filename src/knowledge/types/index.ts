@@ -92,7 +92,7 @@ export interface VisualDataEngine {
             | 'COORDINATE X-Y GRAPHS & COMPLEMENTARY PANELS' 
             | 'ANATOMICAL NETWORKS & MICROCIRCUIT MAPS' 
             | 'PHYSIOLOGICAL WAVEFORMS & TRACINGS'
-            | 'CONTINUOUS_WAVEFORM_EEG'
+            | 'CONTINUOUS_WAVEFORM'
             | 'TIMELINE_STEP_CHART_HYPNOGRAM';
   /** Textual label/caption of the graphic */
   caption: string;
@@ -221,7 +221,7 @@ export interface Archetype5Data {
   }>;
 }
 
-/** Archetype 6: Continuous Waveform EEG/ECG details */
+/** Archetype 6: Continuous Waveform details (any modality — ECG, capnography, EEG, pleth, arterial line) */
 export interface ContinuousWaveformDetails {
   channels: Array<{
     source_marker: string;
@@ -233,6 +233,27 @@ export interface ContinuousWaveformDetails {
     role: string;
   }>;
   labels: string[];
+  /** Which physiological signal this tracing actually shows — distinguishes a CONTINUOUS_WAVEFORM archetype's content without multiplying archetype IDs */
+  modality?: 'ecg' | 'capnography' | 'eeg' | 'pleth' | 'arterial_line' | 'other';
+  /** Only populated (by Phase 2 vision enrichment) when modality === 'ecg' */
+  ecg_findings?: {
+    lead_shown?: string;
+    named_rhythm?: string;
+    rate_bpm?: string;
+    pr_interval_ms?: string;
+    qrs_duration_ms?: string;
+    qt_interval_ms?: string;
+    st_segment_finding?: string;
+    t_wave_finding?: string;
+    other_morphology?: string;
+  };
+  /** Only populated (by Phase 2 vision enrichment) when modality === 'capnography' */
+  capnography_findings?: {
+    named_pattern?: string;
+    baseline_etco2_value?: string;
+    plateau_etco2_value?: string;
+    waveform_phase_described?: string;
+  };
 }
 
 /** Archetype 7: Timeline Step Chart Hypnogram details */

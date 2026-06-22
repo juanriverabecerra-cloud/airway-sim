@@ -232,6 +232,31 @@ RESPONSE_SCHEMA = {
                                         "channel_relationships": { "type": "STRING" }
                                     }
                                 }
+                            },
+                            "ecg_findings": {
+                                "type": "OBJECT",
+                                "description": "Only populate for ECG/EKG tracings. Omit entirely for non-ECG waveforms.",
+                                "properties": {
+                                    "lead_shown": { "type": "STRING", "description": "e.g. Lead II, V1, limb leads I/II/III, or 'not specified'" },
+                                    "named_rhythm": { "type": "STRING", "description": "e.g. complete heart block, asystole, ventricular fibrillation, normal sinus rhythm, atrial fibrillation" },
+                                    "rate_bpm": { "type": "STRING", "description": "Heart rate only if depicted/labeled or directly calculable from labeled calibration marks" },
+                                    "pr_interval_ms": { "type": "STRING" },
+                                    "qrs_duration_ms": { "type": "STRING" },
+                                    "qt_interval_ms": { "type": "STRING" },
+                                    "st_segment_finding": { "type": "STRING", "description": "e.g. ST elevation lead II, ST depression scooped/digoxin-type, isoelectric" },
+                                    "t_wave_finding": { "type": "STRING", "description": "e.g. tented T waves, T wave inversion, normal" },
+                                    "other_morphology": { "type": "STRING", "description": "e.g. RBBB rabbit-ears pattern, U waves present, f-waves (AFib)" }
+                                }
+                            },
+                            "capnography_findings": {
+                                "type": "OBJECT",
+                                "description": "Only populate for capnography/EtCO2 tracings. Omit entirely for non-capnography waveforms.",
+                                "properties": {
+                                    "named_pattern": { "type": "STRING", "description": "e.g. obstructive shark-fin upstroke, curare cleft, cardiogenic oscillations, rebreathing elevated baseline, esophageal intubation flatline, cuff leak dilution, bucking artifact, normal" },
+                                    "baseline_etco2_value": { "type": "STRING" },
+                                    "plateau_etco2_value": { "type": "STRING" },
+                                    "waveform_phase_described": { "type": "STRING", "description": "e.g. phase II upstroke, phase III plateau, inspiratory downstroke" }
+                                }
                             }
                         }
                     }
@@ -309,11 +334,14 @@ For every visual element identified on the page, you must class-map the graphic 
      - Neurotransmitter and sign details if present.
 
 ### ARCHETYPE 5: PHYSIOLOGICAL WAVEFORMS & TRACINGS
-- **Detection Criteria:** Parallel multichannel continuous waveforms (e.g., polysomnography, EEG, arterial line traces).
+- **Detection Criteria:** Parallel multichannel continuous waveforms (e.g., polysomnography, EEG, arterial line traces), or a single-channel clinical monitor tracing (ECG strip, capnography/EtCO2 trace).
 - **Extraction Protocol:**
   1. Segment the visualization into parallel vertical channels and extract the exact source marker of each channel (e.g., SaO2, Resp Flow, Thorax, Abdomen).
   2. Detect transient synchronous events: match localized bounding boxes or annotation flags (e.g., "CH", "OA") to the exact time-window slice on the trace timeline.
   3. Describe the wave morphological pattern during events (e.g., "Crescendo-decrescendo modulation", "Flatline/Cessation of flow", "Phase paradox between Thorax and Abdomen channels").
+  4. If the tracing is specifically an ECG/EKG strip, additionally populate `ecg_findings` with the lead(s) shown, the named rhythm, the rate if depicted or directly calculable from labeled calibration marks, any labeled interval values (PR/QRS/QT), and ST-segment/T-wave findings. Read any digital numeric readout shown alongside the trace (e.g. a monitor's displayed HR) as a separate fact from what the trace itself actually shows — do not assume they agree; a mismatch between a monitor's numeric display and the true waveform is sometimes the entire clinical point of the figure.
+  5. If the tracing is specifically a capnography/EtCO2 trace, additionally populate `capnography_findings` with the named morphological pattern (shark-fin, curare cleft, cardiogenic oscillations, rebreathing, esophageal, cuff-leak, bucking, or normal) if one is clinically depicted, plus baseline/plateau values if labeled.
+  6. Leave `ecg_findings` and `capnography_findings` entirely absent for EEG/polysomnography/arterial-line/other non-cardiorespiratory waveforms.
 
 ---
 
