@@ -71,11 +71,26 @@ Read the chapter in full and sort its content along two independent axes:
   read — `details.ecg_findings`/`capnography_findings` if populated — but your own
   multimodal reading of the actual pixels is free, can confirm or correct that
   enrichment, and can be grounded in the specific engine parameters you're about to touch
-  (`EkgModel.js`'s `LEAD_PROFILES`/`stShift` family, `EtCo2Model.js`'s named-pattern
-  branches) in a way a generic upfront extraction schema can't. If a figure's `archetype`
-  is still the old `CONTINUOUS_WAVEFORM_EEG` or its `details` looks suspiciously
-  empty/generic, that chapter was likely ingested before the 2026-06 pipeline fix — flag
-  it rather than assuming the data is complete.
+  in a way a generic upfront extraction schema can't. If a figure's `archetype` is still
+  the old `CONTINUOUS_WAVEFORM_EEG` or its `details` looks suspiciously empty/generic,
+  that chapter was likely ingested before the 2026-06 pipeline fix — flag it rather than
+  assuming the data is complete.
+
+  Do not treat this figure-reading pass as verification-only. Actively look for anything
+  the figure shows that the live waveform engines (`src/engine/EkgModel.js`,
+  `EtCo2Model.js`, `PlethModel.js`, `ArterialLineModel.js`, `WaveformDatabase.js`) don't
+  yet model, or model less precisely than what you can see directly in the source — a
+  named rhythm/pattern one of these engines has no branch for, a timing/amplitude value
+  the figure pins down more exactly than the engine's current constant, or a monitoring
+  pitfall worth scoring (e.g. a digital readout that can mislead while the raw waveform
+  tells the true story). When what you find would meaningfully and correctly sharpen one
+  of these engines, classify it under Bucket A (a tunable parameter or new pattern branch
+  — integrate it now via STEP 2A, cited to this figure) or Bucket B (a judgment/monitoring
+  teaching point — integrate it via STEP 2B/STEP 3, e.g. as a `QualityEvent`) and make the
+  change this session rather than deferring it. The same "evolve, don't duplicate, cite
+  the source, never invent what the source doesn't give" discipline from STEP 2A/2B
+  applies — a figure you can see with your own eyes is at least as good a source as a
+  prose paragraph, not a lesser one to be merely noted and set aside.
 
   AXIS 2 — Phase of care this content actually applies to:
     PreOp, Intraoperative, PACU/Post-op, or Cross-cutting (applies across phases).
