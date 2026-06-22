@@ -174,6 +174,48 @@ ight) \cdot \left(1.0 - \min(0.3, 0.3 \cdot \text{Volatile}_{\text{MAC}})\right)
         $$V_{TE} = \left(P_{\text{plat}} - PEEP\right) \cdot C \quad \text{where } P_{\text{plat}} = PIP - 2$$
     *   *PCV-VG Mode*: $V_{TE} = \text{dialed } V_T$. Peak pressure converges: $P_{\text{plat}} = PEEP + \frac{V_{TE}}{C}$, $PIP = P_{\text{plat}} + 2$.
 
+#### 4.6.2 Flow-Volume Loop Display Model (`FlowVolumeLoopModel.js`)
+> **Sourcing note**: unlike the rest of this document, the loop-shape contours below are
+> not derived from a specific Miller's chapter — they are general pulmonary physiology
+> (the same teaching depiction found in any PFT/spirometry reference), used by explicit
+> instruction since the textbook source material doesn't give literal rendering
+> parameters for this display. Disclosed here per this project's standing convention for
+> non-textbook-sourced content.
+
+*   **Inputs reused, not duplicated**: the loop is synthesized from state
+    `RespiratoryEngine.ts` already computes per-tick — `vitals.res`/`vitals.compl`
+    (§4.6) and `patient.lungVolumes.{tlc_mL, rv_mL, fvc_mL, fev1FvcRatio}` (§4.6.1) — the
+    same pattern `EtCo2Model.js`/`VentModel.js` already use (static physiology scalars in,
+    a clinically-shaped curve out), not a first-principles flow simulation.
+*   **Axis convention**: Volume (L) increases left-to-right, RV at the left margin, TLC
+    at the right. Expiratory flow is positive (above the zero-flow line), inspiratory
+    flow negative (below). Traced TLC → (expiration) → RV → (inspiration) → TLC.
+*   **Peak flow**: $PEF = \max(0.8,\ 8.0 \cdot \frac{R_{\text{base}}}{R} \cdot \sqrt{\text{complianceFactor}})$,
+    $PIF \approx 0.78 \cdot PEF$ — peak flow falls as resistance rises and is blunted by
+    very low compliance, using the exact `vitals.res`/`vitals.compl` already inflated by
+    bronchospasm/COPD/GOLD-stage/restrictive disease elsewhere in the engine.
+*   **Expiratory descent concavity**: $flow(e) = PEF \cdot (1-e)^k$ where $e$ is fraction
+    through expiration and $k = 1 + \text{obstructionSeverity} \cdot 5$. $k=1$ is the
+    near-linear normal descent; $k \gg 1$ produces the "scooped"/coved concave descent
+    classically described in obstructive disease (COPD, asthma, bronchospasm) — the
+    obstruction-severity term is driven by the same resistance ratio as $PEF$, so the two
+    never disagree with each other or with the other waveform displays.
+*   **Restrictive pattern**: no separate shape parameter — `restrictive` already
+    compresses `lungVolumes` (TLC/RV/FVC ×0.52, §4.6.1) without raising resistance, so a
+    narrowed-but-normally-shaped loop falls out of reusing those volumes directly.
+*   **Variable extrathoracic obstruction**: the inspiratory limb (only) is clamped to a
+    plateau once an upper-airway collapsibility index — derived from `dilatorMuscleTone`/
+    `pcrit`/`laryngospasm` in the same direction as §4.6's upper-airway resistance model —
+    crosses a threshold, reproducing the textbook teaching point that negative
+    intraluminal pressure on inspiration collapses an already-narrowed extrathoracic
+    airway further, while expiration is comparatively spared.
+*   **Deliberately not modeled** (documented gap, not an oversight): fixed upper-airway
+    obstruction (e.g. tracheal stenosis — flattens *both* limbs) and variable
+    intrathoracic obstruction (e.g. an intrathoracic tracheal mass — flattens only the
+    *expiratory* limb). Neither has an existing patient flag to drive it credibly without
+    inventing new state; pick this up if/when a relevant chapter or flag materializes —
+    see `docs/chapter_integration_prompt.md`'s pulmonary-function-content bullet.
+
 #### 4.7 Alveolar Ventilation, Apnea Kinetics & Loop Gain
 *   **Chemoreceptor Feedback Loop Gain ($LG$)**: Quantifies ventilatory control stability and propensity to periodic breathing:
 *   **Hypoxic & Hypercapnic Ventilatory Drive Blunting**:

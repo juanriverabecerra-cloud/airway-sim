@@ -1,6 +1,11 @@
+import { useState } from 'react';
+import { Wind } from 'lucide-react';
 import { CanvasWaveform } from '../CanvasWaveform';
+import { FlowVolumeLoopModal } from '../modals/FlowVolumeLoopModal';
 
 export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSettings, activeMeds }) => {
+  const [showFvLoop, setShowFvLoop] = useState(false);
+
   // If the airway is not secured, the ventilator monitor hides itself.
   if (!patient || !patient.airwaySecured) return null;
 
@@ -10,6 +15,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
   const ventValClass2 = "text-3xl @[200px]:text-4xl @[240px]:text-5xl @[280px]:text-5xl @[345px]:text-6xl @[410px]:text-6xl";
 
   return (
+    <>
     <div className="glass-panel glass-emerald crt-monitor p-2 flex flex-col md:grid md:grid-cols-4 gap-2 min-h-[300px] md:min-h-0 md:h-[280px] lg:h-[420px] relative overflow-hidden">
       {/* Waveforms */}
       <div className="col-span-1 md:col-span-3 flex flex-col justify-between relative z-10 w-full h-[220px] md:h-full gap-1">
@@ -167,7 +173,14 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
         <div className="bg-slate-900/60 border border-slate-800/80 rounded p-1.5 flex flex-col justify-between hover:border-yellow-500/30 transition-all overflow-hidden">
           <div className="flex justify-between items-center w-full border-b border-slate-900/40 pb-0.5">
             <span className="text-yellow-500 font-bold text-[9px] lg:text-[10px] leading-none uppercase">Pulmonary Telemetry</span>
-            <div className="flex gap-1">
+            <div className="flex gap-1 items-center">
+              <button
+                onClick={() => setShowFvLoop(true)}
+                title="Open flow-volume loop"
+                className="flex items-center gap-0.5 text-[7px] bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 px-1 py-0.5 rounded font-black transition-all"
+              >
+                <Wind size={8} /> F-V LOOP
+              </button>
               {patient?.recruitmentTime > 0 && (
                 <span className="text-[7px] bg-amber-500/20 text-amber-300 px-1 py-0.5 rounded font-black animate-pulse">
                   RECRUITING ({Math.round(patient.recruitmentTime)}s)
@@ -246,5 +259,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
         </div>
       </div>
     </div>
+    <FlowVolumeLoopModal show={showFvLoop} close={() => setShowFvLoop(false)} patient={patient} vitals={vitals} />
+    </>
   );
 };

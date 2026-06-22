@@ -92,6 +92,20 @@ Read the chapter in full and sort its content along two independent axes:
   applies — a figure you can see with your own eyes is at least as good a source as a
   prose paragraph, not a lesser one to be merely noted and set aside.
 
+  PULMONARY FUNCTION / FLOW-VOLUME CONTENT — if this chapter touches pulmonary function
+  testing, spirometry, or obstructive/restrictive/upper-airway-obstruction physiology,
+  check whether it should refine `src/engine/FlowVolumeLoopModel.js` (the flow-volume
+  loop already shown via the "F-V LOOP" button on the ventilator monitor —
+  `docs/engines/physiology.md` §4.6.2 documents its current shape model: normal,
+  obstructive, restrictive, and variable-extrathoracic-obstruction patterns, each driven
+  by existing `RespiratoryEngine.ts` state). §4.6.2 explicitly flags two patterns as not
+  yet modeled — fixed upper-airway obstruction (flattens both limbs) and variable
+  intrathoracic obstruction (flattens only the expiratory limb) — pick either up now if
+  this chapter gives you a real flag/condition to drive it. Miller's won't give literal
+  rendering parameters for any of this; general pulmonary physiology knowledge is the
+  legitimate source here (see §4.6.2's sourcing note) — absence of a direct citation is
+  not a blocker, the same way it isn't for the WAVEFORM FIGURES guidance above.
+
   AXIS 2 — Phase of care this content actually applies to:
     PreOp, Intraoperative, PACU/Post-op, or Cross-cutting (applies across phases).
     Do not default to "intraoperative" just because that's been the focus so far — check
