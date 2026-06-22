@@ -545,7 +545,7 @@ export const SetupModal = ({ show, close, viewModal, setViewModal, processIntuba
             <div className="bg-slate-900 border border-slate-800 p-3 rounded-xl">
               <label className="text-[10px] md:text-xs text-slate-400 block mb-1">Tube Size (Hint: 7.0-7.5 Female, 7.5-8.0 Male)</label>
               <select value={viewModal.tubeSize} onChange={(e) => setViewModal(prev => ({...prev, tubeSize: e.target.value}))} className="w-full bg-slate-950 text-white text-xs p-2.5 border border-slate-850 rounded-lg outline-none focus:border-cyan-500 transition">
-                <option value="">Select ETT Size...</option>
+                <option value="">Select ETT Size</option>
                 <option value="6.0">6.0 mm</option><option value="6.5">6.5 mm</option><option value="7.0">7.0 mm</option><option value="7.5">7.5 mm</option><option value="8.0">8.0 mm</option>
               </select>
             </div>

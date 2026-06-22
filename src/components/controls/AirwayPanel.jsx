@@ -29,6 +29,9 @@ export const AirwayPanel = ({
   const [airwayToolInput, setAirwayToolInput] = useState({ tool: null, size: '' });
   const [extubateConfirm, setExtubateConfirm] = useState(false);
   const [showChecklists, setShowChecklists] = useState(false);
+  const [showPosition, setShowPosition] = useState(false);
+  const [showExams, setShowExams] = useState(false);
+  const [showO2, setShowO2] = useState(false);
   const [o2Input, setO2Input] = useState({ device: null, flow: '', fio2: '', ipap: '', epap: '', rate: '' });
 
   // Auto-open checklists if there is a tension pneumothorax or airway plug
@@ -166,54 +169,87 @@ export const AirwayPanel = ({
     );
   };
 
-  // Reusable Patient Positioner Dropdown
+  // Reusable Patient Positioner Accordion
   const renderPositionDropdown = () => (
-    <div className="flex flex-col gap-1 bg-slate-950/40 border border-white/5 p-2 rounded-xl shrink-0 font-mono text-[9px]">
-      <span className="text-slate-500 font-bold uppercase tracking-wider">Patient Position</span>
-      <select 
-        value={patient?.position || 'Supine'} 
-        onChange={(e) => {
-          const pos = e.target.value;
-          setPatient(p => ({ ...p, position: pos }));
-          logEvent(`Position: ${pos}. Physiological alignment updated.`);
-        }}
-        className="w-full glass-input text-[10px] font-black text-cyan-300 outline-none rounded-lg p-1.5 cursor-pointer hover:border-cyan-500/80 transition font-mono bg-slate-950"
+    <div className="border border-white/5 bg-slate-950/30 rounded-xl overflow-hidden shrink-0 font-mono">
+      <button
+        onClick={() => setShowPosition(!showPosition)}
+        className="w-full flex items-center justify-between px-3 py-1.5 bg-slate-950/40 border-b border-white/5 font-mono text-[9px] font-black text-cyan-400 uppercase tracking-wider hover:bg-slate-950/60 transition-all"
       >
-        <option value="Supine">SUPINE (Baseline FRC)</option>
-        <option value="Sniffing">SNIFFING (Aligns Axes)</option>
-        <option value="Ramped">RAMPED (Optimizes FRC)</option>
-        <option value="Trendelenburg">TRENDELENBURG (Venous Return / FRC drop)</option>
-        <option value="Rev Trendelenburg">REVERSE TRENDELENBURG (Venous pooling)</option>
-        <option value="Lithotomy">LITHOTOMY (Decreased FRC)</option>
-        <option value="Lateral">LATERAL DECUBITUS (V/Q shift)</option>
-        <option value="Prone">PRONE (Posterior recruitment)</option>
-        <option value="Sitting">SITTING / BEACH CHAIR (FRC maximized)</option>
-      </select>
+        <span className="flex items-center gap-1.5 text-cyan-300">
+          👤 Position: {(patient?.position || 'Supine').toUpperCase()}
+        </span>
+        <span>{showPosition ? '▲' : '▼'}</span>
+      </button>
+      {showPosition && (
+        <div className="p-2.5 grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {[
+            { label: 'Supine', value: 'Supine' },
+            { label: 'Sniffing', value: 'Sniffing' },
+            { label: 'Ramped', value: 'Ramped' },
+            { label: 'Trendelenburg', value: 'Trendelenburg' },
+            { label: 'Reverse Trendelenburg', value: 'Rev Trendelenburg' },
+            { label: 'Lithotomy', value: 'Lithotomy' },
+            { label: 'Lateral Decubitus', value: 'Lateral' },
+            { label: 'Prone', value: 'Prone' },
+            { label: 'Sitting / Beach Chair', value: 'Sitting' }
+          ].map(pos => (
+            <button
+              key={pos.value}
+              onClick={() => {
+                setPatient(p => ({ ...p, position: pos.value }));
+                logEvent(`Position: ${pos.value}. Physiological alignment updated.`);
+                setShowPosition(false);
+              }}
+              className={`glass-button border-slate-800 py-1.5 text-[8.5px] leading-tight ${
+                (patient?.position || 'Supine') === pos.value ? 'bg-cyan-600/30 border-cyan-500 text-cyan-200' : 'text-cyan-300 hover:bg-cyan-950/20'
+              }`}
+            >
+              {pos.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 
-  // Reusable Bedside Exams Dropdown
+  // Reusable Bedside Exams Accordion
   const renderExamsDropdown = () => (
-    <div className="flex flex-col gap-1 bg-slate-950/40 border border-white/5 p-2 rounded-xl shrink-0 font-mono text-[9px]">
-      <span className="text-slate-500 font-bold uppercase tracking-wider">Perform Bedside Exam</span>
-      <select 
-        value="" 
-        onChange={(e) => {
-          const exam = e.target.value;
-          if (exam === 'Airway') {
-            if (examineAirway) examineAirway();
-          } else {
-            if (handlePocus) handlePocus(exam);
-          }
-        }}
-        className="w-full glass-input text-[10px] font-black text-cyan-300 outline-none rounded-lg p-1.5 cursor-pointer hover:border-cyan-500/80 transition font-mono bg-slate-950"
+    <div className="border border-white/5 bg-slate-950/30 rounded-xl overflow-hidden shrink-0 font-mono">
+      <button
+        onClick={() => setShowExams(!showExams)}
+        className="w-full flex items-center justify-between px-3 py-1.5 bg-slate-950/40 border-b border-white/5 font-mono text-[9px] font-black text-cyan-400 uppercase tracking-wider hover:bg-slate-950/60 transition-all"
       >
-        <option value="" disabled>🔍 Select Bedside Exam...</option>
-        <option value="Airway">Airway Assessment (Mallampati/Neck)</option>
-        <option value="Cardiac (TTE)">Transthoracic Echocardiogram (TTE POCUS)</option>
-        <option value="Lung">Lung Ultrasound (Lung POCUS)</option>
-        <option value="Gastric">Gastric Ultrasound (Gastric POCUS)</option>
-      </select>
+        <span className="flex items-center gap-1.5 text-cyan-300">
+          🔍 Perform Bedside Exam
+        </span>
+        <span>{showExams ? '▲' : '▼'}</span>
+      </button>
+      {showExams && (
+        <div className="p-2.5 grid grid-cols-2 gap-2">
+          {[
+            { label: 'Airway Assessment', value: 'Airway' },
+            { label: 'Cardiac (TTE POCUS)', value: 'Cardiac (TTE)' },
+            { label: 'Lung POCUS', value: 'Lung' },
+            { label: 'Gastric POCUS', value: 'Gastric' }
+          ].map(exam => (
+            <button
+              key={exam.value}
+              onClick={() => {
+                if (exam.value === 'Airway') {
+                  if (examineAirway) examineAirway();
+                } else {
+                  if (handlePocus) handlePocus(exam.value);
+                }
+                setShowExams(false);
+              }}
+              className="glass-button border-slate-800 text-cyan-300 hover:bg-cyan-950/20 py-1.5 text-[9px]"
+            >
+              {exam.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 
@@ -391,29 +427,50 @@ export const AirwayPanel = ({
       {renderExamsDropdown()}
 
       {/* Oxygen Support Selector */}
-      <div className="flex flex-col gap-1 bg-slate-950/40 border border-white/5 p-2 rounded-xl shrink-0 font-mono text-[9px]">
-        <span className="text-slate-500 font-bold uppercase tracking-wider">Non-Invasive O2 Support</span>
-        <select
-          value={patient?.o2Device || 'Room Air'}
-          onChange={(e) => {
-            const dev = e.target.value;
-            if (dev === 'Room Air') {
-              if (handleSetO2) handleSetO2('Room Air');
-            } else {
-              setO2Input({ device: dev, flow: '', fio2: '', ipap: '', epap: '', rate: '' });
-            }
-          }}
-          className="w-full glass-input text-[10px] font-black text-cyan-300 outline-none rounded-lg p-1.5 cursor-pointer hover:border-cyan-500/80 transition font-mono bg-slate-950"
-        >
-          <option value="Room Air">Room Air (No support)</option>
-          <option value="Bag-Mask Valve (BMV)">Bag-Mask Valve (100% O2)</option>
-          <option value="Nasal Cannula">Nasal Cannula (1-15 L/min)</option>
-          <option value="Simple Face Mask">Simple Face Mask (5-10 L/min)</option>
-          <option value="Non-Rebreather Mask (NRB)">Non-Rebreather Mask (15 L/min, 100%)</option>
-          <option value="High Flow Nasal Cannula (HFNC)">High Flow Nasal Cannula (HFNC)</option>
-          <option value="CPAP">CPAP (PEEP / FiO2)</option>
-          <option value="BiPAP">BiPAP (IPAP / EPAP / FiO2)</option>
-        </select>
+      <div className="flex flex-col gap-1 shrink-0 font-mono text-[9px]">
+        <div className="border border-white/5 bg-slate-950/30 rounded-xl overflow-hidden shrink-0 font-mono">
+          <button
+            onClick={() => setShowO2(!showO2)}
+            className="w-full flex items-center justify-between px-3 py-1.5 bg-slate-950/40 border-b border-white/5 font-mono text-[9px] font-black text-cyan-400 uppercase tracking-wider hover:bg-slate-950/60 transition-all"
+          >
+            <span className="flex items-center gap-1.5 text-cyan-300">
+              💨 O2 Support: {(patient?.currentO2Device || 'Room Air').toUpperCase()}
+            </span>
+            <span>{showO2 ? '▲' : '▼'}</span>
+          </button>
+          {showO2 && (
+            <div className="p-2.5 grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {[
+                { label: 'Room Air', value: 'Room Air' },
+                { label: 'Bag-Mask Valve', value: 'Bag-Mask Valve (BMV)' },
+                { label: 'Nasal Cannula', value: 'Nasal Cannula' },
+                { label: 'Simple Face Mask', value: 'Simple Face Mask' },
+                { label: 'Non-Rebreather Mask', value: 'Non-Rebreather Mask (NRB)' },
+                { label: 'High Flow Nasal', value: 'High Flow Nasal Cannula (HFNC)' },
+                { label: 'CPAP', value: 'CPAP' },
+                { label: 'BiPAP', value: 'BiPAP' }
+              ].map(dev => (
+                <button
+                  key={dev.value}
+                  onClick={() => {
+                    const val = dev.value;
+                    if (val === 'Room Air') {
+                      if (handleSetO2) handleSetO2('Room Air');
+                    } else {
+                      setO2Input({ device: val, flow: '', fio2: '', ipap: '', epap: '', rate: '' });
+                    }
+                    setShowO2(false);
+                  }}
+                  className={`glass-button border-slate-800 py-1.5 text-[8.5px] leading-tight ${
+                    (patient?.currentO2Device || 'Room Air') === dev.value ? 'bg-cyan-600/30 border-cyan-500 text-cyan-200' : 'text-cyan-300 hover:bg-cyan-950/20'
+                  }`}
+                >
+                  {dev.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         
         {/* Render active device details & inputs */}
         {o2Input.device && o2Input.device !== 'Room Air' && (
@@ -432,9 +489,9 @@ export const AirwayPanel = ({
           </div>
         )}
         
-        {patient?.o2Device && patient.o2Device !== 'Room Air' && (
+        {patient?.currentO2Device && patient.currentO2Device !== 'Room Air' && (
           <div className="bg-cyan-950/30 border border-cyan-800/40 p-2 rounded-lg text-[9px] text-cyan-300 font-mono flex justify-between items-center mt-1.5">
-            <span className="truncate">Active: {patient.o2Device} {patient.o2Flow ? `(${patient.o2Flow} L/min)` : ''} {patient.fio2 ? `(${patient.fio2}% FiO2)` : ''}</span>
+            <span className="truncate">Active: {patient.currentO2Device} {patient.currentO2Flow ? `(${patient.currentO2Flow} L/min)` : ''} {patient.currentFiO2 ? `(${patient.currentFiO2}% FiO2)` : ''}</span>
             <button onClick={() => { if (handleSetO2) handleSetO2('Room Air'); }} className="text-red-400 hover:text-red-300 font-bold uppercase tracking-widest text-[8px] bg-red-950/40 border border-red-900/40 px-2 py-0.5 rounded ml-2 shrink-0">Remove</button>
           </div>
         )}

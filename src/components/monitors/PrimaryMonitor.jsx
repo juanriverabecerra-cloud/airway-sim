@@ -17,11 +17,11 @@ export const PrimaryMonitor = ({
   activeMeds,
   onEkgClick
 }) => {
-  const hrSpO2Class = "text-3xl @[200px]:text-4xl @[240px]:text-5xl @[280px]:text-5xl @[345px]:text-6xl @[410px]:text-6xl";
-  const bpClass = "text-2xl @[200px]:text-3xl @[240px]:text-4xl @[280px]:text-4xl @[345px]:text-5xl @[410px]:text-5xl";
-  const mapClass = "text-xs @[200px]:text-sm @[240px]:text-base @[280px]:text-lg @[345px]:text-xl @[410px]:text-2xl";
-  const advClass = "text-sm @[200px]:text-base @[240px]:text-lg @[280px]:text-xl @[345px]:text-2xl @[410px]:text-3xl";
-  const tempBisClass = "text-base @[200px]:text-lg @[240px]:text-xl @[280px]:text-2xl @[345px]:text-3xl @[410px]:text-4xl";
+  const hrSpO2Class = "text-3xl @[200px]:text-4xl @[240px]:text-5xl @[280px]:text-5xl @[345px]:text-[44px] @[410px]:text-[48px]";
+  const bpClass = "text-2xl @[200px]:text-3xl @[240px]:text-4xl @[280px]:text-4xl @[345px]:text-[40px] @[410px]:text-[42px]";
+  const mapClass = "text-xs @[200px]:text-sm @[240px]:text-base @[280px]:text-lg @[345px]:text-lg @[410px]:text-xl";
+  const advClass = "text-sm @[200px]:text-base @[240px]:text-lg @[280px]:text-xl @[345px]:text-xl @[410px]:text-2xl";
+  const tempBisClass = "text-base @[200px]:text-lg @[240px]:text-xl @[280px]:text-2xl @[345px]:text-[26px] @[410px]:text-[28px]";
 
   return (
     <div className="glass-panel glass-emerald p-2 flex flex-col md:grid md:grid-cols-4 gap-2 min-h-[360px] md:min-h-0 md:h-auto lg:h-[420px] relative overflow-hidden">
@@ -134,7 +134,7 @@ export const PrimaryMonitor = ({
       </div>
 
       {/* Primary Numerical Vitals - High-Legibility Space-Stretching Layout */}
-      <div className="@container col-span-1 grid grid-rows-[23%_26%_23%_28%] bg-black/45 backdrop-blur-md p-1.5 rounded-lg h-[340px] md:h-full border border-slate-800/60 shadow-inner gap-1.5 overflow-hidden">
+      <div className="@container col-span-1 grid grid-rows-[22%_28%_22%_28%] bg-black/45 backdrop-blur-md p-1.5 rounded-lg h-[340px] md:h-full border border-slate-800/60 shadow-inner gap-1.5 overflow-hidden">
         
         {/* Row 1: HR & SpO2 */}
         <div className="flex gap-1.5 w-full h-full">
@@ -176,7 +176,7 @@ export const PrimaryMonitor = ({
         </div>
 
         {/* Row 2: Blood Pressure Card */}
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded p-1.5 flex flex-col justify-between hover:border-red-500/30 transition-all overflow-hidden">
+        <div className="bg-slate-900/60 border border-slate-800/80 rounded pt-1.5 px-1.5 pb-2.5 flex flex-col justify-between hover:border-red-500/30 transition-all overflow-hidden">
           {/* Top Row: Label & Controls */}
           <div className="flex justify-between items-center w-full">
             <span className="text-red-500 font-bold flex items-center gap-1 text-[10px] lg:text-xs leading-none uppercase">
@@ -211,7 +211,7 @@ export const PrimaryMonitor = ({
           </div>
 
           {/* Bottom Row: PPV (left) & MAP/cMAP (right) */}
-          <div className="flex justify-between items-center w-full border-t border-slate-900/40 pt-1">
+          <div className="flex justify-between items-center w-full border-t border-slate-900/40 pt-1 pb-0.5">
             {/* PPV Block */}
             <div className="flex items-center gap-1 leading-none">
               <span className="text-[8px] lg:text-[9px] text-red-500/60 font-bold uppercase tracking-wider">PPV</span>

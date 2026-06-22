@@ -145,7 +145,7 @@ export const MemoryPanel = ({ patient, vitals, setPatient, logEvent, toggleBis, 
               </div>
               {isQualitativeTof && (
                 <div className="text-[9px] text-amber-400/90 leading-snug bg-amber-950/20 border border-amber-900/30 rounded p-1.5">
-                  Manual tactile/visual assessment cannot detect fade once the true TOF ratio exceeds ~40% (Ch28, Miller's 9th Ed). Values below reflect what a clinician would perceive, not ground truth.
+                  Manual tactile/visual assessment cannot detect fade once the true TOF ratio exceeds ~40%. Values below reflect what a clinician would perceive, not ground truth.
                 </div>
               )}
 

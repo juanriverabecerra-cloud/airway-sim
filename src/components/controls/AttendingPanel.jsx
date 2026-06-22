@@ -1401,7 +1401,7 @@ export default function AttendingPanel({
                 type="text"
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
-                placeholder="Ask Attending (e.g. 'why is BP low?')..."
+                placeholder="Ask Attending (e.g. 'why is BP low?')"
                 className="flex-1 bg-slate-900/90 border border-slate-700/60 rounded-lg px-3 py-2 text-xs text-slate-205 placeholder-slate-500 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/20 transition-all font-mono"
                 disabled={isTyping}
               />
@@ -1605,7 +1605,7 @@ Rules:
                           disabled={!pimpTopicInput.trim() || isGeneratingPimp || !apiKey}
                           className="flex-1 py-2 bg-purple-600 hover:bg-purple-500 disabled:opacity-50 active:scale-98 text-white font-bold text-[10px] rounded-lg transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
                         >
-                          <Target size={12} /> PIMP ME ON…
+                          <Target size={12} /> PIMP ME ON
                         </button>
                       </div>
                       <input
@@ -1613,7 +1613,7 @@ Rules:
                         value={pimpTopicInput}
                         onChange={(e) => setPimpTopicInput(e.target.value)}
                         onKeyDown={(e) => { if (e.key === 'Enter') e.target.closest('div').querySelector('button:last-of-type')?.click(); }}
-                        placeholder="Enter topic (e.g. 'ketamine', 'intubation', 'MAC')…"
+                        placeholder="Enter topic (e.g. 'ketamine', 'intubation', 'MAC')"
                         className="w-full bg-slate-950/80 border border-slate-700/60 rounded-lg px-3 py-2 text-[10px] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-purple-500/60 focus:ring-1 focus:ring-purple-500/20 transition-all font-mono"
                         disabled={isGeneratingPimp}
                       />
@@ -2080,7 +2080,7 @@ Rules:
                 type="text"
                 value={studyInput}
                 onChange={(e) => setStudyInput(e.target.value)}
-                placeholder="Ask Attending anything (e.g. 'explain MAC')…"
+                placeholder="Ask Attending anything (e.g. 'explain MAC')"
                 className="flex-1 bg-slate-900/90 border border-slate-700/60 rounded-lg px-3 py-2 text-xs text-slate-205 placeholder-slate-500 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/20 transition-all font-mono"
                 disabled={isStudyTyping}
               />

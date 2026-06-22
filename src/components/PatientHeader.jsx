@@ -1,4 +1,5 @@
 import { Undo2, FileText } from 'lucide-react';
+import { AetherisLogo } from './AetherisLogo';
 
 export const PatientHeader = ({ 
   activeCase, 
@@ -25,7 +26,17 @@ export const PatientHeader = ({
         {/* Top Row: Demographics & Controls */}
         <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center w-full gap-4">
           <div className="flex flex-col gap-2 w-full xl:w-auto">
-            <h1 className="text-2xl font-black tracking-tight text-emerald-400 drop-shadow-[0_0_12px_rgba(16,185,129,0.35)]">{activeCase.name}</h1>
+            <div className="flex items-center gap-3">
+              <AetherisLogo 
+                className="w-8 h-8 shrink-0 cursor-pointer hover:scale-105 active:scale-95 transition-transform duration-200" 
+                glow={false} 
+                onClick={() => {
+                  logEvent("🏠 Navigating back to home screen via header logo click");
+                  setActiveCase(null);
+                }} 
+              />
+              <h1 className="text-2xl font-black tracking-tight text-emerald-400 drop-shadow-[0_0_12px_rgba(16,185,129,0.35)]">{activeCase.name}</h1>
+            </div>
             <div className="flex flex-wrap items-center gap-3 text-xs md:text-sm text-slate-300 bg-slate-950/40 p-2 rounded-lg border border-white/5 font-mono">
               <span><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Age:</span> {patient?.age ?? '--'}</span>
               <span><span className="text-slate-500 font-bold uppercase tracking-wider text-[10px]">Sex:</span> {patient?.sex ?? '--'}</span>

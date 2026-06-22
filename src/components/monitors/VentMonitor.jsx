@@ -211,7 +211,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
                 {vitals?.vdVt !== undefined && (
                   <span
                     className={`text-[6.5px] mt-0.5 font-mono leading-none ${vitals.vdVt > 0.5 ? 'text-rose-400' : 'text-slate-500'}`}
-                    title="Physiologic dead space fraction of tidal volume (VD/VT) — key point, Miller's 9th Ed Ch13"
+                    title="Physiologic dead space fraction of tidal volume (VD/VT)"
                   >
                     VD/VT:{(vitals.vdVt * 100).toFixed(0)}%
                   </span>

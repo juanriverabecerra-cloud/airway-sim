@@ -324,4 +324,48 @@ h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-sans) !important;
 }
 
+/* Responsive positioning adjustments for the branding landing page when height is constrained */
+@media (max-height: 800px) {
+  .splash-logo-container {
+    top: 28% !important;
+    transform: translate(-50%, -50%) scale(0.85) !important;
+    transform-origin: center !important;
+  }
+  .splash-header-container {
+    top: 48% !important;
+  }
+  .splash-buttons-container {
+    top: 57% !important;
+  }
+}
+
+@media (max-height: 680px) {
+  .splash-logo-container {
+    top: 24% !important;
+    transform: translate(-50%, -50%) scale(0.7) !important;
+    transform-origin: center !important;
+  }
+  .splash-header-container {
+    top: 46% !important;
+  }
+  .splash-buttons-container {
+    top: 58% !important;
+  }
+}
+
+@media (max-height: 500px) {
+  .splash-logo-container {
+    top: 20% !important;
+    transform: translate(-50%, -50%) scale(0.55) !important;
+    transform-origin: center !important;
+  }
+  .splash-header-container {
+    top: 42% !important;
+  }
+  .splash-buttons-container {
+    top: 60% !important;
+    gap: 0.5rem !important;
+  }
+}
+
 

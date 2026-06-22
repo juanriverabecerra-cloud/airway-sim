@@ -5,6 +5,7 @@ import { calculatePacuReadiness } from './engine/OutcomeScoringEngine.ts';
 import { ProceduralEngine } from './engine/ProceduralEngine';
 import { Search, Activity } from 'lucide-react';
 import { CaseManager } from './components/controls/CaseManager';
+import { AetherisLogo } from './components/AetherisLogo';
 
 // Components
 import { PatientHeader } from './components/PatientHeader';
@@ -102,6 +103,7 @@ const TEGVisualizer = React.memo(({ historyData }) => {
 
 export default function App() {
   const [activeCase, setActiveCase] = useState(null);
+  const [splashState, setSplashState] = useState('splash');
   const [isRunning, setIsRunning] = useState(false);
   const [nibp, setNibp] = useState({ sys: 0, dia: 0, time: 0 });
   const [nibpIntervalMs, setNibpIntervalMs] = useState(0);
@@ -264,7 +266,13 @@ export default function App() {
   const handleToggleCeliacBlock = () => { saveState(); toggleCeliacBlock(); };
   const handleDeliverShock = (...args) => { saveState(); deliverShock(...args); };
   const handleOptimizeAirway = (...args) => { saveState(); optimizeAirway(...args); };
-  const handleSetVentSettings = (update) => { saveState(); setVentSettings(update); };
+  const handleSetVentSettings = (update) => {
+    saveState();
+    setVentSettings(prev => {
+      const prevSettings = prev || { mode: 'PCV-VG', vt: 500, rr: 12, peep: 5, fio2: 50, pinsp: 20, ieRatio: 2, pmax: 40, ps: 10, air: 0.4, o2: 0.6 };
+      return typeof update === 'function' ? update(prevSettings) : { ...prevSettings, ...update };
+    });
+  };
   const handleSetGasSettings = (update) => {
     saveState();
     setGasSettings(prev => {
@@ -1408,24 +1416,81 @@ export default function App() {
   };
 
   if (!activeCase) {
+    const isSplash = splashState === 'splash';
     return (
-      <div className="min-h-screen bg-[#060913] text-slate-100 p-4 sm:p-8 font-sans flex flex-col items-center justify-start sm:justify-center relative overflow-y-auto overflow-x-hidden">
+      <div className="bg-[#060913] text-slate-100 p-4 sm:p-8 font-sans flex flex-col items-center justify-center relative overflow-hidden h-screen w-screen">
         {/* Ambient background decoration */}
         <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-cyan-900/15 rounded-full blur-[140px] pointer-events-none"></div>
         <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-indigo-900/15 rounded-full blur-[140px] pointer-events-none"></div>
         
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-cyan-400 mb-8 flex items-center gap-4 z-10 drop-shadow-[0_0_18px_rgba(34,211,238,0.35)] tracking-tight">
-           <Activity size={48} className="animate-pulse text-cyan-400"/> AirwaySim OS
-        </h1>
-        
-        <div className="z-10 w-full flex justify-center">
-           <CaseManager 
-             onStart={startCase} 
-             stagedCase={stagedCase}
-             setStagedCase={setStagedCase}
-             openPreOpEMR={openPreOpEMR}
-           />
+        {/* Fluid Logo position */}
+        <div className={`transition-all duration-700 ease-in-out z-50 ${
+          isSplash 
+            ? 'fixed left-1/2 top-[34%] -translate-x-1/2 -translate-y-1/2 scale-100 splash-logo-container' 
+            : 'absolute left-4 top-4 translate-x-0 translate-y-0 scale-50 sm:scale-75 origin-top-left'
+        }`}>
+          <AetherisLogo 
+            className="w-56 h-56 sm:w-72 sm:h-72 cursor-pointer" 
+            glow={isSplash} 
+            onClick={() => {
+              if (!isSplash) {
+                setSplashState('splash');
+              }
+            }}
+          />
         </div>
+
+        {/* Splash Branding Header */}
+        <div className={`transition-all duration-500 ease-in-out z-10 text-center ${
+          isSplash 
+            ? 'fixed left-1/2 top-[49%] -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl opacity-100 scale-100 splash-header-container' 
+            : 'absolute opacity-0 -translate-y-4 scale-95 pointer-events-none'
+        }`}>
+          <h1 className="text-3xl sm:text-6xl md:text-7xl font-extralight tracking-[0.25em] sm:tracking-[0.45em] text-white mb-2.5 drop-shadow-[0_0_20px_rgba(255,255,255,0.15)] font-sans uppercase select-none">
+            ΛΞTHΞRIS
+          </h1>
+          <p className="text-[9px] sm:text-xs tracking-[0.25em] sm:tracking-[0.45em] font-semibold text-cyan-400 font-sans uppercase">
+            Advanced Clinical Simulation Platform
+          </p>
+        </div>
+
+        {/* Splash Navigation Matrix */}
+        {isSplash && (
+          <div className="fixed left-1/2 top-[56%] -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl flex flex-col sm:flex-row items-center justify-center gap-4 z-20 splash-buttons-container">
+            <button 
+              onClick={() => setSplashState('presets')}
+              className="px-6 py-3 rounded-lg font-bold border border-slate-700 bg-slate-900/60 text-slate-300 hover:text-white hover:border-cyan-500/50 hover:bg-cyan-950/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all duration-200 cursor-pointer active:scale-97 text-xs md:text-sm uppercase tracking-wider font-sans"
+            >
+              Clinical Specialty Presets
+            </button>
+            <button 
+              onClick={() => setSplashState('custom')}
+              className="px-6 py-3 rounded-lg font-bold border border-slate-700 bg-slate-900/60 text-slate-300 hover:text-white hover:border-cyan-500/50 hover:bg-cyan-950/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all duration-200 cursor-pointer active:scale-97 text-xs md:text-sm uppercase tracking-wider font-sans"
+            >
+              High-Fidelity Customizer
+            </button>
+            <button 
+              onClick={() => setSplashState('wing-it')}
+              className="px-6 py-3 rounded-lg font-black bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-[0_0_15px_rgba(245,158,11,0.35)] transition-all duration-200 hover:scale-[1.03] active:scale-95 cursor-pointer flex items-center gap-1.5 text-xs md:text-sm uppercase tracking-wider font-sans"
+            >
+              Wing It! 🎲
+            </button>
+          </div>
+        )}
+
+        {!isSplash && (
+          <div className={`z-10 w-full flex justify-center mt-12 transition-all duration-500 ease-in-out opacity-100 ${splashState === 'wing-it' ? 'hidden' : ''}`}>
+             <CaseManager 
+               onStart={startCase} 
+               stagedCase={stagedCase}
+               setStagedCase={setStagedCase}
+               openPreOpEMR={openPreOpEMR}
+               initialTab={splashState !== 'wing-it' ? splashState : 'presets'}
+               onBack={() => setSplashState('splash')}
+               autoWingIt={splashState === 'wing-it'}
+             />
+          </div>
+        )}
 
         {preOpEMR && stagedCase && (
           <PreOpEMR
@@ -1438,6 +1503,11 @@ export default function App() {
             logQualityEvent={logQualityEvent}
           />
         )}
+
+        {/* Creator Watermark */}
+        <div className="absolute bottom-4 left-4 sm:left-8 text-xs text-white/20 select-none pointer-events-none font-sans tracking-wide z-10">
+          Built by Sebastian Rivera MD • 2026 • v1.0
+        </div>
       </div>
     );
   }
@@ -1503,7 +1573,10 @@ export default function App() {
         activeCase={activeCase} 
         patient={patient} 
         vitals={vitals} 
-        setActiveCase={() => setActiveCase(null)} 
+        setActiveCase={() => {
+          setActiveCase(null);
+          setSplashState('splash');
+        }} 
         handleUndo={handleUndo} 
         history={history} 
         showLabPanel={showLabPanel} 
@@ -1799,6 +1872,10 @@ export default function App() {
         </Suspense>
       )}
 
+      {/* Creator Watermark */}
+      <div className="fixed bottom-4 left-4 z-50 pointer-events-none select-none text-[10px] sm:text-xs text-white/20 font-sans tracking-wide">
+        Built by Sebastian Rivera MD • 2026 • v1.0
+      </div>
     </div>
   );
 }

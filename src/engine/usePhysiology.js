@@ -1260,7 +1260,6 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
     setPatient(result.patient);
     result.events.forEach(msg => logEvent(msg));
   };
-
   useEffect(() => {
     let interval;
     const actualPaused = isPaused && !patient?.isFuzzing;
@@ -1271,6 +1270,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           
           const st = stateRef.current;
           if (!st || !st.vitals || Object.keys(st.vitals).length === 0) return;
+          const pos = st.patient.position || 'Supine';
 
           // ==========================================
           // TEXTBOOK CLINICAL RULE INTERPRETER
@@ -3086,7 +3086,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
           // 5. Genioglossus muscle tone & upper airway obstruction
           const remAtoniaPenalty = st.patient.sleepStage === 'R' ? 0.85 : 0.0;
-          dilatorMuscleTone = Math.max(0.01, 1.0 - maxNMJOccupancy - 0.7 * propofolCe - 0.5 * agentMac - remAtoniaPenalty);
+          let dilatorMuscleTone = Math.max(0.01, 1.0 - maxNMJOccupancy - 0.7 * propofolCe - 0.5 * agentMac - remAtoniaPenalty);
           if (patientAfterFluidics.neostigmineWeakness) {
               dilatorMuscleTone = Math.min(0.79, dilatorMuscleTone);
           }
@@ -4381,7 +4381,6 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           // Position modifiers
           let positionPreloadMod = 0;
           let positionHydrostaticMod = 0; 
-          const pos = st.patient.position || 'Supine';
           if (pos === 'Ramped' || pos === 'Rev Trendelenburg') {
               positionPreloadMod = -200; positionHydrostaticMod = -14.8; 
           } else if (pos === 'Sitting' || pos === 'Beach Chair') {

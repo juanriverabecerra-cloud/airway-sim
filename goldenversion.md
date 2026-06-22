@@ -51,12 +51,12 @@ If you are starting a new chapter-integration session, also read `CLAUDE.md` (pr
     *   [12. Architectural Dependency Analysis: Hardcoded vs. Dynamic Textbook Data](#12-architectural-dependency-analysis-hardcoded-vs-dynamic-textbook-data)
     *   [13. Integrity & Compliance Verification Statement](#13-integrity--compliance-verification-statement)
 5.  **STAGE 5: CONTINUITY OF CARE, OUTCOME SCORING & PER-CHAPTER LEDGER** — *moved to `docs/chapters/`, see Document Map*
-    *   [14. Outcome Scoring, PACU Readiness & the Clinical Knowledge Layer (Ch9-30 Retroactive Sweep)](#14-outcome-scoring-pacu-readiness--the-clinical-knowledge-layer) — `docs/chapters/ch09-30_retroactive_sweep.md`
-    *   [15. Chapter 31 — Preoperative Evaluation](#15-chapter-31--preoperative-evaluation) — `docs/chapters/ch31.md`
-    *   [16. Chapter 32 — Anesthetic Implications of Concurrent Diseases](#16-chapter-32--anesthetic-implications-of-concurrent-diseases) — `docs/chapters/ch32.md`
-    *   [17. Chapter 33 — Complementary and Alternative Therapies](#17-chapter-33--complementary-and-alternative-therapies) — `docs/chapters/ch33.md`
-    *   [18. Chapter 34 — Patient Positioning and Associated Risks](#18-chapter-34--patient-positioning-and-associated-risks) — `docs/chapters/ch34.md`
-    *   [19. Chapter 35 — Neuromuscular Disorders, Malignant Hyperthermia, and Other Genetic Disorders](#19-chapter-35--neuromuscular-disorders-malignant-hyperthermia-and-other-genetic-disorders) — `docs/chapters/ch35.md`
+    *   [14. Outcome Scoring, PACU Readiness & the Clinical Knowledge Layer (Ch9-30 Retroactive Sweep)](docs/chapters/ch09-30_retroactive_sweep.md)
+    *   [15. Chapter 31 — Preoperative Evaluation](docs/chapters/ch31.md)
+    *   [16. Chapter 32 — Anesthetic Implications of Concurrent Diseases](docs/chapters/ch32.md)
+    *   [17. Chapter 33 — Complementary and Alternative Therapies](docs/chapters/ch33.md)
+    *   [18. Chapter 34 — Patient Positioning and Associated Risks](docs/chapters/ch34.md)
+    *   [19. Chapter 35 — Neuromuscular Disorders, Malignant Hyperthermia, and Other Genetic Disorders](docs/chapters/ch35.md)
 
 ---
 
@@ -152,9 +152,14 @@ Every clock tick, the simulator extracts parameters from `stateRef.current`, exe
     *   *Node/Vitest*: Performs a direct import of `store.ts` and loads `KnowledgeStore` synchronously.
     *   Caches are sorted using `comparePriority()`.
     *   `ClientDbBridge.onLoaded` fires, causing the registries to parse textbook schemas and register medications/procedures.
-3.  **Case Selection**:
-    *   The user picks a case configuration from the UI.
-    *   The client triggers `startCase(selectedCase)`.
+3.  **AETHERIS Boot & Splash State**:
+    *   On boot, the application mounts with `splashState = 'splash'`, rendering a centered, large version of the 'Continuous Circuit' circular vector logo, the capitalized logo text "AETHERIS", and the subtitle "ADVANCED CLINICAL SIMULATION PLATFORM".
+    *   At the bottom, three navigation button triggers map to core states:
+        *   **Clinical Specialty Presets**: Triggers the brand transition, scaling/translating the logo to the top-left and mounting the preset selection tab.
+        *   **High-Fidelity Customizer**: Triggers the brand transition, scaling/translating the logo to the top-left and mounting the custom simulation builder.
+        *   **Wing It**: Immediately selects a random preset, bypasses the EMR/Briefing UI, builds the physiological case, and starts the simulation directly.
+    *   **The Brand Transition**: Any menu selection triggers a fluid layout animation where the central branding text/subtitle fades out, and the logo smoothly scales down and translates into the top-left corner.
+    *   **Active Simulation Header**: In the active simulation view, the Aetheris logo sits permanently in the top-left header bar of `PatientHeader.jsx` immediately beside the procedure name.
 4.  **Parameter Calculation & Patient Instantiation**:
     *   `startCase` calculates body descriptors based on baseline patient stats:
         *   **Ideal Body Weight (IBW)**:

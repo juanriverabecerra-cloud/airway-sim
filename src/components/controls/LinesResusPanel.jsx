@@ -26,6 +26,8 @@ export const LinesResusPanel = ({
 }) => {
   const isCodeActive = !!(patient?.cprActive || patient?.isArrest);
   const [showCPRDefib, setShowCPRDefib] = useState(isCodeActive);
+  const [showAccess, setShowAccess] = useState(false);
+  const [showLabs, setShowLabs] = useState(false);
   const [showRegional, setShowRegional] = useState(false);
   const [epiduralLevelInput, setEpiduralLevelInput] = useState(8);
 
@@ -96,54 +98,90 @@ export const LinesResusPanel = ({
         </div>
       </h3>
 
-      {/* Bedside Procedures & Access Dropdowns */}
-      <div className="grid grid-cols-2 gap-2 shrink-0">
-        {/* Establish Access Dropdown */}
-        <div className="relative font-mono">
-          <select
-            value=""
-            onChange={(e) => {
-              const category = e.target.value;
-              if (setAccessModal) setAccessModal({ show: true, category });
-            }}
-            className="w-full glass-input text-[9px] font-black text-cyan-300 border border-white/10 rounded-lg outline-none appearance-none px-2 py-1.5 text-center cursor-pointer hover:border-cyan-500/80 transition font-mono bg-slate-950"
-          >
-            <option value="" disabled>💉 Establish Access...</option>
-            <option value="Peripheral IV">Peripheral IV (PIV)</option>
-            <option value="Central Line">Central Line (CVC)</option>
-            <option value="Intraosseous (IO)">Intraosseous (IO)</option>
-            <option value="Arterial Line">Arterial Line</option>
-          </select>
-        </div>
+      {/* Bedside Procedures & Access Accordions */}
+      {/* Establish Access Accordion */}
+      <div className="border border-cyan-500/20 bg-cyan-950/5 rounded-xl overflow-hidden shrink-0">
+        <button
+          onClick={() => setShowAccess(!showAccess)}
+          className="w-full flex items-center justify-between px-3 py-1.5 bg-cyan-950/20 border-b border-white/5 font-mono text-[9px] font-black text-cyan-400 uppercase tracking-wider hover:bg-cyan-950/30 transition-all"
+        >
+          <span className="flex items-center gap-1.5">
+            <Syringe size={12} className="text-cyan-400" />
+            Establish Access
+          </span>
+          <span>{showAccess ? '▲' : '▼'}</span>
+        </button>
+        {showAccess && (
+          <div className="p-2.5 grid grid-cols-2 gap-2 font-mono">
+            <button
+              onClick={() => { if (setAccessModal) setAccessModal({ show: true, category: 'Peripheral IV' }); }}
+              className="glass-button border-slate-800 text-cyan-300 hover:bg-cyan-950/20 py-1.5 text-[9px]"
+            >
+              Peripheral IV (PIV)
+            </button>
+            <button
+              onClick={() => { if (setAccessModal) setAccessModal({ show: true, category: 'Central Line' }); }}
+              className="glass-button border-slate-800 text-cyan-300 hover:bg-cyan-950/20 py-1.5 text-[9px]"
+            >
+              Central Line (CVC)
+            </button>
+            <button
+              onClick={() => { if (setAccessModal) setAccessModal({ show: true, category: 'Intraosseous (IO)' }); }}
+              className="glass-button border-slate-800 text-cyan-300 hover:bg-cyan-950/20 py-1.5 text-[9px]"
+            >
+              Intraosseous (IO)
+            </button>
+            <button
+              onClick={() => { if (setAccessModal) setAccessModal({ show: true, category: 'Arterial Line' }); }}
+              className="glass-button border-slate-800 text-cyan-300 hover:bg-cyan-950/20 py-1.5 text-[9px]"
+            >
+              Arterial Line
+            </button>
+          </div>
+        )}
+      </div>
 
-        {/* Order Labs Dropdown */}
-        <div className="relative font-mono">
-          <select
-            value=""
-            onChange={(e) => {
-              const lab = e.target.value;
-              if (generateLab) generateLab(lab);
-            }}
-            className="w-full glass-input text-[9px] font-black text-purple-300 border border-white/10 rounded-lg outline-none appearance-none px-2 py-1.5 text-center cursor-pointer hover:border-purple-500/80 transition font-mono bg-slate-950"
-          >
-            <option value="" disabled>📋 Order Labs...</option>
-            <option value="ABG">Order ABG (Arterial)</option>
-            <option value="VBG">Order VBG (Venous)</option>
-            <option value="CBC">Order CBC (Hemoglobin)</option>
-            <option value="CMP">Order CMP (Electrolytes)</option>
-            <option value="Coagulation">Order Coags (PT/INR)</option>
-            <option value="TEG">Order TEG (Viscoelastic)</option>
-            <option value="LFTs">Order LFTs (Liver)</option>
-            <option value="Thyroid">Order Thyroid Panel</option>
-            <option value="Urinalysis">Order Urinalysis</option>
-            <option value="Pregnancy">Order Pregnancy (hCG)</option>
-            <option value="Type & Screen">Order Type & Screen</option>
-            <option value="Type & Cross">Order Type & Cross</option>
-            <option value="HbA1c">Order HbA1c</option>
-            <option value="PFTs">Order PFT / Ciliary Audit</option>
-            <option value="Local Anesthetics">Order Local Anesthetic Assays</option>
-          </select>
-        </div>
+      {/* Order Labs Accordion */}
+      <div className="border border-purple-500/20 bg-purple-950/5 rounded-xl overflow-hidden shrink-0">
+        <button
+          onClick={() => setShowLabs(!showLabs)}
+          className="w-full flex items-center justify-between px-3 py-1.5 bg-purple-950/20 border-b border-white/5 font-mono text-[9px] font-black text-purple-400 uppercase tracking-wider hover:bg-purple-950/30 transition-all"
+        >
+          <span className="flex items-center gap-1.5">
+            <FileText size={12} className="text-purple-400" />
+            Order Labs
+          </span>
+          <span>{showLabs ? '▲' : '▼'}</span>
+        </button>
+        {showLabs && (
+          <div className="p-2.5 grid grid-cols-2 sm:grid-cols-3 gap-2 font-mono">
+            {[
+              { label: 'ABG (Arterial)', value: 'ABG' },
+              { label: 'VBG (Venous)', value: 'VBG' },
+              { label: 'CBC (Hemoglobin)', value: 'CBC' },
+              { label: 'CMP (Electrolytes)', value: 'CMP' },
+              { label: 'Coags (PT/INR)', value: 'Coagulation' },
+              { label: 'TEG (Viscoelastic)', value: 'TEG' },
+              { label: 'LFTs (Liver)', value: 'LFTs' },
+              { label: 'Thyroid Panel', value: 'Thyroid' },
+              { label: 'Urinalysis', value: 'Urinalysis' },
+              { label: 'Pregnancy (hCG)', value: 'Pregnancy' },
+              { label: 'Type & Screen', value: 'Type & Screen' },
+              { label: 'Type & Cross', value: 'Type & Cross' },
+              { label: 'HbA1c', value: 'HbA1c' },
+              { label: 'PFT / Ciliary Audit', value: 'PFTs' },
+              { label: 'Local Anesthetics', value: 'Local Anesthetics' }
+            ].map(lab => (
+              <button
+                key={lab.value}
+                onClick={() => { if (generateLab) generateLab(lab.value); }}
+                className="glass-button border-slate-800 text-purple-300 hover:bg-purple-950/20 py-1.5 text-[8.5px] leading-tight"
+              >
+                {lab.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* CPR & Defibrillation Console */}
@@ -269,7 +307,7 @@ export const LinesResusPanel = ({
                   </button>
                 </div>
               )}
-              <span className="text-[7.5px] text-slate-500 leading-snug">Sympathetic coverage of gut/splanchnic outflow is graded by insertion level (TABLE 15.2, Miller's 9th Ed) — a mid-thoracic catheter (T8-T9) best covers small bowel/colon innervation (T9-L1).</span>
+              <span className="text-[7.5px] text-slate-500 leading-snug">Sympathetic coverage of gut/splanchnic outflow is graded by insertion level — a mid-thoracic catheter (T8-T9) best covers small bowel/colon innervation (T9-L1).</span>
             </div>
             {/* Celiac Plexus Block */}
             <div className="bg-slate-950/60 border border-white/5 rounded-lg p-2 flex flex-col gap-1.5">
@@ -284,7 +322,7 @@ export const LinesResusPanel = ({
               >
                 {patient?.celiacBlockActive ? 'ACTIVE — REVERSE' : 'PERFORM BLOCK'}
               </button>
-              <span className="text-[7.5px] text-slate-500 leading-snug">Targets the celiac ganglion directly (Fig 15.4/15.5) — complete splanchnic sympathetic block of "the majority of the GI tract up to the rectum" regardless of level.</span>
+              <span className="text-[7.5px] text-slate-500 leading-snug">Targets the celiac ganglion directly — complete splanchnic sympathetic block of "the majority of the GI tract up to the rectum" regardless of level.</span>
             </div>
           </div>
         )}
