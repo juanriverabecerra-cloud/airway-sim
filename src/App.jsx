@@ -1426,7 +1426,7 @@ export default function App() {
         {/* Fluid Logo position */}
         <div className={`transition-all duration-700 ease-in-out z-50 ${
           isSplash 
-            ? 'fixed left-1/2 top-[34%] -translate-x-1/2 -translate-y-1/2 scale-100 splash-logo-container' 
+            ? 'fixed left-1/2 top-[40%] -translate-x-1/2 -translate-y-1/2 scale-100 splash-logo-container' 
             : 'absolute left-4 top-4 translate-x-0 translate-y-0 scale-50 sm:scale-75 origin-top-left'
         }`}>
           <AetherisLogo 
@@ -1440,43 +1440,44 @@ export default function App() {
           />
         </div>
 
-        {/* Splash Branding Header */}
-        <div className={`transition-all duration-500 ease-in-out z-10 text-center ${
+        {/* Splash Content (Title + Buttons) */}
+        <div className={`transition-all duration-500 ease-in-out z-10 text-center flex flex-col items-center justify-center w-full max-w-2xl gap-6 sm:gap-8 ${
           isSplash 
-            ? 'fixed left-1/2 top-[49%] -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl opacity-100 scale-100 splash-header-container' 
+            ? 'fixed left-1/2 top-[65%] -translate-x-1/2 -translate-y-1/2 opacity-100 scale-100 splash-content-container' 
             : 'absolute opacity-0 -translate-y-4 scale-95 pointer-events-none'
         }`}>
-          <h1 className="text-3xl sm:text-6xl md:text-7xl font-extralight tracking-[0.25em] sm:tracking-[0.45em] text-white mb-2.5 drop-shadow-[0_0_20px_rgba(255,255,255,0.15)] font-sans uppercase select-none">
-            ΛΞTHΞRIS
-          </h1>
-          <p className="text-[9px] sm:text-xs tracking-[0.25em] sm:tracking-[0.45em] font-semibold text-cyan-400 font-sans uppercase">
-            Advanced Clinical Simulation Platform
-          </p>
-        </div>
+          {/* Branding Header */}
+          <div>
+            <h1 className="text-3xl sm:text-6xl md:text-7xl font-extralight tracking-[0.25em] sm:tracking-[0.45em] text-white mb-2.5 drop-shadow-[0_0_20px_rgba(255,255,255,0.15)] font-sans uppercase select-none">
+              ΛΞTHΞRIS
+            </h1>
+            <p className="text-[9px] sm:text-xs tracking-[0.25em] sm:tracking-[0.45em] font-semibold text-cyan-400 font-sans uppercase">
+              Advanced Clinical Simulation Platform
+            </p>
+          </div>
 
-        {/* Splash Navigation Matrix */}
-        {isSplash && (
-          <div className="fixed left-1/2 top-[56%] -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl flex flex-col sm:flex-row items-center justify-center gap-4 z-20 splash-buttons-container">
+          {/* Navigation Matrix */}
+          <div className="w-full flex flex-col sm:flex-row items-center justify-center gap-4 px-4">
             <button 
               onClick={() => setSplashState('presets')}
-              className="px-6 py-3 rounded-lg font-bold border border-slate-700 bg-slate-900/60 text-slate-300 hover:text-white hover:border-cyan-500/50 hover:bg-cyan-950/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all duration-200 cursor-pointer active:scale-97 text-xs md:text-sm uppercase tracking-wider font-sans"
+              className="px-6 py-3 w-full sm:w-auto rounded-lg font-bold border border-slate-700 bg-slate-900/60 text-slate-300 hover:text-white hover:border-cyan-500/50 hover:bg-cyan-950/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all duration-200 cursor-pointer active:scale-97 text-xs md:text-sm uppercase tracking-wider font-sans"
             >
               Clinical Specialty Presets
             </button>
             <button 
               onClick={() => setSplashState('custom')}
-              className="px-6 py-3 rounded-lg font-bold border border-slate-700 bg-slate-900/60 text-slate-300 hover:text-white hover:border-cyan-500/50 hover:bg-cyan-950/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all duration-200 cursor-pointer active:scale-97 text-xs md:text-sm uppercase tracking-wider font-sans"
+              className="px-6 py-3 w-full sm:w-auto rounded-lg font-bold border border-slate-700 bg-slate-900/60 text-slate-300 hover:text-white hover:border-cyan-500/50 hover:bg-cyan-950/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all duration-200 cursor-pointer active:scale-97 text-xs md:text-sm uppercase tracking-wider font-sans"
             >
               High-Fidelity Customizer
             </button>
             <button 
               onClick={() => setSplashState('wing-it')}
-              className="px-6 py-3 rounded-lg font-black bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-[0_0_15px_rgba(245,158,11,0.35)] transition-all duration-200 hover:scale-[1.03] active:scale-95 cursor-pointer flex items-center gap-1.5 text-xs md:text-sm uppercase tracking-wider font-sans"
+              className="px-6 py-3 w-full sm:w-auto rounded-lg font-black bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-[0_0_15px_rgba(245,158,11,0.35)] transition-all duration-200 hover:scale-[1.03] active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 text-xs md:text-sm uppercase tracking-wider font-sans"
             >
               Wing It! 🎲
             </button>
           </div>
-        )}
+        </div>
 
         {!isSplash && (
           <div className={`z-10 w-full flex justify-center mt-12 transition-all duration-500 ease-in-out opacity-100 ${splashState === 'wing-it' ? 'hidden' : ''}`}>
