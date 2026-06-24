@@ -95,7 +95,8 @@ Read the chapter in full and sort its content along two independent axes:
   PULMONARY FUNCTION / FLOW-VOLUME CONTENT — if this chapter touches pulmonary function
   testing, spirometry, or obstructive/restrictive/upper-airway-obstruction physiology,
   check whether it should refine `src/engine/FlowVolumeLoopModel.js` (the flow-volume
-  loop already shown via the "F-V LOOP" button on the ventilator monitor —
+  loop, shown as a clickable square thumbnail in the bottom equipment bar whenever the
+  patient is intubated, opening a detailed modal on click —
   `docs/engines/physiology.md` §4.6.2 documents its current shape model: normal,
   obstructive, restrictive, and variable-extrathoracic-obstruction patterns, each driven
   by existing `RespiratoryEngine.ts` state). §4.6.2 explicitly flags two patterns as not
@@ -105,6 +106,25 @@ Read the chapter in full and sort its content along two independent axes:
   rendering parameters for any of this; general pulmonary physiology knowledge is the
   legitimate source here (see §4.6.2's sourcing note) — absence of a direct citation is
   not a blocker, the same way it isn't for the WAVEFORM FIGURES guidance above.
+
+  CARDIOVASCULAR/INVASIVE-HEMODYNAMIC MONITORING CONTENT — if this chapter touches CVP,
+  pulmonary artery catheter (PAC/Swan-Ganz) monitoring, wedge pressure (PCWP), or arterial
+  line dynamic response (square-wave/fast-flush testing), check whether it should refine
+  `src/engine/CvpWaveformModel.js` and `src/engine/PulmonaryArteryCatheterModel.js` (the
+  CVP and PA-catheter waveform strips on the primary monitor, gated on `patient.hasCVC`/
+  `hasPAC`) or `calculateDynamicResponse()` in `src/engine/ArterialLineModel.js` —
+  `docs/engines/physiology.md` §4.1.1/§4.1.2 document the current shape models and every
+  pattern already implemented (normal/AFib/AV-dissociation-cannon-waves/tricuspid-
+  regurgitation for CVP; normal/mitral-regurgitation for the PAC wedge trace) and every
+  pattern explicitly deferred as a documented gap (tricuspid stenosis; pericardial
+  constriction/tamponade's full M/W-configuration equalization; an automatic trigger
+  condition for the already-built `pacWhipArtifact`/`pacOverwedged` engine flags — the
+  latter would need the PA-catheter wedge toggle promoted from `PrimaryMonitor.jsx`'s
+  local view-state into real tick-loop-visible patient state if a future session wants to
+  track elapsed wedge duration). `docs/chapters/ch36.md` also flags TABLE 36.6
+  ("Overestimation of LVEDP") as a confirmed, not-yet-recovered extraction gap in
+  Chapter 36's own source JSON — if a future session has reason to re-parse that chapter's
+  source PDF, that page (~39) is worth a fresh look.
 
   AXIS 2 — Phase of care this content actually applies to:
     PreOp, Intraoperative, PACU/Post-op, or Cross-cutting (applies across phases).

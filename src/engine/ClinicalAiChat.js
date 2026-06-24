@@ -16,6 +16,9 @@
 import { searchKnowledge, searchMatrices, getKnowledgeStats, getSearchTokens } from '../knowledge/KnowledgeSearch.js';
 import { calculateRcriFactors } from '../components/modals/PreOpEMR.jsx';
 import { calculatePacuReadiness } from './OutcomeScoringEngine.ts';
+import { calculateCvpWaveComponents } from './CvpWaveformModel.js';
+import { calculatePacPressures } from './PulmonaryArteryCatheterModel.js';
+import { calculateDynamicResponse } from './ArterialLineModel.js';
 
 function fmt(val, decimals = 0) {
   if (typeof val !== 'number' || !Number.isFinite(val)) {
@@ -639,6 +642,46 @@ We are witnessing severe, progressive bradycardia (HR: ${fmt(hr)} bpm) due to un
     msg += `- **Adequacy-of-blockade criteria**: (1) no in-hospital BP > 165/90 mmHg for 48h preop, (2) standing BP not below 80/45 mmHg, (3) ECG free of non-permanent ST-T changes, (4) ≤1 PVC per 5 minutes.\n`;
     msg += `- **Intraoperative**: prefer phenylephrine for hypotension and nitroprusside/nicardipine for hypertension; avoid phentolamine (too slow onset/offset for acute swings during tumor manipulation).\n\n`;
     msg += `No active case in this simulator is currently modeled as a pheochromocytoma resection, so this guidance is general reference rather than tied to this patient's live chart.`;
+    return msg;
+  }
+
+  // D6. Central Venous / Pulmonary Artery Catheter Waveform Interpretation (Ch36)
+  if (q.includes('cvp') || q.includes('central venous pressure') || q.includes('wedge') || q.includes('pcwp') || q.includes('pulmonary artery catheter') || q.includes('swan') || q.includes('a wave') || q.includes('v wave') || q.includes('cannon')) {
+    let msg = `### Central/Pulmonary Venous Pressure Waveform (Ch36)\n\n`;
+    if (patient.hasCVC) {
+      const cvpComp = calculateCvpWaveComponents(patient, vitals);
+      msg += `**Live CVP**: mean ${fmt(cvpComp.mean, 1)} mmHg — **${cvpComp.title}**\n`;
+      msg += `${cvpComp.interpretation}\n\n`;
+    } else {
+      msg += `No central line is currently placed, so there is no live CVP trace to read — this is general reference guidance.\n\n`;
+    }
+    if (patient.hasPAC) {
+      const pac = calculatePacPressures(patient, vitals);
+      msg += `**Live PA catheter**: PA ${fmt(pac.paSystolic, 0)}/${fmt(pac.paDiastolic, 0)} (mean ${fmt(pac.paMean, 1)}) mmHg; PCWP ${fmt(pac.pcwp, 1)} mmHg (true LVEDP ${fmt(pac.lvedp, 1)} mmHg).\n`;
+      if (pac.peepOverestimate > 0.1 || pac.mrOverestimate > 0.1) {
+        msg += `PCWP is currently overestimating true LVEDP by ~${fmt(pac.peepOverestimate + pac.mrOverestimate, 1)} mmHg`;
+        msg += pac.mrOverestimate > 0.1 ? ' (mitral regurgitation\'s retrograde systolic v wave raises the mean atrial pressure)' : ' (PEEP > 10 creates lung zone 1/2 conditions at the catheter tip)';
+        msg += ` — Table 36.5/36.6.\n`;
+      }
+      msg += `\n`;
+    }
+    msg += `**Normal CVP waveform** (Table 36.3): a wave (atrial contraction, end-diastole) just before the R wave; c wave (isovolumic ventricular contraction) just after the R wave; x descent (mid-systole); v wave (atrial filling against a closed tricuspid valve, late systole, just after the T wave); y descent (early diastole, tricuspid opens).\n`;
+    msg += `**Key abnormal patterns** (Table 36.4): atrial fibrillation loses the a wave and accentuates the c wave; AV dissociation/asynchronous pacing produces tall "cannon" a waves; tricuspid regurgitation produces a tall fused systolic c-v wave that obliterates the x descent ("ventricularized" CVP); mitral regurgitation produces a tall early-systolic v wave on the **wedge** trace specifically. V-wave height is neither sensitive nor specific for regurgitation severity — it also depends on atrial volume and compliance.`;
+    return msg;
+  }
+
+  // D7. Arterial Line Dynamic Response / Fast-Flush (Square-Wave) Test (Ch36)
+  if (q.includes('fast flush') || q.includes('fast-flush') || q.includes('square wave') || q.includes('square-wave') || q.includes('natural frequency') || q.includes('damping') || q.includes('dynamic response') || q.includes('aline accurate') || q.includes('arterial line accurate')) {
+    let msg = `### Arterial Line Dynamic Response — Fast-Flush Test (Ch36)\n\n`;
+    if (patient.hasALine) {
+      const dr = calculateDynamicResponse(patient);
+      msg += `**Current arterial line**: natural frequency ~${fmt(dr.naturalFrequencyHz, 0)} Hz, damping coefficient ~${fmt(dr.dampingCoefficient, 2)} — **${dr.classification.toUpperCase()}**\n`;
+      msg += `${dr.interpretation}\n\n`;
+    } else {
+      msg += `No arterial line is currently placed — this is general reference guidance.\n\n`;
+    }
+    msg += `**Technique**: briefly open the fast-flush valve and observe the ringing/oscillation pattern after the square-wave artifact ends. An "adequate" system shows oscillation cycles settling in well under 30 ms. Worked example from the chapter: a 1.7 mm oscillation period at 25 mm/s paper speed gives a natural frequency of 14.7 Hz; consecutive oscillation-peak heights of 17 mm and 24 mm give an amplitude ratio (damping coefficient) of 0.71.\n`;
+    msg += `Resonance/damping abnormalities occur in up to 30% of surgical patients and 44.5% of ICU patients — more clinically significant for systolic than for mean/diastolic pressure. Counterintuitively, an air bubble in the line *increases* damping but *lowers* natural frequency, which can paradoxically *worsen* systolic overshoot before eventually causing spurious hypotension as the bubble grows. Mean arterial pressure stays reasonably accurate even when the waveform is visibly over- or under-damped — it's the systolic/diastolic numbers and the waveform shape (dicrotic notch, fine detail) that get distorted.`;
     return msg;
   }
 

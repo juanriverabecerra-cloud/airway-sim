@@ -1,65 +1,136 @@
 import { useState } from 'react';
-import { Wind } from 'lucide-react';
 import { CanvasWaveform } from '../CanvasWaveform';
-import { FlowVolumeLoopModal } from '../modals/FlowVolumeLoopModal';
+import { FlowVolumeLoopCanvas } from '../FlowVolumeLoopCanvas';
+import { PressureVolumeLoopCanvas } from '../PressureVolumeLoopCanvas';
 
 export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSettings, activeMeds }) => {
-  const [showFvLoop, setShowFvLoop] = useState(false);
+  const [monitorView, setMonitorView] = useState('waves'); // 'waves' | 'loops'
+  const [activeLoop, setActiveLoop] = useState('fv'); // 'fv' | 'pv'
 
   // If the airway is not secured, the ventilator monitor hides itself.
   if (!patient || !patient.airwaySecured) return null;
 
-  // Derive the morphological shape of the waveform based on the active ventilator mode
-  const ventMorphology = ventSettings?.mode === 'VCV' ? 'vcv' : 'pcv';
   const ventValClass3 = "text-2xl @[200px]:text-3xl @[240px]:text-4xl @[280px]:text-4xl @[345px]:text-5xl @[410px]:text-5xl";
   const ventValClass2 = "text-3xl @[200px]:text-4xl @[240px]:text-5xl @[280px]:text-5xl @[345px]:text-6xl @[410px]:text-6xl";
 
   return (
     <>
-    <div className="glass-panel glass-emerald crt-monitor p-2 flex flex-col md:grid md:grid-cols-4 gap-2 min-h-[300px] md:min-h-0 md:h-[280px] lg:h-[420px] relative overflow-hidden">
-      {/* Waveforms */}
-      <div className="col-span-1 md:col-span-3 flex flex-col justify-between relative z-10 w-full h-[220px] md:h-full gap-1">
-        <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
-          <div className="absolute text-yellow-600/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">Paw cmH2O</div>
-          <CanvasWaveform 
-            color="#ca8a04" 
-            speed={rrSpeed} 
-            rrSpeed={0} 
-            active={rrSpeed > 0} 
-            type="ventPressure" 
-            morphology={ventMorphology}
-            ieRatio={ventSettings?.ieRatio || 2} 
-            ampScale={Math.min(1, (vitals?.pip || 0) / 60)} 
-            baseScale={Math.min(1, (vitals?.peep || 0) / 20)} 
-          />
+    <div className="glass-panel glass-emerald p-2 flex flex-col md:grid md:grid-cols-4 gap-2 min-h-[360px] md:min-h-0 md:h-auto lg:h-[420px] relative overflow-hidden">
+      {/* Waveforms & Loops Main Panel */}
+      <div className="col-span-1 md:col-span-3 flex flex-col justify-between relative z-10 w-full h-[220px] md:h-full gap-1 overflow-hidden">
+        {/* View Toggle Tabs - Floating HUD Overlay */}
+        <div className="absolute top-2 left-2 right-2 z-30 flex justify-between items-center pointer-events-none select-none">
+          <div className="flex gap-1.5 pointer-events-auto bg-slate-950/85 px-1.5 py-1 rounded border border-slate-900/80 shadow-[0_4px_12px_rgba(0,0,0,0.5)] backdrop-blur-md">
+            <button
+              onClick={() => setMonitorView('waves')}
+              className={`px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider rounded border transition-all cursor-pointer ${
+                monitorView === 'waves'
+                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.15)]'
+                  : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-slate-900/40'
+              }`}
+            >
+              Waveforms
+            </button>
+            <button
+              onClick={() => {
+                setMonitorView('loops');
+                if (!activeLoop) setActiveLoop('fv');
+              }}
+              className={`px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider rounded border transition-all cursor-pointer ${
+                monitorView === 'loops'
+                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.15)]'
+                  : 'text-slate-500 border-transparent hover:text-slate-300 hover:bg-slate-900/40'
+              }`}
+            >
+              Loops View
+            </button>
+          </div>
+
+          {monitorView === 'loops' && (
+            <div className="flex items-center gap-1 bg-slate-950/85 p-0.5 rounded border border-slate-900/80 shadow-[0_4px_12px_rgba(0,0,0,0.5)] backdrop-blur-md pointer-events-auto">
+              <button
+                onClick={() => setActiveLoop('fv')}
+                className={`px-2 py-0.5 text-[9px] font-extrabold uppercase rounded transition-all cursor-pointer ${
+                  activeLoop === 'fv'
+                    ? 'bg-emerald-500 text-black shadow-sm font-black'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                F-V Loop
+              </button>
+              <button
+                onClick={() => setActiveLoop('pv')}
+                className={`px-2 py-0.5 text-[9px] font-extrabold uppercase rounded transition-all cursor-pointer ${
+                  activeLoop === 'pv'
+                    ? 'bg-yellow-500 text-black shadow-sm font-black'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                P-V Loop
+              </button>
+            </div>
+          )}
         </div>
-        <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
-          <div className="absolute text-green-500/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">Flow L/min</div>
-          <CanvasWaveform 
-            color="#22c55e" 
-            speed={rrSpeed} 
-            rrSpeed={0} 
-            active={rrSpeed > 0} 
-            type="ventFlow" 
-            morphology={ventMorphology}
-            ieRatio={ventSettings?.ieRatio || 2} 
-            ampScale={Math.min(1, (vitals?.pip || 0) / 40)} 
-          />
-        </div>
-        <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
-          <div className="absolute text-yellow-400/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">EtCO2</div>
-          <CanvasWaveform 
-            color="#facc15" 
-            speed={rrSpeed} 
-            rrSpeed={rrSpeed} 
-            active={vitals?.etco2 > 5} 
-            type="etco2" 
-            ieRatio={ventSettings?.ieRatio || 2}
-            ampScale={Math.min(1.5, (vitals?.etco2 || 40) / 40)} 
-            patientState={patient}
-            vitals={vitals}
-            activeMeds={activeMeds}
-          />
+
+        {/* Content Area (Waveforms + optional Loop) */}
+        <div className="flex-grow flex gap-2 w-full min-h-0 relative p-1">
+          {/* Active Loop Column */}
+          {monitorView === 'loops' && (
+            <div className="relative shrink-0 w-[140px] sm:w-[180px] md:w-[230px] lg:w-[280px] aspect-square bg-slate-950/50 rounded border border-slate-900/80 p-2 overflow-hidden self-center shadow-inner">
+              {activeLoop === 'fv' ? (
+                <FlowVolumeLoopCanvas patient={patient} vitals={vitals} active={!!vitals?.rr} />
+              ) : (
+                <PressureVolumeLoopCanvas patient={patient} vitals={vitals} ventSettings={ventSettings} active={!!vitals?.rr} />
+              )}
+            </div>
+          )}
+
+          {/* Waveforms Column */}
+          <div className="flex-1 flex flex-col justify-between h-full gap-1 min-w-0">
+            <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
+              <div className={`absolute text-yellow-600/50 text-[10px] md:text-xs top-1.5 z-20 font-bold transition-all ${
+                monitorView === 'loops' ? 'left-2' : 'left-[185px] sm:left-[215px] md:left-[245px]'
+              }`}>Paw cmH2O</div>
+              <CanvasWaveform
+                color="#ca8a04"
+                speed={rrSpeed}
+                rrSpeed={0}
+                active={rrSpeed > 0}
+                type="ventPressure"
+                patientState={patient}
+                vitals={vitals}
+                ventSettings={ventSettings}
+              />
+            </div>
+            <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
+              <div className="absolute text-green-500/50 text-[10px] md:text-xs top-1.5 left-2 z-20 font-bold">Flow L/min</div>
+              <CanvasWaveform
+                color="#22c55e"
+                speed={rrSpeed}
+                rrSpeed={0}
+                active={rrSpeed > 0}
+                type="ventFlow"
+                patientState={patient}
+                vitals={vitals}
+                ventSettings={ventSettings}
+              />
+            </div>
+            <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
+              <div className="absolute text-yellow-400/50 text-[10px] md:text-xs top-1.5 left-2 z-20 font-bold">EtCO2</div>
+              <CanvasWaveform 
+                color="#facc15" 
+                speed={rrSpeed} 
+                rrSpeed={rrSpeed} 
+                active={vitals?.etco2 > 5} 
+                type="etco2" 
+                ieRatio={ventSettings?.ieRatio || 2}
+                ampScale={Math.min(1.5, (vitals?.etco2 || 40) / 40)} 
+                patientState={patient}
+                vitals={vitals}
+                activeMeds={activeMeds}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
@@ -174,13 +245,6 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
           <div className="flex justify-between items-center w-full border-b border-slate-900/40 pb-0.5">
             <span className="text-yellow-500 font-bold text-[9px] lg:text-[10px] leading-none uppercase">Pulmonary Telemetry</span>
             <div className="flex gap-1 items-center">
-              <button
-                onClick={() => setShowFvLoop(true)}
-                title="Open flow-volume loop"
-                className="flex items-center gap-0.5 text-[7px] bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 px-1 py-0.5 rounded font-black transition-all"
-              >
-                <Wind size={8} /> F-V LOOP
-              </button>
               {patient?.recruitmentTime > 0 && (
                 <span className="text-[7px] bg-amber-500/20 text-amber-300 px-1 py-0.5 rounded font-black animate-pulse">
                   RECRUITING ({Math.round(patient.recruitmentTime)}s)
@@ -259,7 +323,6 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
         </div>
       </div>
     </div>
-    <FlowVolumeLoopModal show={showFvLoop} close={() => setShowFvLoop(false)} patient={patient} vitals={vitals} />
     </>
   );
 };

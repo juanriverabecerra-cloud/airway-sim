@@ -48,7 +48,16 @@ const HoldButton = ({ onTrigger, className, children, disabled }) => {
 };
 
 
-export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSettings, patient, setPatient, logEvent }) => {
+export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSettings, patient, setPatient, vitals, logEvent }) => {
+  const agentName = gasSettings?.agent ? (
+    gasSettings.agent.includes('sev') ? 'SEV' :
+    gasSettings.agent.includes('des') ? 'DES' :
+    gasSettings.agent.includes('iso') ? 'ISO' :
+    gasSettings.agent.includes('hal') ? 'HAL' :
+    gasSettings.agent.includes('met') ? 'MET' :
+    gasSettings.agent.includes('xen') ? 'XEN' :
+    gasSettings.agent.toUpperCase().slice(0, 3)
+  ) : 'SEV';
   // === PHYSIOLOGICAL STOICHIOMETRY ===
   // Mirrors usePhysiology.js's gas-source derivation so this preview reflects the same Link-25 +
   // fail-safe-valve-protected mixture the engine will actually deliver (Ch22, Miller's 9th Ed).
@@ -135,40 +144,49 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
             </div>
         </div>
         <div className="flex justify-around gap-1 sm:gap-2 mt-1">
-          <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg p-0.5 sm:p-1 border border-white/5 shadow-inner">
-            <span className="text-[10px] text-green-400 font-bold mb-1">O2</span>
-            <div className="flex items-center w-full justify-between px-0.5 sm:px-1">
+          <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg p-1 border border-white/5 shadow-inner">
+            <div className="h-5 flex items-center justify-center">
+              <span className="text-[10px] text-green-400 font-bold">O2</span>
+            </div>
+            <div className="flex items-center w-full justify-between px-0.5 sm:px-1 h-9 sm:h-10">
               <HoldButton onTrigger={() => setGasSettings(s => ({...s, o2Flow: Math.max(0, s.o2Flow - 0.5)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-emerald font-bold text-xs sm:text-base cursor-pointer">-</HoldButton>
               <span className="text-xs sm:text-sm font-black text-green-400 text-center font-mono">{gasSettings.o2Flow.toFixed(1)}</span>
               <HoldButton onTrigger={() => setGasSettings(s => ({...s, o2Flow: Math.min(15, s.o2Flow + 0.5)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-emerald font-bold text-xs sm:text-base cursor-pointer">+</HoldButton>
             </div>
+            <div className="h-5" />
           </div>
-          <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg p-0.5 sm:p-1 border border-white/5 shadow-inner">
-            <span className="text-[10px] text-yellow-400 font-bold mb-1">Air</span>
-            <div className="flex items-center w-full justify-between px-0.5 sm:px-1">
+          <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg p-1 border border-white/5 shadow-inner">
+            <div className="h-5 flex items-center justify-center">
+              <span className="text-[10px] text-yellow-400 font-bold">Air</span>
+            </div>
+            <div className="flex items-center w-full justify-between px-0.5 sm:px-1 h-9 sm:h-10">
               <HoldButton onTrigger={() => setGasSettings(s => ({...s, airFlow: Math.max(0, s.airFlow - 0.5)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-amber font-bold text-xs sm:text-base cursor-pointer">-</HoldButton>
               <span className="text-xs sm:text-sm font-black text-yellow-400 text-center font-mono">{gasSettings.airFlow.toFixed(1)}</span>
               <HoldButton onTrigger={() => setGasSettings(s => ({...s, airFlow: Math.min(15, s.airFlow + 0.5)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-amber font-bold text-xs sm:text-base cursor-pointer">+</HoldButton>
             </div>
+            <div className="h-5" />
           </div>
-          <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg p-0.5 sm:p-1 border border-white/5 shadow-inner">
-            <span className="text-[10px] text-blue-400 font-bold mb-1">N2O</span>
-            <div className="flex items-center w-full justify-between px-0.5 sm:px-1">
+          <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg p-1 border border-white/5 shadow-inner">
+            <div className="h-5 flex items-center justify-center">
+              <span className="text-[10px] text-blue-400 font-bold">N2O</span>
+            </div>
+            <div className="flex items-center w-full justify-between px-0.5 sm:px-1 h-9 sm:h-10">
               <HoldButton onTrigger={() => setGasSettings(s => ({...s, n2oFlow: Math.max(0, s.n2oFlow - 0.5)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-blue font-bold text-xs sm:text-base cursor-pointer">-</HoldButton>
               <span className="text-xs sm:text-sm font-black text-blue-400 text-center font-mono">{gasSettings.n2oFlow.toFixed(1)}</span>
               <HoldButton onTrigger={() => setGasSettings(s => ({...s, n2oFlow: Math.min(15, s.n2oFlow + 0.5)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-blue font-bold text-xs sm:text-base cursor-pointer">+</HoldButton>
             </div>
+            <div className="h-5" />
           </div>
         </div>
       </div>
 
       {/* 2. Vaporizer & Mechanical Limiters */}
       <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-initial md:flex-[1_1_280px]" style={{ minWidth: 0 }}>
-        <div className="flex justify-between items-center mb-1 px-1">
+        <div className="flex justify-between items-center mb-1 px-1 border-b border-white/5 pb-1">
           <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest">Vaporizer</span>
           <span className="text-[9px] text-cyan-300 font-bold bg-cyan-950/30 px-1.5 py-0.5 rounded-md border border-cyan-900/30 font-mono">1.0 MAC = {INHALATIONAL_AGENTS[gasSettings.agent]?.mac40}%</span>
         </div>
-        <div className="flex gap-2 h-full items-center">
+        <div className="flex-1 flex items-center justify-center gap-2 mt-1">
           <select value={gasSettings.agent} style={{ textAlignLast: 'center' }} onChange={handleAgentChange} className="flex-1 glass-input text-xs font-bold text-cyan-300 border border-white/10 rounded-lg outline-none appearance-none px-2 py-2 text-center h-9 sm:h-10 cursor-pointer hover:border-cyan-500/80 transition font-mono">
             <option value="sevoflurane">Sevoflurane</option>
             <option value="desflurane">Desflurane</option>
@@ -191,58 +209,133 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
         </div>
       </div>
       
+      {/* 2b. Gas Analyzer - Inspired & Expired Concentrations */}
+      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-initial md:flex-[0_1_180px] w-full md:w-[180px]" style={{ minWidth: 0 }}>
+        <div className="flex justify-between items-center mb-1 px-1 border-b border-white/5 pb-1">
+          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Gas Analyzer</span>
+        </div>
+        <div className="flex flex-col gap-1.5 justify-center flex-grow mt-1.5">
+          {/* O2 Gas Block */}
+          <div className="flex items-center justify-between bg-slate-950/60 rounded-lg px-2 py-1 border border-white/5 shadow-inner">
+            <span className="text-[11px] font-black text-green-400 font-mono">O₂</span>
+            <div className="grid grid-cols-2 gap-x-2.5 font-mono text-[11px]">
+              <div className="flex justify-between w-[48px]">
+                <span className="text-slate-500 font-bold">Fi:</span>
+                <span className="text-white font-black text-right">{vitals?.fiO2 !== undefined ? Math.round(vitals.fiO2) : 21}</span>
+              </div>
+              <div className="flex justify-between w-[48px]">
+                <span className="text-green-500/80 font-bold">Et:</span>
+                <span className="text-green-400 font-black text-right">{vitals?.etO2 !== undefined ? Math.round(vitals.etO2) : 21}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* N2O Gas Block */}
+          <div className="flex items-center justify-between bg-slate-950/60 rounded-lg px-2 py-1 border border-white/5 shadow-inner">
+            <span className="text-[11px] font-black text-blue-400 font-mono">N₂O</span>
+            <div className="grid grid-cols-2 gap-x-2.5 font-mono text-[11px]">
+              <div className="flex justify-between w-[48px]">
+                <span className="text-slate-500 font-bold">Fi:</span>
+                <span className="text-white font-black text-right">{vitals?.fiN2O !== undefined ? Math.round(vitals.fiN2O) : 0}</span>
+              </div>
+              <div className="flex justify-between w-[48px]">
+                <span className="text-blue-500/80 font-bold">Et:</span>
+                <span className="text-blue-400 font-black text-right">{vitals?.etN2O !== undefined ? Math.round(vitals.etN2O) : 0}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Agent Gas Block */}
+          <div className="flex items-center justify-between bg-slate-950/60 rounded-lg px-2 py-1 border border-white/5 shadow-inner">
+            <span className="text-[11px] font-black text-cyan-400 font-mono">{agentName}</span>
+            <div className="grid grid-cols-2 gap-x-2.5 font-mono text-[11px]">
+              <div className="flex justify-between w-[48px]">
+                <span className="text-slate-500 font-bold">Fi:</span>
+                <span className="text-white font-black text-right">{vitals?.fiAgent !== undefined ? vitals.fiAgent.toFixed(1) : '0.0'}</span>
+              </div>
+              <div className="flex justify-between w-[48px]">
+                <span className="text-cyan-500/80 font-bold">Et:</span>
+                <span className="text-cyan-400 font-black text-right">{vitals?.etAgent !== undefined ? vitals.etAgent.toFixed(1) : '0.0'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       {/* 3. Ventilator Settings */}
       {patient?.airwaySecured && (
         <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-initial md:flex-[2_1_450px] md:w-full xl:w-auto">
-          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center mb-1">Ventilator Setup</span>
-          <div className="flex flex-wrap md:flex-nowrap gap-2">
+          <div className="flex justify-between items-center mb-1 px-1 border-b border-white/5 pb-1">
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Ventilator Setup</span>
+          </div>
+          <div className="flex flex-wrap md:flex-nowrap gap-2 mt-1">
             
             <div className="flex flex-col flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[70px]">
-              <span className="text-[9px] text-slate-400 font-bold text-center mb-1">MODE</span>
-              <select value={ventSettings.mode} style={{ textAlignLast: 'center' }} onChange={e => setVentSettings(s => ({...s, mode: e.target.value}))} className="w-full glass-input text-xs font-black text-cyan-300 outline-none appearance-none text-center h-full rounded-lg cursor-pointer hover:border-cyan-500/80 transition">
+              <div className="h-5 flex items-center justify-center">
+                <span className="text-[9px] text-slate-400 font-bold text-center">MODE</span>
+              </div>
+              <select value={ventSettings.mode} style={{ textAlignLast: 'center' }} onChange={e => setVentSettings(s => ({...s, mode: e.target.value}))} className="w-full glass-input text-xs font-black text-cyan-300 outline-none appearance-none text-center h-9 sm:h-10 rounded-lg cursor-pointer hover:border-cyan-500/80 transition">
                 <option value="PCV-VG">PCV-VG</option><option value="VCV">VCV</option><option value="PCV">PCV</option><option value="PSV">PSV</option>
               </select>
-              <span className="text-[8px] text-slate-650 text-center mt-1 uppercase font-bold">Control</span>
+              <div className="h-5 flex items-center justify-center">
+                <span className="text-[8px] text-slate-650 text-center uppercase font-bold">Control</span>
+              </div>
             </div>
             
             <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[85px] sm:min-w-[100px]">
-              <span className="text-[9px] text-slate-400 font-bold text-center mb-1">{primaryTargetLabel}</span>
-              <div className="flex items-center justify-between w-full px-1">
-                 <HoldButton onTrigger={() => handleTargetChange(-1)} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">-</HoldButton>
+              <div className="h-5 flex items-center justify-center">
+                <span className="text-[9px] text-slate-400 font-bold text-center">{primaryTargetLabel}</span>
+              </div>
+              <div className="flex items-center justify-between w-full px-1 h-9 sm:h-10">
+                 <HoldButton onTrigger={() => handleTargetChange(-1)} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">-</HoldButton>
                  <span className="text-base sm:text-lg font-black text-white text-center font-mono">{primaryTargetValue}</span>
-                 <HoldButton onTrigger={() => handleTargetChange(1)} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">+</HoldButton>
+                 <HoldButton onTrigger={() => handleTargetChange(1)} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">+</HoldButton>
               </div>
-              <span className="text-[8px] text-slate-500 mt-1 text-center font-mono">{primaryTargetTarget}</span>
+              <div className="h-5 flex items-center justify-center">
+                <span className="text-[8px] text-slate-500 text-center font-mono leading-none">{primaryTargetTarget}</span>
+              </div>
             </div>
             
             <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[80px] sm:min-w-[90px]">
-              <span className="text-[9px] text-slate-400 font-bold text-center mb-1">RR (bpm)</span>
-              <div className="flex items-center justify-between w-full px-1">
-                 <HoldButton onTrigger={() => setVentSettings(s => ({...s, rr: Math.max(4, s.rr - 1)}))} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">-</HoldButton>
+              <div className="h-5 flex items-center justify-center">
+                <span className="text-[9px] text-slate-400 font-bold text-center">RR (bpm)</span>
+              </div>
+              <div className="flex items-center justify-between w-full px-1 h-9 sm:h-10">
+                 <HoldButton onTrigger={() => setVentSettings(s => ({...s, rr: Math.max(4, s.rr - 1)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">-</HoldButton>
                  <span className="text-base sm:text-lg font-black text-white text-center font-mono">{ventSettings.rr}</span>
-                 <HoldButton onTrigger={() => setVentSettings(s => ({...s, rr: Math.min(40, s.rr + 1)}))} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">+</HoldButton>
+                 <HoldButton onTrigger={() => setVentSettings(s => ({...s, rr: Math.min(40, s.rr + 1)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">+</HoldButton>
               </div>
-              <span className="text-[8px] text-slate-500 mt-1 text-center">{ventSettings.mode === 'PSV' ? 'Apnea Backup' : 'Target: 10-14'}</span>
+              <div className="h-5 flex items-center justify-center">
+                <span className="text-[8px] text-slate-500 text-center leading-none">{ventSettings.mode === 'PSV' ? 'Apnea Backup' : 'Target: 10-14'}</span>
+              </div>
             </div>
             
             <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[80px] sm:min-w-[90px]">
-              <span className="text-[9px] text-slate-400 font-bold text-center mb-1">PEEP (cmH2O)</span>
-              <div className="flex items-center justify-between w-full px-1">
-                 <HoldButton onTrigger={() => setVentSettings(s => ({...s, peep: Math.max(0, s.peep - 1)}))} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">-</HoldButton>
+              <div className="h-5 flex items-center justify-center">
+                <span className="text-[9px] text-slate-400 font-bold text-center">PEEP (cmH2O)</span>
+              </div>
+              <div className="flex items-center justify-between w-full px-1 h-9 sm:h-10">
+                 <HoldButton onTrigger={() => setVentSettings(s => ({...s, peep: Math.max(0, s.peep - 1)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">-</HoldButton>
                  <span className="text-base sm:text-lg font-black text-white text-center font-mono">{ventSettings.peep}</span>
-                 <HoldButton onTrigger={() => setVentSettings(s => ({...s, peep: Math.min(20, s.peep + 1)}))} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">+</HoldButton>
+                 <HoldButton onTrigger={() => setVentSettings(s => ({...s, peep: Math.min(20, s.peep + 1)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">+</HoldButton>
               </div>
-              <span className="text-[8px] text-slate-500 mt-1">Target: 4-8</span>
+              <div className="h-5 flex items-center justify-center">
+                <span className="text-[8px] text-slate-500 text-center leading-none">Target: 4-8</span>
+              </div>
             </div>
             
             <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[80px] sm:min-w-[90px]">
-              <span className="text-[9px] text-slate-400 font-bold text-center mb-1">Pmax (cmH2O)</span>
-              <div className="flex items-center w-full justify-between px-1">
-                 <HoldButton onTrigger={() => setVentSettings(s => ({...s, pmax: Math.max(10, (s.pmax||40) - 1)}))} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">-</HoldButton>
-                 <span className="text-base sm:text-lg font-black text-white text-center font-mono">{ventSettings.pmax || 40}</span>
-                 <HoldButton onTrigger={() => setVentSettings(s => ({...s, pmax: Math.min(80, (s.pmax||40) + 1)}))} className="w-7 h-7 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">+</HoldButton>
+              <div className="h-5 flex items-center justify-center">
+                <span className="text-[9px] text-slate-400 font-bold text-center">Pmax (cmH2O)</span>
               </div>
-              <span className="text-[8px] text-slate-500 mt-1">Alarm Limit</span>
+              <div className="flex items-center w-full justify-between px-1 h-9 sm:h-10">
+                 <HoldButton onTrigger={() => setVentSettings(s => ({...s, pmax: Math.max(10, (s.pmax||40) - 1)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">-</HoldButton>
+                 <span className="text-base sm:text-lg font-black text-white text-center font-mono">{ventSettings.pmax || 40}</span>
+                 <HoldButton onTrigger={() => setVentSettings(s => ({...s, pmax: Math.min(80, (s.pmax||40) + 1)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">+</HoldButton>
+              </div>
+              <div className="h-5 flex items-center justify-center">
+                <span className="text-[8px] text-slate-500 text-center leading-none">Alarm Limit</span>
+              </div>
             </div>
    
           </div>
@@ -255,7 +348,7 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
           <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Breathing Circuit</span>
           <span className="text-[10px] text-emerald-300 font-bold font-mono">APL: {patient?.aplValveSetting || 0} cmH2O</span>
         </div>
-        <div className="flex gap-2 h-full items-center">
+        <div className="flex-1 flex items-center justify-center gap-2 mt-1">
           <select 
             value={patient?.breathingCircuitType || 'circle'} 
             style={{ textAlignLast: 'center' }} 
@@ -313,7 +406,7 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
             {(patient?.stuckInspiratoryValve || patient?.stuckExpiratoryValve) && <span className="w-2 h-2 rounded-full bg-orange-500 animate-pulse shadow-[0_0_8px_rgba(249,115,22,0.8)]" title="Stuck Circuit Valve Warning" />}
           </div>
         </div>
-        <div className="relative font-mono h-full flex items-center">
+        <div className="flex-1 flex items-center mt-1">
           <select 
             value="" 
             style={{ textAlignLast: 'center' }} 

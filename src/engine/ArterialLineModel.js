@@ -6,6 +6,51 @@
  * and physical transducer damping.
  */
 
+/**
+ * Fast-flush (square-wave) dynamic-response test: derives the natural frequency and
+ * damping coefficient an examiner would read off a fast-flush tracing, from the
+ * discrete damping state this engine already drives the live waveform with
+ * (`patient.alineDamping`, or inferred from a 22G catheter gauge).
+ *
+ * Source: Ch36 (Cardiovascular Monitoring), Figs 36.22-36.25 — the worked fast-flush
+ * example: a 1.7 mm oscillation-cycle period at 25 mm/s paper speed -> natural
+ * frequency 14.7 Hz; consecutive oscillation-peak heights 17 mm and 24 mm -> amplitude
+ * ratio/damping coefficient 0.71. Reading these two numbers directly off a fast-flush
+ * tracing is the chapter's own worked methodology, not a closed-form formula; mapping
+ * this engine's existing discrete damping states onto representative natural-
+ * frequency/damping-coefficient pairs is this function's own disclosed, reasoned
+ * generalization — see docs/engines/physiology.md.
+ */
+export function calculateDynamicResponse(patient) {
+  let damping = patient?.alineDamping || 'normal';
+  if (!patient?.alineDamping) {
+    const aLine = patient?.accessLines?.find(l => l.category === 'Arterial' || l.category === 'Arterial Line');
+    if (aLine?.name?.includes('22G')) damping = 'overdamped';
+  }
+
+  if (damping === 'underdamped') {
+    return {
+      naturalFrequencyHz: 24.0,
+      dampingCoefficient: 0.15,
+      classification: 'underdamped',
+      interpretation: 'Low damping coefficient with a high natural frequency: oscillations after a fast-flush ring for several cycles before settling, producing systolic overshoot and a falsely widened pulse pressure on the displayed waveform.'
+    };
+  } else if (damping === 'overdamped') {
+    return {
+      naturalFrequencyHz: 7.0,
+      dampingCoefficient: 0.85,
+      classification: 'overdamped',
+      interpretation: 'Low natural frequency with high damping: the fast-flush trace returns to baseline with little or no ringing, but the live waveform loses its dicrotic notch and shows a falsely narrowed pulse pressure. Mean arterial pressure remains reasonably accurate despite the distorted waveform shape.'
+    };
+  }
+  return {
+    naturalFrequencyHz: 16.0,
+    dampingCoefficient: 0.45,
+    classification: 'adequate',
+    interpretation: 'Natural frequency and damping coefficient fall in the clinically adequate range (oscillation cycles settle in well under 30 ms after a fast-flush) — the displayed waveform is a faithful reproduction of the true intra-arterial pressure.'
+  };
+}
+
 export function synthesizeArterialLine(tBeat, beatDuration, canvasHeight, timeSecs, patient, vitals, activeMeds) {
   const h = typeof canvasHeight === 'number' && Number.isFinite(canvasHeight) ? canvasHeight : 100;
   

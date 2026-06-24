@@ -692,7 +692,12 @@ export class RespiratoryEngine {
           const ieRatio = ventSettings.ieRatio || 2;
           const inspTimeSec = (60 / targetRR) * (1 / (1 + ieRatio));
           const flow_L_s = (newVte / 1000) / inspTimeSec;
-          newPip = newPplat + (flow_L_s * currentResistance * 5);
+          // Resistive pressure drop = R * flow (Ohm's-law analog for airway resistance,
+          // cmH2O/(L/s) * L/s = cmH2O) — no additional scaling factor. A previous x5
+          // multiplier here had no unit-conversion justification and inflated the
+          // PIP-Pplat gap 5x, most consequentially in high-resistance states
+          // (bronchospasm/COPD), where it could spuriously peg ventSettings.pmax.
+          newPip = newPplat + (flow_L_s * currentResistance);
         } else if (ventSettings.mode === 'PCV') {
           newPip = (ventSettings.pinsp || 20) + newPeep;
           newPplat = newPip - 2;

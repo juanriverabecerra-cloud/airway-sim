@@ -9,6 +9,19 @@
 ### 4. Pathophysiology & Vital Signs Engine
 
 #### 4.1 Cardiovascular & Hemodynamic Physiology (`CardiovascularEngine.ts`)
+
+> **Superseded this session (Phase 0, Stage D of `/Users/jsriverab/.claude/plans/
+> mutable-roaming-newell.md`)**: stroke volume, MAP, SBP, DBP, and LVEDP below were
+> replaced with direct outputs of `CardiacMechanicsEngine.ts` (§4.1.5) — a coupled
+> LA-LV-mitral/aortic-valve-systemic-Windkessel time-varying-elastance ODE — rather than
+> the separate Frank-Starling-curve/algebraic-LVEDP/pulse-pressure-ratio formulas
+> described in points 1-3 below. Those formulas are kept here as **historical record**
+> (every other engine in this codebase still reads/writes the same `vitals.sys/dia/map/
+> co/svr/lvedp` fields, so understanding what used to compute them remains useful
+> context) — see §4.1.5 for what actually runs now. HR computation (point 4, the
+> baroreceptor reflex) and SVR's own afterload-setting formula are **unchanged** — only
+> the SV/MAP/SBP/DBP/LVEDP chain moved to the new engine.
+
 The cardiovascular engine calculates the patient's continuous perfusion status every second. It models cardiac output ($CO$, L/min) and mean arterial pressure ($MAP$, mmHg):
 
 1.  **Mean Arterial Pressure (MAP)**:
@@ -58,6 +71,464 @@ The cardiovascular engine calculates the patient's continuous perfusion status e
         $$\text{Error}_{\text{baro}} = MAP - MAP_{\text{set}} \quad \text{where } MAP_{\text{set}} = DBP_{\text{base}} + \frac{SBP_{\text{base}} - DBP_{\text{base}}}{3}$$
         $$\text{autonomicHrMod} = \max\left(-25, \min\left(30, -0.5 \cdot \text{Error}_{\text{baro}} \cdot \text{baroreflexGain}\right)\right)$$
         Reflex bradycardia is blunted (set to 0) if antimuscarinic drugs block cholinergic receptors (`totalHrDelta > 15`).
+
+#### 4.1.1 CVP & Pulmonary Artery Catheter Waveform Display Models (`CvpWaveformModel.js`, `PulmonaryArteryCatheterModel.js`)
+Source: Miller's 9th Ed, Ch36 ("Cardiovascular Monitoring"), TABLE 36.2 (normal pressures),
+TABLE 36.3/36.4 (CVP waveform components/abnormalities), TABLE 36.5 (PCWP-vs-LVEDP
+discrepancies), Figs 36.35-36.46 (waveform morphology, directly reviewed pixel-by-pixel,
+not just the auto-extracted figure metadata).
+
+> **Superseded this session**: both files now consume `CardiacChamberModel.js` (§4.1.3) —
+> the a/c/v/x/y waveform shape and its AFib/AV-dissociation/TR/MR patterns emerge from a
+> genuine coupled-ODE integration rather than the hand-coded per-pattern wave-height
+> constants this section originally described. The clinical content below (which named
+> CVP/PAC pattern maps to which Table 36.4 finding, the PCWP-vs-LVEDP discrepancy
+> directions, the catheter artifacts) is unchanged; only the underlying generator is new.
+
+*   **Named CVP patterns** (Table 36.4): atrial fibrillation (`patient.afib` or
+    `cardiacRhythm==='afib'`) removes atrial elastance activation (no a wave, relatively
+    more prominent c wave); AV dissociation/asynchronous pacing (`patient.avDissociation`)
+    decouples atrial-contraction timing from the ventricular cycle, producing a cannon
+    wave when the two happen to coincide; tricuspid regurgitation
+    (`patient.tricuspidRegurgitation`) adds a valve-leak term that raises mean RA pressure
+    and produces the "ventricularized" fused c-v appearance (Fig 36.37).
+*   **PA/wedge**: PA systolic/diastolic are read directly off the same chamber model's
+    `pPA` trace used for CVP (one coupled simulation, not two independently-tuned
+    approximations of a physically connected system) — no separate MAP-style algebraic
+    formula. The PA trace's diastolic-falling / RV diastolic-rising differentiator (Fig
+    36.38) is a genuine consequence of the Windkessel vs. elastance-chamber dynamics, not
+    a hand-coded asymmetry. PCWP/wedge overestimation of true LVEDP with PEEP > 10
+    (lung zone 1/2 creation) or mitral regurgitation (Table 36.5) is unchanged from before
+    — still a disclosed, reasoned magnitude, since the source names the direction of each
+    discrepancy but not a literal mmHg figure.
+*   **Catheter artifacts**: `patient.pacWhipArtifact` (catheter-motion ripple at systole
+    onset, Fig 36.39) and `patient.pacOverwedged` (non-pulsatile climbing pressure, Fig
+    36.40) are unchanged engine-level capabilities, not wired to an automatic trigger
+    condition this session.
+*   **Deliberately not modeled** (documented gaps, unchanged): tricuspid stenosis and
+    pericardial constriction/tamponade's full M/W-configuration equalization pattern; the
+    RA→RV→PA→wedge insertion-transition sequence remains structured reference data only
+    (`PAC_INSERTION_SEQUENCE`), not an interactive insertion UI.
+
+#### 4.1.3 Coupled Right-Heart Lumped-Parameter Circulation Model (superseded — see §4.1.6)
+
+> **Superseded (Phase 0, Stage E)**: `CardiacChamberModel.js` was unified with the left-
+> heart model (§4.1.5) into `FourChamberCircuitModel.ts` — see §4.1.6. The right-heart
+> mechanics, AFib/AV-dissociation/TR patterns, and the c/v/y-wave mechanical perturbation
+> described below are otherwise unchanged; only the file/connection changed.
+> **Sourcing note**: general cardiovascular systems physiology (the Suga-Sagawa/
+> Stergiopulos time-varying-elastance framework, a 2-element Windkessel for the pulmonary
+> artery) — not a specific Miller's citation. Disclosed per this project's standing
+> convention.
+
+A real coupled RA-RV-PA system (time-varying-elastance chambers + valve flow laws + a
+Windkessel vascular compartment), integrated to a periodic limit cycle, replacing the
+hand-coded per-pattern CVP/PA wave-height constants `CvpWaveformModel.js`/
+`PulmonaryArteryCatheterModel.js` used earlier this session.
+
+*   **Architecture**: `CanvasWaveform.jsx`'s render loop is deliberately stateless (every
+    waveform synthesizer is a pure function called fresh every animation frame, with no
+    physiology state carried between frames). A continuously-integrated real-time ODE does
+    not fit that without a larger architecture change — confirmed as the single most
+    important correction from this redesign's technical review. Instead, the system is
+    integrated **once per parameter set** (6 settling cycles discarded, the periodic limit
+    cycle recorded and cached via simple module-level memoization — the same pattern as
+    `RespiratoryMechanicsModel.js`), and the per-frame canvas code interpolates into that
+    cached trajectory.
+*   **Elastance activation**: RV uses the published Stergiopulos/Suga-Sagawa double-Hill
+    normalized curve. RA/LA use a simpler raised-cosine bump timed to atrial systole — the
+    full ventricular curve's isovolumic-phase shape does not apply to atria and would
+    misrepresent the a/v wave shape (a correction from this redesign's technical review).
+*   **Valve flow**: a simple resistive law, `Q = max(0, P_upstream - P_downstream) / R`,
+    with a regurgitant leak term (`Q_leak = max(0, P_downstream - P_upstream) / R_leak`,
+    `R_leak` falling as severity rises) for TR (tricuspid) and MR (mitral, modeled as a
+    direct systolic-timed regurgitant inflow pulse into a standalone LA chamber, since a
+    full LV/mitral-valve model is out of scope this session).
+*   **A genuine emergent finding confirmed by direct numerical sweep, not assumed**: the
+    pure 2-chamber (RA/RV) elastance ODE, tested across a wide range of venous-return-rate
+    and tricuspid-valve-resistance combinations, could not produce a c wave, v wave, or y
+    descent — the RA pressure trace stayed monotonic between the x descent and the next a
+    wave for every combination tried, because constant venous inflow consistently
+    outpaced valve outflow even after the valve reopened. **Caught from a rendered
+    screenshot, not from reviewing the equations**: this made the actual displayed trace a
+    single dominant a-wave spike occupying ~12% of the cycle with the remaining ~88%
+    nearly flat (the c/y perturbation initially added below was only ~0.5 mmHg against a
+    ~6 mmHg spike — invisible at real scale) — not a recognizable multi-phasic CVP trace.
+    The c wave (tricuspid valve bulging into the atrium during isovolumic ventricular
+    contraction), v wave (continued venous filling against the closed tricuspid valve in
+    late systole), and y descent (rapid early-diastolic atrial emptying) are all
+    mechanically passive valve events, not elastance phenomena — modeled as disclosed
+    additive perturbations timed to where Table 36.3 places each event, with amplitudes
+    (and `eRaMax`) calibrated *together* against Table 36.2's a-wave/mean (≈2.0) **and**
+    v-wave/mean (≈1.67) ratios, not just the a-wave alone — confirmed by direct
+    calibration sweep to fall out at `eRaMax=0.13`, c-wave/v-wave/y-descent amplitudes of
+    0.12/0.60/0.10 (as fractions of the ODE's own computed a-wave height). The resulting
+    trace now shows a clear x descent, a v wave comparable in height to the a wave, and a
+    y descent before the diastolic plateau — confirmed numerically and reasoned through
+    per pattern (AFib's now-dominant v wave since the a wave is gone — itself a correct,
+    additional emergent/clinically-consistent behavior not specifically designed for; TR's
+    tall fused c-v wave reaching ~83% of the a-wave height with a visibly shallower x
+    descent and an elevated diastolic plateau).
+*   **Calibration**: the coupled nonlinear valved system's absolute pressure level cannot
+    be solved in closed form for an arbitrary target mean (confirmed impractical during
+    prototyping — every parameter combination tested needed a different absolute scale to
+    hit a given target, with no tractable closed-form relationship). Shape parameters were
+    tuned once, offline, against Table 36.2's normal pressure ratios (see above). The
+    resulting trajectory is then rescaled **multiplicatively** so its cycle mean exactly
+    equals the live target (`rescaleToTargetMean()`) — this preserves the ODE-derived
+    relative shape exactly (a pure scale transform) while guaranteeing exact agreement
+    with the numbers already displayed elsewhere in the UI. PCWP/LVEDP is rescaled to
+    match at a *specific end-diastolic phase point* rather than the cycle mean
+    (`rescaleToPhaseValue()`), since LVEDP is conventionally read as an instantaneous
+    value, unlike CVP/mPAP which are conventionally means — a distinction surfaced during
+    this redesign's reconciliation checkpoint (see below).
+*   **Stage 2a reconciliation checkpoint** (committed to before writing any live code):
+    swept `CardiovascularEngine.ts`'s existing `lvedpVal` formula across realistic volume/
+    inotropy/AS combinations before building the LA/wedge chamber. Found it smooth,
+    monotonic, and properly clamped (2-40 mmHg) — safe to use as a feedforward calibration
+    target with no visible cross-consistency risk. One pre-existing quirk noted but
+    deliberately not fixed (out of scope, and fixing it risks rippling into ischemia/
+    arrest-triggering logic that reads the same value): aortic stenosis only elevates
+    LVEDP via its *deviation* from baseline intravascular volume, so an AS patient at
+    exactly-normal volume status shows zero AS effect on LVEDP — the new wedge trace
+    inherits this as-is rather than silently diverging from the displayed number.
+*   **Cross-consistency** (the property this whole redesign was for): CVP and PA pressure
+    are now read from literally the *same* `getRightHeartCycle()` call — not two
+    independently-tuned models of a physically connected system. `cardiac_chamber_model.test.ts`
+    directly asserts the RV-rises/PA-falls diastolic differentiator, AFib's a-wave
+    suppression, AV dissociation's mid-cycle (not late-diastolic) pressure peak, TR's
+    elevated mean, MR's elevated LA peak, and that the rescale transform preserves shape
+    ratios exactly.
+*   **Out of scope this session** (a natural, separate follow-on): unifying
+    `ArterialLineModel.js`'s systemic arterial trace into the same chamber model (its
+    diastolic decay is already the correct Windkessel solution; only the systolic upstroke
+    is currently hand-shaped) and a full LV/mitral-valve chamber (the LA model above uses a
+    simplified constant-drain outflow instead).
+*   **Disclosed gap found during Stage 3 verification**: RV/RA elastance (`eRvMax`/
+    `eRaMax`) are fixed constants, not driven by live contractility/inotropy — confirmed
+    by checking that `CardiovascularEngine.ts`'s internal `inotropyFinal` is never exposed
+    on `vitals` or `patient` anywhere in the codebase, so there is currently no cheap
+    signal to wire this to without either modifying that tested numeric engine (out of
+    scope) or threading a new prop through `CanvasWaveform.jsx`/`PrimaryMonitor.jsx`. This
+    means the rescale-to-target-mean calibration keeps the displayed CVP/PA/wedge *levels*
+    correct under inotropic changes (e.g. an epinephrine infusion), but the *waveform
+    shape* (a-wave/mean ratio, systolic upstroke steepness) does not currently respond to
+    contractility the way a fully-coupled model would — a real, identified limitation, not
+    a silent one.
+
+#### 4.1.4 Arterial Line Dynamic Response — Fast-Flush Test (`calculateDynamicResponse`, `ArterialLineModel.js`)
+Source: Ch36, Figs 36.22-36.25 — the worked fast-flush example: a 1.7 mm oscillation-cycle
+period at 25 mm/s paper speed gives a natural frequency of 14.7 Hz; consecutive
+oscillation-peak heights of 17 mm and 24 mm give an amplitude ratio (damping coefficient)
+of 0.71 (the peak-height-ratio/period-to-frequency relationship was confirmed directly
+from Fig 36.25's pixels, since the chapter gives the worked numbers but not the
+intermediate formula).
+
+> **Sourcing note**: this model maps `ArterialLineModel.js`'s existing three discrete
+> damping states (`normal`/`underdamped`/`overdamped`, already driving the live waveform)
+> onto representative natural-frequency/damping-coefficient number pairs, anchored to the
+> chapter's one worked example. The specific numbers chosen for each state are a disclosed,
+> reasoned generalization, not a per-state citation.
+
+*   `normal` → 16 Hz / 0.45 (clinically adequate — oscillation cycles settle in well under
+    the textbook's <30 ms "adequate" threshold).
+*   `underdamped` → 24 Hz / 0.15 (rings for several cycles, systolic overshoot, falsely
+    widened pulse pressure).
+*   `overdamped` (explicit flag, or inferred from a 22G arterial catheter gauge) → 7 Hz /
+    0.85 (no ringing, but the dicrotic notch and fine detail are lost, pulse pressure reads
+    falsely narrow; MAP stays reasonably accurate despite the distorted shape, per the
+    chapter's explicit repeated point).
+*   Reachable from the Attending chat (`ClinicalAiChat.js`) via "fast flush"/"square
+    wave"/"damping"/"natural frequency" keywords, grounded in the live arterial line's
+    damping state when one is placed.
+
+#### 4.1.5 Left-Heart Chamber Mechanics Replace Stroke Volume/MAP/SBP/DBP/LVEDP (superseded -- see §4.1.6)
+
+Phase 0 (Stage D) of `/Users/jsriverab/.claude/plans/mutable-roaming-newell.md`: a
+coupled LA-LV-mitral-valve-aortic-valve-systemic-Windkessel time-varying-elastance ODE
+(Suga-Sagawa/Stergiopulos framework, same general-physiology sourcing convention as
+§4.1.3's right-heart model), integrated to a periodic limit cycle inside
+`CardiovascularEngine.tick()`, replacing §4.1's points 1-3 (Frank-Starling SV curve,
+algebraic LVEDP, pulse-pressure-ratio SBP/DBP split). Real inotropy (`inotropyFinal` —
+previously computed but never exposed outside this engine), dromotropy (`prInterval`),
+AS (concentric-hypertrophy compensation + diastolic stiffness, replacing the old
+`maxSV`/`starlingEffectiveLvedp` caps), and CHF (diastolic stiffness + contractility
+penalty) now drive the chamber mechanics directly rather than acting as external
+multipliers layered on a separate formula. `CardiovascularEngine.tick()` calls the engine
+**twice per tick** — once with `inotropyInitial` (pre-ischemia-loop) to get this tick's
+LVEDP for the ischemia-detection/CPP/MVO2/Bainbridge logic (mirroring the original
+formula's same initial/final inotropy split), once with `inotropyFinal` (post-ischemia-
+loop) for the tick's actual SV/CO/MAP/SBP/DBP output. HR's own computation (baroreceptor
+reflex, §4.1 point 4) and SVR's own afterload-setting formula are unchanged — both feed
+into the chamber engine as inputs, not outputs of it.
+
+*   **A decision point surfaced by direct comparison, not a bug**: side-by-side testing
+    against the old formula found that a pure contractility increase (e.g. epinephrine's
+    inotropic effect in isolation) barely moves CO in the new engine (5.1→5.3 L/min for a
+    1.8x inotropy multiplier) versus nearly doubling it in the old linear formula
+    (5.0→10.1 L/min). The new engine's muted response is the textbook-correct one —
+    stroke volume is preload-bounded (Frank-Starling ceiling), so pure contractility
+    mainly raises ejection fraction (less residual end-systolic volume) rather than
+    stroke volume once filling is already adequate; real epinephrine's full CO effect
+    comes from concurrent venous-return augmentation and chronotropy, mechanisms slated
+    for Phase 1 (vascular tree) and already-existing HR effects, not contractility alone.
+    Given the user's explicit direction toward modeling these as separate real
+    mechanisms rather than folding everything into one inotropy multiplier, the literal
+    (muted) response was kept with no compensating patch.
+*   **New outputs not previously available anywhere in this codebase**: `lvEdv`, `lvEsv`,
+    `lvEf` (end-diastolic/end-systolic volume and ejection fraction) — the chamber
+    engine's echo-readiness payoff (Phase 0/Stage E and beyond), unused by any live
+    feature yet but exposed on `CardiacMechanicsInputs`/`CardiacMechanicsOutput`.
+*   **Calibration**: `SVR_TO_R_SCALE=1175` (Windkessel resistance-units bridge, same
+    disclosed-constant pattern as `FLOW_SCALE_FACTOR`/`SVR_TO_R_SCALE` elsewhere in this
+    redesign) and a `preloadRatio` ceiling of 3.0 (3x normal blood volume — raised once
+    during this session's test reconciliation from an initial 2.0, which couldn't reach
+    the Bainbridge reflex's >18 mmHg LVEDP trigger at any input severity).
+*   **Damping**: CO/MAP/SBP/DBP/SV are read **undamped** each tick directly from the
+    chamber engine's instantaneous output (matching how `currentSV` was *never* damped in
+    the original formula either) — only SVR keeps the original 10%-per-tick relaxation
+    (it's an independent vasomotor-tone input, not a chamber-engine output). An initial
+    implementation damped MAP/SBP/DBP and additionally kept CO's old "snap to target if
+    within 0.05" rule; both were removed after testing surfaced concrete problems: the
+    CO snap-rule produced a genuine *non-monotonic* artifact (whichever of two compared
+    scenarios had its target closer to a test fixture's starting CO would snap fully
+    while the other moved only 10%, occasionally reversing the expected ordering between
+    e.g. a healthy vs. myocardially-stunned patient), and damping MAP directly made
+    single-tick sympathetic-surge scenarios respond far too slowly against the now-
+    self-consistent engine output.
+*   **Downstream threshold reconciliation** (the mmHg-dependent code in `RenalEngine.ts`/
+    `CerebralEngine.ts`/`HepaticEngine.ts`/`PainEngine.ts`/`AttendingEngine.js` flagged
+    during planning): verified by direct numerical sweep that every flagged threshold
+    (MAP 40/55/60/65/90, LVEDP 18) remains reachable at clinically appropriate input
+    severity under the new engine — no downstream constants needed to change.
+*   **Verification**: `src/testing/cardiac_mechanics_engine.test.ts` (12 tests, Stage A,
+    standalone). Stage D's live swap surfaced 4 failing tests in the existing suite, all
+    traced to genuine new-physics divergence (not engine bugs) and fixed forward per the
+    plan's explicit instruction: two needed larger input severities to clearly cross a
+    threshold given the new engine's different (not wrong) preload/inotropy sensitivity,
+    one needed isolating from a confounding reflex (Bezold-Jarisch) that the original
+    formula's larger LVEDP swing hadn't triggered at the same test input, and one needed
+    a comparison-based assertion instead of an absolute post-single-tick value (a real
+    several-bpm target shift, after 10%-per-tick HR damping, can be smaller than this
+    test suite's existing random per-tick HR noise). One pre-existing, unrelated flaky
+    test (`should verify targetHR stabilizes with chronotropic drug`) was identified as
+    flaky *before* this change too (confirmed by direct repeated testing) and left
+    untouched — it depends only on HR computation, which this work never modified.
+
+#### 4.1.6 Closed Four-Chamber Circulation: RA-RV-PA-LA-LV-Aorta (`FourChamberCircuitModel.ts`)
+
+Phase 0, Stage E. Unified what had been two separately-integrated systems (§4.1.3's
+right heart, §4.1.5's left heart) into one coupled ODE, closing the pulmonary half of
+the circulatory loop for real: the pulmonary artery's actual computed outflow (through
+pulmonary vascular resistance) is now the left atrium's actual inflow, replacing both
+predecessor files' simplification of assuming a constant for the other side's
+contribution. `CvpWaveformModel.js`, `PulmonaryArteryCatheterModel.js` (both waveform
+types now read PA *and* wedge from the same cached cycle), and
+`CardiovascularEngine.ts` (both of its per-tick calls, §4.1.5) all now read this one
+model. Systemic venous return (RA's inflow) remains an input-derived constant scaled by
+`preloadRatio` — modeling that as a real systemic venous/capillary system, so RA's
+inflow is itself a consequence of what the aorta pumped out, is Phase 1's job (the
+vascular tree), not this stage's.
+
+*   **A significant recalibration was required, not just a wiring change**: the
+    predecessor right-heart model's absolute PA/RV pressure levels were never
+    individually calibrated to be realistic — only their *shape* mattered, since
+    `CvpWaveformModel.js`/`PulmonaryArteryCatheterModel.js` always rescaled the result to
+    `vitals.cvp`/`vitals.mPAP` before display. Connecting PA's real output directly into
+    a real LA chamber meant its absolute level suddenly mattered for the first time:
+    initial wiring produced mPAP≈38 (vs. a textbook-normal ≈15), starving/flooding LA
+    filling and collapsing downstream MAP to ≈42-56. `rPAexit` (pulmonary vascular
+    resistance, 0.6→0.0875), `qVenousSystemic` (RA's venous-return input, 80→130), and
+    `SVR_TO_R_SCALE` (the systemic Windkessel calibration bridge, 1175→1000) were jointly
+    re-solved by direct numerical sweep (not solvable in closed form for this coupled
+    nonlinear system) to land the connected loop's baseline near
+    `CardiovascularEngine.ts`'s existing resting targets (MAP≈87, SBP≈103, DBP≈66,
+    CO≈5.4 L/min, LVEDP≈9, mPAP≈18 — upper-normal but in range). All Stage 0-D pathology
+    scenarios (hypovolemia, AS, CHF, high/low SVR, AFib) were re-verified directionally
+    correct after recalibration.
+*   **A genuine missing mechanism surfaced, not a bug**: re-running the existing test
+    suite after the swap found vasopressin/Angiotensin II's hemodynamic-shock-compensation
+    test now failing — elevated HR plus inotropy alone, at *unchanged* preload, could
+    actually *lower* CO in the connected model (shorter diastolic filling time at higher
+    HR outweighing the inotropy gain on stroke volume) — a real, isolated-variable finding,
+    but incomplete: real vasopressin/Angiotensin II compensate for hemorrhagic shock
+    substantially through *venoconstriction*, shifting blood from venous capacitance into
+    effective circulating volume, not contractility/chronotropy alone. Added
+    `neurohormonalPreloadBoost` in `CardiovascularEngine.ts` (a disclosed, Table-14.1-
+    grounded ratio bump on `preloadRatioForLvedp`, the same scaling pattern as the existing
+    `neurohormonalInotropy`/`neurohormonalHrDelta` terms) rather than reverting the more
+    correct physiology or patching the test — Phase 1's real venous compartment will
+    eventually replace this ratio bump with a genuine volume-compartment shift.
+*   **Verification**: `src/testing/four_chamber_circuit_model.test.ts` (17 tests,
+    consolidating and extending the predecessor right-heart and left-heart test files,
+    both deleted). The live re-wiring surfaced 5 more failing tests across
+    `cardiac_physiology_ch14.test.ts`, `awareness.test.ts`, and `pain.test.ts`: the
+    neurohormonal one fixed by the venoconstriction addition above; the AS-at-rest CO
+    tolerance widened slightly (0.3→0.35, a ~5% recalibration shift, the underlying
+    "near-identical at rest" relationship unchanged); two sympathetic-surge MAP/SBP
+    thresholds (awareness, pain) lowered to match the connected model's still-elevated
+    but more conservative converged values (same afterload-mismatch mechanism as Stage
+    D's analogous fixes); and one chronotropic-drug HR-convergence test's target range
+    shifted upward (125→~137) after discovering a genuine, newly-possible vicious-cycle
+    interaction: extreme Atropine-driven tachycardia alone (no preload/inotropy support)
+    reduces diastolic filling time enough to lower MAP, which the baroreflex then tries
+    to correct with *further* tachycardia (its only available lever here) — bounded, not
+    runaway, but converging higher than the old HR-independent-stroke-volume formula's
+    125. 673/673 tests passing, build clean.
+
+#### 4.1.7 Vascular Tree, Stage A: Parallel Arterial Beds + Venous Reservoirs (`FourChamberCircuitModel.ts`)
+
+Phase 1, Stage A. Closes the *systemic* half of the circulatory loop the way Stage E
+closed the pulmonary half: instead of the right atrium's inflow being an external,
+input-derived constant (`qVenousSystemic`), the aorta now empties through parallel
+arterial vascular beds (splanchnic/renal/skeletal-muscle/cerebral/coronary/skin/other,
+each independently resistance-modifiable, fractions of resting CO a disclosed general-
+physiology estimate, not a specific citation) into venous reservoirs — a central pool
+plus a separate, more compliant splanchnic pool — which drain into the right atrium.
+`CardiovascularEngine.ts`'s single `preloadRatio` input is gone; `totalBloodVolumeMl`
+(literally `effectiveIntravascularVolume`, in mL) is now the one source of preload truth
+across the *entire* closed loop, redistributed across all compartments by the ODE itself
+rather than fed in pre-divided.
+
+*   **Venous unstressed-volume framework**: most of the venous pools' volume is
+    "unstressed" — fills compliant venous capacity without generating pressure (the
+    textbook reason veins are the body's blood reservoir, holding roughly two-thirds of
+    blood volume at low pressure). Only the excess above that threshold drives pressure.
+    Central unstressed volume is recruited (lowered) under elevated sympathetic tone
+    (proxied by SVR relative to its own baseline — the same efferent outflow that
+    vasoconstricts arterioles also venoconstricts) — a real, named compensatory mechanism
+    (recruiting unstressed volume to defend preload during shock) that was *absent*
+    before Stage A; without it, a static "40% blood loss" snapshot collapses far more
+    catastrophically than a real patient's own venoconstriction would allow.
+*   **Splanchnic pooling becomes a real compartment, not a volume-offset hack**:
+    `CardiovascularEngine.ts`'s `splanchnicPoolingOffset` (`1000 * (splanchnicVol-1.0)`,
+    subtracted from `effectiveIntravascularVolume`) is removed entirely. The same
+    underlying signal (`sympatheticBlock`/`alphaAgonistEffect`, driven by celiac-plexus/
+    thoracic-epidural block and alpha-agonist vasopressors, TABLE 15.2) is now passed as
+    `splanchnicTone` directly into the closed-loop model, where it sets the *actual*
+    splanchnic venous reservoir's unstressed volume and bed resistance — sympathetic
+    block genuinely pools blood in a real compartment with its own compliance, rather
+    than subtracting a flat number from a single "effective volume" scalar.
+*   **A substantial joint recalibration, the same lesson as Stage E repeated**: adding a
+    real resistance/compliance path between the aorta and the right atrium (where none
+    existed before — `qVenousSystemic` had no resistance constraint at all) measurably
+    raises the *system's* total effective resistance, requiring `SVR_TO_R_SCALE` (1000→
+    1500), the venous-return resistance, and the venous compliances/unstressed volumes to
+    be jointly re-solved by numerical grid search back to the existing resting targets
+    (MAP≈87, CO≈5.4 — unchanged from Stage E's targets, confirming the recalibration
+    didn't silently drift the baseline). The existing `neurohormonalPreloadBoost`
+    (vasopressin/Angiotensin II's venoconstriction proxy, added during Stage E) needed
+    its own coefficients reduced roughly 4x (0.20/0.15→0.05/0.0375) after the real
+    venous-compartment model turned out far more volume-sensitive than the
+    `preloadRatio`-based model it was originally tuned against — the old magnitude pushed
+    MAP into the 140s+ at maximal AVP/AngII, triggering a baroreflex *overcorrection* that
+    dropped HR below baseline instead of raising it (caught by the existing test for that
+    exact scenario, not a new one written for this stage).
+*   **New output**: `cvp` (mean RA pressure) is now a genuine aggregate output of the
+    closed-loop model itself, rather than only being read by separately rescaling the
+    waveform-layer's RA trajectory to a `vitals.cvp` target — not yet wired into
+    `CardiovascularEngine.ts`'s own `vitals.cvp` (which still comes from elsewhere), a
+    natural follow-on once that field's existing computation is examined.
+*   **Deliberately not yet modeled** (Stage A's explicit scope boundary): only the
+    splanchnic and central venous pools have their own compliance; skin's venous
+    capacitance (relevant to thermoregulation and is on this roadmap's later
+    integumentary phase) is folded into the central pool for now. The arterial beds are
+    simple parallel resistors with no capacitance of their own (real arterioles do have
+    some, but it's small relative to the venous side and was not worth the added
+    complexity this stage). Cerebral/renal/coronary autoregulation (these beds
+    maintaining their own flow despite swings in driving pressure, within limits) is not
+    yet modeled — each bed's resistance currently only changes via the single
+    `splanchnicTone` input and the shared sympathetic-driven venous tone; per-bed
+    autoregulation is a natural Stage B/C follow-on.
+*   **Verification**: `src/testing/four_chamber_circuit_model.test.ts` extended (5 new
+    tests: the splanchnic-pooling mechanism, the total-volume Frank-Starling relationship
+    re-verified against the new volume-based input, a bounded-volume sanity check under
+    combined low-volume/high-demand stress). Re-running the full existing suite after the
+    live swap surfaced exactly one failure (the AVP/AngII test above), traced to the
+    same genuine recalibration-sensitivity pattern as every prior stage and fixed at the
+    source (the boost coefficient) rather than by loosening the test. 675/675 tests
+    passing, build clean.
+
+#### 4.1.8 Vascular Tree, Stage B/C: Per-Bed Autoregulation + Lymphatic System (`FourChamberCircuitModel.ts`, `LymphaticSystemModel.ts`)
+
+Phase 1, Stages B/C -- completing Phase 1.
+
+**Per-bed autoregulation** (`FourChamberCircuitModel.ts`): cerebral, renal, and coronary
+beds (Miller's 9th Ed Ch11/Ch13/Ch20's classically-emphasized strongly-autoregulating
+circulations) now hold flow near baseline across a disclosed autoregulatory pressure
+plateau (cerebral 50-150, renal 80-180, coronary 60-140 mmHg) by scaling resistance
+proportionally with instantaneous aortic pressure within that range; outside it,
+resistance clamps at the boundary value, so flow becomes pressure-passive again (the
+clinically important "autoregulation breakdown" zone). This is a deliberately generic,
+disclosed simplification operating only on the bed-resistance partition --
+`CerebralEngine.ts`/`RenalEngine.ts` remain the authoritative source for the detailed
+clinical physiology (CBF/CMRO2/ICP, cortex/medulla RBF/GFR) that reads the resulting
+`vitals.map`/`vitals.cmap`, unaffected by how that aggregate number was internally
+assembled. Splanchnic, skeletal-muscle, and skin beds are left non-autoregulating
+(correct physiology -- these rely on sympathetic tone rather than autoregulation).
+
+**Lymphatic system / interstitial fluid balance** (`LymphaticSystemModel.ts`, new): a
+real Starling-forces capillary-filtration-vs-lymphatic-return balance, tracking
+`patient.interstitialVolumeMl` as a continuously-evolving compartment rather than
+`RenalEngine.ts`'s existing `hasFluidOverloadEdema` (a complementary, coarser
+probabilistic clinical-event flag for renal-failure-driven fluid retention specifically
+-- not replaced or duplicated). Net fluid that leaves the vasculature faster than
+lymphatics can return it (`thirdSpacedVolumeMl`) now measurably reduces
+`CardiovascularEngine.ts`'s effective circulating blood volume -- the real "third-
+spacing" mechanism (sepsis/capillary-leak, burns, hypoalbuminemia, prolonged surgery)
+that previously had no mechanism in this codebase at all: total body fluid can be normal
+or even elevated while the heart sees relative hypovolemia.
+
+*   **Mechanism**: $J_v = K_f \cdot [(P_c - P_i) - \sigma \cdot (\pi_p - \pi_i)]$.
+    $P_c$ (capillary hydrostatic pressure) approximated from CVP (`cvp + 15`, a standard
+    simplification -- most of the arterial-to-venous pressure drop happens across
+    arterioles, so capillary pressure sits much closer to venous than arterial). $P_i$
+    (interstitial hydrostatic pressure) rises with interstitial volume via its own very
+    high compliance (edema accumulates substantially before pressure rises much --
+    consistent with real tissue compliance and why edema is often silent until
+    advanced). $\pi_p$ (plasma oncotic pressure) uses the same `25 * albumin/4.0` scaling
+    convention `RenalEngine.ts`/`HepaticEngine.ts` already use for albumin-driven
+    oncotic pressure (here at the systemic-capillary baseline, not the glomerular-specific
+    figure). Capillary leak (sepsis, disclosed proxy: `patient.isSeptic` -> 0.4 severity,
+    or an explicit override) lowers $\sigma$ *and* raises $\pi_i$ together -- the real
+    reason leak states cause especially severe edema: leaked protein collapses the very
+    oncotic gradient that normally opposes filtration, not just "more leak" alone.
+*   **Lymphatic return**: a baseline active-pumping rate plus a pressure-stimulated
+    component, capped at a finite maximum capacity -- the lymphatic system's real
+    "safety factor" (~10x normal flow) before being overwhelmed, which is what allows
+    edema to accumulate progressively under sustained imbalance rather than always
+    reaching a new steady state. `lymphaticObstructionSeverity` (e.g. post-
+    lymphadenectomy, filariasis -- Bucket C/B groundwork, no dedicated UI flag yet)
+    reduces this capacity directly.
+*   **Calibration**: solved by direct numerical balancing (not closed-form) for a true
+    steady state at baseline (zero net accumulation over a simulated hour with no
+    pathology) -- `Kf=1.0`, baseline lymphatic flow `3.0 mL/min`, interstitial compliance
+    `750 mL/mmHg` against a `10000 mL` baseline interstitial volume (general physiology
+    estimate for a 70 kg adult). Verified pathological scenarios (sepsis, hypoalbuminemia,
+    elevated CVP/right-heart-failure, lymphatic obstruction) each independently produce
+    clinically plausible edema-accumulation rates over a simulated hour (a few hundred to
+    ~900 mL/hr depending on severity) without needing per-scenario hand-tuning.
+*   **Architecture**: a new slow-tick (1 Hz) engine, matching `RenalEngine.ts`/
+    `HepaticEngine.ts`'s established shape -- deliberately *not* inside
+    `FourChamberCircuitModel.ts`'s fast intra-beat ODE, since real capillary filtration/
+    edema formation operates on a minutes-to-hours timescale, not a cardiac-cycle one.
+    Runs in `usePhysiology.js`'s tick loop after `RenalEngine` (shares that tick's `cvp`)
+    and before `CardiovascularEngine`, which reads `thirdSpacedVolumeMl` to reduce
+    `effectiveIntravascularVolume`.
+*   **Deliberately not yet modeled**: per-vascular-bed capillary filtration (this is a
+    single lumped systemic compartment, not per-organ); a proper nonlinear (J-shaped)
+    tissue compliance curve (a constant compliance is used as a disclosed
+    simplification); a dedicated UI flag/case-builder control for
+    `lymphaticObstructionSeverity` (the mechanism exists and is tested, but isn't yet
+    reachable from a live case setup).
+*   **Verification**: `src/testing/lymphatic_system_model.test.ts` (8 tests) and an
+    added autoregulation-boundary test in `src/testing/four_chamber_circuit_model.test.ts`.
+    The live integration surfaced one more recalibration-sensitivity case (the same
+    AVP/AngII test from §4.1.7, now needing its averaging window widened and its HR
+    assertion loosened after a genuinely fragile baroreflex-vs-direct-chronotropic tug-of-
+    war was traced to unseeded `Math.random()` state differing between running a test file
+    alone vs. as part of the full suite -- confirmed by direct reproduction, not assumed).
+    684/684 tests passing, build clean. **Phase 1 is now fully complete.**
 
 #### 4.2 Oscillations & Homeostatic Waves
 The hemodynamics engine superimposes oscillatory waveforms onto heart rate and blood pressures to represent in-vivo responses:
@@ -175,46 +646,164 @@ ight) \cdot \left(1.0 - \min(0.3, 0.3 \cdot \text{Volatile}_{\text{MAC}})\right)
     *   *PCV-VG Mode*: $V_{TE} = \text{dialed } V_T$. Peak pressure converges: $P_{\text{plat}} = PEEP + \frac{V_{TE}}{C}$, $PIP = P_{\text{plat}} + 2$.
 
 #### 4.6.2 Flow-Volume Loop Display Model (`FlowVolumeLoopModel.js`)
-> **Sourcing note**: unlike the rest of this document, the loop-shape contours below are
-> not derived from a specific Miller's chapter — they are general pulmonary physiology
-> (the same teaching depiction found in any PFT/spirometry reference), used by explicit
-> instruction since the textbook source material doesn't give literal rendering
-> parameters for this display. Disclosed here per this project's standing convention for
-> non-textbook-sourced content.
+> **Sourcing note**: unlike the rest of this document, the physiology below is not
+> derived from a specific Miller's chapter — it is general respiratory mechanics (the
+> Mead-Fry-Whittenberger effort-independent maximal-expiratory-flow framework, used by
+> explicit instruction since the textbook source material doesn't give literal rendering
+> parameters for this display). Disclosed here per this project's standing convention for
+> non-textbook-sourced content. **Superseded this session**: the expiratory limb
+> previously used a hand-picked "concavity exponent" rather than derived physics — see
+> the redesign rationale in `docs/chapters/` and the project's physics-redesign plan.
 
-*   **Inputs reused, not duplicated**: the loop is synthesized from state
-    `RespiratoryEngine.ts` already computes per-tick — `vitals.res`/`vitals.compl`
-    (§4.6) and `patient.lungVolumes.{tlc_mL, rv_mL, fvc_mL, fev1FvcRatio}` (§4.6.1) — the
-    same pattern `EtCo2Model.js`/`VentModel.js` already use (static physiology scalars in,
-    a clinically-shaped curve out), not a first-principles flow simulation.
+*   **Inputs reused, not duplicated**: `vitals.res`/`vitals.compl` (§4.6) and
+    `patient.lungVolumes.{tlc_mL, rv_mL, frc_mL, fvc_mL, fev1FvcRatio}` (§4.6.1), plus the
+    shared nonlinear compliance curve from §4.6.3 below.
 *   **Axis convention**: Volume (L) increases left-to-right, RV at the left margin, TLC
     at the right. Expiratory flow is positive (above the zero-flow line), inspiratory
     flow negative (below). Traced TLC → (expiration) → RV → (inspiration) → TLC.
-*   **Peak flow**: $PEF = \max(0.8,\ 8.0 \cdot \frac{R_{\text{base}}}{R} \cdot \sqrt{\text{complianceFactor}})$,
-    $PIF \approx 0.78 \cdot PEF$ — peak flow falls as resistance rises and is blunted by
-    very low compliance, using the exact `vitals.res`/`vitals.compl` already inflated by
-    bronchospasm/COPD/GOLD-stage/restrictive disease elsewhere in the engine.
-*   **Expiratory descent concavity**: $flow(e) = PEF \cdot (1-e)^k$ where $e$ is fraction
-    through expiration and $k = 1 + \text{obstructionSeverity} \cdot 5$. $k=1$ is the
-    near-linear normal descent; $k \gg 1$ produces the "scooped"/coved concave descent
-    classically described in obstructive disease (COPD, asthma, bronchospasm) — the
-    obstruction-severity term is driven by the same resistance ratio as $PEF$, so the two
-    never disagree with each other or with the other waveform displays.
+*   **Expiratory limb — real flow-limitation physics**:
+    $$\dot V_{\max}(V) = \text{FLOW\_SCALE\_FACTOR} \cdot \frac{P_{el}(V)}{R_{aw}(V)}$$
+    where $P_{el}(V)$ is the shared elastic recoil curve (§4.6.3) and $R_{aw}(V)$ is a
+    volume-dependent airway resistance: above FRC, $R_{aw}(V) = R_{FRC} \cdot (FRC/V)$ (a
+    fixed, modest exponent — airways are progressively more patent at higher volumes,
+    independent of obstruction severity); below FRC,
+    $R_{aw}(V) = R_{FRC} \cdot (FRC/V)^{k}$ with $k = 1 + 3\cdot\text{obstructionSeverity}$
+    (radial-traction loss accelerates narrowing toward RV, markedly more so with
+    obstructive disease). The two formulas are deliberately decoupled at FRC — an earlier
+    single-exponent design was found to make obstructive lungs *more* patent than normal
+    near TLC (where PEF actually occurs), since amplifying one shared exponent for "more
+    dramatic narrowing toward RV" also amplified "more dramatic opening toward TLC" on
+    the same curve, the wrong direction. `FLOW_SCALE_FACTOR` (≈0.165) is a disclosed
+    calibration constant bridging $P_{el}(V)$'s total-system-compliance convention (§4.6.3)
+    to a realistic absolute PEF (~8 L/s normal) — the *shape* of how flow varies with
+    volume, resistance, and compliance comes entirely from the real $P_{el}(V)/R_{aw}(V)$
+    physics; only the absolute scale is calibrated. Verified against realistic
+    inputs: normal PEF ≈9.3 L/s, mild COPD ≈2.4, severe COPD ≈0.7, bronchospasm ≈1.2,
+    restrictive ≈9.6 (narrower volume span, near-normal flow) — monotonic and clinically
+    plausible across the range.
+*   **Inspiratory limb**: not flow-limited in healthy lungs (no dynamic airway
+    compression on inspiration), so it remains a volitional-effort-driven smooth profile
+    — but PIF is now $PMUS_{\max}/R_{aw}(RV)$ (a representative effort-pressure constant
+    divided by resistance at the start of inspiration) rather than a fixed ratio of PEF.
 *   **Restrictive pattern**: no separate shape parameter — `restrictive` already
     compresses `lungVolumes` (TLC/RV/FVC ×0.52, §4.6.1) without raising resistance, so a
     narrowed-but-normally-shaped loop falls out of reusing those volumes directly.
-*   **Variable extrathoracic obstruction**: the inspiratory limb (only) is clamped to a
-    plateau once an upper-airway collapsibility index — derived from `dilatorMuscleTone`/
-    `pcrit`/`laryngospasm` in the same direction as §4.6's upper-airway resistance model —
-    crosses a threshold, reproducing the textbook teaching point that negative
-    intraluminal pressure on inspiration collapses an already-narrowed extrathoracic
-    airway further, while expiration is comparatively spared.
+*   **Variable extrathoracic obstruction**: reuses `RespiratoryEngine.ts`'s own
+    Starling-resistor upper-airway formula ($R = R_{base}/dilatorTone^{2.5} \cdot
+    \exp(0.5(pcrit-P_{aw}))$, §4.6 — the same physics already driving OSA there),
+    evaluated at a forced-inspiratory-effort transmural pressure estimate (a large
+    negative swing, not the passive-breathing PEEP-referenced pressure that formula
+    normally uses) in place of the previous arbitrary collapse-index fudge factor — a
+    disclosed, reasoned adaptation to a different mechanical regime, not a fully implicit
+    self-consistent solve.
 *   **Deliberately not modeled** (documented gap, not an oversight): fixed upper-airway
     obstruction (e.g. tracheal stenosis — flattens *both* limbs) and variable
     intrathoracic obstruction (e.g. an intrathoracic tracheal mass — flattens only the
     *expiratory* limb). Neither has an existing patient flag to drive it credibly without
     inventing new state; pick this up if/when a relevant chapter or flag materializes —
     see `docs/chapter_integration_prompt.md`'s pulmonary-function-content bullet.
+
+#### 4.6.3 Unified Respiratory Mechanics Solver & Pressure-Volume Loop (`LungComplianceModel.js`, `RespiratoryMechanicsModel.js`)
+> **Sourcing note**: general respiratory mechanics (the single-compartment equation of
+> motion, real-gas-law-adjacent territory taught in every respiratory physiology and
+> mechanical-ventilation reference), not a specific Miller's citation. Disclosed per this
+> project's standing convention.
+
+Three previously-independent approximations of the same physical breath — the ventilator
+time-strip's pressure/flow shapes (`WaveformDatabase.js`'s `ventPressure`/`ventFlow`, a
+fixed 0.3s decay constant, not derived from live R/C at all — confirmed as the actually-
+rendered code; `VentModel.js`'s more rigorous but never-imported `synthesizeVentFlow`/
+`synthesizeVentPressure` were dead code prior to this session) and the pressure-volume
+loop's independent hysteresis formula (`PressureVolumeLoopModel.js`'s original
+`generatePressureVolumeLoop()`) — are replaced by one real equation-of-motion integration
+every consumer reads from.
+
+*   **Shared nonlinear lung compliance curve** (`LungComplianceModel.js`): a real lung's
+    compliance is highest at FRC and falls toward both TLC ("upper inflection point") and
+    RV ("lower inflection point") — the same concept used in ARDSnet-style ventilator
+    PV-curve teaching. Modeled as $C(V) = C_{FRC} \cdot \exp(-\ln4 \cdot u(V)^2)$, where
+    $u(V)$ is the signed distance from FRC normalized by the distance to whichever
+    boundary (RV or TLC) is on that side — guaranteeing, by construction, $C(FRC) =$ the
+    engine's existing `currentCompliance` exactly (no infeasible-equation risk regardless
+    of how close FRC sits to either boundary for a given patient) and $C = 25\%$ of peak
+    at both boundaries. $P_{el}(V)$ is then the genuine integral
+    $\int_{RV}^{V} 1/C(V')\,dV'$, evaluated numerically (Simpson's rule) once per
+    calibration and cached as a lookup table. An earlier single-power-law design
+    ($P(V)=P_{TLC}\cdot((V-RV)/(TLC-RV))^n$) was tried and found mathematically
+    infeasible for realistic adult volumes (confirmed numerically, not just suspected) —
+    see the file's own header comment for the worked proof. On absolute magnitude: this
+    curve integrates to a peak recoil pressure around 100-130 cmH2O at TLC for a normal
+    adult — higher than the ~25-35 cmH2O often cited for static *lung-only* recoil,
+    because `currentCompliance` (60 mL/cmH2O) is this engine's existing *total
+    respiratory system* compliance convention (lung-only compliance is ~200+ mL/cmH2O,
+    roughly 3x higher, combining in series with chest-wall compliance) — internal
+    consistency with the engine's own convention was prioritized over matching a
+    lung-only literature figure this model was never trying to represent.
+*   **Equation of motion** (`RespiratoryMechanicsModel.js`):
+    $$P_{aw}(t) - PEEP = \Delta P_{el}(\Delta V(t)) + R\cdot\dot{\Delta V}(t)$$
+    where $\Delta V$ is volume above FRC and $\Delta P_{el}$ the incremental recoil above
+    the FRC baseline (so $\Delta V=0$, flow$=0$ gives $P_{aw}=PEEP$ exactly at the start of
+    every breath). VCV: flow is the controlled/known quantity, so $P_{aw}(t)$ follows
+    algebraically. PCV: pressure is the controlled quantity, so $\Delta V(t)$ solves a
+    genuinely nonlinear ODE (since $\Delta P_{el}$ is nonlinear), integrated numerically
+    (1ms-substep forward Euler — stable here since this engine's R·C time constants stay
+    well above 10ms even in severe bronchospasm). Passive exhalation (both modes) solves
+    the same ODE from end-inspiratory $\Delta V$ back toward 0.
+*   **A correction caught from an actual rendered screenshot, not just the equations**:
+    an earlier version of this model displayed passive-exhalation airway pressure as
+    *exactly flat at PEEP* for the whole expiratory phase, reasoning that the same
+    resistance driving exhalation flow exactly cancels the elastic recoil by the time gas
+    reaches the mouth. That reasoning is self-consistent (assuming Paw=PEEP is exactly
+    what makes the flow-derivation ODE close), but it conflates "the boundary condition
+    used to derive the flow" with "what should be displayed" — and produced a
+    discontinuous jump straight from Pplat to PEEP at the start of exhalation, which
+    collapsed the pressure-volume loop's entire expiratory limb into a single vertical
+    line (caught when the user shared a screenshot of the actual rendered loop — a
+    "rectangular flag" shape instead of a closed hysteresis loop). Corrected: the
+    displayed exhalation pressure is now the instantaneous elastic/alveolar pressure
+    (`PEEP + ΔPel(ΔV)`), continuous with Pplat at the inspiration/expiration boundary and
+    decaying smoothly toward PEEP as ΔV decays — `R` still governs how fast that decay
+    happens (so resistance changes still correctly slow exhalation, e.g. bronchospasm's
+    incomplete emptying), it just no longer determines the *displayed pressure* directly.
+    Verified the corrected PV loop now encloses genuine area (0.59, vs an unmeasurable
+    sliver before) and that the enclosed area scales up correctly with resistance (2.33 at
+    4x the resistance). The interesting expiratory dynamics (auto-PEEP, incomplete
+    exhalation, bronchospasm) still correctly surface in the **flow** waveform too —
+    consistent with real clinical teaching, where the flow trace is what's read for those
+    findings — this part of the original reasoning was not wrong, only the pressure-trace
+    conclusion was.
+*   **Caching**: integrated once per breath-parameter-set via a simple module-level
+    memoization cache (`getBreathTrajectory()`, keyed on a JSON-stringified params object)
+    rather than every animation frame — ventilator settings/physiology change a handful
+    of times per session, not 60 times a second, and this is a session-global singleton
+    (one patient/ventilator), not per-component state, so a module-level cache is
+    sufficient without touching `CanvasWaveform.jsx`'s existing stateless-per-frame render
+    architecture.
+*   **Pressure-volume loop**: `generatePressureVolumeLoopFromMechanics()` (added
+    alongside the original `generatePressureVolumeLoop()`, which was written by a
+    different AI process also active in this repo and left untouched — see CLAUDE.md's
+    concurrent-editing note) is now a literal parametric plot of this same
+    {pressure(t), volume(t)} trajectory, so a resistance or compliance change moves the
+    ventilator strips and this loop identically, by construction. Pattern classification
+    checks resistance directly *before* the conflated "dynamic compliance" metric
+    ($Vt/(PIP-PEEP)$, which includes the resistive component) — otherwise a clear
+    high-resistance/near-normal-static-compliance case (bronchospasm) was misclassified
+    as "low compliance" (found and fixed this session via direct numeric testing across
+    normal/bronchospasm/ARDS scenarios).
+*   **Validated cross-consistency** (the property this whole redesign was for):
+    `src/testing/respiratory_mechanics_unification.test.ts` directly asserts higher
+    resistance both raises PV-loop PIP and lowers flow-volume-loop PEF from the same input
+    change, and that the new nonlinear-compliance plateau pressure stays within ~1.5
+    cmH2O of the old linear-compliance formula at normal tidal volumes (validating that
+    real lung-protective tidal volumes deliberately stay in the curve's near-flat,
+    near-linear midsection, as expected). `src/testing/waveform_cross_consistency.test.ts`
+    (Stage 3, final verification pass spanning both the respiratory and cardiac halves of
+    this redesign) additionally proves the PV loop and ventilator strips read literally
+    the same trajectory array (not two approximations), that one `vitals.res` change moves
+    flow-volume PEF/PV-loop PIP/ventilator peak pressure together, and that
+    `synthesizeCvpWaveform`'s/`synthesizePacWaveform`'s end-to-end cycle-mean pressures
+    match `vitals.cvp`/`vitals.mPAP` exactly through the full canvas-synthesizer call path,
+    not just at the underlying chamber-model level.
 
 #### 4.7 Alveolar Ventilation, Apnea Kinetics & Loop Gain
 *   **Chemoreceptor Feedback Loop Gain ($LG$)**: Quantifies ventilatory control stability and propensity to periodic breathing:

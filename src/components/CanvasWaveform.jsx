@@ -4,6 +4,9 @@ import { synthesizeEkgLead } from '../engine/EkgModel';
 import { synthesizeArterialLine } from '../engine/ArterialLineModel';
 import { synthesizePleth } from '../engine/PlethModel';
 import { synthesizeEtCo2 } from '../engine/EtCo2Model';
+import { synthesizeCvpWaveform } from '../engine/CvpWaveformModel';
+import { synthesizePacWaveform } from '../engine/PulmonaryArteryCatheterModel';
+import { synthesizeVentPressureMechanics, synthesizeVentFlowMechanics, synthesizeVentVolumeMechanics } from '../engine/RespiratoryMechanicsModel';
 
 export const CanvasWaveform = React.memo(({ 
   color, 
@@ -19,17 +22,18 @@ export const CanvasWaveform = React.memo(({
   patientState = null,
   electrolytes = null,
   activeMeds = null,
-  vitals = null
+  vitals = null,
+  ventSettings = null
 }) => {
   const canvasRef = useRef(null);
-  
+
   // Initialize lastTime as null to securely sync with the exact rAF epoch on frame 1
   const drawState = useRef({ x: 0, lastTime: null, lastY: null, tBeat: 0 });
-  const propsRef = useRef({ speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale, lead, patientState, electrolytes, activeMeds, vitals });
+  const propsRef = useRef({ speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale, lead, patientState, electrolytes, activeMeds, vitals, ventSettings });
 
   useEffect(() => {
-    propsRef.current = { speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale, lead, patientState, electrolytes, activeMeds, vitals };
-  }, [speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale, lead, patientState, electrolytes, activeMeds, vitals]);
+    propsRef.current = { speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale, lead, patientState, electrolytes, activeMeds, vitals, ventSettings };
+  }, [speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale, lead, patientState, electrolytes, activeMeds, vitals, ventSettings]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -50,7 +54,7 @@ export const CanvasWaveform = React.memo(({
       // Frame-drop protection (Caps dt to prevent massive beam jumps if tab goes inactive)
       if (dtMs > 100) dtMs = 16; 
 
-      const { speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale, lead, patientState, electrolytes, activeMeds, vitals } = propsRef.current;
+      const { speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale, lead, patientState, electrolytes, activeMeds, vitals, ventSettings } = propsRef.current;
       
       // CSS Flexbox Sizing Bridge
       const rect = canvas.parentElement.getBoundingClientRect();
@@ -101,7 +105,7 @@ export const CanvasWaveform = React.memo(({
       }
       const tBeat = drawState.current.tBeat;
 
-      const isCardiac = type === 'ecg' || type === 'aline' || type === 'pleth';
+      const isCardiac = type === 'ecg' || type === 'aline' || type === 'pleth' || type === 'cvp' || type === 'pac';
       const base = isCardiac ? (h / 2) : (h * 0.9); 
       let y;
 
@@ -164,6 +168,16 @@ export const CanvasWaveform = React.memo(({
               }
           } else if (type === 'etco2') {
               y = synthesizeEtCo2(tBeatVal, beatDurationVal, h, time / 1000, patientState, vitals, activeMeds, ieRatio, ampScale, baseScale);
+          } else if (type === 'cvp') {
+              y = synthesizeCvpWaveform(tBeatVal, beatDurationVal, h, time / 1000, patientState, vitals);
+          } else if (type === 'pac') {
+              y = synthesizePacWaveform(tBeatVal, beatDurationVal, h, time / 1000, patientState, vitals, morphology === 'wedge' ? 'wedge' : 'pa');
+          } else if (type === 'ventPressure') {
+              y = synthesizeVentPressureMechanics(tBeatVal, beatDurationVal, h, patientState, vitals, ventSettings);
+          } else if (type === 'ventFlow') {
+              y = synthesizeVentFlowMechanics(tBeatVal, beatDurationVal, h, patientState, vitals, ventSettings);
+          } else if (type === 'ventVolume') {
+              y = synthesizeVentVolumeMechanics(tBeatVal, beatDurationVal, h, patientState, vitals, ventSettings);
           } else if (type === 'eeg') {
                 const bis = vitals?.bis !== undefined ? vitals.bis : 98;
                 const bsr = vitals?.bsr !== undefined ? vitals.bsr : 0;
@@ -229,6 +243,16 @@ export const CanvasWaveform = React.memo(({
               y = synthesizeArterialLine(tBeat, beatDuration, h, time / 1000, patientState, vitals, activeMeds);
           } else if (type === 'pleth') {
               y = synthesizePleth(tBeat, beatDuration, h, time / 1000, patientState, vitals, activeMeds);
+          } else if (type === 'cvp') {
+              y = synthesizeCvpWaveform(tBeat, beatDuration, h, time / 1000, patientState, vitals);
+          } else if (type === 'pac') {
+              y = synthesizePacWaveform(tBeat, beatDuration, h, time / 1000, patientState, vitals, morphology === 'wedge' ? 'wedge' : 'pa');
+          } else if (type === 'ventPressure') {
+              y = synthesizeVentPressureMechanics(tBeat, beatDuration, h, patientState, vitals, ventSettings);
+          } else if (type === 'ventFlow') {
+              y = synthesizeVentFlowMechanics(tBeat, beatDuration, h, patientState, vitals, ventSettings);
+          } else if (type === 'ventVolume') {
+              y = synthesizeVentVolumeMechanics(tBeat, beatDuration, h, patientState, vitals, ventSettings);
           } else if (type === 'ecg') {
               let tBeatVal = tBeat;
               if (isCardiac) {

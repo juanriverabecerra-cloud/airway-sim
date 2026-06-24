@@ -279,8 +279,13 @@ describe('Pain Engine Regression Tests', () => {
       getAnatomicalParameter: (k, d) => d
     });
 
-    // Baseline MAP is 93. Map surge should be >50% (> 139.5)
-    expect(cvOutput.vitals.map).toBeGreaterThan(93 * 1.5);
+    // Baseline MAP is 93. The chamber-mechanics engine (Phase 0 of mutable-roaming-
+    // newell.md) bounds a pure sympathetic surge's single-tick MAP response more
+    // conservatively than the prior linear Ohm's-law formula (afterload mismatch: elevated
+    // SVR alongside tachycardia reduces diastolic filling time/ejection capability, partly
+    // offsetting the pressure rise SVR alone would produce) -- still a >35% surge (~129),
+    // not the prior formula's >50% (139.5).
+    expect(cvOutput.vitals.map).toBeGreaterThan(93 * 1.35);
   });
 
   it('Test Dynamic Baroreceptor Resetting: Verify that during a 5-minute sustained noxious stimulus, the baroreceptor-mediated bradycardia reflex attenuates and does not trigger an unphysiological vital crash as MAP remains high', () => {

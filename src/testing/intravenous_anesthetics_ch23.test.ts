@@ -354,7 +354,12 @@ describe('Chapter 23: Intravenous Anesthetics', () => {
     it('should reduce contractility when myocardialStunning > 0', () => {
       const stateHealthy = createCvState();
       const stateStunned = createCvState();
-      stateStunned.patient.myocardialStunning = 30; // 30% stunning
+      // Kept below the Bezold-Jarisch reflex's >25 trigger (CardiovascularEngine.ts) so this
+      // isolates the pure contractility effect -- at >25, BJ's reflex bradycardia+vasodilation
+      // becomes a confounding second variable: lower HR alone increases diastolic filling time
+      // in the chamber-mechanics engine (Phase 0 of mutable-roaming-newell.md), which can
+      // partially or fully offset reduced contractility's effect on CO, independent of stunning.
+      stateStunned.patient.myocardialStunning = 15; // 15% stunning
 
       const drugEffects = createCvDrugEffects();
       const inputs = createCvInputs();
@@ -362,7 +367,7 @@ describe('Chapter 23: Intravenous Anesthetics', () => {
       const outHealthy = CardiovascularEngine.tick(1, { ...stateHealthy, time: 10 }, drugEffects, inputs);
       const outStunned = CardiovascularEngine.tick(1, { ...stateStunned, time: 10 }, drugEffects, inputs);
 
-      // Inotropic factor is: 1.0 - (stunning/100), so at 30% stunning, inotropy = 0.70
+      // Inotropic factor is: 1.0 - (stunning/100), so at 15% stunning, inotropy = 0.85
       // This should reduce CO and MAP
       expect(outStunned.vitals.co).toBeLessThan(outHealthy.vitals.co);
       expect(outStunned.vitals.map).toBeLessThan(outHealthy.vitals.map);

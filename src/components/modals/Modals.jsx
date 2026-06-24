@@ -122,6 +122,8 @@ export const AccessModal = ({ data, close, establishAccess }) => {
       return [{ name: 'MAC Introducer (9Fr)', rad: 1.25, len: 100 }];
     } else if (type.includes('Cordis')) {
       return [{ name: 'Trauma Cordis (8.5Fr)', rad: 1.15, len: 100 }];
+    } else if (type.includes('Pulmonary Artery') || type.includes('Swan')) {
+      return [{ name: 'PAC Proximal (CVP) Port', rad: 0.45, len: 1100 }, { name: 'PAC Distal (PA) Port', rad: 0.45, len: 1100 }];
     }
     return [];
   };
@@ -307,6 +309,7 @@ export const AccessModal = ({ data, close, establishAccess }) => {
                   <option value="Triple Lumen CVC">Triple Lumen CVC (16G, 18G, 18G)</option>
                   <option value="MAC Introducer (9Fr)">MAC Introducer (9Fr / 3.0mm OD)</option>
                   <option value="Trauma Cordis">Trauma Cordis (8.5Fr / 2.8mm OD)</option>
+                  <option value="Pulmonary Artery Catheter (Swan-Ganz)">Pulmonary Artery Catheter (Swan-Ganz, 7.5Fr)</option>
                 </select>
               </div>
 

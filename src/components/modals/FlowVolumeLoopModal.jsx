@@ -2,30 +2,12 @@ import { Wind, X, ShieldAlert } from 'lucide-react';
 import { FlowVolumeLoopCanvas } from '../FlowVolumeLoopCanvas';
 import { generateFlowVolumeLoop } from '../../engine/FlowVolumeLoopModel';
 
-const ALERT_BY_PATTERN = {
-  normal: 'info',
-  restrictive: 'info',
-  mild_obstructive: 'warning',
-  obstructive: 'critical',
-  variable_extrathoracic: 'critical',
-  apneic: 'critical'
-};
-
-const TITLE_BY_PATTERN = {
-  normal: 'Normal Flow-Volume Loop',
-  restrictive: 'Restrictive Pattern',
-  mild_obstructive: 'Early Obstructive Pattern',
-  obstructive: 'Obstructive Pattern',
-  variable_extrathoracic: 'Variable Extrathoracic Obstruction',
-  apneic: 'No Respiratory Effort'
-};
-
 export const FlowVolumeLoopModal = ({ show, close, patient, vitals }) => {
   if (!show) return null;
 
   const loop = generateFlowVolumeLoop(patient, vitals);
-  const alertType = ALERT_BY_PATTERN[loop.pattern] || 'info';
-  const title = TITLE_BY_PATTERN[loop.pattern] || 'Flow-Volume Loop';
+  const alertType = loop.alertType || 'info';
+  const title = loop.title || 'Flow-Volume Loop';
 
   return (
     <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 select-none animate-fade-in">

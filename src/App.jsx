@@ -972,6 +972,7 @@ export default function App() {
          hasIV: prev.hasIV || !category.includes('Arterial'), 
          hasALine: prev.hasALine || category.includes('Arterial'),
          hasCVC: prev.hasCVC || category.includes('CVC') || type.includes('MAC'),
+         hasPAC: prev.hasPAC || type.includes('Pulmonary Artery') || type.includes('Swan'),
          ioSympatheticSurgeActive: prev.ioSympatheticSurgeActive || isIO,
          ioPlacedTime: isIO ? time : prev.ioPlacedTime,
          lastLinePlacementTime: time,
@@ -979,6 +980,20 @@ export default function App() {
          accessLines: [...(prev.accessLines || []).filter(l => l && typeof l !== 'string'), newLine] // Clear legacy string lines
        };
     });
+    if (logQualityEvent && !patient?.hasPAC && (type.includes('Pulmonary Artery') || type.includes('Swan'))) {
+      // Ch36 (Cardiovascular Monitoring): the PA waveform's most common artifact
+      // (catheter-tip motion at the onset of systole) and overwedging (prolonged/
+      // eccentric balloon inflation) can both make the digital PA/PCWP readout
+      // disagree with the true pressure on the raw waveform (Figs 36.39/36.40) -
+      // logged once, at placement, as a vigilance reminder rather than tied to a
+      // specific in-session mistake.
+      logQualityEvent({
+        category: 'Monitoring',
+        severity: 'info',
+        phase: 'Intraoperative',
+        description: 'Pulmonary artery catheter placed. The digital PA systolic/diastolic readout can be misled by catheter-motion ("whip") artifact or by overwedging (balloon left inflated too long/eccentrically) - cross-check against the raw waveform rather than trusting the number alone.',
+      });
+    }
     setAccessModal({ show: false, category: '' });
   };
 
@@ -1626,14 +1641,15 @@ export default function App() {
       </div>
       
         <BottomBar 
-        gasSettings={gasSettings} 
-        setGasSettings={handleSetGasSettings} 
-        ventSettings={ventSettings} 
-        setVentSettings={handleSetVentSettings} 
-        patient={patient} 
-        setPatient={setPatient}
-        logEvent={logEvent}
-      />
+          gasSettings={gasSettings} 
+          setGasSettings={handleSetGasSettings} 
+          ventSettings={ventSettings} 
+          setVentSettings={handleSetVentSettings} 
+          patient={patient} 
+          setPatient={setPatient}
+          vitals={vitals}
+          logEvent={logEvent}
+        />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch" style={{ minHeight: '500px' }}>
         {/* Column 1: Vascular & Resus Pole (25% width) */}

@@ -1,4 +1,5 @@
 import { calculateDermatomalBlockFraction } from './Pharmacology.js';
+import { simulateFourChamberCycle } from './FourChamberCircuitModel';
 
 export interface PatientState {
   isArrest: boolean;
@@ -329,9 +330,21 @@ export class CardiovascularEngine {
     const hasEpi = inputs.activeMeds.some(m => m.name === 'Epinephrine' && m.A1 > 0.1);
     const alphaAgonistEffect = (hasNeoSynephrine || hasNorepi || hasEpi) ? 1.0 : 0.0;
     const splanchnicVol = 1.0 + 0.3 * sympatheticBlock * (1.0 - alphaAgonistEffect);
-    const splanchnicPoolingOffset = 1000 * (splanchnicVol - 1.0);
+    // Splanchnic pooling is now a real venous-compartment mechanism inside
+    // FourChamberCircuitModel.ts (Phase 1 of mutable-roaming-newell.md) rather than a flat
+    // volume offset subtracted here -- `splanchnicTone` (inverse of the pooling multiplier
+    // above: lower tone = more sympathetic-block-driven dilation = more unstressed venous
+    // capacity recruited) is passed through to both engine calls below instead.
+    const splanchnicTone = Math.max(0.3, 1.0 / splanchnicVol);
 
-    const effectiveIntravascularVolume = Math.max(100, safeEbv - safeCurrentEbl + safePreloadMod + volumeOffset - splanchnicPoolingOffset);
+    // Third-spacing (Phase 1, Stage B/C of mutable-roaming-newell.md): fluid the
+    // LymphaticSystemModel.ts engine has lost to the interstitium faster than lymphatics
+    // can return it is no longer part of effective circulating volume -- the real
+    // mechanism behind "normal" or even elevated total body fluid coexisting with
+    // relative intravascular hypovolemia (sepsis/capillary-leak states, burns).
+    const rawThirdSpacedVolumeMl = (patient as any).thirdSpacedVolumeMl;
+    const thirdSpacedVolumeMl = typeof rawThirdSpacedVolumeMl === 'number' && Number.isFinite(rawThirdSpacedVolumeMl) ? Math.max(0, rawThirdSpacedVolumeMl) : 0;
+    const effectiveIntravascularVolume = Math.max(100, safeEbv - safeCurrentEbl + safePreloadMod + volumeOffset - thirdSpacedVolumeMl);
     let newStunning = typeof patient.myocardialStunning === 'number' && Number.isFinite(patient.myocardialStunning) ? patient.myocardialStunning : 0;
     let lastInotropyScale = 1.0;
     if (tCv >= 0.5) {
@@ -346,10 +359,43 @@ export class CardiovascularEngine {
     // same end-diastolic volume) with little reserve to recruit additional stroke volume.
     const isAorticStenosis = !!(patient.as || patient.aorticStenosis);
 
-    // Left Ventricular End-Diastolic Pressure (LVEDP)
-    const baseLVEDP = 8.0;
-    const asStiffnessMultiplier = isAorticStenosis ? 1.4 : 1.0;
-    const lvedpVal = Math.max(2.0, Math.min(40.0, baseLVEDP + 4.0 * asStiffnessMultiplier * ((effectiveIntravascularVolume - safeEbv) / 250) + 5.0 / inotropyInitial));
+    // Left Ventricular End-Diastolic Pressure (LVEDP) -- now a direct output of the
+    // closed four-chamber RA-RV-PA-LA-LV-Aorta ODE (Phase 0, Stage E of
+    // /Users/jsriverab/.claude/plans/mutable-roaming-newell.md) rather than a separate
+    // algebraic formula. Called here with `inotropyInitial` (pre-ischemia-loop) because
+    // the ischemia-detection loop below needs this tick's CPP/MVO2 *before* stunning is
+    // updated -- mirroring the original formula's same inotropyInitial/inotropyFinal
+    // split, just sourced from the new engine instead of a separate equation. TR/MR/
+    // AV-dissociation aren't yet patient-state flags read by this tick engine (they
+    // currently drive only the CVP/PA-catheter waveform display layer) so default to
+    // absent here; the unified model still accepts them for that display layer's use.
+    // Neurohormonal venoconstriction (TABLE 14.1, Miller's 9th Ed): vasopressin/Angiotensin
+    // II don't just act directly on the heart (neurohormonalInotropy/HRdelta below) -- their
+    // physiologic role in hemorrhagic shock compensation is substantially venoconstrictive,
+    // shifting blood from venous capacitance into the effective circulating volume that
+    // reaches the heart. Applied as an "effective volume" boost on top of the real
+    // venous-compartment model's own SVR-driven venoconstriction (Phase 1 of mutable-
+    // roaming-newell.md) -- a disclosed proxy for hormone-specific venoconstriction beyond
+    // what the generic sympathetic-tone signal already captures, not yet its own tracked
+    // compartment-volume shift. Coefficients recalibrated down (0.20/0.15 -> 0.08/0.06)
+    // after the real venous-compartment model (Phase 1) turned out far more volume-
+    // sensitive than the old preloadRatio-based model this was originally tuned against --
+    // the prior magnitude pushed MAP into the 140s+ at max AVP/AngII, triggering a
+    // baroreflex overcorrection that dropped HR below baseline instead of raising it.
+    const neurohormonalPreloadBoost = 1.0 + 0.08 * Math.max(0, safeVasopressinLevel - 0.1) + 0.06 * Math.max(0, safeAngiotensinIILevel - 0.1);
+    const totalBloodVolumeForCycle = Math.max(250, effectiveIntravascularVolume * neurohormonalPreloadBoost);
+    const lvedpVal = simulateFourChamberCycle({
+      hr: safeHR,
+      inotropy: inotropyInitial,
+      svr: safeSVR,
+      totalBloodVolumeMl: totalBloodVolumeForCycle,
+      splanchnicTone,
+      aorticStenosis: isAorticStenosis,
+      chf: !!patient.chf,
+      ef: patient.ef,
+      afib: !!(patient.afib || patient.hasAFib || patient.cardiacRhythm === 'afib'),
+      prIntervalMs: (patient as any).prInterval,
+    }).aggregates.lvedp;
 
     // Coronary Perfusion Pressure (CPP_coronary = DBP - LVEDP)
     const cppCoronaryVal = Math.max(5.0, safeDia - lvedpVal);
@@ -463,14 +509,6 @@ export class CardiovascularEngine {
 
     const inotropyFinal = Math.max(0.01, (1.0 - (newStunning / 100) + safeContractilitySympatheticSpike + (safeDrugInotropyMod - 1.0)) * lastInotropyScale);
 
-    // Frank-Starling stroke volume preload factor. AS flattens the curve's upper recruitable range
-    // (Fig 14.5) by capping the LVEDP this formula can "see" — resting hemodynamics at normal filling
-    // pressure are unaffected, but the fixed orifice prevents translating extra preload into extra
-    // forward stroke volume once filling pressure climbs.
-    const starlingEffectiveLvedp = isAorticStenosis ? Math.min(lvedpVal, 12.0) : lvedpVal;
-    const starlingPreloadSV = 1.2 * (1.0 - Math.exp(-0.15 * starlingEffectiveLvedp));
-    const preloadSV = Math.max(0.1, starlingPreloadSV * (1.0 - safeBloodLossRatio * 1.2));
-
     // Neurohormonal cardiac support (TABLE 14.1, Miller's 9th Ed): vasopressin and angiotensin II
     // exert direct +inotropy/+chronotropy via V1a/AT1 myocardial receptors. Both rise above their
     // RenalEngine.ts baseline (~0.1) during hypovolemia/stress, becoming clinically relevant mainly
@@ -546,34 +584,11 @@ export class CardiovascularEngine {
     if (drugEffects.ruleHrClamp !== undefined && Number.isFinite(drugEffects.ruleHrClamp)) targetHR = Math.min(drugEffects.ruleHrClamp, targetHR);
     targetHR = Math.max(0, targetHR);
 
-    // CHF inotropic EF penalty
-    let chfInotropicPenalty = 1.0;
-    if (patient.chf) {
-      const safeEf = typeof patient.ef === 'number' && Number.isFinite(patient.ef) && patient.ef > 0 ? patient.ef : 55;
-      chfInotropicPenalty = Math.max(0.15, safeEf / 55);
-    }
-    
     const baseSV = typeof patient.patientBaseSV === 'number' && Number.isFinite(patient.patientBaseSV) && patient.patientBaseSV > 0 ? patient.patientBaseSV : 70;
-    // Fixed valvular orifice: stroke volume cannot be recruited upward to compensate for vasodilation
-    // or hypovolemia, the classic teaching point making AS patients intolerant of acute SVR drops.
-    const maxSV = baseSV * (patient.chf ? 1.0 : (isAorticStenosis ? 1.10 : 1.6));
 
-    // AFib SV Penalty (15% reduction)
-    const afibSVModifier = (patient.afib || patient.hasAFib || patient.cardiacRhythm === 'afib') ? 0.85 : 1.0;
-
-    let currentSV = Math.min(maxSV, baseSV * preloadSV * Math.max(0.1, inotropyFinal) * chfInotropicPenalty * afibSVModifier * neurohormonalInotropy);
-    if (patient.hasPneumothorax) {
-      currentSV *= 0.3; // 70% drop in SV due to vena cava compression
-    }
-    const pipVal = vitals.pip || 0;
-    if (pipVal >= 30.0) {
-      // Fig 13.19 / §6.21: high airway pressure restricts venous return (decreases cardiac preload and SV by up to 30%)
-      const recruitmentPreloadMod = Math.max(0.70, 1.0 - 0.015 * (pipVal - 20.0));
-      currentSV *= recruitmentPreloadMod;
-    }
-    currentSV = Math.max(0.1, currentSV);
-
-    // SVR computation
+    // SVR computation (afterload -- an INPUT to the chamber model below, not something it
+    // derives; vasomotor tone is set by sympathetic/septic/drug/reflex state, independent
+    // of cardiac mechanics).
     const baseSVR = typeof patient.patientBaseSVR === 'number' && Number.isFinite(patient.patientBaseSVR) && patient.patientBaseSVR > 0 ? patient.patientBaseSVR : 1200;
     let targetSVR = (baseSVR * safeDrugSvrMod * (patient.isSeptic ? 0.6 : 1.0) * safeAnaphylaxisSvrMod * (bjActive ? 0.75 : 1.0) * (1.0 - 0.15 * sympatheticBlock)) + safeSvrSympatheticSpike;
 
@@ -595,25 +610,97 @@ export class CardiovascularEngine {
 
     targetSVR = Math.max(50, targetSVR);
 
-    const targetCO = Math.max(0, Math.min(30.0, (targetHR * currentSV) / 1000));
+    // Final stroke volume / CO / MAP / SBP / DBP / LVEDP -- a second call into the
+    // closed four-chamber circuit model (Phase 0, Stage E of /Users/jsriverab/.claude/
+    // plans/mutable-roaming-newell.md), now with this tick's post-ischemia-loop
+    // `inotropyFinal`, the just-computed `targetHR`/`targetSVR`, and this tick's
+    // `prInterval`. Replaces the former Frank-Starling-curve SV formula, the
+    // maxSV/afibSVModifier/chfInotropicPenalty multiplier stack, and the Ohm's-law
+    // `(CO*SVR)/80` MAP/pulse-pressure-ratio SBP/DBP split with one coupled RA-RV-PA-LA-
+    // LV-Aorta simulation; AS/CHF/AFib are read by the model directly (concentric
+    // hypertrophy, diastolic stiffness, and atrial-kick loss respectively) rather than
+    // as external caps layered on top of the old formula.
+    const chamberOutput = simulateFourChamberCycle({
+      hr: targetHR,
+      inotropy: Math.max(0.1, inotropyFinal) * neurohormonalInotropy,
+      svr: targetSVR,
+      totalBloodVolumeMl: totalBloodVolumeForCycle,
+      splanchnicTone,
+      aorticStenosis: isAorticStenosis,
+      chf: !!patient.chf,
+      ef: patient.ef,
+      afib: !!(patient.afib || patient.hasAFib || patient.cardiacRhythm === 'afib'),
+      prIntervalMs: prInterval,
+    });
 
-    // Systemic MAP Shifts
-    const pressorMAPShift = ((effectiveIntravascularVolume - safeEbv) / 250) * 8;
-    const sepsisMAPShift = patient.isSeptic ? -33.33 : 0;
+    let currentSV = chamberOutput.aggregates.sv;
+    let chamberCo = chamberOutput.aggregates.co;
+    let chamberMap = chamberOutput.aggregates.map;
+    let chamberSbp = chamberOutput.aggregates.sbp;
+    let chamberDbp = chamberOutput.aggregates.dbp;
 
-    // Damped transitions to resolve Ohm's law violations
-    let newCO = safeCO + (targetCO - safeCO) * 0.1;
-    let newSVR = safeSVR + (targetSVR - safeSVR) * 0.1;
-    if (Math.abs(targetCO - safeCO) < 0.05) newCO = targetCO;
-    if (Math.abs(targetSVR - safeSVR) < 5) newSVR = targetSVR;
-    if (isArrestState) {
-      newCO = targetCO;
-    }
-
-    let exactMap = ((newCO * newSVR) / 80) + pressorMAPShift + sepsisMAPShift;
     if (patient.hasPneumothorax) {
-      exactMap = Math.max(15, exactMap - 30); // 30 mmHg MAP drop
+      // Vena-cava compression collapses venous return -- modeled as a preload-equivalent
+      // hit, scaling SV/CO/pressures together (the engine's own internal Ohm's-law-style
+      // CO/SVR/MAP coupling, not a separately-derived pressure penalty).
+      const pneumothoraxScale = 0.3;
+      currentSV *= pneumothoraxScale;
+      chamberCo *= pneumothoraxScale;
+      chamberMap *= pneumothoraxScale;
+      chamberSbp *= pneumothoraxScale;
+      chamberDbp *= pneumothoraxScale;
     }
+    const pipVal = vitals.pip || 0;
+    if (pipVal >= 30.0) {
+      // Fig 13.19 / §6.21: high airway pressure restricts venous return (decreases cardiac preload and SV by up to 30%)
+      const recruitmentPreloadMod = Math.max(0.70, 1.0 - 0.015 * (pipVal - 20.0));
+      currentSV *= recruitmentPreloadMod;
+      chamberCo *= recruitmentPreloadMod;
+      chamberMap *= recruitmentPreloadMod;
+      chamberSbp *= recruitmentPreloadMod;
+      chamberDbp *= recruitmentPreloadMod;
+    }
+    currentSV = Math.max(0.1, currentSV);
+
+    const targetCO = Math.max(0, Math.min(30.0, chamberCo));
+
+    // Systemic MAP Shifts not yet modeled inside the chamber engine (sepsis's distributive
+    // shock pathophysiology -- pathologic AV shunting/maldistributed flow -- is a separate
+    // mechanism from this engine's preload/afterload/contractility inputs; folding sepsis's
+    // SVR reduction into `targetSVR` above already captures most of its hypotension, this
+    // is the residual distributive-shock component).
+    const sepsisMAPShift = patient.isSeptic ? -10 : 0;
+
+    // CO now comes directly out of the same coherent chamber-mechanics computation as SV/
+    // MAP/SBP/DBP (all read undamped, immediately responsive each tick -- the original
+    // "snap to target if close" damping existed specifically to resolve CO and SVR being
+    // independently-sourced quantities recombined via Ohm's law; that risk doesn't exist
+    // here, and keeping CO damped while everything else from the same engine call is
+    // undamped produced a real artifact: whichever of two compared scenarios happened to
+    // have its target closer to the fixture's starting CO would "snap" fully while the
+    // other only moved 10%, occasionally reversing the expected ordering). SVR keeps its
+    // own damping -- it's an independent input (vasomotor tone), not a chamber-engine
+    // output, and physiologically does ramp smoothly with receptor occupancy.
+    let newCO = targetCO;
+    let newSVR = safeSVR + (targetSVR - safeSVR) * 0.1;
+    if (Math.abs(targetSVR - safeSVR) < 5) newSVR = targetSVR;
+
+    const targetMapDamped = chamberMap + sepsisMAPShift;
+    const targetSbpDamped = chamberSbp + sepsisMAPShift;
+    const targetDbpDamped = chamberDbp + sepsisMAPShift;
+    // Unlike CO/SVR (independently-sourced quantities the old formula recombined via
+    // Ohm's law, needing damping to avoid instantaneous-recombination artifacts), MAP/SBP/
+    // DBP here come directly out of one coherent ODE alongside SV -- which itself was
+    // never damped in the original formula either. Reading them undamped each tick
+    // preserves that same "stroke volume responds immediately to this tick's inputs"
+    // behavior the original engine had.
+    let exactMap = targetMapDamped;
+    let dampedSbp = targetSbpDamped;
+    let dampedDbp = targetDbpDamped;
+    if (isArrestState) {
+      exactMap = targetMapDamped;
+    }
+
     if (patient.ziconotideHypotensionActive) {
       const pos = patient.position || 'Supine';
       const isSittingOrRevT = pos === 'Sitting' || pos === 'Beach Chair' || pos === 'Rev Trendelenburg';
@@ -626,9 +713,10 @@ export class CardiovascularEngine {
     exactMap = exactMap * safeRuleMapScale + safeRuleMapOffset;
     exactMap = Math.min(220, Math.max(15, exactMap));
 
-    // Derive SBP & DBP using mathematically consistent Pulse Pressure PP
-    const pulsePressureRatio = Math.max(0.2, Math.min(2.5, (currentSV / baseSV)));
-    const basePP = 40 * pulsePressureRatio;
+    // Pulse pressure now comes directly from the chamber engine's damped SBP/DBP rather
+    // than a separately-derived ratio; basePP is kept only as the half-width used by the
+    // myocardial-stunning/noise terms below, computed from the damped pressures themselves.
+    const basePP = Math.max(5, dampedSbp - dampedDbp);
 
     // Myocardial stunning map cap
     if (newStunning > 0 && !isArrestState) {

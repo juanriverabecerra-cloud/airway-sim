@@ -254,6 +254,7 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
     npoSolids: 8, npoLiquids: 4, ef: 60, gfr: 100,
     betaBlocker: false, cad: false, afib: false, as: false, mg: false,
     burns: false, immobility: false, cp: 'none', htn: false,
+    avDissociation: false, tricuspidRegurgitation: false, mitralRegurgitation: false,
     anemia: false, thrombocytopenia: false, coagulopathy: false, diabetes: false, insulin: false,
     emergentRSI: false,
     isTASK1Knockout: false,
@@ -508,6 +509,9 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
         pulmonaryComorbidity: data.pulmonaryComorbidity || (data.copd ? 'copd gold ii' : (data.asthma ? 'asthma' : null)),
         chf: data.chf, ef: data.ef || 60,
         cad: data.cad, afib: data.afib, as: data.as, htn: data.htn,
+        avDissociation: !!data.avDissociation,
+        tricuspidRegurgitation: !!data.tricuspidRegurgitation,
+        mitralRegurgitation: !!data.mitralRegurgitation,
         onBetaBlocker: data.betaBlocker,
         penicillinAllergy: data.penicillinAllergy,
         renalComorbidity: stagedRenal,
@@ -940,6 +944,15 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
                    </label>
                    <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300">
                      <input type="checkbox" checked={customForm.htn} onChange={e => setCustomForm({...customForm, htn: e.target.checked})} className="accent-green-500" /> Hypertension
+                   </label>
+                   <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300">
+                     <input type="checkbox" checked={customForm.avDissociation} onChange={e => setCustomForm({...customForm, avDissociation: e.target.checked})} className="accent-green-500" /> AV Dissociation (Cannon A)
+                   </label>
+                   <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300">
+                     <input type="checkbox" checked={customForm.tricuspidRegurgitation} onChange={e => setCustomForm({...customForm, tricuspidRegurgitation: e.target.checked})} className="accent-green-500" /> Tricuspid Regurgitation
+                   </label>
+                   <label className="flex items-center gap-1.5 text-[11px] cursor-pointer text-slate-300">
+                     <input type="checkbox" checked={customForm.mitralRegurgitation} onChange={e => setCustomForm({...customForm, mitralRegurgitation: e.target.checked})} className="accent-green-500" /> Mitral Regurgitation
                    </label>
                  </div>
                  <div className="flex items-center gap-3 mt-1 text-[11px] justify-between">

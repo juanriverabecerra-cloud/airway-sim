@@ -1,22 +1,26 @@
-import { Activity, Heart, Wind, RefreshCw } from 'lucide-react';
+import { useState } from 'react';
+import { Activity, Heart, Wind, RefreshCw, Waves } from 'lucide-react';
 import { CanvasWaveform } from '../CanvasWaveform';
+import { calculatePacPressures } from '../../engine/PulmonaryArteryCatheterModel';
 
-export const PrimaryMonitor = ({ 
-  patient, 
-  vitals, 
-  nibp, 
-  cycleNibp, 
-  isCyclingNibp, 
-  hrSpeed, 
-  rrSpeed, 
-  gasSettings, 
-  ventSettings, 
-  nibpIntervalMs, 
+export const PrimaryMonitor = ({
+  patient,
+  vitals,
+  nibp,
+  cycleNibp,
+  isCyclingNibp,
+  hrSpeed,
+  rrSpeed,
+  gasSettings,
+  ventSettings,
+  nibpIntervalMs,
   setNibpIntervalMs,
   electrolytes,
   activeMeds,
   onEkgClick
 }) => {
+  const [paWedged, setPaWedged] = useState(false);
+  const pacPressures = patient?.hasPAC ? calculatePacPressures(patient, vitals) : null;
   const hrSpO2Class = "text-3xl @[200px]:text-4xl @[240px]:text-5xl @[280px]:text-5xl @[345px]:text-[44px] @[410px]:text-[48px]";
   const bpClass = "text-2xl @[200px]:text-3xl @[240px]:text-4xl @[280px]:text-4xl @[345px]:text-[40px] @[410px]:text-[42px]";
   const mapClass = "text-xs @[200px]:text-sm @[240px]:text-base @[280px]:text-lg @[345px]:text-lg @[410px]:text-xl";
@@ -99,6 +103,44 @@ export const PrimaryMonitor = ({
             />
           </div>
         )}
+        {patient?.hasCVC && (
+          <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
+            <div className="absolute text-blue-400/60 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">CVP</div>
+            <CanvasWaveform
+              color="#60a5fa"
+              speed={patient?.cprActive ? 100 : hrSpeed}
+              rrSpeed={rrSpeed}
+              active={true}
+              type="cvp"
+              patientState={patient}
+              vitals={vitals}
+            />
+          </div>
+        )}
+
+        {patient?.hasPAC && pacPressures && (
+          <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
+            <button
+              onClick={() => setPaWedged(w => !w)}
+              title={paWedged ? 'Deflate balloon (return to PA trace)' : 'Inflate balloon (read PCWP)'}
+              className="absolute text-orange-400/70 hover:text-orange-300 text-[10px] md:text-xs top-1 left-1 z-20 font-bold flex items-center gap-1 leading-none"
+            >
+              <Waves size={10} />
+              <span>{paWedged ? `PCWP ${pacPressures.pcwp.toFixed(0)}` : `PA ${pacPressures.paSystolic.toFixed(0)}/${pacPressures.paDiastolic.toFixed(0)}`}</span>
+            </button>
+            <CanvasWaveform
+              color="#fb923c"
+              speed={patient?.cprActive ? 100 : hrSpeed}
+              rrSpeed={rrSpeed}
+              active={true}
+              type="pac"
+              morphology={paWedged ? 'wedge' : 'pa'}
+              patientState={patient}
+              vitals={vitals}
+            />
+          </div>
+        )}
+
         <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
           <div className="absolute text-cyan-500/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">PLETH</div>
           <CanvasWaveform 

@@ -13,6 +13,7 @@ import { GastrointestinalEngine } from './GastrointestinalEngine';
 import { HepaticEngine } from './HepaticEngine';
 import { RenalEngine } from './RenalEngine';
 import { CerebralEngine } from './CerebralEngine';
+import { LymphaticSystemModel } from './LymphaticSystemModel';
 import { createQualityEvent } from './OutcomeScoringEngine.ts';
 import { HERBAL_MEDICINES, DIETARY_SUPPLEMENTS } from './CAMKnowledgeEngine';
 
@@ -219,7 +220,7 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
 
         setVitals({ 
           ...safeBaseVitals, pip: 0, pplat: 0, vte: 0, bis: 98, temp: 37.0, 
-          tofCount: 4, tofRatio: 1.0, perceivedTofCount: 4, perceivedTofRatio: 1.0, mac: 0, etAgent: 0, etN2O: 0,
+          tofCount: 4, tofRatio: 1.0, perceivedTofCount: 4, perceivedTofRatio: 1.0, mac: 0, etAgent: 0, fiAgent: 0, etN2O: 0, fiN2O: 0, fiO2: 21, etO2: 21,
           pao2: safePatientObj.isObese ? 75 : 100, 
           paco2: safePatientObj.isObese ? 52 : 40, 
           ph: safePatientObj.isSeptic ? 7.22 : (safePatientObj.isObese ? 7.36 : 7.4), 
@@ -4632,6 +4633,28 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
           patientAfterFluidics.bladderVolume = renalOutput.bladderVolume;
           patientAfterFluidics.urinaryRetentionActive = renalOutput.urinaryRetentionActive;
 
+          // Lymphatic System / Interstitial Fluid Balance Engine (Phase 1, Stage B/C of
+          // mutable-roaming-newell.md) -- runs after Renal (shares the same `cvp` this
+          // tick) and before Cardiovascular, which reads `thirdSpacedVolumeMl` to reduce
+          // effective circulating blood volume by whatever has accumulated as edema.
+          const lymphaticOutput = LymphaticSystemModel.tick(1, {
+              patient: st.patient,
+              vitals: { cvp: cvp },
+              time: st.time
+          });
+          if (lymphaticOutput.events && lymphaticOutput.events.length > 0) {
+              lymphaticOutput.events.forEach(evt => logEvent(evt));
+          }
+          st.patient.interstitialVolumeMl = lymphaticOutput.interstitialVolumeMl;
+          st.patient.thirdSpacedVolumeMl = lymphaticOutput.thirdSpacedVolumeMl;
+          st.patient.edemaSeverity = lymphaticOutput.edemaSeverity;
+          if (lymphaticOutput.edemaSeverity === 'severe' && lymphaticOutput.thirdSpacedVolumeMl > 4000) {
+              st.patient.severeEdemaLogged = true;
+          }
+          patientAfterFluidics.interstitialVolumeMl = lymphaticOutput.interstitialVolumeMl;
+          patientAfterFluidics.thirdSpacedVolumeMl = lymphaticOutput.thirdSpacedVolumeMl;
+          patientAfterFluidics.edemaSeverity = lymphaticOutput.edemaSeverity;
+
           // Gastric Aspiration triggers
           let hasAspirated = st.patient.hasAspirated || giOutput.hasAspirated || false;
           let aspirationCompliancePenalty = 0;
@@ -5030,6 +5053,10 @@ export function usePhysiology({ activeCase, isRunning, isPaused, ventSettings, g
               fiAgent: currentFiAgent,
               etN2O: currentEtN2O,
               fiN2O: currentFiN2O,
+              fiO2: deliveredFiO2,
+              etO2: respOutput.lungVolumes?.frc_L > 0
+                ? Math.round((respOutput.oxygenBuffer / respOutput.lungVolumes.frc_L) * 100)
+                : 21,
               n2oUptakeRate: n2oUptake_L_sec,
               mac: displayedMac,
               lesTone: giOutput.lesTone,
