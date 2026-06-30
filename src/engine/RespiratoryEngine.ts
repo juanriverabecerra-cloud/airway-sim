@@ -128,7 +128,8 @@ export class RespiratoryEngine {
     position: string = 'Supine',
     isCopd: boolean = false,
     isRestrictive: boolean = false,
-    isAnesthetized: boolean = false
+    isAnesthetized: boolean = false,
+    pregnancyFrcMultiplier: number = 1.0
   ) {
     let hCm = Number(heightCm);
     if (isNaN(hCm) || !Number.isFinite(hCm) || hCm <= 0) {
@@ -225,6 +226,12 @@ export class RespiratoryEngine {
     const anesthesiaFrcFactor = isAnesthetized ? 0.85 : 1.0;
     frc *= anesthesiaFrcFactor;
 
+    // Pregnancy's diaphragm-elevating gravid uterus further decreases FRC, ~20% by term
+    // (PregnancyPhysiologyEngine.ts, Phase 4) -- independent of and on top of the position/
+    // obesity/anesthesia factors above.
+    const safePregnancyFrcMultiplier = typeof pregnancyFrcMultiplier === 'number' && Number.isFinite(pregnancyFrcMultiplier) && pregnancyFrcMultiplier > 0 ? pregnancyFrcMultiplier : 1.0;
+    frc *= safePregnancyFrcMultiplier;
+
     frc  = Math.max(0.5, frc);
     tlc  = Math.max(2.0, tlc);
     rv   = Math.max(0.5, rv);
@@ -318,6 +325,7 @@ export class RespiratoryEngine {
       airwayObstructionIndex?: number;
       hpvInhibition?: number;
       fgf_L_min?: number;
+      pregnancyFrcMultiplier?: number;
     }
   ): RespiratoryOutput {
     const { patient, vitals } = st || { patient: {} as any, vitals: {} as any };
@@ -358,6 +366,7 @@ export class RespiratoryEngine {
 
     // Calculate current volumes
     const isAnesthetized = isParalyzed || !!safePatient.airwaySecured;
+    const safePregnancyFrcMultiplierInput = typeof safeInputs.pregnancyFrcMultiplier === 'number' && Number.isFinite(safeInputs.pregnancyFrcMultiplier) && safeInputs.pregnancyFrcMultiplier > 0 ? safeInputs.pregnancyFrcMultiplier : 1.0;
     const currentLungVols = this.calculateLungVolumes(
       safePatient.height || 170,
       safePatient.age || 40,
@@ -366,7 +375,8 @@ export class RespiratoryEngine {
       safePatient.position || 'Supine',
       safePatient.copd || false,
       safePatient.restrictive || false,
-      isAnesthetized
+      isAnesthetized,
+      safePregnancyFrcMultiplierInput
     );
       const currentFRC_L = currentLungVols.frc_L;
 

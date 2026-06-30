@@ -5,11 +5,21 @@ export interface GastrointestinalPatientState {
   trauma?: boolean;
   suxInjectionTime?: number;
   hasAspirated?: boolean;
+  aspirationEventSeverity?: number; // 0-1, Mendelson-criteria severity frozen at the moment of aspiration (Phase 4)
   manipulationIndex?: number; // 1.0 for open, 0.3 for laparoscopic, 0.0 for none
   epiduralBlockActive?: boolean;
   epiduralLevel?: number; // Thoracic dermatome of catheter insertion (e.g. 8 for T8)
+  epiduralConcentrationIndex?: number; // 0-1+, 1.0 = surgical-strength (default); lower = motor-sparing differential block (Phase 3)
   celiacBlockActive?: boolean;
   swallowingActive?: boolean;
+  npoSolids?: number; // hours since last solid food
+  npoLiquids?: number; // hours since last clear liquid
+  glp1Active?: boolean;
+  emergentRSI?: boolean;
+  gastricVolume?: number; // mL (Phase 4: GastricEmptyingModel)
+  gastricPH?: number; // Phase 4: GastricEmptyingModel
+  ppiSuppressionLevel?: number; // 0-1, irreversible PPI proton-pump suppression (Phase 4)
+  weight?: number; // kg, for weight-scaled Mendelson aspiration criteria
 }
 
 export interface GastrointestinalVitalsState {
@@ -19,6 +29,12 @@ export interface GastrointestinalVitalsState {
   gutMotility?: number;
   inflammatoryIleus?: number;
   postoperativeIleus?: number;
+  stomachMotility?: number;
+  smallBowelMotility?: number;
+  colonicMotility?: number;
+  stomachIleusDurationHours?: number;
+  smallBowelIleusDurationHours?: number;
+  colonicIleusDurationHours?: number;
 }
 
 export interface GastrointestinalOutput {
@@ -30,10 +46,23 @@ export interface GastrointestinalOutput {
   postoperativeIleus: number;
   hasRegurgitated: boolean;
   hasAspirated: boolean;
+  aspirationEventSeverity: number;
+  aspirationSeverityIndex: number; // live, ungated Mendelson severity from current gastric content (Phase 4)
+  gastricVolume: number;
+  gastricPH: number;
+  ppiSuppressionLevel: number;
+  stomachMotility: number;
+  smallBowelMotility: number;
+  colonicMotility: number;
+  stomachIleusDurationHours: number;
+  smallBowelIleusDurationHours: number;
+  colonicIleusDurationHours: number;
   events: string[];
 }
 
 import { calculateDermatomalBlockFraction } from './Pharmacology.js';
+import { calculateDifferentialDermatomalBlock } from './NerveConductionBlockModel';
+import { GastricEmptyingModel } from './GastricEmptyingModel';
 
 // TABLE 15.2, Miller's 9th Ed: small bowel, cecum, ascending and transverse colon (the
 // principal substrate of postoperative ileus) are supplied T9-L1 via the celiac plexus.
@@ -54,25 +83,37 @@ export class GastrointestinalEngine {
       C_cat: number;
       positivePressureVentilationActive: boolean;
       spontaneousBreathingActive: boolean;
+      pregnancyLesTonePenalty?: number; // PregnancyPhysiologyEngine.ts's lesTonePenaltyFraction (Phase 4)
+      pregnancyGiSlowing?: boolean; // PregnancyPhysiologyEngine.ts's giMotilitySlowingActive (Phase 4)
     }
   ): GastrointestinalOutput {
     const events: string[] = [];
     const patient = st.patient || {};
     const vitals = st.vitals || {};
-    
+
     // Sanitizing inputs defensively
     const safeDt = typeof dt === 'number' && Number.isFinite(dt) && dt > 0 ? dt : 1;
     const safeTime = typeof st.time === 'number' && Number.isFinite(st.time) ? st.time : 0;
     const safeEtN2O = typeof inputs.EtN_2O === 'number' && Number.isFinite(inputs.EtN_2O) ? inputs.EtN_2O : 0;
     const safeMac = typeof inputs.currentMac === 'number' && Number.isFinite(inputs.currentMac) ? Math.max(0, inputs.currentMac) : 0;
     const safeCcat = typeof inputs.C_cat === 'number' && Number.isFinite(inputs.C_cat) ? Math.max(0, inputs.C_cat) : 0;
+    const safePregnancyLesTonePenalty = typeof inputs.pregnancyLesTonePenalty === 'number' && Number.isFinite(inputs.pregnancyLesTonePenalty) ? Math.max(0, inputs.pregnancyLesTonePenalty) : 0;
 
-    // 1. LES Tone calculation (Propofol & Volatiles depress tone)
+    // 1. LES Tone calculation (Propofol & Volatiles depress tone; Metoclopramide, a real
+    // prokinetic that enhances cholinergic LES tone, raises it -- Phase 4. This is the only one
+    // of the four new aspiration-prophylaxis drugs that affects the BARRIER itself rather than
+    // just the gastric content, so it can genuinely prevent the aspiration trigger from firing at
+    // all, not just reduce its severity once it does. Pregnancy's progesterone-mediated LES
+    // relaxation (PregnancyPhysiologyEngine.ts) is the one non-drug physiologic cause of LES
+    // depression modeled here -- part of why pregnancy is a "full stomach" aspiration risk.)
     const propofolModel = activeMeds.find(m => m.name === 'Propofol');
     const propofolCe = propofolModel ? propofolModel.Ce : 0;
-    
+    const metoclopramideModel = activeMeds.find(m => m.name === 'Metoclopramide');
+    const metoclopramideCe = metoclopramideModel ? metoclopramideModel.Ce : 0;
+    const metoclopramideLesBoost = 0.4 * (metoclopramideCe / (metoclopramideCe + 0.5));
+
     const baseLESTone = 25.0;
-    const lesTone = baseLESTone * Math.max(0.2, 1.0 - 0.4 * (propofolCe / 2.5) - 0.3 * safeMac);
+    const lesTone = baseLESTone * Math.max(0.2, 1.0 + metoclopramideLesBoost - 0.4 * (propofolCe / 2.5) - 0.3 * safeMac - safePregnancyLesTonePenalty);
 
     // 2. Gastric Pressure calculation (Succinylcholine fasciculations spike pressure)
     const suxModel = activeMeds.find(m => m.name === 'Succinylcholine');
@@ -85,10 +126,13 @@ export class GastrointestinalEngine {
     }
     const gastricPressure = 7.0 + 15.0 * suxFasciculation;
 
-    // 3. Regurgitation and Aspiration Trigger
+    // 3. Regurgitation and Aspiration Trigger (unchanged -- still keyed on the binary
+    // patient.stomach scenario-level flag; the new gastric content model below only grades
+    // severity of an event this trigger has already decided will happen).
     let hasRegurgitated = false;
-    let hasAspirated = !!patient.hasAspirated;
-    
+    const prevHasAspirated = !!patient.hasAspirated;
+    let hasAspirated = prevHasAspirated;
+
     if (patient.stomach === 'full' && gastricPressure > lesTone && !patient.airwaySecured) {
       hasRegurgitated = true;
       if (inputs.positivePressureVentilationActive || inputs.spontaneousBreathingActive) {
@@ -99,13 +143,8 @@ export class GastrointestinalEngine {
       }
     }
 
-    // 4. Nitrous Oxide Bowel Gas Expansion (Eger solubility model)
-    let bowelGasVolume = typeof vitals.bowelGasVolume === 'number' && Number.isFinite(vitals.bowelGasVolume) ? vitals.bowelGasVolume : 1.0;
-    const dBowel = 0.02 * (safeEtN2O / 100) - 0.005 * (bowelGasVolume - 1.0);
-    bowelGasVolume = Math.max(1.0, Math.min(2.5, bowelGasVolume + dBowel * safeDt));
-
-    // 5. Postoperative Ileus and Gut Motility Index
-    // Opioid block
+    // Opioid block (moved ahead of the gastric content model below, which also needs it --
+    // opioids slow gastric emptying via the same mu-receptor mechanism that causes ileus).
     const fentanylModel = activeMeds.find(m => m.name === 'Fentanyl');
     const fentanylCe = fentanylModel ? fentanylModel.Ce : 0;
     const morphineModel = activeMeds.find(m => m.name === 'Morphine');
@@ -114,6 +153,50 @@ export class GastrointestinalEngine {
     const remiCe = remiModel ? remiModel.Ce : 0;
     const maxOpioidCe = Math.max(fentanylCe * 500, morphineCe * 20, remiCe * 1000);
     const opioidBlock = maxOpioidCe / (maxOpioidCe + 1.0);
+
+    // 3b. Gastric content model (Phase 4): real volume/pH replacing the binary flag as the sole
+    // aspiration-risk driver, feeding a Mendelson-criteria severity grade once aspiration occurs.
+    // Now also driven by the four real aspiration-prophylaxis drugs added to Pharmacology.js.
+    const citrateModel = activeMeds.find(m => m.name === 'Sodium Citrate');
+    const famotidineModel = activeMeds.find(m => m.name === 'Famotidine');
+    const pantoprazoleModel = activeMeds.find(m => m.name === 'Pantoprazole');
+    const safeWeight = typeof patient.weight === 'number' && Number.isFinite(patient.weight) && patient.weight > 0 ? patient.weight : 70;
+
+    const gastricModelOutput = GastricEmptyingModel.tick({
+      prevVolume: patient.gastricVolume,
+      prevPH: patient.gastricPH,
+      prevPpiSuppression: patient.ppiSuppressionLevel,
+      npoSolids: patient.npoSolids,
+      npoLiquids: patient.npoLiquids,
+      stomachFull: patient.stomach === 'full',
+      glp1Active: patient.glp1Active,
+      trauma: patient.trauma,
+      isSeptic: patient.isSeptic,
+      emergentRSI: patient.emergentRSI,
+      pregnancyGiSlowing: inputs.pregnancyGiSlowing,
+      opioidBlock: opioidBlock,
+      sympatheticDrive: safeCcat,
+      weightKg: safeWeight,
+      citrateCe: citrateModel ? citrateModel.Ce : 0,
+      famotidineCe: famotidineModel ? famotidineModel.Ce : 0,
+      pantoprazoleCe: pantoprazoleModel ? pantoprazoleModel.Ce : 0,
+      metoclopramideCe: metoclopramideCe,
+      dt: safeDt
+    });
+
+    let aspirationEventSeverity = typeof patient.aspirationEventSeverity === 'number' && Number.isFinite(patient.aspirationEventSeverity)
+      ? patient.aspirationEventSeverity
+      : 0;
+    if (hasAspirated && !prevHasAspirated) {
+      aspirationEventSeverity = gastricModelOutput.aspirationSeverityIndex;
+    }
+
+    // 4. Nitrous Oxide Bowel Gas Expansion (Eger solubility model)
+    let bowelGasVolume = typeof vitals.bowelGasVolume === 'number' && Number.isFinite(vitals.bowelGasVolume) ? vitals.bowelGasVolume : 1.0;
+    const dBowel = 0.02 * (safeEtN2O / 100) - 0.005 * (bowelGasVolume - 1.0);
+    bowelGasVolume = Math.max(1.0, Math.min(2.5, bowelGasVolume + dBowel * safeDt));
+
+    // 5. Postoperative Ileus and Gut Motility Index
 
     // Nonopioid Sparing (Chapter 25)
     const acetaminophenModel = activeMeds.find(m => m.name === 'Acetaminophen');
@@ -132,12 +215,18 @@ export class GastrointestinalEngine {
     // 15.5, Miller's 9th Ed) — the final common sympathetic relay for "the majority of the GI
     // tract up to the rectum" (Fig 15.1 caption) — so it is modeled as complete splanchnic
     // block. A thoracic epidural's effect is graded by dermatomal overlap with the gut's
-    // ileus-relevant innervation (TABLE 15.2) via `epiduralLevel`.
+    // ileus-relevant innervation (TABLE 15.2) via `epiduralLevel`, AND by local anesthetic
+    // concentration via the differential nerve block model (Phase 3, Stage A of
+    // mutable-roaming-newell.md) -- sympathetic B-fibers block at low concentration, so even
+    // a motor-sparing epidural still substantially blunts splanchnic sympathetic tone.
     const epiduralActive = !!patient.epiduralBlockActive;
     const celiacActive = !!patient.celiacBlockActive;
-    const epiduralCoverageFraction = epiduralActive
+    const epiduralSpatialCoverageGI = epiduralActive
       ? calculateDermatomalBlockFraction(patient.epiduralLevel, GUT_ILEUS_RANGE[0], GUT_ILEUS_RANGE[1])
       : 0.0;
+    const epiduralCoverageFraction = calculateDifferentialDermatomalBlock(
+      epiduralSpatialCoverageGI, 'sympathetic', patient.epiduralConcentrationIndex
+    );
     const sympatheticBlock = celiacActive ? 1.0 : epiduralCoverageFraction;
     
     const sympatheticInhibition = Math.min(0.9, 0.4 * (safeCcat / 40.0) * (1.0 - sympatheticBlock));
@@ -162,16 +251,46 @@ export class GastrointestinalEngine {
     // for volatile depression of LES tone elsewhere in this engine, rather than inventing a new one.
     const volatileMotilityDepression = Math.min(0.6, 0.3 * safeMac);
 
-    // Gut motility calculation
-    const gutMotility = (1.0 - gutOpioidBlock) * (1.0 - sympatheticInhibition) * (1.0 - inflammatoryIleus) * (1.0 - volatileMotilityDepression);
+    // Gut motility calculation (composite, kept for backward compatibility -- confirmed by direct
+    // search that nothing outside this engine reads gutMotility, so this is a free-standing
+    // average of the three segment values below, not an independently-derived metric).
 
-    // Postoperative Ileus hours (reduced by up to 25% by nonopioids)
-    let postoperativeIleus = typeof vitals.postoperativeIleus === 'number' && Number.isFinite(vitals.postoperativeIleus) ? vitals.postoperativeIleus : 0.0;
+    // Segment-specific motility/ileus recovery (Phase 4, GI subdivision). Real, well-established
+    // clinical teaching: postoperative small bowel motility returns within hours, gastric emptying
+    // within ~24-48h, and colonic motility last, ~48-72h -- the classic "small bowel, then
+    // stomach, then colon" ileus-resolution sequence (bowel sounds/flatus/first bowel movement).
+    // Modeled by applying the SAME inflammatoryIleus accumulator (unchanged) with a per-segment
+    // sensitivity multiplier -- colon most sensitive/slowest to recover, small bowel least.
+    const SEGMENT_ILEUS_SENSITIVITY = { stomach: 0.7, smallBowel: 0.35, colon: 1.0 };
+    const SEGMENT_ILEUS_BASE_HOURS = { stomach: 48.0, smallBowel: 24.0, colon: 72.0 };
+
+    const stomachInflammatoryIleus = inflammatoryIleus * SEGMENT_ILEUS_SENSITIVITY.stomach;
+    const smallBowelInflammatoryIleus = inflammatoryIleus * SEGMENT_ILEUS_SENSITIVITY.smallBowel;
+    const colonicInflammatoryIleus = inflammatoryIleus * SEGMENT_ILEUS_SENSITIVITY.colon;
+
+    const stomachMotility = (1.0 - gutOpioidBlock) * (1.0 - sympatheticInhibition) * (1.0 - stomachInflammatoryIleus) * (1.0 - volatileMotilityDepression);
+    const smallBowelMotility = (1.0 - gutOpioidBlock) * (1.0 - sympatheticInhibition) * (1.0 - smallBowelInflammatoryIleus) * (1.0 - volatileMotilityDepression);
+    const colonicMotility = (1.0 - gutOpioidBlock) * (1.0 - sympatheticInhibition) * (1.0 - colonicInflammatoryIleus) * (1.0 - volatileMotilityDepression);
+
+    const gutMotility = (stomachMotility + smallBowelMotility + colonicMotility) / 3.0;
+
+    // Per-segment postoperative ileus DURATION ESTIMATES (hours), same formula structure as the
+    // original single `postoperativeIleus` figure, scaled by each segment's base recovery time.
+    // Matches the original's carry-forward behavior: once manipulationIndex returns to 0 (closure),
+    // each estimate HOLDS its last computed value rather than resetting to 0 -- this number is a
+    // prediction made during surgery, most needed during PACU after manipulation has stopped.
+    let stomachIleusDurationHours = typeof vitals.stomachIleusDurationHours === 'number' && Number.isFinite(vitals.stomachIleusDurationHours) ? vitals.stomachIleusDurationHours : 0.0;
+    let smallBowelIleusDurationHours = typeof vitals.smallBowelIleusDurationHours === 'number' && Number.isFinite(vitals.smallBowelIleusDurationHours) ? vitals.smallBowelIleusDurationHours : 0.0;
+    let colonicIleusDurationHours = typeof vitals.colonicIleusDurationHours === 'number' && Number.isFinite(vitals.colonicIleusDurationHours) ? vitals.colonicIleusDurationHours : 0.0;
     if (manipulationIndex > 0) {
       const bowelDistensionFactor = 1.0 + 0.5 * Math.max(0, bowelGasVolume - 1.0);
       const nonopiodDurationSparing = 1.0 - 0.25 * Math.max(acetEff, ketoEff);
-      postoperativeIleus = 72.0 * manipulationIndex * (1.0 - sympatheticBlock * 0.36) * bowelDistensionFactor * nonopiodDurationSparing;
+      const commonFactor = manipulationIndex * (1.0 - sympatheticBlock * 0.36) * bowelDistensionFactor * nonopiodDurationSparing;
+      stomachIleusDurationHours = SEGMENT_ILEUS_BASE_HOURS.stomach * commonFactor;
+      smallBowelIleusDurationHours = SEGMENT_ILEUS_BASE_HOURS.smallBowel * commonFactor;
+      colonicIleusDurationHours = SEGMENT_ILEUS_BASE_HOURS.colon * commonFactor;
     }
+    const postoperativeIleus = Math.max(stomachIleusDurationHours, smallBowelIleusDurationHours, colonicIleusDurationHours);
 
     return {
       lesTone: parseFloat(lesTone.toFixed(2)),
@@ -182,6 +301,17 @@ export class GastrointestinalEngine {
       postoperativeIleus: parseFloat(postoperativeIleus.toFixed(2)),
       hasRegurgitated,
       hasAspirated,
+      aspirationEventSeverity: parseFloat(aspirationEventSeverity.toFixed(4)),
+      aspirationSeverityIndex: gastricModelOutput.aspirationSeverityIndex,
+      gastricVolume: gastricModelOutput.gastricVolume,
+      gastricPH: gastricModelOutput.gastricPH,
+      ppiSuppressionLevel: gastricModelOutput.ppiSuppressionLevel,
+      stomachMotility: parseFloat(stomachMotility.toFixed(4)),
+      smallBowelMotility: parseFloat(smallBowelMotility.toFixed(4)),
+      colonicMotility: parseFloat(colonicMotility.toFixed(4)),
+      stomachIleusDurationHours: parseFloat(stomachIleusDurationHours.toFixed(2)),
+      smallBowelIleusDurationHours: parseFloat(smallBowelIleusDurationHours.toFixed(2)),
+      colonicIleusDurationHours: parseFloat(colonicIleusDurationHours.toFixed(2)),
       events
     };
   }

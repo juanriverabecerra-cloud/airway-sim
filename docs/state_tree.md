@@ -62,6 +62,11 @@ The following lists the exact variables, structures, and data types stored in th
     *   `cbv`: `number` (Cerebral Blood Volume index, 0.0 - 1.0)
     *   `hasCerebralIschemia`: `boolean` (Active cerebral ischemia flag)
     *   `cushingsTriadActive`: `boolean` (Active Cushing's reflex flag)
+    *   `nystagmusPresent`: `boolean` (Active cerebellar/vestibular nystagmus sign, from `CerebellarEngine.ts`)
+    *   `nystagmusSeverity`: `number` (Nystagmus severity index, 0.0 - 1.0)
+    *   `ataxiaIndex`: `number` (Cerebellar/vestibular ataxia index, 0.0 - 1.0)
+    *   `tonsillarHerniationRisk`: `number` (Continuous tonsillar herniation risk index, 0.0 - 1.0)
+    *   `herniationImminent`: `boolean` (Active tonsillar herniation crisis flag, distinct from `cushingsTriadActive`)
     *   `sjvo2`: `number` (Jugular venous oxygen saturation, %)
     *   `rso2`: `number` (Regional cerebral oxygen saturation, %)
     *   `nAChR_mature_occupancy`: `number` (Occupancy of mature postjunctional receptors)
@@ -81,9 +86,11 @@ The following lists the exact variables, structures, and data types stored in th
     *   `lesTone`: `number` (Lower Esophageal Sphincter tone, mmHg)
     *   `gastricPressure`: `number` (Intragastric pressure, mmHg)
     *   `bowelGasVolume`: `number` (Bowel gas volume expansion index, 1.0 - 2.5)
-    *   `gutMotility`: `number` (Gut motility index, 0.0 - 1.0)
+    *   `gutMotility`: `number` (Gut motility index, 0.0 - 1.0; composite average of the three segment indices below)
     *   `inflammatoryIleus`: `number` (Inflammatory ileus factor, 0.0 - 1.0)
-    *   `postoperativeIleus`: `number` (Postoperative ileus duration, hours)
+    *   `postoperativeIleus`: `number` (Postoperative ileus duration, hours; composite max of the three segment estimates below)
+    *   `stomachMotility`, `smallBowelMotility`, `colonicMotility`: `number` (Per-segment motility indices, 0.0 - 1.0, from `GastrointestinalEngine.ts`'s Phase 4 subdivision)
+    *   `stomachIleusDurationHours`, `smallBowelIleusDurationHours`, `colonicIleusDurationHours`: `number` (Per-segment postoperative ileus duration estimates, hours)
     *   `mPAP`: `number` (Mean Pulmonary Artery Pressure, mmHg)
     *   `cvp`: `number` (Central Venous Pressure mean, mmHg — pre-existing scalar; Ch36 added the `CvpWaveformModel.js`/`PulmonaryArteryCatheterModel.js` waveform-display consumers of this and `mPAP`/`lvedp` above, see `docs/engines/physiology.md` §4.1.1)
     *   `HVPG`: `number` (Hepatic Venous Pressure Gradient, mmHg)
@@ -98,6 +105,28 @@ The following lists the exact variables, structures, and data types stored in th
     *   `urineOutput`: `number` (Total cumulative urine output, mL)
     *   `urineOutputRate`: `number` (Urine output rate, mL/h)
     *   `urineOsmolality`: `number` (Urine osmolality, mOsm/kg)
+    *   `bladderVolume`: `number` (mL, pre-existing accumulator, fills during active urinary retention without a Foley)
+    *   `bladderPressure`: `number` (cmH2O, Phase 4 §4.26 `BladderModel.ts` -- real compliance curve, previously nonexistent)
+    *   `overflowLeakActive`: `boolean` (Phase 4 §4.26, sex-specific urethral-closure-pressure overflow incontinence flag)
+    *   `distensionSympatheticIndex`: `number` (0.0 - 1.0, Phase 4 §4.26, replaces a prior flat +5 HR/MAP on/off offset)
+    *   `autonomicDysreflexiaActive` / `autonomicDysreflexiaSeverity`: `boolean` / `number` (0.0 - 1.0, Phase 4 §4.26, spinal cord injury above T6 -- gated on the new, currently UI-unconnected `hasSpinalCordInjuryAboveT6` flag)
+    *   `bphSeverity`: `number` (0.0 - 1.0, Phase 4 §4.29, benign prostatic hyperplasia outflow obstruction -- raises the effective male urethral closure pressure in `BladderModel.ts`)
+    *   `ureteralObstructionActive` / `ureteralObstructionSeverity` / `ureteralObstructionEventLogged`: `boolean` / `number` / `boolean` (Phase 4 §4.29, simplified single-compartment hydronephrosis proxy -- `severity` represents the fraction of total renal mass affected, not a separate kidney)
+    *   `uterineTone`: `number` (0.0 - 1.0, Phase 4 §4.27 `UterineToneModel.ts` -- postpartum myometrial contraction; only meaningful when `deliveryOccurred` is true)
+    *   `isPregnant` / `gestationalAgeWeeks` / `deliveryOccurred`: `boolean` / `number` / `boolean` (Phase 4 §4.25/§4.27, gates `PregnancyPhysiologyEngine.ts`/`UterineToneModel.ts`/`FetalMonitoringModel.ts`)
+    *   `retainedPlacentaActive` / `prolongedLaborRisk` / `chorioamnionitisActive` / `hasPreeclampsia`: `boolean` (Phase 4 §4.27, uterine atony risk factors / Methylergonovine contraindication check)
+    *   `fetalHR` / `fetalVariabilityIndex` / `lateDecelerationActive` / `fetalBradycardiaActive` / `fetalBradycardiaSeverity` / `uterineHyperstimulationActive`: Phase 4 §4.28 `FetalMonitoringModel.ts` outputs -- only populated pre-delivery
+    *   `turpSurgeryActive` / `turpResectionSeverity`: `boolean` / `number` (Phase 4 §4.29 `TurpSyndromeModel.ts` -- drives irrigation-fluid-absorption rate deltas applied to the existing `sodiumLevel`/`intravascularVolume`/`temp` tracking)
+    *   `plateletCount`: `number` (k/μL, Phase 4 §4.30 `CoagulationCascadeModel.ts`)
+    *   `fibrinogenMgDl`: `number` (mg/dL, Phase 4 §4.30)
+    *   `factorActivityFraction`: `number` (0.0 - 1.0, composite extrinsic/common pathway, Phase 4 §4.30)
+    *   `fibrinolysisIndex`: `number` (0.0 - 1.0, TXA-suppressible, drives TEG LY30, Phase 4 §4.30)
+    *   `lethalTriadActive` / `lethalTriadLogged`: `boolean` (Phase 4 §4.30, simultaneous hypothermia + acidosis + coagulopathy)
+    *   `ckLevel`: `number` (U/L, creatine kinase, Phase 4 §4.32 `MusculoskeletalModel.ts`)
+    *   `myoglobinLevel`: `number` (μg/L, Phase 4 §4.32)
+    *   `nerveInjuryRiskIndex`: `number` (0.0 - 1.0, Phase 4 §4.32)
+    *   `compartmentSyndromeRisk`: `number` (0.0 - 1.0, Phase 4 §4.32, lithotomy-specific)
+    *   `forcedAirWarmingActive` / `warmBlanketActive` / `orRoomTemp` / `bsaExposureFraction`: Phase 4 §4.31 `ThermoregulationModel.ts` inputs
     *   `feNa`: `number` (Fractional excretion of sodium, %)
     *   `akiStage`: `number` (KDIGO AKI stage, 0 - 3)
     *   `akiDamage`: `number` (Tubular cellular damage index, 0.0 - 1.0)
@@ -131,7 +160,7 @@ The following lists the exact variables, structures, and data types stored in th
 *   `patient`: `Object` (State flags, clinical modifiers, and anthropometric data):
     *   `age`: `number`, `sex`: `string`, `weight`: `number`, `height`: `number`
     *   `ibw`: `number`, `bmi`: `number`, `ebv`: `number`, `ebl`: `number`, `bleedRate`: `number`
-    *   `oxygenBuffer`: `number | null`, `airwayBlood`: `boolean`, `isObese`: `boolean`, `isSeptic`: `boolean`, `hasCCollar`: `boolean`, `stomach`: `string` ('empty' | 'full'), `limitedMouth`: `boolean`, `trauma`: `boolean`, `chronicBetaBlockade`: `boolean`, `chronicHTN`: `boolean`, `highAnxiety`: `boolean`, `hasALine`: `boolean`, `hasCVC`: `boolean`, `hasPAC`: `boolean` (Ch36, pulmonary artery catheter placed — see `docs/engines/physiology.md` §4.1.1), `avDissociation`: `boolean` (Ch36, drives CVP cannon-a-waves), `tricuspidRegurgitation`: `boolean` (Ch36, drives a fused tall CVP c-v wave), `mitralRegurgitation`: `boolean` (Ch36, drives a tall early-systolic wedge v wave and PCWP overestimation of LVEDP), `alineDamping`: `string | undefined` ('underdamped' | 'overdamped', pre-existing — already drove `ArterialLineModel.js`'s live waveform; Ch36 added `calculateDynamicResponse()` mapping it to a natural-frequency/damping-coefficient pair), `pacWhipArtifact`: `boolean` (Ch36, catheter-motion artifact on the PA trace), `pacOverwedged`: `boolean` (Ch36, non-pulsatile overwedging artifact), `cardiacRhythm`: `string | undefined` ('normal' | 'afib' | 'vfib' | 'vtach' | 'asystole', pre-existing, previously undocumented here — read by `CvpWaveformModel.js` as an alternative to the boolean `afib` flag), `hasIV`: `boolean`, `currentO2Device`: `string`, `currentFiO2`: `number`, `currentO2Flow`: `number`, `oculocardiacTriggered`: `boolean`
+    *   `oxygenBuffer`: `number | null`, `airwayBlood`: `boolean`, `isObese`: `boolean`, `isSeptic`: `boolean`, `hasCCollar`: `boolean`, `stomach`: `string` ('empty' | 'full'), `gastricVolume`: `number` (mL, Phase 4 `GastricEmptyingModel.ts` -- real continuous content volume, previously an orphaned never-assigned field), `gastricPH`: `number` (Phase 4, continuous gastric content pH), `ppiSuppressionLevel`: `number` (0.0 - 1.0, irreversible PPI/Pantoprazole proton-pump suppression, decoupled from plasma Ce, Phase 4 §4.24), `aspirationEventSeverity`: `number` (0.0 - 1.0, Mendelson-criteria severity frozen at the moment aspiration first occurs, weight-scaled, Phase 4), `isPregnant`: `boolean` (Phase 4 §4.25, `PregnancyPhysiologyEngine.ts` -- previously UI-only/inert), `gestationalAgeWeeks`: `number` (defaults to 38/near-term if `isPregnant` but unspecified), `leftUterineDisplacement`: `boolean` (mitigates aortocaval compression when supine), `aortocavalCompressionActive`: `boolean` (Phase 4, supine hypotensive syndrome of pregnancy flag, for narrative-event transition detection), `limitedMouth`: `boolean`, `trauma`: `boolean`, `chronicBetaBlockade`: `boolean`, `chronicHTN`: `boolean`, `highAnxiety`: `boolean`, `hasALine`: `boolean`, `hasCVC`: `boolean`, `hasPAC`: `boolean` (Ch36, pulmonary artery catheter placed — see `docs/engines/physiology.md` §4.1.1), `avDissociation`: `boolean` (Ch36, drives CVP cannon-a-waves), `tricuspidRegurgitation`: `boolean` (Ch36, drives a fused tall CVP c-v wave), `mitralRegurgitation`: `boolean` (Ch36, drives a tall early-systolic wedge v wave and PCWP overestimation of LVEDP), `alineDamping`: `string | undefined` ('underdamped' | 'overdamped', pre-existing — already drove `ArterialLineModel.js`'s live waveform; Ch36 added `calculateDynamicResponse()` mapping it to a natural-frequency/damping-coefficient pair), `pacWhipArtifact`: `boolean` (Ch36, catheter-motion artifact on the PA trace), `pacOverwedged`: `boolean` (Ch36, non-pulsatile overwedging artifact), `cardiacRhythm`: `string | undefined` ('normal' | 'afib' | 'vfib' | 'vtach' | 'asystole', pre-existing, previously undocumented here — read by `CvpWaveformModel.js` as an alternative to the boolean `afib` flag), `hasIV`: `boolean`, `currentO2Device`: `string`, `currentFiO2`: `number`, `currentO2Flow`: `number`, `oculocardiacTriggered`: `boolean`
     *   `isApneic`: `boolean`, `isParalyzed`: `boolean`, `isTopicalized`: `boolean`, `airwaySecured`: `boolean`, `airwayExamined`: `boolean`, `ventilationStatus`: `string` ('none' | 'assisted' | 'successful' | 'failed' | 'spontaneous'), `tubePosition`: `string | null` ('trachea' | 'right_mainstem' | 'left_mainstem' | 'esophagus' | `null`), `isCuffDeflated`: `boolean`, `bmvOptimized`: `boolean`
     *   `vec3oh`: `number`, `normep`: `number`, `m6g`: `number`, `isSeizure`: `boolean`, `calciumStabilized`: `boolean`, `calciumStabilizedTime`: `number`, `bradycardiaTriggered`: `boolean`, `bradycardiaTime`: `number`, `laryngospasm`: `boolean`, `bronchospasm`: `boolean`, `isBucking`: `boolean`, `celiacBlockActive`: `boolean`, `epiduralBlockActive`: `boolean`, `swallowingActive`: `boolean`, `manipulationIndex`: `number`, `hasRegurgitated`: `boolean`, `hasAspirated`: `boolean`, `suxInjectionTime`: `number`
     *   `cirrhosisFactor`: `number` (Hepatic cirrhosis score, 0.0 - 1.0)
@@ -294,5 +323,5 @@ The following lists the exact variables, structures, and data types stored in th
 11. **Phase II Block Threshold**: Transition to Phase II succinylcholine block is modeled as a binary step function based on cumulative dose rather than a continuous transition curve.
 12. **Alveolar Gas Partitioning**: The single-alveolus FRC model simplifies ventilation-perfusion distribution. Gravitational West zones and regional ventilation heterogeneities are represented through overall shunt fraction and compliance multipliers rather than discrete anatomical compartments.
 13. **Coronary Anatomy & Autoregulation**: The coronary system is modeled globally via left ventricular end-diastolic pressure and mean diastolic perfusion, representing local flow dynamics as a single lumped compartment with uniform stenosis scaling rather than independent regional vessel trees.
-14. **Gastrointestinal Cavities & Gas Solubility**: The bowel is treated as a single uniform gas cavity. Regional micro-peristalsis, stomach geometry, and anatomical divisions of the small and large bowel are represented via aggregate indices (`bowelGasVolume`, `gutMotility`, `inflammatoryIleus`) rather than detailed multi-segment spatial modeling.
+14. **Gastrointestinal Cavities & Gas Solubility**: The bowel gas compartment itself is still a single uniform cavity (`bowelGasVolume`); regional micro-peristalsis and stomach geometry are not modeled. Stomach/small-bowel/colon motility and postoperative ileus duration ARE now segment-specific (`stomachMotility`/`smallBowelMotility`/`colonicMotility`, Phase 4 of `mutable-roaming-newell.md`), partially superseding this simplification -- `gutMotility`/`inflammatoryIleus`/`postoperativeIleus` remain as derived composites for backward compatibility, not independently-modeled segments.
 15. **Hepatic Blood Flow & Metabolism Autoregulation**: Liver circulation is represented as a lumped dual-supply system. Micro-lobular architecture, zone-specific hypoxia (Zones 1-3), and enzymatic induction rates for specific cytochrome P450 isoenzymes are simulated via aggregate flow rates and drug clearance ratios rather than detailed metabolic spatial maps.

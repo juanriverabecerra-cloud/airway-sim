@@ -1,4 +1,5 @@
 import { calculateDermatomalBlockFraction } from './Pharmacology.js';
+import { calculateDifferentialDermatomalBlock } from './NerveConductionBlockModel';
 import { simulateFourChamberCycle } from './FourChamberCircuitModel';
 
 export interface PatientState {
@@ -47,6 +48,7 @@ export interface PatientState {
   oculocardiacTriggered?: boolean;
   epiduralBlockActive?: boolean;
   epiduralLevel?: number;
+  epiduralConcentrationIndex?: number; // 0-1+, 1.0 = surgical-strength (default); lower = motor-sparing differential block (Phase 3)
   celiacBlockActive?: boolean;
   hasPoPHCollapse?: boolean;
   ischemiaActive?: boolean;
@@ -98,6 +100,11 @@ export interface CardiovascularDrugEffects {
   ruleMapOffset: number;
   ruleKOffset: number;
   ruleSpo2Offset: number;
+  catecholamineSensitivityMultiplier?: number; // from AdrenalEngine.ts's cortisol-driven permissive effect (Phase 2)
+  alpha1ActivityIndex?: number; // aggregate exogenous + endogenous alpha-1 activity, for per-vascular-bed redistribution (Phase 2's receptor-unification piece)
+  beta2ActivityIndex?: number;
+  vasomotorSvrContribution?: number; // BrainstemEngine.ts's baroreflex vasoconstrictive arm (Phase 3), additive to targetSVR
+  pregnancySvrMultiplier?: number; // PregnancyPhysiologyEngine.ts (Phase 4), multiplicative on targetSVR
 }
 
 export interface ResuscitationOutput {
@@ -163,14 +170,23 @@ export class CardiovascularEngine {
     const safeVasopressinLevel = typeof inputs.vasopressinLevel === 'number' && Number.isFinite(inputs.vasopressinLevel) ? Math.max(0, Math.min(1.0, inputs.vasopressinLevel)) : 0.1;
     const safeAngiotensinIILevel = typeof inputs.angiotensinIILevel === 'number' && Number.isFinite(inputs.angiotensinIILevel) ? Math.max(0, Math.min(1.0, inputs.angiotensinIILevel)) : 0.1;
 
+    const safeAlpha1ActivityIndex = typeof drugEffects.alpha1ActivityIndex === 'number' && Number.isFinite(drugEffects.alpha1ActivityIndex) ? Math.max(0, drugEffects.alpha1ActivityIndex) : 0;
+    const safeBeta2ActivityIndex = typeof drugEffects.beta2ActivityIndex === 'number' && Number.isFinite(drugEffects.beta2ActivityIndex) ? Math.max(0, drugEffects.beta2ActivityIndex) : 0;
     const safeDrugSvrMod = typeof drugEffects.drugSvrMod === 'number' && Number.isFinite(drugEffects.drugSvrMod) ? Math.max(0.1, drugEffects.drugSvrMod) : 1.0;
     const safeDrugInotropyMod = typeof drugEffects.drugInotropyMod === 'number' && Number.isFinite(drugEffects.drugInotropyMod) ? Math.max(0.1, drugEffects.drugInotropyMod) : 1.0;
     let safeSvrSympatheticSpike = typeof drugEffects.svrSympatheticSpike === 'number' && Number.isFinite(drugEffects.svrSympatheticSpike) ? drugEffects.svrSympatheticSpike : 0;
     let safeContractilitySympatheticSpike = typeof drugEffects.contractilitySympatheticSpike === 'number' && Number.isFinite(drugEffects.contractilitySympatheticSpike) ? drugEffects.contractilitySympatheticSpike : 0;
-    if (patient.adrenalSuppressionActive) {
-      safeSvrSympatheticSpike *= 0.6;
-      safeContractilitySympatheticSpike *= 0.6;
-    }
+    // Cortisol's graduated permissive effect on catecholamine receptor responsiveness
+    // (AdrenalEngine.ts, Phase 2) replaces the old fixed 0.6x `adrenalSuppressionActive`
+    // discount -- a continuous function of actual cortisol level (which itself responds
+    // to etomidate suppression/dexamethasone coverage over real kinetics) rather than an
+    // instant on/off switch. Falls back to the old fixed 0.6x if the new engine's output
+    // isn't supplied (e.g. older test fixtures), preserving existing behavior exactly.
+    const catecholamineSensitivityMultiplier = typeof drugEffects.catecholamineSensitivityMultiplier === 'number' && Number.isFinite(drugEffects.catecholamineSensitivityMultiplier)
+      ? drugEffects.catecholamineSensitivityMultiplier
+      : (patient.adrenalSuppressionActive ? 0.6 : 1.0);
+    safeSvrSympatheticSpike *= catecholamineSensitivityMultiplier;
+    safeContractilitySympatheticSpike *= catecholamineSensitivityMultiplier;
     let safeHrSympatheticSpike = typeof drugEffects.hrSympatheticSpike === 'number' && Number.isFinite(drugEffects.hrSympatheticSpike) ? drugEffects.hrSympatheticSpike : 0;
     
     // Calculate LAST Cardiotoxicity (tCv) and Cocaine NET Blockade Sympathetic Surge
@@ -320,10 +336,19 @@ export class CardiovascularEngine {
     // Splanchnic vasculature follows the same visceral sympathetic chain as the GI organs it
     // perfuses (TABLE 15.2, Miller's 9th Ed: T5-L1 via the celiac plexus, spanning liver/
     // biliary through sigmoid/rectum). Celiac plexus block silences this directly; a thoracic
-    // epidural's effect is graded by dermatomal overlap via `epiduralLevel`.
-    const epiduralSplanchnicCoverage = patient.epiduralBlockActive
+    // epidural's effect is graded by dermatomal overlap via `epiduralLevel`, AND by local
+    // anesthetic concentration via the differential nerve block model (Phase 3, Stage A of
+    // mutable-roaming-newell.md) -- sympathetic B-fibers are the most susceptible fiber
+    // class, so even a dilute, motor-sparing ("labor epidural" strength) block still
+    // produces substantial sympathetic blockade; `epiduralConcentrationIndex` defaults to
+    // 1.0 (surgical strength) when not specified, preserving the prior flat-coverage
+    // assumption almost exactly (sympathetic fibers are >99% blocked at that concentration).
+    const epiduralSpatialCoverage = patient.epiduralBlockActive
       ? calculateDermatomalBlockFraction(patient.epiduralLevel, 5, 13)
       : 0.0;
+    const epiduralSplanchnicCoverage = calculateDifferentialDermatomalBlock(
+      epiduralSpatialCoverage, 'sympathetic', patient.epiduralConcentrationIndex
+    );
     const sympatheticBlock = patient.celiacBlockActive ? 1.0 : epiduralSplanchnicCoverage;
     const hasNeoSynephrine = inputs.activeMeds.some(m => m.name === 'Phenylephrine' && m.A1 > 0.1);
     const hasNorepi = inputs.activeMeds.some(m => m.name === 'Norepinephrine' && m.A1 > 0.1);
@@ -390,6 +415,8 @@ export class CardiovascularEngine {
       svr: safeSVR,
       totalBloodVolumeMl: totalBloodVolumeForCycle,
       splanchnicTone,
+      alpha1ActivityIndex: safeAlpha1ActivityIndex,
+      beta2ActivityIndex: safeBeta2ActivityIndex,
       aorticStenosis: isAorticStenosis,
       chf: !!patient.chf,
       ef: patient.ef,
@@ -590,7 +617,13 @@ export class CardiovascularEngine {
     // derives; vasomotor tone is set by sympathetic/septic/drug/reflex state, independent
     // of cardiac mechanics).
     const baseSVR = typeof patient.patientBaseSVR === 'number' && Number.isFinite(patient.patientBaseSVR) && patient.patientBaseSVR > 0 ? patient.patientBaseSVR : 1200;
-    let targetSVR = (baseSVR * safeDrugSvrMod * (patient.isSeptic ? 0.6 : 1.0) * safeAnaphylaxisSvrMod * (bjActive ? 0.75 : 1.0) * (1.0 - 0.15 * sympatheticBlock)) + safeSvrSympatheticSpike;
+    // Sepsis SVR reduction: replaced the prior flat isSeptic ? 0.6 with a continuous
+    // sepsisScore-driven multiplier from SepsisCascadeModel.ts (Phase 5, Stage 4).
+    // Same calibration at peak severity (score=3): 1 - 0.40 = 0.60 -- matching the prior
+    // flat value so existing cases behave identically at maximum untreated severity.
+    const safeSepsisScore = typeof (patient as any).sepsisScore === 'number' && Number.isFinite((patient as any).sepsisScore) ? (patient as any).sepsisScore : (patient.isSeptic ? 3 : 0);
+    const sepsisVasoplegiaMod = patient.isSeptic ? (1 - 0.40 * safeSepsisScore / 3) : 1.0;
+    let targetSVR = (baseSVR * safeDrugSvrMod * sepsisVasoplegiaMod * safeAnaphylaxisSvrMod * (bjActive ? 0.75 : 1.0) * (1.0 - 0.15 * sympatheticBlock)) + safeSvrSympatheticSpike;
 
     if (patient.ziconotideHypotensionActive) {
       const pos = patient.position || 'Supine';
@@ -607,6 +640,19 @@ export class CardiovascularEngine {
       const cushingSvrMultiplier = 1.0 + 1.5 * (1.0 - Math.max(0, patient.cpp) / 50.0);
       targetSVR *= cushingSvrMultiplier;
     }
+
+    // Vasomotor center's baroreflex-driven vasoconstrictive arm (BrainstemEngine.ts,
+    // Phase 3) -- the baroreflex previously only ever drove heart rate in this engine;
+    // this is the missing general-case vasoconstrictive contribution (Cushing's reflex
+    // above remains its own separate, ICP-specific special case, unchanged).
+    const safeVasomotorSvrContribution = typeof drugEffects.vasomotorSvrContribution === 'number' && Number.isFinite(drugEffects.vasomotorSvrContribution) ? drugEffects.vasomotorSvrContribution : 0;
+    targetSVR += safeVasomotorSvrContribution;
+
+    // Pregnancy's progesterone-mediated vasodilation (PregnancyPhysiologyEngine.ts, Phase 4) --
+    // ~20% SVR reduction by term, one of the two main drivers (alongside the preload increase
+    // fed in via positionPreloadMod) of pregnancy's ~40% cardiac output increase by term.
+    const safePregnancySvrMultiplier = typeof drugEffects.pregnancySvrMultiplier === 'number' && Number.isFinite(drugEffects.pregnancySvrMultiplier) && drugEffects.pregnancySvrMultiplier > 0 ? drugEffects.pregnancySvrMultiplier : 1.0;
+    targetSVR *= safePregnancySvrMultiplier;
 
     targetSVR = Math.max(50, targetSVR);
 
@@ -626,6 +672,8 @@ export class CardiovascularEngine {
       svr: targetSVR,
       totalBloodVolumeMl: totalBloodVolumeForCycle,
       splanchnicTone,
+      alpha1ActivityIndex: safeAlpha1ActivityIndex,
+      beta2ActivityIndex: safeBeta2ActivityIndex,
       aorticStenosis: isAorticStenosis,
       chf: !!patient.chf,
       ef: patient.ef,

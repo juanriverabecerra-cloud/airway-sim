@@ -1,3 +1,5 @@
+import { computeModulatedEndogenousCoupling } from './ReceptorPharmacologyModel';
+
 export interface PainPatientState {
   C_cat?: number;
   MAP_set?: number;
@@ -46,6 +48,8 @@ export interface PainEngineOutput {
   hrSpike: number;
   svrSpike: number;
   contractilitySpike: number;
+  alpha1Activity: number; // endogenous catecholamine pool's receptor activity (Phase 2's receptor-unification piece), for per-vascular-bed redistribution
+  beta2Activity: number;
   rrSpike: number;
   bisSpike: number;
   pupilSize: number;
@@ -76,7 +80,8 @@ export class PainEngine {
     vitals: PainVitalsState,
     activeMeds: any[],
     currentMac: number,
-    simulationTime: number
+    simulationTime: number,
+    nonNociceptiveSympatheticStimulus: number = 0
   ): PainEngineOutput {
     // 1. Sanitizing/Initializing State Variables
     const safeTime = typeof simulationTime === 'number' && Number.isFinite(simulationTime) ? simulationTime : 0;
@@ -255,7 +260,15 @@ export class PainEngine {
     // Dynamic rate: rapid onset, slow clearance
     const k_onset = 1.0;
     const k_clear = 0.0077;
-    const targetCcat = totalNociceptiveInflux;
+    // One real adrenal medulla output, fed by every trigger that drives it -- nociception
+    // (above) plus the non-pain sympathoadrenal triggers (hypoglycemia, hypoxia,
+    // hemorrhage/hypotension) AdrenalEngine.ts computes on this same 0-100 nociception-
+    // equivalent scale, rather than a second, parallel catecholamine pool that never
+    // interacts with this one (Phase 2, Stage A of mutable-roaming-newell.md).
+    const safeNonNociceptiveStimulus = typeof nonNociceptiveSympatheticStimulus === 'number' && Number.isFinite(nonNociceptiveSympatheticStimulus)
+      ? Math.max(0, nonNociceptiveSympatheticStimulus)
+      : 0;
+    const targetCcat = Math.min(150.0, totalNociceptiveInflux + safeNonNociceptiveStimulus);
     if (targetCcat > currentCcat) {
       currentCcat += dt * k_onset * (targetCcat - currentCcat);
     } else {
@@ -323,14 +336,8 @@ export class PainEngine {
       E_beta1_max = Math.min(0.05, E_beta1_max); // competitive cap
     }
 
-    // β1 chronotropic response
-    const deltaHR_beta1 = 70.0 * (Math.pow(sympatheticDrive, 1.5) / (Math.pow(sympatheticDrive, 1.5) + Math.pow(40.0, 1.5))) * E_beta1_max;
-    const hrSpike = deltaHR_beta1 + baroModifier;
-
-    // β1 inotropic response
-    const contractilitySpike = 0.5 * (Math.pow(sympatheticDrive, 1.5) / (Math.pow(sympatheticDrive, 1.5) + Math.pow(40.0, 1.5))) * E_beta1_max;
-
-    // Alpha-1 (α1) Vasoconstriction
+    // Alpha-1 (α1) Vasoconstriction -- modulation factors computed before the shared
+    // receptor-coupling call below, same as before.
     const phentolamineEff = getDrugEffect('Phentolamine', 0.5, 2.0);
     const alphaBlockade = Math.min(0.95, (labetalolEff * 0.40) + phentolamineEff * 0.90);
     const volatileVasodilation = Math.min(0.50, safeMac * 0.20);
@@ -338,8 +345,35 @@ export class PainEngine {
     const baseE_alpha1_max = isHTN ? 2.5 : 1.5;
     const E_alpha1_max = baseE_alpha1_max * (1.0 - alphaBlockade) * (1.0 - volatileVasodilation);
 
-    // α1 vasoactive resistance modifier
-    const svrSpike = 1200.0 * (Math.pow(sympatheticDrive, 1.5) / (Math.pow(sympatheticDrive, 1.5) + Math.pow(50.0, 1.5))) * E_alpha1_max;
+    // Endogenous catecholamine receptor coupling (Phase 2's deferred receptor-
+    // unification piece, mutable-roaming-newell.md): replaces the separate bespoke
+    // sigmoid formulas for beta-1 (HR/contractility) and alpha-1 (SVR) with one shared
+    // Hill-equation + receptor-coupling model -- the SAME machinery
+    // `Pharmacology.js`/`PKPDEngine.ts` already use for exogenous epinephrine/
+    // norepinephrine/phenylephrine/ephedrine -- so endogenous and exogenous
+    // catecholamines are now computed through one mechanism instead of two that never
+    // mathematically interacted. `E_beta1_max`/`E_alpha1_max`'s existing modulation
+    // (beta-blockade, alpha-blockade, HTN baseline, volatile vasodilation) is preserved
+    // exactly, now applied to this shared model's receptor potencies instead of the old
+    // formula's magnitude constants. A small beta-2-mediated vasodilation component
+    // (real epinephrine physiology, absent from the old endogenous-only formula) is a
+    // disclosed, intentional addition -- see ReceptorPharmacologyModel.ts's header.
+    const endogenousCoupling = computeModulatedEndogenousCoupling(sympatheticDrive, E_beta1_max, E_alpha1_max);
+
+    // β1 chronotropic response
+    const deltaHR_beta1 = endogenousCoupling.hrDeltaContribution;
+    const hrSpike = deltaHR_beta1 + baroModifier;
+
+    // β1 inotropic response -- damped 0.4x relative to the shared model's raw
+    // coMultiplierDelta (calibrated against the old formula's independently-tuned
+    // contractility magnitude constant; see ReceptorPharmacologyModel.ts).
+    const contractilitySpike = endogenousCoupling.coMultiplierDelta * 0.4;
+
+    // α1 (+ beta-2 antagonism) vasoactive resistance modifier, converted from the shared
+    // model's multiplier-fraction convention to this engine's existing absolute-additive
+    // convention by scaling against a representative baseline SVR (1200, this codebase's
+    // existing default `patientBaseSVR`).
+    const svrSpike = endogenousCoupling.svrMultiplierDelta * 1200;
 
     // 8. Respiratory, Neurological & Somatic Targets
     // Spontaneous respiration (Tachypnea blunted by opioids)
@@ -407,6 +441,8 @@ export class PainEngine {
       hrSpike: parseFloat(hrSpike.toFixed(2)),
       svrSpike: parseFloat(svrSpike.toFixed(2)),
       contractilitySpike: parseFloat(contractilitySpike.toFixed(4)),
+      alpha1Activity: parseFloat(endogenousCoupling.alpha1Activity.toFixed(4)),
+      beta2Activity: parseFloat(endogenousCoupling.beta2Activity.toFixed(4)),
       rrSpike: parseFloat(rrSpike.toFixed(2)),
       bisSpike: parseFloat(bisSpike.toFixed(2)),
       pupilSize: parseFloat(pupilSize.toFixed(2)),

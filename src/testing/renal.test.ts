@@ -40,6 +40,48 @@ describe('Chapter 17 Renal Physiology and Pathophysiology Unit Tests', () => {
       expect(output.vasopressinLevel).toBeGreaterThan(0.0);
     });
 
+    it('Phase 4: ureteral obstruction backs up pressure into Bowman space, reducing NFP and GFR proportional to severity', () => {
+      const basePatient = {
+        weight: 70.0, baselineCreatinine: 0.85, baselineBun: 12.0, creatinine: 0.85, bun: 12.0,
+        urineOutput: 0.0, glucose: 100.0
+      };
+      const inputs = {
+        coRatio: 1.0, map: 90.0, sys: 120.0, cvp: 5.0, peep: 0.0, temp: 37.0,
+        currentMac: 0.0, C_cat: 0.0, ebl: 0.0, ebv: 5000.0, netFluidBalance: 0.0
+      };
+      const noObstruction = RenalEngine.tick(1, { patient: basePatient, vitals: {}, time: 0 }, [], inputs);
+      const mildObstruction = RenalEngine.tick(1, { patient: { ...basePatient, ureteralObstructionActive: true, ureteralObstructionSeverity: 0.3 }, vitals: {}, time: 0 }, [], inputs);
+      const severeObstruction = RenalEngine.tick(1, { patient: { ...basePatient, ureteralObstructionActive: true, ureteralObstructionSeverity: 1.0 }, vitals: {}, time: 0 }, [], inputs);
+
+      expect(mildObstruction.netFiltrationPressure).toBeLessThan(noObstruction.netFiltrationPressure);
+      expect(severeObstruction.netFiltrationPressure).toBeLessThan(mildObstruction.netFiltrationPressure);
+      expect(severeObstruction.gfr).toBeLessThan(mildObstruction.gfr);
+      expect(mildObstruction.gfr).toBeLessThan(noObstruction.gfr);
+    });
+
+    it('Phase 4: ureteral obstruction onset/resolution fire narrative events on the transition only', () => {
+      const basePatient = {
+        weight: 70.0, baselineCreatinine: 0.85, baselineBun: 12.0, creatinine: 0.85, bun: 12.0,
+        urineOutput: 0.0, glucose: 100.0
+      };
+      const inputs = {
+        coRatio: 1.0, map: 90.0, sys: 120.0, cvp: 5.0, peep: 0.0, temp: 37.0,
+        currentMac: 0.0, C_cat: 0.0, ebl: 0.0, ebv: 5000.0, netFluidBalance: 0.0
+      };
+      const onset = RenalEngine.tick(1, { patient: { ...basePatient, ureteralObstructionActive: true, ureteralObstructionSeverity: 0.5 }, vitals: {}, time: 0 }, [], inputs);
+      expect(onset.events.some(e => e.includes('Ureteral obstruction detected'))).toBe(true);
+      expect(onset.ureteralObstructionEventLogged).toBe(true);
+
+      // Carrying the logged flag forward (as usePhysiology.js does for every other such flag)
+      // suppresses the duplicate event on a steady-state tick.
+      const steadyState = RenalEngine.tick(1, { patient: { ...basePatient, ureteralObstructionActive: true, ureteralObstructionSeverity: 0.5, ureteralObstructionEventLogged: true }, vitals: {}, time: 1 }, [], inputs);
+      expect(steadyState.events.some(e => e.includes('Ureteral obstruction detected'))).toBe(false);
+
+      const resolved = RenalEngine.tick(1, { patient: { ...basePatient, ureteralObstructionActive: false, ureteralObstructionEventLogged: true }, vitals: {}, time: 2 }, [], inputs);
+      expect(resolved.events.some(e => e.includes('Ureteral obstruction relieved'))).toBe(true);
+      expect(resolved.ureteralObstructionEventLogged).toBe(false);
+    });
+
     it('should scale down GFR and RBF under hypotension and cease GFR completely at MAP <= 50', () => {
       const patient = { weight: 70.0 };
       const vitals = {};

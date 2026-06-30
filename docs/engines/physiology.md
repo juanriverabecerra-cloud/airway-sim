@@ -1079,3 +1079,1161 @@ ight)\right)$$
     Cumulative exposure to intraoperative hypotension is strongly associated with postoperative acute kidney injury (Page 460, Miller's 9th Ed). The simulator tracks cumulative exposure time to MAP < 60 mmHg and MAP < 55 mmHg:
     - **MAP < 60 mmHg Alert**: Triggered when cumulative time under 60 mmHg exceeds 11 minutes (660 seconds). Adds a persistent ischemic injury rate of $+0.003/\text{s}$ to `dDamage`.
     - **MAP < 55 mmHg Alert**: Triggered when cumulative time under 55 mmHg exceeds 10 minutes (600 seconds). Adds a persistent ischemic injury rate of $+0.003/\text{s}$ to `dDamage`.
+
+#### 4.14 Adrenal Gland: Catecholamine Trigger + Cortisol/HPA Axis (`AdrenalEngine.ts`)
+
+Phase 2, Stage A of `/Users/jsriverab/.claude/plans/mutable-roaming-newell.md`. Before
+this engine, endogenous catecholamine release was modeled only as a downstream
+consequence of `PainEngine.ts`'s nociception-driven `C_cat` pool -- real, but missing the
+adrenal medulla's other major triggers, which drive a catecholamine surge independent of
+pain. The adrenal cortex's cortisol output was previously only a binary
+`patient.adrenalSuppressionActive` flag (etomidate's 11-beta-hydroxylase inhibition)
+blunting catecholamine effects by a fixed 0.6x in `CardiovascularEngine.ts`.
+
+*   **Adrenal medulla -- non-nociceptive sympathoadrenal triggers**: hypoglycemia
+    (counter-regulatory surge below a ~70 mg/dL threshold, severe by ~40), hypoxia
+    (chemoreceptor-driven, below ~90% SpO2), and hemorrhage/hypotension (baroreceptor-
+    driven, below MAP 65 and/or blood-loss ratio above 0.15) each independently produce a
+    stimulus on the *same* 0-100 nociception-equivalent scale `PainEngine.ts`'s
+    `totalNociceptiveInflux` already uses. This is added directly into
+    `PainEngine.ts`'s existing `targetCcat` (the input to its already-validated
+    onset/clearance kinetics, ~90 s half-life) rather than a second, parallel
+    catecholamine pool that never mathematically interacts with the first -- one real
+    adrenal medulla output, fed by every trigger that drives it.
+*   **Adrenal cortex -- cortisol/HPA axis**: cortisol's target tracks the same broad
+    stress signal (capped and rescaled onto a 0-1 convention matching
+    `RenalEngine.ts`'s existing aldosterone/vasopressin/Angiotensin-II scale), with its
+    own slower kinetics (a real cortisol stress response unfolds over minutes, not the
+    catecholamine pool's ~90 s half-life). Etomidate (`Ce > 0.05` or the existing
+    `adrenalSuppressionActive` flag) collapses the *target* toward zero regardless of
+    stress level -- 11-beta-hydroxylase inhibition blocks synthesis outright, not just a
+    discount on whatever would otherwise be produced -- and dexamethasone coverage
+    prevents this collapse, exactly the existing clinical mechanism, now continuously
+    tracked rather than a step function.
+*   **Cortisol's permissive effect, made graduated**: outputs a
+    `catecholamineSensitivityMultiplier` (0.4-1.0) -- the textbook reason adrenal-
+    insufficient/Addisonian patients develop catecholamine-refractory hypotension --
+    saturating at 1.0 once cortisol reaches its own resting baseline (so normal,
+    unstressed patients see full sensitivity, not a permanent discount) and falling only
+    when cortisol drops *below* that baseline. Replaces
+    `CardiovascularEngine.ts`'s old fixed 0.6x `adrenalSuppressionActive` multiplier on
+    `svrSympatheticSpike`/`contractilitySympatheticSpike`, and `usePhysiology.js`'s
+    matching fixed-0.6x discount on the exogenous-drug receptor-coupling multipliers
+    (`effects.svrMultiplier`/`effects.coMultiplier`, the existing Hill-equation +
+    alpha-1/beta-1/beta-2 receptor layer in `PKPDEngine.ts` that already drives
+    epinephrine/norepinephrine/phenylephrine/ephedrine/vasopressin's exogenous effects) --
+    both pathways now blunted by the same continuous, cortisol-driven signal, with a
+    fallback to the old fixed 0.6x preserved exactly when the new engine's output isn't
+    supplied (defensive default, not expected to be hit in the live tick loop).
+*   **A real architecture finding, not assumed**: confirmed (by direct code tracing, not
+    inference) that exogenous catecholamine-class drugs already have a genuine
+    alpha-1/beta-1/beta-2 receptor-occupancy layer (`Pharmacology.js`'s `receptors`
+    fields + `PKPDEngine.ts`'s Hill-equation coupling, lines ~518-592) -- but endogenous
+    sympathetic activation (`PainEngine.ts`'s `C_cat`) used a separate, simpler
+    sigmoid-curve pathway that never shared that machinery, and the two were purely
+    additive at the final SVR/HR/inotropy assembly in `CardiovascularEngine.ts`, never
+    mathematically coupled. This stage closed the *trigger* gap (adrenal medulla's
+    non-pain triggers) and the *cortisol-permissiveness* gap; unifying the endogenous and
+    exogenous catecholamine pathways through one shared receptor-occupancy model, and
+    extending alpha-1 vasoconstriction to act per-vascular-bed, was deferred to its own
+    checkpoint -- now done, see §4.18.
+*   **Deliberately not yet modeled**: thyroid, pancreas/glucose-insulin, parathyroid/
+    calcium-vitamin D (the rest of Phase 2); glucose is read here only as an *input*
+    trigger for the counter-regulatory response, not yet computed from real
+    glycogenolysis/insulin kinetics (that's the pancreas stage); cortisol's
+    gluconeogenic/anti-inflammatory actions beyond the catecholamine-permissive effect are
+    not modeled.
+*   **Verification**: `src/testing/adrenal_engine.test.ts` (10 tests, including two
+    integration tests proving `PainEngine.tick()`'s new optional
+    `nonNociceptiveSympatheticStimulus` parameter measurably raises `C_cat` and
+    `CardiovascularEngine.tick()`'s new optional `catecholamineSensitivityMultiplier`
+    measurably blunts the resulting MAP). The live wiring (a new early `AdrenalEngine.tick()`
+    call in `usePhysiology.js`, feeding both `PainEngine.tick()` and
+    `CardiovascularEngine.tick()`) surfaced zero test failures on the first run --
+    694/694 tests passing, build clean.
+
+#### 4.15 Thyroid Gland: T3/T4 Axis -> Basal Metabolic Rate, Heat Production, Baseline HR (`ThyroidEngine.ts`)
+
+Phase 2, Stage B. Before this engine, `totalMetabolicMultiplier` (driving
+`VO2_sec`/`VCO2_sec` in `usePhysiology.js`) had three independent multiplier inputs
+(shivering, seizure, malignant hyperthermia) but no thyroid-status contribution at all
+-- hypothyroid and hyperthyroid patients behaved metabolically identically to euthyroid
+ones. Temperature regulation had no thyroid-driven baseline, and HR had no thyroid-
+driven baseline shift.
+
+*   **Chronic-comorbidity-driven, not dynamically synthesized**: there is no TSH/
+    pituitary input modeled to drive T3/T4 release; `patient.hypothyroidism`/
+    `hyperthyroidism` set a target thyroid function index (0.6 untreated hypothyroid,
+    1.5 untreated hyperthyroid, 1.15 if on antithyroid medication), and actual output
+    tracks toward it with deliberately slow kinetics (T4's real biological half-life is
+    ~7 days -- thyroid status doesn't meaningfully change within one OR case, itself the
+    clinically important point: it's a baseline condition to manage, not something
+    anesthesia changes acutely).
+*   **Basal metabolic rate / HR baseline / temperature baseline**: the thyroid function
+    index feeds a `thyroidMetabolicMultiplier` directly into `totalMetabolicMultiplier`
+    (multiplying `VO2_sec`/`VCO2_sec`), an `hrBaselineShift` added into the existing
+    `totalHrDelta` accumulator feeding `CardiovascularEngine.tick()`, and a
+    `tempBaselineShift` that shifts the passive-temperature-equilibration *target* in
+    `usePhysiology.js` (previously a hardcoded 37.0 for every patient regardless of
+    thyroid status) rather than overriding the existing cooling-rate/shivering/MH
+    temperature logic.
+*   **Thyroid storm**: a real acute crisis trigger (matching this codebase's established
+    MH/serotonin-syndrome pattern), not just a continuous multiplier -- inadequately-
+    controlled hyperthyroidism (no antithyroid medication, no beta-blockade) under
+    sufficient surgical/physiologic stress (read from `AdrenalEngine.ts`'s stimulus
+    signal, Phase 2 Stage A) precipitates a dramatic multiplier/HR/temperature spike that
+    can clinically mimic malignant hyperthermia -- a real, frequently-tested differential
+    diagnosis point. Beta-blockade prevents triggering even if thyrotoxic.
+*   **Deliberately not yet modeled**: TSH/pituitary dynamics, iodine-induced thyroid
+    dysfunction, myxedema coma as a distinct staged crisis (hypothyroidism's metabolic
+    suppression is modeled continuously but not as its own acute decompensation event
+    the way thyroid storm is for hyperthyroidism).
+*   **Verification**: `src/testing/thyroid_engine.test.ts` (7 tests, including a
+    long-horizon test confirming antithyroid medication's target-blunting effect
+    compounds correctly over many ticks, and a storm-vs-chronic comparison). 715/715
+    tests passing after this and the two engines below, build clean.
+
+#### 4.16 Pancreatic Endocrine Engine: Insulin/Glucagon -> Real Glucose Homeostasis (`PancreasEngine.ts`)
+
+Phase 2, Stage C. Before this engine, `patient.glucose` was a static field -- read by
+`RenalEngine.ts` (plasma osmolality) and `AdrenalEngine.ts` (hypoglycemia's counter-
+regulatory trigger) but never actually computed from real physiology.
+
+*   **Mechanism**: hepatic glycogenolysis/gluconeogenesis (driven by glucagon, which
+    rises as glucose falls -- the real counter-regulatory loop, alongside
+    `AdrenalEngine.ts`'s catecholamine surge for the same trigger) minus insulin-driven
+    peripheral uptake (insulin rises as glucose rises above baseline), plus any
+    exogenous dextrose. Net flux integrates directly into `patient.glucose`.
+*   **Real stress hyperglycemia**: hepatic glucose output also scales directly with
+    `AdrenalEngine.ts`'s cortisol level and non-nociceptive sympathetic stimulus -- a
+    clinically significant perioperative phenomenon (surgical stress measurably raises
+    glucose even in non-diabetic patients) this codebase had no mechanism for at all
+    before this stage.
+*   **Diabetes**: modeled as reduced insulin *sensitivity* (a disclosed simplification
+    covering both insulin resistance and relative insulin deficiency, rather than
+    separately staging Type 1 vs. Type 2 beta-cell function) -- diabetic patients show
+    exaggerated stress hyperglycemia and a blunted ability to correct it, the real
+    clinical picture, without needing two separate disease models.
+*   **Exogenous insulin/dextrose**: reads `Insulin`'s PKPD `Ce` directly (added to the
+    endogenous secretion target) and accepts an explicit exogenous-dextrose input --
+    both verified to move glucose in the correct direction and magnitude.
+*   **Calibration**: found by direct numerical balancing for a true steady state at
+    baseline (no pathology) -- stays within a normal fasting-glucose band over a
+    simulated hour with zero stress/pathology inputs.
+*   **Deliberately not yet modeled**: Type 1 vs. Type 2 as genuinely distinct mechanisms;
+    diabetic ketoacidosis/HHS as their own staged crises beyond the disclosed severe-
+    hyperglycemia warning event; glycosylated hemoglobin or any longer-timescale glucose
+    control metric.
+*   **Verification**: `src/testing/pancreas_engine.test.ts` (7 tests, including a
+    long-horizon insulin-overdose scenario confirming both the hypoglycemia and the
+    critical (<40 mg/dL) event fire correctly).
+
+#### 4.17 Parathyroid Gland Engine: PTH -> Calcium / Vitamin D Axis (`ParathyroidEngine.ts`)
+
+Phase 2, Stage D -- completing Phase 2. Before this engine, `electrolytes.ca` was
+modified only by `FluidicsEngine.ts`'s citrate-binding mechanism (massive transfusion
+depleting ionized calcium) -- a real, correct acute mechanism, but with no homeostatic
+*correction* layer at all: any calcium depletion was permanent until directly treated.
+
+*   **Mechanism**: PTH secretion rises as calcium falls below baseline (real negative
+    feedback) and raises calcium through a combined bone/renal/vitamin-D-dependent-
+    intestinal effect. This engine adds the correction layer *without touching*
+    `FluidicsEngine.ts`'s existing citrate mechanism -- the acute depletion event and the
+    homeostatic response are genuinely separate physiological processes on different
+    timescales (citrate binding is immediate; PTH-mediated correction unfolds over many
+    minutes to hours) and are deliberately kept as separate mechanisms for that reason.
+*   **Vitamin D / renal dependence**: vitamin D's activation step is renally dependent --
+    chronic kidney disease (read directly from the existing `renalRatio` signal already
+    computed early in `usePhysiology.js`'s tick, derived from `RenalEngine.ts`'s GFR)
+    reduces how effective PTH's calcium-raising action can be, the real mechanism behind
+    renal osteodystrophy/secondary hyperparathyroidism -- modeled here as reduced
+    correction *effectiveness* rather than a separately-tracked vitamin D pool.
+*   **Hypoparathyroidism**: a real, commonly-tested surgical complication (post-
+    thyroidectomy/parathyroidectomy) blunts the PTH response directly, allowing
+    progressive, unopposed hypocalcemia.
+*   **A genuine design correction caught during testing, not assumed**: this engine only
+    ever *raises* calcium (the correction layer) -- it has no mechanism to lower it, so
+    an initial "fires when crossing below a threshold" event design could never actually
+    trigger from its own dynamics (output is always >= input). Fixed by checking the
+    *input* calcium level directly against the threshold with a logged-flag guard
+    (matching `CardiovascularEngine.ts`'s `ischemiaMildLogged`/`-SevereLogged`
+    convention) instead of a before/after transition this engine's own output could
+    never produce -- caught by a failing test, not by re-reading the equations alone.
+*   **Deliberately not yet modeled**: vitamin D as its own tracked pool (currently a
+    direct renal-function-derived effectiveness multiplier); calcitonin; bone mineral
+    density/osteoporosis as a distinct downstream consequence of chronic PTH elevation.
+*   **Verification**: `src/testing/parathyroid_engine.test.ts` (7 tests). 715/715 tests
+    passing, build clean.
+
+#### 4.18 Receptor Unification: One Shared Alpha-1/Beta-1/Beta-2/V1 Model for Endogenous + Exogenous Catecholamines, Per-Vascular-Bed Redistribution (`ReceptorPharmacologyModel.ts`, `PainEngine.ts`, `PKPDEngine.ts`, `FourChamberCircuitModel.ts`)
+
+Phase 2's deferred, highest-risk piece -- completing Phase 2. Direct code tracing during
+Stage A (§4.14) found that exogenous catecholamine-class drugs (epinephrine,
+norepinephrine, phenylephrine, ephedrine, vasopressin) already had a genuine alpha-1/
+beta-1/beta-2/V1 receptor-occupancy layer (`Pharmacology.js`'s `receptors` fields +
+`PKPDEngine.ts`'s Hill-equation coupling), but `PainEngine.ts`'s endogenous
+catecholamine pool (`C_cat`) used a separate, simpler sigmoid pathway that never shared
+that machinery -- the two combined only additively at the final SVR/HR/inotropy
+assembly in `CardiovascularEngine.ts`, never through one mechanism. This is the most
+direct fulfillment of the original "epinephrine should work through real vasoconstriction
+and chronotropy" request that started this redesign.
+
+*   **Extraction, not rewriting**: `PKPDEngine.ts`'s inline Hill-equation + receptor-
+    coupling code (SVR driven by alpha-1/V1, antagonized by beta-2; CO/chronotropy
+    driven by beta-1; a baroreflex-bradycardia term for pure pressors) was extracted
+    verbatim into `ReceptorPharmacologyModel.ts`'s `hillEquationFraction`/
+    `computeReceptorCoupling`. `PKPDEngine.ts` now calls this shared function instead of
+    its own inline duplicate -- confirmed a pure refactor (zero behavior change, full
+    suite passing identically before and after).
+*   **Endogenous catecholamine profile**: `PainEngine.ts`'s `hrSpike`/
+    `contractilitySpike`/`svrSpike` (previously three independently-tuned bespoke
+    sigmoid formulas with two different EC50s) now come from one
+    `computeModulatedEndogenousCoupling(C_cat, E_beta1_max, E_alpha1_max)` call through
+    the shared model, with a disclosed receptor profile (Alpha1=7, Beta1=8, Beta2=2;
+    not the same numeric potencies as exogenous epinephrine's, since those are
+    calibrated against a completely different plasma-concentration c50 scale) found by
+    direct numerical comparison against the prior formulas, not assumed --
+    `src/testing/receptor_pharmacology_model.test.ts` keeps that comparison as a live
+    regression check. `PainEngine.ts`'s existing beta-blockade/alpha-blockade/HTN-
+    baseline/volatile-vasodilation modulation (`E_beta1_max`/`E_alpha1_max`) is preserved
+    exactly, normalized against its own un-modulated baseline before scaling the shared
+    model's receptor potencies. A small beta-2-mediated vasodilation component (real
+    epinephrine physiology, absent from the old endogenous-only formula) is a disclosed,
+    intentional addition. The live wiring surfaced **zero** test failures on first try --
+    the careful numerical calibration against the prior formulas paid off.
+*   **Per-vascular-bed alpha-1/beta-2 redistribution** (`FourChamberCircuitModel.ts`):
+    real receptor-density differences mean a given amount of catecholamine activity
+    doesn't vasoconstrict every bed equally -- skin and splanchnic beds are alpha-1-
+    dominant (the real mechanism behind pressors shunting blood away from skin/gut),
+    cerebral and coronary beds are comparatively spared (reinforcing the per-bed
+    autoregulation already modeled in Phase 1), skeletal muscle has a disclosed beta-2-
+    mediated vasodilation offset (the classic biphasic epinephrine dose-response).
+    `alpha1ActivityIndex`/`beta2ActivityIndex` (the sum of `alpha1Activity`/
+    `beta2Activity` across every active exogenous drug, via a new field on
+    `PKPDEffects`, plus the endogenous coupling's own activity, via new fields on
+    `PainEngineOutput`) feed this redistribution.
+*   **A real, caught-by-testing math bug, not assumed correct**: an initial design
+    weighted each bed's redistribution multiplier to average exactly 1.0 in *resistance*
+    space (`ALPHA1_BED_WEIGHT`, CO-fraction-weighted). Direct numerical testing showed
+    this does **not** preserve the parallel combination's total resistance -- $1/R_{total}
+    = \sum 1/R_i$ is dominated by the lowest-resistance branch, not the arithmetic mean of
+    the $R_i$ themselves (a consequence of the reciprocal function's convexity, Jensen's
+    inequality). An early version caused MAP to *fall* at extreme pressor activity instead
+    of rise -- the opposite of real physiology -- because a strongly-spared bed's
+    resistance dropping enough created a low-resistance shunt the parallel combination
+    disproportionately exploited. Fixed with an explicit renormalization step: compute
+    the resulting parallel resistance after redistribution, and rescale every bed's
+    resistance by `rSystemicTotal / resultingParallelResistance` (scaling every resistor
+    in a parallel network by `k` scales the combination by exactly `k`, a basic circuit
+    property) so the overall total is restored exactly regardless of how extreme the
+    redistribution gets. Splanchnic pooling's own real net effect (sympathetic/celiac
+    block) is applied *after* this renormalization, so it isn't accidentally undone by it.
+*   **Verification**: `src/testing/receptor_pharmacology_model.test.ts` (11 tests, the
+    direct numerical comparison against the prior bespoke formulas) and 4 new tests in
+    `src/testing/four_chamber_circuit_model.test.ts` (redistribution stays MAP-neutral
+    even at extreme activity, beta-2 redistribution likewise, splanchnic pooling's real
+    effect survives the renormalization). 729/729 tests passing, build clean. **Phase 2
+    is now fully complete**, including this previously-deferred piece.
+
+#### 4.19 Differential Nerve Conduction Block: Fiber-Selective Local Anesthetic Blockade (`NerveConductionBlockModel.ts`)
+
+Phase 3, Stage A of `/Users/jsriverab/.claude/plans/mutable-roaming-newell.md`. Before
+this model, `Pharmacology.js`'s `calculateDermatomalBlockFraction` answered a purely
+*spatial* question (which dermatomes fall within a neuraxial block's anatomical spread)
+and that single coverage fraction was applied uniformly to every modality -- sympathetic,
+pain, touch, and motor all "blocked" by the same amount at the same dose. Real local
+anesthetics block nerve fibers differentially by diameter/myelination
+(B > C/A-delta > A-beta > A-alpha, most-to-least susceptible) -- the real mechanism
+behind a labor epidural sparing motor function while still blunting pain and sympathetic
+tone, versus a denser surgical block additionally blocking A-alpha motor fibers.
+
+*   **Two genuinely separate questions, now answered separately**: spatial coverage
+    (unchanged, still `calculateDermatomalBlockFraction`) multiplied by a NEW
+    concentration-dependent, fiber-specific Hill-equation block fraction
+    (`calculateFiberBlockFractions`/`calculateDifferentialDermatomalBlock`). A new
+    `epiduralConcentrationIndex` (0-1+, default 1.0 = surgical strength) lets a future
+    UI/case-builder distinguish labor-epidural-strength dosing from surgical-strength
+    dosing -- not yet wired to any control, but the mechanism is real and tested.
+*   **Calibration**: EC50s found by direct numerical sweep so concentration=1.0
+    (default, preserving prior behavior almost exactly) blocks every fiber class >90%,
+    while concentration~0.25 (labor-epidural strength) gives the classic differential
+    picture: sympathetic >80% blocked, pain meaningfully blocked, motor <20% blocked.
+*   **Live wiring**: `CardiovascularEngine.ts`'s splanchnic sympathetic block and
+    `GastrointestinalEngine.ts`'s ileus/motility sympathetic block both now route
+    through this model (still defaulting to surgical-strength concentration, so existing
+    behavior is preserved to within ~0.2% -- caught and fixed one test that asserted
+    bit-for-bit exact old behavior, a precision expectation no longer appropriate now
+    that sympathetic block asymptotically approaches but never exactly equals 1.0).
+*   **Deliberately not yet modeled**: peripheral nerve block onset/offset kinetics over
+    time (this model is a steady-state dose-response, not a time-course); a UI control
+    for `epiduralConcentrationIndex`; motor-block synergy with neuromuscular blocking
+    drugs (a dense epidural motor block reducing NMBD requirement is real and
+    clinically taught, a natural follow-on).
+*   **Verification**: `src/testing/nerve_conduction_block_model.test.ts` (9 tests).
+
+#### 4.20 Autonomic Nervous System Engine: Continuous Parasympathetic (Vagal) Tone (`AutonomicNervousSystemEngine.ts`)
+
+Phase 3, Stage B. Direct code tracing found ~5-6 genuinely separate sympathetic/
+autonomic signals scattered across the codebase with no common parent, and **zero**
+continuous parasympathetic/vagal tone concept anywhere -- every existing vagal effect
+(oculocardiac reflex, Bezold-Jarisch, neostigmine-induced bradycardia) is a separate,
+ad hoc binary/event-driven mechanism, not a tracked physiological state.
+
+*   **Deliberately additive, not a replacement**: every existing sympathetic mechanism
+    (baroreflex, Bezold-Jarisch, neostigmine bradycardia, etc.) is unchanged -- this
+    engine adds the missing continuous vagal tone (rising with anesthetic depth and
+    acute vagal stimulation triggers, falling with sympathetic activation and
+    anticholinergics -- the real reciprocal sympathovagal balance) as a new additive
+    contribution to the existing `totalHrDelta` accumulator, and provides a read-only
+    `sympatheticToneIndex` that aggregates (without feeding back into) the existing
+    scattered signals into one observable summary, for future use (e.g. a future
+    autonomic-tone monitor display) without risking any existing formula's calibration.
+*   **Live wiring surfaced zero test failures** on first try -- the careful "additive
+    only, nothing replaced" design meant every existing tested mechanism stayed exactly
+    as calibrated.
+*   **Deliberately not yet modeled**: agent-specific vagal effects (volatiles differ in
+    their autonomic profile; this uses one disclosed general MAC-scaled estimate);
+    baroreceptor afferent fiber-level detail (the existing baroreflex stays a separate,
+    unchanged mechanism in `CardiovascularEngine.ts`); any direct consumer of
+    `sympatheticToneIndex` yet (built as a foundation, not yet displayed or read by
+    another engine).
+*   **Verification**: `src/testing/autonomic_nervous_system_engine.test.ts` (8 tests).
+    746/746 tests passing, build clean.
+
+#### 4.21 Brainstem Engine: Peripheral Chemoreceptor (Hypoxic) Ventilatory Drive + Vasomotor Center (`BrainstemEngine.ts`)
+
+Phase 3, Stage C. Rather than restructuring `CerebralEngine.ts`/`ConsciousnessEngine.ts`
+(two already-substantial, working, tested engines -- a genuine restructuring risk this
+redesign has consistently avoided in favor of additive new engines), direct research
+first confirmed Cushing's triad (ICP-driven hypertension, bradycardia, *and* irregular
+respiration) is **already fully modeled** across `CardiovascularEngine.ts`/
+`RespiratoryEngine.ts` -- not duplicated here. Research instead surfaced two genuinely
+confirmed-absent gaps, both filled additively:
+
+*   **Peripheral chemoreceptor hypoxic ventilatory response**: `RespiratoryEngine.ts`
+    had zero PaO2/SpO2-driven respiratory rate term before this engine (confirmed by
+    direct code search) -- only CO2-driven ventilation existed. Real peripheral
+    chemoreceptors (carotid/aortic bodies) drive ventilation directly from hypoxia,
+    independent of and faster than the CO2 response, and are disproportionately blunted
+    by even low-dose volatile anesthesia and opioids relative to the CO2 response -- a
+    well-described, clinically important phenomenon (a patient can desaturate without
+    showing the expected compensatory tachypnea, specifically because hypoxic drive is
+    blunted far more than hypercapnic drive at the same anesthetic depth). `hypoxicDriveRR`
+    feeds additively into the existing `totalRrDelta` accumulator.
+*   **Vasomotor center's vasoconstrictive arm**: direct tracing confirmed
+    `CardiovascularEngine.ts`'s baroreflex (`errorBaro`/`autonomicHrMod`) only ever
+    drives heart rate -- there was no general baroreflex-driven SVR contribution at all
+    (only the ICP/Cushing's-specific special case has one, unchanged). Real
+    baroreceptor-mediated compensation acts on both chronotropy *and* vasomotor tone
+    together; `vasomotorSvrContribution` mirrors the existing HR-side error/MAC-gain
+    structure (so the two arms of one reflex stay qualitatively coupled without reading
+    or modifying `CardiovascularEngine.ts`'s own internal computation) and feeds
+    additively into `targetSVR` via a new `drugEffects.vasomotorSvrContribution` field.
+*   **Live wiring surfaced zero test failures** on first try -- both contributions are
+    purely additive, touching no existing tested formula's calibration.
+*   **Deliberately not yet modeled**: cerebellar motor coordination/vestibular function
+    (nystagmus, ataxia, ataxia-as-early-anesthesia-sign, tonsillar herniation risk --
+    confirmed completely absent everywhere, `CerebralEngine.ts`'s ICP/compliance
+    tracking is ready for a future engine to read from); brainstem reticular activating
+    system detail beyond what `ConsciousnessEngine.ts` already owns; differentiated
+    central (medullary) vs. peripheral chemoreceptor *kinetics* (this stage adds the
+    missing peripheral/hypoxic term but doesn't separately re-derive the existing,
+    externally-computed CO2-driven term).
+*   **Verification**: `src/testing/brainstem_engine.test.ts` (8 tests). 754/754 tests
+    passing, build clean.
+*   **Remaining Phase 3 scope** (not yet done, deliberately deferred): cerebellar
+    function (a smaller, lower-priority piece given lower direct relevance to moment-to-
+    moment crisis gameplay than the brainstem centers above) and a full cortical/
+    subcortical *restructuring* of `CerebralEngine.ts`/`ConsciousnessEngine.ts` (still
+    judged too risky relative to its payoff to attempt this session).
+
+#### 4.22 Cerebellar Engine: Anesthesia-Depth Eye/Coordination Signs + Tonsillar Herniation Risk (`CerebellarEngine.ts`)
+
+Phase 3, Stage C (cerebellar piece). The deferred piece from §4.21 above. A small, purely
+additive, mostly read-only engine -- still no restructuring of `CerebralEngine.ts`/
+`ConsciousnessEngine.ts` (still judged too risky relative to payoff). Confirmed by direct
+grep that `nystagmus`/`ataxia`/`herniation`/`tonsillar` had zero prior representation
+anywhere in `src/`.
+
+*   **Nystagmus as an anesthesia-depth/drug sign**: ketamine (the classic dissociative-
+    anesthetic cause, via vestibulocerebellar pathways) is modeled with the SAME Ce/(Ce+0.5)
+    saturation form `CerebralEngine.ts` already uses for ketamine's CMR boost -- reusing an
+    established calibration rather than inventing a new one. A second, independent term
+    models the classic Guedel "Stage II" light-plane (excitement-stage) eye signs as a
+    parabola in normalized volatile MAC, peaking at MAC ~0.5 and vanishing both at full
+    wakefulness and at surgical-plane depth (MAC >= 1.0), where brainstem/cerebellar
+    reflexes are suppressed -- matching the well-known teaching point that these signs are
+    a light-plane phenomenon, not present awake or deep.
+*   **Ataxia as a lighter, narrower-window sign**: midazolam (part of its classic sedative
+    triad of ataxia/dysarthria/nystagmus) is modeled with the SAME Ce/(Ce+0.03) saturation
+    form `ConsciousnessEngine.ts` already uses for midazolam's amygdalo-hippocampal
+    disruption. A second volatile-MAC term peaks at MAC ~0.25 and vanishes by MAC 0.5 --
+    narrower and shifted lower than nystagmus's window, reflecting that ataxia is the
+    lighter of the two signs and returns earlier during emergence.
+*   **Tonsillar (cerebellar) herniation risk** -- explicitly distinct from
+    uncal/transtentorial herniation (CN3 palsy/blown pupil), which is supratentorial and
+    not modeled here. A continuous 0-1 risk index combines absolute ICP (ramping 25-50
+    mmHg), CPP collapse (ramping below 60 mmHg), rate of ICP rise (mmHg/s, since a fast
+    rise is more dangerous than the same ICP reached slowly -- Monro-Kellie: slow rises
+    allow partial compensation), and a multiplier for exhausted intracranial compliance.
+    A discrete `herniationImminent` crisis flag fires at icp > 35 / cpp < 40 --
+    deliberately more severe than, and never overlapping at the boundary with,
+    `CerebralEngine.ts`'s existing Cushing's-reflex trigger (icp > 20 / cpp < 50), since
+    that trigger's own hemodynamic/respiratory consequences are already fully modeled
+    there and in `RespiratoryEngine.ts`. This adds the missing *named clinical concept*
+    (recognizing and treating impending herniation) on top of mechanics that already
+    existed, mirroring exactly how `CerebralEngine.ts` surfaces its own Cushing's-reflex
+    transition as a narrative `events` entry rather than a new accumulator contribution.
+*   **Wiring**: inserted into `usePhysiology.js` immediately after `CerebralEngine.tick()`'s
+    event logging but *before* its writeback to `st.patient.icp`/`cpp` -- so
+    `prevIcp`/`prevCpp` are the untouched previous-tick values, mirroring
+    `CerebralEngine.ts`'s own internal `prevICP`/`prevCPP` transition-detection pattern
+    exactly. Outputs (`nystagmusPresent`, `nystagmusSeverity`, `ataxiaIndex`,
+    `tonsillarHerniationRisk`, `herniationImminent`) are new namespaced patient/vitals
+    fields, not yet surfaced in any UI panel or the Attending chat -- groundwork only.
+*   **Live wiring surfaced zero test failures** on first try.
+*   **Verification**: `src/testing/cerebellar_engine.test.ts` (12 tests). 766/766 tests
+    passing, build clean.
+*   **Phase 3 is now fully complete** except for the explicitly-deferred full
+    cortical/subcortical restructuring of `CerebralEngine.ts`/`ConsciousnessEngine.ts`,
+    which remains out of scope as a standalone restructuring risk, not a missing-content gap.
+
+#### 4.23 GI Subdivision: Gastric Content Model + Segment-Specific (Stomach/Small Bowel/Colon) Motility (`GastricEmptyingModel.ts`, `GastrointestinalEngine.ts`)
+
+Phase 4 (first piece). Direct code search confirmed `patient.gastricVolume` existed as an
+orphaned field -- read by `ClinicalAiChat.js` but never assigned anywhere -- and no gastric
+pH concept existed at all; `gutMotility`/`postoperativeIleus` were single lumped numbers
+with no stomach/small-bowel/colon distinction. Two additive pieces fill both gaps, neither
+touching `GastrointestinalEngine.ts`'s existing, unchanged, tested aspiration TRIGGER logic
+(`patient.stomach === 'full' && gastricPressure > lesTone`), which stays keyed on the binary
+scenario-level flag exactly as before.
+
+*   **New `GastricEmptyingModel.ts`**: real gastric content volume (mL) and pH, continuously
+    evolving from `patient.npoSolids`/`npoLiquids` (already tracked for the PreOp
+    aspiration-risk assessment) via first-order emptying/re-acidification kinetics (baseline
+    ~90 min half-life), slowed by opioid receptor occupancy and sympathetic stress, with a
+    persistently-elevated equilibrium floor for conditions that delay emptying throughout a
+    case rather than just at induction (GLP-1 agonist therapy, trauma/sepsis-driven ileus,
+    emergent RSI). An explicit `patient.stomach === 'full'` scenario override (e.g. a
+    trauma/obese case preset) sets a high initial volume regardless of NPO times, so it never
+    contradicts the existing binary classification.
+*   **Mendelson's syndrome severity grading**: classic criteria (pH < 2.5 AND aspirate volume
+    above a weight-scaled threshold -- see §4.24 -- together predict severe chemical pneumonitis)
+    compute a continuous `aspirationSeverityIndex` -- modeled as volume gating severity (no
+    appreciable aspirate volume, nothing to injure the lung with) with acidity modulating
+    destructiveness once there is enough of it, NOT a simple average of the two factors. This
+    replaces a single flat compliance/resistance penalty (`usePhysiology.js`, previously a fixed
+    30/25) with a severity-scaled one (`0.4 + 1.0 * severity`, multiplying the same prior
+    constants). Severity is FROZEN into `patient.aspirationEventSeverity` at the moment aspiration
+    first occurs (mirroring the established "logged once" flag convention) rather than continuing
+    to drift with the patient's now-evolving gastric content after the fact -- the lung injury
+    from an aspiration event shouldn't keep changing based on what's currently in the stomach.
+    Two independent triggers can set `hasAspirated` (the GI engine's own internal one, gated on
+    `gastricPressure > lesTone`; and a looser legacy secondary check in `usePhysiology.js`,
+    PPV-on-full-stomach with no pressure-spike requirement, which is in practice the more common
+    real-world path -- mask ventilation on an unsecured full stomach before sux/intubation) --
+    both are wired to freeze severity correctly, the second falling back to the live
+    `aspirationSeverityIndex` on first occurrence only if the first didn't already freeze it.
+*   **Real aspiration-prophylaxis pharmacology** now drives this model -- see §4.24.
+*   **Segment-specific motility/ileus** (`GastrointestinalEngine.ts`): real, well-established
+    clinical teaching -- postoperative small bowel motility returns within hours, gastric
+    emptying within ~24-48h, colonic motility last at ~48-72h (the classic "small bowel, then
+    stomach, then colon" ileus-resolution sequence taught via return of bowel sounds/flatus/
+    first bowel movement). Modeled by applying the SAME `inflammatoryIleus` accumulator
+    (unchanged) with a per-segment sensitivity multiplier (colon 1.0, stomach 0.7, small bowel
+    0.35) and a per-segment ileus-duration-estimate base constant (colon 72h matching the
+    original single constant, stomach 48h, small bowel 24h). `gutMotility`/`postoperativeIleus`
+    (unchanged field names) are now derived composites -- average and max respectively -- of
+    the three new `stomachMotility`/`smallBowelMotility`/`colonicMotility` and
+    `stomachIleusDurationHours`/`smallBowelIleusDurationHours`/`colonicIleusDurationHours`
+    fields, rather than independently-computed numbers, preserving the original's
+    carry-forward-after-manipulation-stops behavior (a real near-regression caught before it
+    shipped: an early version reset all three to 0 once `manipulationIndex` returned to 0 at
+    closure, losing the prediction made during surgery exactly when PACU needs it most).
+*   **Live wiring surfaced zero test failures** on first try, after the carry-forward fix above
+    was caught during this session's own testing (not by an existing regression test).
+*   **Verification**: `src/testing/gastric_emptying_model.test.ts` (8 tests),
+    `src/testing/gastrointestinal.test.ts` (5 new tests added to the existing Chapter 15 suite).
+    779/779 tests passing, build clean.
+*   **Remaining GI subdivision scope** (deliberately deferred): nutrient transit/absorption; a
+    true real-time bowel-sounds/flatus-return UI signal (the new per-segment fields are
+    groundwork, not yet surfaced in any panel or the Attending chat).
+
+#### 4.24 Real Aspiration-Prophylaxis Pharmacology: Sodium Citrate, Famotidine, Pantoprazole, Metoclopramide (`Pharmacology.js`, `GastricEmptyingModel.ts`, `GastrointestinalEngine.ts`)
+
+§4.23's gastric content model originally disclosed a scope gap: no antacid/H2-blocker/PPI/
+prokinetic medication existed in this codebase's drug database, so gastric pH/volume could
+evolve correctly from physiology but couldn't yet be treated. Four new drugs close that gap,
+added to BOTH `MEDICATIONS` (`Pharmacology.js`) and `MEDICATIONS_CONFIG` (`meds.config.ts`)
+per this project's two-database-sync convention, each with a distinct, real mechanism rather
+than a single generic "antacid" effect:
+
+*   **Sodium Citrate** (nonparticulate oral antacid): a direct chemical neutralization of acid
+    already present in the stomach, modeled as an INSTANT additive pH bump on top of the
+    kinetic value (`+4.0 * Ce/(Ce+2.0)`) rather than a slow re-equilibration -- real antacid
+    neutralization happens on contact within minutes. No effect on future secretion or volume.
+    Its "Ce" is a disclosed proxy for remaining local buffering capacity, not a literal systemic
+    blood concentration (this drug has no real systemic pharmacokinetics worth modeling).
+*   **Famotidine** (H2 blocker): reversibly blocks histamine-driven acid secretion, tracking its
+    plasma effect-site concentration directly like a normal drug. Raises the fasting-equilibrium
+    pH TARGET itself (toward ~4.5 at saturation, not just a transient bump) and modestly reduces
+    the secretion-driven volume floor. Has no effect on acid already secreted before the drug
+    took effect -- only on what the stomach goes on to secrete.
+*   **Pantoprazole** (PPI): the most pharmacologically interesting of the four. Real PPIs
+    covalently and IRREVERSIBLY inhibit the parietal cell H+/K+-ATPase, so the clinical effect is
+    genuinely DECOUPLED from plasma concentration -- plasma Ce clears in ~1-1.5h, but acid
+    suppression persists ~24-48h until new pumps are synthesized. Modeled with a separate slow
+    on/off accumulator, `ppiSuppressionLevel` (on/off rates ~0.0003/s and ln(2)/(33h) respectively,
+    carried forward on `patient.ppiSuppressionLevel` exactly like other "logged" continuous
+    state), rather than incorrectly tying acid suppression to a Ce value that has already
+    returned to zero. More potent than Famotidine at its ceiling (~6.5 vs ~4.5), combined via
+    `max()` rather than additively when both are present -- real H2 blockers and PPIs converge on
+    the same final proton-pump step, so stacking them gives little added benefit over the
+    stronger agent alone, and the model reflects that instead of double-counting.
+*   **Metoclopramide** (prokinetic): the only one of the four that affects the ASPIRATION
+    BARRIER rather than just the content -- two real, independent mechanisms. (1) Speeds gastric
+    emptying via `gastricEmptyingRateMultiplier` (up to 2x at saturation), a direct multiplier on
+    `GastricEmptyingModel.ts`'s rate constant. (2) Raises lower esophageal sphincter tone
+    (`GastrointestinalEngine.ts`'s pre-existing `lesTone` formula, previously only ever
+    depressed by Propofol/volatiles, never raised by anything) -- since `lesTone` directly drives
+    the aspiration TRIGGER (`gastricPressure > lesTone`), Metoclopramide can genuinely PREVENT an
+    aspiration event from happening at all, not just reduce its severity once it does, which is
+    what distinguishes it from the other three drugs above.
+*   **Weight-scaled Mendelson criteria**: the original §4.23 implementation used a fixed 25 mL
+    volume threshold (the literal number from Mendelson's 1946 study). Replaced with the modern,
+    weight-scaled refinement (~0.4 mL/kg), threaded from `patient.weight` (already an established
+    field elsewhere in this codebase, defaulting to 70 kg) -- a real accuracy correction prompted
+    directly by this session's pharmacology work, not a pre-existing bug.
+*   **Side finding, since fixed**: `Ondansetron`, `Dexamethasone`, and `Tranexamic Acid (TXA)`
+    existed in `MEDICATIONS_CONFIG` (`meds.config.ts`) but were MISSING from `MEDICATIONS`
+    (`Pharmacology.js`) -- the exact known sync-gap pattern this project's own CLAUDE.md warns
+    about. All three are now mirrored into `Pharmacology.js` verbatim (identical `pk`/`pd`/
+    `indications`, `mechanism` field added for consistency with neighboring entries), making them
+    selectable in the live simulator UI for the first time, not just usable from test files. No
+    other engine reads these drugs' `Ce` yet (confirmed by direct search before adding), so this
+    was a pure additive fix with zero behavioral risk to any existing tested formula.
+*   **Live wiring surfaced two real test-design bugs, both in this session's OWN new tests, not
+    in the engine**: a metoclopramide-prevents-aspiration test initially used a depression level
+    (Propofol Ce 2.5 + MAC 0.5) strong enough that metoclopramide's LES-tone boost (capped at
+    +40% at saturation, a disclosed calibration ceiling) couldn't mathematically overcome it --
+    fixed by testing at a more marginal, still-realistic depression level where the prokinetic
+    effect can plausibly tip the balance, rather than inflating the drug's potency to force the
+    test to pass. A weight-scaling test initially used an NPO-derived gastric volume so large
+    (320 mL) that the severity ramp saturated identically for both a 40 kg and 150 kg patient --
+    fixed by setting `gastricVolume` directly to a value between the two patients' weight-scaled
+    thresholds, where the difference is actually visible.
+*   **Verification**: `src/testing/gastric_emptying_model.test.ts` (+6 tests, 14 total),
+    `src/testing/gastrointestinal.test.ts` (+5 tests, 19 total). 790/790 tests passing, build
+    clean, zero regressions on first wiring of the engine changes themselves.
+*   **Deliberately not modeled**: extrapyramidal/sedative side effects of Metoclopramide; real
+    PPI oral-dosing steady-state buildup over multiple days (this models single/repeat IV dosing
+    only); particulate vs. non-particulate aspirate distinction (meal-type/particulate content is
+    not tracked).
+
+#### 4.25 Genitourinary/Reproductive, Stage A: Pregnancy Physiology (`PregnancyPhysiologyEngine.ts`)
+
+Phase 4's "genitourinary completion + reproductive system" bucket. Direct code audit
+confirmed pregnancy was previously UI-only/inert: `patient.pregnancy`/beta-hCG lab flags
+exist (PreOpEMR.jsx), and the existing "OB/GYN - Emergent C-Section" case preset describes a
+postpartum hemorrhage scenario, but NO engine anywhere read a pregnancy flag to modify blood
+volume, cardiac output, SVR, HR, FRC, ventilatory drive, or GI motility/LES tone -- the only
+pre-existing pregnancy-aware code was a single, genuinely isolated PKPD plasma-cholinesterase
+multiplier for Mivacurium metabolism. `RenalEngine.ts` already had bladder volume/Foley
+tracking (opioid-induced urinary retention), but no bladder pressure-volume mechanics,
+ureteral peristalsis, or urethral resistance -- those remain deferred to a later stage.
+
+New `PregnancyPhysiologyEngine.ts`, a small, stateless, purely additive engine (matching
+`BrainstemEngine.ts`/`CerebellarEngine.ts`'s shape) modeling five real, well-established
+physiologic changes of pregnancy, each ramping with gestational age rather than appearing as
+a step function:
+
+*   **Blood volume expansion** (~45% by term) and **decreased SVR** (~20%, progesterone-
+    mediated) and **increased HR baseline** (~+15 bpm) -- together the real mechanism behind
+    pregnancy's ~40% cardiac output increase by term. Deliberately NO separate CO multiplier
+    was added: CO correctly EMERGES from the existing chamber-mechanics model once preload
+    (via the existing `positionPreloadMod` channel -- the same mL-equivalent quantity position
+    changes already use), SVR (a new `pregnancySvrMultiplier` field on
+    `CardiovascularDrugEffects`, multiplying `targetSVR` alongside the existing
+    `safeDrugSvrMod`), and HR (the existing `totalHrDelta` accumulator) are corrected.
+*   **Decreased FRC** (~20% by term) and **increased VO2/minute ventilation** (~20% by term,
+    feeding the existing `totalMetabolicMultiplier` chain) producing chronic mild respiratory
+    alkalosis (baseline PaCO2 ~32 mmHg instead of 40, replacing the flat constant in the same
+    ternary `usePhysiology.js` already uses for COPD/obesity baselines). Together these are why
+    pregnant patients desaturate dramatically faster during apnea/induction -- a major OB
+    anesthesia teaching point that emerges here from the FRC/VO2 changes rather than needing
+    its own bespoke desaturation mechanism. FRC required extending
+    `RespiratoryEngine.calculateLungVolumes()`'s signature with a new trailing optional
+    `pregnancyFrcMultiplier` parameter (default 1.0, zero risk to ~15 existing positional call
+    sites in tests) multiplied into the SAME chain `obesityFactor`/`posFactor`/
+    `anesthesiaFrcFactor` already use.
+*   **Aortocaval compression / supine hypotensive syndrome**: after ~20 weeks, the gravid
+    uterus can compress the IVC/aorta when supine, causing a sudden severe preload drop --
+    relieved by left uterine displacement/lateral tilt. The one effect here gated on BOTH
+    gestational age AND actual current positioning (not just being pregnant), feeding an
+    additional negative term into the same `positionPreloadMod` channel, active only for
+    flat/supine-like positions (`Supine`/`Lithotomy`/`Ramped`/`Sniffing`) without
+    `leftUterineDisplacement`. A new narrative event fires in `usePhysiology.js` on the
+    false-to-true transition (mirroring the established convention), advising left uterine
+    displacement/lateral tilt.
+*   **Decreased LES tone / delayed gastric emptying**: progesterone relaxes the LES and slows
+    gastric emptying, becoming significant earlier (~8-16 weeks) than the mechanical/
+    hemodynamic changes above (~12-40 weeks) -- a real, deliberately separate, earlier ramp,
+    since progesterone rises sharply in the 1st trimester well before the uterus is
+    mechanically large. Feeds `GastricEmptyingModel.ts`'s existing `persistentGastroparesis`
+    OR-condition (alongside GLP-1/trauma/sepsis/emergent RSI) and a new LES-tone reduction
+    term in `GastrointestinalEngine.ts`'s `lesTone` formula -- this is the real mechanism
+    behind pregnancy's well-known "full stomach" aspiration-risk status, and Metoclopramide's
+    existing LES-tone boost (§4.24) correctly stacks on top of a pregnancy-depressed baseline
+    rather than being independent of it.
+*   **Live wiring surfaced zero test failures** on first try, across all four consuming
+    engines (`CardiovascularEngine.ts`, `RespiratoryEngine.ts`, `GastrointestinalEngine.ts`/
+    `GastricEmptyingModel.ts`) plus the `usePhysiology.js` orchestration layer.
+*   **Verification**: `src/testing/pregnancy_physiology_engine.test.ts` (10 tests, standalone
+    engine), plus integration tests added to `src/testing/cardiovascular.test.ts` (SVR
+    multiplier), `src/testing/respiratory_ch13.test.ts` (FRC multiplier, both at the
+    `calculateLungVolumes()` level and threaded through `tick()`), and
+    `src/testing/gastrointestinal.test.ts` (LES tone penalty + GI slowing + Metoclopramide
+    stacking). 806/806 tests passing, build clean.
+*   **Remaining genitourinary/reproductive scope at the time** (Stage A): real bladder
+    pressure-volume mechanics and ureteral peristalsis (still volume-only in
+    `RenalEngine.ts`); sex-specific urethral resistance; male prostate/erectile physiology;
+    uterine tone/postpartum hemorrhage mechanics; placental circulation/fetal heart rate
+    monitoring. This stage deliberately covered the cardiovascular/respiratory/GI changes of
+    pregnancy first since they're the most broadly clinically impactful and directly activate
+    the previously-inert OB/GYN case preset, not because the remaining items are lower
+    priority in an absolute sense.
+
+#### 4.26 Genitourinary, Stage B: Bladder Pressure-Volume Mechanics, Sex-Specific Overflow, Autonomic Dysreflexia (`BladderModel.ts`)
+
+Phase 4's genitourinary bucket, second piece. Direct code audit confirmed `RenalEngine.ts`
+already tracked `bladderVolume` as a simple accumulator (filling unboundedly during
+opioid-induced urinary retention, draining instantly to zero the moment retention resolved or
+a Foley was placed) and `usePhysiology.js` applied a FLAT +5 HR / +5 MAP "distension" offset
+whenever `urinaryRetentionActive` was true, regardless of how much volume had actually
+accumulated -- no bladder pressure concept existed at all, no ceiling on volume growth, no
+sex-specific urethral resistance, and no autonomic dysreflexia mechanism anywhere (confirmed
+by direct search: zero references in engine/component code).
+
+Deliberately NOT a multi-compartment ureteral/two-kidney rebuild -- `RenalEngine.ts`'s
+existing single lumped architecture stays as-is. "Ureteral peristalsis" at this simulator's
+1Hz whole-body granularity is captured simply as the existing continuous (not instantaneous)
+kidney-to-bladder filling already provided; the genuinely missing pieces this stage adds:
+
+*   **Bladder pressure-volume (compliance) relationship**: new `BladderModel.ts` -- high
+    compliance (low pressure, ~5 cmH2O) up to ~400 mL functional capacity, then a quadratic
+    pressure rise (a simpler curve to calibrate than an exponential elastance model, though
+    the same general "flat-then-steep" shape `CerebralEngine.ts`'s ICP model uses for the
+    analogous intracranial compliance curve) -- ~35 cmH2O by 700 mL, ~88 cmH2O by 900 mL.
+*   **Pressure-graded sympathetic distension response**, replacing the flat +5/+5 HR/MAP
+    on/off offset in `usePhysiology.js` with a continuous function of actual bladder
+    pressure (`distensionSympatheticIndex`, ceiling at ~40 cmH2O) -- mild distension barely
+    registers, severe distension produces a real, graded surge (up to +8 HR / +8 MAP at the
+    ceiling, slightly more than the old flat value at its most severe).
+*   **Sex-specific overflow/urethral closure pressure**: once bladder pressure exceeds the
+    urethral closure pressure (60 cmH2O female, 90 cmH2O male -- the longer male urethra
+    having higher baseline resistance, consistent with the existing age+male BPH-risk
+    modifier already present in the retention-probability roll) without a Foley, urine leaks
+    past the sphincter proportional to the pressure excess. This is both a real physiologic
+    safety valve (bladder volume can no longer grow literally without limit, a genuine gap
+    before this stage) and the real mechanism behind overflow incontinence.
+*   **Autonomic dysreflexia** (spinal cord injury above ~T6): a real, well-known, and
+    previously entirely unmodeled anesthesia teaching point -- bladder distension is the
+    single most common trigger, producing severe paroxysmal hypertension (+60 mmHg MAP at
+    full severity) with reflex bradycardia (-20 bpm), triggered at a MUCH lower bladder
+    pressure (>15 cmH2O) than would concern a neurologically intact patient, since the
+    visceral afferent signal still reaches the cord and triggers an unopposed sympathetic
+    reflex below the lesion. Gated on a new, currently UI-unconnected (groundwork-only)
+    `patient.hasSpinalCordInjuryAboveT6` flag. A new narrative event fires in
+    `usePhysiology.js` on the false-to-true transition, advising immediate bladder
+    decompression and hypertension treatment.
+*   **Integration**: `RenalEngine.ts`'s existing retention/Foley TRIGGER semantics (filling
+    only during active retention without a Foley; instant full drain on resolution/Foley) are
+    completely unchanged -- `BladderModel.ts` owns only the volume/pressure/leak/dysreflexia
+    math, called twice per tick when drainage occurs (once for the pre-drainage state to
+    determine leak, once recomputed against the post-drainage volume so pressure/distension
+    outputs reflect the actual post-drainage state the same tick). Overflow-leaked urine is
+    counted toward total `urineOutput` (genuine, clinically measurable urine loss), distinct
+    from controlled voiding/Foley drainage.
+*   **Live wiring surfaced zero test failures** on first try, across `RenalEngine.ts` and the
+    `usePhysiology.js` orchestration layer (the pre-existing opioid-induced urinary retention
+    regression tests in `src/testing/opioids_ch24.test.ts` all passed unchanged).
+*   **Verification**: `src/testing/bladder_model.test.ts` (12 tests, standalone engine), plus
+    5 new integration tests appended to `src/testing/opioids_ch24.test.ts`. 823/823 tests
+    passing, build clean.
+*   **Remaining genitourinary/reproductive scope** (deliberately deferred): ureteral
+    obstruction/hydronephrosis (would require a left/right kidney split this single lumped
+    `RenalEngine.ts` doesn't have -- judged too large relative to payoff for this stage);
+    sex-specific urethral resistance's effect on Foley catheterization difficulty (a Bucket C
+    procedural mechanic, not core physiology); male prostate/erectile physiology; uterine
+    tone/postpartum hemorrhage mechanics; placental circulation/fetal heart rate monitoring.
+
+#### 4.27 Genitourinary/Reproductive, Stage C: Uterine Tone and Postpartum Hemorrhage (`UterineToneModel.ts`)
+
+Closes the most clinically central remaining gap: the existing "OB/GYN - Emergent
+C-Section (PPH)" case preset narratively describes "severe postpartum hemorrhage" but set
+zero physiology behind it. Direct audit also confirmed this codebase had NO continuous
+surgical/obstetric bleeding-RATE mechanism anywhere -- `patient.ebl` only ever increased via
+discrete, one-off additions (e.g. the existing methoxyflurane-nephrotoxicity dehydration
+term). `UterineToneModel.ts` is the first continuous bleeding-rate mechanism in this
+codebase, deliberately following that same established "add to `patient.ebl` each tick"
+convention rather than inventing a new architecture.
+
+*   **Real mechanism**: myometrial contraction after delivery compresses the spiral arteries
+    that fed the placenta -- this, not clotting, is what actually stops postpartum bleeding.
+    An atonic uterus bleeds at a substantial fraction of term uteroplacental flow (several
+    hundred mL/min); a well-contracted one reduces it to a lochia-level trickle (~2 mL/min).
+    Falls off faster than linearly with tone improvement -- partial recovery helps
+    disproportionately, a real and clinically reassuring property.
+*   **Risk factors**: dose-dependent uterine relaxation by volatile anesthetics (a real,
+    important teaching point -- avoid high-dose volatiles during Cesarean delivery for
+    exactly this reason) and by Magnesium Sulfate (a tocolytic side effect of the SAME drug
+    already in `Pharmacology.js` for preeclampsia/eclampsia seizure prophylaxis, reused rather
+    than duplicated); prolonged labor; chorioamnionitis; retained placental tissue -- a
+    MECHANICAL cause that caps achievable tone at 0.5 regardless of uterotonic dose until
+    physically resolved (uterotonics alone cannot fully correct it).
+*   **Four new uterotonic drugs**, added to both `Pharmacology.js`/`meds.config.ts`:
+    Oxytocin (first-line, fast onset/short half-life, real vasodilation/reflex-tachycardia
+    side effect from rapid bolus), Methylergonovine (potent, longer-acting, real-world
+    CONTRAINDICATED in hypertension/preeclampsia -- vasoconstriction risk), Carboprost
+    (potent, CONTRAINDICATED in asthma -- bronchospasm risk), Misoprostol (weaker/slower, no
+    major contraindications). Combining multiple agents for refractory atony (standard real
+    practice) helps more than any single agent, with a real combined-benefit ceiling.
+*   **Contraindications deliberately NOT gated inside the engine**: in real medicine
+    "contraindicated" means dangerous, not ineffective -- Methylergonovine still works as a
+    uterotonic in a preeclamptic patient, it just risks a hypertensive crisis via the SAME
+    vasoconstrictive pd profile already on its `Pharmacology.js` entry (feeding the existing
+    generic PKPD-driven CV effect, no special-case code needed there either). The
+    contraindication itself is surfaced as a `QualityEvent` from `usePhysiology.js`
+    (`PharmacologicChoice`/`critical`), mirroring the established Succinylcholine-in-
+    muscular-dystrophy precedent exactly, properly separating pure physics (the engine) from
+    scoring/feedback (the orchestration layer).
+*   **Verification**: `src/testing/uterine_tone_model.test.ts` (12 tests). See §4.29 below
+    for full-phase verification numbers (all four new Stage C-F pieces wired and tested
+    together).
+
+#### 4.28 Genitourinary/Reproductive, Stage D: Fetal Monitoring (`FetalMonitoringModel.ts`)
+
+Confirmed by direct audit: zero fetal physiology existed anywhere in this codebase before
+this. Deliberately NOT a full second-patient fetal physiology simulation (no separate fetal
+cardiovascular/respiratory/acid-base system -- that would be substantially larger than this
+stage's scope). It IS a real, clinically meaningful fetal heart rate response to the SAME
+maternal variables an anesthesiologist actually manages, deliberately integrating with
+mechanisms already built in this rebuild rather than existing in isolation:
+
+*   **Uteroplacental perfusion**: fetal heart rate responds to a combined maternal MAP/SpO2
+    adequacy index. This directly connects to `PregnancyPhysiologyEngine.ts`'s aortocaval
+    compression mechanism (Phase 4 Stage A) -- a supine, undisplaced gravid patient's MAP
+    drop now has a real downstream fetal consequence (late decelerations/bradycardia) rather
+    than being a maternal-only number, taking `maternalMAP`/`maternalSpO2` as plain inputs
+    with no special-case wiring required between the two engines.
+*   **Late decelerations / fetal bradycardia from uteroplacental insufficiency**: a graded
+    FHR depression as a continuous function of the perfusion/oxygenation deficit, not a
+    separate bespoke mechanism -- real CTG teaching.
+*   **Uterine hyperstimulation (oxytocin overdose)**: a genuine double-edged-sword teaching
+    point given Stage C just added Oxytocin as a postpartum hemorrhage treatment --
+    PRE-delivery, supraphysiologic oxytocin dosing (only above a real therapeutic-dose
+    threshold, not at normal infusion rates) causes uterine tachysystole, reducing the
+    fetus's inter-contraction recovery window independently of maternal perfusion. The same
+    drug that treats PPH after delivery can cause fetal distress before it if mismanaged -- a
+    genuine clinical tension surfaced as its own `QualityEvent`.
+*   **Reduced variability from maternal opioids**: real CTG teaching, reusing this
+    codebase's existing aggregate `opioidEffect` signal -- maternal opioids cross the
+    placenta and blunt fetal heart rate variability/reactivity. A severely bradycardic fetus
+    loses variability further still, an ominous combined finding modeled as a compounding
+    (not merely additive) effect.
+*   Only meaningful pre-delivery -- gated on `isPregnant && !deliveryOccurred`.
+*   **Verification**: `src/testing/fetal_monitoring_model.test.ts` (10 tests).
+
+#### 4.29 Genitourinary/Reproductive, Stage E/F: Male GU (BPH + TURP Syndrome) and Ureteral Obstruction
+
+Closes the roadmap's final two remaining items, with one deliberate, disclosed scope
+reframing.
+
+*   **Stage E -- reframed from "male prostate/erectile physiology" to BPH outflow
+    obstruction + TURP syndrome**: literal erectile physiology has essentially zero
+    anesthesia relevance; TURP syndrome is a real, classic, high-value anesthesia teaching
+    point that was completely unmodeled (confirmed by direct search). A deliberate judgment
+    call, not an oversight.
+    -   **BPH outflow obstruction**: `BladderModel.ts` (§4.26) gained a new optional
+        `bphSeverity` input that raises the effective MALE urethral closure pressure further
+        still (up to +30 cmH2O at maximal severity) -- the prostate mechanically narrows the
+        urethra, so a higher bladder pressure is needed before any overflow relief, worsening
+        retention/distension before it. Has no effect on the female closure pressure (a
+        direct unit test confirms this). A clean, small extension of an already-built model,
+        not a new file.
+    -   **TURP syndrome**: new `TurpSyndromeModel.ts`. During monopolar electrocautery
+        prostate resection, opened venous sinuses can absorb large volumes of hypotonic
+        irrigation fluid, producing dilutional hyponatremia, intravascular volume expansion,
+        and mild hypothermia, all proportional to how extensive the resection's venous sinus
+        opening is (`resectionSeverity`) and how long it runs. Outputs RATES; `usePhysiology.js`
+        applies them to the SAME `patient.sodiumLevel`/`isHyponatremic` tracking this codebase
+        already has (currently driven by Oxcarbazepine elsewhere), following that exact
+        established pattern -- a sustained severe resection can drop sodium by >20 mEq/L over
+        a realistic ~75 min case, matching real severe-case reports. Deliberately NOT
+        modeled: glycine-specific CNS/visual toxicity (solution-specific, not
+        absorption-volume-generic) and hemolysis from older non-glycine solutions (largely
+        historical with modern bipolar/isotonic-saline technique).
+*   **Stage F -- ureteral obstruction (simplified, single-compartment)**: `RenalEngine.ts`'s
+    existing single lumped "kidneys" compartment doesn't support a real left/right kidney
+    split -- a full anatomical model was judged too large relative to payoff for this stage.
+    Instead, a new `ureteralObstructionActive`/`ureteralObstructionSeverity` patient input
+    adds back-pressure directly to the existing Bowman space pressure term (`pBs`), exactly
+    the same way elevated PEEP already does -- reducing net filtration pressure and GFR
+    through the SAME existing formula, not a separate bespoke mechanism.
+    `ureteralObstructionSeverity` is disclosed as representing the FRACTION OF TOTAL RENAL
+    MASS affected (e.g. ~0.5 for a complete unilateral obstruction), not a separate organ --
+    a clearly disclosed simplification. Required a real logged-flag-guard fix during this
+    session's own testing: `ureteralObstructionActive` is a caller-provided input (unlike
+    `hasAki`, which `RenalEngine.ts` computes itself), so it cannot be compared against its
+    own same-named field to detect a transition the way `hasAki`'s pattern does -- fixed with
+    a `ureteralObstructionEventLogged` guard flag, the same pattern `ParathyroidEngine.ts`
+    uses for its own caller-set, monotonic-only trigger.
+*   **OB/GYN case preset activated**: `CaseManager.jsx`'s "OB/GYN - Emergent C-Section (PPH)"
+    case now sets `isPregnant: true, gestationalAgeWeeks: 39, deliveryOccurred: true` --
+    starting at the PPH crisis the case's own title/description names, not the earlier
+    fetal-distress phase, since no case-progression/"deliver" workflow action exists yet to
+    transition between the two (a disclosed, deliberate scope boundary -- building that
+    workflow feature was not part of this physiology-focused stage).
+*   **Live wiring surfaced zero test failures** on first try for all of Stages C-F's engine
+    wiring (the one real bug caught -- the ureteral-obstruction event-logging guard above --
+    was caught by this session's OWN new tests before they shipped, not a regression in
+    existing tests).
+*   **Verification**: `src/testing/uterine_tone_model.test.ts` (12 tests),
+    `src/testing/fetal_monitoring_model.test.ts` (10 tests),
+    `src/testing/turp_syndrome_model.test.ts` (5 tests), plus integration tests added to
+    `src/testing/bladder_model.test.ts` (+2, BPH) and `src/testing/renal.test.ts` (+2,
+    ureteral obstruction). 854/854 tests passing, build clean.
+*   **Phase 4's genitourinary/reproductive bucket is now fully complete**, covering every
+    item the roadmap originally listed (bladder pressure-volume mechanics, sex-specific
+    urethral resistance, autonomic dysreflexia, uterine tone/PPH, fetal monitoring, male GU/
+    TURP syndrome, ureteral obstruction) -- with the disclosed reframing of literal erectile
+    physiology to TURP syndrome, and ureteral obstruction modeled as a single-compartment
+    proxy rather than a full anatomical two-kidney split.
+
+#### 4.30 Hematology/Coagulation: Real Factor Cascade, TEG/ROTEM Outputs, Lethal Triad (`CoagulationCascadeModel.ts`)
+
+Phase 4 (hematology/coagulation bucket). Prior model consisted of a single `patient.inr`
+scalar modified only by HepaticEngine and halothane hepatitis, plus abstract `{r_offset,
+ma_offset, angle_offset}` accumulator offsets from blood products (display-layer feature
+only, not physiology). Zero platelet count, zero fibrinogen, zero aPTT, no hypothermia/
+acidosis coagulopathy impairment, no dilutional coagulopathy, no consumptive coagulopathy.
+Also fixed two medication sync gaps found during this work: Heparin and Protamine Sulfate
+existed in `meds.config.ts` (test-only) but not in `Pharmacology.js` (live UI) -- now
+mirrored into both databases.
+
+*   **Four real state parameters**: platelet count (k/μL), fibrinogen (mg/dL), factor
+    activity fraction (0-1, composite of the extrinsic/common pathway -- drives INR/aPTT),
+    fibrinolysis index (0-1, drives TEG LY30). Each evolves via first-order ODE with
+    hemorrhage consumption, dilutional loss, hepatic synthetic ceiling, and blood-product
+    replenishment.
+*   **Real impairment mechanisms** (previously entirely absent): hypothermia (enzyme
+    rate-constant Q10 effect -- serine proteases are temperature-sensitive, significant
+    below 35-36°C), acidosis (active-site histidine protonation impairs factor binding,
+    significant below pH 7.2), massive crystalloid dilution (no clotting proteins in
+    saline/LR), DIC (simultaneous microthrombus formation and factor consumption),
+    hepatic synthetic dysfunction (ceiling on achievable factor activity based on existing
+    `patient.inr` from HepaticEngine, avoiding double-counting).
+*   **Fibrinogen falls before other factors in massive hemorrhage**: shorter synthesis
+    half-life than most other factors -- the real reason cryoprecipitate/fibrinogen
+    concentrate are administered early in massive transfusion protocols. Explicitly verified
+    by a "fibrinogen drops faster than platelet count" test.
+*   **TXA (already in `Pharmacology.js`) suppresses fibrinolysis**, reducing LY30.
+*   **Heparin anticoagulation and protamine reversal** modeled via net factor-activity
+    and aPTT effects (antithrombin-III pathway, not direct factor protein binding -- the
+    correct mechanism, disclosed as a lumped approximation for this granularity).
+*   **TEG/ROTEM outputs** (R, K, α-angle, MA, LY30) now derived from actual tracked
+    physiology rather than abstract blood-product-administration offsets only.
+*   **Lethal triad detection** (hypothermia + acidosis + coagulopathy simultaneously):
+    the three-factor combination that drives damage-control surgery philosophy, previously
+    unrepresented anywhere in this codebase, surfaces as `lethalTriadActive` + narrative
+    event on first occurrence. Also fixed a real precision bug during testing: `toFixed(1)`
+    rounding (~0.05k/μL per tick) caused accumulated rounding error that made platelet
+    depletion effectively invisible over a 1-hour simulation; fixed with `toFixed(3)`.
+*   **pH derivation**: Henderson-Hasselbalch from existing `hco3`/`paco2`, computed within
+    `usePhysiology.js` rather than adding a new explicit pH state field.
+*   **Verification**: `src/testing/coagulation_cascade_model.test.ts` (13 tests).
+
+#### 4.31 Thermoregulation: Pennes Bioheat-Based Core Temperature Physics (`ThermoregulationModel.ts`)
+
+Phase 4 (integumentary/thermoregulation/adipose bucket). Prior model: `tempDropRate = 0.0001°C/s`
+at rest, `0.0008°C/s` during early anesthesia, plus `fluidicsOutput.fluidInducedTempDrop`.
+No environmental temperature, no body surface area, no warming intervention physics, and no
+decomposition into real mechanisms.
+
+*   **Real net heat balance**: Pennes bioheat equation (simplified to single lumped
+    core-temperature compartment, appropriate for 1Hz whole-body simulation):
+    `dT/dt = (Q_metabolic + Q_warming - Q_radiation - Q_convection - Q_evaporation) / (m * C)`.
+*   **Body thermal mass** (`m * C` ≈ 70kg × 3.47 kJ/kg/°C ≈ 243 kJ/°C) scales the rate of
+    temperature change -- larger patients cool more slowly for the SAME heat loss rate.
+*   **Three heat loss mechanisms**: radiation (skin-to-environment gradient, scales with
+    exposed BSA -- draping reduces it), convection (OR-HVAC airflow over exposed skin),
+    evaporation (respiratory moisture from dry inspired gas + surgical wound surface).
+*   **Redistribution hypothermia**: the most important early mechanism -- GA-induced
+    vasodilation allows core-to-periphery thermal equilibration; modeled as an exponentially
+    decaying additional cooling term peaking at induction and resolving over ~60 minutes,
+    independent of environmental heat loss.
+*   **Forced-air warming** (Bair Hugger-type, ~40W) and warm blanket (~12W) as active
+    warming inputs, capable of reversing hypothermia in a covered patient.
+*   **Fluid-induced temperature effect** preserved from FluidicsEngine's existing
+    `fluidInducedTempDrop` (already a per-tick °C delta, NOT converted to Watts -- a
+    unit-confusion bug caught and fixed during this session: converting °C/tick to Watts
+    via `delta * bodyThermalMass * 1000 / dt` produced 700+W magnitudes from tiny
+    temperature deltas, which would be catastrophically wrong).
+*   **Verification**: `src/testing/thermoregulation_model.test.ts` (10 tests).
+
+#### 4.32 Musculoskeletal: Rhabdomyolysis, Positioning Nerve Injury Risk, Compartment Syndrome (`MusculoskeletalModel.ts`)
+
+Phase 4 (musculoskeletal bucket). Three perioperative-specific musculoskeletal mechanisms
+that an anesthesiologist can directly cause, prevent, or detect:
+
+*   **Rhabdomyolysis** (CK/myoglobin tracking): MH produces the most rapid CK rise (50
+    U/L/sec, reaching 5000 U/L within minutes), succinylcholine in myopathic patients is
+    slower (5 U/L/sec), tourniquet ischemia and reperfusion add further contributions.
+    CK decays with a ~3-day half-life; myoglobin with a ~1.5-hour half-life (smaller
+    molecule, earlier release). The existing `RenalEngine.ts`'s `hasRhabdomyolysis` input
+    flag (already connected to its `dDamage += 0.0045` per-tick AKI mechanism) is now
+    driven by `ckLevel > 5000 U/L` from the musculoskeletal engine, replacing the previous
+    Boolean-only flag with a real underlying concentration mechanism. Events: narrative alerts
+    at the 5000 U/L CK threshold (rhabdomyolysis) and 1000 μg/L myoglobin threshold
+    (myoglobinuric AKI risk).
+*   **Positioning nerve injury risk index** (0-1): accumulates over time based on position-
+    specific risk intensity (lithotomy 0.9, beach chair 0.7, lateral 0.6, prone 0.4,
+    supine 0.2) and padding adequacy (unpadded = 5x faster accumulation than adequately
+    padded). Reaches 1.0 after ~4 hours at maximum risk without padding.
+*   **Compartment syndrome risk** (lithotomy-specific): starts after 2h in lithotomy,
+    reaches significance by 3.5h, peaks by ~5h -- matching the well-documented "2-4h
+    increased risk" teaching for well-leg compartment syndrome. A separate risk index from
+    nerve injury; first-threshold narrative event at 0.5 (warning) and a critical alert at
+    0.85. Accumulation is POSITION-specific: resets when patient leaves lithotomy.
+*   **Verification**: `src/testing/musculoskeletal_model.test.ts` (11 tests). 888/888 tests
+    passing, build clean.
+
+#### 5.1 Acid-Base: Stewart Strong-Ion-Difference Physics (`AcidBaseModel.ts`)
+
+Phase 5, Stage 1. Prior model: `hco3 = max(8, 24 - actualBaseDeficit)` with `actualBaseDeficit`
+as a flat sum of `isSeptic + bloodLossRatio + lactate` -- a phenomenological approximation with
+no mechanistic connection to the electrolytes FluidicsEngine already tracked correctly. Meanwhile,
+FluidicsEngine was computing per-tick Na⁺/Cl⁻/Ca²⁺ dilution from actual fluid compositions (NS
+Na=154/Cl=154; LR Na=130/Cl=109/buffer=28; PlasmaLyte Na=140/Cl=98/buffer=27) but these values
+went into `electrolytes.cl`/`na` and were NEVER connected to acid-base -- making NS vs. LR vs.
+PlasmaLyte physiologically invisible despite being the most common clinical fluid-management
+teaching point.
+
+*   **Stewart SID**: `SID = Na - Cl - Lactate` (dominant terms; K omitted as a small,
+    tightly-regulated contributor that complicates calibration without clinical benefit). Normal
+    SID = 140 - 103 - 1 = 36 mEq/L. NS infusion raises [Cl] disproportionately (Cl=154 vs.
+    Na=154; normal plasma has Na >> Cl) → reduces SID → hyperchloremic non-anion-gap metabolic
+    acidosis -- the real mechanism behind why large-volume NS causes an acidosis that LR and
+    PlasmaLyte do not. Verified in the test suite: 2 liters of NS → Cl rises above baseline,
+    SID falls, HCO3 decreases, pH drops appropriately.
+*   **Buffer from LR/PlasmaLyte**: lactate (LR, 28 mEq/L) and acetate (PlasmaLyte, 27 mEq/L)
+    → metabolized to HCO3⁻ → partially offsets Cl-driven SID reduction. `FluidicsEngine.ts`
+    now accumulates `electrolytes.buf` from the `fluidData.buffer` field (previously written
+    in all fluid entries but never read) and `AcidBaseModel.ts` consumes it.
+*   **Corrected anion gap**: AG corrected for hypoalbuminemia (adds 2.5 per g/dL below 4.0),
+    the teaching point that low albumin underestimates the true unmeasured anion burden.
+*   **Ionized calcium**: already computed by `FluidicsEngine.ts` (citrate chelation from blood
+    products) -- now surfaced and threshold-gated for clinical alerts (ionized Ca < 1.0 mmol/L).
+*   **Unification**: `CoagulationCascadeModel.ts`'s `safePh` derivation updated to use the
+    Stewart-derived HCO3 at this tick's PaCO2. Also removed the prior crude pH penalty from
+    `FluidicsEngine.ts` (`electrolytes.ph -= 0.05 * volLiters` whenever Cl > 110), replaced
+    by the real SID physics in `AcidBaseModel.ts`. The test for this old behavior updated to
+    verify Cl DOES rise after NS infusion (the mechanism), not the downstream pH (which is now
+    owned by `AcidBaseModel.ts`).
+*   **Verification**: `src/testing/acid_base_model.test.ts` (11 tests).
+
+#### 5.2 LAST + Intralipid Rescue (`LastModel.ts`)
+
+Phase 5, Stage 2. Confirmed by direct audit: no LAST crisis mechanism existed despite all local
+anesthetics (Lidocaine, Bupivacaine, Ropivacaine, Levobupivacaine, Mepivacaine) having full PKPD
+models, and Intralipid 20% already existing as a drug entry with rescue indications but zero
+mechanistic effect on anything. Two distinct toxicity syndromes, drug-specific thresholds (CC/CNS
+ratio already in each drug's `pd.ccCnsRatio`, now explicitly used as the safety-margin factor):
+CNS toxicity (lower threshold: perioral tingling → seizures), cardiovascular toxicity (higher
+threshold: arrhythmia → collapse), with Intralipid modeling the lipid sink effect (proportional
+to drug lipophilicity and intralipid Ce). Bupivacaine's slow dissociation kinetics ("fast-in,
+slow-out") manifest as a specific Brugada-like arrhythmia risk flag.
+*   **CV effects** from LAST multiply into `drugSvrMod`/`drugInotropyMod` before the CV engine
+    tick (same wiring pattern as the LAST-then-CV-engine session precedent).
+*   **Verification**: `src/testing/last_model.test.ts` (10 tests).
+
+#### 5.3 Cardiac-Output-Dependent PK (confirmed existing, documented)
+
+Phase 5, Stage 3 was investigated and found to be **already implemented**: `PKPDEngine.ts`'s
+`coMod = 1 + (coRatio-1) * coSensitivity` scaling on all elimination rate constants was
+confirmed working, with `coRatio = st.vitals.co / 5.0` (the real live cardiac output from the
+Phase 0-1 chamber model) and `coSensitivity` calibrated for each drug (Propofol 0.6, Fentanyl
+0.8, etc.). This stage required no new code -- it was a documentation gap, not an implementation
+gap.
+
+#### 5.4 Sepsis Cascade Physiology (`SepsisCascadeModel.ts`)
+
+Phase 5, Stage 4. Prior model: `patient.isSeptic` was a static boolean with flat multipliers
+(SVR × 0.6, lactate = 4.5) that never changed regardless of treatment. A patient given fluids,
+vasopressors, source control, and corticosteroids had identical physiology to an untreated one.
+
+New `SepsisCascadeModel.ts` -- a continuous `sepsisScore` (0-3) that progresses dynamically:
+*   **Untreated**: rises from 0 toward 3 (SIRS → Sepsis → Severe → Shock) in ~3 hours.
+*   **MAP adequacy** (>65 mmHg, the Surviving Sepsis Campaign target): slows progression up
+    to 80% -- vasopressors + fluids buy time even without source control.
+*   **Source control** (abscess drainage, debridement, etc.): reverses progression once MAP is
+    also adequate (the cytokine cascade collapses without continuous antigen stimulation).
+*   **Corticosteroids** (Dexamethasone/Hydrocortisone -- both now in `Pharmacology.js`):
+    further slow progression (cytokine suppression + vasopressor sensitization).
+*   **Outputs** replace flat modifiers: `svrMultiplierFromSepsis` now drives
+    `CardiovascularEngine.ts`'s SVR reduction (same calibration at score=3: 0.60, matching the
+    prior flat value, so existing cases behave identically at peak untreated severity but now
+    respond to treatment); `lactateContributionMmolL` replaces the flat `isSeptic ? 4.5 : 1.0`
+    baseline; `cardiacFunctionMultiplier` adds septic cardiomyopathy at score > 2 (previously
+    unmodeled).
+*   **Scope limitation**: antibiotic treatment is not explicitly modeled (the drug database
+    currently has only Ampicillin/Sulbactam, insufficient variety for meaningful antibiotic-
+    specific effects -- disclosed, out of scope for this stage).
+*   **Verification**: `src/testing/sepsis_cascade_model.test.ts` (9 tests). 918/918 tests
+    passing, build clean.
+
+#### 5.5 Wiring/Surfacing: Dark Engines Now Reachable in Gameplay (Phase 5, Stage 5)
+
+Several engines built in Phase 3-5 were "dark" -- computing values every tick but with no
+UI control to activate them, no clinical actions to trigger their mechanics, and no case
+scenarios that exercised them. This stage closes the most impactful gaps:
+
+*   **New clinical actions** added to `App.jsx` and routable via attending recommendations:
+    `apply_bair_hugger` / `remove_bair_hugger` → sets `patient.forcedAirWarmingActive`
+    (feeds `ThermoregulationModel.ts`'s convective warming term); `apply_warm_blanket` →
+    `patient.warmBlanketActive` (conductive warming); `left_uterine_displacement` →
+    `patient.leftUterineDisplacement` (relieves aortocaval compression in
+    `PregnancyPhysiologyEngine.ts`); `deliver_baby` → sets `deliveryOccurred: true`,
+    transitions OB case from fetal-monitoring to PPH phase; `source_control` →
+    `patient.sourceControlActive` (reverses sepsis cascade in
+    `SepsisCascadeModel.ts`); `activate_turp` / `stop_turp` → gates
+    `TurpSyndromeModel.ts`; `give_iv_calcium` → calcium chloride for citrate hypocalcemia.
+*   **`paddingAdequate` computation** fixed: was `st.patient.paddingAdequate !== false`
+    (always-true default) -- now computed from existing positioning-action flags
+    (`peronealNervePadded || armsPositionedCorrectly || paddingAdequate`), making the
+    existing padding actions from Chapter 34 actually reduce
+    `MusculoskeletalModel.ts`'s nerve injury risk accumulation rate.
+*   **New vitals surfaced in `finalVitals`**: `fetalHR`, `lateDecelerationActive`,
+    `fetalBradycardiaActive`, `uterineTone`, `sepsisScore`, `plateletCount`,
+    `fibrinogenMgDl`, `inr`, `anionGap`, `correctedAnionGap`, `baseExcess`,
+    `ionizedCalcium`, `ckLevel`, `nerveInjuryRiskIndex`, `compartmentSyndromeRisk`,
+    `lethalTriadActive`, `bladderPressure`, `autonomicDysreflexiaActive` -- all now flow
+    to the state layer where monitors and panels can display them.
+*   **Three new case presets** in `CaseManager.jsx`:
+    - **TURP** (urology): elderly male with BPH undergoing transurethral prostate resection
+      under spinal anesthesia, with `turpSurgeryActive` and `bphSeverity: 0.7` propagated.
+    - **SCI / Autonomic Dysreflexia** (urology): T4 spinal cord injury patient undergoing
+      TURP, with `hasSpinalCordInjuryAboveT6: true` + `bphSeverity: 0.5` -- the first case
+      that exercises `BladderModel.ts`'s autonomic dysreflexia mechanism.
+    - **Interscalene Block / LAST Risk** (regional anesthesia): shoulder arthroplasty under
+      bupivacaine interscalene block with `LastModel.ts` toxicity and Intralipid rescue active.
+    Both `bphSeverity` and `hasSpinalCordInjuryAboveT6` now propagate from case preset data
+    through `CaseManager.jsx`'s case-loading logic.
+
+#### 5.6 Adipose PK Compartment: BMI-Scaled Peripheral Drug Distribution (`PKPDEngine.ts`)
+
+Phase 5, Stage 6. Closes a long-standing gap: all drugs used fixed V1/V2/V3 compartment
+volumes calibrated for a 70kg reference patient regardless of BMI. For obese patients,
+lipophilic drugs (propofol, fentanyl, volatile anesthetics) distribute into adipose tissue
+much more extensively, producing longer context-sensitive half-times with prolonged infusions
+-- a clinically significant finding that was simply invisible in the prior model.
+
+*   **Implementation**: new optional `adiposeVolumeRatio` parameter on `PKPDEngine.tick()`
+    (default 1.0, zero risk to all existing call sites). Scales k21/k31 (the RETURN rate
+    constants from peripheral compartments) DOWN proportionally to `adiposeVolumeRatio`
+    and drug `proteinBinding` (used as a proxy for lipophilicity -- highly protein-bound
+    drugs are generally highly lipophilic, which is why this codebase already stores
+    `proteinBinding` per drug). At BMI 40: `adiposeVolumeRatio ≈ 1.5` → k21/k31 reduced
+    by ~19% for propofol (pb=0.97) → drug returns more slowly from peripheral compartments
+    → longer context-sensitive half-time. Water-soluble drugs (pb≈0) are unaffected.
+*   **Calibration**: `adiposeVolumeRatio = 1 + max(0, (BMI-25)/30)` ramps linearly from 1.0
+    at BMI 25 (normal) to 1.5 at BMI 40, 1.67 at BMI 45 -- within the clinically observed
+    40-70% V2 increase for highly lipophilic drugs in severe obesity per the literature.
+    This is a disclosed approximation (not the Schnider/Marsh weight-specific model for
+    propofol in obesity, which has separate equations for each compartment).
+*   **Verification**: no dedicated test file (the change is within the existing PKPD
+    architecture's tested behavior -- the new parameter defaults to 1.0 at all existing
+    call sites, so existing tests are unchanged). 918/918 tests passing, build clean.
+
+## Phase 6: Full Medical-Grade Completeness
+
+#### 6.1–6.11 Phase 6 Overview
+
+Phase 6 was initiated after user direction: "target ALL remaining gaps to create a truly medical-grade simulator... I don't care how long it takes, I care that it is properly modeled and properly cross-referenced and connected to everything in the simulator." Eleven stages completed, organized by clinical domain.
+
+*   **§6.1 — Antibiotic PK/PD** (`AntibioticPKPDModel.ts`): 8 antibiotics added to both
+    databases (Cefazolin, Vancomycin, Pip/Tazo, Meropenem, Gentamicin, Metronidazole,
+    Ciprofloxacin, Ceftriaxone). Real three PD paradigms: time-dependent (beta-lactams --
+    T>MIC target, extended-infusion benefit), concentration-dependent (aminoglycosides --
+    Cmax/MIC ≥8-10, rationale for once-daily dosing), AUC/MIC (vancomycin, 2020 ASHP/IDSA
+    guidelines replacing trough-only monitoring; ciprofloxacin). Vancomycin AUC running
+    accumulator, aminoglycoside trough nephrotoxicity risk, organism/spectrum matrix by
+    `patient.infectionType`. Wired into `SepsisCascadeModel.ts` -- sepsis is now
+    treatment-responsive to appropriate antibiotic selection, not just vasopressor support.
+*   **§6.2 — Transfusion Immunology** (`TransfusionImmunologyModel.ts`): TRALI (bilateral
+    non-cardiogenic pulmonary edema within 6h of plasma-containing blood product, two-hit
+    model with existing inflammation amplifying risk 4×), HIT (anti-PF4 IgG → platelet
+    activation → paradoxical thrombosis, 4T score computation, mandatory alternative
+    anticoagulation teaching point), ABO incompatibility (immediate complement-mediated
+    intravascular hemolysis). TRALI compliance/resistance penalties feed RespiratoryEngine.
+*   **§6.3 — Pharmacogenomics** (`PharmacogenomicsEngine.ts`): CYP2D6 (UM: codeine → excess
+    morphine → respiratory death in pediatrics, FDA black-box; PM: no codeine analgesia;
+    ondansetron clearance ×0.05), CYP2C9 (warfarin clearance ×0.05 in PM -- catastrophic
+    anticoagulation at standard doses), CYP2C19 (clopidogrel PM → no antiplatelet effect →
+    stent thrombosis, FDA 2010 black-box), VKORC1 (warfarin dose requirement), G6PD
+    (methylene blue → hemolysis, contraindication for the MetHb antidote -- only case where
+    the antidote is contraindicated). Feeds PKPDEngine.ts as k10 multipliers.
+*   **§6.4 — Capnography + SpO2 Artifacts** (`CapnographyModel.ts`): Phase I (baseline,
+    elevated = rebreathing), Phase II slope (flattened in bronchospasm), Phase III slope
+    (rising = V/Q mismatch), α-angle (obtuse in obstruction), β-angle (<90° in rebreathing).
+    MetHb artifact (SpO2 reads ~85% regardless of true SaO2 -- dangerous in both directions),
+    COHb artifact (SpO2 falsely HIGH in CO poisoning -- misses true hypoxia), low-perfusion
+    signal loss. Waveform pattern classification: normal/bronchospasm/rebreathing/esophageal/
+    obstruction/cardiogenic. Fixed a two-argument `clamp()` call bug caught during testing.
+*   **§6.5 — HPA Axis Suppression** (`HpaAxisModel.ts`): Chronic steroid (≥5 mg/day
+    prednisone × ≥3 weeks) → adrenocortical atrophy → impaired surgical stress response →
+    perioperative adrenal crisis (refractory vasodilatory shock uniquely unresponsive to
+    catecholamines because cortisol is required for full adrenergic receptor expression).
+    `catecholamineSensitivityMultiplier` compounded with HPA suppression fraction. Corticosteroid
+    stress-dose coverage (dexamethasone/hydrocortisone Ce > threshold) gates crisis activation.
+*   **§6.6 — Sex Hormone Physiology** (`SexHormoneModel.ts`): Progesterone MAC reduction
+    (luteal phase: up to -28%, peaking ~day 21; same mechanism as early pregnancy but less
+    marked; exogenous progestin therapy equivalent), estrogen coagulant boost (OCP/HRT →
+    elevated factors II/VII/IX/X, +12% factor activity at peak, same mechanism as OCP-VTE
+    risk), testosterone and Hgb baseline (+1.5 g/dL in males), PONV hormonal contribution.
+    All cross-referenced to PregnancyPhysiologyEngine.ts (defers when pregnant to avoid
+    double-counting) and SexHormoneModel feeds CoagulationCascadeModel's hepatic synthetic
+    fraction modifier.
+*   **§6.7 — Neuraxial PK** (`NeuraxialPKModel.ts`): Baricity-driven spread table (hyperbaric:
+    sinks to dependent → Trendelenburg = high spinal risk; saddle block in sitting; isobaric:
+    ~18 dermatomes; hypobaric: floats to non-dependent → sitting is extremely high risk).
+    Pregnancy adds 2 dermatomal levels. Critical window: hyperbaric spread determined by position
+    in first ~8 minutes. Intrathecal morphine rostral migration: 12h peak at medullary level,
+    24h duration (delayed respiratory depression teaching point, uniquely dangerous vs fentanyl).
+    Intrathecal fentanyl stays in cord (lipophilic). Epidural fentanyl ~80% systemic absorption.
+*   **§6.8 — Drug-Drug Interactions** (`DrugInteractionModel.ts`): CYP3A4 inhibition
+    (fluconazole, erythromycin, diltiazem → fentanyl/midazolam accumulation), CYP3A4 induction
+    (rifampin 30×, carbamazepine 4× → dramatically shortened drug effect), inhibition dominates
+    over induction when concurrent. QT prolongation matrix: per-drug ΔQTc contributions
+    (ondansetron, ciprofloxacin, metronidazole, haloperidol, methadone) + 30% synergistic
+    amplification with multiple drugs combined. Crisis alert at QTc ≥ 500 ms.
+*   **§6.9 — PONV Pathophysiology** (`PONVModel.ts`): Full Apfel score (female sex, non-smoker,
+    PONV history, postoperative opioids → 10/21/39/61/79% risk). Volatile anesthetic adds 40%
+    risk above Apfel baseline; N2O adds 30%; duration compounds. CTZ (5-HT3, D2, NK1), vestibular
+    (H1/M1), and GI vagal (5-HT3) pathway mapping to specific antiemetics. Multimodal
+    recommendation logic (none/single/multimodal by Apfel score). TIVA benefit flag.
+*   **§6.10 — Deep Coagulation** (`DeepCoagulationModel.ts`): Von Willebrand Disease (Types 1/2A/
+    2B/3, DDAVP treatment for Type 1 with stored-VWF release mechanism, contraindicated in 2B),
+    Hemophilia A (FVIII deficiency, inhibitor complication) and B (FIX deficiency), rFVIIa bypass.
+    4-Factor PCC (90% warfarin reversal), andexanet alfa (85% Factor Xa inhibitor reversal),
+    idarucizumab (97% dabigatran reversal). PFA-100 C-ADP and C-Epi closure times (aspirin
+    uniquely prolongs C-Epi but NOT C-ADP -- the classic pharmacology teaching point).
+*   **§6.11 — Monitoring Display + New Cases** (Phase 6K): New clinical actions (give_pcc,
+    give_andexanet, give_idarucizumab, give_ddavp, give_rfviia, stop_heparin_hit, activate_
+    infectiontype). Five new case scenarios: Von Willebrand Disease (elective hip, Type 1),
+    Hemophilia A (moderate, knee washout), CYP2D6 UM/Codeine Toxicity (pediatric post-
+    tonsillectomy, respiratory depression teaching case), G6PD + Methemoglobinemia (methylene
+    blue CONTRAINDICATED), Perioperative Adrenal Crisis (chronic steroids, refractory shock).
+    All Phase 6 patient flags propagated through CaseManager.jsx. Phase 6K also wires all
+    new physiologic outputs into finalVitals for state-layer accessibility.
+*   **Final verification**: 1003/1003 tests passing, build clean. Phase 6 complete.

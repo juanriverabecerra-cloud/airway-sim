@@ -190,8 +190,11 @@ describe('Fluidics & Resuscitation Engine Regression Tests', () => {
         currentState.time = sec;
       }
 
-      // NS has Cl = 154. Dilutional acidosis drop: Cl > 110 drops pH by 0.05 per liter of NS infused
-      expect(currentState.electrolytes.ph).toBeLessThan(7.40);
+      // NS has Cl = 154, which dilutes plasma chloride upward from the normal ~100 mEq/L.
+      // The MECHANISM (elevated Cl) is tracked by FluidicsEngine; the downstream pH drop from
+      // reduced strong ion difference is now computed by AcidBaseModel.ts (Phase 5), not as
+      // a flat penalty inside FluidicsEngine -- electrolytes.ph stays at its starting value here.
+      expect(currentState.electrolytes.cl).toBeGreaterThan(100); // NS (Cl=154) increases plasma Cl above the 100 mEq/L baseline
     });
   });
 

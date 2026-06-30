@@ -201,8 +201,13 @@ describe('Chapter 15 Gastrointestinal Physiology and Pathophysiology Unit Tests'
         currentVitalsBlocked = output.vitals;
       }
 
-      // SVR should converge to 15% reduction: SVR_target = 1200 * 0.85 = 1020
-      expect(currentVitalsBlocked.svr).toBeCloseTo(1020, 5);
+      // SVR should converge to ~15% reduction: SVR_target = 1200 * 0.85 = 1020. The
+      // differential nerve block model (Phase 3, mutable-roaming-newell.md) means full
+      // sympathetic block now asymptotically approaches 1.0 (~0.998 at surgical-strength
+      // concentration) rather than hitting exactly 1.0, so this is no longer bit-for-bit
+      // 1020 -- a real, intentional, sub-1% consequence of the more physiologically
+      // complete model, not a precision bug.
+      expect(currentVitalsBlocked.svr).toBeCloseTo(1020, 0);
       
       // 2. Tick 50 times with Phenylephrine (alpha-agonist active)
       let currentVitalsTreated = { ...baseVitals };
@@ -385,6 +390,193 @@ describe('Chapter 15 Gastrointestinal Physiology and Pathophysiology Unit Tests'
       expect(output.vitals.rr).toBe(0);
       expect(output.vitals.vte).toBe(0);
       expect(output.currentAlvVent_L_min).toBe(0);
+    });
+  });
+
+  describe('Phase 4 GI Subdivision: gastric content model + segment-specific motility/ileus', () => {
+    it('exposes real gastric volume/pH instead of leaving them orphaned', () => {
+      const patient = { stomach: 'empty', npoSolids: 8, npoLiquids: 2 };
+      const vitals = {};
+      const output = GastrointestinalEngine.tick(1, { patient, vitals, time: 0 }, [], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true
+      });
+      expect(output.gastricVolume).toBeGreaterThan(0);
+      expect(output.gastricPH).toBeGreaterThan(0);
+    });
+
+    it('freezes aspirationEventSeverity at the moment of aspiration and carries it forward unchanged afterward', () => {
+      const patient = {
+        stomach: 'full', npoSolids: 0.5, npoLiquids: 0.2,
+        suxInjectionTime: 100, airwaySecured: false
+      };
+      const activeMeds = [{ name: 'Propofol', Ce: 2.5 }, { name: 'Succinylcholine', Ce: 1.0 }];
+      const firstOutput = GastrointestinalEngine.tick(1, { patient, vitals: {}, time: 120 }, activeMeds, {
+        EtN_2O: 0, currentMac: 0.5, C_cat: 0, positivePressureVentilationActive: true, spontaneousBreathingActive: false
+      });
+      expect(firstOutput.hasAspirated).toBe(true);
+      expect(firstOutput.aspirationEventSeverity).toBeGreaterThan(0);
+
+      // A second tick, even with very different (now-fasted) gastric content, must not change the
+      // already-frozen severity of the event that already happened.
+      const patientAfter = { ...patient, hasAspirated: true, aspirationEventSeverity: firstOutput.aspirationEventSeverity, gastricVolume: 5, gastricPH: 6.5 };
+      const secondOutput = GastrointestinalEngine.tick(1, { patient: patientAfter, vitals: {}, time: 121 }, activeMeds, {
+        EtN_2O: 0, currentMac: 0.5, C_cat: 0, positivePressureVentilationActive: true, spontaneousBreathingActive: false
+      });
+      expect(secondOutput.aspirationEventSeverity).toBeCloseTo(firstOutput.aspirationEventSeverity, 4);
+    });
+
+    it('recovers small bowel motility fastest, stomach next, and colon slowest after the same surgical insult', () => {
+      const patient = { manipulationIndex: 1.0 };
+      const vitals = { inflammatoryIleus: 0.8 };
+      const output = GastrointestinalEngine.tick(1, { patient, vitals, time: 0 }, [], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true
+      });
+      expect(output.smallBowelMotility).toBeGreaterThan(output.stomachMotility);
+      expect(output.stomachMotility).toBeGreaterThan(output.colonicMotility);
+    });
+
+    it('produces per-segment ileus duration estimates ordered small bowel < stomach < colon, with the composite equal to the colonic (slowest) figure', () => {
+      const patient = { manipulationIndex: 1.0 };
+      const output = GastrointestinalEngine.tick(1, { patient, vitals: {}, time: 0 }, [], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true
+      });
+      expect(output.smallBowelIleusDurationHours).toBeLessThan(output.stomachIleusDurationHours);
+      expect(output.stomachIleusDurationHours).toBeLessThan(output.colonicIleusDurationHours);
+      expect(output.postoperativeIleus).toBeCloseTo(output.colonicIleusDurationHours, 2);
+    });
+
+    it('carries forward (does not reset to zero) the per-segment ileus duration estimates once manipulation stops', () => {
+      const intraop = GastrointestinalEngine.tick(1, { patient: { manipulationIndex: 1.0 }, vitals: {}, time: 0 }, [], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true
+      });
+      const postClosureVitals = {
+        stomachIleusDurationHours: intraop.stomachIleusDurationHours,
+        smallBowelIleusDurationHours: intraop.smallBowelIleusDurationHours,
+        colonicIleusDurationHours: intraop.colonicIleusDurationHours
+      };
+      const pacu = GastrointestinalEngine.tick(1, { patient: { manipulationIndex: 0 }, vitals: postClosureVitals, time: 3600 }, [], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true
+      });
+      expect(pacu.colonicIleusDurationHours).toBeCloseTo(intraop.colonicIleusDurationHours, 2);
+      expect(pacu.postoperativeIleus).toBeGreaterThan(0);
+    });
+  });
+
+  describe('Phase 4 aspiration-prophylaxis pharmacology: Sodium Citrate, Famotidine, Pantoprazole, Metoclopramide', () => {
+    it('Metoclopramide raises LES tone above baseline, on top of (not replacing) the existing Propofol/volatile depression', () => {
+      const baseline = GastrointestinalEngine.tick(1, { patient: {}, vitals: {}, time: 0 }, [], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true
+      });
+      const withMetoclopramide = GastrointestinalEngine.tick(1, { patient: {}, vitals: {}, time: 0 }, [{ name: 'Metoclopramide', Ce: 1.0 }], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true
+      });
+      expect(withMetoclopramide.lesTone).toBeGreaterThan(baseline.lesTone);
+
+      const depressedPlusMetoclopramide = GastrointestinalEngine.tick(1, { patient: {}, vitals: {}, time: 0 },
+        [{ name: 'Propofol', Ce: 3.0 }, { name: 'Metoclopramide', Ce: 1.0 }], {
+          EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true
+        });
+      const depressedOnly = GastrointestinalEngine.tick(1, { patient: {}, vitals: {}, time: 0 }, [{ name: 'Propofol', Ce: 3.0 }], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true
+      });
+      expect(depressedPlusMetoclopramide.lesTone).toBeGreaterThan(depressedOnly.lesTone);
+    });
+
+    it('Metoclopramide, by raising LES tone above gastric pressure, can prevent the aspiration trigger from firing at all', () => {
+      const patientWithoutProkinetic = { stomach: 'full', suxInjectionTime: 100, airwaySecured: false };
+      const withoutMetoclopramide = GastrointestinalEngine.tick(1, { patient: patientWithoutProkinetic, vitals: {}, time: 120 },
+        [{ name: 'Propofol', Ce: 1.5 }, { name: 'Succinylcholine', Ce: 1.0 }], {
+          EtN_2O: 0, currentMac: 0.3, C_cat: 0, positivePressureVentilationActive: true, spontaneousBreathingActive: false
+        });
+      expect(withoutMetoclopramide.hasAspirated).toBe(true);
+
+      const withMetoclopramide = GastrointestinalEngine.tick(1, { patient: patientWithoutProkinetic, vitals: {}, time: 120 },
+        [{ name: 'Propofol', Ce: 1.5 }, { name: 'Succinylcholine', Ce: 1.0 }, { name: 'Metoclopramide', Ce: 5.0 }], {
+          EtN_2O: 0, currentMac: 0.3, C_cat: 0, positivePressureVentilationActive: true, spontaneousBreathingActive: false
+        });
+      expect(withMetoclopramide.hasAspirated).toBe(false);
+      expect(withMetoclopramide.hasRegurgitated).toBe(false);
+    });
+
+    it('Sodium Citrate, Famotidine, and Pantoprazole Ce values flow from activeMeds through to a raised gastricPH', () => {
+      const patient = { stomach: 'empty', npoSolids: 8, npoLiquids: 2 };
+      const none = GastrointestinalEngine.tick(600, { patient, vitals: {}, time: 0 }, [], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true
+      });
+      const withCitrate = GastrointestinalEngine.tick(600, { patient, vitals: {}, time: 0 }, [{ name: 'Sodium Citrate', Ce: 3.0 }], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true
+      });
+      const withFamotidine = GastrointestinalEngine.tick(600, { patient, vitals: {}, time: 0 }, [{ name: 'Famotidine', Ce: 1.0 }], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true
+      });
+      const withPantoprazole = GastrointestinalEngine.tick(600, { patient, vitals: {}, time: 0 }, [{ name: 'Pantoprazole', Ce: 2.0 }], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true
+      });
+      expect(withCitrate.gastricPH).toBeGreaterThan(none.gastricPH);
+      expect(withFamotidine.gastricPH).toBeGreaterThan(none.gastricPH);
+      expect(withPantoprazole.gastricPH).toBeGreaterThan(none.gastricPH);
+      expect(withPantoprazole.ppiSuppressionLevel).toBeGreaterThan(0);
+    });
+
+    it('ppiSuppressionLevel carries forward across ticks via vitals/patient propagation, not reset each tick', () => {
+      const patient = { stomach: 'empty', npoSolids: 8, npoLiquids: 2 };
+      const tick1 = GastrointestinalEngine.tick(3600, { patient, vitals: {}, time: 0 }, [{ name: 'Pantoprazole', Ce: 2.0 }], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true
+      });
+      const patientAfter = { ...patient, ppiSuppressionLevel: tick1.ppiSuppressionLevel, gastricVolume: tick1.gastricVolume, gastricPH: tick1.gastricPH };
+      const tick2 = GastrointestinalEngine.tick(3600, { patient: patientAfter, vitals: {}, time: 3600 }, [], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true
+      });
+      expect(tick2.ppiSuppressionLevel).toBeGreaterThan(0);
+      expect(tick2.gastricPH).toBeGreaterThanOrEqual(tick1.gastricPH - 0.5);
+    });
+
+    it('Mendelson severity grading scales with patient weight, threaded from patient.weight', () => {
+      const fixedVolumeLowPH = { stomach: 'empty', gastricVolume: 30, gastricPH: 1.5 };
+      const smallPatient = GastrointestinalEngine.tick(1, { patient: { ...fixedVolumeLowPH, weight: 40 }, vitals: {}, time: 0 }, [], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true
+      });
+      const largePatient = GastrointestinalEngine.tick(1, { patient: { ...fixedVolumeLowPH, weight: 150 }, vitals: {}, time: 0 }, [], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true
+      });
+      expect(smallPatient.aspirationSeverityIndex).toBeGreaterThan(largePatient.aspirationSeverityIndex);
+    });
+  });
+
+  describe('Phase 4 pregnancy physiology integration: LES tone penalty and GI motility slowing', () => {
+    it('pregnancyLesTonePenalty reduces LES tone, on top of (not replacing) the existing Propofol/volatile depression', () => {
+      const baseline = GastrointestinalEngine.tick(1, { patient: {}, vitals: {}, time: 0 }, [], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true
+      });
+      const pregnant = GastrointestinalEngine.tick(1, { patient: {}, vitals: {}, time: 0 }, [], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true,
+        pregnancyLesTonePenalty: 0.25
+      });
+      expect(pregnant.lesTone).toBeLessThan(baseline.lesTone);
+    });
+
+    it('pregnancyGiSlowing flows through to GastricEmptyingModel as a persistent-gastroparesis-style condition', () => {
+      const patient = { stomach: 'empty', npoSolids: 8, npoLiquids: 2 };
+      const notPregnant = GastrointestinalEngine.tick(1, { patient, vitals: {}, time: 0 }, [], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true
+      });
+      const pregnant = GastrointestinalEngine.tick(1, { patient, vitals: {}, time: 0 }, [], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true,
+        pregnancyGiSlowing: true
+      });
+      expect(pregnant.gastricVolume).toBeGreaterThan(notPregnant.gastricVolume);
+    });
+
+    it('Metoclopramide can still raise LES tone above a pregnancy-depressed baseline', () => {
+      const pregnantOnly = GastrointestinalEngine.tick(1, { patient: {}, vitals: {}, time: 0 }, [], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true,
+        pregnancyLesTonePenalty: 0.25
+      });
+      const pregnantWithMetoclopramide = GastrointestinalEngine.tick(1, { patient: {}, vitals: {}, time: 0 }, [{ name: 'Metoclopramide', Ce: 5.0 }], {
+        EtN_2O: 0, currentMac: 0, C_cat: 0, positivePressureVentilationActive: false, spontaneousBreathingActive: true,
+        pregnancyLesTonePenalty: 0.25
+      });
+      expect(pregnantWithMetoclopramide.lesTone).toBeGreaterThan(pregnantOnly.lesTone);
     });
   });
 });

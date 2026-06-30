@@ -39,6 +39,16 @@ export interface FourChamberInputs {
   splanchnicTone?: number; // 0-2, 1.0 = normal; <1 = vasodilated/sympathetically blocked
     // (celiac plexus/thoracic epidural block -- recruits more unstressed splanchnic
     // venous capacity, "pooling" blood there), >1 = vasoconstricted (alpha-agonist).
+  alpha1ActivityIndex?: number; // 0+, aggregate alpha-1 receptor activity (sum of
+    // ReceptorPharmacologyModel.ts's alpha1Activity across all active exogenous drugs
+    // and the endogenous catecholamine pool) -- redistributes the SAME total SVR
+    // per-vascular-bed (real receptor-density differences: skin/splanchnic alpha-1-
+    // dominant, cerebral/coronary autoregulation-protected) rather than uniformly, with
+    // zero effect on the overall MAP/SVR magnitude (already set by `svr` above).
+  beta2ActivityIndex?: number; // 0+, aggregate beta-2 activity -- partially offsets the
+    // alpha-1 redistribution specifically in the skeletal-muscle bed (real biphasic
+    // catecholamine dose-response: beta-2-mediated muscle vasodilation at lower
+    // "doses"/activity before alpha-1 vasoconstriction dominates).
 }
 
 export interface FourChamberCyclePoint {
@@ -124,6 +134,37 @@ const VASCULAR_BED_FRACTIONS: Record<string, number> = {
   other: 0.10
 };
 
+// Relative alpha-1 receptor density per bed (general physiology estimate, disclosed,
+// not a specific citation): skin and splanchnic beds are classically alpha-1-dominant
+// (the real mechanism behind pressors shunting blood away from skin/gut), cerebral and
+// coronary beds are comparatively spared (autoregulation-protected, reinforcing the
+// per-bed autoregulation already modeled below), renal is intermediate. Pre-normalized
+// (weighted by VASCULAR_BED_FRACTIONS) so the CO-weighted average is exactly 1.0 --
+// applying these at zero net redistribution strength change leaves the overall SVR/MAP
+// this model already produces from the `svr` input completely unchanged; they only
+// redistribute *where* a given total resistance change lands.
+const ALPHA1_BED_WEIGHT: Record<string, number> = {
+  splanchnic: 1.699,
+  renal: 0.654,
+  muscle: 0.784,
+  cerebral: 0.261,
+  coronary: 0.392,
+  skin: 1.961,
+  other: 1.307
+};
+// Real biphasic catecholamine dose-response: skeletal muscle has significant beta-2
+// receptor density, producing vasodilation that partially offsets alpha-1
+// vasoconstriction there specifically (epinephrine's classic low-dose vasodilation/
+// high-dose vasoconstriction picture in muscle beds) -- not modeled for other beds,
+// where alpha-1 dominates with comparatively little beta-2 antagonism.
+const MUSCLE_BETA2_OFFSET = 0.6;
+// Controls how strongly alpha1ActivityIndex/beta2ActivityIndex redistribute resistance
+// across beds relative to the uniform baseline -- found by direct numerical sweep so a
+// large pressor dose visibly shunts flow away from skin/splanchnic without distorting
+// the overall MAP this model already produces from `svr` (see
+// src/testing/four_chamber_circuit_model.test.ts's redistribution test).
+const REDISTRIBUTION_STRENGTH = 0.08;
+
 /**
  * Integrates the full closed-loop circulation (RA-RV-PA-LA-LV-Aorta, parallel arterial
  * vascular beds, and central/splanchnic venous reservoirs) to a periodic limit cycle.
@@ -182,6 +223,56 @@ export function simulateFourChamberCycle(inputs: FourChamberInputs): {
   for (const bed of Object.keys(VASCULAR_BED_FRACTIONS)) {
     bedResistanceBase[bed] = rSystemicTotal / VASCULAR_BED_FRACTIONS[bed];
   }
+  // Per-bed alpha-1 (+ muscle-specific beta-2) redistribution (Phase 2's receptor-
+  // unification piece, mutable-roaming-newell.md): real receptor-density differences
+  // mean a given amount of circulating catecholamine activity doesn't vasoconstrict
+  // every bed equally -- skin/splanchnic constrict the most (blood shunted away from
+  // them), cerebral/coronary are comparatively spared. This redistributes the SAME
+  // overall resistance the `svr` input already sets (ALPHA1_BED_WEIGHT is CO-fraction-
+  // weighted to average exactly 1.0), rather than adding a new net SVR effect on top.
+  const alpha1ActivityIndex = Math.max(0, safeNumber(safeInputs.alpha1ActivityIndex, 0));
+  const beta2ActivityIndex = Math.max(0, safeNumber(safeInputs.beta2ActivityIndex, 0));
+  if (alpha1ActivityIndex > 0 || beta2ActivityIndex > 0) {
+    for (const bed of Object.keys(VASCULAR_BED_FRACTIONS)) {
+      let toneMultiplier = 1.0 + REDISTRIBUTION_STRENGTH * alpha1ActivityIndex * (ALPHA1_BED_WEIGHT[bed] - 1.0);
+      if (bed === 'muscle') {
+        toneMultiplier -= REDISTRIBUTION_STRENGTH * beta2ActivityIndex * MUSCLE_BETA2_OFFSET;
+      }
+      toneMultiplier = Math.max(0.2, toneMultiplier);
+      bedResistanceBase[bed] *= toneMultiplier;
+    }
+    // Renormalize so the PARALLEL combination's total resistance is restored exactly to
+    // what `rSystemicTotal` (from the `svr` input) already specifies. Weighting
+    // ALPHA1_BED_WEIGHT to average 1.0 in resistance-space does NOT preserve the
+    // parallel-combination total (1/R_total = sum(fraction_i/R_i) is dominated by the
+    // lowest-resistance branch, not the arithmetic mean -- confirmed by direct numerical
+    // test: an early version of this redistribution caused MAP to *fall* at extreme
+    // pressor activity instead of rise, the opposite of real physiology, because a
+    // strongly-spared bed's resistance dropping enough creates a low-resistance shunt
+    // that the parallel combination disproportionately exploits). Explicit
+    // renormalization guarantees the overall SVR/MAP calibration stays exactly correct
+    // regardless of how extreme the per-bed redistribution gets.
+    // Each bed's resistance was already defined as rSystemicTotal/fraction_i specifically
+    // so that 1/R_total = sum(1/R_i) -- the fraction weighting is baked into each R_i's
+    // own definition already, not a separate weight to reapply here.
+    let parallelConductance = 0;
+    for (const bed of Object.keys(VASCULAR_BED_FRACTIONS)) {
+      parallelConductance += 1 / bedResistanceBase[bed];
+    }
+    const resultingParallelResistance = 1 / Math.max(1e-9, parallelConductance);
+    // Scaling every resistance by k scales the parallel combination by exactly k too
+    // (a basic property of parallel resistor networks) -- so to bring the resulting
+    // total back to rSystemicTotal, the scale factor is rSystemicTotal divided by what
+    // the redistribution alone produced, not the reverse.
+    const renormalizationFactor = rSystemicTotal / resultingParallelResistance;
+    for (const bed of Object.keys(VASCULAR_BED_FRACTIONS)) {
+      bedResistanceBase[bed] *= renormalizationFactor;
+    }
+  }
+  // Splanchnic pooling (sympathetic block/celiac plexus block, or alpha-agonist
+  // vasoconstriction) applied AFTER the alpha-1/beta-2 renormalization above -- this is
+  // a deliberate, real net change to overall resistance (not redistribution-neutral),
+  // matching the mechanism it replaced in CardiovascularEngine.ts.
   bedResistanceBase.splanchnic /= splanchnicTone; // lower tone -> lower resistance -> more flow
 
   // --- NEW: venous reservoirs (the systemic side of the closed loop) ---

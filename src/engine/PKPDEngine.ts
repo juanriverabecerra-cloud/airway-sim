@@ -1,4 +1,5 @@
 import { PKParameters, PDParameters } from './config/meds.config';
+import { computeReceptorCoupling } from './ReceptorPharmacologyModel';
 
 export interface MedicationProfileInput {
   name: string;
@@ -17,6 +18,8 @@ export interface PKPDEffects {
   group: string;
   svrMultiplier: number;
   coMultiplier: number;
+  alpha1Activity?: number; // receptor potency * fraction, for per-vascular-bed redistribution (Phase 2)
+  beta2Activity?: number;
 }
 
 export class PKPDModel {
@@ -280,7 +283,10 @@ export class PKPDModel {
     hepaticRatio: number = 1.0,
     bcheMultiplier: number = 1.0,
     hofmannMultiplier: number = 1.0,
-    lCysteineCe: number = 0.0
+    lCysteineCe: number = 0.0,
+    adiposeVolumeRatio: number = 1.0,  // Phase 5, Stage 6: BMI-scaled peripheral compartment
+    cyp2d6Multiplier: number = 1.0,   // Phase 6C: CYP2D6 polymorphism effect on clearance
+    cyp2c9c19Multiplier: number = 1.0 // Phase 6C: CYP2C9/2C19 polymorphism effect on clearance
   ): PKPDEffects {
     // Validate inputs
     let safeDt = Number(dt);
@@ -357,6 +363,14 @@ export class PKPDModel {
       }
     }
     
+    // Phase 6C: Pharmacogenomics CYP multipliers on clearance (k10Raw modified by genotype)
+    const safeCyp2d6 = typeof cyp2d6Multiplier === 'number' && Number.isFinite(cyp2d6Multiplier) ? Math.max(0.01, cyp2d6Multiplier) : 1.0;
+    const safeCyp2c9c19 = typeof cyp2c9c19Multiplier === 'number' && Number.isFinite(cyp2c9c19Multiplier) ? Math.max(0.01, cyp2c9c19Multiplier) : 1.0;
+    const CYP2D6_DRUGS = new Set(['Codeine', 'Tramadol', 'Oxycodone', 'Ondansetron', 'Morphine']);
+    const CYP2C9C19_DRUGS = new Set(['Warfarin', 'Clopidogrel', 'Pantoprazole', 'Omeprazole']);
+    if (CYP2D6_DRUGS.has(this.name)) k10Raw *= safeCyp2d6;
+    if (CYP2C9C19_DRUGS.has(this.name)) k10Raw *= safeCyp2c9c19;
+
     // Configuration-driven organ impairment clearance calculations
     const renalFrac = this.pk.renalFraction !== undefined ? this.pk.renalFraction : 0.0;
     const hepaticFrac = this.pk.hepaticFraction !== undefined ? this.pk.hepaticFraction : 0.0;
@@ -366,9 +380,22 @@ export class PKPDModel {
 
     const k10 = (k10Raw / 60) * coMod;
     const k12 = ((this.pk.k12 || 0) / 60) * coMod;
-    const k21 = (this.pk.k21 || 0) / 60;
     const k13 = ((this.pk.k13 || 0) / 60) * coMod;
-    const k31 = (this.pk.k31 || 0) / 60;
+
+    // Adipose PK scaling (Phase 5, Stage 6): larger adipose mass in obese patients
+    // means peripheral compartments V2/V3 hold MORE drug per unit drug in circulation --
+    // equivalent to SLOWER return from peripheral compartments (lower k21/k31) since the
+    // same amount of drug is distributed across a bigger mass with poor blood supply
+    // per unit volume (fat tissue RBF is much lower per kg than lean tissue). Only applied
+    // to lipophilic drugs (proxied by protein binding) since adipose has minimal effect on
+    // water-soluble drugs. adiposeVolumeRatio = 1 + max(0, (BMI-25)/30), i.e. 1.0 at BMI 25,
+    // 1.5 at BMI 40, 1.67 at BMI 45 -- within the clinically observed 40-70% V2 increase
+    // for highly lipophilic drugs (propofol, fentanyl) in severe obesity.
+    const safeAdiposeRatio = Math.max(0.5, Math.min(2.5, typeof adiposeVolumeRatio === 'number' && Number.isFinite(adiposeVolumeRatio) ? adiposeVolumeRatio : 1.0));
+    const lipophilicityProxy = this.pk.proteinBinding !== undefined ? Math.min(1, this.pk.proteinBinding) : 0.5;
+    const adiposeSlowingFactor = 1.0 / (1.0 + Math.max(0, safeAdiposeRatio - 1) * lipophilicityProxy * 0.5);
+    const k21 = ((this.pk.k21 || 0) / 60) * adiposeSlowingFactor;
+    const k31 = ((this.pk.k31 || 0) / 60) * adiposeSlowingFactor;
 
     // Autoregulation of Effect-Site Equilibration (ke0)
     let ke0Mod = 1.0;
@@ -567,28 +594,18 @@ export class PKPDModel {
       effects.rrDelta = this.pd.rrMax * (this.classes.includes('Opioid') || this.classes.includes('Opioid (Ultra-short)') ? fractionResp : fraction);
     }
 
-    // HIGH-FIDELITY VASOPRESSOR / RECEPTOR COUPLING (CA-1 Integration)
+    // HIGH-FIDELITY VASOPRESSOR / RECEPTOR COUPLING (CA-1 Integration) -- extracted into
+    // ReceptorPharmacologyModel.ts's computeReceptorCoupling (Phase 2's receptor-
+    // unification piece, mutable-roaming-newell.md) so PainEngine.ts's endogenous
+    // catecholamine pool can share the exact same math; this call site's behavior is
+    // unchanged, a pure refactor.
     if (this.pd.receptors) {
-      const alpha1 = this.pd.receptors.Alpha1 || 0;
-      const beta1 = this.pd.receptors.Beta1 || 0;
-      const beta2 = this.pd.receptors.Beta2 || 0;
-      const v1 = this.pd.receptors.V1 || 0;
-
-      // SVR is driven heavily by Alpha-1 and V1, antagonized by Beta-2
-      const svrIncrease = (alpha1 * 0.25 * fraction) + (v1 * 0.30 * fraction);
-      const svrDecrease = (beta2 * 0.15 * fraction);
-      effects.svrMultiplier += (svrIncrease - svrDecrease);
-
-      // Cardiac Output (Contractility) is driven purely by Beta-1
-      const coIncrease = (beta1 * 0.25 * fraction);
-      effects.coMultiplier += coIncrease;
-      
-      // Beta-1 directly drives chronotropy
-      effects.hrDelta += (beta1 * 15 * fraction);
-      
-      // Baroreceptor Reflex Simulation: 
-      if (alpha1 > 0 && beta1 === 0) effects.hrDelta -= (alpha1 * 5 * fraction);
-      if (v1 > 0 && beta1 === 0) effects.hrDelta -= (v1 * 5 * fraction);
+      const coupling = computeReceptorCoupling(fraction, this.pd.receptors);
+      effects.svrMultiplier += coupling.svrMultiplierDelta;
+      effects.coMultiplier += coupling.coMultiplierDelta;
+      effects.hrDelta += coupling.hrDeltaContribution;
+      effects.alpha1Activity = (effects.alpha1Activity || 0) + coupling.alpha1Activity;
+      effects.beta2Activity = (effects.beta2Activity || 0) + coupling.beta2Activity;
     }
 
     // Clinical Hypnosis

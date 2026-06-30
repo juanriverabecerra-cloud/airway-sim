@@ -807,6 +807,70 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
     pd: { c50: 1.0, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
     notes: 'Broad-spectrum beta-lactam antibiotic. STRICT safety warning: In patients with history of penicillin anaphylaxis, administration triggers immediate severe anaphylactic shock (bronchospasm, profound vasoplegic hypotension, extreme compensatory tachycardia).'
   },
+  cefazolin: {
+    name: 'Cefazolin', classes: ['Antibiotic', '1st-Gen Cephalosporin'], routes: ['IV', 'IM'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Renal (Unchanged >90%)', proteinBinding: 0.74, targetReceptor: 'Penicillin-Binding Proteins',
+    indications: { 'Surgical Prophylaxis': { dose: '2.0', unit: 'g', type: 'Bolus' }, 'Gram-Positive Infection': { dose: '1-2', unit: 'g', type: 'Infusion' } },
+    pk: { V1: 10.0, V2: 5.0, V3: 0, k10: 0.0064, k12: 0.03, k21: 0.04, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.3 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'First-generation cephalosporin. Time-dependent killing (T>MIC). First-line surgical prophylaxis and MSSA coverage. t1/2 ≈1.8h.'
+  },
+  vancomycin: {
+    name: 'Vancomycin', classes: ['Antibiotic', 'Glycopeptide'], routes: ['IV'], types: ['Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Renal (Unchanged)', proteinBinding: 0.55, targetReceptor: 'D-Ala-D-Ala Peptidoglycan',
+    indications: { 'MRSA Infection': { dose: '25-35', unit: 'mg/kg/day', type: 'Infusion' }, 'Gram-Positive Bacteremia': { dose: '15-20', unit: 'mg/kg', type: 'Infusion' } },
+    pk: { V1: 12.0, V2: 38.0, V3: 0, k10: 0.00193, k12: 0.05, k21: 0.012, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.4 },
+    pd: { c50: 10.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Glycopeptide. AUC/MIC-driven PD (target ≥400-600 mg·h/L). Red man syndrome with rapid infusion. Nephrotoxic. Covers MRSA. t1/2 ≈6h.'
+  },
+  piperacillin_tazobactam: {
+    name: 'Piperacillin/Tazobactam', classes: ['Antibiotic', 'Extended-Spectrum Penicillin'], routes: ['IV'], types: ['Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Renal (Unchanged ~68%)', proteinBinding: 0.30, targetReceptor: 'Penicillin-Binding Proteins',
+    indications: { 'Broad-Spectrum Infection': { dose: '3.375', unit: 'g', type: 'Infusion' }, 'Febrile Neutropenia': { dose: '4.5', unit: 'g', type: 'Infusion' } },
+    pk: { V1: 18.0, V2: 12.0, V3: 0, k10: 0.01155, k12: 0.05, k21: 0.04, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.3 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Extended-spectrum penicillin + BLI. Time-dependent killing. Broad gram-negative + anaerobic coverage including Pseudomonas. t1/2 ≈1h.'
+  },
+  meropenem: {
+    name: 'Meropenem', classes: ['Antibiotic', 'Carbapenem'], routes: ['IV'], types: ['Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Renal (Unchanged ~70%)', proteinBinding: 0.02, targetReceptor: 'Penicillin-Binding Proteins',
+    indications: { 'Severe/Resistant Infection': { dose: '1.0-2.0', unit: 'g', type: 'Infusion' } },
+    pk: { V1: 15.0, V2: 10.0, V3: 0, k10: 0.0116, k12: 0.04, k21: 0.035, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.3 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Broadest-spectrum carbapenem. Covers ESBL-producers and Pseudomonas. Last-line for resistant gram-negatives. t1/2 ≈1h.'
+  },
+  gentamicin: {
+    name: 'Gentamicin', classes: ['Antibiotic', 'Aminoglycoside'], routes: ['IV', 'IM'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Renal (Unchanged)', proteinBinding: 0.10, targetReceptor: '30S Ribosomal Subunit',
+    indications: { 'Gram-Negative Sepsis': { dose: '5-7', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 17.0, V2: 5.0, V3: 0, k10: 0.00462, k12: 0.02, k21: 0.03, k13: 0, k31: 0, ke0: 1.5, coSensitivity: 0.5 },
+    pd: { c50: 4.0, gamma: 2.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Aminoglycoside. Concentration-dependent killing (Cmax/MIC ≥8). Nephrotoxic and ototoxic. Extended-interval dosing preferred. t1/2 ≈2.5h.'
+  },
+  metronidazole: {
+    name: 'Metronidazole', classes: ['Antibiotic', 'Nitroimidazole'], routes: ['IV', 'PO'], types: ['Infusion', 'Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP oxidation)', proteinBinding: 0.10, targetReceptor: 'Anaerobic Electron Transport Chain',
+    indications: { 'Anaerobic Infection': { dose: '500', unit: 'mg', type: 'Infusion' } },
+    pk: { V1: 20.0, V2: 30.0, V3: 0, k10: 0.00144, k12: 0.03, k21: 0.025, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.2 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Nitroimidazole. Excellent anaerobic and protozoal coverage. Disulfiram-like reaction with alcohol. QT-prolonging at high doses. t1/2 ≈8h.'
+  },
+  ciprofloxacin: {
+    name: 'Ciprofloxacin', classes: ['Antibiotic', 'Fluoroquinolone'], routes: ['IV', 'PO'], types: ['Infusion', 'Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic / Renal (mixed)', proteinBinding: 0.30, targetReceptor: 'Bacterial Topoisomerase',
+    indications: { 'Gram-Negative Infection': { dose: '400', unit: 'mg', type: 'Infusion' } },
+    pk: { V1: 30.0, V2: 180.0, V3: 0, k10: 0.00231, k12: 0.04, k21: 0.008, k13: 0, k31: 0, ke0: 0.8, coSensitivity: 0.3 },
+    pd: { c50: 0.5, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Fluoroquinolone. AUC/MIC-driven PD. Large Vd (2-3 L/kg). QT prolongation. Growing resistance. Excellent PO bioavailability. t1/2 ≈5h.'
+  },
+  ceftriaxone: {
+    name: 'Ceftriaxone', classes: ['Antibiotic', '3rd-Gen Cephalosporin'], routes: ['IV', 'IM'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Biliary / Renal (dual)', proteinBinding: 0.95, targetReceptor: 'Penicillin-Binding Proteins',
+    indications: { 'Community-Acquired Pneumonia': { dose: '2.0', unit: 'g', type: 'Bolus' }, 'Meningitis': { dose: '2.0', unit: 'g', type: 'Bolus' } },
+    pk: { V1: 9.0, V2: 5.0, V3: 0, k10: 0.00144, k12: 0.02, k21: 0.02, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.2 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Third-generation cephalosporin. Time-dependent killing. Community pneumonia first-line. CSF penetrant (meningitis). Long t1/2 ≈8h -- once-daily dosing. Does NOT cover Pseudomonas or MRSA.'
+  },
   dextrose: {
     name: 'Dextrose 50%', classes: ['Hypertonic Glucose'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
     metabolism: 'Cellular metabolism', proteinBinding: 0.0, synergyGroup: 'None', pkModel: 'Standard Compartmental',
@@ -891,6 +955,70 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
     pk: { V1: 10.0, V2: 15.0, V3: 0, k10: 0.03, k12: 0.04, k21: 0.03, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 },
     pd: { c50: 1.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
     notes: 'Potent injectable NSAID. Non-selective cyclooxygenase inhibitor. Opioid-sparing, reduces constipation and postoperative ileus. Risks: renal impairment, platelet inhibition, GI bleeding.'
+  },
+  sodiumCitrate: {
+    name: 'Sodium Citrate', classes: ['Nonparticulate Antacid'], routes: ['PO'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Local (gastric chemical neutralization, no systemic metabolism)', proteinBinding: 0.0, targetReceptor: 'N/A (direct chemical acid neutralization)',
+    indications: { 'Aspiration Prophylaxis': { dose: '30', unit: 'mL', type: 'Bolus' } },
+    pk: { V1: 5.0, V2: 0, V3: 0, k10: 0.025, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.0 },
+    pd: { c50: 2.0, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Nonparticulate oral antacid (e.g. Bicitra). Directly neutralizes existing gastric acid on contact, raising gastric pH within minutes -- a local chemical effect modeled here via the same Ce/effect-site framework as a disclosed proxy for "remaining buffering capacity," not a literal systemic blood concentration. Effect wanes over ~30-60 min as buffered contents continue to empty/mix. Unlike H2 blockers/PPIs, has no effect on future acid secretion or gastric volume.'
+  },
+  famotidine: {
+    name: 'Famotidine', classes: ['H2 Receptor Antagonist'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Renal (Unchanged)', proteinBinding: 0.15, targetReceptor: 'Histamine H2 Receptor',
+    indications: { 'Aspiration Prophylaxis': { dose: '20', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 20.0, V3: 0, k10: 0.004, k12: 0.02, k21: 0.015, k13: 0, k31: 0, ke0: 0.05, coSensitivity: 0.0 },
+    pd: { c50: 0.3, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Competitive H2-receptor antagonist. Reduces future gastric acid secretion (raising gastric pH toward ~4-4.5 and modestly reducing secretion-driven gastric volume), reversibly and in proportion to effect-site concentration. Onset ~30-60 min IV; does not affect acid already present in the stomach. Clinically negligible hemodynamic effect (sysMax/diaMax/hrMax/rrMax intentionally zero, not an oversight).'
+  },
+  pantoprazole: {
+    name: 'Pantoprazole', classes: ['Proton Pump Inhibitor'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP2C19/3A4)', proteinBinding: 0.98, targetReceptor: 'H+/K+-ATPase (Proton Pump)',
+    indications: { 'Aspiration Prophylaxis': { dose: '40', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 20.0, V3: 0, k10: 0.012, k12: 0.03, k21: 0.02, k13: 0, k31: 0, ke0: 0.15, coSensitivity: 0.0 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Proton pump inhibitor. Covalently and IRREVERSIBLY inhibits the parietal cell H+/K+-ATPase -- pharmacodynamic effect is decoupled from plasma Ce (which clears with a ~1-1.5h half-life) and instead accumulates with cumulative pump exposure, persisting ~24-48h until new pumps are synthesized (GastricEmptyingModel.ts tracks this separately as patient.ppiSuppressionLevel). More potent than an H2 blocker at maximal effect (can raise gastric pH toward neutral) but slower to reach that maximum.'
+  },
+  metoclopramide: {
+    name: 'Metoclopramide', classes: ['Prokinetic', 'Antiemetic'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Renal (Unchanged)', proteinBinding: 0.30, targetReceptor: 'Dopamine D2 / 5-HT3 / 5-HT4',
+    indications: { 'Aspiration Prophylaxis / PONV': { dose: '10', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 30.0, V3: 0, k10: 0.0023, k12: 0.03, k21: 0.025, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0.0 },
+    pd: { c50: 0.5, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Dopamine D2 antagonist / 5-HT4 agonist prokinetic. Accelerates gastric emptying (enhanced antral contractions) AND increases lower esophageal sphincter tone, both reducing aspiration risk. Onset ~30-60 min IV. Extrapyramidal/sedative side effects are real but not mechanically modeled here (disclosed scope gap).'
+  },
+  oxytocin: {
+    name: 'Oxytocin', classes: ['Uterotonic'], routes: ['IV', 'IM'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Renal / Hepatic (Oxytocinase)', proteinBinding: 0.30, targetReceptor: 'Oxytocin Receptor',
+    indications: { 'Postpartum Hemorrhage / Uterine Atony': { dose: '10-40', unit: 'units', type: 'Infusion' } },
+    pk: { V1: 8.0, V2: 12.0, V3: 0, k10: 0.15, k12: 0.08, k21: 0.06, k13: 0, k31: 0, ke0: 0.8, coSensitivity: 0.1 },
+    pd: { c50: 0.3, gamma: 1.5, sysMax: -10, diaMax: -10, hrMax: 10, rrMax: 0 },
+    notes: 'First-line uterotonic. Binds myometrial oxytocin receptors, the dominant driver of postpartum uterine contraction/tone. Rapid IV bolus causes transient vasodilation/flushing and reflex tachycardia. Fast onset (~1 min), short half-life (~4-5 min) -- sustained effect requires a continuous infusion, not a single bolus.'
+  },
+  methylergonovine: {
+    name: 'Methylergonovine', classes: ['Uterotonic', 'Ergot Alkaloid'], routes: ['IV', 'IM'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic', proteinBinding: 0.20, targetReceptor: 'Alpha-1 Adrenergic / Serotonergic',
+    indications: { 'Postpartum Hemorrhage / Uterine Atony': { dose: '0.2', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 25.0, V3: 0, k10: 0.01, k12: 0.04, k21: 0.03, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0.1 },
+    pd: { c50: 0.4, gamma: 1.5, sysMax: 15, diaMax: 10, hrMax: 0, rrMax: 0 },
+    notes: 'Potent ergot-alkaloid uterotonic, longer-acting than Oxytocin. CONTRAINDICATED in hypertension/preeclampsia -- generalized vasoconstriction can precipitate a hypertensive crisis.'
+  },
+  carboprost: {
+    name: 'Carboprost', classes: ['Uterotonic', 'Prostaglandin'], routes: ['IM'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Pulmonary / Hepatic', proteinBinding: 0.70, targetReceptor: 'Prostaglandin F2-alpha Receptor',
+    indications: { 'Postpartum Hemorrhage / Uterine Atony': { dose: '0.25', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 20.0, V3: 0, k10: 0.03, k12: 0.04, k21: 0.03, k13: 0, k31: 0, ke0: 0.4, coSensitivity: 0.1 },
+    pd: { c50: 0.3, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Potent prostaglandin F2-alpha analog uterotonic. CONTRAINDICATED in asthma -- prostaglandin-mediated bronchoconstriction can precipitate severe bronchospasm.'
+  },
+  misoprostol: {
+    name: 'Misoprostol', classes: ['Uterotonic', 'Prostaglandin'], routes: ['PO', 'PR', 'SL'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic', proteinBinding: 0.0, targetReceptor: 'Prostaglandin E1 Receptor',
+    indications: { 'Postpartum Hemorrhage / Uterine Atony': { dose: '800-1000', unit: 'mcg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 30.0, V3: 0, k10: 0.015, k12: 0.03, k21: 0.025, k13: 0, k31: 0, ke0: 0.15, coSensitivity: 0.0 },
+    pd: { c50: 0.5, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Prostaglandin E1 analog uterotonic. Slower onset and less potent than the others above, but lacks their major contraindications.'
   },
   gabapentin: {
     name: 'Gabapentin', classes: ['Gabapentinoid'], routes: ['PO'], types: ['Bolus'], dosingWeight: 'TBW',

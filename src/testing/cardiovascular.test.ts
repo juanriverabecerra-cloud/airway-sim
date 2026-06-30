@@ -517,4 +517,16 @@ describe('Cardiovascular & Resuscitation Engine Regression Tests', () => {
       expect(result.events).toBeDefined();
     });
   });
+
+  describe('Phase 4: Pregnancy SVR multiplier (PregnancyPhysiologyEngine.ts integration)', () => {
+    it('pregnancySvrMultiplier reduces SVR (and thereby contributes to a higher CO/lower MAP-resistance balance), defaulting to no effect when absent', () => {
+      const state = createBaselineState();
+      const inputs = baselineInputs(state);
+
+      const withoutPregnancy = CardiovascularEngine.tick(1, { ...state, time: 10 }, createBaselineDrugEffects(), inputs);
+      const withPregnancy = CardiovascularEngine.tick(1, { ...state, time: 10 }, { ...createBaselineDrugEffects(), pregnancySvrMultiplier: 0.8 }, inputs);
+
+      expect(withPregnancy.vitals.svr).toBeLessThan(withoutPregnancy.vitals.svr);
+    });
+  });
 });

@@ -85,7 +85,7 @@ export class FluidicsEngine {
     // Defensively handle missing state container
     const safeSt = st || {};
     const patient = safeSt.patient || {};
-    const electrolytes = safeSt.electrolytes || { k: 4.0, na: 140, cl: 100, ca: 2.2, ph: 7.40 };
+    const electrolytes = safeSt.electrolytes || { k: 4.0, na: 140, cl: 100, ca: 2.2, ph: 7.40, buf: 0 };
     const coags = safeSt.coags || { r_offset: 0, ma_offset: 0, angle_offset: 0 };
     const vitals = safeSt.vitals || { temp: 37.0 };
     
@@ -203,14 +203,24 @@ export class FluidicsEngine {
         const nextCl = ((updatedElectrolytes.cl * prevTBW) + (fluidData.cl * volLiters)) / newTBW;
         if (Number.isFinite(nextCl)) updatedElectrolytes.cl = nextCl;
         
+        // Calcium: direct Ca²⁺ delivery minus citrate chelation (blood products store Ca2+ in
+        // citrate; the citrate-bound portion is unavailable until the liver metabolizes citrate,
+        // ~5-10 min half-life -- here modeled as immediate chelation for the infused tick since
+        // 1Hz resolution doesn't distinguish sub-minute effects).
         const calciumDelta = (fluidData.ca * (isUnit ? unitEq : volLiters)) - (fluidData.citrateLoad * unitEq * 0.02);
         if (Number.isFinite(calciumDelta)) {
-          updatedElectrolytes.ca = Math.max(1.0, updatedElectrolytes.ca + calciumDelta);
+          updatedElectrolytes.ca = Math.max(0.5, updatedElectrolytes.ca + calciumDelta);
         }
-        
-        if (fluidData.cl > 110) {
-          updatedElectrolytes.ph = Math.max(6.0, Math.min(8.0, updatedElectrolytes.ph - (0.05 * volLiters)));
-        }
+
+        // Buffer (lactate in LR, acetate/gluconate in PlasmaLyte): accumulate in mEq, representing
+        // the bicarbonate-equivalent capacity added. AcidBaseModel.ts (Phase 5) reads this to
+        // compute its true effect on SID; the PREVIOUS crude pH penalty from high-Cl fluids
+        // (updatedElectrolytes.ph -= 0.05 * volLiters) is deliberately REMOVED here -- that
+        // flat constant will be replaced by the real SID-based pH computation in AcidBaseModel.ts
+        // which uses the already-tracked electrolytes.cl/na directly, making the crude proxy
+        // redundant and inconsistent with the new physics.
+        const bufferDelta = (typeof fluidData.buffer === 'number' ? fluidData.buffer : 0) * volLiters;
+        updatedElectrolytes.buf = (updatedElectrolytes.buf || 0) + bufferDelta;
         
         coagDelta.r += (fluidData.coag.r * unitEq);
         coagDelta.ma += (fluidData.coag.ma * unitEq);

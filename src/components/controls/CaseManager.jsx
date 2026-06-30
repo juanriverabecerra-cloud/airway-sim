@@ -110,7 +110,12 @@ const PRESETS = [
     npoSolids: 2, npoLiquids: 2, ef: 65, gfr: 120,
     betaBlocker: false, cad: false, afib: false, mg: false,
     burns: false, immobility: false, cp: 'none', htn: false, as: false,
-    emergentRSI: true
+    emergentRSI: true,
+    // Phase 4 §4.27/§4.28: activates PregnancyPhysiologyEngine.ts (Stage A) and
+    // UterineToneModel.ts (Stage C) -- this case starts at the PPH crisis the title/
+    // description name (deliveryOccurred: true), not the earlier fetal-distress phase, since
+    // no case-progression/"deliver" workflow action exists yet to transition between them.
+    isPregnant: true, gestationalAgeWeeks: 39, deliveryOccurred: true
   },
   {
     id: 'ortho',
@@ -220,6 +225,133 @@ const PRESETS = [
     betaBlocker: false, cad: false, afib: false, mg: true,
     burns: false, immobility: false, cp: 'none', htn: false, as: false,
     mgDurationYears: 8, pyridostigmineDoseMgPerDay: 480, bulbarSymptoms: true, historyMyasthenicCrisis: false, antiAchR: 120, decrementalResponse: true, vitalCapacity: 2.5
+  },
+  {
+    id: 'von_willebrand_disease',
+    name: 'Hematology - Von Willebrand Disease (Type 1, Elective Hip Arthroplasty)',
+    specialty: 'Hematology / Orthopedic',
+    description: 'Type 1 VWD patient undergoing total hip arthroplasty. Reduced VWF activity → impaired primary hemostasis and mildly reduced Factor VIII. Preoperative DDAVP test dose confirmed responder. Management: DDAVP at induction, regional anesthesia with caution given platelet function, Type & Screen. PFA-100 C-ADP and C-Epi closure times will be abnormal pre-DDAVP.',
+    age: 42, sex: 'female', weight: 68, height: 164,
+    hr: 72, sys: 118, dia: 72, spo2: 99, rr: 13, temp: 36.8,
+    mallampati: 1, neckMobility: 'normal', airwayBlood: false,
+    obese: false, septic: false, trauma: false, copd: false, chf: false,
+    position: 'Lateral', procedure: 'Total Hip Arthroplasty',
+    ebl: 'Moderate', duration: 120, penicillinAllergy: false,
+    npoSolids: 8, npoLiquids: 2, ef: 62, gfr: 98,
+    betaBlocker: false, cad: false, afib: false, mg: false,
+    burns: false, immobility: false, cp: 'none', htn: false, as: false,
+    hasVWD: true, vwdType: '1', factorVIIIPercent: 35, vwfActivityPercent: 35
+  },
+  {
+    id: 'hemophilia_a',
+    name: 'Hematology - Hemophilia A (Moderate, Orthopedic Procedure)',
+    specialty: 'Hematology / Orthopedic',
+    description: 'Moderate Hemophilia A (FVIII 3%) undergoing knee washout for hemarthrosis. Requires Factor VIII concentrate loading before incision. Monitor Factor VIII levels during case. Risk of acquired inhibitors (~30% of severe cases). Hemostasis critically depends on Factor VIII target >50% before surgery.',
+    age: 28, sex: 'male', weight: 78, height: 181,
+    hr: 75, sys: 122, dia: 75, spo2: 99, rr: 14, temp: 37.0,
+    mallampati: 1, neckMobility: 'normal', airwayBlood: false,
+    obese: false, septic: false, trauma: false, copd: false, chf: false,
+    position: 'Supine', procedure: 'Knee Joint Washout',
+    ebl: 'Low', duration: 45, penicillinAllergy: false,
+    npoSolids: 8, npoLiquids: 2, ef: 60, gfr: 110,
+    betaBlocker: false, cad: false, afib: false, mg: false,
+    burns: false, immobility: false, cp: 'none', htn: false, as: false,
+    hemophiliaA: true, factorVIIIPercent: 3
+  },
+  {
+    id: 'cyp2d6_um_codeine',
+    name: 'Pharmacogenomics - CYP2D6 Ultra-Rapid Metabolizer (Codeine Toxicity)',
+    specialty: 'Pharmacogenomics / Acute Pain',
+    description: 'Patient with CYP2D6 UM phenotype (multiple gene copies) received codeine 30mg PO for post-tonsillectomy pain. Ultra-rapid conversion to morphine → respiratory depression requiring hospitalization. FDA black-box warning scenario. Management: identify UM phenotype, immediately switch to non-CYP2D6-dependent analgesic (hydromorphone, fentanyl, oxymorphone), naloxone support, oxygen.',
+    age: 8, sex: 'male', weight: 28, height: 127,
+    hr: 48, sys: 88, dia: 55, spo2: 88, rr: 6, temp: 37.1,
+    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
+    obese: false, septic: false, trauma: false, copd: false, chf: false,
+    position: 'Supine', procedure: 'Post-Tonsillectomy Pain Management',
+    ebl: 'Low', duration: 0, penicillinAllergy: false,
+    npoSolids: 2, npoLiquids: 1, ef: 65, gfr: 115,
+    betaBlocker: false, cad: false, afib: false, mg: false,
+    burns: false, immobility: false, cp: 'none', htn: false, as: false,
+    cyp2d6Phenotype: 'UM'
+  },
+  {
+    id: 'g6pd_methb',
+    name: 'Pharmacogenomics - G6PD Deficiency + Methemoglobinemia',
+    specialty: 'Hematology / Toxicology',
+    description: 'G6PD-deficient patient developed methemoglobinemia from benzocaine spray during bronchoscopy. SpO2 reads ~85% (MetHb artifact -- true SaO2 is 78%). Standard treatment is METHYLENE BLUE -- but in G6PD deficiency, methylene blue causes oxidative hemolysis! Correct treatment: high-dose IV Vitamin C (ascorbic acid) + 100% oxygen + transfusion if severe.',
+    age: 34, sex: 'male', weight: 72, height: 175,
+    hr: 110, sys: 100, dia: 65, spo2: 85, rr: 22, temp: 37.2,
+    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
+    obese: false, septic: false, trauma: false, copd: false, chf: false,
+    position: 'Supine', procedure: 'Bronchoscopy Recovery',
+    ebl: 'Low', duration: 0, penicillinAllergy: false,
+    npoSolids: 6, npoLiquids: 2, ef: 65, gfr: 105,
+    betaBlocker: false, cad: false, afib: false, mg: false,
+    burns: false, immobility: false, cp: 'none', htn: false, as: false,
+    g6pdDeficiency: true
+  },
+  {
+    id: 'adrenal_crisis',
+    name: 'Endocrinology - Perioperative Adrenal Crisis (Chronic Steroid Use)',
+    specialty: 'Endocrinology / General Surgery',
+    description: 'Patient on chronic prednisone 15 mg/day for 2 years (RA) undergoing colectomy. Did NOT receive stress-dose steroids at induction. Develops refractory hypotension unresponsive to vasopressors during case -- classic perioperative adrenal crisis. Recognition and immediate hydrocortisone IV bolus is the only effective treatment.',
+    age: 58, sex: 'female', weight: 74, height: 162,
+    hr: 118, sys: 72, dia: 42, spo2: 97, rr: 18, temp: 36.5,
+    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
+    obese: false, septic: false, trauma: false, copd: false, chf: false,
+    position: 'Supine', procedure: 'Laparoscopic Colectomy',
+    ebl: 'Moderate', duration: 180, penicillinAllergy: false,
+    npoSolids: 8, npoLiquids: 2, ef: 60, gfr: 82,
+    betaBlocker: false, cad: false, afib: false, mg: false,
+    burns: false, immobility: false, cp: 'none', htn: false, as: false,
+    chronicPrednisoneDoseMgPerDay: 15, chronicSteroidDurationWeeks: 104, infectionType: 'mixed_abdominal'
+  },
+  {
+    id: 'turp',
+    name: 'Urology - Transurethral Prostate Resection (TURP)',
+    specialty: 'Urology',
+    description: 'Elderly male undergoing TURP for BPH. Monitor for TURP syndrome (dilutional hyponatremia, volume overload, hypothermia from irrigation fluid absorption). Spinal anesthesia preferred -- early CNS signs of TURP syndrome are only detectable in an awake patient.',
+    age: 74, sex: 'male', weight: 82, height: 172,
+    hr: 68, sys: 148, dia: 88, spo2: 97, rr: 14, temp: 36.8,
+    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
+    obese: false, septic: false, trauma: false, copd: false, chf: false,
+    position: 'Lithotomy', procedure: 'Transurethral Resection of Prostate',
+    ebl: 'Low', duration: 90, penicillinAllergy: false,
+    npoSolids: 8, npoLiquids: 4, ef: 55, gfr: 72,
+    betaBlocker: true, cad: true, afib: false, mg: false,
+    burns: false, immobility: false, cp: 'none', htn: true, as: false,
+    bphSeverity: 0.7
+  },
+  {
+    id: 'sci_autonomic_dysreflexia',
+    name: 'SCI - Autonomic Dysreflexia / TURP',
+    specialty: 'Urology',
+    description: 'Thoracic spinal cord injury (T4) presenting for TURP. At risk for severe autonomic dysreflexia triggered by bladder distension, surgical stimulation, or urinary retention -- a life-threatening hypertensive crisis unique to SCI patients above T6. Untreated, MAP can exceed 200 mmHg.',
+    age: 38, sex: 'male', weight: 71, height: 178,
+    hr: 55, sys: 98, dia: 60, spo2: 98, rr: 14, temp: 36.9,
+    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
+    obese: false, septic: false, trauma: false, copd: false, chf: false,
+    position: 'Lithotomy', procedure: 'Transurethral Resection of Prostate',
+    ebl: 'Low', duration: 75, penicillinAllergy: false,
+    npoSolids: 8, npoLiquids: 4, ef: 60, gfr: 80,
+    betaBlocker: false, cad: false, afib: false, mg: false,
+    burns: false, immobility: false, cp: 'none', htn: false, as: false,
+    hasSpinalCordInjuryAboveT6: true, bphSeverity: 0.5
+  },
+  {
+    id: 'last_regional',
+    name: 'Orthopedic - Interscalene Block (LAST Risk)',
+    specialty: 'Regional Anesthesia',
+    description: 'Shoulder arthroplasty under interscalene brachial plexus block. Bupivacaine 0.5% administered. Risk of local anesthetic systemic toxicity from intravascular injection or peak absorption. Intralipid 20% rescue is available in the facility but must be recognized and initiated promptly (ASRA LAST Checklist).',
+    age: 62, sex: 'female', weight: 71, height: 163,
+    hr: 72, sys: 128, dia: 78, spo2: 99, rr: 13, temp: 36.9,
+    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
+    obese: false, septic: false, trauma: false, copd: false, chf: false,
+    position: 'Beach Chair', procedure: 'Total Shoulder Arthroplasty',
+    ebl: 'Low', duration: 120, penicillinAllergy: false,
+    npoSolids: 8, npoLiquids: 2, ef: 60, gfr: 88,
+    betaBlocker: false, cad: false, afib: false, mg: false,
+    burns: false, immobility: false, cp: 'none', htn: false, as: false
   }
 ];
 
@@ -557,7 +689,25 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
         historyMyasthenicCrisis: data.historyMyasthenicCrisis !== undefined ? !!data.historyMyasthenicCrisis : false,
         antiAchR: data.antiAchR !== undefined ? data.antiAchR : (data.id === 'myasthenia_gravis' ? 120 : 0),
         decrementalResponse: data.decrementalResponse !== undefined ? !!data.decrementalResponse : (data.id === 'myasthenia_gravis'),
-        vitalCapacity: data.vitalCapacity !== undefined ? data.vitalCapacity : (data.id === 'myasthenia_gravis' ? 2.5 : 3.5)
+        vitalCapacity: data.vitalCapacity !== undefined ? data.vitalCapacity : (data.id === 'myasthenia_gravis' ? 2.5 : 3.5),
+        // Phase 4/5 new patient flags propagated from case presets
+        bphSeverity: data.bphSeverity !== undefined ? data.bphSeverity : 0,
+        hasSpinalCordInjuryAboveT6: !!data.hasSpinalCordInjuryAboveT6,
+        // Phase 6 new flags
+        hasVWD: data.hasVWD !== undefined ? !!data.hasVWD : false,
+        vwdType: data.vwdType || '1',
+        hemophiliaA: !!data.hemophiliaA,
+        hemophiliaB: !!data.hemophiliaB,
+        hemophiliaInhibitors: !!data.hemophiliaInhibitors,
+        cyp2d6Phenotype: data.cyp2d6Phenotype || 'EM',
+        cyp2c9Phenotype: data.cyp2c9Phenotype || 'normal',
+        cyp2c19Phenotype: data.cyp2c19Phenotype || 'normal',
+        g6pdDeficiency: !!data.g6pdDeficiency,
+        vkorc1SensitiveAllele: !!data.vkorc1SensitiveAllele,
+        historyPONV: !!data.historyPONV,
+        chronicPrednisoneDoseMgPerDay: data.chronicPrednisoneDoseMgPerDay || 0,
+        chronicSteroidDurationWeeks: data.chronicSteroidDurationWeeks || 0,
+        infectionType: data.infectionType || undefined
       }
     };
     setStagedCase(newCase);

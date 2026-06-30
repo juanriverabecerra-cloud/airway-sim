@@ -425,5 +425,74 @@ describe('Chapter 24: Opioids', () => {
       expect(res.urinaryRetentionActive).toBe(false);
     });
   });
+
+  describe('11. Phase 4 Bladder Pressure-Volume Mechanics, Overflow, and Autonomic Dysreflexia (BladderModel.ts integration)', () => {
+    const baseInputs = {
+      coRatio: 1.0, map: 110.0, sys: 140.0, cvp: 5.0, peep: 0.0, temp: 37.0,
+      currentMac: 0.0, C_cat: 0.0, ebl: 0, ebv: 5000, netFluidBalance: 1000.0
+    };
+
+    it('exposes a real bladder pressure that rises with accumulated volume during retention', () => {
+      const low = RenalEngine.tick(1, {
+        patient: { bladderVolume: 100, urinaryRetentionActive: true, hasFoley: false, weight: 70.0 },
+        vitals: { map: 110.0, vasopressinLevel: 0.1 } as any, time: 0
+      }, [], baseInputs);
+      const high = RenalEngine.tick(1, {
+        patient: { bladderVolume: 700, urinaryRetentionActive: true, hasFoley: false, weight: 70.0 },
+        vitals: { map: 110.0, vasopressinLevel: 0.1 } as any, time: 0
+      }, [], baseInputs);
+      expect(high.bladderPressure).toBeGreaterThan(low.bladderPressure);
+      expect(low.bladderPressure).toBeLessThan(10);
+    });
+
+    it('overflow leak engages at a lower bladder volume for female than male patients, preventing unbounded volume growth', () => {
+      const female = RenalEngine.tick(3600, {
+        patient: { bladderVolume: 850, urinaryRetentionActive: true, hasFoley: false, weight: 70.0, sex: 'female' },
+        vitals: { map: 110.0, vasopressinLevel: 0.1 } as any, time: 0
+      }, [], baseInputs);
+      const male = RenalEngine.tick(3600, {
+        patient: { bladderVolume: 850, urinaryRetentionActive: true, hasFoley: false, weight: 70.0, sex: 'male' },
+        vitals: { map: 110.0, vasopressinLevel: 0.1 } as any, time: 0
+      }, [], baseInputs);
+      expect(female.overflowLeakActive).toBe(true);
+      expect(male.overflowLeakActive).toBe(false);
+      expect(female.bladderVolume).toBeLessThan(male.bladderVolume);
+    });
+
+    it('autonomic dysreflexia activates for a spinal-cord-injured patient at a bladder pressure that would not concern a neurologically intact one', () => {
+      const sci = RenalEngine.tick(1, {
+        patient: { bladderVolume: 600, urinaryRetentionActive: true, hasFoley: false, weight: 70.0, hasSpinalCordInjuryAboveT6: true },
+        vitals: { map: 110.0, vasopressinLevel: 0.1 } as any, time: 0
+      }, [], baseInputs);
+      const noSci = RenalEngine.tick(1, {
+        patient: { bladderVolume: 600, urinaryRetentionActive: true, hasFoley: false, weight: 70.0, hasSpinalCordInjuryAboveT6: false },
+        vitals: { map: 110.0, vasopressinLevel: 0.1 } as any, time: 0
+      }, [], baseInputs);
+      expect(sci.autonomicDysreflexiaActive).toBe(true);
+      expect(sci.autonomicDysreflexiaSeverity).toBeGreaterThan(0);
+      expect(noSci.autonomicDysreflexiaActive).toBe(false);
+    });
+
+    it('a Foley placement resolves autonomic dysreflexia along with draining the bladder', () => {
+      const withFoley = RenalEngine.tick(1, {
+        patient: { bladderVolume: 600, urinaryRetentionActive: true, hasFoley: true, weight: 70.0, hasSpinalCordInjuryAboveT6: true },
+        vitals: { map: 110.0, vasopressinLevel: 0.1 } as any, time: 0
+      }, [], baseInputs);
+      expect(withFoley.autonomicDysreflexiaActive).toBe(false);
+      expect(withFoley.bladderVolume).toBe(0.0);
+    });
+
+    it('distensionSympatheticIndex is exposed and rises with bladder pressure', () => {
+      const mild = RenalEngine.tick(1, {
+        patient: { bladderVolume: 450, urinaryRetentionActive: true, hasFoley: false, weight: 70.0 },
+        vitals: { map: 110.0, vasopressinLevel: 0.1 } as any, time: 0
+      }, [], baseInputs);
+      const severe = RenalEngine.tick(1, {
+        patient: { bladderVolume: 850, urinaryRetentionActive: true, hasFoley: false, weight: 70.0 },
+        vitals: { map: 110.0, vasopressinLevel: 0.1 } as any, time: 0
+      }, [], baseInputs);
+      expect(severe.distensionSympatheticIndex).toBeGreaterThan(mild.distensionSympatheticIndex);
+    });
+  });
 });
 

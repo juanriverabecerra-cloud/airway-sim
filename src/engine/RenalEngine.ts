@@ -1,3 +1,5 @@
+import { BladderModel } from './BladderModel';
+
 export interface RenalPatientState {
   gfr?: number;
   rbf?: number;
@@ -51,6 +53,13 @@ export interface RenalPatientState {
   urinaryRetentionActive?: boolean;
   hasFoley?: boolean;
   forceUrinaryRetention?: boolean;
+  sex?: string;
+  bladderPressure?: number; // Phase 4, Stage B: BladderModel.ts
+  hasSpinalCordInjuryAboveT6?: boolean; // gates autonomic dysreflexia (Phase 4, Stage B)
+  bphSeverity?: number; // 0-1, benign prostatic hyperplasia outflow obstruction (Phase 4, Stage E)
+  ureteralObstructionActive?: boolean; // Phase 4, Stage F (simplified single-compartment proxy)
+  ureteralObstructionSeverity?: number; // 0-1, fraction of total renal mass affected
+  ureteralObstructionEventLogged?: boolean; // guards the onset/resolution narrative event (this flag is caller-provided, not RenalEngine-derived, so a logged-flag guard is needed rather than the hasAki-style computed-vs-carried-forward comparison)
 }
 
 export interface RenalVitalsState {
@@ -115,6 +124,15 @@ export interface RenalOutput {
   bowmanSpacePressure: number;
   glomerularOncoticPressure: number;
   netFiltrationPressure: number;
+  bladderVolume: number;
+  urinaryRetentionActive: boolean;
+  bladderPressure: number;
+  overflowLeakActive: boolean;
+  overflowLeakRateMlPerMin: number;
+  distensionSympatheticIndex: number;
+  autonomicDysreflexiaActive: boolean;
+  autonomicDysreflexiaSeverity: number;
+  ureteralObstructionEventLogged: boolean;
 }
 
 export class RenalEngine {
@@ -219,8 +237,21 @@ export class RenalEngine {
     const finalPgScale = autoregEffect * pGcAuto + (1.0 - autoregEffect) * passivePgScale;
     const pGc = Math.max(0.0, Math.min(120.0, 60.0 * finalPgScale * gfrEfferentMod * finalVasoScale * gfrMac));
 
-    // Bowman Space Hydrostatic Pressure (P_bs)
-    const pBs = 18.0 + 0.5 * peep;
+    // Bowman Space Hydrostatic Pressure (P_bs). Ureteral obstruction (Phase 4, Stage F of
+    // mutable-roaming-newell.md -- e.g. a stone, clot, or surgical ligation) backs up urine
+    // proximal to the blockage, raising intrarenal/tubular pressure, which transmits back to
+    // Bowman's space exactly like elevated PEEP already does above -- reducing net filtration
+    // pressure and GFR through the SAME existing formula, not a separate bespoke mechanism.
+    // Deliberately a single-compartment proxy, not a real left/right kidney split (this
+    // engine's existing architecture is a single lumped "kidneys" compartment) -- disclosed
+    // simplification: `ureteralObstructionSeverity` represents the fraction of total renal
+    // mass affected (e.g. ~0.5 for a complete unilateral obstruction), not a separate organ.
+    const ureteralObstructionActive = !!patient.ureteralObstructionActive;
+    const ureteralObstructionSeverity = ureteralObstructionActive
+      ? Math.max(0, Math.min(1, typeof patient.ureteralObstructionSeverity === 'number' && Number.isFinite(patient.ureteralObstructionSeverity) ? patient.ureteralObstructionSeverity : 0.5))
+      : 0;
+    const ureteralObstructionBackpressure = 15.0 * ureteralObstructionSeverity;
+    const pBs = 18.0 + 0.5 * peep + ureteralObstructionBackpressure;
 
     // Glomerular Oncotic Pressure (pi_gc)
     const albumin = typeof patient.albumin === 'number' && Number.isFinite(patient.albumin) ? patient.albumin : 4.0;
@@ -269,17 +300,36 @@ export class RenalEngine {
     const uopMlMin = (gfr * 0.01) * (1.0 - 0.92 * vasopressinLevel * (1.0 - diureticEffect)) * diureticMultiplier;
     const prevUop = typeof patient.urineOutput === 'number' && Number.isFinite(patient.urineOutput) ? patient.urineOutput : 0.0;
     
-    let bladderVolume = typeof patient.bladderVolume === 'number' && Number.isFinite(patient.bladderVolume) ? patient.bladderVolume : 0.0;
+    const prevBladderVolume = typeof patient.bladderVolume === 'number' && Number.isFinite(patient.bladderVolume) ? patient.bladderVolume : 0.0;
     let urinaryRetentionActive = !!patient.urinaryRetentionActive;
     const hasFoley = !!patient.hasFoley;
-    
+
     let uopMlMinBody = uopMlMin;
     let drainedVolume = 0.0;
-    
+    let bladderVolume = prevBladderVolume;
+
+    // Bladder pressure-volume mechanics, sex-specific overflow, and autonomic dysreflexia
+    // (Phase 4, Stage B of mutable-roaming-newell.md) -- BladderModel.ts owns volume/pressure
+    // math, but the retention/Foley TRIGGER semantics below are unchanged from the original
+    // mechanism (filling only while retention is active without a Foley; instant full drain
+    // the moment retention resolves or a Foley is placed).
+    let bladderModelOutput = BladderModel.tick({
+      prevVolumeMl: prevBladderVolume,
+      inflowRateMlPerMin: uopMlMin,
+      urinaryRetentionActive,
+      hasFoley,
+      sex: patient.sex,
+      hasSpinalCordInjuryAboveT6: patient.hasSpinalCordInjuryAboveT6,
+      bphSeverity: patient.bphSeverity,
+      dt: safeDt
+    });
+
     if (urinaryRetentionActive && !hasFoley) {
-      const produced = uopMlMin * (safeDt / 60.0);
-      bladderVolume += produced;
-      uopMlMinBody = 0.0;
+      bladderVolume = bladderModelOutput.bladderVolumeMl;
+      // Overflow leak is genuine urine loss from the body (clinically measurable, e.g. via
+      // diaper weight) -- counted toward total urineOutput, distinctly from controlled
+      // voiding/Foley drainage.
+      uopMlMinBody = bladderModelOutput.overflowLeakRateMlPerMin;
     } else {
       if (bladderVolume > 0.0) {
         drainedVolume = bladderVolume;
@@ -289,8 +339,20 @@ export class RenalEngine {
       if (hasFoley) {
         urinaryRetentionActive = false;
       }
+      // Recompute against the now-drained volume so pressure/distension outputs reflect the
+      // post-drainage state this same tick, not the pre-drainage value.
+      bladderModelOutput = BladderModel.tick({
+        prevVolumeMl: bladderVolume,
+        inflowRateMlPerMin: 0,
+        urinaryRetentionActive: false,
+        hasFoley,
+        sex: patient.sex,
+        hasSpinalCordInjuryAboveT6: patient.hasSpinalCordInjuryAboveT6,
+        bphSeverity: patient.bphSeverity,
+        dt: safeDt
+      });
     }
-    
+
     const urineOutput = parseFloat(Math.max(0.0, prevUop + drainedVolume + (uopMlMinBody * (safeDt / 60.0))).toFixed(2));
     const urineOutputRate = parseFloat((uopMlMinBody * 60.0).toFixed(2));
 
@@ -452,6 +514,19 @@ export class RenalEngine {
     if (hasAki && !patient.hasAki) {
       events.push(`🚨 CLINICAL ALERT: Acute Kidney Injury (Stage ${akiStage}) has developed! Serum creatinine has risen and tubular function is impaired.`);
     }
+    // ureteralObstructionActive is a caller-provided input (e.g. set by a case/clinical-action
+    // flag), not derived from other RenalEngine physiology -- unlike hasAki above, there is no
+    // "this tick's computed value" to compare against "last tick's carried-forward value" using
+    // the same field name, so a logged-flag guard is used instead (the same pattern
+    // ParathyroidEngine.ts uses for its own caller-set, monotonic-only trigger).
+    let ureteralObstructionEventLogged = !!patient.ureteralObstructionEventLogged;
+    if (ureteralObstructionActive && !ureteralObstructionEventLogged) {
+      events.push("⚠️ CLINICAL ALERT: Ureteral obstruction detected -- back-pressure (hydronephrosis) is reducing net filtration pressure and GFR.");
+      ureteralObstructionEventLogged = true;
+    } else if (!ureteralObstructionActive && ureteralObstructionEventLogged) {
+      events.push("✅ CLINICAL UPDATE: Ureteral obstruction relieved. Net filtration pressure has normalized.");
+      ureteralObstructionEventLogged = false;
+    }
 
     return {
       gfr: parseFloat(gfr.toFixed(2)),
@@ -490,7 +565,14 @@ export class RenalEngine {
       glomerularOncoticPressure: parseFloat(piGc.toFixed(2)),
       netFiltrationPressure: parseFloat(nfp.toFixed(2)),
       bladderVolume: parseFloat(bladderVolume.toFixed(2)),
-      urinaryRetentionActive
+      urinaryRetentionActive,
+      bladderPressure: bladderModelOutput.bladderPressureCmH2O,
+      overflowLeakActive: bladderModelOutput.overflowLeakActive,
+      overflowLeakRateMlPerMin: bladderModelOutput.overflowLeakRateMlPerMin,
+      distensionSympatheticIndex: bladderModelOutput.distensionSympatheticIndex,
+      autonomicDysreflexiaActive: bladderModelOutput.autonomicDysreflexiaActive,
+      autonomicDysreflexiaSeverity: bladderModelOutput.autonomicDysreflexiaSeverity,
+      ureteralObstructionEventLogged
     };
   }
 }

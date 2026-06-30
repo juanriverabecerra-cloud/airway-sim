@@ -192,6 +192,27 @@ describe('Chapter 13: Respiratory Physiology and Pathophysiology', () => {
 
       expect(paralyzedOut.lungVolumes.frc_L).toBeLessThan(awakeOut.lungVolumes.frc_L);
     });
+
+    it('Phase 4: a pregnancyFrcMultiplier further decreases FRC independently of position/obesity/anesthesia, via calculateLungVolumes\' trailing optional parameter', () => {
+      const nonPregnant = RespiratoryEngine.calculateLungVolumes(165, 30, 'female', 25, 'Supine', false, false, false, 1.0);
+      const pregnantAtTerm = RespiratoryEngine.calculateLungVolumes(165, 30, 'female', 25, 'Supine', false, false, false, 0.8);
+      expect(pregnantAtTerm.frc_L).toBeLessThan(nonPregnant.frc_L);
+      expect(pregnantAtTerm.frc_L).toBeCloseTo(nonPregnant.frc_L * 0.8, 2);
+      // Existing 7-argument call sites (no pregnancy arg) must be unaffected -- defaults to 1.0.
+      const omittedArg = RespiratoryEngine.calculateLungVolumes(165, 30, 'female', 25, 'Supine', false, false, false);
+      expect(omittedArg.frc_L).toBeCloseTo(nonPregnant.frc_L, 4);
+    });
+
+    it('Phase 4: tick() threads inputs.pregnancyFrcMultiplier through to the live FRC used in gas exchange', () => {
+      const patient = { height: 165, age: 30, sex: 'female', bmi: 25, position: 'Supine', airwaySecured: false, ventilationStatus: 'spontaneous', oxygenBuffer: null };
+      const vitals = { hr: 70, sys: 120, dia: 80, map: 93, spo2: 100, paco2: 40, etco2: 40, rr: 12 };
+      const drugEffects = { maxNMJOccupancy: 0, totalRrDelta: 0, ruleRrScale: 1.0, ruleRrOffset: 0, ruleComplScale: 1.0, rulePipOffset: 0, ruleSpo2Offset: 0, ruleKOffset: 0 };
+      const baseInputs = { VO2_sec: 0.004, totalMetabolicMultiplier: 1.0, compensatoryRR: 0, opioidRRDrop: 0, m6gRrDelta: 0, shiveringRRDrive: 0, currentHb: 14.0, targetMAP: 93, targetCO: 5.0, hco3: 24.0, volatileRightShift: 0, dpgDepletionShift: 0, baselinePaCO2: 40, anaphylaxisCompliancePenalty: 0, anaphylaxisResistancePenalty: 0, aspirationCompliancePenalty: 0, aspirationResistancePenalty: 0 };
+
+      const nonPregnantOut = RespiratoryEngine.tick(1, { patient, vitals, time: 0 } as any, null, 21, drugEffects as any, baseInputs as any);
+      const pregnantOut = RespiratoryEngine.tick(1, { patient, vitals, time: 0 } as any, null, 21, drugEffects as any, { ...baseInputs, pregnancyFrcMultiplier: 0.8 } as any);
+      expect(pregnantOut.lungVolumes.frc_L).toBeLessThan(nonPregnantOut.lungVolumes.frc_L);
+    });
   });
 
   describe('5. HPV Dose-Response by Agent Potency (Fig 13.22 & p.2348)', () => {

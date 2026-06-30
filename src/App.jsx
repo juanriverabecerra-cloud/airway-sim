@@ -498,6 +498,55 @@ export default function App() {
         setAccessModal({ show: true, category: 'Intraosseous (IO)' });
       } else if (action.action === 'place_art') {
         setAccessModal({ show: true, category: 'Arterial Line' });
+      } else if (action.action === 'apply_bair_hugger') {
+        setPatient(p => ({ ...p, forcedAirWarmingActive: true, warmBlanketActive: false }));
+        logEvent("✅ Bair Hugger forced-air warming blanket applied and activated. Active convective warming initiated (ThermoregulationModel.ts, Phase 5 §5.1).");
+      } else if (action.action === 'remove_bair_hugger') {
+        setPatient(p => ({ ...p, forcedAirWarmingActive: false }));
+        logEvent("Forced-air warming blanket removed.");
+      } else if (action.action === 'apply_warm_blanket') {
+        setPatient(p => ({ ...p, warmBlanketActive: true }));
+        logEvent("✅ Warm cotton blankets applied. Passive conductive warming initiated.");
+      } else if (action.action === 'left_uterine_displacement') {
+        setPatient(p => ({ ...p, leftUterineDisplacement: !p.leftUterineDisplacement }));
+        logEvent(patient.leftUterineDisplacement ? "Left uterine displacement released." : "✅ Left uterine displacement applied -- relieving aortocaval compression (PregnancyPhysiologyEngine.ts, Phase 4).");
+      } else if (action.action === 'deliver_baby') {
+        setPatient(p => ({ ...p, deliveryOccurred: true, isPregnant: false }));
+        logEvent("✅ Fetal delivery completed. Transitioning to postpartum phase -- monitor for uterine atony and postpartum hemorrhage (UterineToneModel.ts, Phase 4).");
+      } else if (action.action === 'source_control') {
+        setPatient(p => ({ ...p, sourceControlActive: true }));
+        logEvent("✅ Source control achieved (drainage/debridement/resection of infectious focus). SepsisCascadeModel.ts will begin reversing cytokine cascade (Phase 5).");
+      } else if (action.action === 'activate_turp') {
+        setPatient(p => ({ ...p, turpSurgeryActive: true, turpResectionSeverity: 0.5 }));
+        logEvent("TURP resection started -- monitoring for irrigation fluid absorption (TurpSyndromeModel.ts, Phase 4).");
+      } else if (action.action === 'stop_turp') {
+        setPatient(p => ({ ...p, turpSurgeryActive: false }));
+        logEvent("TURP resection ended. Monitoring for TURP syndrome sequelae.");
+      } else if (action.action === 'give_iv_calcium') {
+        pushMed('Calcium Chloride', 1);
+        logEvent("✅ Calcium Chloride 1g IV administered for citrate-induced ionized hypocalcemia (Phase 5 AcidBaseModel.ts).");
+      } else if (action.action === 'give_pcc') {
+        setPatient(p => ({ ...p, pccGiven: true }));
+        logEvent("✅ 4-Factor PCC (Kcentra) administered -- reverses warfarin within 30 min, much faster than FFP. Appropriate for urgent/emergent warfarin reversal in active hemorrhage.");
+      } else if (action.action === 'give_andexanet') {
+        setPatient(p => ({ ...p, andexanetGiven: true }));
+        logEvent("✅ Andexanet Alfa (Andexxa) administered -- reverses Factor Xa inhibitors (apixaban, rivaroxaban). Rapid onset within minutes.");
+      } else if (action.action === 'give_idarucizumab') {
+        setPatient(p => ({ ...p, idarucizumabGiven: true }));
+        logEvent("✅ Idarucizumab (Praxbind) administered -- reverses dabigatran (Pradaxa). Near-complete reversal within minutes.");
+      } else if (action.action === 'give_ddavp') {
+        pushMed('Desmopressin', 1);
+        logEvent("✅ DDAVP (desmopressin) administered -- releases stored VWF from endothelial Weibel-Palade bodies. Effective for Type 1 VWD and mild Hemophilia A; onset ~30 min; NOT for Type 2B VWD.");
+      } else if (action.action === 'give_rfviia') {
+        setPatient(p => ({ ...p, fviiaBolusMg: (p.fviiaBolusMg || 0) + 90 })); // 90 mcg/kg typical
+        logEvent("✅ Recombinant Factor VIIa (NovoSeven) 90 mcg/kg administered -- bypasses FVIII/FIX deficiency via platelet-surface direct Factor X activation. Thromboembolism risk at supratherapeutic doses.");
+      } else if (action.action === 'stop_heparin_hit') {
+        const hitMedIdx = (patient.accessLines || []).flatMap(l => l.activeInfusions || []).findIndex(i => i.name && i.name.toLowerCase().includes('heparin'));
+        logEvent("✅ ALL HEPARIN STOPPED (flush lines, remove heparin-coated catheters). HIT requires immediate alternative anticoagulation -- do NOT simply hold anticoagulation.");
+        setPatient(p => ({ ...p, heparinStopped: true }));
+      } else if (action.action === 'activate_infectiontype') {
+        setPatient(p => ({ ...p, infectionType: action.payload || 'gram_negative_enteric' }));
+        logEvent(`✅ Infection type updated to: ${action.payload || 'gram_negative_enteric'} -- antibiotic coverage adequacy will be recalculated by AntibioticPKPDModel.ts.`);
       } else if (action.action === 'place_foley') {
         placeFoley();
       } else if (action.action === 'msmaids') {
