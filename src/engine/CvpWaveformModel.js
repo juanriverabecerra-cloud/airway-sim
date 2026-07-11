@@ -30,10 +30,10 @@ function buildChamberParams(patient, vitals) {
   const isAfib = patient?.cardiacRhythm === 'afib' || !!patient?.afib;
   const isAvDissociation = !!patient?.avDissociation;
   const isTR = !!patient?.tricuspidRegurgitation;
+  const isTS = !!patient?.tricuspidStenosis || !!patient?.ts;
+  const isTamponade = !!patient?.tamponadeActive || !!patient?.tamponade;
+  const isConstriction = !!patient?.constrictivePericarditis || !!patient?.constriction;
   const hr = Math.max(20, safeNumber(vitals?.hr, 75));
-  // Left-heart inputs (inotropy/svr/totalBloodVolumeMl) only affect this read's absolute LA/LV/
-  // Aorta numbers -- irrelevant here since this file only ever rescales the RA field to
-  // the live vitals.cvp mean, never reading the left-heart outputs -- so defaults suffice.
   return {
     hr,
     inotropy: 1.0,
@@ -41,7 +41,10 @@ function buildChamberParams(patient, vitals) {
     totalBloodVolumeMl: 5000,
     afib: isAfib && !isAvDissociation,
     avDissociated: isAvDissociation,
-    tricuspidRegurgitation: isTR ? 0.85 : 0
+    tricuspidRegurgitation: isTR ? 0.85 : 0,
+    tricuspidStenosis: isTS ? 0.85 : 0,
+    tamponadeSeverity: isTamponade ? (patient?.tamponadeSeverity || 0.6) : 0,
+    constrictivePericarditis: isConstriction ? 0.85 : 0
   };
 }
 
@@ -54,6 +57,9 @@ export function calculateCvpWaveComponents(patient, vitals) {
   const isAfib = patient?.cardiacRhythm === 'afib' || !!patient?.afib;
   const isAvDissociation = !!patient?.avDissociation;
   const isTR = !!patient?.tricuspidRegurgitation;
+  const isTS = !!patient?.tricuspidStenosis || !!patient?.ts;
+  const isTamponade = !!patient?.tamponadeActive || !!patient?.tamponade;
+  const isConstriction = !!patient?.constrictivePericarditis || !!patient?.constriction;
 
   let pattern = 'normal';
   let title = 'Normal CVP Waveform';
@@ -70,6 +76,21 @@ export function calculateCvpWaveComponents(patient, vitals) {
     title = 'Cannon A Waves (AV Dissociation)';
     alertType = 'warning';
     interpretation = 'Tall "cannon" a waves: atrial contraction occurring against a closed tricuspid valve (isorhythmic AV dissociation, accelerated junctional rhythm, or AV-asynchronous ventricular pacing). Restoring AV synchrony (e.g. AV-sequential pacing) normalizes the waveform and measurably improves arterial blood pressure.';
+  } else if (isTS) {
+    pattern = 'tricuspid_stenosis';
+    title = 'Tricuspid Stenosis CVP Pattern';
+    alertType = 'warning';
+    interpretation = 'Tall "giant" a wave (atrial contraction against a stenosed tricuspid valve) with a slow, prolonged y descent (delayed right atrial emptying during early diastole).';
+  } else if (isTamponade) {
+    pattern = 'cardiac_tamponade';
+    title = 'Cardiac Tamponade CVP Pattern';
+    alertType = 'warning';
+    interpretation = 'Elevated mean CVP with a prominent x descent but a completely blunted/abolished y descent (monophasic CVP pattern) — cardiac compression limits early diastolic right ventricular filling.';
+  } else if (isConstriction) {
+    pattern = 'constrictive_pericarditis';
+    title = 'Constrictive Pericarditis CVP Pattern';
+    alertType = 'warning';
+    interpretation = 'Classic "M" or "W" shape with prominent x and y descents. Features a steep, sharp y descent followed by a sudden diastolic pressure plateau ("dip-and-plateau" or "square root sign").';
   } else if (isAfib) {
     pattern = 'atrial_fibrillation';
     title = 'Atrial Fibrillation CVP Pattern';
@@ -102,7 +123,18 @@ export function synthesizeCvpWaveform(tBeat, beatDuration, h, time, patient, vit
   const cycle = getFourChamberCycle(chamberParams).trajectory;
   const rescaled = rescaleToTargetMean(cycle, 'pRA', targetMean);
   const pressure = interpolateField(rescaled, tBeat, beatDuration, 'pRA');
-  return mapPressureToY(pressure, safeH);
+
+  // Dynamic respiratory baseline shift
+  const safeTime = typeof time === 'number' && Number.isFinite(time) ? time : 0;
+  const rr = safeNumber(vitals?.rr, 12);
+  const rrFreq = rr / 60;
+  const isVent = patient?.ventilationStatus === 'mechanical' || !!(vitals?.peep && vitals.peep > 4);
+  const respPhase = Math.sin(safeTime * Math.PI * 2 * rrFreq);
+  const respEffect = isVent ? respPhase : -respPhase;
+  const shiftMagnitude = isVent ? 3.5 : 2.0;
+  const respShift = rr > 0 ? respEffect * shiftMagnitude : 0;
+
+  return mapPressureToY(pressure + respShift, safeH);
 }
 
 const CVP_CEILING_MMHG = 25;

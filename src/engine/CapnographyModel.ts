@@ -196,7 +196,10 @@ export class CapnographyModel {
     // True functional SaO2 = HbO2/(HbO2+Hb) = trueSao2 (as computed, excludes CoHb already)
     // But pulse ox reads SaO2 + CoHb fraction (since CoHb looks like HbO2 optically)
     const coHbFraction = coHbPercent / 100;
-    const coHbSpO2 = metHbSpO2 + coHbFraction * 100; // inflate by the CoHb fraction
+    // COHb optical admixture: SpO2_display = trueSaO2 × (1 - COHb_frac) + COHb_frac × 100
+    // Prior formula used ADDITION (metHbSpO2 + coHbFraction*100), which gave 100% whenever
+    // COHb + trueSaO2 ≥ 100 (e.g., SaO2=60%+COHb=40% → 100% instead of correct 76%).
+    const coHbSpO2 = metHbSpO2 * (1 - coHbFraction) + coHbFraction * 100;
 
     // Signal quality: low perfusion → unreliable reading or no reading
     const signalQualityLost = perfusionIndex < 0.15;

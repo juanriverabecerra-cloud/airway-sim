@@ -37,18 +37,11 @@ export interface FourChamberInputs {
   prIntervalMs?: number; // dromotropy signal, AV conduction delay (normal ~160ms)
   lusotropyOverride?: number; // 0-1, diastolic relaxation rate
   splanchnicTone?: number; // 0-2, 1.0 = normal; <1 = vasodilated/sympathetically blocked
-    // (celiac plexus/thoracic epidural block -- recruits more unstressed splanchnic
-    // venous capacity, "pooling" blood there), >1 = vasoconstricted (alpha-agonist).
-  alpha1ActivityIndex?: number; // 0+, aggregate alpha-1 receptor activity (sum of
-    // ReceptorPharmacologyModel.ts's alpha1Activity across all active exogenous drugs
-    // and the endogenous catecholamine pool) -- redistributes the SAME total SVR
-    // per-vascular-bed (real receptor-density differences: skin/splanchnic alpha-1-
-    // dominant, cerebral/coronary autoregulation-protected) rather than uniformly, with
-    // zero effect on the overall MAP/SVR magnitude (already set by `svr` above).
-  beta2ActivityIndex?: number; // 0+, aggregate beta-2 activity -- partially offsets the
-    // alpha-1 redistribution specifically in the skeletal-muscle bed (real biphasic
-    // catecholamine dose-response: beta-2-mediated muscle vasodilation at lower
-    // "doses"/activity before alpha-1 vasoconstriction dominates).
+  alpha1ActivityIndex?: number;
+  beta2ActivityIndex?: number;
+  tricuspidStenosis?: number; // 0-1, 0 = normal, 1 = severe stenosis
+  tamponadeSeverity?: number; // 0-1, pericardial pressure/effusion compression
+  constrictivePericarditis?: number; // 0-1, rigid pericardium constriction
 }
 
 export interface FourChamberCyclePoint {
@@ -188,9 +181,11 @@ export function simulateFourChamberCycle(inputs: FourChamberInputs): {
   const splanchnicTone = Math.max(0.1, Math.min(2.0, safeNumber(safeInputs.splanchnicTone, 1.0)));
 
   // --- Right heart (RA/RV/PA) ---
-  const eRaMin = 0.05, eRaMax = isAfib ? 0.05 : 0.13;
+  const tsSeverity = Math.max(0, Math.min(1, safeNumber(safeInputs.tricuspidStenosis, 0)));
+  const eRaMin = 0.05;
+  const eRaMax = isAfib ? 0.05 : (safeInputs.avDissociated ? 0.18 : 0.13 + 0.07 * tsSeverity);
   const eRvMin = 0.02, eRvMax = 0.6;
-  const rTV = 0.05, rPV = 0.08;
+  const rTV = 0.05 + 0.35 * tsSeverity, rPV = 0.08;
   const cPA = 2.0, rPAexit = 0.0875, pPAexitRef = 8;
   const trLeak = Math.max(0, Math.min(1, safeNumber(safeInputs.tricuspidRegurgitation, 0)));
   const rTVLeak = 0.5 - 0.45 * trLeak;
@@ -392,16 +387,127 @@ export function simulateFourChamberCycle(inputs: FourChamberInputs): {
   // elastance phenomena, carried over unchanged from CardiacChamberModel.js (see that
   // file's git history / docs/engines/physiology.md §4.1.3 for the original derivation
   // and the screenshot-driven v-wave fix).
-  const aWaveHeight = Math.max(...raw.map((p) => p.pRA)) - Math.min(...raw.map((p) => p.pRA));
+  const rawMean = raw.reduce((sum, p) => sum + p.pRA, 0) / raw.length;
+
+  const G = (tnQuery: number, mean: number, std: number) => {
+    const d = Math.abs(tnQuery - mean) % 1.0;
+    const periodicD = Math.min(d, 1.0 - d);
+    return Math.exp(-0.5 * Math.pow(periodicD / std, 2));
+  };
+
+  const isAvDiss = !!safeInputs.avDissociated;
+  const tamponadeSev = Math.max(0, Math.min(1, safeNumber(safeInputs.tamponadeSeverity, 0)));
+  const constrictionSev = Math.max(0, Math.min(1, safeNumber(safeInputs.constrictivePericarditis, 0)));
+
+  // Base parameters for normal waves
+  let base = 3.0;
+  let aAmp = 3.5;
+  let aMean = 0.95;
+  let aStd = 0.05;
+
+  let cAmp = 1.0;
+  let cMean = 0.06;
+  let cStd = 0.03;
+
+  let xAmp = 2.5;
+  let xMean = 0.20;
+  let xStd = 0.06;
+
+  let vAmp = 2.8;
+  let vMean = 0.45;
+  let vStd = 0.07;
+
+  let yAmp = 2.5;
+  let yMean = 0.58;
+  let yStd = 0.06;
+
+  let systRegurgAmp = 0;
+  let systRegurgMean = 0.40;
+  let systRegurgStd = 0.15;
+
+  let cannonAmp = 0;
+  let cannonMean = 0.32;
+  let cannonStd = 0.04;
+
+  if (isAfib) {
+    aAmp = 0;
+    cAmp = 0.8;
+    xAmp = 0.5; // blunted x-descent
+    vAmp = 2.2;
+    yAmp = 1.8;
+  }
+
+  if (isAvDiss) {
+    aAmp = 0;
+    cannonAmp = 9.0;
+  }
+
+  if (trLeak > 0) {
+    cAmp = cAmp * (1 - trLeak);
+    xAmp = xAmp * (1 - trLeak);
+    vAmp = vAmp * (1 - trLeak);
+    systRegurgAmp = 8.0 * trLeak;
+    yAmp = 2.5 * (1 + trLeak * 1.5);
+    yStd = Math.max(0.02, 0.06 - trLeak * 0.02);
+  }
+
+  if (tsSeverity > 0) {
+    aAmp = aAmp * (1 + tsSeverity * 2.0);
+    yAmp = yAmp * (1 - tsSeverity * 0.8);
+    yStd = 0.06 + tsSeverity * 0.12;
+  }
+
+  if (tamponadeSev > 0) {
+    xAmp = xAmp * (1 + tamponadeSev * 0.5);
+    yAmp = yAmp * (1 - tamponadeSev * 0.95);
+  }
+
+  if (constrictionSev > 0) {
+    xAmp = xAmp * (1 + constrictionSev * 0.5);
+    yAmp = yAmp * (1 + constrictionSev * 1.0);
+    yStd = Math.max(0.02, 0.06 - constrictionSev * 0.02);
+  }
+
+  const getRawSynthVal = (tnQuery: number) => {
+    let val = base;
+    if (aAmp > 0) val += aAmp * G(tnQuery, aMean, aStd);
+    if (cAmp > 0) val += cAmp * G(tnQuery, cMean, cStd);
+    if (vAmp > 0) val += vAmp * G(tnQuery, vMean, vStd);
+    if (systRegurgAmp > 0) val += systRegurgAmp * G(tnQuery, systRegurgMean, systRegurgStd);
+    if (cannonAmp > 0) val += cannonAmp * G(tnQuery, cannonMean, cannonStd);
+
+    if (xAmp > 0) val -= xAmp * G(tnQuery, xMean, xStd);
+    if (yAmp > 0) val -= yAmp * G(tnQuery, yMean, yStd);
+
+    if (isAfib) {
+      const fFreq = 8.0;
+      const fCycles = Math.round(fFreq * period);
+      const fFreqRad = (2 * Math.PI * fCycles);
+      val += 0.3 * Math.sin(tnQuery * fFreqRad);
+    }
+    return Math.max(0.1, val);
+  };
+
+  // Calculate constriction plateau value once
+  const plateauVal = constrictionSev > 0.1 ? getRawSynthVal(0.65) : 0;
+
   for (const p of raw) {
     const tn = p.t / period;
-    const cWaveWindow = Math.max(0, 1 - Math.abs(tn - 0.05) / 0.04);
-    const vWaveWindow = Math.max(0, 1 - Math.abs(tn - 0.28) / 0.07);
-    const yDescentWindow = Math.max(0, 1 - Math.abs(tn - 0.36) / 0.05);
-    p.pRA += aWaveHeight * 0.12 * cWaveWindow * (1 - trLeak);
-    p.pRA += aWaveHeight * 0.60 * vWaveWindow;
-    p.pRA -= aWaveHeight * 0.10 * yDescentWindow * (1 - trLeak);
-    p.pRA = Math.max(0.1, p.pRA);
+    let val = getRawSynthVal(tn);
+
+    // Apply constriction dip-and-plateau (square root sign) clamp
+    if (constrictionSev > 0.1 && tn > 0.65 && tn < 0.85) {
+      val = Math.max(plateauVal, val);
+    }
+
+    p.pRA = val;
+  }
+
+  // Rescale the synthesized shape so that its mean matches the original ODE rawMean CVP
+  const synthMean = raw.reduce((sum, p) => sum + p.pRA, 0) / raw.length;
+  const scale = rawMean / Math.max(0.1, synthMean);
+  for (const p of raw) {
+    p.pRA = Math.max(0.1, p.pRA * scale);
   }
 
   const trajectory = downsample(raw, period, OUTPUT_POINTS);

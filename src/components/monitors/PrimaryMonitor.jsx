@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Activity, Heart, Wind, RefreshCw, Waves } from 'lucide-react';
+import { Activity, Heart, Wind, RefreshCw, Waves, Volume2, VolumeX } from 'lucide-react';
 import { CanvasWaveform } from '../CanvasWaveform';
 import { calculatePacPressures } from '../../engine/PulmonaryArteryCatheterModel';
 
@@ -17,9 +17,14 @@ export const PrimaryMonitor = ({
   setNibpIntervalMs,
   electrolytes,
   activeMeds,
-  onEkgClick
+  onEkgClick,
+  soundSettings,
+  setSoundSettings,
+  onVitalClick,
+  onWaveformClick,
 }) => {
   const [paWedged, setPaWedged] = useState(false);
+  const [showSoundDropdown, setShowSoundDropdown] = useState(false);
   const pacPressures = patient?.hasPAC ? calculatePacPressures(patient, vitals) : null;
   const hrSpO2Class = "text-3xl @[200px]:text-4xl @[240px]:text-5xl @[280px]:text-5xl @[345px]:text-[44px] @[410px]:text-[48px]";
   const bpClass = "text-2xl @[200px]:text-3xl @[240px]:text-4xl @[280px]:text-4xl @[345px]:text-[40px] @[410px]:text-[42px]";
@@ -42,9 +47,82 @@ export const PrimaryMonitor = ({
       {/* Primary Waveforms */}
       <div className="col-span-1 md:col-span-3 flex flex-col justify-between relative w-full h-[220px] md:h-full gap-1">
         
+        {/* Floating Sound Controller Widget */}
+        <div className="absolute top-1 right-2 z-30 flex flex-col items-end font-mono">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowSoundDropdown(prev => !prev);
+            }}
+            onMouseEnter={() => setShowSoundDropdown(true)}
+            className={`p-1.5 rounded-lg border transition-all flex items-center justify-center cursor-pointer shadow-md bg-slate-950/90 ${soundSettings?.master ? 'border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/10' : 'border-slate-800 text-slate-500 hover:text-slate-300 hover:bg-slate-900/50'}`}
+            title="Audio & Alarms Settings"
+          >
+            {soundSettings?.master ? <Volume2 size={13} /> : <VolumeX size={13} />}
+          </button>
+          
+          {showSoundDropdown && (
+            <div 
+              onMouseLeave={() => setShowSoundDropdown(false)}
+              className="mt-1 bg-slate-950/95 border border-slate-800 rounded-lg p-2.5 flex flex-col gap-2 shadow-2xl w-44 animate-in fade-in slide-in-from-top-1 duration-150 text-[10px]"
+            >
+              <div className="flex items-center justify-between border-b border-white/5 pb-1 mb-1">
+                <span className="font-extrabold text-slate-400 uppercase tracking-widest text-[8px]">Monitor Sound</span>
+                {soundSettings?.master && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span>}
+              </div>
+              
+              <label className="flex items-center gap-2 text-slate-300 cursor-pointer hover:text-white select-none">
+                <input
+                  type="checkbox"
+                  checked={soundSettings?.master || false}
+                  onChange={(e) => setSoundSettings(prev => ({ ...prev, master: e.target.checked }))}
+                  className="rounded border-slate-800 bg-slate-900 text-emerald-500 focus:ring-0 focus:ring-offset-0 cursor-pointer w-3.5 h-3.5"
+                />
+                <span className="font-bold">Master Audio</span>
+              </label>
+
+              <div className={`flex flex-col gap-1.5 pl-5 border-l border-slate-800 transition-opacity duration-200 ${soundSettings?.master ? 'opacity-100 pointer-events-auto' : 'opacity-40 pointer-events-none'}`}>
+                <label className="flex items-center gap-2 text-slate-400 cursor-pointer hover:text-slate-200 select-none">
+                  <input
+                    type="checkbox"
+                    disabled={!soundSettings?.master}
+                    checked={soundSettings?.pulse || false}
+                    onChange={(e) => setSoundSettings(prev => ({ ...prev, pulse: e.target.checked }))}
+                    className="rounded border-slate-800 bg-slate-900 text-emerald-500 focus:ring-0 w-3 h-3 cursor-pointer"
+                  />
+                  <span>Pulse Beep</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-slate-400 cursor-pointer hover:text-slate-200 select-none">
+                  <input
+                    type="checkbox"
+                    disabled={!soundSettings?.master}
+                    checked={soundSettings?.vent || false}
+                    onChange={(e) => setSoundSettings(prev => ({ ...prev, vent: e.target.checked }))}
+                    className="rounded border-slate-800 bg-slate-900 text-emerald-500 focus:ring-0 w-3 h-3 cursor-pointer"
+                  />
+                  <span>Ventilator Hum</span>
+                </label>
+
+                <label className="flex items-center gap-2 text-slate-400 cursor-pointer hover:text-slate-200 select-none">
+                  <input
+                    type="checkbox"
+                    disabled={!soundSettings?.master}
+                    checked={soundSettings?.alarms || false}
+                    onChange={(e) => setSoundSettings(prev => ({ ...prev, alarms: e.target.checked }))}
+                    className="rounded border-slate-800 bg-slate-900 text-emerald-500 focus:ring-0 w-3 h-3 cursor-pointer"
+                  />
+                  <span>Crisis Alarms</span>
+                </label>
+              </div>
+            </div>
+          )}
+        </div>
+        
         {/* ECG Lead II */}
         <div 
           onClick={onEkgClick}
+          data-tutorial="waveform-ecg"
           className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden cursor-pointer hover:bg-slate-800/20 active:bg-slate-800/40 transition-colors group"
           title="Click to view Multi-Lead EKG"
         >
@@ -89,14 +167,21 @@ export const PrimaryMonitor = ({
         </div>
 
         {patient?.hasALine && (
-          <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
-            <div className="absolute text-red-500/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">ART</div>
-            <CanvasWaveform 
-              color="#ef4444" 
-              speed={patient?.cprActive ? 100 : hrSpeed} 
-              rrSpeed={rrSpeed} 
-              active={vitals?.sys > 20 || patient?.cprActive} 
-              type="aline" 
+          <div
+            onClick={e => onWaveformClick?.('aline', e)}
+            className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden cursor-pointer hover:bg-red-950/10 transition-colors group"
+            title="Click for A-line waveform guide"
+          >
+            <div className="absolute text-red-500/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold flex items-center gap-1.5 leading-none">
+              <span>ART</span>
+              <span className="hidden group-hover:inline text-[8px] bg-red-500/20 text-red-400 px-1 py-0.5 rounded uppercase tracking-wider font-extrabold">Guide</span>
+            </div>
+            <CanvasWaveform
+              color="#ef4444"
+              speed={patient?.cprActive ? 100 : hrSpeed}
+              rrSpeed={rrSpeed}
+              active={vitals?.sys > 20 || patient?.cprActive}
+              type="aline"
               patientState={patient}
               vitals={vitals}
               activeMeds={activeMeds}
@@ -104,8 +189,15 @@ export const PrimaryMonitor = ({
           </div>
         )}
         {patient?.hasCVC && (
-          <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
-            <div className="absolute text-blue-400/60 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">CVP</div>
+          <div
+            onClick={e => onWaveformClick?.('cvp', e)}
+            className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden cursor-pointer hover:bg-blue-950/10 transition-colors group"
+            title="Click for CVP waveform guide"
+          >
+            <div className="absolute text-blue-400/60 text-[10px] md:text-xs top-1 left-1 z-20 font-bold flex items-center gap-1.5 leading-none">
+              <span>CVP</span>
+              <span className="hidden group-hover:inline text-[8px] bg-blue-500/20 text-blue-400 px-1 py-0.5 rounded uppercase tracking-wider font-extrabold">Guide</span>
+            </div>
             <CanvasWaveform
               color="#60a5fa"
               speed={patient?.cprActive ? 100 : hrSpeed}
@@ -118,60 +210,73 @@ export const PrimaryMonitor = ({
           </div>
         )}
 
-        {patient?.hasPAC && pacPressures && (
-          <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
-            <button
-              onClick={() => setPaWedged(w => !w)}
-              title={paWedged ? 'Deflate balloon (return to PA trace)' : 'Inflate balloon (read PCWP)'}
-              className="absolute text-orange-400/70 hover:text-orange-300 text-[10px] md:text-xs top-1 left-1 z-20 font-bold flex items-center gap-1 leading-none"
-            >
-              <Waves size={10} />
-              <span>{paWedged ? `PCWP ${pacPressures.pcwp.toFixed(0)}` : `PA ${pacPressures.paSystolic.toFixed(0)}/${pacPressures.paDiastolic.toFixed(0)}`}</span>
-            </button>
-            <CanvasWaveform
-              color="#fb923c"
-              speed={patient?.cprActive ? 100 : hrSpeed}
-              rrSpeed={rrSpeed}
-              active={true}
-              type="pac"
-              morphology={paWedged ? 'wedge' : 'pa'}
-              patientState={patient}
-              vitals={vitals}
-            />
-          </div>
-        )}
 
-        <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
-          <div className="absolute text-cyan-500/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold">PLETH</div>
-          <CanvasWaveform 
-            color="#06b6d4" 
-            speed={patient?.cprActive ? 100 : hrSpeed} 
-            rrSpeed={rrSpeed} 
-            active={true} 
-            type="pleth" 
+
+        <div
+          onClick={e => onWaveformClick?.('pleth', e)}
+          className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden cursor-pointer hover:bg-cyan-950/10 transition-colors group"
+          title="Click for SpO₂ pleth waveform guide"
+        >
+          <div className="absolute text-cyan-500/50 text-[10px] md:text-xs top-1 left-1 z-20 font-bold flex items-center gap-1.5 leading-none">
+            <span>PLETH</span>
+            <span className="hidden group-hover:inline text-[8px] bg-cyan-500/20 text-cyan-400 px-1 py-0.5 rounded uppercase tracking-wider font-extrabold">Guide</span>
+          </div>
+          <CanvasWaveform
+            color="#06b6d4"
+            speed={patient?.cprActive ? 100 : hrSpeed}
+            rrSpeed={rrSpeed}
+            active={true}
+            type="pleth"
             patientState={patient}
             vitals={vitals}
           />
         </div>
 
-        {patient?.hasBisMonitor && (
-          <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
-            <div className="absolute text-purple-400/60 text-[10px] md:text-xs top-1 left-1 z-20 font-bold flex justify-between items-center w-[95%] leading-none pointer-events-none">
-              <span>EEG</span>
-              <span className="text-[8.5px] font-mono">SEF95: {vitals?.sef95 ?? '--'} Hz | BSR: {vitals?.bsr ?? '0'}%</span>
+        {patient?.hasBisMonitor && (() => {
+          const bis = vitals?.bis || 98;
+          const bsr = vitals?.bsr || 0;
+          // EEG state label — tells the user what the waveform character means
+          const eegStateLabel = patient?.isArrest ? 'ISOELECTRIC'
+            : bsr > 0          ? `BURST-SUPPRESS (BSR ${bsr}%)`
+            : bis < 3          ? 'ISOELECTRIC'
+            : bis <= 40        ? 'DEEP / DELTA WAVES'
+            : bis <= 55        ? 'SURGICAL DEPTH'
+            : bis <= 70        ? 'MODERATE — THETA/DELTA'
+            : bis <= 85        ? 'LIGHT — ALPHA SPINDLES'
+            :                    'AWAKE — β/γ ACTIVITY';
+          const eegStateColor = patient?.isArrest || bsr > 0  ? '#f87171'
+            : bis <= 55 ? '#818cf8'
+            : bis <= 85 ? '#a78bfa'
+            :             '#c084fc';
+          return (
+            <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden cursor-pointer hover:border-purple-500/20 transition-colors" style={{ minHeight: 48 }}
+                 onClick={e => onVitalClick?.('eeg', e)}>
+              {/* Label row: EEG + state annotation + metrics */}
+              <div className="absolute top-1 left-1 right-1 z-20 flex justify-between items-start leading-none pointer-events-none">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] md:text-xs font-bold text-purple-400/70">EEG</span>
+                  <span className="text-[8px] font-black uppercase tracking-wider px-1 py-0.5 rounded"
+                        style={{ background: eegStateColor + '18', color: eegStateColor, border: `1px solid ${eegStateColor}40` }}>
+                    {eegStateLabel}
+                  </span>
+                </div>
+                <span className="text-[8px] font-mono text-purple-400/50">
+                  SEF95: {vitals?.sef95 ?? '--'} Hz | BSR: {bsr}%
+                </span>
+              </div>
+              <CanvasWaveform
+                color="#c084fc"
+                speed={patient?.isArrest ? 0 : 25}
+                rrSpeed={0}
+                active={true}
+                type="eeg"
+                patientState={patient}
+                vitals={vitals}
+                activeMeds={activeMeds}
+              />
             </div>
-            <CanvasWaveform 
-              color="#c084fc" 
-              speed={patient?.isArrest ? 0 : 25} 
-              rrSpeed={0} 
-              active={true} 
-              type="eeg" 
-              patientState={patient}
-              vitals={vitals}
-              activeMeds={activeMeds}
-            />
-          </div>
-        )}
+          );
+        })()}
 
       </div>
 
@@ -181,7 +286,7 @@ export const PrimaryMonitor = ({
         {/* Row 1: HR & SpO2 */}
         <div className="flex gap-1.5 w-full h-full">
           {/* Heart Rate Card */}
-          <div className={`flex-1 bg-slate-900/60 border rounded p-1.5 flex flex-col justify-between hover:border-green-500/30 transition-all overflow-hidden ${ (vitals?.hr || 0) > 120 || (vitals?.hr || 0) < 50 || patient?.isArrest ? 'animate-alert-warning' : 'border-slate-800/80'}`}>
+          <div onClick={e => onVitalClick?.('hr', e)} data-tutorial="vital-hr" className={`flex-1 bg-slate-900/60 border rounded p-1.5 flex flex-col justify-between hover:border-green-500/30 transition-all overflow-hidden cursor-pointer ${ (vitals?.hr || 0) > 120 || (vitals?.hr || 0) < 50 || patient?.isArrest ? 'animate-alert-warning' : 'border-slate-800/80'}`}>
             <div className="flex justify-between items-center w-full">
               <span className="text-green-500 font-bold flex items-center gap-1 text-[10px] lg:text-xs leading-none uppercase">
                 <span className="beat-scale flex items-center justify-center shrink-0">
@@ -198,7 +303,7 @@ export const PrimaryMonitor = ({
           </div>
 
           {/* SpO2 Card */}
-          <div className={`flex-1 bg-slate-900/60 border rounded p-1.5 flex flex-col justify-between hover:border-cyan-500/30 transition-all overflow-hidden ${ (vitals?.spo2 || 0) < 88 ? 'animate-alert-hypoxic' : 'border-slate-800/80'}`}>
+          <div onClick={e => onVitalClick?.('spo2', e)} data-tutorial="vital-spo2" className={`flex-1 bg-slate-900/60 border rounded p-1.5 flex flex-col justify-between hover:border-cyan-500/30 transition-all overflow-hidden cursor-pointer ${ (vitals?.spo2 || 0) < 88 ? 'animate-alert-hypoxic' : 'border-slate-800/80'}`}>
             <div className="flex justify-between items-center w-full">
               <span className="text-cyan-500 font-bold flex items-center gap-1 text-[10px] lg:text-xs leading-none uppercase">
                 <Wind size={12} className="text-cyan-500 shrink-0"/>
@@ -218,11 +323,15 @@ export const PrimaryMonitor = ({
         </div>
 
         {/* Row 2: Blood Pressure Card */}
+        {/* Blood pressure card — outer div has NO onClick; each sub-element has its own */}
         <div className="bg-slate-900/60 border border-slate-800/80 rounded pt-1.5 px-1.5 pb-2.5 flex flex-col justify-between hover:border-red-500/30 transition-all overflow-hidden">
           {/* Top Row: Label & Controls */}
           <div className="flex justify-between items-center w-full">
-            <span className="text-red-500 font-bold flex items-center gap-1 text-[10px] lg:text-xs leading-none uppercase">
-              <Activity size={12} className="shrink-0"/> 
+            {/* ART/NIBP label — clicking opens the general MAP/BP context */}
+            <span onClick={e => onVitalClick?.('map', e)}
+                  className="text-red-500 font-bold flex items-center gap-1 text-[10px] lg:text-xs leading-none uppercase cursor-pointer hover:text-red-400 transition-colors select-none"
+                  title="Click for blood pressure context">
+              <Activity size={12} className="shrink-0"/>
               <span>{patient?.hasALine ? 'ART' : 'NIBP'}</span>
             </span>
             {!patient?.hasALine && (
@@ -245,17 +354,22 @@ export const PrimaryMonitor = ({
             )}
           </div>
           
-          {/* Middle Row: Main BP Number */}
-          <div className="flex-1 flex items-center justify-center py-0.5">
-            <span className={`${bpClass} font-black text-red-400 leading-none tracking-tighter select-all`}>
+          {/* Middle Row: Main BP Number — click opens SBP/DBP context */}
+          <div className="flex-1 flex items-center justify-center py-0.5"
+               onClick={e => onVitalClick?.('bp', e)}
+               style={{ cursor: 'pointer' }}>
+            <span className={`${bpClass} font-black text-red-400 leading-none tracking-tighter select-all hover:text-red-300 transition-colors`}
+                  title="Click for SBP/DBP context">
               {patient?.hasALine ? `${vitals?.sys ?? '--'}/${vitals?.dia ?? '--'}` : `${nibp?.sys ?? '--'}/${nibp?.dia ?? '--'}`}
             </span>
           </div>
 
-          {/* Bottom Row: PPV (left) & MAP/cMAP (right) */}
+          {/* Bottom Row: PPV (left) & MAP/cMAP (right) — each independently clickable */}
           <div className="flex justify-between items-center w-full border-t border-slate-900/40 pt-1 pb-0.5">
-            {/* PPV Block */}
-            <div className="flex items-center gap-1 leading-none">
+            {/* PPV Block — click opens PPV context */}
+            <div className="flex items-center gap-1 leading-none cursor-pointer hover:opacity-80 transition-opacity select-none"
+                 onClick={e => onVitalClick?.('ppv', e)}
+                 title="Click for PPV context">
               <span className="text-[8px] lg:text-[9px] text-red-500/60 font-bold uppercase tracking-wider">PPV</span>
               {(() => {
                 const hasSinus = patient?.cardiacRhythm === 'normal';
@@ -264,10 +378,8 @@ export const PrimaryMonitor = ({
                 const hasSufficientTv = tvPerKg >= 7.0;
                 const hasHrRrRatio = (vitals?.hr || 70) / (vitals?.rr || 12) >= 4.0;
                 const isPpvValid = hasSinus && isMechVent && hasSufficientTv && hasHrRrRatio;
-
                 const eblRatio = (patient?.ebl || 0) / (patient?.ebv || 5000);
                 const calculatedPpvVal = Math.max(3, Math.min(45, Math.round(8 + eblRatio * 50)));
-
                 if (isPpvValid) {
                   return <span className="text-[10px] lg:text-xs font-black text-red-400 leading-none">{calculatedPpvVal}%</span>;
                 } else {
@@ -280,14 +392,22 @@ export const PrimaryMonitor = ({
               })()}
             </div>
 
-            {/* MAP & cMAP Block */}
+            {/* MAP & cMAP Block — each value independently clickable */}
             <div className="flex items-center gap-1.5 leading-none">
-              <span className="text-[8px] lg:text-[9px] text-red-500/60 font-bold uppercase tracking-wider">MAP</span>
-              <span className={`${mapClass} font-black text-red-400 leading-none`}>
+              {/* MAP — click opens MAP context */}
+              <span className="text-[8px] lg:text-[9px] text-red-500/60 font-bold uppercase tracking-wider cursor-pointer hover:text-red-400/80 transition-colors select-none"
+                    onClick={e => onVitalClick?.('map', e)}
+                    title="Click for MAP context">MAP</span>
+              <span className={`${mapClass} font-black text-red-400 leading-none cursor-pointer hover:text-red-300 transition-colors`}
+                    onClick={e => onVitalClick?.('map', e)}
+                    title="Click for MAP context">
                 ({Math.round(patient?.hasALine ? (vitals?.map || 0) : ((nibp?.dia || 80) + ((nibp?.sys || 120) - (nibp?.dia || 80)) / 3))})
               </span>
+              {/* cMAP — only shown in non-supine positions; click opens cMAP context */}
               {patient?.position && patient?.position !== 'Supine' && (
-                <span className="text-[9px] lg:text-[10px] text-orange-400 font-bold leading-none" title="Cerebral perfusion pressure adjusted MAP at circle of Willis">
+                <span className="text-[9px] lg:text-[10px] text-orange-400 font-bold leading-none cursor-pointer hover:text-orange-300 transition-colors select-none"
+                      onClick={e => onVitalClick?.('cmap', e)}
+                      title="Click for cMAP (corrected cerebral MAP) context">
                   cMAP {Math.round(vitals?.cmap || 0)}
                 </span>
               )}
@@ -295,16 +415,64 @@ export const PrimaryMonitor = ({
           </div>
         </div>
 
-        {/* Row 3: RR Card */}
-        <div className="bg-slate-900/60 border border-slate-800/80 rounded p-1.5 flex flex-col justify-between hover:border-slate-500/30 transition-all overflow-hidden">
-          <div className="flex justify-between items-center w-full">
-            <span className="text-white font-bold text-[10px] lg:text-xs leading-none uppercase">RR</span>
+        {/* Row 3: RR & Invasive Pressures (CVP/PA) Card */}
+        <div className="flex gap-1.5 w-full h-[60px] md:h-auto">
+          {/* RR Card */}
+          <div onClick={e => onVitalClick?.('rr', e)} className="flex-1 bg-slate-900/60 border border-slate-800/80 rounded p-1.5 flex flex-col justify-between hover:border-slate-500/30 transition-all overflow-hidden cursor-pointer">
+            <div className="flex justify-between items-center w-full">
+              <span className="text-white font-bold text-[10px] lg:text-xs leading-none uppercase">RR</span>
+            </div>
+            <div className="flex-1 flex items-center justify-center">
+              <span className={`${hrSpO2Class} font-black leading-none select-all ${(vitals?.rr || 0) < 8 ? 'text-slate-400 animate-pulse' : 'text-white'}`}>
+                {vitals?.rr ?? '--'}
+              </span>
+            </div>
           </div>
-          <div className="flex-1 flex items-center justify-center">
-            <span className={`${hrSpO2Class} font-black leading-none select-all ${ (vitals?.rr || 0) < 8 ? 'text-slate-400 animate-pulse' : 'text-white'}`}>
-              {vitals?.rr ?? '--'}
-            </span>
-          </div>
+
+          {/* Invasive Pressures (CVP/PA) Card */}
+          {(patient?.hasCVC || patient?.hasPAC) && (
+            <div onClick={e => onVitalClick?.('cvp', e)} className="flex-1 bg-slate-900/60 border border-slate-800/80 rounded p-1.5 flex flex-col justify-between hover:border-blue-500/30 transition-all overflow-hidden cursor-pointer">
+              <div className="flex justify-between items-center w-full">
+                <span className="text-blue-400 font-bold text-[10px] lg:text-xs leading-none uppercase">
+                  {patient?.hasPAC ? (paWedged ? 'PCWP' : 'PA') : 'CVP'}
+                </span>
+                {patient?.hasPAC && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPaWedged(w => !w);
+                    }}
+                    title={paWedged ? 'Deflate balloon (return to PA)' : 'Inflate balloon (read PCWP)'}
+                    className="text-orange-400/80 hover:text-orange-300 text-[8px] font-mono leading-none border border-orange-500/30 rounded px-1 py-0.5 bg-black/40 cursor-pointer active:scale-95 transition-all select-none"
+                  >
+                    Wedge
+                  </button>
+                )}
+              </div>
+              <div className="flex-1 flex flex-col items-center justify-center leading-none">
+                {patient?.hasPAC ? (
+                  paWedged ? (
+                    <span className={`${hrSpO2Class} font-black text-orange-400 leading-none select-all`}>
+                      {pacPressures ? Math.round(pacPressures.pcwp) : '--'}
+                    </span>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center leading-none">
+                      <span className="text-[14px] lg:text-[16px] font-black text-orange-400 leading-none select-all">
+                        {pacPressures ? `${Math.round(pacPressures.paSystolic)}/${Math.round(pacPressures.paDiastolic)}` : '--/--'}
+                      </span>
+                      <span className="text-[9px] font-bold text-orange-500/70 font-mono mt-0.5 leading-none">
+                        ({pacPressures ? Math.round((pacPressures.paSystolic + 2 * pacPressures.paDiastolic) / 3) : '--'})
+                      </span>
+                    </div>
+                  )
+                ) : (
+                  <span className={`${hrSpO2Class} font-black text-blue-400 leading-none select-all`}>
+                    {vitals?.cvp !== undefined ? Math.round(vitals.cvp) : '--'}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Row 4: Advanced Monitoring Grid */}
@@ -313,7 +481,7 @@ export const PrimaryMonitor = ({
           
           <div className="flex-1 flex justify-between items-stretch gap-1.5">
             {/* TEMP (Slate) */}
-            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between hover:border-slate-500/20 transition-all overflow-hidden">
+            <div onClick={e => onVitalClick?.('temp', e)} className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between hover:border-slate-500/20 transition-all overflow-hidden cursor-pointer">
               <span className="text-[8px] lg:text-[9.5px] text-slate-400 font-bold uppercase tracking-wider leading-none">TEMP</span>
               <div className="flex-1 flex flex-col items-center justify-center leading-none">
                 <span className={`${tempBisClass} font-black text-slate-300 leading-none select-all`}>
@@ -326,8 +494,9 @@ export const PrimaryMonitor = ({
             </div>
 
             {/* MAC (Teal) */}
-            <div 
-              className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between hover:border-teal-500/20 transition-all overflow-hidden cursor-help"
+            <div
+              onClick={e => onVitalClick?.('mac', e)}
+              className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between hover:border-teal-500/20 transition-all overflow-hidden cursor-pointer"
               title={`Volatile Agent: ${gasSettings?.agent || 'None'} (Fi: ${(vitals?.fiAgent || 0).toFixed(1)}%, Et: ${(vitals?.etAgent || 0).toFixed(1)}%, Fa/Fi: ${(vitals?.fiAgent > 0.05 ? vitals.etAgent / vitals.fiAgent : 0).toFixed(2)})\nNitrous Oxide: (Fi: ${(vitals?.fiN2O || 0).toFixed(0)}%, Et: ${(vitals?.etN2O || 0).toFixed(0)}%, Fa/Fi: ${(vitals?.fiN2O > 0.5 ? vitals.etN2O / vitals.fiN2O : 0).toFixed(2)})`}
             >
               <span className="text-[8px] lg:text-[9.5px] text-teal-400 font-bold uppercase tracking-wider leading-none">MAC</span>
@@ -355,7 +524,7 @@ export const PrimaryMonitor = ({
             </div>
             
             {/* BIS (Purple) */}
-            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between hover:border-purple-500/20 transition-all overflow-hidden">
+            <div onClick={e => onVitalClick?.('bis', e)} data-tutorial="vital-bis" className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between hover:border-purple-500/20 transition-all overflow-hidden cursor-pointer">
               <span className="text-[8px] lg:text-[9.5px] text-purple-400 font-bold uppercase tracking-wider leading-none">BIS</span>
               <div className="flex-1 flex items-center justify-center">
                 {patient?.hasBisMonitor ? (
@@ -367,7 +536,7 @@ export const PrimaryMonitor = ({
             </div>
             
             {/* TOF (Orange) */}
-            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between hover:border-orange-500/20 transition-all overflow-hidden">
+            <div onClick={e => onVitalClick?.('tof', e)} data-tutorial="vital-tof" className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between hover:border-orange-500/20 transition-all overflow-hidden cursor-pointer">
               <span className="text-[8px] lg:text-[9.5px] text-orange-400 font-bold uppercase tracking-wider leading-none">TOF</span>
               <div className="flex-1 flex items-center justify-center">
                 {patient?.hasTofMonitor ? (

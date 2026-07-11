@@ -125,16 +125,19 @@ export class PainEngine {
     // Incision
     if (phase === 'Incision') {
       const incisionDuration = Math.max(0, safeTime - (p.incisionStartTime !== undefined ? p.incisionStartTime : safeTime));
-      systemicNociception += 40 + 40 * Math.exp(-0.005 * incisionDuration); // decays from 80 to 40
+      const rawNociception = 40 + 40 * Math.exp(-0.005 * incisionDuration); // decays from 80 to 40
+      const rampFactor = 1.0 - Math.exp(-0.15 * incisionDuration); // smooth exponential ramp
+      systemicNociception += rawNociception * rampFactor;
     } else if (phase === 'Maintenance') {
       systemicNociception += 30;
     } else if (phase === 'Emergence') {
       systemicNociception += 15;
     }
 
-    // Laryngoscopy
+    // Laryngoscopy nociception: 40 (reduced from 75 to prevent 78 bpm HR spike → HR 148 bpm).
+    // Clinical: unpremedicated laryngoscopy causes HR +20-30 bpm (HR ~90-100 bpm), not 148 bpm.
     if (laryngoscopyActive) {
-      airwayNociception += 75;
+      airwayNociception += 40;
     }
 
     // Surgical Cric
@@ -258,7 +261,9 @@ export class PainEngine {
     // 4. Catecholamine kinetics pool
     // Clearance: t_1/2 ≈ 90 seconds (k_clearance = 0.0077 s^-1)
     // Dynamic rate: rapid onset, slow clearance
-    const k_onset = 1.0;
+    // k_onset: physiological catecholamine rise time τ≈20s (prior 1.0 = instant; clinical peak
+    // at 30-45s after stimulus). k_clear: t½≈90s (correct, unchanged).
+    const k_onset = 0.05;
     const k_clear = 0.0077;
     // One real adrenal medulla output, fed by every trigger that drives it -- nociception
     // (above) plus the non-pain sympathoadrenal triggers (hypoglycemia, hypoxia,

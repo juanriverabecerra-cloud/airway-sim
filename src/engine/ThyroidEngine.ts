@@ -95,8 +95,10 @@ export class ThyroidEngine {
     const k = 0.00002;
     const newIndex = Math.max(0.3, Math.min(2.0, currentIndex + safeDt * k * (targetIndex - currentIndex)));
 
-    // Basal metabolic rate effect -- the textbook thyroid hormone action.
-    const thyroidMetabolicMultiplier = 0.7 + 0.3 * newIndex; // 1.0 -> 1.0, 0.6 -> 0.88, 1.5 -> 1.15
+    // BMR: recalibrated (0.55+0.45*index). At index=0.6 → 0.82 (−18%, clinical −15-25%).
+    // Prior: 0.7+0.3*index gave only −12% at 0.6 (too mild for hypothyroid suppression).
+    // Hyperthyroid end: index=1.5 → 1.225 (+22.5%, within clinical +15-30% range).
+    const thyroidMetabolicMultiplier = 0.55 + 0.45 * newIndex;
     const hrBaselineShift = 15 * (newIndex - 1.0); // hypothyroid bradycardia, hyperthyroid tachycardia
     const tempBaselineShift = 0.5 * (newIndex - 1.0); // hypothyroid hypothermia tendency, hyperthyroid heat intolerance
 
@@ -123,7 +125,9 @@ export class ThyroidEngine {
     let finalTempShift = tempBaselineShift;
     if (thyroidStormActive) {
       finalMetabolicMultiplier = thyroidMetabolicMultiplier * 1.8;
-      finalHrShift = hrBaselineShift + 40;
+      // Storm HR shift +65 bpm: targets HR >150 bpm (Burch-Wartofsky diagnostic criterion).
+      // Prior +40 only reached ~117 bpm — below the clinical storm threshold.
+      finalHrShift = hrBaselineShift + 65;
       finalTempShift = tempBaselineShift + 2.5;
       if (!thyroidStormLogged) {
         thyroidStormLogged = true;

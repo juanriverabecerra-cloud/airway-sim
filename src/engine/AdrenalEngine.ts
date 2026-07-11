@@ -133,9 +133,16 @@ export class AdrenalEngine {
     // unstressed patients should see full sensitivity, not a permanent discount; only
     // falling *below* that baseline (suppression) reduces it. No super-sensitization is
     // modeled above baseline.
-    const catecholamineSensitivityMultiplier = 0.4 + 0.6 * Math.min(1, newCortisol / 0.1);
+    // If the clinical adrenal suppression roll is NOT active, preserve catecholamine sensitivity (at least 95%).
+    let catecholamineSensitivityMultiplier = 1.0;
+    if (!!patient.adrenalSuppressionActive && !isDexamethasoneCovered) {
+      catecholamineSensitivityMultiplier = 0.4 + 0.6 * Math.min(1, newCortisol / 0.1);
+    } else if (newCortisol < 0.1) {
+      // Subclinical mild blunting (at most 5%) from biochemical cortisol drop
+      catecholamineSensitivityMultiplier = 0.95 + 0.05 * (newCortisol / 0.1);
+    }
 
-    if (isEtomidateSuppressed && newCortisol < 0.05 && currentCortisol >= 0.05) {
+    if (!!patient.adrenalSuppressionActive && newCortisol < 0.05 && currentCortisol >= 0.05) {
       events.push(
         '⚠️ ADRENAL SUPPRESSION: Etomidate-induced 11-beta-hydroxylase inhibition has collapsed cortisol synthesis. Catecholamine (endogenous and exogenous pressor) effectiveness is reduced until cortisol recovers or dexamethasone is administered.'
       );

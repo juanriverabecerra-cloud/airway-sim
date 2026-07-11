@@ -28,10 +28,9 @@ export function synthesizeEtCo2(
   const etco2Val = vitals && typeof vitals.etco2 === 'number' ? vitals.etco2 : 40;
   
   // Rebreathing baseline elevation (soda lime exhaustion or incompetent valve)
-  let rebreathingOffset = 0;
-  if (baseScale > 0) {
-    rebreathingOffset = h * 0.25 * baseScale; // rise up to 25% of height
-  }
+  const phaseIBaseline = patient?.phaseIBaselineMmHg || 0;
+  const baselineOffsetMmHg = phaseIBaseline > 0 ? phaseIBaseline : (baseScale * 15);
+  const rebreathingOffset = h * 0.7 * (baselineOffsetMmHg / 40);
   const baseline = h * 0.95 - rebreathingOffset;
 
   if (rr === 0 || etco2Val <= 1 || !beatDuration || beatDuration > 50) {
@@ -41,7 +40,7 @@ export function synthesizeEtCo2(
   }
 
   // 2. Esophageal Intubation handling (gastric washout decay)
-  const isEsophageal = patient?.tubePosition === 'esophagus';
+  const isEsophageal = patient?.tubePosition === 'esophagus' || !!patient?.esophagealIntubation;
   if (isEsophageal) {
     // Calculate elapsed time in seconds since the ETT was placed
     const manipTime = patient?.lastAirwayManipulationTime || 0;
@@ -80,9 +79,11 @@ export function synthesizeEtCo2(
   // 4. EXPIRATION PHASE (Phase II to Phase III)
   const tExp = t - inspTime;
   
-  // Obstruction factor (bronchospasm, anaphylaxis)
+  // Obstruction factor derived from phase III slope or patient states
   let obstruction = 0.0;
-  if (patient?.bronchospasm) {
+  if (patient?.phaseIIISlopeMmHgPerSec !== undefined) {
+    obstruction = Math.min(1.0, patient.phaseIIISlopeMmHgPerSec / 8.0);
+  } else if (patient?.bronchospasm) {
     obstruction = 0.75;
   } else if (patient?.anaphylaxisTriggered && !patient?.anaphylaxisTreated) {
     obstruction = 0.95;
@@ -112,11 +113,12 @@ export function synthesizeEtCo2(
       const isParalyzed = patient?.isParalyzed || (hasTof && vitals.tofCount === 0);
       const isVentilated = patient?.ventilationStatus === 'mechanical';
       const hr = vitals?.hr || 72;
+      const pattern = patient?.capnoWaveformPattern;
       
-      if (isVentilated && isParalyzed && hr > 0) {
+      if ((pattern === 'cardiogenic' || (isVentilated && isParalyzed)) && hr > 0) {
         // Frequency is heart rate. Amplitude scales with low chest volume / relaxation
         const hrHz = hr / 60;
-        const oscAmp = h * 0.015;
+        const oscAmp = h * 0.025;
         plateauY += Math.sin(timeSecs * Math.PI * 2 * hrHz) * oscAmp;
       }
 
@@ -125,7 +127,7 @@ export function synthesizeEtCo2(
       if (isVentilated && hasTof && vitals.tofCount > 0 && vitals.tofCount <= 4) {
         const cleftTime = expTime * 0.65;
         const cleftWidth = expTime * 0.10;
-        const cleftDepth = h * 0.12; // deep dip representing diaphragm contraction
+        const cleftDepth = h * 0.15; // deep dip representing diaphragm contraction
         const dist = Math.abs(tExp - cleftTime);
         
         if (dist < cleftWidth * 2) {

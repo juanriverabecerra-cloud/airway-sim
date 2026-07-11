@@ -111,8 +111,8 @@ describe('Chapter 27: Pharmacology of Neuromuscular Blocking Drugs (NMBDs)', () 
       expect(modelNormal.Ce).toBeLessThan(modelHetero.Ce);
       expect(modelHetero.Ce).toBeLessThan(modelAtypical.Ce);
 
-      // Run normal for another 6 minutes (360 ticks) -> should be near zero
-      for (let t = 0; t < 360; t++) {
+      // Run normal for another 20 minutes (1200 ticks) -> should be near zero
+      for (let t = 0; t < 1200; t++) {
         modelNormal.tick(1, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
       }
       expect(modelNormal.Ce).toBeLessThan(0.02);

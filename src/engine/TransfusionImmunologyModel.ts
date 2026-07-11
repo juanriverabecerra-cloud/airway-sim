@@ -151,7 +151,7 @@ export class TransfusionImmunologyModel {
     traliRisk = clamp(traliRisk + (ffpUnits + pltUnits * 0.5) * baseTraliRiskPerUnit * inflammationMultiplier, 0, 1);
 
     const traliActive = traliRisk > 0.3;
-    if (traliActive && !inputs.prevTraliRisk || (traliRisk > 0.3 && safeNumber(inputs.prevTraliRisk, 0) <= 0.3)) {
+    if (traliRisk > 0.3 && safeNumber(inputs.prevTraliRisk, 0) <= 0.3) {
       events.push("🚨 CRITICAL: TRALI (Transfusion-Related Acute Lung Injury) -- acute hypoxemia with bilateral pulmonary infiltrates within 6h of transfusion. Non-cardiogenic pulmonary edema (normal PCWP, elevated PaO2/FiO2 ratio <200). STOP the offending blood product, provide respiratory support. Corticosteroids NOT proven beneficial. Report to blood bank immediately.");
     }
 

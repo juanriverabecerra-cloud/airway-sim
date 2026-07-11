@@ -153,7 +153,7 @@ export class DeepCoagulationModel {
     const hasHemophiliaA = !!inputs.hasHemophiliaA;
     const hasHemophiliaB = !!inputs.hasHemophiliaB;
     const hasInhibitors = !!inputs.hasInhibitors;
-    const fviiiBolusMg = Math.max(0, safeNumber(inputs.fviiaBolusMg, 0));
+    const fviiiBolusMg = Math.max(0, safeNumber(inputs.fviiiBolusMg, 0));
     const fviiaBolusMg = Math.max(0, safeNumber(inputs.fviiaBolusMg, 0));
 
     const pccGiven = !!inputs.pccGiven;
@@ -186,6 +186,10 @@ export class DeepCoagulationModel {
     }
 
     let factorIXPercent = hasHemophiliaB ? safeNumber(inputs.factorIXPercent, 2) : 100;
+    if (fviiaBolusMg > 0) {
+      // rFVIIa also bypasses FIX deficiency
+      factorIXPercent = Math.min(150, factorIXPercent + fviiaBolusMg * 20);
+    }
 
     // Effective boost to CoagulationCascadeModel's factor activity fraction
     const baseFactorDeficit = Math.max(0, 1 - Math.min(factorVIIIPercent, factorIXPercent) / 100);

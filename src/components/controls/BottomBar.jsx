@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { ShieldAlert } from 'lucide-react';
 import { INHALATIONAL_AGENTS, calculateLink25GasMixture } from '../../engine/Pharmacology';
 
 const HoldButton = ({ onTrigger, className, children, disabled }) => {
@@ -48,7 +49,7 @@ const HoldButton = ({ onTrigger, className, children, disabled }) => {
 };
 
 
-export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSettings, patient, setPatient, vitals, logEvent }) => {
+export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSettings, patient, setPatient, vitals, logEvent, openDrugConsult }) => {
   const agentName = gasSettings?.agent ? (
     gasSettings.agent.includes('sev') ? 'SEV' :
     gasSettings.agent.includes('des') ? 'DES' :
@@ -130,10 +131,10 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
   };
 
   return (
-    <div className="flex flex-col md:flex-row md:flex-wrap xl:flex-nowrap gap-3 glass-panel glass-cyan p-3 shadow-2xl">
+    <div className="flex flex-wrap items-stretch gap-2.5 glass-panel glass-cyan p-3 shadow-2xl w-full">
       
       {/* 1. Fresh Gas Flow & Stoichiometry */}
-      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-initial md:flex-[1_1_280px]" style={{ minWidth: 0 }}>
+      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-[1_1_240px] max-w-sm" style={{ minWidth: 0 }}>
         <div className="flex justify-between items-center mb-1 px-1 border-b border-white/5 pb-1">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center">Fresh Gas</span>
             <div className="flex gap-2">
@@ -181,7 +182,7 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
       </div>
 
       {/* 2. Vaporizer & Mechanical Limiters */}
-      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-initial md:flex-[1_1_280px]" style={{ minWidth: 0 }}>
+      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-[1_1_220px] max-w-xs" style={{ minWidth: 0 }}>
         <div className="flex justify-between items-center mb-1 px-1 border-b border-white/5 pb-1">
           <span className="text-[10px] text-cyan-400 font-bold uppercase tracking-widest">Vaporizer</span>
           <span className="text-[9px] text-cyan-300 font-bold bg-cyan-950/30 px-1.5 py-0.5 rounded-md border border-cyan-900/30 font-mono">1.0 MAC = {INHALATIONAL_AGENTS[gasSettings.agent]?.mac40}%</span>
@@ -210,7 +211,7 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
       </div>
       
       {/* 2b. Gas Analyzer - Inspired & Expired Concentrations */}
-      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-initial md:flex-[0_1_180px] w-full md:w-[180px]" style={{ minWidth: 0 }}>
+      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-[1_1_150px] max-w-[180px]" style={{ minWidth: 0 }}>
         <div className="flex justify-between items-center mb-1 px-1 border-b border-white/5 pb-1">
           <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Gas Analyzer</span>
         </div>
@@ -247,7 +248,17 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
 
           {/* Agent Gas Block */}
           <div className="flex items-center justify-between bg-slate-950/60 rounded-lg px-2 py-1 border border-white/5 shadow-inner">
-            <span className="text-[11px] font-black text-cyan-400 font-mono">{agentName}</span>
+            <button 
+              onClick={() => {
+                if (openDrugConsult && gasSettings?.agent) {
+                  openDrugConsult(gasSettings.agent);
+                }
+              }}
+              className="text-[11px] font-black text-cyan-400 font-mono hover:text-cyan-300 hover:underline cursor-pointer border-b border-dashed border-cyan-800/40 pb-0.5"
+              title="How does this agent work? (Ask Attending)"
+            >
+              {agentName}
+            </button>
             <div className="grid grid-cols-2 gap-x-2.5 font-mono text-[11px]">
               <div className="flex justify-between w-[48px]">
                 <span className="text-slate-500 font-bold">Fi:</span>
@@ -264,7 +275,7 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
       
       {/* 3. Ventilator Settings */}
       {patient?.airwaySecured && (
-        <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-initial md:flex-[2_1_450px] md:w-full xl:w-auto">
+        <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-[2_2_320px] max-w-md">
           <div className="flex justify-between items-center mb-1 px-1 border-b border-white/5 pb-1">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Ventilator Setup</span>
           </div>
@@ -343,7 +354,7 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
       )}
 
       {/* 4. Circuit & APL Setup */}
-      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-initial md:flex-[1_1_250px]" style={{ minWidth: 0 }}>
+      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-[1_1_210px] max-w-xs" style={{ minWidth: 0 }}>
         <div className="flex justify-between items-center mb-1 px-1 border-b border-white/5 pb-1">
           <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Breathing Circuit</span>
           <span className="text-[10px] text-emerald-300 font-bold font-mono">APL: {patient?.aplValveSetting || 0} cmH2O</span>
@@ -397,9 +408,11 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
       </div>
 
       {/* 5. Troubleshooting & Safety Overrides */}
-      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-initial md:flex-[1_1_220px]" style={{ minWidth: 0 }}>
+      <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-[1_1_190px] max-w-xs" style={{ minWidth: 0 }}>
         <div className="flex justify-between items-center mb-1 px-1 border-b border-white/5 pb-1">
-          <span className="text-[10px] text-red-400 font-bold uppercase tracking-widest flex items-center gap-1 font-mono">⚠️ Machine Safety</span>
+          <span className="text-[10px] text-red-400 font-bold uppercase tracking-widest flex items-center gap-1 font-mono">
+            <ShieldAlert size={12} className="text-red-400 animate-pulse" /> Machine Safety
+          </span>
           <div className="flex gap-1">
             {patient?.isO2PipelineCrossover && <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]" title="Pipeline Crossover Warning" />}
             {patient?.isO2PipelineDisconnected && <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse shadow-[0_0_8px_rgba(234,179,8,0.8)]" title="Pipeline Disconnection Warning" />}

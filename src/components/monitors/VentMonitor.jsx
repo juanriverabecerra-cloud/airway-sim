@@ -3,7 +3,7 @@ import { CanvasWaveform } from '../CanvasWaveform';
 import { FlowVolumeLoopCanvas } from '../FlowVolumeLoopCanvas';
 import { PressureVolumeLoopCanvas } from '../PressureVolumeLoopCanvas';
 
-export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSettings, activeMeds }) => {
+export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSettings, activeMeds, onVitalClick, onWaveformClick }) => {
   const [monitorView, setMonitorView] = useState('waves'); // 'waves' | 'loops'
   const [activeLoop, setActiveLoop] = useState('fv'); // 'fv' | 'pv'
 
@@ -76,7 +76,14 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
         <div className="flex-grow flex gap-2 w-full min-h-0 relative p-1">
           {/* Active Loop Column */}
           {monitorView === 'loops' && (
-            <div className="relative shrink-0 w-[140px] sm:w-[180px] md:w-[230px] lg:w-[280px] aspect-square bg-slate-950/50 rounded border border-slate-900/80 p-2 overflow-hidden self-center shadow-inner">
+            <div
+              onClick={e => onWaveformClick?.(activeLoop === 'fv' ? 'flowVolume' : 'pvLoop', e)}
+              className="relative shrink-0 w-[140px] sm:w-[180px] md:w-[230px] lg:w-[280px] aspect-square bg-slate-950/50 rounded border border-slate-900/80 p-2 overflow-hidden self-center shadow-inner cursor-pointer hover:border-emerald-700/40 group transition-colors"
+              title={`Click for ${activeLoop === 'fv' ? 'Flow-Volume Loop' : 'P-V Loop'} guide`}
+            >
+              <div className="absolute top-1.5 right-2 z-20 hidden group-hover:flex items-center">
+                <span className="text-[8px] bg-emerald-500/20 text-emerald-400 px-1 py-0.5 rounded uppercase tracking-wider font-extrabold">Guide</span>
+              </div>
               {activeLoop === 'fv' ? (
                 <FlowVolumeLoopCanvas patient={patient} vitals={vitals} active={!!vitals?.rr} />
               ) : (
@@ -87,10 +94,17 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
 
           {/* Waveforms Column */}
           <div className="flex-1 flex flex-col justify-between h-full gap-1 min-w-0">
-            <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
-              <div className={`absolute text-yellow-600/50 text-[10px] md:text-xs top-1.5 z-20 font-bold transition-all ${
+            <div
+              onClick={e => onWaveformClick?.('ventPressure', e)}
+              className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden cursor-pointer hover:bg-yellow-950/10 group transition-colors"
+              title="Click for Pressure-Time waveform guide"
+            >
+              <div className={`absolute text-yellow-600/50 text-[10px] md:text-xs top-1.5 z-20 font-bold flex items-center gap-1.5 leading-none transition-all ${
                 monitorView === 'loops' ? 'left-2' : 'left-[185px] sm:left-[215px] md:left-[245px]'
-              }`}>Paw cmH2O</div>
+              }`}>
+                <span>Paw cmH2O</span>
+                <span className="hidden group-hover:inline text-[8px] bg-yellow-500/20 text-yellow-400 px-1 py-0.5 rounded uppercase tracking-wider font-extrabold">Guide</span>
+              </div>
               <CanvasWaveform
                 color="#ca8a04"
                 speed={rrSpeed}
@@ -102,8 +116,15 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
                 ventSettings={ventSettings}
               />
             </div>
-            <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
-              <div className="absolute text-green-500/50 text-[10px] md:text-xs top-1.5 left-2 z-20 font-bold">Flow L/min</div>
+            <div
+              onClick={e => onWaveformClick?.('ventFlow', e)}
+              className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden cursor-pointer hover:bg-green-950/10 group transition-colors"
+              title="Click for Flow-Time waveform guide"
+            >
+              <div className="absolute text-green-500/50 text-[10px] md:text-xs top-1.5 left-2 z-20 font-bold flex items-center gap-1.5 leading-none">
+                <span>Flow L/min</span>
+                <span className="hidden group-hover:inline text-[8px] bg-green-500/20 text-green-400 px-1 py-0.5 rounded uppercase tracking-wider font-extrabold">Guide</span>
+              </div>
               <CanvasWaveform
                 color="#22c55e"
                 speed={rrSpeed}
@@ -115,16 +136,24 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
                 ventSettings={ventSettings}
               />
             </div>
-            <div className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden">
-              <div className="absolute text-yellow-400/50 text-[10px] md:text-xs top-1.5 left-2 z-20 font-bold">EtCO2</div>
-              <CanvasWaveform 
-                color="#facc15" 
-                speed={rrSpeed} 
-                rrSpeed={rrSpeed} 
-                active={vitals?.etco2 > 5} 
-                type="etco2" 
+            <div
+              onClick={e => onWaveformClick?.('etco2', e)}
+              className="flex-1 flex items-center w-full border-b border-slate-900 border-opacity-50 relative overflow-hidden cursor-pointer hover:bg-yellow-950/10 group transition-colors"
+              title="Click for Capnography (EtCO₂) guide"
+            >
+              <div className="absolute text-yellow-400/50 text-[10px] md:text-xs top-1.5 left-2 z-20 font-bold flex items-center gap-1.5 leading-none">
+                <span>EtCO2</span>
+                <span className="hidden group-hover:inline text-[8px] bg-yellow-500/20 text-yellow-400 px-1 py-0.5 rounded uppercase tracking-wider font-extrabold">Guide</span>
+              </div>
+              <CanvasWaveform
+                color="#facc15"
+                speed={rrSpeed}
+                rrSpeed={rrSpeed}
+                active={rrSpeed > 0}
+                type="etco2"
                 ieRatio={ventSettings?.ieRatio || 2}
-                ampScale={Math.min(1.5, (vitals?.etco2 || 40) / 40)} 
+                ampScale={Math.min(1.5, (vitals?.etco2 || 40) / 40)}
+                baseScale={patient?.phaseIBaselineMmHg ? patient.phaseIBaselineMmHg / 40 : 0}
                 patientState={patient}
                 vitals={vitals}
                 activeMeds={activeMeds}
@@ -143,7 +172,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
           </div>
           <div className="flex-1 flex justify-between items-stretch gap-1 mt-1">
             {/* PIP Card */}
-            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-yellow-500/20 transition-all overflow-hidden">
+            <div onClick={e => onVitalClick?.("pip", e)} className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-yellow-500/20 transition-all overflow-hidden">
               <span className="text-[7.5px] lg:text-[8.5px] text-yellow-600 font-bold uppercase tracking-wider leading-none">PIP</span>
               <div className="flex-1 flex items-center justify-center">
                 <span className={`${ventValClass3} font-black text-white leading-none`}>
@@ -153,7 +182,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
             </div>
 
             {/* PLAT Card */}
-            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-yellow-500/20 transition-all overflow-hidden">
+            <div onClick={e => onVitalClick?.("plat", e)} className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-yellow-500/20 transition-all overflow-hidden cursor-pointer">
               <span className="text-[7.5px] lg:text-[8.5px] text-yellow-600 font-bold uppercase tracking-wider leading-none">PLAT</span>
               <div className="flex-1 flex items-center justify-center">
                 <span className={`${ventValClass3} font-black text-slate-300`}>
@@ -163,7 +192,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
             </div>
 
             {/* PEEP Card */}
-            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-yellow-500/20 transition-all overflow-hidden">
+            <div onClick={e => onVitalClick?.("peep", e)} className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-yellow-500/20 transition-all overflow-hidden">
               <span className="text-[7.5px] lg:text-[8.5px] text-yellow-600 font-bold uppercase tracking-wider leading-none">PEEP</span>
               <div className="flex-1 flex items-center justify-center">
                 <span className={`${ventValClass3} font-black text-slate-300`}>
@@ -181,7 +210,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
           </div>
           <div className="flex-1 flex justify-between items-stretch gap-1.5 mt-1">
             {/* VTe Card */}
-            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-green-500/20 transition-all overflow-hidden">
+            <div onClick={e => onVitalClick?.("vte", e)} className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-green-500/20 transition-all overflow-hidden">
               <span className="text-[7.5px] lg:text-[8.5px] text-green-600 font-bold uppercase tracking-wider leading-none">VTe (mL)</span>
               <div className="flex-1 flex items-center justify-center">
                 <span className={`${ventValClass2} font-black text-green-400 leading-none`}>
@@ -191,7 +220,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
             </div>
 
             {/* MVe Card */}
-            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-green-500/20 transition-all overflow-hidden">
+            <div onClick={e => onVitalClick?.("mv", e)} className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-green-500/20 transition-all overflow-hidden">
               <span className="text-[7.5px] lg:text-[8.5px] text-green-600 font-bold uppercase tracking-wider leading-none">MVe (L/min)</span>
               <div className="flex-1 flex items-center justify-center">
                 <span className={`${ventValClass2} font-black text-green-400 leading-none`}>
@@ -209,7 +238,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
           </div>
           <div className="flex-1 flex justify-between items-stretch gap-1 mt-1 mb-1">
             {/* RR Card */}
-            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-blue-500/20 transition-all overflow-hidden">
+            <div onClick={e => onVitalClick?.("rr", e)} className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-blue-500/20 transition-all overflow-hidden">
               <span className="text-[7.5px] lg:text-[8.5px] text-blue-400 font-bold uppercase tracking-wider leading-none">RR /min</span>
               <div className="flex-1 flex items-center justify-center">
                 <span className={`${ventValClass3} font-black text-white`}>
@@ -219,7 +248,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
             </div>
 
             {/* Cdyn Card */}
-            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-blue-500/20 transition-all overflow-hidden">
+            <div onClick={e => onVitalClick?.("cdyn", e)} className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-blue-500/20 transition-all overflow-hidden">
               <span className="text-[7.5px] lg:text-[8.5px] text-slate-400 font-bold uppercase tracking-wider leading-none">Cdyn</span>
               <div className="flex-1 flex items-center justify-center">
                 <span className={`${ventValClass3} font-black text-slate-300`}>
@@ -229,7 +258,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
             </div>
 
             {/* Raw Card */}
-            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-blue-500/20 transition-all overflow-hidden">
+            <div onClick={e => onVitalClick?.("raw", e)} className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-blue-500/20 transition-all overflow-hidden">
               <span className="text-[7.5px] lg:text-[8.5px] text-slate-400 font-bold uppercase tracking-wider leading-none">Raw</span>
               <div className="flex-1 flex items-center justify-center">
                 <span className={`${ventValClass3} font-black text-slate-300`}>
@@ -264,7 +293,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
           </div>
           <div className="flex-1 flex justify-between items-stretch gap-1 mt-1">
             {/* EtCO2 Card */}
-            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-yellow-500/20 transition-all overflow-hidden">
+            <div onClick={e => onVitalClick?.("etco2", e)} className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-yellow-500/20 transition-all overflow-hidden">
               <span className="text-[7.5px] lg:text-[8.5px] text-yellow-600 font-bold uppercase tracking-wider leading-none">EtCO2</span>
               <div className="flex-grow flex items-center justify-center">
                 <span className="text-xl font-black text-yellow-400 leading-none">
@@ -274,7 +303,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
             </div>
 
             {/* Shunt & FRC/CC Card */}
-            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-emerald-500/20 transition-all overflow-hidden">
+            <div onClick={e => onVitalClick?.("shunt", e)} className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-emerald-500/20 transition-all overflow-hidden cursor-pointer">
               <span className="text-[7.5px] lg:text-[8.5px] text-emerald-500 font-bold uppercase tracking-wider leading-none">Shunt / FRC</span>
               <div className="flex-grow flex flex-col items-center justify-center leading-none mt-0.5">
                 <span className="text-[14px] font-black text-emerald-400">
@@ -297,7 +326,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
             </div>
 
             {/* I:E Ratio Card */}
-            <div className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-cyan-500/20 transition-all overflow-hidden">
+            <div onClick={e => { e.stopPropagation(); onVitalClick?.("ieratio", e); }} className="flex-1 bg-slate-900/40 border border-slate-800/60 rounded p-1 flex flex-col justify-between items-center hover:border-cyan-500/20 transition-all overflow-hidden cursor-pointer">
               <span className="text-[7.5px] lg:text-[8.5px] text-cyan-600 font-bold uppercase tracking-wider leading-none">I:E Ratio</span>
               <div className="flex-grow flex items-center justify-center gap-0.5 leading-none">
                 <span className="text-[9px] font-bold text-slate-400">1:</span>

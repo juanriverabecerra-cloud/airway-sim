@@ -492,7 +492,7 @@ export const TubeConfirmModal = ({ data, close, patient, auscultateLungs, adjust
       <div className="bg-slate-950/90 border-2 border-indigo-500/60 shadow-[0_0_30px_rgba(99,102,241,0.25)] backdrop-blur-xl rounded-xl p-6 md:p-8 max-h-[85vh] overflow-y-auto custom-scrollbar w-11/12 max-w-xl shadow-2xl">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2"><Stethoscope size={24} className="text-indigo-400"/> Auscultate & Confirm</h2>
-          <button onClick={close} className="text-slate-400 hover:text-white"><X size={24}/></button>
+          <button onClick={close} data-tutorial="confirm-close-btn" className="text-slate-400 hover:text-white"><X size={24}/></button>
         </div>
 
         {data.result && (
@@ -503,7 +503,7 @@ export const TubeConfirmModal = ({ data, close, patient, auscultateLungs, adjust
 
         <p className="text-xs md:text-sm text-slate-400 mb-4 font-mono">Select an anatomical location to auscultate for breath sounds or gastric insufflation:</p>
         <div className="grid grid-cols-1 gap-3 mb-6 font-mono">
-          <button onClick={() => auscultateLungs('Left Lung')} className="bg-slate-900/60 hover:bg-indigo-950/40 p-4 rounded-xl border border-slate-800/80 hover:border-indigo-500/50 hover:shadow-[0_0_12px_rgba(99,102,241,0.15)] text-left transition font-bold text-xs md:text-sm text-white">Left Lung Field</button>
+          <button onClick={() => auscultateLungs('Left Lung')} data-tutorial="auscultate-left-btn" className="bg-slate-900/60 hover:bg-indigo-950/40 p-4 rounded-xl border border-slate-800/80 hover:border-indigo-500/50 hover:shadow-[0_0_12px_rgba(99,102,241,0.15)] text-left transition font-bold text-xs md:text-sm text-white">Left Lung Field</button>
           <button onClick={() => auscultateLungs('Right Lung')} className="bg-slate-900/60 hover:bg-indigo-950/40 p-4 rounded-xl border border-slate-800/80 hover:border-indigo-500/50 hover:shadow-[0_0_12px_rgba(99,102,241,0.15)] text-left transition font-bold text-xs md:text-sm text-white">Right Lung Field</button>
           <button onClick={() => auscultateLungs('Epigastrium')} className="bg-slate-900/60 hover:bg-indigo-950/40 p-4 rounded-xl border border-slate-800/80 hover:border-indigo-500/50 hover:shadow-[0_0_12px_rgba(99,102,241,0.15)] text-left transition font-bold text-xs md:text-sm text-white">Epigastrium (Stomach)</button>
         </div>
@@ -533,11 +533,11 @@ export const SetupModal = ({ show, close, viewModal, setViewModal, processIntuba
             <h3 className="text-cyan-400 font-bold mb-3 border-b border-cyan-950 pb-1 text-xs uppercase tracking-wider">1. Select Blade</h3>
             <div className="flex flex-col gap-2">
               {['Macintosh (Curved DL)', 'Miller (Straight DL)', 'Standard VL', 'Hyperangulated VL', 'Fiberoptic'].map(blade => (
-                <button key={blade} onClick={() => setViewModal(prev => ({...prev, blade}))} className={`p-2 rounded-xl text-xs text-left border transition-all ${viewModal.blade === blade ? 'bg-cyan-950/40 border-cyan-500/60 text-cyan-200 shadow-[0_0_12px_rgba(6,182,212,0.15)] font-bold' : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'}`}>{blade}</button>
+                <button key={blade} onClick={() => setViewModal(prev => ({...prev, blade}))} data-tutorial={blade === 'Macintosh (Curved DL)' ? 'mac-blade-btn' : undefined} className={`p-2 rounded-xl text-xs text-left border transition-all ${viewModal.blade === blade ? 'bg-cyan-950/40 border-cyan-500/60 text-cyan-200 shadow-[0_0_12px_rgba(6,182,212,0.15)] font-bold' : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'}`}>{blade}</button>
               ))}
             </div>
             {viewModal.blade && !viewModal.blade.includes('Fiberoptic') && (
-              <select value={viewModal.bladeSize} onChange={(e) => setViewModal(prev => ({...prev, bladeSize: e.target.value}))} className="w-full mt-2 bg-slate-950 text-white text-xs p-2 border border-slate-800 rounded outline-none focus:border-cyan-500 transition">
+              <select value={viewModal.bladeSize} onChange={(e) => setViewModal(prev => ({...prev, bladeSize: e.target.value}))} data-tutorial="blade-size-select" className="w-full mt-2 bg-slate-950 text-white text-xs p-2 border border-slate-800 rounded outline-none focus:border-cyan-500 transition">
                 <option value="">Select Size (Hint: Size 3/4 Adult)</option>
                 <option value="2">Size 2 (Small)</option><option value="3">Size 3 (Normal)</option><option value="4">Size 4 (Large)</option>
               </select>
@@ -547,7 +547,7 @@ export const SetupModal = ({ show, close, viewModal, setViewModal, processIntuba
             <h3 className="text-indigo-400 font-bold mb-3 border-b border-indigo-950 pb-1 text-xs uppercase tracking-wider">2. Select ETT</h3>
             <div className="bg-slate-900 border border-slate-800 p-3 rounded-xl">
               <label className="text-[10px] md:text-xs text-slate-400 block mb-1">Tube Size (Hint: 7.0-7.5 Female, 7.5-8.0 Male)</label>
-              <select value={viewModal.tubeSize} onChange={(e) => setViewModal(prev => ({...prev, tubeSize: e.target.value}))} className="w-full bg-slate-950 text-white text-xs p-2.5 border border-slate-850 rounded-lg outline-none focus:border-cyan-500 transition">
+              <select value={viewModal.tubeSize} onChange={(e) => setViewModal(prev => ({...prev, tubeSize: e.target.value}))} data-tutorial="tube-size-select" className="w-full bg-slate-950 text-white text-xs p-2.5 border border-slate-850 rounded-lg outline-lg outline-none focus:border-cyan-500 transition">
                 <option value="">Select ETT Size</option>
                 <option value="6.0">6.0 mm</option><option value="6.5">6.5 mm</option><option value="7.0">7.0 mm</option><option value="7.5">7.5 mm</option><option value="8.0">8.0 mm</option>
               </select>
@@ -563,14 +563,14 @@ export const SetupModal = ({ show, close, viewModal, setViewModal, processIntuba
                 'Hyperangulated Rigid Stylet', 
                 'Articulating Bougie'
               ].map(adjunct => (
-                <button key={adjunct} onClick={() => setViewModal(prev => ({...prev, adjunct}))} className={`p-2 rounded-xl text-xs text-left border transition-all ${viewModal.adjunct === adjunct ? 'bg-cyan-950/40 border-cyan-500/60 text-cyan-200 shadow-[0_0_12px_rgba(6,182,212,0.15)] font-bold' : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'}`}>{adjunct}</button>
+                <button key={adjunct} onClick={() => setViewModal(prev => ({...prev, adjunct}))} data-tutorial={adjunct === 'Standard Malleable Stylet' ? 'stylet-btn' : undefined} className={`p-2 rounded-xl text-xs text-left border transition-all ${viewModal.adjunct === adjunct ? 'bg-cyan-950/40 border-cyan-500/60 text-cyan-200 shadow-[0_0_12px_rgba(6,182,212,0.15)] font-bold' : 'bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800'}`}>{adjunct}</button>
               ))}
             </div>
           </div>
         </div>
         <div className="flex flex-col sm:flex-row justify-end gap-3 md:gap-4 border-t border-slate-800/60 pt-4">
           <button onClick={close} className="px-6 py-3 sm:py-2 bg-slate-900 hover:bg-slate-800 rounded-xl font-bold w-full sm:w-auto text-slate-400 hover:text-white border border-slate-800 transition">Cancel</button>
-          <button onClick={() => processIntubation(`${viewModal.blade} Size ${viewModal.bladeSize || '-'} with ${viewModal.tubeSize} ETT`, viewModal.adjunct)} disabled={!viewModal.blade || !viewModal.adjunct || !viewModal.tubeSize} className="px-6 py-3 sm:py-2 bg-cyan-600/20 hover:bg-cyan-600 disabled:opacity-50 disabled:pointer-events-none rounded-xl font-bold text-cyan-300 hover:text-white border border-cyan-500/30 hover:border-cyan-400 w-full sm:w-auto transition shadow-[0_0_15px_rgba(6,182,212,0.1)]">Proceed to Intubate</button>
+          <button onClick={() => processIntubation(`${viewModal.blade} Size ${viewModal.bladeSize || '-'} with ${viewModal.tubeSize} ETT`, viewModal.adjunct)} disabled={!viewModal.blade || !viewModal.adjunct || !viewModal.tubeSize} data-tutorial="proceed-intubate-btn" className="px-6 py-3 sm:py-2 bg-cyan-600/20 hover:bg-cyan-600 disabled:opacity-50 disabled:pointer-events-none rounded-xl font-bold text-cyan-300 hover:text-white border border-cyan-500/30 hover:border-cyan-400 w-full sm:w-auto transition shadow-[0_0_15px_rgba(6,182,212,0.1)]">Proceed to Intubate</button>
         </div>
       </div>
     </div>
@@ -587,7 +587,7 @@ export const ViewModal = ({ data, submitGrade }) => {
         <h3 className="text-yellow-400 font-bold mb-4 font-mono text-sm md:text-base">Select the Cormack-Lehane Grade:</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono">
           {[1, 2, 3, 4].map(grade => (
-            <button key={grade} onClick={() => submitGrade(grade)} className="bg-slate-900/60 hover:bg-cyan-950/40 p-4 rounded-xl border border-slate-800/85 hover:border-cyan-500/50 hover:shadow-[0_0_15px_rgba(6,182,212,0.15)] transition-all text-left">
+            <button key={grade} onClick={() => submitGrade(grade)} data-tutorial={grade === data.trueGrade ? 'correct-grade-btn' : undefined} className="bg-slate-900/60 hover:bg-cyan-950/40 p-4 rounded-xl border border-slate-800/85 hover:border-cyan-500/50 hover:shadow-[0_0_15px_rgba(6,182,212,0.15)] transition-all text-left">
               <span className="font-black text-white block text-sm tracking-wide">Grade {['I', 'II', 'III', 'IV'][grade-1]}</span>
               <span className="text-xs text-slate-400 mt-1 block">{['Full view of glottis', 'Partial view of glottis', 'Epiglottis only visible', 'No structures visible'][grade-1]}</span>
             </button>
@@ -999,91 +999,94 @@ export const MsmaidsModal = ({ show, close, logEvent, onComplete }) => {
 
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
-      <div className="bg-slate-950/90 border-2 border-cyan-500/60 shadow-[0_0_30px_rgba(6,182,212,0.25)] backdrop-blur-xl rounded-xl p-6 md:p-8 max-w-xl shadow-2xl w-full max-h-[85vh] overflow-y-auto custom-scrollbar">
-        <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-2">
-          <div>
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">🛠️ MSMAIDS Setup Checklist</h2>
-            <p className="text-xs text-cyan-400 mt-0.5">Critical pre-flight checklist prior to general anesthesia induction</p>
+    <div data-tutorial="msmaids-modal" className="fixed left-4 top-28 z-[100] w-[380px] max-h-[calc(100vh-140px)] shadow-[0_10px_50px_rgba(0,0,0,0.85)] rounded-xl border border-cyan-500/60 bg-slate-950/95 p-5 overflow-y-auto custom-scrollbar flex flex-col pointer-events-auto animate-in slide-in-from-left duration-250 font-mono text-slate-200">
+      <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-800">
+        <div>
+          <h2 className="text-xs font-bold text-white flex items-center gap-2">🛠️ MSMAIDS Setup</h2>
+        </div>
+        <button 
+          onClick={() => setChecks({ m: true, s: true, m2: true, a: true, i: true, d: true, s2: true })}
+          className="px-2.5 py-1 bg-cyan-500/10 hover:bg-cyan-500/25 border border-cyan-500/30 rounded-lg text-[9px] text-cyan-300 font-extrabold uppercase transition duration-150 active:scale-95 mr-2"
+        >
+          Select All
+        </button>
+        <button onClick={close} data-tutorial="msmaids-close" className="text-slate-400 hover:text-white"><X size={16}/></button>
+      </div>
+
+      <div className="flex flex-col gap-2.5 my-2">
+        <button onClick={() => toggleCheck('m')} className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all text-xs ${checks.m ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
+          <span className={`text-sm font-black w-4 ${checks.m ? 'text-cyan-400' : 'text-slate-500'}`}>M</span>
+          <div className="flex-1">
+            <span className="font-bold block text-white">Anesthesia Machine Check</span>
+            <span className="text-[10px] text-slate-400 block mt-0.5">Leak test completed, vaporizers locked, circuit connected, backup O2 verified.</span>
           </div>
-          <button onClick={close} className="text-slate-400 hover:text-white"><X size={20}/></button>
-        </div>
+          <input type="checkbox" checked={checks.m} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-0 mt-0.5 pointer-events-none" />
+        </button>
 
-        <div className="flex flex-col gap-3 my-4">
-          <button onClick={() => toggleCheck('m')} className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${checks.m ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
-            <span className={`text-xl font-black w-6 ${checks.m ? 'text-cyan-400' : 'text-slate-500'}`}>M</span>
-            <div className="flex-1">
-              <span className="font-bold text-sm block text-white">Anesthesia Machine Check</span>
-              <span className="text-xs text-slate-400 block mt-0.5">Leak test completed, vaporizers locked, circuit connected, backup O2 cylinder pressurized and verified.</span>
-            </div>
-            <input type="checkbox" checked={checks.m} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-0 mt-1 pointer-events-none" />
-          </button>
+        <button onClick={() => toggleCheck('s')} className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all text-xs ${checks.s ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
+          <span className={`text-sm font-black w-4 ${checks.s ? 'text-cyan-400' : 'text-slate-500'}`}>S</span>
+          <div className="flex-1">
+            <span className="font-bold block text-white">Suction Setup</span>
+            <span className="text-[10px] text-slate-400 block mt-0.5">Yankauer catheter secured bedside, suction pressure verified &gt; -200 mmHg.</span>
+          </div>
+          <input type="checkbox" checked={checks.s} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-0 mt-0.5 pointer-events-none" />
+        </button>
 
-          <button onClick={() => toggleCheck('s')} className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${checks.s ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
-            <span className={`text-xl font-black w-6 ${checks.s ? 'text-cyan-400' : 'text-slate-500'}`}>S</span>
-            <div className="flex-1">
-              <span className="font-bold text-sm block text-white">Suction Setup</span>
-              <span className="text-xs text-slate-400 block mt-0.5">Yankauer catheter secured bedside, suction pressure verified &gt; -200 mmHg.</span>
-            </div>
-            <input type="checkbox" checked={checks.s} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-0 mt-1 pointer-events-none" />
-          </button>
+        <button onClick={() => toggleCheck('m2')} className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all text-xs ${checks.m2 ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
+          <span className={`text-sm font-black w-4 ${checks.m2 ? 'text-cyan-400' : 'text-slate-500'}`}>M</span>
+          <div className="flex-1">
+            <span className="font-bold block text-white">Monitors Applied</span>
+            <span className="text-[10px] text-slate-400 block mt-0.5">ECG, Pulse Ox, BP cuff applied and reading vitals.</span>
+          </div>
+          <input type="checkbox" checked={checks.m2} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-0 mt-0.5 pointer-events-none" />
+        </button>
 
-          <button onClick={() => toggleCheck('m2')} className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${checks.m2 ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
-            <span className={`text-xl font-black w-6 ${checks.m2 ? 'text-cyan-400' : 'text-slate-500'}`}>M</span>
-            <div className="flex-1">
-              <span className="font-bold text-sm block text-white">Monitors Applied</span>
-              <span className="text-xs text-slate-400 block mt-0.5">3/5 lead ECG, pulse oximeter, blood pressure cuff, temperature probe applied and reading vitals.</span>
-            </div>
-            <input type="checkbox" checked={checks.m2} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-0 mt-1 pointer-events-none" />
-          </button>
+        <button onClick={() => toggleCheck('a')} className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all text-xs ${checks.a ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
+          <span className={`text-sm font-black w-4 ${checks.a ? 'text-cyan-400' : 'text-slate-500'}`}>A</span>
+          <div className="flex-1">
+            <span className="font-bold block text-white">Airway Equipment Ready</span>
+            <span className="text-[10px] text-slate-400 block mt-0.5">Primary & backup ETT sizes verified, DL/VL laryngoscopes loaded.</span>
+          </div>
+          <input type="checkbox" checked={checks.a} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-0 mt-0.5 pointer-events-none" />
+        </button>
 
-          <button onClick={() => toggleCheck('a')} className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${checks.a ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
-            <span className={`text-xl font-black w-6 ${checks.a ? 'text-cyan-400' : 'text-slate-500'}`}>A</span>
-            <div className="flex-1">
-              <span className="font-bold text-sm block text-white">Airway Equipment Ready</span>
-              <span className="text-xs text-slate-400 block mt-0.5">Primary ETT and backup ETT sizes verified, laryngoscopes (DL/VL blades) loaded, bougie and oral airways accessible.</span>
-            </div>
-            <input type="checkbox" checked={checks.a} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-0 mt-1 pointer-events-none" />
-          </button>
+        <button onClick={() => toggleCheck('i')} className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all text-xs ${checks.i ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
+          <span className={`text-sm font-black w-4 ${checks.i ? 'text-cyan-400' : 'text-slate-500'}`}>I</span>
+          <div className="flex-1">
+            <span className="font-bold block text-white">Intravenous Access Patency</span>
+            <span className="text-[10px] text-slate-400 block mt-0.5">Large-bore PIV running, catheter gauge verified.</span>
+          </div>
+          <input type="checkbox" checked={checks.i} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-0 mt-0.5 pointer-events-none" />
+        </button>
 
-          <button onClick={() => toggleCheck('i')} className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${checks.i ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
-            <span className={`text-xl font-black w-6 ${checks.i ? 'text-cyan-400' : 'text-slate-500'}`}>I</span>
-            <div className="flex-1">
-              <span className="font-bold text-sm block text-white">Intravenous Access Patency</span>
-              <span className="text-xs text-slate-400 block mt-0.5">Large-bore PIV running, catheter gauge verified, extra lines available for rapid resuscitation.</span>
-            </div>
-            <input type="checkbox" checked={checks.i} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-0 mt-1 pointer-events-none" />
-          </button>
+        <button onClick={() => toggleCheck('d')} className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all text-xs ${checks.d ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
+          <span className={`text-sm font-black w-4 ${checks.d ? 'text-cyan-400' : 'text-slate-500'}`}>D</span>
+          <div className="flex-1">
+            <span className="font-bold block text-white">Drugs & Syringes Labeled</span>
+            <span className="text-[10px] text-slate-400 block mt-0.5">Induction sedatives, paralytics, and rescue pressors drawn.</span>
+          </div>
+          <input type="checkbox" checked={checks.d} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-0 mt-0.5 pointer-events-none" />
+        </button>
 
-          <button onClick={() => toggleCheck('d')} className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${checks.d ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
-            <span className={`text-xl font-black w-6 ${checks.d ? 'text-cyan-400' : 'text-slate-500'}`}>D</span>
-            <div className="flex-1">
-              <span className="font-bold text-sm block text-white">Drugs & Syringes Labeled</span>
-              <span className="text-xs text-slate-400 block mt-0.5">Induction sedatives, paralytics, and emergency rescue pressors (Epi, Phenylephrine, Atropine) drawn, labeled and verified.</span>
-            </div>
-            <input type="checkbox" checked={checks.d} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-0 mt-1 pointer-events-none" />
-          </button>
+        <button onClick={() => toggleCheck('s2')} className={`flex items-start gap-2.5 p-2.5 rounded-xl border text-left transition-all text-xs ${checks.s2 ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
+          <span className={`text-sm font-black w-4 ${checks.s2 ? 'text-cyan-400' : 'text-slate-500'}`}>S</span>
+          <div className="flex-1">
+            <span className="font-bold block text-white">Safety backups bedside</span>
+            <span className="text-[10px] text-slate-400 block mt-0.5">Cricothyrotomy kit bedside, code cart located.</span>
+          </div>
+          <input type="checkbox" checked={checks.s2} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-0 mt-0.5 pointer-events-none" />
+        </button>
+      </div>
 
-          <button onClick={() => toggleCheck('s2')} className={`flex items-start gap-3 p-3 rounded-xl border text-left transition-all ${checks.s2 ? 'bg-cyan-950/30 border-cyan-500/40 text-cyan-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
-            <span className={`text-xl font-black w-6 ${checks.s2 ? 'text-cyan-400' : 'text-slate-500'}`}>S</span>
-            <div className="flex-1">
-              <span className="font-bold text-sm block text-white">Safety backups / Cricothyrotomy bedside</span>
-              <span className="text-xs text-slate-400 block mt-0.5">Emergency surgical airway cricothyrotomy kit bedside, code cart located, help available.</span>
-            </div>
-            <input type="checkbox" checked={checks.s2} readOnly className="rounded border-slate-700 text-cyan-500 focus:ring-0 mt-1 pointer-events-none" />
-          </button>
-        </div>
-
-        <div className="flex justify-end gap-3 border-t border-slate-800/60 pt-4 mt-6">
-          <button onClick={close} className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 rounded-xl font-bold text-xs text-slate-400 hover:text-white border border-slate-800 transition">Cancel</button>
-          <button 
-            onClick={handleVerify} 
-            disabled={!allChecked} 
-            className="px-6 py-2.5 bg-cyan-600/20 hover:bg-cyan-600 disabled:opacity-50 disabled:pointer-events-none rounded-xl font-bold text-xs text-cyan-300 hover:text-white border border-cyan-500/30 hover:border-cyan-400 transition shadow-[0_0_15px_rgba(6,182,212,0.1)]"
-          >
-            Complete MSMAIDS Check
-          </button>
-        </div>
+      <div className="flex justify-end gap-2.5 border-t border-slate-900 pt-4 mt-3">
+        <button onClick={close} className="px-4 py-2 bg-slate-900 hover:bg-slate-850 rounded-lg font-bold text-xs text-slate-400 hover:text-white border border-slate-800 transition">Cancel</button>
+        <button 
+          onClick={handleVerify} 
+          disabled={!allChecked} 
+          className="px-5 py-2 bg-cyan-600/20 hover:bg-cyan-600 disabled:opacity-30 disabled:pointer-events-none rounded-lg font-extrabold text-xs text-cyan-300 hover:text-white border border-cyan-500/30 hover:border-cyan-400 transition duration-200 active:scale-95 shadow-[0_0_15px_rgba(6,182,212,0.1)]"
+        >
+          Complete MSMAIDS Check
+        </button>
       </div>
     </div>
   );
@@ -1117,49 +1120,52 @@ export const PostIntubationModal = ({ show, close, logEvent }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border-2 border-cyan-500 rounded-xl p-6 md:p-8 max-w-xl shadow-2xl w-full max-h-[85vh] overflow-y-auto custom-scrollbar">
-        <div className="flex justify-between items-center mb-4 border-b border-slate-800 pb-2">
-          <div>
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">🔄 Post-Intubation Checklist</h2>
-            <p className="text-xs text-cyan-400 mt-0.5">Systematic confirmation of post-intubation stabilization</p>
-          </div>
-          <button onClick={close} className="text-slate-400 hover:text-white"><X size={20}/></button>
+    <div className="fixed left-4 top-28 z-[100] w-[380px] max-h-[calc(100vh-140px)] shadow-[0_10px_50px_rgba(0,0,0,0.85)] rounded-xl border border-cyan-500/60 bg-slate-950/95 p-5 overflow-y-auto custom-scrollbar flex flex-col pointer-events-auto animate-in slide-in-from-left duration-250 font-mono text-slate-200">
+      <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-800">
+        <div>
+          <h2 className="text-xs font-bold text-white flex items-center gap-2">🔄 Post-Intubation</h2>
         </div>
+        <button 
+          onClick={() => setChecks({ airway: true, anesthesia: true, access: true, another: true, arms: true, air: true, abg: true, antibiotics: true, analgesia: true })}
+          className="px-2.5 py-1 bg-cyan-500/10 hover:bg-cyan-500/25 border border-cyan-500/30 rounded-lg text-[9px] text-cyan-300 font-extrabold uppercase transition duration-150 active:scale-95 mr-2"
+        >
+          Select All
+        </button>
+        <button onClick={close} className="text-slate-400 hover:text-white"><X size={16}/></button>
+      </div>
 
-        <div className="flex flex-col gap-2 my-3">
-          {[
-            { id: 'airway', letter: 'A', title: 'Airway Secured', desc: 'Secure ETT at lip, confirm ETT cuff inflation to 20-30 cmH2O, verify bilateral breath sounds.' },
-            { id: 'anesthesia', letter: 'A', title: 'Anesthesia Maintenance', desc: 'Turn on Sevoflurane/Desflurane dial to match surgical stimulating requirements.' },
-            { id: 'access', letter: 'A', title: 'Access Lines Secured', desc: 'Verify IV catheters are patent, blood return verified, and taped securely.' },
-            { id: 'another', letter: 'A', title: 'Another in mouth / Bite Block', desc: 'Insert bite block to protect ETT, insert gastric suction tube.' },
-            { id: 'arms', letter: 'A', title: 'Arms & Positioning Padded', desc: 'Secure and pad arms, protect ulnar nerves, avoid hyperabduction (&gt;90 degrees).' },
-            { id: 'air', letter: 'A', title: 'Air / Ventilator Parameters', desc: 'Verify ventilator settings (VCV/PCV, proper tidal volume 6-8 mL/kg, PEEP, FiO2).' },
-            { id: 'abg', letter: 'A', title: 'ABG / Arterial Line check', desc: 'Confirm arterial line transducer is zeroed at phlebostatic axis.' },
-            { id: 'antibiotics', letter: 'A', title: 'Antibiotics Administered', desc: 'Administer surgical prophylactic antibiotics within 60 minutes of surgical incision.' },
-            { id: 'analgesia', letter: 'A', title: 'Analgesia Loading', desc: 'Administer loading opioids or regional blocks for incisional analgesia.' }
-          ].map(item => (
-            <button key={item.id} onClick={() => toggleCheck(item.id)} className={`flex items-start gap-3 p-2.5 rounded border text-left transition ${checks[item.id] ? 'bg-cyan-950/30 border-cyan-600 text-cyan-200' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}`}>
-              <span className="text-lg font-black text-cyan-400 w-5">{item.letter}</span>
-              <div className="flex-1">
-                <span className="font-bold text-xs block">{item.title}</span>
-                <span className="text-[10px] text-slate-400 block mt-0.5">{item.desc}</span>
-              </div>
-              <input type="checkbox" checked={checks[item.id]} readOnly className="rounded border-slate-600 text-cyan-600 focus:ring-0 mt-1 pointer-events-none" />
-            </button>
-          ))}
-        </div>
-
-        <div className="flex justify-end gap-3 border-t border-slate-800 pt-4 mt-4">
-          <button onClick={close} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 rounded font-bold text-xs text-slate-300 transition">Cancel</button>
-          <button 
-            onClick={handleComplete} 
-            disabled={!allChecked} 
-            className="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 rounded font-bold text-xs text-white transition shadow-lg shadow-cyan-950/30"
-          >
-            Complete Post-Intubation Check
+      <div className="flex flex-col gap-2 my-2">
+        {[
+          { id: 'airway', letter: 'A', title: 'Airway Secured', desc: 'ETT cuff inflated, breath sounds bilateral.' },
+          { id: 'anesthesia', letter: 'A', title: 'Anesthesia Maintenance', desc: 'Turn on Sevoflurane dial to matching needs.' },
+          { id: 'access', letter: 'A', title: 'Access Lines Secured', desc: 'PIV patency & secure tape verified.' },
+          { id: 'another', letter: 'A', title: 'Another in mouth', desc: 'Bite block & gastric tube inserted.' },
+          { id: 'arms', letter: 'A', title: 'Arms & Positioning Padded', desc: 'Secure and pad arms properly.' },
+          { id: 'air', letter: 'A', title: 'Air / Vent Parameters', desc: 'Verify vent VCV/PCV settings & PEEP.' },
+          { id: 'abg', letter: 'A', title: 'ABG / A-line check', desc: 'Confirm A-line zeroed at axis.' },
+          { id: 'antibiotics', letter: 'A', title: 'Antibiotics Administered', desc: 'Prophylaxis done within 60 mins.' },
+          { id: 'analgesia', letter: 'A', title: 'Analgesia Loading', desc: 'Opioids or block loading done.' }
+        ].map(item => (
+          <button key={item.id} onClick={() => toggleCheck(item.id)} className={`flex items-start gap-2.5 p-2.5 rounded border text-left text-xs transition ${checks[item.id] ? 'bg-cyan-950/30 border-cyan-600 text-cyan-200' : 'bg-slate-800 border-slate-700 text-slate-350 hover:bg-slate-700'}`}>
+            <span className="text-sm font-black text-cyan-400 w-4">{item.letter}</span>
+            <div className="flex-1">
+              <span className="font-bold block">{item.title}</span>
+              <span className="text-[10px] text-slate-400 block mt-0.5">{item.desc}</span>
+            </div>
+            <input type="checkbox" checked={checks[item.id]} readOnly className="rounded border-slate-600 text-cyan-600 focus:ring-0 mt-0.5 pointer-events-none" />
           </button>
-        </div>
+        ))}
+      </div>
+
+      <div className="flex justify-end gap-2.5 border-t border-slate-900 pt-4 mt-3">
+        <button onClick={close} className="px-4 py-2 bg-slate-900 hover:bg-slate-850 rounded-lg font-bold text-xs text-slate-400 hover:text-white border border-slate-800 transition">Cancel</button>
+        <button 
+          onClick={handleComplete} 
+          disabled={!allChecked} 
+          className="px-5 py-2 bg-cyan-600/20 hover:bg-cyan-600 disabled:opacity-30 disabled:pointer-events-none rounded-lg font-extrabold text-xs text-cyan-300 hover:text-white border border-cyan-500/30 hover:border-cyan-400 transition duration-200 active:scale-95 shadow-md shadow-cyan-950/50"
+        >
+          Complete Post-Intubation Check
+        </button>
       </div>
     </div>
   );
@@ -1211,90 +1217,90 @@ export const ExtubationModal = ({ show, close, vitals, patient, logEvent, perfor
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4">
-      <div className="bg-slate-950/90 border-2 border-indigo-500/60 shadow-[0_0_30px_rgba(99,102,241,0.25)] backdrop-blur-xl rounded-xl p-6 md:p-8 max-w-xl shadow-2xl w-full max-h-[85vh] overflow-y-auto custom-scrollbar">
-        <div className="flex justify-between items-center mb-4 border-b border-slate-850 pb-2">
-          <div>
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">💨 Extubation Evaluation Criteria</h2>
-            <p className="text-xs text-indigo-400 mt-0.5 font-mono">Rigorous assessment of awake extubation clinical safety criteria</p>
+    <div className="fixed left-4 top-28 z-[100] w-[380px] max-h-[calc(100vh-140px)] shadow-[0_10px_50px_rgba(0,0,0,0.85)] rounded-xl border border-indigo-500/60 bg-slate-950/95 p-5 overflow-y-auto custom-scrollbar flex flex-col pointer-events-auto animate-in slide-in-from-left duration-250 font-mono text-slate-200">
+      <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-850">
+        <div>
+          <h2 className="text-xs font-bold text-white flex items-center gap-2">💨 Extubation Criteria</h2>
+        </div>
+        <button 
+          onClick={() => setChecks({ tof: true, rr: true, cuffLeak: true, tv: true, commands: true, suction: true })}
+          className="px-2.5 py-1 bg-indigo-500/10 hover:bg-indigo-500/25 border border-indigo-500/30 rounded-lg text-[9px] text-indigo-300 font-extrabold uppercase transition duration-150 active:scale-95 mr-2"
+        >
+          Select All
+        </button>
+        <button onClick={close} className="text-slate-400 hover:text-white"><X size={16}/></button>
+      </div>
+
+      <div className="bg-slate-900/40 border border-slate-800 p-3 rounded-xl flex flex-col gap-2 my-2">
+        <h3 className="text-indigo-400 font-bold text-[10px] uppercase tracking-wider font-mono">Objective Metrics</h3>
+        
+        <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
+          <div className="bg-slate-950 p-2 rounded border border-slate-850 flex flex-col">
+            <span className="text-slate-400 text-[8px]">TOF Ratio{isQualitativeTof ? ' (PNS)' : ' (AMG)'}:</span>
+            <span className={`text-sm font-black mt-0.5 ${hasTofRatio ? 'text-green-400' : 'text-red-400'}`}>
+              {displayedTofCount || 0}/4 ({displayedTofRatio ? `${(displayedTofRatio*100).toFixed(0)}%` : '0%'})
+            </span>
           </div>
-          <button onClick={close} className="text-slate-400 hover:text-white"><X size={20}/></button>
-        </div>
 
-        <div className="bg-slate-900/40 border border-slate-800 p-4 rounded-xl flex flex-col gap-3 my-4">
-          <h3 className="text-indigo-400 font-bold text-xs uppercase tracking-wider font-mono">Objective Ventilatory & Neuromuscular Metrics</h3>
-          
-          <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-            <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-850 flex flex-col">
-              <span className="text-slate-400">TOF Recovery Ratio{isQualitativeTof ? ' (Manual PNS)' : ' (AMG)'}:</span>
-              <span className={`text-base font-black mt-1 ${hasTofRatio ? 'text-green-400' : 'text-red-400'}`}>
-                {displayedTofCount || 0}/4 ({displayedTofRatio ? `${(displayedTofRatio*100).toFixed(0)}%` : '0%'})
-              </span>
-              <span className="text-[10px] text-slate-500 mt-0.5">Target: 4/4 (Ratio &gt;= 90%){isQualitativeTof ? ' — manual assessment cannot detect fade above ~40%' : ''}</span>
-            </div>
+          <div className="bg-slate-950 p-2 rounded border border-slate-850 flex flex-col">
+            <span className="text-slate-400 text-[8px]">Resp Rate:</span>
+            <span className={`text-sm font-black mt-0.5 ${isRrGood ? 'text-green-400' : 'text-red-400'}`}>
+              {vitals?.rr || 0} bpm
+            </span>
+          </div>
 
-            <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-850 flex flex-col">
-              <span className="text-slate-400">Spontaneous Resp Rate:</span>
-              <span className={`text-base font-black mt-1 ${isRrGood ? 'text-green-400' : 'text-red-400'}`}>
-                {vitals?.rr || 0} bpm
-              </span>
-              <span className="text-[10px] text-slate-500 mt-0.5">Target: 6 - 30 bpm</span>
-            </div>
-
-            <div className="bg-slate-950 p-2.5 rounded-lg border border-slate-850 flex flex-col col-span-2">
-              <span className="text-slate-400">Spontaneous Tidal Volume:</span>
-              <span className={`text-base font-black mt-1 ${isTvGood ? 'text-green-400' : 'text-red-400'}`}>
-                {vitals?.vte || 0} mL ({(vitals?.vte && patient?.weight) ? (vitals.vte / patient.weight).toFixed(1) : '0'} mL/kg)
-              </span>
-              <span className="text-[10px] text-slate-500 mt-0.5">Target: &gt; 5 mL/kg (&gt;= {5 * (patient?.weight || 70)} mL)</span>
-            </div>
+          <div className="bg-slate-950 p-2 rounded border border-slate-850 flex flex-col col-span-2">
+            <span className="text-slate-400 text-[8px]">Tidal Volume:</span>
+            <span className={`text-sm font-black mt-0.5 ${isTvGood ? 'text-green-400' : 'text-red-400'}`}>
+              {vitals?.vte || 0} mL ({(vitals?.vte && patient?.weight) ? (vitals.vte / patient.weight).toFixed(1) : '0'} mL/kg)
+            </span>
           </div>
         </div>
+      </div>
 
-        <div className="flex flex-col gap-2 my-4">
-          <h3 className="text-indigo-400 font-bold text-xs uppercase tracking-wider font-mono">Clinical Bedside Checks</h3>
-          
-          <button onClick={() => toggleCheck('tof')} className={`flex items-center justify-between p-3 rounded-xl border text-left text-xs font-bold transition-all ${checks.tof ? 'bg-indigo-950/30 border-indigo-500/40 text-indigo-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
-            <span>Confirm TOF Ratio &gt;= 90% (Neuromuscular safety)</span>
-            <input type="checkbox" checked={checks.tof} readOnly className="rounded border-slate-700 text-indigo-500 focus:ring-0 pointer-events-none" />
-          </button>
+      <div className="flex flex-col gap-2 my-2">
+        <h3 className="text-indigo-400 font-bold text-[10px] uppercase tracking-wider font-mono">Clinical Checks</h3>
+        
+        <button onClick={() => toggleCheck('tof')} className={`flex items-center justify-between p-2.5 rounded-xl border text-left text-[10px] font-bold transition-all ${checks.tof ? 'bg-indigo-950/30 border-indigo-500/40 text-indigo-200' : 'bg-slate-900/60 border-slate-850 text-slate-450 hover:bg-slate-800/80'}`}>
+          <span>Confirm TOF Ratio &gt;= 90%</span>
+          <input type="checkbox" checked={checks.tof} readOnly className="rounded border-slate-700 text-indigo-500 focus:ring-0 pointer-events-none" />
+        </button>
 
-          <button onClick={() => toggleCheck('rr')} className={`flex items-center justify-between p-3 rounded-xl border text-left text-xs font-bold transition-all ${checks.rr ? 'bg-indigo-950/30 border-indigo-500/40 text-indigo-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
-            <span>Spontaneous respiratory rate stable between 6-30 bpm</span>
-            <input type="checkbox" checked={checks.rr} readOnly className="rounded border-slate-700 text-indigo-500 focus:ring-0 pointer-events-none" />
-          </button>
+        <button onClick={() => toggleCheck('rr')} className={`flex items-center justify-between p-2.5 rounded-xl border text-left text-[10px] font-bold transition-all ${checks.rr ? 'bg-indigo-950/30 border-indigo-500/40 text-indigo-200' : 'bg-slate-900/60 border-slate-850 text-slate-450 hover:bg-slate-800/80'}`}>
+          <span>Respiratory rate 6-30 bpm</span>
+          <input type="checkbox" checked={checks.rr} readOnly className="rounded border-slate-700 text-indigo-500 focus:ring-0 pointer-events-none" />
+        </button>
 
-          <button onClick={() => toggleCheck('cuffLeak')} className={`flex items-center justify-between p-3 rounded-xl border text-left text-xs font-bold transition-all ${checks.cuffLeak ? 'bg-indigo-950/30 border-indigo-500/40 text-indigo-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
-            <span>Cuff Leak Test: audible leak present, no airway edema</span>
-            <input type="checkbox" checked={checks.cuffLeak} readOnly className="rounded border-slate-700 text-indigo-500 focus:ring-0 pointer-events-none" />
-          </button>
+        <button onClick={() => toggleCheck('cuffLeak')} className={`flex items-center justify-between p-2.5 rounded-xl border text-left text-[10px] font-bold transition-all ${checks.cuffLeak ? 'bg-indigo-950/30 border-indigo-500/40 text-indigo-200' : 'bg-slate-900/60 border-slate-850 text-slate-450 hover:bg-slate-800/80'}`}>
+          <span>Audible cuff leak present</span>
+          <input type="checkbox" checked={checks.cuffLeak} readOnly className="rounded border-slate-700 text-indigo-500 focus:ring-0 pointer-events-none" />
+        </button>
 
-          <button onClick={() => toggleCheck('tv')} className={`flex items-center justify-between p-3 rounded-xl border text-left text-xs font-bold transition-all ${checks.tv ? 'bg-indigo-950/30 border-indigo-500/40 text-indigo-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
-            <span>Spontaneous tidal volume &gt; 5 mL/kg verified</span>
-            <input type="checkbox" checked={checks.tv} readOnly className="rounded border-slate-700 text-indigo-500 focus:ring-0 pointer-events-none" />
-          </button>
+        <button onClick={() => toggleCheck('tv')} className={`flex items-center justify-between p-2.5 rounded-xl border text-left text-[10px] font-bold transition-all ${checks.tv ? 'bg-indigo-950/30 border-indigo-500/40 text-indigo-200' : 'bg-slate-900/60 border-slate-850 text-slate-450 hover:bg-slate-800/80'}`}>
+          <span>Tidal volume &gt; 5 mL/kg</span>
+          <input type="checkbox" checked={checks.tv} readOnly className="rounded border-slate-700 text-indigo-500 focus:ring-0 pointer-events-none" />
+        </button>
 
-          <button onClick={() => toggleCheck('commands')} className={`flex items-center justify-between p-3 rounded-xl border text-left text-xs font-bold transition-all ${checks.commands ? 'bg-indigo-950/30 border-indigo-500/40 text-indigo-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
-            <span>Awake/Responsive: follows commands (5s head lift)</span>
-            <input type="checkbox" checked={checks.commands} readOnly className="rounded border-slate-700 text-indigo-500 focus:ring-0 pointer-events-none" />
-          </button>
+        <button onClick={() => toggleCheck('commands')} className={`flex items-center justify-between p-2.5 rounded-xl border text-left text-[10px] font-bold transition-all ${checks.commands ? 'bg-indigo-950/30 border-indigo-500/40 text-indigo-200' : 'bg-slate-900/60 border-slate-850 text-slate-450 hover:bg-slate-800/80'}`}>
+          <span>Awake (5s head lift)</span>
+          <input type="checkbox" checked={checks.commands} readOnly className="rounded border-slate-700 text-indigo-500 focus:ring-0 pointer-events-none" />
+        </button>
 
-          <button onClick={() => toggleCheck('suction')} className={`flex items-center justify-between p-3 rounded-xl border text-left text-xs font-bold transition-all ${checks.suction ? 'bg-indigo-950/30 border-indigo-500/40 text-indigo-200' : 'bg-slate-900/60 border-slate-850 text-slate-400 hover:bg-slate-800/80'}`}>
-            <span>Pharynx & ETT suctioned, oral secretions cleared</span>
-            <input type="checkbox" checked={checks.suction} readOnly className="rounded border-slate-700 text-indigo-500 focus:ring-0 pointer-events-none" />
-          </button>
-        </div>
+        <button onClick={() => toggleCheck('suction')} className={`flex items-center justify-between p-2.5 rounded-xl border text-left text-[10px] font-bold transition-all ${checks.suction ? 'bg-indigo-950/30 border-indigo-500/40 text-indigo-200' : 'bg-slate-900/60 border-slate-850 text-slate-450 hover:bg-slate-800/80'}`}>
+          <span>Pharynx & ETT suctioned</span>
+          <input type="checkbox" checked={checks.suction} readOnly className="rounded border-slate-700 text-indigo-500 focus:ring-0 pointer-events-none" />
+        </button>
+      </div>
 
-        <div className="flex justify-end gap-3 border-t border-slate-800/60 pt-4 mt-6">
-          <button onClick={close} className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 rounded-xl font-bold text-xs text-slate-400 hover:text-white border border-slate-800 transition">Cancel</button>
-          <button 
-            onClick={handleExtubateSubmit} 
-            disabled={!allChecked} 
-            className="px-6 py-2.5 bg-indigo-600/20 hover:bg-indigo-600 disabled:opacity-50 disabled:pointer-events-none rounded-xl font-bold text-xs text-indigo-300 hover:text-white border border-indigo-500/30 hover:border-indigo-400 transition shadow-[0_0_15px_rgba(99,102,241,0.1)]"
-          >
-            Deflate Cuff & Extubate ETT
-          </button>
-        </div>
+      <div className="flex justify-end gap-2.5 border-t border-slate-900 pt-4 mt-3">
+        <button onClick={close} className="px-4 py-2 bg-slate-900 hover:bg-slate-850 rounded-lg font-bold text-xs text-slate-400 hover:text-white border border-slate-800 transition">Cancel</button>
+        <button 
+          onClick={handleExtubateSubmit} 
+          disabled={!allChecked} 
+          className="px-5 py-2 bg-indigo-600/20 hover:bg-indigo-600 disabled:opacity-30 disabled:pointer-events-none rounded-lg font-extrabold text-xs text-indigo-300 hover:text-white border border-indigo-500/30 hover:border-indigo-400 transition duration-200 active:scale-95 shadow-[0_0_15px_rgba(99,102,241,0.1)]"
+        >
+          Deflate Cuff & Extubate ETT
+        </button>
       </div>
     </div>
   );

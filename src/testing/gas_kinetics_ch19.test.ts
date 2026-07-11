@@ -13,7 +13,7 @@ describe('Chapter 19: Inhalational Anesthetics & Physiology Tests', () => {
       const n2oModel = new GasKineticsModel(INHALATIONAL_AGENTS.n2o);
 
       expect(sevoModel.lambda_fg).toBeCloseTo(47 / 0.65, 2);
-      expect(desModel.lambda_fg).toBeCloseTo(19 / 0.45, 2);
+      expect(desModel.lambda_fg).toBeCloseTo(19 / 0.42, 2);
       // TABLE 20.1, Miller's 9th Ed: isoflurane oil/gas 90.8, blood/gas 1.4 (Ch20 correction).
       expect(isoModel.lambda_fg).toBeCloseTo(90.8 / 1.4, 2);
       // TABLE 20.1, Miller's 9th Ed: N2O oil/gas 1.3, blood/gas 0.47 (Ch20 correction).

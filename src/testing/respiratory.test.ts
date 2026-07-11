@@ -119,14 +119,15 @@ describe('Respiratory & Blood Gas Engine Regression Tests', () => {
       // Male, 175cm, 40yo, BMI 42, Supine
       const vols = RespiratoryEngine.calculateLungVolumes(175, 40, 'male', 42.0, 'Supine');
       
-      // Expected FRC:
+      // Expected FRC (recalibrated obesity exponent -0.035 from -0.02):
       // frc_pred = 3.365 L
-      // Obesity factor: exp(-0.02 * (42 - 25)) = exp(-0.34) = 0.71177... (rounds to 0.712)
+      // Obesity factor: exp(-0.035 * (42 - 25)) = exp(-0.595) ≈ 0.552
       // Position factor for 'Supine' -> 0.80
-      // Expected FRC L = 3.365 * 0.71177 * 0.80 = 1.916 -> 1.92 L or 1916 mL
-      expect(vols.frc_L).toBeCloseTo(1.92, 2);
-      expect(vols.frc_mL).toBe(1916);
-      expect(vols.obesityFactor).toBe(0.712);
+      // Expected FRC L = 3.365 * 0.552 * 0.80 ≈ 1.485 L → toFixed(2) = 1.48 L
+      // Clinical: BMI=42 should give FRC ~55-65% of normal (prior 74% was too generous).
+      expect(vols.frc_L).toBeCloseTo(1.48, 2);
+      expect(vols.frc_mL).toBe(1485);
+      expect(vols.obesityFactor).toBe(0.552);
       expect(vols.positionFactor).toBe(0.80);
     });
 
@@ -187,21 +188,18 @@ describe('Respiratory & Blood Gas Engine Regression Tests', () => {
         obeseSpo2History.push(obeseOut.vitals.spo2);
       }
 
-      // Check remaining O2 buffers
-      // Healthy starting FRC was ~3.03 L preoxygenated, but paralysis triggers general
-      // anesthesia's further ~15% FRC reduction (Fig 13.13, Miller's 9th Ed) once the
-      // engine recruits FRC internally: 3.03 * 0.85 = 2.5755 L effective buffer ceiling.
-      // Apnea consumption = 250mL/min = 0.25 L/min = 4.167 mL/sec.
-      // Over 120s, healthy patient consumes 120 * (0.25 / 60) = 0.50 L of oxygen.
-      // So healthy O2 buffer should be around 2.5755 - 0.50 = 2.08 L.
-      // Obese starting FRC was ~1.92 L -> 1.92 * 0.85 = 1.632 L. Consumes same 0.50 L of oxygen.
-      // So obese O2 buffer should be around 1.632 - 0.50 = 1.13 L.
+      // Check remaining O2 buffers (recalibrated with corrected obesity FRC).
+      // Healthy: FRC ~3.03 L × 0.85 GA-reduction = 2.576 - 0.50 consumption = 2.08 L (unchanged).
+      // Obese (BMI=42): New FRC ~1.485 L × 0.85 = 1.262 - 0.50 consumption ≈ 0.76 L.
+      // Clinical point: Obese patients have FAR less O2 reserve — safe apnea time 2-4 min
+      // (prior 74% FRC factor gave falsely reassuring ~7 min; corrected 55% gives ~4 min ✓).
       expect(healthyState.patient.oxygenBuffer).toBeCloseTo(2.08, 1);
-      expect(obeseState.patient.oxygenBuffer).toBeCloseTo(1.13, 1);
+      expect(obeseState.patient.oxygenBuffer).toBeCloseTo(0.76, 1);
 
-      // Both should still be very well saturated since preoxygenation was complete and buffers are > 1L.
-      expect(healthyState.vitals.spo2).toBe(100);
-      expect(obeseState.vitals.spo2).toBe(100);
+      // Both should still be very well saturated (100% FiO2, buffers > 0.7L). Minor <0.2%
+      // reduction from corrected A-a gradient (2.5 vs prior 4) still reads as 100% on monitor.
+      expect(healthyState.vitals.spo2).toBeGreaterThan(99);
+      expect(obeseState.vitals.spo2).toBeGreaterThan(99);
 
       // Now let's simulate the same but starting with room air preoxygenation (21%)
       // Obese FRC = 1.916 L. Room air O2 = 1.916 * 0.21 = 0.402 L.

@@ -1401,6 +1401,43 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
       });
     }
 
+    // ── Chronic Steroids & Adrenal Suppression ──
+    if (stagedCase.patient?.chronicPrednisoneDoseMgPerDay > 0) {
+      if (!orders.labs.bmp || !orders.consults.endocrinology) {
+        advisories.push({
+          severity: 'caution',
+          message: `Patient has chronic corticosteroid exposure (${stagedCase.patient.chronicPrednisoneDoseMgPerDay} mg/day prednisone equivalent for ${stagedCase.patient.chronicSteroidDurationWeeks || 'multiple'} weeks), indicating high risk for HPA axis suppression and secondary adrenal insufficiency. Pre-operative Basic Metabolic Panel (BMP) is recommended to assess baseline sodium and potassium, and an Endocrinology consultation should be obtained to optimize perioperative stress-dose steroid coverage.`
+        });
+      }
+    }
+
+    // ── Congenital Coagulopathies (VWD / Hemophilia) ──
+    const hasCoagulopathy = !!(stagedCase.patient?.hasVWD || stagedCase.patient?.hemophiliaA || stagedCase.patient?.hemophiliaB || stagedCase.patient?.hemophilia);
+    if (hasCoagulopathy) {
+      if (!orders.labs.coags || !orders.consults.hematology) {
+        advisories.push({
+          severity: 'warning',
+          message: 'Patient has a documented congenital bleeding disorder (Hemophilia or Von Willebrand Disease). Pre-operative Coagulation panel (PT/INR/aPTT) and a Hematology consultation are strongly recommended to verify baseline coagulation parameters, confirm factor levels, and establish a perioperative factor replacement/DDAVP administration protocol.'
+        });
+      }
+      
+      // Contraindication to neuraxial block
+      if (hasNeuraxial) {
+        advisories.push({
+          severity: 'warning',
+          message: 'Central neuraxial blockade (spinal or epidural anesthesia) is contraindicated in patients with severe congenital bleeding disorders (Hemophilia or Von Willebrand Disease) due to the high risk of epidural hematoma. Choose general anesthesia or peripheral nerve blocks instead.'
+        });
+      }
+    }
+
+    // ── Penicillin Allergy Cross-Reactivity ──
+    if (stagedCase.patient?.penicillinAllergy) {
+      advisories.push({
+        severity: 'info',
+        message: 'Patient has a documented penicillin allergy. Be aware that beta-lactam antibiotics (e.g., Ampicillin/Sulbactam / Unasyn, Piperacillin/Tazobactam) are contraindicated. Cefazolin (first-generation cephalosporin) has a low cross-reactivity rate (1-5%) and is generally safe unless the patient has a history of severe anaphylaxis. If severe allergy is present, select non-beta-lactam options (e.g., Vancomycin, Gentamicin, Metronidazole, Clindamycin) for surgical prophylaxis.'
+      });
+    }
+
     return advisories;
   };
 
@@ -1422,6 +1459,21 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
         actualAction: 'Anesthesia plan proceeded to OR with neuraxial technique selected on an anticoagulated patient.',
         impact: 'Unconfirmed anticoagulant clearance before neuraxial instrumentation risks spinal/epidural hematoma.',
         chapterSource: 'Ch31: Preoperative Evaluation — Atrial Fibrillation / Anticoagulant Management'
+      });
+    }
+
+    // Congenital Coagulopathy neuraxial contraindication quality hook
+    const hasCoagulopathy = !!(stagedCase.patient?.hasVWD || stagedCase.patient?.hemophiliaA || stagedCase.patient?.hemophiliaB || stagedCase.patient?.hemophilia);
+    if (logQualityEvent && anesthesiaPlan.types.neuraxial && hasCoagulopathy) {
+      logQualityEvent({
+        phase: 'PreOp',
+        category: 'ChecklistAdherence',
+        severity: 'major',
+        description: 'Central neuraxial blockade (spinal/epidural) planned/attempted in a patient with a documented severe congenital coagulopathy (Hemophilia or Von Willebrand Disease), presenting an absolute contraindication.',
+        idealAction: 'Avoid central neuraxial blockade in patients with severe inherited bleeding disorders (Hemophilia or severe Von Willebrand Disease) due to high risk of epidural/spinal hematoma.',
+        actualAction: 'Anesthesia plan proceeded to OR with neuraxial technique selected on a coagulopathic patient.',
+        impact: 'High risk of spinal/epidural hematoma causing compression of the spinal cord and permanent neurological damage.',
+        chapterSource: 'Ch31 / ASRA Guidelines'
       });
     }
 
@@ -1538,7 +1590,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
             </h2>
             <p className="text-xs text-slate-400">Review Patient Chart, Order Pre-Op Workup, Perform Risk Staging, and Lock Anesthesia Plan</p>
           </div>
-          <button onClick={close} className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
+          <button onClick={close} data-tutorial="emr-close" className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
             <X size={24}/>
           </button>
         </div>

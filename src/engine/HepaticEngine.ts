@@ -97,24 +97,25 @@ export class HepaticEngine {
 
     // 2. Hepatic Blood Flow Calculations (PBF, HABF, THBF)
     // PBF is reduced by cirrhosis and scales with cardiac output ratio
-    const pbf = 1000.0 * Math.max(0.1, inputs.coRatio) * (1.0 - 0.5 * cirrhosisFactor);
+    // Published: PBF=1100 mL/min (75% of THBF=1500), HABF=400 mL/min (25%). Prior: 1000/300/1300.
+    const pbf = 1100.0 * Math.max(0.1, inputs.coRatio) * (1.0 - 0.5 * cirrhosisFactor);
 
     // Volatiles (Sevoflurane/Isoflurane/Desflurane) preserve HABR, but Halothane blunts it dose-dependently (Table 16.5 / Key Points, Miller's 9th Ed)
     const hasHalothaneMed = activeMeds.some(m => m.name === 'Halothane');
     const haloMacInput = typeof inputs.haloMac === 'number' && Number.isFinite(inputs.haloMac) ? inputs.haloMac : 0.0;
     const haloMac = Math.max(haloMacInput, hasHalothaneMed ? 1.0 : 0.0);
-    
+
     // HABR is also blunted by hypotension (MAP < 60 mmHg)
     const mapBlunting = Math.max(0.1, Math.min(1.0, (inputs.map - 40.0) / 20.0));
     const habrEfficiency = Math.max(0.0, 1.0 - haloMac) * mapBlunting;
 
     // Hepatic Arterial Buffer Response (HABR): compensates for drops in portal inflow
-    const habf = 300.0 + Math.max(0.0, 0.5 * (1000.0 - pbf)) * habrEfficiency;
+    const habf = 400.0 + Math.max(0.0, 0.5 * (1100.0 - pbf)) * habrEfficiency;
     const thbf = pbf + habf;
 
     // 3. Portal Hypertension (HVPG)
     // Normal HVPG is 5 mmHg. If cirrhosis is present, it rises. TIPS decompresses it.
-    let HVPG = 5.0 + 15.0 * cirrhosisFactor * (thbf / 1300.0);
+    let HVPG = 5.0 + 15.0 * cirrhosisFactor * (thbf / 1500.0);
     if (patient.hasTIPS) {
       HVPG = Math.min(12.0, HVPG);
     }

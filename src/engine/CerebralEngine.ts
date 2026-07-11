@@ -181,12 +181,9 @@ export class CerebralEngine {
     
     let co2Mult = 1.0;
     if (mapReduction < 0.33) {
-      // Normotension
-      if (clampedPaCO2 > 40) {
-        co2Mult = 1.0 + 0.025 * (clampedPaCO2 - 40);
-      } else {
-        co2Mult = 1.0 + 0.0167 * (clampedPaCO2 - 40);
-      }
+      // Normotension: symmetric ±2.5%/mmHg (corrected from asymmetric 2.5/1.67).
+      // Clinical: hyperventilation to PaCO2=30 → -25% CBF; prior 1.67%/mmHg gave only -16.7%.
+      co2Mult = 1.0 + 0.025 * (clampedPaCO2 - 40);
     } else if (mapReduction < 0.66) {
       // Moderate Hypotension
       co2Mult = 1.0 + 0.013 * (clampedPaCO2 - 40);
@@ -205,16 +202,17 @@ export class CerebralEngine {
     }
     cbf_uncoupled *= hypoxiaMult;
 
-    // 5. Autoregulation mechanics (Fig. 11.3, conventional view limits 65 - 150 mmHg)
-    // Loss of autoregulation by volatiles (lost at 1.5 MAC)
+    // 5. Autoregulation mechanics (Fig. 11.3, limits 50-150 mmHg — corrected from 65-150).
+    // Prior lower limit of 65 mmHg caused pressure-passive CBF in the normal autoregulated zone
+    // (CPP 50-65 mmHg), producing false rSO2 drops and early ischemia warnings.
     const autoregEfficiency = Math.max(0.0, 1.0 - (volatileMac / 1.5));
     const cerebralMap = Math.max(0, inputs.map + inputs.positionHydrostaticMod);
     const cpp = Math.max(0, cerebralMap - prevICP);
 
     let cbf_autoreg = cbf_uncoupled;
-    if (cpp < 65.0) {
-      // Pressure passive drop below lower limit
-      cbf_autoreg = cbf_uncoupled * (cpp / 65.0);
+    if (cpp < 50.0) {
+      // Pressure passive drop below lower autoregulatory limit (corrected: 50 not 65 mmHg)
+      cbf_autoreg = cbf_uncoupled * (cpp / 50.0);
     } else if (cpp > 150.0) {
       // Pressure passive surge above upper limit
       cbf_autoreg = cbf_uncoupled * (1.0 + 0.01 * (cpp - 150.0));

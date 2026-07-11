@@ -82,6 +82,7 @@ export interface NeuraxialPKInputs {
   // Carried-forward state
   prevRostralMorphineConcentration?: number; // 0-1, relative CSF morphine at medullary level
   prevRespiratoryDepressionFromMorphine?: boolean;
+  prevHighSpinalLogged?: boolean;
 }
 
 export interface NeuraxialPKOutput {
@@ -100,6 +101,7 @@ export interface NeuraxialPKOutput {
   epiduralFentanylSystemicFraction: number; // fraction absorbed systemically (≈0.8 for epidural fentanyl)
   epiduralMorphineCordFraction: number; // fraction penetrating cord (≈0.3 for epidural morphine)
 
+  prevHighSpinalLogged: boolean;
   events: string[];
 }
 
@@ -176,8 +178,14 @@ export class NeuraxialPKModel {
 
     // High spinal: level ≥ T4 (dermatomal level ≤ 9 in our 1=C1 convention)
     const highSpinalRisk = predictedBlockLevel <= 9;
+    let prevHighSpinalLogged = !!inputs.prevHighSpinalLogged;
     if (highSpinalRisk && spreadComplete) {
-      events.push("🚨 CRITICAL: HIGH SPINAL ANESTHETIC -- block level at or above T4. Risk of respiratory paralysis (phrenic nerve, C3-C5), profound hypotension, and cardiovascular collapse. Airway support, phenylephrine/ephedrine for BP, and possible emergency intubation. Position head-UP immediately if hyperbaric drug was used.");
+      if (!prevHighSpinalLogged) {
+        events.push("🚨 CRITICAL: HIGH SPINAL ANESTHETIC -- block level at or above T4. Risk of respiratory paralysis (phrenic nerve, C3-C5), profound hypotension, and cardiovascular collapse. Airway support, phenylephrine/ephedrine for BP, and possible emergency intubation. Position head-UP immediately if hyperbaric drug was used.");
+        prevHighSpinalLogged = true;
+      }
+    } else {
+      prevHighSpinalLogged = false;
     }
 
     // Intrathecal morphine rostral migration (water-soluble, stays in CSF, spreads cephalad)
@@ -225,6 +233,7 @@ export class NeuraxialPKModel {
       fentanylCordConcentration: parseFloat(fentanylCordConcentration.toFixed(4)),
       epiduralFentanylSystemicFraction: parseFloat(epiduralFentanylSystemicFraction.toFixed(2)),
       epiduralMorphineCordFraction: parseFloat(epiduralMorphineCordFraction.toFixed(2)),
+      prevHighSpinalLogged,
       events
     };
   }

@@ -42,9 +42,10 @@ describe('Chapter 16 Hepatic Physiology and Pathophysiology Unit Tests', () => {
       // HABF = 300 + max(0, 0.5 * (1000 - 1000)) * 1.0 = 300 mL/min
       // THBF = 1300 mL/min
       // HVPG = 5.0 + 15.0 * 0 = 5.0 mmHg
-      expect(output.pbf).toBe(1000.0);
-      expect(output.habf).toBe(300.0);
-      expect(output.thbf).toBe(1300.0);
+      // Updated to published values: PBF=1100 (75% of THBF=1500), HABF=400 (25%).
+      expect(output.pbf).toBe(1100.0);
+      expect(output.habf).toBe(400.0);
+      expect(output.thbf).toBe(1500.0);
       expect(output.HVPG).toBe(5.0);
       expect(output.meldScore).toBe(6); // normal bilirubin, inr, creatinine -> raw MELD is ~6.43
       expect(output.childPughClass).toBe('A');
@@ -108,12 +109,12 @@ describe('Chapter 16 Hepatic Physiology and Pathophysiology Unit Tests', () => {
         sevoMac: 1.0
       });
 
-      // PBF = 1000 * 0.7 = 700 mL/min
-      // HABR efficiency = max(0, 1 - 0.0) * 1.0 = 1.0 (preserved)
-      // HABF compensatory flow = 0.5 * (1000 - 700) * 1.0 = 150 mL/min
-      // HABF total = 300 + 150 = 450 mL/min
-      expect(outputSevo.pbf).toBe(700.0);
-      expect(outputSevo.habf).toBe(450.0);
+      // PBF = 1100 * 0.7 = 770 mL/min (updated from 1000→1100 base)
+      // HABR efficiency = max(0, 1 - 0.0) * 1.0 = 1.0 (preserved under Sevo)
+      // HABF compensatory flow = 0.5 * (1100 - 770) * 1.0 = 165 mL/min
+      // HABF total = 400 + 165 = 565 mL/min
+      expect(outputSevo.pbf).toBe(770.0);
+      expect(outputSevo.habf).toBe(565.0);
 
       // Test with Halothane (blunts HABR -> haloMac = 1.0 -> efficiency is 0.0)
       const outputHalo = HepaticEngine.tick(1, { patient, vitals, time: 10 }, [], {
@@ -130,10 +131,10 @@ describe('Chapter 16 Hepatic Physiology and Pathophysiology Unit Tests', () => {
         haloMac: 1.0
       });
 
-      // PBF = 700 mL/min
-      // HABR efficiency = 0.0
-      // HABF total = 300 + 0 = 300 mL/min
-      expect(outputHalo.habf).toBe(300.0);
+      // PBF = 1100 * 0.7 = 770 mL/min (updated base)
+      // HABR efficiency = 0.0 (Halothane fully blunts HABR)
+      // HABF = 400 (base) + 0 (no compensation) = 400 mL/min
+      expect(outputHalo.habf).toBe(400.0);
 
       // Test with Halothane + Hypotension (MAP = 50 mmHg -> mapBlunting is (50-40)/20 = 0.5)
       // Since Halothane is 1.0, efficiency is still 0.0.
@@ -151,7 +152,8 @@ describe('Chapter 16 Hepatic Physiology and Pathophysiology Unit Tests', () => {
         haloMac: 1.0
       });
 
-      expect(outputHypo.habf).toBe(300.0);
+      // Halothane + Hypotension: HABR still 0 (haloMac=1 blocks HABR entirely). HABF = 400 base.
+      expect(outputHypo.habf).toBe(400.0);
     });
 
     it('should trigger variceal bleeding on hypertensive surge and resolve with Terlipressin', () => {

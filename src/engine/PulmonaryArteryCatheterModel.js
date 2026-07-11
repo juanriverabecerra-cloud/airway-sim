@@ -116,23 +116,32 @@ export function synthesizePacWaveform(tBeat, beatDuration, h, time, patient, vit
   const safeH = typeof h === 'number' && Number.isFinite(h) ? h : 100;
   const safeTime = typeof time === 'number' && Number.isFinite(time) ? time : 0;
 
+  // Dynamic respiratory baseline shift
+  const rr = safeNumber(vitals?.rr, 12);
+  const rrFreq = rr / 60;
+  const isVent = patient?.ventilationStatus === 'mechanical' || !!(vitals?.peep && vitals.peep > 4);
+  const respPhase = Math.sin(safeTime * Math.PI * 2 * rrFreq);
+  const respEffect = isVent ? respPhase : -respPhase;
+  const shiftMagnitude = isVent ? 3.5 : 2.0;
+  const respShift = rr > 0 ? respEffect * shiftMagnitude : 0;
+
   if (patient?.isArrest) {
     const pac = calculatePacPressures(patient, vitals);
     const noise = Math.sin(safeTime * 17.0) * 0.5 * 0.3;
-    return mapPressureToY((mode === 'wedge' ? pac.pcwp : pac.paMean) + noise, safeH, PA_CEILING_MMHG);
+    return mapPressureToY((mode === 'wedge' ? pac.pcwp : pac.paMean) + noise + respShift, safeH, PA_CEILING_MMHG);
   }
 
   if (mode === 'wedge') {
     if (patient?.pacOverwedged) {
       const climbPhase = (safeTime % 4.0) / 4.0;
       const pressure = 15 + climbPhase * 45;
-      return mapPressureToY(pressure, safeH, PA_CEILING_MMHG);
+      return mapPressureToY(pressure + respShift, safeH, PA_CEILING_MMHG);
     }
     const targetLvedp = Math.max(1, safeNumber(vitals?.lvedp, DEFAULT_LVEDP));
     const laCycle = getFourChamberCycle(buildChamberParams(patient, vitals)).trajectory;
     const rescaled = rescaleToPhaseValue(laCycle, 'pLA', targetLvedp, END_DIASTOLE_PHASE);
     const pressure = interpolateField(rescaled, tBeat, beatDuration, 'pLA');
-    return mapPressureToY(pressure, safeH, PA_CEILING_MMHG);
+    return mapPressureToY(pressure + respShift, safeH, PA_CEILING_MMHG);
   }
 
   const targetMpap = Math.max(1, safeNumber(vitals?.mPAP, DEFAULT_MPAP));
@@ -141,10 +150,6 @@ export function synthesizePacWaveform(tBeat, beatDuration, h, time, patient, vit
   let pressure = interpolateField(rhCycle, tBeat, beatDuration, 'pPA');
 
   if (patient?.pacWhipArtifact) {
-    // Catheter-motion artifact at the onset of systole (tricuspid closure + RV
-    // contraction/ejection causes catheter whip) — the most common PAC trace
-    // artifact, and the one most likely to fool a digital min/max algorithm into
-    // reporting a falsely low PA diastolic pressure (Fig 36.39).
     const totalT = rhCycle[rhCycle.length - 1].t;
     const safeBeatDuration = Math.max(0.05, typeof beatDuration === 'number' ? beatDuration : totalT);
     const p = Math.max(0, Math.min(1, (tBeat / safeBeatDuration)));
@@ -155,7 +160,7 @@ export function synthesizePacWaveform(tBeat, beatDuration, h, time, patient, vit
     }
   }
 
-  return mapPressureToY(pressure, safeH, PA_CEILING_MMHG);
+  return mapPressureToY(pressure + respShift, safeH, PA_CEILING_MMHG);
 }
 
 /**

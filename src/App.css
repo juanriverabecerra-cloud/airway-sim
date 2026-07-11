@@ -170,3 +170,31 @@
 .control-dial-hover {
   transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
 }
+
+/* 8. Interactive Guided Tutorial Styles */
+@keyframes tutorial-highlight-glow {
+  0% {
+    outline: 2px solid rgba(6, 182, 212, 0.5);
+    box-shadow: 0 0 0 0 rgba(6, 182, 212, 0.4), inset 0 0 0 0 rgba(6, 182, 212, 0.2);
+  }
+  50% {
+    outline: 3px solid rgba(6, 182, 212, 0.95);
+    box-shadow: 0 0 15px 8px rgba(6, 182, 212, 0.6), inset 0 0 10px 4px rgba(6, 182, 212, 0.3);
+  }
+  100% {
+    outline: 2px solid rgba(6, 182, 212, 0.5);
+    box-shadow: 0 0 0 0 rgba(6, 182, 212, 0), inset 0 0 0 0 rgba(6, 182, 212, 0.2);
+  }
+}
+
+.tutorial-highlight {
+  animation: tutorial-highlight-glow 1.5s ease-in-out infinite !important;
+  z-index: 9999 !important;
+  position: relative !important;
+  pointer-events: auto !important;
+}
+
+.tutorial-overlay-active {
+  pointer-events: none !important;
+}
+

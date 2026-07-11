@@ -36,7 +36,9 @@ describe('Chapter 17 Renal Physiology and Pathophysiology Unit Tests', () => {
       expect(output.gfr).toBeCloseTo(125.0, 1);
       expect(output.rbf).toBeCloseTo(1100.0, 1);
       expect(output.urineOutputRate).toBeDefined();
-      expect(output.osm).toBeCloseTo(297.84, 1); // 2*140 + 2*4 + 12/2.8 + 100/18 = 297.84
+      // Corrected: 2*140 + 12/2.8 + 100/18 = 289.84 (removed spurious 2×K term).
+      // Prior 2×K added 8 mOsm/L above normal range → chronically elevated AVP → biased-low UOP.
+      expect(output.osm).toBeCloseTo(289.84, 1);
       expect(output.vasopressinLevel).toBeGreaterThan(0.0);
     });
 
@@ -214,11 +216,12 @@ describe('Chapter 17 Renal Physiology and Pathophysiology Unit Tests', () => {
       }, [], baseInputs);
       expect(out2_cr.akiStage).toBe(2);
 
-      // 6. Stage 3 (Anuria >= 12h)
+      // 6. Stage 3 (Anuria >= 12h) — requires genuinely anuric patient (MAP=25, GFR near 0)
+      // so the timer is not reset by adequate-UOP logic this tick.
       const out3_anuria = RenalEngine.tick(1, {
         patient: { weight: 70, baselineCreatinine: 0.85, creatinine: 0.85, uopOliguriaTimer: 13 * 3600, uopAnuriaTimer: 13 * 3600 },
         vitals, time: 0
-      }, [], baseInputs);
+      }, [], { ...baseInputs, map: 25 }); // severely hypotensive → GFR→0 → true anuria this tick
       expect(out3_anuria.akiStage).toBe(3);
 
       // 7. Stage 3 (Creatinine ratio >= 3.0)
@@ -477,7 +480,7 @@ describe('Chapter 17 Renal Physiology and Pathophysiology Unit Tests', () => {
       // At tick 12, timer becomes 12 * 60 = 720, which is > 660.
       let currentPatient = { ...patient };
       for (let i = 0; i < 11; i++) {
-        const out = RenalEngine.tick(1, { patient: currentPatient, vitals, time: i }, [], inputsHypo60);
+        const out = RenalEngine.tick(60, { patient: currentPatient, vitals, time: i }, [], inputsHypo60);
         currentPatient = {
           ...currentPatient,
           mapUnder60Time: out.mapUnder60Time,
@@ -491,7 +494,7 @@ describe('Chapter 17 Renal Physiology and Pathophysiology Unit Tests', () => {
       expect(currentPatient.mapUnder60AlertTriggered).toBe(false);
 
       // 12th tick crosses the 11 minutes (660 seconds) threshold
-      const out12 = RenalEngine.tick(1, { patient: currentPatient, vitals, time: 11 }, [], inputsHypo60);
+      const out12 = RenalEngine.tick(60, { patient: currentPatient, vitals, time: 11 }, [], inputsHypo60);
       expect(out12.mapUnder60Time).toBe(720);
       expect(out12.mapUnder60AlertTriggered).toBe(true);
       expect(out12.events).toContainEqual(expect.stringContaining("exposure to MAP < 60 mmHg has exceeded 11 minutes"));

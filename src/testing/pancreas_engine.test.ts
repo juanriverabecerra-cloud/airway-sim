@@ -14,7 +14,9 @@ function tickN(n: number, patientOverrides: any, inputs: any) {
 describe('PancreasEngine — insulin/glucagon-driven glucose homeostasis', () => {
   it('stays near baseline glucose with no pathology over a simulated hour', () => {
     const out = tickN(3600, {}, {});
-    expect(out.glucose).toBeGreaterThan(90);
+    // Baseline is now 90 mg/dL (mid-range of normal 70-99). After 1 hour equilibration,
+    // glucose may settle slightly below 90 due to peripheral uptake vs hepatic output balance.
+    expect(out.glucose).toBeGreaterThan(85);
     expect(out.glucose).toBeLessThan(115);
   });
 

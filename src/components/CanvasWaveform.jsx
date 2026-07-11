@@ -28,7 +28,7 @@ export const CanvasWaveform = React.memo(({
   const canvasRef = useRef(null);
 
   // Initialize lastTime as null to securely sync with the exact rAF epoch on frame 1
-  const drawState = useRef({ x: 0, lastTime: null, lastY: null, tBeat: 0 });
+  const drawState = useRef({ x: 0, lastTime: null, lastY: null });
   const propsRef = useRef({ speed, rrSpeed, active, color, type, morphology, ieRatio, ampScale, baseScale, lead, patientState, electrolytes, activeMeds, vitals, ventSettings });
 
   useEffect(() => {
@@ -99,12 +99,6 @@ export const CanvasWaveform = React.memo(({
       // e.g., 70 BPM -> 60/70 = 0.857 seconds per beat.
       const beatDuration = (parsedSpeed > 0 && !isNaN(parsedSpeed)) ? (60 / parsedSpeed) : 1.0; 
       
-      drawState.current.tBeat += (dtMs / 1000);
-      if (drawState.current.tBeat >= beatDuration) {
-          drawState.current.tBeat %= beatDuration;
-      }
-      const tBeat = drawState.current.tBeat;
-
       const isCardiac = type === 'ecg' || type === 'aline' || type === 'pleth' || type === 'cvp' || type === 'pac';
       const base = isCardiac ? (h / 2) : (h * 0.9); 
       let y;
@@ -133,7 +127,11 @@ export const CanvasWaveform = React.memo(({
               
               tBeatVal = pCardiac * beatDuration;
           } else {
-              tBeatVal = tBeat;
+              // Lock respiratory signals to absolute time phase as well
+              let pResp = (time / 1000) / beatDuration;
+              pResp = pResp % 1.0;
+              if (pResp < 0) pResp += 1.0;
+              tBeatVal = pResp * beatDuration;
           }
 
           // === TRUE RESPIRATORY VARIATION (Pulse Pressure / Pleth Variability) ===
@@ -179,49 +177,130 @@ export const CanvasWaveform = React.memo(({
           } else if (type === 'ventVolume') {
               y = synthesizeVentVolumeMechanics(tBeatVal, beatDurationVal, h, patientState, vitals, ventSettings);
           } else if (type === 'eeg') {
+                // ── EEG Synthesis ─────────────────────────────────────────────────
+                // The canvas scrolls at 25 px/sec. At this rate, a true 32 Hz gamma
+                // signal occupies < 1 pixel per cycle — physically invisible. Instead we
+                // use DISPLAY-SCALED REPRESENTATIONAL FREQUENCIES: the visual CHARACTER
+                // of each state (awake = dense fast noise; deep = sweeping slow waves) is
+                // preserved while frequencies are scaled to be renderable. The depth-to-
+                // visual mapping below is correct; only the literal Hz value is scaled.
+                //
+                // State legend (shown on the strip):
+                //   BIS > 85: AWAKE — fast irregular low-amplitude β/γ noise
+                //   BIS 65–85: LIGHT SEDATION — alpha spindles emerging
+                //   BIS 40–65: SURGICAL DEPTH — slow δ waves dominate, higher amplitude
+                //   BIS < 40 / BSR > 0: BURST SUPPRESSION — flat interrupted by high bursts
+                //   BIS < 3: ISOELECTRIC — flat line (profound suppression)
+
                 const bis = vitals?.bis !== undefined ? vitals.bis : 98;
                 const bsr = vitals?.bsr !== undefined ? vitals.bsr : 0;
                 const isArrest = patientState?.isArrest || false;
-                
+
                 if (isArrest || patientState?.biologicalDeath || bis < 3) {
-                    y = base + (Math.random() - 0.5) * 0.5;
+                    // Isoelectric / cerebral death — near-flat with minimal electrical noise
+                    y = base + (Math.random() - 0.5) * 1.5;
                 } else {
-                    const tSecs = time / 1000;
+                    const t = time / 1000;
+
+                    // ── Burst suppression: cyclically suppress based on BSR ────────
                     const isBursted = bsr > 0;
-                    const cyclePeriod = 6.0;
-                    const cyclePhase = tSecs % cyclePeriod;
-                    const activeFrac = (100 - bsr) / 100;
-                    const isFlatPeriod = cyclePhase > (cyclePeriod * activeFrac);
-                    
-                    if (isBursted && isFlatPeriod) {
-                        y = base + (Math.random() - 0.5) * 0.4;
+                    const bsCyclePeriod = 4.0;  // 4-second suppression cycle (typical clinical BS)
+                    const bsActiveFrac  = (100 - bsr) / 100;
+                    const isSuppressed  = isBursted && ((t % bsCyclePeriod) > (bsCyclePeriod * bsActiveFrac));
+
+                    if (isSuppressed) {
+                        // Flat suppression period: near-isoelectric with minimal noise
+                        y = base + (Math.random() - 0.5) * 2.0;
                     } else {
-                        const gamma = Math.sin(tSecs * 2 * Math.PI * 32.0) * 2.0 + Math.sin(tSecs * 2 * Math.PI * 25.0) * 1.5;
-                        const beta = Math.sin(tSecs * 2 * Math.PI * 18.0) * 4.0 + Math.cos(tSecs * 2 * Math.PI * 15.0) * 3.0;
-                        const alphaEnvelope = 0.5 + 0.5 * Math.sin(tSecs * 2 * Math.PI * 0.5);
-                        const alpha = Math.sin(tSecs * 2 * Math.PI * 10.0) * 8.0 * alphaEnvelope;
-                        const theta = Math.sin(tSecs * 2 * Math.PI * 5.0) * 10.0;
-                        const delta = Math.sin(tSecs * 2 * Math.PI * 1.5) * 20.0 + Math.cos(tSecs * 2 * Math.PI * 0.8) * 15.0;
-                        
-                        let wGammaBeta = 0; let wAlpha = 0; let wTheta = 0; let wDelta = 0;
-                        if (bis > 85) {
-                            wGammaBeta = 1.0;
-                        } else if (bis > 65) {
-                            const f = (bis - 65) / 20;
-                            wGammaBeta = f * 0.8;
-                            wAlpha = (1 - f) * 0.7 + 0.2;
-                            wTheta = (1 - f) * 0.3;
-                        } else if (bis > 40) {
-                            const f = (bis - 40) / 25;
+                        // ── Representational frequency components ─────────────────────
+                        // Frequencies chosen so ≥2 cycles are visible per screen width at 25 px/sec.
+                        // Visual character is preserved; literal Hz is scaled ~5-6× for display.
+
+                        // ── Signal functions IDENTICAL to EEGContextPanel SVG preview ──────
+                        // This guarantees the live strip matches what the preview shows.
+                        // Root cause of previous mismatch: live used amplitudes (1.8, 1.4, 1.2)
+                        // while preview used (5, 3.5, 4, 2.5, 3) — a 3× difference — plus
+                        // depthAmpScale=0.25 for awake made the live signal effectively invisible
+                        // (±1.6 px in a 48px canvas). Now both use the same amplitudes.
+                        //
+                        // h/80: normalizes to canvas height. At h=48, sf=0.6; at h=80, sf=1.0.
+                        // This way the waveform always fills the same proportion of the strip
+                        // regardless of how tall the strip happens to be rendered.
+                        const TAU = 2 * Math.PI;
+                        const sf  = h / 80;   // height scale factor
+
+                        // Fast noise (awake β/γ character) — same 5 components as SVG
+                        const fastNoise =
+                            Math.sin(t * TAU * 5.5) * 5  * sf
+                          + Math.sin(t * TAU * 7.3) * 3.5 * sf
+                          + Math.sin(t * TAU * 4.1) * 4  * sf
+                          + Math.sin(t * TAU * 9.2) * 2.5 * sf
+                          + Math.sin(t * TAU * 6.7) * 3  * sf
+                          + (Math.random() - 0.5)   * 3.5 * sf;  // biological noise
+
+                        // Alpha spindles (waxing-waning enveloped bursts) — same as SVG
+                        const env1 = Math.max(0, Math.sin(t * TAU * 0.4));
+                        const env2 = Math.max(0, Math.sin(t * TAU * 0.35 + 2.1));
+                        const alphaSpindle =
+                            Math.sin(t * TAU * 2.2) * 22 * env1 * sf
+                          + Math.sin(t * TAU * 1.9) * 14 * env2 * sf
+                          + Math.sin(t * TAU * 5.1) * 3  * (1 - env1) * sf;
+
+                        // Theta (transitional medium-slow) — same as SVG
+                        const theta =
+                            Math.sin(t * TAU * 1.1) * 22 * sf
+                          + Math.cos(t * TAU * 0.9) * 13 * sf
+                          + Math.sin(t * TAU * 1.6) * 8  * sf;
+
+                        // Delta (large slow sweeps — surgical depth signature) — same as SVG
+                        const delta =
+                            Math.sin(t * TAU * 0.35) * 32 * sf
+                          + Math.cos(t * TAU * 0.22) * 18 * sf
+                          + Math.sin(t * TAU * 0.55) * 12 * sf
+                          + Math.sin(t * TAU * 0.15) * 8  * sf;
+
+                        // Burst signal (high-amplitude polymorphic discharge) — same as SVG
+                        const burstSignal = isBursted
+                          ? Math.sin(t * TAU * 1.5) * 34 * sf
+                          + Math.sin(t * TAU * 0.9) * 20 * sf
+                          + Math.sin(t * TAU * 2.4) * 12 * sf
+                          + (Math.random() - 0.5)   * 8  * sf
+                          : 0;
+
+                        // ── BIS → band-weight mapping (unchanged) ─────────────────
+                        let wFast = 0, wAlpha = 0, wTheta = 0, wDelta = 0, wBurst = 0;
+                        if (isBursted) {
+                            wBurst = 1.0;
+                        } else if (bis > 85) {
+                            wFast = 1.0;
+                        } else if (bis > 70) {
+                            const f = (bis - 70) / 15;
+                            wFast  = f * 0.7;
+                            wAlpha = (1 - f) * 0.9 + 0.1;
+                        } else if (bis > 55) {
+                            const f = (bis - 55) / 15;
                             wAlpha = f * 0.6;
-                            wTheta = f * 0.4;
-                            wDelta = (1 - f) * 0.8;
+                            wTheta = (1 - f) * 0.5 + f * 0.3;
+                            wDelta = (1 - f) * 0.4;
+                        } else if (bis > 40) {
+                            const f = (bis - 40) / 15;
+                            wTheta = f * 0.3;
+                            wDelta = (1 - f) * 0.9 + f * 0.7;
                         } else {
                             wDelta = 1.0;
                         }
-                        
-                        const rawSignal = (gamma * wGammaBeta) + (beta * wGammaBeta * 0.8) + (alpha * wAlpha) + (theta * wTheta) + (delta * wDelta);
-                        y = base + rawSignal * 0.6 * ampScale;
+
+                        const rawSignal =
+                            (fastNoise    * wFast)
+                          + (alphaSpindle * wAlpha)
+                          + (theta        * wTheta)
+                          + (delta        * wDelta)
+                          + (burstSignal  * wBurst);
+
+                        // Global scale 0.60: keeps deep delta waves within canvas bounds while
+                        // making awake activity clearly visible (~15% of canvas height, matching
+                        // what the SVG preview box shows for the same state).
+                        y = base + rawSignal * 0.60;
                     }
                 }
           } else {
@@ -239,27 +318,24 @@ export const CanvasWaveform = React.memo(({
 
       } else {
           // === ASYSTOLE / INACTIVE PHYSICS ===
+          let tBeatVal = (time / 1000) % beatDuration;
+          if (tBeatVal < 0) tBeatVal += beatDuration;
+
           if (type === 'aline') {
-              y = synthesizeArterialLine(tBeat, beatDuration, h, time / 1000, patientState, vitals, activeMeds);
+              y = synthesizeArterialLine(tBeatVal, beatDuration, h, time / 1000, patientState, vitals, activeMeds);
           } else if (type === 'pleth') {
-              y = synthesizePleth(tBeat, beatDuration, h, time / 1000, patientState, vitals, activeMeds);
+              y = synthesizePleth(tBeatVal, beatDuration, h, time / 1000, patientState, vitals, activeMeds);
           } else if (type === 'cvp') {
-              y = synthesizeCvpWaveform(tBeat, beatDuration, h, time / 1000, patientState, vitals);
+              y = synthesizeCvpWaveform(tBeatVal, beatDuration, h, time / 1000, patientState, vitals);
           } else if (type === 'pac') {
-              y = synthesizePacWaveform(tBeat, beatDuration, h, time / 1000, patientState, vitals, morphology === 'wedge' ? 'wedge' : 'pa');
+              y = synthesizePacWaveform(tBeatVal, beatDuration, h, time / 1000, patientState, vitals, morphology === 'wedge' ? 'wedge' : 'pa');
           } else if (type === 'ventPressure') {
-              y = synthesizeVentPressureMechanics(tBeat, beatDuration, h, patientState, vitals, ventSettings);
+              y = synthesizeVentPressureMechanics(tBeatVal, beatDuration, h, patientState, vitals, ventSettings);
           } else if (type === 'ventFlow') {
-              y = synthesizeVentFlowMechanics(tBeat, beatDuration, h, patientState, vitals, ventSettings);
+              y = synthesizeVentFlowMechanics(tBeatVal, beatDuration, h, patientState, vitals, ventSettings);
           } else if (type === 'ventVolume') {
-              y = synthesizeVentVolumeMechanics(tBeat, beatDuration, h, patientState, vitals, ventSettings);
+              y = synthesizeVentVolumeMechanics(tBeatVal, beatDuration, h, patientState, vitals, ventSettings);
           } else if (type === 'ecg') {
-              let tBeatVal = tBeat;
-              if (isCardiac) {
-                  let pCardiac = ((time / 1000) / beatDuration) % 1.0;
-                  if (pCardiac < 0) pCardiac += 1.0;
-                  tBeatVal = pCardiac * beatDuration;
-              }
               // Let EkgModel render the flatline or cpr artifacts when inactive/arrest
               y = synthesizeEkgLead(lead, tBeatVal, beatDuration, h, base, time / 1000, patientState, electrolytes, activeMeds);
           } else if (type === 'eeg') {
@@ -278,6 +354,17 @@ export const CanvasWaveform = React.memo(({
       ctx.clearRect(newX, 0, eraserWidth, h);
       
       if (!isWrapping && drawState.current.lastY !== null) {
+          if (type === 'ventFlow') {
+              ctx.beginPath();
+              ctx.strokeStyle = 'rgba(34, 197, 94, 0.25)'; // faint green dashed baseline
+              ctx.lineWidth = 1.0;
+              ctx.setLineDash([4, 4]);
+              ctx.moveTo(drawState.current.x, h * 0.5);
+              ctx.lineTo(newX, h * 0.5);
+              ctx.stroke();
+              ctx.setLineDash([]);
+          }
+
           ctx.beginPath(); 
           ctx.strokeStyle = color; 
           ctx.lineWidth = 2.5; 

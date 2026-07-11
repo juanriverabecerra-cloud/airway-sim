@@ -8,7 +8,7 @@ import { generatePressureVolumeLoopFromMechanics } from '../engine/PressureVolum
  */
 export const PressureVolumeLoopCanvas = React.memo(({ patient, vitals, ventSettings, active = true }) => {
   const canvasRef = useRef(null);
-  const drawState = useRef({ tBeat: 0, lastTime: null });
+  const drawState = useRef({ lastTime: null });
   const propsRef = useRef({ patient, vitals, ventSettings, active });
 
   useEffect(() => {
@@ -45,9 +45,10 @@ export const PressureVolumeLoopCanvas = React.memo(({ patient, vitals, ventSetti
 
       const rr = typeof v?.rr === 'number' && Number.isFinite(v.rr) ? v.rr : 12;
       const beatDuration = (isActive && rr > 0) ? (60 / rr) : 4.0;
-      drawState.current.tBeat += dtMs / 1000;
-      if (drawState.current.tBeat >= beatDuration) drawState.current.tBeat %= beatDuration;
-      const progress = Math.max(0, Math.min(1, drawState.current.tBeat / beatDuration));
+      let pCycle = (time / 1000) / beatDuration;
+      pCycle = pCycle % 1.0;
+      if (pCycle < 0) pCycle += 1.0;
+      const progress = pCycle;
 
       const loop = generatePressureVolumeLoopFromMechanics(p, v, vs);
       const { points, pip, peep } = loop;
@@ -62,8 +63,8 @@ export const PressureVolumeLoopCanvas = React.memo(({ patient, vitals, ventSetti
       
       const lv = p?.lungVolumes;
       const frc = lv?.frc_L || 2.2;
-      const vt = (v?.vte || 500) / 1000;
-      const yMin = Math.max(0, frc - 0.4);
+      const vt = Math.max(0.1, loop.vte / 1000);
+      const yMin = Math.max(0, frc - 0.2);
       const yMax = frc + vt * 1.35;
 
       const px = (pressure) => margin.left + ((pressure - xMin) / (xMax - xMin || 1)) * plotW;
@@ -110,9 +111,33 @@ export const PressureVolumeLoopCanvas = React.memo(({ patient, vitals, ventSetti
       ctx.closePath();
       ctx.stroke();
 
-      // Sweeping marker synced to the current breath
+      // Sweeping marker synced to the current breath, with arc-length interpolation to prevent stalling
       if (isActive && points.length > 1) {
-        const idx = Math.min(points.length - 1, Math.floor(progress * (points.length - 1)));
+        const n = points.length;
+        const arc = new Array(n);
+        arc[0] = 0;
+        for (let i = 1; i < n; i++) {
+          const dp = points[i].pressure - points[i - 1].pressure;
+          const dv = points[i].volume - points[i - 1].volume;
+          // Scale volume by 50 to make its dynamic range isotropic with pressure (0-35 vs 2.2-2.9 L)
+          arc[i] = arc[i - 1] + Math.sqrt(dp * dp + dv * dv * 2500); 
+        }
+        const totalArc = arc[n - 1] || 1;
+        const normArc = arc.map(a => a / totalArc);
+
+        // Blend spatial (arc-length) progress and temporal (time-based) progress
+        // 0.4 time-based (keeps flow rate visual changes), 0.6 arc-length based (prevents freezing/stalling)
+        const timeIdx = Math.max(0, Math.min(n - 1, Math.floor(progress * (n - 1))));
+        const sTime = normArc[timeIdx];
+        const blend = 0.6;
+        const sBlended = (1 - blend) * sTime + blend * progress;
+
+        // Find index matching sBlended
+        let idx = 0;
+        while (idx < n - 1 && normArc[idx] < sBlended) {
+          idx++;
+        }
+
         const cur = points[idx];
         ctx.beginPath();
         ctx.fillStyle = '#facc15';

@@ -62,7 +62,7 @@ export const CLINICAL_ACTIONS = {
   // === ANTIARRHYTHMICS & ELECTROLYTES ===
   "adenosine": { type: "medication", drug: "adenosine", dose: 6, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "amiodarone": { type: "medication", drug: "amiodarone", dose: 150, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
-  "atropine": { type: "medication", drug: "atropine", dose: 0.5, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
+  "atropine": { type: "medication", drug: "atropine", dose: 1, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "bicarbonate": { type: "medication", drug: "bicarbonate", dose: 50, route: "IV", drugType: "Bolus", unit: "mEq", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "calcium chloride": { type: "medication", drug: "calcium", dose: 1000, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
   "calcium": { type: "medication", drug: "calcium", dose: 1000, route: "IV", drugType: "Bolus", unit: "mg", color: "text-cyan-400 border-cyan-800 bg-cyan-950/40 hover:bg-cyan-900/60 shadow-[0_0_8px_rgba(34,211,238,0.15)]" },
@@ -291,7 +291,25 @@ export const CLINICAL_ACTIONS = {
   "p6": { type: "procedure", action: "apply_p6", color: "text-teal-400 border-teal-800 bg-teal-950/40 hover:bg-teal-900/60 shadow-[0_0_8px_rgba(20,184,166,0.15)] font-mono" },
   "ask about herbal medicines": { type: "procedure", action: "ask_herbal", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)] font-mono" },
   "ask herbal": { type: "procedure", action: "ask_herbal", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)] font-mono" },
-  "herbal screening": { type: "procedure", action: "ask_herbal", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)] font-mono" }
+  "herbal screening": { type: "procedure", action: "ask_herbal", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)] font-mono" },
+
+  // === COAGULATION & HEMATOLOGY REVERSALS ===
+  "give pcc": { type: "procedure", action: "give_pcc", color: "text-emerald-400 border-emerald-800 bg-emerald-950/40 hover:bg-emerald-900/60 shadow-[0_0_8px_rgba(16,185,129,0.15)] font-mono" },
+  "give kcentra": { type: "procedure", action: "give_pcc", color: "text-emerald-400 border-emerald-800 bg-emerald-950/40 hover:bg-emerald-900/60 shadow-[0_0_8px_rgba(16,185,129,0.15)] font-mono" },
+  "administer pcc": { type: "procedure", action: "give_pcc", color: "text-emerald-400 border-emerald-800 bg-emerald-950/40 hover:bg-emerald-900/60 shadow-[0_0_8px_rgba(16,185,129,0.15)] font-mono" },
+  "give andexanet": { type: "procedure", action: "give_andexanet", color: "text-emerald-400 border-emerald-800 bg-emerald-950/40 hover:bg-emerald-900/60 shadow-[0_0_8px_rgba(16,185,129,0.15)] font-mono" },
+  "give andexxa": { type: "procedure", action: "give_andexanet", color: "text-emerald-400 border-emerald-800 bg-emerald-950/40 hover:bg-emerald-900/60 shadow-[0_0_8px_rgba(16,185,129,0.15)] font-mono" },
+  "give idarucizumab": { type: "procedure", action: "give_idarucizumab", color: "text-emerald-400 border-emerald-800 bg-emerald-950/40 hover:bg-emerald-900/60 shadow-[0_0_8px_rgba(16,185,129,0.15)] font-mono" },
+  "give praxbind": { type: "procedure", action: "give_idarucizumab", color: "text-emerald-400 border-emerald-800 bg-emerald-950/40 hover:bg-emerald-900/60 shadow-[0_0_8px_rgba(16,185,129,0.15)] font-mono" },
+  "give ddavp": { type: "procedure", action: "give_ddavp", color: "text-emerald-400 border-emerald-800 bg-emerald-950/40 hover:bg-emerald-900/60 shadow-[0_0_8px_rgba(16,185,129,0.15)] font-mono" },
+  "give desmopressin": { type: "procedure", action: "give_ddavp", color: "text-emerald-400 border-emerald-800 bg-emerald-950/40 hover:bg-emerald-900/60 shadow-[0_0_8px_rgba(16,185,129,0.15)] font-mono" },
+  "give rfviia": { type: "procedure", action: "give_rfviia", color: "text-emerald-400 border-emerald-800 bg-emerald-950/40 hover:bg-emerald-900/60 shadow-[0_0_8px_rgba(16,185,129,0.15)] font-mono" },
+  "give novoseven": { type: "procedure", action: "give_rfviia", color: "text-emerald-400 border-emerald-800 bg-emerald-950/40 hover:bg-emerald-900/60 shadow-[0_0_8px_rgba(16,185,129,0.15)] font-mono" },
+  "stop heparin": { type: "procedure", action: "stop_heparin_hit", color: "text-red-400 border-red-800 bg-red-950/40 hover:bg-red-900/60 shadow-[0_0_8px_rgba(244,63,94,0.15)] font-mono" },
+  "discontinue heparin": { type: "procedure", action: "stop_heparin_hit", color: "text-red-400 border-red-800 bg-red-950/40 hover:bg-red-900/60 shadow-[0_0_8px_rgba(244,63,94,0.15)] font-mono" },
+  "suspect pseudomonas": { type: "procedure", action: "activate_infectiontype", payload: "pseudomonas", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)] font-mono" },
+  "suspect mrsa": { type: "procedure", action: "activate_infectiontype", payload: "mrsa", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)] font-mono" },
+  "suspect gram negative": { type: "procedure", action: "activate_infectiontype", payload: "gram_negative_enteric", color: "text-purple-400 border-purple-800 bg-purple-950/40 hover:bg-purple-900/60 shadow-[0_0_8px_rgba(168,85,247,0.15)] font-mono" }
 
   // DEVELOPER NOTE: If any new feature or action is added to the simulator in the future, make sure to add it to this CLINICAL_ACTIONS dictionary so it becomes available to the Attending engine.
 };

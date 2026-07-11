@@ -50,6 +50,15 @@ function deltaPel(deltaVMl, frcMl, complianceCurve) {
   return elasticRecoilPressure(frcMl + deltaVMl, complianceCurve) - elasticRecoilPressure(frcMl, complianceCurve);
 }
 
+function airwayResistanceAtVolume(volumeMl, frcMl, rFrc, obstructionSeverity) {
+  const safeVolume = Math.max(frcMl * 0.05, volumeMl);
+  if (safeVolume >= frcMl) {
+    return Math.max(0.5, rFrc * (frcMl / safeVolume));
+  }
+  const k = 1.0 + 3.0 * Math.max(0, Math.min(1, obstructionSeverity));
+  return Math.max(0.5, rFrc * Math.pow(frcMl / safeVolume, k));
+}
+
 function downsample(rawSamples, totalDuration, numPoints) {
   const out = new Array(numPoints);
   let rawIdx = 0;
@@ -86,7 +95,7 @@ function downsample(rawSamples, totalDuration, numPoints) {
  * @returns {Array<{t:number, paw:number, flow:number, deltaV:number}>} sampled over one full breath
  */
 export function computeBreathTrajectory(params) {
-  const mode = params?.mode === 'pcv' ? 'pcv' : 'vcv';
+  const mode = params?.mode || 'vcv';
   const R = Math.max(0.5, safeNumber(params?.R, 5));
   const curve = params?.complianceCurve;
   const frc = Math.max(100, safeNumber(params?.frc, 2400));
@@ -95,59 +104,119 @@ export function computeBreathTrajectory(params) {
   const targetPinsp = Math.max(1, safeNumber(params?.targetPinsp, 15));
   const inspTimeSec = Math.max(0.05, safeNumber(params?.inspTimeSec, 1.5));
   const expTimeSec = Math.max(0.05, safeNumber(params?.expTimeSec, 3.0));
+  const obstructionSeverity = safeNumber(params?.obstructionSeverity, 0);
 
-  const raw = [];
-  let deltaV = 0;
-
-  if (mode === 'vcv') {
-    const Qconst = (targetVtMl / 1000) / inspTimeSec; // L/s
-    const nSteps = Math.max(2, Math.round(inspTimeSec / SUBSTEP_SEC));
-    const dt = inspTimeSec / nSteps;
-    for (let i = 0; i <= nSteps; i++) {
-      const ti = i * dt;
-      const dV = Qconst * ti * 1000;
-      const paw = peep + deltaPel(dV, frc, curve) + R * Qconst;
-      raw.push({ t: ti, paw, flow: Qconst, deltaV: dV });
+  if (mode === 'apneic') {
+    const raw = [];
+    const totalDuration = inspTimeSec + expTimeSec;
+    const nSteps = OUTPUT_POINTS;
+    const dt = totalDuration / (nSteps - 1);
+    for (let i = 0; i < nSteps; i++) {
+      raw.push({ t: i * dt, paw: peep, flow: 0, deltaV: 0 });
     }
-    deltaV = Qconst * inspTimeSec * 1000;
-  } else {
-    const nSteps = Math.max(10, Math.round(inspTimeSec / SUBSTEP_SEC));
-    const dt = inspTimeSec / nSteps;
-    let dV = 0;
-    for (let i = 0; i <= nSteps; i++) {
-      const ti = i * dt;
-      const flowLs = Math.max(0, (targetPinsp - deltaPel(dV, frc, curve)) / R);
-      raw.push({ t: ti, paw: peep + targetPinsp, flow: flowLs, deltaV: dV });
-      dV = Math.max(0, dV + flowLs * 1000 * dt);
-    }
-    deltaV = dV;
+    return raw;
   }
 
-  const tInspEnd = raw[raw.length - 1].t;
-  {
-    const nSteps = Math.max(10, Math.round(expTimeSec / SUBSTEP_SEC));
-    const dt = expTimeSec / nSteps;
-    let dV = deltaV;
-    for (let i = 1; i <= nSteps; i++) {
-      // R still governs how fast volume/flow decay (so resistance changes correctly
-      // slow exhalation, e.g. bronchospasm's prolonged expiratory phase/incomplete
-      // emptying) -- but the DISPLAYED pressure during passive exhalation is the
-      // instantaneous alveolar/elastic-recoil pressure (PEEP + deltaPel), not PEEP
-      // alone. An earlier version of this model displayed Paw = PEEP throughout passive
-      // exhalation, reasoning that the same R driving the flow exactly cancels the
-      // resistive term at the airway opening -- correct as a description of what
-      // determines the FLOW, but conflating "the assumption used to derive the flow"
-      // with "what should be plotted." It produced a discontinuous jump from Pplat to
-      // PEEP at the start of exhalation and collapsed the pressure-volume loop's entire
-      // expiratory limb into a single vertical line (caught from a rendered screenshot,
-      // not by review of the equations alone). Plotting the elastic/alveolar pressure
-      // instead is continuous with Pplat at end-inspiration and decays smoothly toward
-      // PEEP as deltaV decays toward 0, matching both real ventilator displays and a
-      // non-degenerate PV loop.
-      const flowLs = -deltaPel(dV, frc, curve) / R;
-      dV = Math.max(0, dV + flowLs * 1000 * dt);
-      raw.push({ t: tInspEnd + i * dt, paw: peep + deltaPel(dV, frc, curve), flow: flowLs, deltaV: dV });
+  // Iterative solver to reach steady-state trapped volume (auto-PEEP)
+  let startV = 0;
+  let raw = [];
+  const numIters = 15;
+
+  for (let iter = 0; iter < numIters; iter++) {
+    raw = [];
+    let dV = startV;
+
+    if (mode === 'spontaneous') {
+      const nStepsInsp = Math.max(10, Math.round(inspTimeSec / SUBSTEP_SEC));
+      const dtInsp = inspTimeSec / nStepsInsp;
+      const R_circuit = 1.5;
+      
+      const C = curve?.cFrc || 60;
+      const tau = (R + R_circuit) * (C / 1000);
+      const pmusMax = (targetVtMl / C) * (1.25 + 0.85 * tau / inspTimeSec);
+      
+      // Spontaneous Inspiration
+      for (let i = 0; i <= nStepsInsp; i++) {
+        const ti = i * dtInsp;
+        const pmus = pmusMax * Math.sin((Math.PI * ti) / inspTimeSec);
+        const pAlv = peep + deltaPel(dV, frc, curve) - pmus;
+        const currentR = airwayResistanceAtVolume(frc + dV, frc, R, obstructionSeverity);
+        const flowLs = (peep - pAlv) / (currentR + R_circuit);
+        const paw = peep - flowLs * R_circuit;
+        raw.push({ t: ti, paw, flow: flowLs, deltaV: dV });
+        dV = Math.max(0, dV + flowLs * 1000 * dtInsp);
+      }
+      
+      const tInspEnd = raw[raw.length - 1].t;
+      const nStepsExp = Math.max(10, Math.round(expTimeSec / SUBSTEP_SEC));
+      const dtExp = expTimeSec / nStepsExp;
+      
+      // Spontaneous Expiration
+      for (let i = 1; i <= nStepsExp; i++) {
+        const ti = i * dtExp;
+        const pAlv = peep + deltaPel(dV, frc, curve);
+        const currentR = airwayResistanceAtVolume(frc + dV, frc, R, obstructionSeverity);
+        const flowLs = (peep - pAlv) / (currentR + R_circuit);
+        const paw = peep - flowLs * R_circuit;
+        raw.push({ t: tInspEnd + ti, paw, flow: flowLs, deltaV: dV });
+        dV = Math.max(0, dV + flowLs * 1000 * dtExp);
+      }
+    } else {
+      if (mode === 'vcv') {
+        const tau_rise = 0.03; // 30ms rapid flow rise
+        const effInspTime = inspTimeSec - tau_rise * (1 - Math.exp(-inspTimeSec / tau_rise));
+        const Qconst = (targetVtMl / 1000) / Math.max(0.1, effInspTime); // L/s
+        const nSteps = Math.max(10, Math.round(inspTimeSec / SUBSTEP_SEC));
+        const dt = inspTimeSec / nSteps;
+        for (let i = 0; i <= nSteps; i++) {
+          const ti = i * dt;
+          const flowLs = Qconst * (1 - Math.exp(-ti / tau_rise));
+          dV = dV + flowLs * 1000 * dt;
+          const currentR = airwayResistanceAtVolume(frc + dV, frc, R, obstructionSeverity);
+          const paw = peep + deltaPel(dV, frc, curve) + currentR * flowLs;
+          raw.push({ t: ti, paw, flow: flowLs, deltaV: dV });
+        }
+      } else {
+        // PCV: decelerating flow profile
+        const nSteps = Math.max(10, Math.round(inspTimeSec / SUBSTEP_SEC));
+        const dt = inspTimeSec / nSteps;
+        const tau_rise = 0.05; // 50ms pressure rise
+        for (let i = 0; i <= nSteps; i++) {
+          const ti = i * dt;
+          const paw = peep + targetPinsp * (1 - Math.exp(-ti / tau_rise));
+          const currentR = airwayResistanceAtVolume(frc + dV, frc, R, obstructionSeverity);
+          const flowLs = (paw - (peep + deltaPel(dV, frc, curve))) / currentR;
+          raw.push({ t: ti, paw, flow: flowLs, deltaV: dV });
+          dV = Math.max(0, dV + flowLs * 1000 * dt);
+        }
+      }
+
+      // Passive Expiration (both modes)
+      const tInspEnd = raw[raw.length - 1].t;
+      const pAlvEnd = peep + deltaPel(dV, frc, curve);
+      const nStepsExp = Math.max(10, Math.round(expTimeSec / SUBSTEP_SEC));
+      const dtExp = expTimeSec / nStepsExp;
+      const tau_valve = 0.03; // 30ms rapid valve opening
+      const R_circuit = 1.5;
+
+      for (let i = 1; i <= nStepsExp; i++) {
+        const ti = i * dtExp;
+        const pAlv = peep + deltaPel(dV, frc, curve);
+        const currentR = airwayResistanceAtVolume(frc + dV, frc, R, obstructionSeverity);
+        
+        // Calculate steady-state expiratory Paw and Flow based on circuit resistance:
+        const flow_ss = (peep - pAlv) / (currentR + R_circuit);
+        const paw_ss = peep - flow_ss * R_circuit;
+        
+        const paw = paw_ss + (pAlvEnd - paw_ss) * Math.exp(-ti / tau_valve);
+        const flowLs = (paw - pAlv) / currentR;
+        
+        dV = Math.max(0, dV + flowLs * 1000 * dtExp);
+        raw.push({ t: tInspEnd + ti, paw: Math.max(peep, paw), flow: flowLs, deltaV: dV });
+      }
     }
+
+    startV = dV;
   }
 
   return downsample(raw, raw[raw.length - 1].t, OUTPUT_POINTS);
@@ -220,17 +289,51 @@ export function buildMechanicsParams(patient, vitals, ventSettings) {
 
   const R = Math.max(0.5, safeNumber(vitals?.res, 5));
   const peep = Math.max(0, safeNumber(ventSettings?.peep ?? vitals?.peep, 0));
-  const mode = (ventSettings?.mode || 'VCV').toLowerCase().startsWith('pcv') ? 'pcv' : 'vcv';
-  const targetVtMl = Math.max(10, safeNumber(ventSettings?.vt, 500));
-  const targetPinsp = Math.max(1, safeNumber(ventSettings?.pinsp, 15));
 
-  const rr = Math.max(1, safeNumber(vitals?.rr, 12));
+  const rr = safeNumber(vitals?.rr, 12);
+  const rawMode = (ventSettings?.mode || 'spontaneous').toLowerCase();
+
+  const isMechanicalControl = rawMode === 'pcv-vg' || rawMode === 'pcv' || rawMode === 'vcv';
+  const isApneic = rr < 1 || ((!!patient?.isApneic || !!patient?.isParalyzed) && !isMechanicalControl);
+
+  let mode = 'vcv';
+  if (isApneic) {
+    mode = 'apneic';
+  } else if (rawMode === 'spontaneous') {
+    mode = 'spontaneous';
+  } else if (rawMode === 'psv') {
+    mode = 'pcv';
+  } else if (rawMode.startsWith('pcv')) {
+    mode = 'pcv';
+  } else {
+    mode = 'vcv';
+  }
+
+  const actualVte = safeNumber(vitals?.vte, 0);
+  const targetVtMl = mode === 'spontaneous'
+    ? (actualVte > 10 ? actualVte : (patient?.ibw || 70) * 7)
+    : Math.max(10, safeNumber(ventSettings?.vt, 500));
+
+  let targetPinsp = 15;
+  if (rawMode === 'psv') {
+    targetPinsp = Math.max(1, safeNumber(ventSettings?.ps, 10));
+  } else if (rawMode === 'pcv-vg') {
+    targetPinsp = Math.max(1, targetVtMl / compliance);
+  } else {
+    targetPinsp = Math.max(1, safeNumber(ventSettings?.pinsp, 15));
+  }
+
   const ieRatio = Math.max(0.1, safeNumber(ventSettings?.ieRatio, 2));
-  const totalCycleSec = 60 / rr;
+  const totalCycleSec = rr > 0 ? 60 / rr : 4.0;
   const inspTimeSec = totalCycleSec * (1 / (1 + ieRatio));
   const expTimeSec = Math.max(0.1, totalCycleSec - inspTimeSec);
 
-  return { mode, R, complianceCurve, frc, peep, targetVtMl, targetPinsp, inspTimeSec, expTimeSec };
+  const fev1FvcRatio = safeNumber(lungVolumes?.fev1FvcRatio, 80);
+  const isObstructiveByRatio = fev1FvcRatio < 75 || patient?.copd || patient?.bronchospasm ||
+    (typeof patient?.pulmonaryComorbidity === 'string' && patient.pulmonaryComorbidity.toLowerCase().includes('copd'));
+  const obstructionSeverity = isObstructiveByRatio ? Math.max(0, Math.min(1, (R / 5 - 1) / 6)) : 0;
+
+  return { mode, R, complianceCurve, frc, peep, targetVtMl, targetPinsp, inspTimeSec, expTimeSec, obstructionSeverity };
 }
 
 const PRESSURE_CEILING_CMH2O = 60;

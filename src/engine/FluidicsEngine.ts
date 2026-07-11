@@ -85,7 +85,7 @@ export class FluidicsEngine {
     // Defensively handle missing state container
     const safeSt = st || {};
     const patient = safeSt.patient || {};
-    const electrolytes = safeSt.electrolytes || { k: 4.0, na: 140, cl: 100, ca: 2.2, ph: 7.40, buf: 0 };
+    const electrolytes = safeSt.electrolytes || { k: 4.0, na: 140, cl: 103, ca: 2.2, ph: 7.40, buf: 0 };
     const coags = safeSt.coags || { r_offset: 0, ma_offset: 0, angle_offset: 0 };
     const vitals = safeSt.vitals || { temp: 37.0 };
     

@@ -10,16 +10,16 @@ describe('Chapter 20: Inhaled Anesthetic Uptake, Distribution, Metabolism, and T
       expect(INHALATIONAL_AGENTS.sevoflurane.bgPartition).toBeCloseTo(0.65, 2);
       expect(INHALATIONAL_AGENTS.sevoflurane.oilGasPartition).toBeCloseTo(47, 1);
 
-      expect(INHALATIONAL_AGENTS.methoxyflurane.mac40).toBeCloseTo(0.2, 2);
+      expect(INHALATIONAL_AGENTS.methoxyflurane.mac40).toBeCloseTo(0.16, 2);
       expect(INHALATIONAL_AGENTS.methoxyflurane.bgPartition).toBeCloseTo(12.0, 1);
       expect(INHALATIONAL_AGENTS.methoxyflurane.oilGasPartition).toBeCloseTo(950, 1);
 
-      expect(INHALATIONAL_AGENTS.isoflurane.mac40).toBeCloseTo(1.28, 2);
+      expect(INHALATIONAL_AGENTS.isoflurane.mac40).toBeCloseTo(1.15, 2);
       expect(INHALATIONAL_AGENTS.isoflurane.bgPartition).toBeCloseTo(1.4, 2);
       expect(INHALATIONAL_AGENTS.isoflurane.oilGasPartition).toBeCloseTo(90.8, 1);
 
       expect(INHALATIONAL_AGENTS.halothane.mac40).toBeCloseTo(0.75, 2);
-      expect(INHALATIONAL_AGENTS.halothane.bgPartition).toBeCloseTo(2.5, 2);
+      expect(INHALATIONAL_AGENTS.halothane.bgPartition).toBeCloseTo(2.3, 2);
       expect(INHALATIONAL_AGENTS.halothane.oilGasPartition).toBeCloseTo(197, 1);
 
       expect(INHALATIONAL_AGENTS.desflurane.mac40).toBeCloseTo(6.0, 2);

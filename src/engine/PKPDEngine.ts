@@ -286,7 +286,8 @@ export class PKPDModel {
     lCysteineCe: number = 0.0,
     adiposeVolumeRatio: number = 1.0,  // Phase 5, Stage 6: BMI-scaled peripheral compartment
     cyp2d6Multiplier: number = 1.0,   // Phase 6C: CYP2D6 polymorphism effect on clearance
-    cyp2c9c19Multiplier: number = 1.0 // Phase 6C: CYP2C9/2C19 polymorphism effect on clearance
+    cyp2c9c19Multiplier: number = 1.0, // Phase 6C: CYP2C9/2C19 polymorphism effect on clearance
+    cyp3a4Multiplier: number = 1.0    // Phase 6H: CYP3A4 DDI (fluconazole/rifampin) for fentanyl/midazolam
   ): PKPDEffects {
     // Validate inputs
     let safeDt = Number(dt);
@@ -366,10 +367,14 @@ export class PKPDModel {
     // Phase 6C: Pharmacogenomics CYP multipliers on clearance (k10Raw modified by genotype)
     const safeCyp2d6 = typeof cyp2d6Multiplier === 'number' && Number.isFinite(cyp2d6Multiplier) ? Math.max(0.01, cyp2d6Multiplier) : 1.0;
     const safeCyp2c9c19 = typeof cyp2c9c19Multiplier === 'number' && Number.isFinite(cyp2c9c19Multiplier) ? Math.max(0.01, cyp2c9c19Multiplier) : 1.0;
+    const safeCyp3a4 = typeof cyp3a4Multiplier === 'number' && Number.isFinite(cyp3a4Multiplier) ? Math.max(0.01, cyp3a4Multiplier) : 1.0;
     const CYP2D6_DRUGS = new Set(['Codeine', 'Tramadol', 'Oxycodone', 'Ondansetron', 'Morphine']);
     const CYP2C9C19_DRUGS = new Set(['Warfarin', 'Clopidogrel', 'Pantoprazole', 'Omeprazole']);
+    // CYP3A4 substrates: major opioids and benzodiazepines. Fluconazole reduces their clearance dramatically.
+    const CYP3A4_DRUGS = new Set(['Fentanyl', 'Alfentanil', 'Sufentanil', 'Remifentanil', 'Midazolam', 'Diazepam', 'Ketamine']);
     if (CYP2D6_DRUGS.has(this.name)) k10Raw *= safeCyp2d6;
     if (CYP2C9C19_DRUGS.has(this.name)) k10Raw *= safeCyp2c9c19;
+    if (CYP3A4_DRUGS.has(this.name)) k10Raw *= safeCyp3a4;
 
     // Configuration-driven organ impairment clearance calculations
     const renalFrac = this.pk.renalFraction !== undefined ? this.pk.renalFraction : 0.0;
@@ -606,6 +611,22 @@ export class PKPDModel {
       effects.hrDelta += coupling.hrDeltaContribution;
       effects.alpha1Activity = (effects.alpha1Activity || 0) + coupling.alpha1Activity;
       effects.beta2Activity = (effects.beta2Activity || 0) + coupling.beta2Activity;
+
+      // Pure-alpha or pure-V1 vasopressors (no Beta-1) have their baroreceptor reflex
+      // bradycardia carried in pd.hrMax but the `!this.pd.receptors` gate above blocks it.
+      // Apply it here for drugs with Alpha1 or V1 activity and zero Beta1 — these are
+      // phenylephrine (hrMax=-35) and vasopressin (hrMax=-5). The receptor coupling's own
+      // small baroreceptor term is already in coupling.hrDeltaContribution; hrMax replaces
+      // that with the clinically correct magnitude, so subtract the double-counted term.
+      const r = this.pd.receptors as { Alpha1?: number; Beta1?: number; V1?: number };
+      const isPurePressorNoInotrope = ((r.Alpha1 ?? 0) > 0 || (r.V1 ?? 0) > 0) && !(r.Beta1);
+      if (isPurePressorNoInotrope && this.pd.hrMax) {
+        // Remove the small receptor-coupling baroreceptor term (which was alpha1*5*fraction or v1*5*fraction)
+        // and replace with the calibrated hrMax value.
+        const smallTerm = -((r.Alpha1 ?? 0) + (r.V1 ?? 0)) * 5 * fraction;
+        effects.hrDelta -= smallTerm;               // undo the small coupling term
+        effects.hrDelta += this.pd.hrMax * fraction; // apply the calibrated reflex magnitude
+      }
     }
 
     // Clinical Hypnosis

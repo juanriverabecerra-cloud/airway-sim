@@ -89,7 +89,7 @@ describe("Chapter 23: Intravenous Anesthetics - Esketamine (S(+)-Ketamine)", () 
     });
 
     it('should not affect xenon/sevoflurane/other INHALATIONAL_AGENTS data (no unintended cross-contamination from this change)', () => {
-      expect(INHALATIONAL_AGENTS.xenon.mac40).toBe(71);
+      expect(INHALATIONAL_AGENTS.xenon.mac40).toBe(63);
       expect(INHALATIONAL_AGENTS.sevoflurane.mac40).toBeCloseTo(2.05, 2);
     });
   });

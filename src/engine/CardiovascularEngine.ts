@@ -141,6 +141,8 @@ export class CardiovascularEngine {
       currentHb?: number;
       vasopressinLevel?: number;
       angiotensinIILevel?: number;
+      lastCvSeverity?: number;
+      lastCvToxicityActive?: boolean;
     }
   ): ResuscitationOutput {
     const events: string[] = [];
@@ -190,7 +192,7 @@ export class CardiovascularEngine {
     let safeHrSympatheticSpike = typeof drugEffects.hrSympatheticSpike === 'number' && Number.isFinite(drugEffects.hrSympatheticSpike) ? drugEffects.hrSympatheticSpike : 0;
     
     // Calculate LAST Cardiotoxicity (tCv) and Cocaine NET Blockade Sympathetic Surge
-    let tCv = 0;
+    let tCv = typeof inputs.lastCvSeverity === 'number' && Number.isFinite(inputs.lastCvSeverity) ? inputs.lastCvSeverity * 1.3 : 0.0;
     let cocaineHrSpike = 0;
     let cocaineSvrSpike = 0;
     let cocaineContractilitySpike = 0;
@@ -200,6 +202,14 @@ export class CardiovascularEngine {
     const ageFactor = (age < 1) ? 0.5 : 1.0;
     const acidosisFactor = Math.max(0.5, 1.0 - Math.max(0, 7.4 - currentPh) * 0.5);
 
+    // Acidemia blunting: pH < 7.2 blunts cardiac inotropy/contractility and SVR vasoconstrictive response.
+    // In severe acidosis (e.g. pH 6.8), adrenergic receptors are protonated and desensitized.
+    const acidosisSvrBlunting = Math.max(0.4, 1.0 - Math.max(0, 7.2 - currentPh) * 1.5);
+    const acidosisInotropyBlunting = Math.max(0.3, 1.0 - Math.max(0, 7.2 - currentPh) * 1.8);
+
+    safeSvrSympatheticSpike *= acidosisSvrBlunting;
+    safeContractilitySympatheticSpike *= acidosisInotropyBlunting;
+
     const lipidSinkVol = (patient as any).lipidSinkVol || 0;
     const safeEbvVal = typeof patient.ebv === 'number' && Number.isFinite(patient.ebv) && patient.ebv > 0 ? patient.ebv : 5000;
     const vLipid = lipidSinkVol / safeEbvVal;
@@ -208,69 +218,23 @@ export class CardiovascularEngine {
       inputs.activeMeds.forEach(m => {
         const med = m as any;
         const ce = med.Ce || 0;
-        let thresholdCns = 0;
-        let ccCnsRatio = 7.0;
-        let pb = 0;
-        let kLipid = 15.0;
 
-        if (med.name === 'Lidocaine') {
-          thresholdCns = 1.5;
-          ccCnsRatio = 7.0;
-          pb = 0.70;
-          kLipid = 15.0;
-        } else if (med.name === 'Bupivacaine') {
-          thresholdCns = 0.3;
-          ccCnsRatio = 2.0;
-          pb = 0.95;
-          kLipid = 120.0;
-        } else if (med.name === 'Ropivacaine') {
-          thresholdCns = 0.6;
-          ccCnsRatio = 4.0;
-          pb = 0.94;
-          kLipid = 60.0;
-        } else if (med.name === 'Levobupivacaine') {
-          thresholdCns = 0.6;
-          ccCnsRatio = 3.3;
-          pb = 0.97;
-          kLipid = 120.0;
-        } else if (med.name === 'Cocaine') {
-          thresholdCns = 0.5;
-          ccCnsRatio = 3.0;
-          pb = 0.90;
-          kLipid = 30.0;
+        if (med.name === 'Cocaine') {
+          const thresholdCns = 0.5;
+          const ccCnsRatio = 3.0;
+          const pb = 0.90;
+          const kLipid = 30.0;
           if (ce > 0.01) {
             const sens = ce / (ce + 0.1);
             cocaineHrSpike = 35.0 * sens;
             cocaineSvrSpike = 400.0 * sens;
             cocaineContractilitySpike = 0.5 * sens;
-          }
-        } else if (med.name === 'Tetracaine') {
-          thresholdCns = 0.24;
-          ccCnsRatio = 2.5;
-          pb = 0.76;
-          kLipid = 80.0;
-        } else if (med.name === 'Chloroprocaine') {
-          thresholdCns = 10.0;
-          ccCnsRatio = 12.0;
-          pb = 0.0;
-          kLipid = 0.5;
-        } else if (med.name === 'Benzocaine') {
-          thresholdCns = 2.0;
-          ccCnsRatio = 8.0;
-          pb = 0.0;
-          kLipid = 1.0;
-        } else if (med.name === 'Prilocaine') {
-          thresholdCns = 2.0;
-          ccCnsRatio = 8.0;
-          pb = 0.55;
-          kLipid = 10.0;
-        }
 
-        if (thresholdCns > 0 && ce > 0) {
-          const freeFraction = 1.0 - pb * acidosisFactor * ageFactor;
-          const fLipidBound = (kLipid * vLipid) / (1.0 + kLipid * vLipid);
-          const ceFree = ce * freeFraction * (1.0 - fLipidBound);
-          tCv += ceFree / (thresholdCns * ccCnsRatio);
+            const freeFraction = 1.0 - pb * acidosisFactor * ageFactor;
+            const fLipidBound = (kLipid * vLipid) / (1.0 + kLipid * vLipid);
+            const ceFree = ce * freeFraction * (1.0 - fLipidBound);
+            tCv += ceFree / (thresholdCns * ccCnsRatio);
+          }
         }
       });
     }
@@ -297,7 +261,7 @@ export class CardiovascularEngine {
     const baseDBP_set = patient.patientBaseDBP || 80;
     const MAP_set = baseDBP_set + (baseSBP_set - baseDBP_set) / 3.0;
     const errorBaro = safeMap - MAP_set;
-    let autonomicHrMod = Math.max(-25, Math.min(30, -0.5 * errorBaro * baroreflexGain));
+    let autonomicHrMod = Math.max(-25, Math.min(30, -1.2 * errorBaro * baroreflexGain));
 
     if (autonomicHrMod < 0 && totalHrDelta > 15) {
       autonomicHrMod = 0; // Vagal tone blocked by antimuscarinics (Atropine/Glycopyrrolate)
@@ -370,12 +334,24 @@ export class CardiovascularEngine {
     const rawThirdSpacedVolumeMl = (patient as any).thirdSpacedVolumeMl;
     const thirdSpacedVolumeMl = typeof rawThirdSpacedVolumeMl === 'number' && Number.isFinite(rawThirdSpacedVolumeMl) ? Math.max(0, rawThirdSpacedVolumeMl) : 0;
     const effectiveIntravascularVolume = Math.max(100, safeEbv - safeCurrentEbl + safePreloadMod + volumeOffset - thirdSpacedVolumeMl);
+    // Thyroid status influences baseline inotropy and vascular tone (Phase 2, Graves' disease/storm)
+    const thyroidFunctionIndex = typeof patient.thyroidFunctionIndex === 'number' && Number.isFinite(patient.thyroidFunctionIndex) ? patient.thyroidFunctionIndex : 1.0;
+    const thyroidStormActive = !!patient.thyroidStormActive;
+
+    let thyroidInotropyMod = 1.0;
+    if (thyroidFunctionIndex > 1.0) {
+      thyroidInotropyMod += 0.35 * (thyroidFunctionIndex - 1.0);
+    }
+    if (thyroidStormActive) {
+      thyroidInotropyMod += 0.85; // hyperdynamic storm contractility boost
+    }
+
     let newStunning = typeof patient.myocardialStunning === 'number' && Number.isFinite(patient.myocardialStunning) ? patient.myocardialStunning : 0;
     let lastInotropyScale = 1.0;
     if (tCv >= 0.5) {
       lastInotropyScale = Math.max(0.05, 1.0 - 0.7 * (tCv - 0.5));
     }
-    const inotropyInitial = Math.max(0.01, (1.0 - (newStunning / 100) + safeContractilitySympatheticSpike + (safeDrugInotropyMod - 1.0)) * lastInotropyScale);
+    const inotropyInitial = Math.max(0.01, (1.0 - (newStunning / 100) + safeContractilitySympatheticSpike + (safeDrugInotropyMod - 1.0)) * lastInotropyScale * thyroidInotropyMod);
 
     // Severe Aortic Stenosis (Fig 14.4, Miller's 9th Ed): the fixed outflow obstruction drives
     // compensatory concentric LV hypertrophy via Laplace's law (wall stress = P*R/(2*wall thickness)) —
@@ -408,7 +384,8 @@ export class CardiovascularEngine {
     // the prior magnitude pushed MAP into the 140s+ at max AVP/AngII, triggering a
     // baroreflex overcorrection that dropped HR below baseline instead of raising it.
     const neurohormonalPreloadBoost = 1.0 + 0.08 * Math.max(0, safeVasopressinLevel - 0.1) + 0.06 * Math.max(0, safeAngiotensinIILevel - 0.1);
-    const totalBloodVolumeForCycle = Math.max(250, effectiveIntravascularVolume * neurohormonalPreloadBoost);
+    const volumeScaleFactor = 5000 / safeEbv;
+    const totalBloodVolumeForCycle = Math.max(250, effectiveIntravascularVolume * neurohormonalPreloadBoost * volumeScaleFactor);
     const lvedpVal = simulateFourChamberCycle({
       hr: safeHR,
       inotropy: inotropyInitial,
@@ -443,20 +420,24 @@ export class CardiovascularEngine {
     const safeRuleSpo2Offset = typeof drugEffects.ruleSpo2Offset === 'number' && Number.isFinite(drugEffects.ruleSpo2Offset) ? drugEffects.ruleSpo2Offset : 0;
     const newSpo2 = Math.max(0, Math.min(100, safeCurrentSpo2 + safeRuleSpo2Offset));
     const caO2Val = safeCurrentHb * 1.34 * (newSpo2 / 100) + safePaO2 * 0.0031;
-    const coronaryStenosisModVal = (patient.cad || patient.hasCAD) ? 0.40 : 1.0;
-    const supplyVal = cppCoronaryVal * diastoleTimeRatioVal * caO2Val * coronaryStenosisModVal * 8.5;
+    // CAD mod: 0.40 was too aggressive — at rest, stable CAD patients are NOT in cardiogenic
+    // shock. 0.40 gave supply/demand = 0.27 at rest, causing immediate ischemia.
+    // 0.65 represents significant-but-compensated CAD (50-70% stenosis with preserved
+    // resting flow). Ischemia only fires during stress (tachycardia, hypotension, anemia).
+    const coronaryStenosisModVal = (patient.cad || patient.hasCAD) ? 0.65 : 1.0;
+    // Supply multiplier 12.0→18.0 to give realistic coronary reserve at rest for healthy hearts
+    // and align CAD ischemia onset with clinical RPP thresholds (~14,000).
+    const supplyVal = cppCoronaryVal * diastoleTimeRatioVal * caO2Val * coronaryStenosisModVal * 18.0;
 
-    // Ischemia & Stunning Loop
-    // Anesthetic-Induced Ischemic Preconditioning (Ch19, Miller's 9th Ed: "Anesthetic-induced and
-    // ischemic cardiac preconditioning share critical signaling mechanisms...particularly
-    // sarcolemmal and/or mitochondrial KATP channels"). Volatile anesthetics activate these same
-    // KATP-channel pathways, blunting stunning accumulation during myocardial ischemia. The source
-    // gives no specific magnitude, so a conservative illustrative 30% reduction at >=1 MAC is used
-    // (class-average fallback convention), consistent with isoflurane's existing "cardioprotective
-    // (ischemic preconditioning)" description in Pharmacology.js.
+    // Ischemia & Stunning Loop — with 25% demand-excess safety margin before ischemia fires.
+    // In physiology, coronary autoregulation and metabolic vasodilation maintain adequate
+    // supply across a range of demands. Only when demand exceeds supply by >25% (beyond
+    // the coronary reserve) does true supply-demand ischemia begin.
+    // Anesthetic-Induced Ischemic Preconditioning (Ch19, Miller's 9th Ed).
     const anestheticPreconditioning = Math.min(0.3, 0.3 * safeCurrentMac);
     let stunningIncrease = 0;
-    const isCurrentlyIschemic = (supplyVal < mvo2Val) && !isArrestState;
+    // isCurrentlyIschemic: fires only when demand exceeds supply by >25% (exhausted reserve).
+    const isCurrentlyIschemic = (supplyVal * 1.25 < mvo2Val) && !isArrestState;
     if (isCurrentlyIschemic) {
       stunningIncrease = Math.round((mvo2Val - supplyVal) * 0.0000381 * (1.0 - anestheticPreconditioning) * 10) / 10;
       newStunning = Math.min(60, Math.max(0, newStunning + stunningIncrease));
@@ -534,7 +515,7 @@ export class CardiovascularEngine {
       events.push(`✅ MYOCARDIAL ISCHEMIA RESOLVED: Coronary perfusion supply now meets myocardial metabolic demand. Myocardial stunning has stabilized and is recovering.`);
     }
 
-    const inotropyFinal = Math.max(0.01, (1.0 - (newStunning / 100) + safeContractilitySympatheticSpike + (safeDrugInotropyMod - 1.0)) * lastInotropyScale);
+    const inotropyFinal = Math.max(0.01, (1.0 - (newStunning / 100) + safeContractilitySympatheticSpike + (safeDrugInotropyMod - 1.0)) * lastInotropyScale * thyroidInotropyMod) * acidosisInotropyBlunting;
 
     // Neurohormonal cardiac support (TABLE 14.1, Miller's 9th Ed): vasopressin and angiotensin II
     // exert direct +inotropy/+chronotropy via V1a/AT1 myocardial receptors. Both rise above their
@@ -600,8 +581,10 @@ export class CardiovascularEngine {
     (patient as any).prInterval = prInterval;
     (patient as any).qrsDuration = qrsDuration;
 
-    // Cushing's reflex bradycardia (Table 11.1, Fig. 11.3, Miller's 9th Ed)
-    if (patient.icp && patient.cpp && patient.icp > 20.0 && patient.cpp < 50.0) {
+    // Cushing's reflex bradycardia (Table 11.1, Fig. 11.3, Miller's 9th Ed).
+    // Trigger CPP < 40 (corrected from 50): full triad requires profound brainstem hypoperfusion.
+    // CPP 40-50 is the "watershed" zone — Cushing may start but the SVR surge below handles it.
+    if (patient.icp && patient.cpp && patient.icp > 20.0 && patient.cpp < 40.0) {
       targetHR = Math.max(35, Math.min(targetHR, 35 + Math.max(0, patient.cpp) * 0.2));
     }
 
@@ -623,7 +606,16 @@ export class CardiovascularEngine {
     // flat value so existing cases behave identically at maximum untreated severity.
     const safeSepsisScore = typeof (patient as any).sepsisScore === 'number' && Number.isFinite((patient as any).sepsisScore) ? (patient as any).sepsisScore : (patient.isSeptic ? 3 : 0);
     const sepsisVasoplegiaMod = patient.isSeptic ? (1 - 0.40 * safeSepsisScore / 3) : 1.0;
-    let targetSVR = (baseSVR * safeDrugSvrMod * sepsisVasoplegiaMod * safeAnaphylaxisSvrMod * (bjActive ? 0.75 : 1.0) * (1.0 - 0.15 * sympatheticBlock)) + safeSvrSympatheticSpike;
+    let thyroidSvrMod = 1.0;
+    if (thyroidFunctionIndex > 1.0) {
+      thyroidSvrMod -= 0.15 * (thyroidFunctionIndex - 1.0); // direct thyroid-driven vasodilation
+    }
+    if (thyroidStormActive) {
+      thyroidSvrMod -= 0.20; // severe hyperdynamic vasodilation
+    }
+    thyroidSvrMod = Math.max(0.4, thyroidSvrMod);
+
+    let targetSVR = ((baseSVR * safeDrugSvrMod * thyroidSvrMod * sepsisVasoplegiaMod * safeAnaphylaxisSvrMod * (bjActive ? 0.75 : 1.0) * (1.0 - 0.15 * sympatheticBlock)) + safeSvrSympatheticSpike) * acidosisSvrBlunting;
 
     if (patient.ziconotideHypotensionActive) {
       const pos = patient.position || 'Supine';
@@ -636,8 +628,8 @@ export class CardiovascularEngine {
     }
 
     // Cushing's reflex SVR surge (Miller 9th Ed Ch 11)
-    if (patient.icp && patient.cpp && patient.icp > 20.0 && patient.cpp < 50.0) {
-      const cushingSvrMultiplier = 1.0 + 1.5 * (1.0 - Math.max(0, patient.cpp) / 50.0);
+    if (patient.icp && patient.cpp && patient.icp > 20.0 && patient.cpp < 40.0) {
+      const cushingSvrMultiplier = 1.0 + 1.5 * (1.0 - Math.max(0, patient.cpp) / 40.0);
       targetSVR *= cushingSvrMultiplier;
     }
 
@@ -846,16 +838,35 @@ export class CardiovascularEngine {
       }
     }
 
-    // Ischemic Damage Accumulation
+    // Ischemic Damage Accumulation — two physiologically distinct components:
+    //
+    // 1. Cerebral ischemia (fast): cerebral autoregulation maintains flow to cmap≈50 mmHg.
+    //    Below ~40 mmHg (where autoregulation fails), rapid neuronal injury begins.
+    //    Prior threshold of 55 mmHg caused: sitting/beach-chair patients (cmap = MAP−29.6)
+    //    with a normal MAP of 84 to accumulate damage — any induction hypotension in upright
+    //    positions triggered unrecoverable death spirals within minutes.
+    //
+    // 2. Systemic organ ischemia (slow): sustained MAP<55 (supine) causes gradual organ
+    //    damage (kidneys, gut, heart — all have higher perfusion thresholds than the brain).
+    //    Coefficient 0.15 (vs 0.7 for cerebral) gives time to intervene (~25 min at MAP=50).
+    //
+    // Damage rates (per second):
+    //   cmap=40 (sitting MAP=70, autoregulation failure): cerebral = 0 → 0 damage ✓
+    //   cmap=38 (sitting MAP=68): cerebral = 2×0.7 = 1.4/sec → arrest in 14 min ✓
+    //   cmap=30 (sitting MAP=60): cerebral = 10×0.7 = 7.0/sec → arrest in 2.9 min ✓
+    //   MAP=50 supine, cmap=50: cerebral=0; systemic=5×0.15=0.75/sec → arrest in 27 min ✓
+    //   MAP=40 supine, cmap=40: cerebral=0; systemic=15×0.15=2.25/sec → arrest in 9 min ✓
+    //   MAP=35 supine, cmap=35: cerebral=5×0.7=3.5; systemic=20×0.15=3.0 = 6.5/sec → 3 min ✓
     const hypoxiaSeverity = Math.max(0, 90 - newSpo2);
-    const hypoPerfusionSeverity = Math.max(0, 55 - newCmap);
+    const cerebalIschemicStress = Math.max(0, 40 - newCmap);     // autoregulation failure
+    const systemicIschemicStress = Math.max(0, 55 - newMap);     // systemic organ ischemia
 
     let newDamage = typeof patient.ischemicDamage === 'number' && Number.isFinite(patient.ischemicDamage) ? patient.ischemicDamage : 0;
     if (patient.cprActive) {
       const recoveryRate = newSpo2 >= 80 ? 4.5 : 1.0;
       newDamage = Math.max(0, newDamage - recoveryRate);
     } else {
-      newDamage += (hypoxiaSeverity * 0.4) + (hypoPerfusionSeverity * 0.7);
+      newDamage += (hypoxiaSeverity * 0.4) + (cerebalIschemicStress * 0.7) + (systemicIschemicStress * 0.15);
     }
     // Clamping to prevent infinite mathematical overflow/divergence
     newDamage = Math.max(0, Math.min(10000, newDamage));
@@ -934,7 +945,7 @@ export class CardiovascularEngine {
     patient.cardiacRhythm = currentRhythm;
     patient.ischemicDamage = newDamage;
     patient.biologicalDeath = bioDeath;
-    patient.myocardialStunning = Math.max(0, newStunning - 0.2);
+    patient.myocardialStunning = Math.max(0, newStunning - 0.005);
 
     if (isArrestState && !st.patient.isArrest) {
       patient.codeStartTime = safeTime;
@@ -1006,78 +1017,29 @@ export class CardiovascularEngine {
       const ischemicPenalty = (ischemicDamage / 5000);
 
       // Calculate LAST Cardiotoxicity (tCv) for defibrillation penalty
-      let tCv = 0;
-      const age = updated.age || 40;
-      const ageFactor = (age < 1) ? 0.5 : 1.0;
-      const acidosisFactor = 1.0; // Neutral pH assumed for defib check fallback
-
-      const lipidSinkVol = (updated as any).lipidSinkVol || 0;
-      const safeEbvVal = typeof updated.ebv === 'number' && Number.isFinite(updated.ebv) && updated.ebv > 0 ? updated.ebv : 5000;
-      const vLipid = lipidSinkVol / safeEbvVal;
-
+      let tCv = typeof inputs.lastCvSeverity === 'number' && Number.isFinite(inputs.lastCvSeverity) ? inputs.lastCvSeverity * 1.3 : 0.0;
       if (activeMeds) {
-        activeMeds.forEach(m => {
-          const med = m as any;
-          const ce = med.Ce || 0;
-          let thresholdCns = 0;
-          let ccCnsRatio = 7.0;
-          let pb = 0;
-          let kLipid = 15.0;
+        const cocaine = activeMeds.find(m => m.name === 'Cocaine');
+        if (cocaine) {
+          const ce = (cocaine as any).Ce || 0;
+          if (ce > 0.01) {
+            const thresholdCns = 0.5;
+            const ccCnsRatio = 3.0;
+            const pb = 0.90;
+            const kLipid = 30.0;
+            const age = updated.age || 40;
+            const ageFactor = (age < 1) ? 0.5 : 1.0;
+            const acidosisFactor = 1.0;
+            const lipidSinkVol = (updated as any).lipidSinkVol || 0;
+            const safeEbvVal = typeof updated.ebv === 'number' && Number.isFinite(updated.ebv) && updated.ebv > 0 ? updated.ebv : 5000;
+            const vLipid = lipidSinkVol / safeEbvVal;
 
-          if (med.name === 'Lidocaine') {
-            thresholdCns = 1.5;
-            ccCnsRatio = 7.0;
-            pb = 0.70;
-            kLipid = 15.0;
-          } else if (med.name === 'Bupivacaine') {
-            thresholdCns = 0.3;
-            ccCnsRatio = 2.0;
-            pb = 0.95;
-            kLipid = 120.0;
-          } else if (med.name === 'Ropivacaine') {
-            thresholdCns = 0.6;
-            ccCnsRatio = 4.0;
-            pb = 0.94;
-            kLipid = 60.0;
-          } else if (med.name === 'Levobupivacaine') {
-            thresholdCns = 0.6;
-            ccCnsRatio = 3.3;
-            pb = 0.97;
-            kLipid = 120.0;
-          } else if (med.name === 'Cocaine') {
-            thresholdCns = 0.5;
-            ccCnsRatio = 3.0;
-            pb = 0.90;
-            kLipid = 30.0;
-          } else if (med.name === 'Tetracaine') {
-            thresholdCns = 0.24;
-            ccCnsRatio = 2.5;
-            pb = 0.76;
-            kLipid = 80.0;
-          } else if (med.name === 'Chloroprocaine') {
-            thresholdCns = 10.0;
-            ccCnsRatio = 12.0;
-            pb = 0.0;
-            kLipid = 0.5;
-          } else if (med.name === 'Benzocaine') {
-            thresholdCns = 2.0;
-            ccCnsRatio = 8.0;
-            pb = 0.0;
-            kLipid = 1.0;
-          } else if (med.name === 'Prilocaine') {
-            thresholdCns = 2.0;
-            ccCnsRatio = 8.0;
-            pb = 0.55;
-            kLipid = 10.0;
-          }
-
-          if (thresholdCns > 0 && ce > 0) {
             const freeFraction = 1.0 - pb * acidosisFactor * ageFactor;
             const fLipidBound = (kLipid * vLipid) / (1.0 + kLipid * vLipid);
             const ceFree = ce * freeFraction * (1.0 - fLipidBound);
             tCv += ceFree / (thresholdCns * ccCnsRatio);
           }
-        });
+        }
       }
 
       const lastPenalty = Math.min(0.9, 0.7 * tCv);

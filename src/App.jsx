@@ -3,7 +3,11 @@ import './App.css';
 import { usePhysiology } from './engine/usePhysiology';
 import { calculatePacuReadiness } from './engine/OutcomeScoringEngine.ts';
 import { ProceduralEngine } from './engine/ProceduralEngine';
-import { Search, Activity } from 'lucide-react';
+import { Search, Activity, FastForward, FlaskConical as FlaskDna, HelpCircle, Award } from 'lucide-react';
+import { ReceptorBodyPanel } from './components/ReceptorBodyPanel';
+import { VitalContextPanel } from './components/VitalContextPanel';
+import { EEGContextPanel } from './components/EEGContextPanel';
+import { WaveformContextPanel } from './components/WaveformContextPanel';
 import { CaseManager } from './components/controls/CaseManager';
 import { AetherisLogo } from './components/AetherisLogo';
 
@@ -16,10 +20,13 @@ import { Pharmacopoeia } from './components/controls/Pharmacopoeia';
 import { AirwayPanel } from './components/controls/AirwayPanel';
 import { LogPanel } from './components/controls/LogPanel';
 import { LinesResusPanel } from './components/controls/LinesResusPanel';
+import { RenalPanel } from './components/monitors/RenalPanel';
 import { MemoryPanel } from './components/controls/MemoryPanel';
 import { AccessModal, PocusModal, SetupModal, TubeConfirmModal, AirwayQuizModal, ViewModal, PreopModal, MsmaidsModal, PostIntubationModal, ExtubationModal } from './components/modals/Modals';
 import { PreOpEMR } from './components/modals/PreOpEMR';
 import { EkgModal } from './components/modals/EkgModal';
+import { DrugConsultModal } from './components/modals/DrugConsultModal';
+import * as SoundManager from './engine/SoundManager';
 
 // Attending Engine & Panel
 import { evaluateAttendingGuidance } from './engine/AttendingEngine';
@@ -40,6 +47,7 @@ const CASES = [
     id: 'normal', name: 'Elective Surgery (Perfect Baseline)', difficulty: 'Easy',
     description: '45yo Female, ASA 1. Fasting for 12 hours. Normal neck anatomy, Mallampati I. Perfectly stable hemodynamics. Patient takes garlic and fish oil daily, and valerian for sleep.',
     baseVitals: { hr: 72, sys: 120, dia: 80, spo2: 99, etco2: 0, rr: 12 },
+    preOpBriefing: '45yo Female ASA I for elective laparoscopic cholecystectomy. No significant cardiac history. Airway exam: Mallampati I, thyromental distance > 6cm, full range of neck motion. Fasting guidelines strictly met.',
     patient: { age: 45, sex: 'female', weight: 60, height: 165, ibw: 56, bmi: 22.0, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: false, isObese: false, baseGrade: 1, isSeptic: false, hasCCollar: false, stomach: 'empty', limitedMouth: false, trauma: false, chronicBetaBlockade: true, herbalSupplements: ['garlic', 'valerian'], dietarySupplements: ['fishOil'] }
   },
   {
@@ -65,6 +73,184 @@ const CASES = [
     description: '38yo Obese Male (BMI 36.3) scheduled for a 7-hour lumbar spine fusion in the Prone position. High risk of visceral IVC compression and perioperative visual loss (POVL).',
     baseVitals: { hr: 75, sys: 130, dia: 85, spo2: 97, etco2: 0, rr: 14 },
     patient: { age: 38, sex: 'male', weight: 110, height: 174, ibw: 69, bmi: 36.3, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: false, isObese: true, baseGrade: 2, isSeptic: false, hasCCollar: false, stomach: 'empty', limitedMouth: false, trauma: false, position: 'Prone', procedure: 'Lumbar Spine Fusion' }
+  },
+  {
+    id: 'tutorial_preset', name: 'Interactive Tutorial Case', difficulty: 'Easy',
+    description: 'A guided onboarding case designed to teach you the basic controls of the Aetheris platform, including EMR review, MSMAIDS checklist, induction, and airway management.',
+    baseVitals: { hr: 72, sys: 120, dia: 80, spo2: 99, etco2: 0, rr: 12 },
+    preOpBriefing: 'Guided Tutorial Case. 45yo Female, ASA I. Fasting guidelines strictly met. High-fidelity clinical controls active.',
+    patient: { age: 45, sex: 'female', weight: 60, height: 165, ibw: 56, bmi: 22.0, oxygenBuffer: 21, targetBuffer: 21, airwayBlood: false, isObese: false, baseGrade: 1, isSeptic: false, hasCCollar: false, stomach: 'empty', limitedMouth: false, trauma: false, osa: true }
+  }
+];
+
+const TUTORIAL_STEPS = [
+  {
+    title: "Welcome to Aetheris! 🎓",
+    text: "Welcome! Aetheris is an advanced clinical simulation platform. Let's start with a tour of the dashboard.\n\nThe vital boxes on the primary monitor are fully interactive. Let's click on the green **Heart Rate (HR)** vital box to view clinical guidelines and explore its parameters.",
+    selector: '[data-tutorial="vital-hr"]',
+    position: 'bottom'
+  },
+  {
+    title: "Interactive Vital Cards 🩺",
+    text: "Clicking a vital box displays detailed educational guides, physiology contexts, and control links.\n\nRead the HR guide, then click **Got It** (or the 'X' button inside the guide) to continue.",
+    selector: '[data-tutorial="vital-hr"]',
+    position: 'bottom'
+  },
+  {
+    title: "Primary Waveforms 📈",
+    text: "Clicking on any continuous waveform strip shows its clinical vectors and morphology taxonomy.\n\nClick the green **ECG Lead II** waveform strip to examine the EKG morphology guide.",
+    selector: '[data-tutorial="waveform-ecg"]',
+    position: 'bottom'
+  },
+  {
+    title: "Bottom Gas Controls 💨",
+    text: "At the very bottom of the screen is the fresh gas flow block (O2, Air, N2O) and the inhalational anesthetic dial (Sevoflurane/Desflurane).\n\nUse this panel to adjust patient oxygenation and volatile dial percentages. Click **Got It** to continue.",
+    selector: '[data-tutorial="bottom-bar-panel"]',
+    position: 'top'
+  },
+  {
+    title: "Top Control Bar: Receptors 🧬",
+    text: "Real-time drug receptor interactions are fully modeled. Click the cyan **RECEPTORS** button in the top bar to inspect biophysical site occupancies (GABA-A, Mu, etc.) in a premium visual interface.",
+    selector: '[data-tutorial="receptor-btn"]',
+    position: 'bottom'
+  },
+  {
+    title: "Top Bar: Time Skip & Labs ⏳",
+    text: "You can fast-forward time to simulate drug kinetics or order labs.\n\nExpand the **TIME SKIP** dropdown, or click **LIVE LABS** to examine panels like TEG, ABG, and CBC. Click **Got It** to continue.",
+    selector: '[data-tutorial="timeskip-btn"]',
+    position: 'bottom'
+  },
+  {
+    title: "Pre-Op EMR Evaluation 📋",
+    text: "Let's begin the case! Click the green **Pre-Op EMR** button in the top-right header to review the patient's chart, surgical details, and risk staging.",
+    selector: '[data-tutorial="emr-btn"]',
+    position: 'bottom-left'
+  },
+  {
+    title: "Reviewing the EMR 📋",
+    text: "Review the patient's history and Mallampati airway class. Click the close button 'X' or 'Close' in the EMR modal to return to the board.",
+    selector: '[data-tutorial="emr-close"]',
+    position: 'center'
+  },
+  {
+    title: "The MSMAIDS Safety Check 🛠️",
+    text: "Before inducing anesthesia, check the equipment. Expand 'Checklists & Maneuvers' in the Airway Panel on the left, then click the '🛠️ MSMAIDS CHECK' button.",
+    selector: '[data-tutorial="msmaids-btn"]',
+    position: 'right'
+  },
+  {
+    title: "Complete Safety Verification ✅",
+    text: "Click 'Select All' to verify machine, suction, monitors, and drugs, then click the close button 'X' to authorize induction.",
+    selector: '[data-tutorial="msmaids-close"]',
+    position: 'right'
+  },
+  {
+    title: "Surgical Phase Timeline ⏱️",
+    text: "The patient is ready. Click the **Time-Out** button in the timeline at the top of the screen to open the pre-induction checklist.",
+    selector: '[data-tutorial="phase-time-out"]',
+    position: 'bottom'
+  },
+  {
+    title: "Sign-In Checklist & Time-Out 🔒",
+    text: "WHO pre-induction checklist is active. Click **Select All** to verify patient identity and setup, then click **Authorize Induction** to automatically transition to the Induction phase.",
+    selector: '[data-tutorial="timeout-authorize-btn"]',
+    position: 'right'
+  },
+  {
+    title: "Preoxygenation (FRC Denitrogenation) 💨",
+    text: "The patient is in the Induction Phase. To expand the apnea buffer, click the **💨 O2 Support** dropdown in the Airway Panel and select **Non-Rebreather Mask (NRB)**.",
+    selector: '[data-tutorial="o2-dropdown-btn"]',
+    position: 'right'
+  },
+  {
+    title: "Apply Preoxygenation 🌬️",
+    text: "Click **APPLY 100% NRB** to deliver 15 L/min flow. Look at the Pre-Ox FRC bar in the header rise to >85% denitrogenation.",
+    selector: '[data-tutorial="apply-nrb-btn"]',
+    position: 'right'
+  },
+  {
+    title: "Administer Lidocaine 💉",
+    text: "Let's push induction medications. Select **Lidocaine** from the Pharmacopoeia panel (bottom right).\n\nType **1.5** in the dose input (representing 1.5 mg/kg weight-based dose) and click **PUSH**.",
+    selector: '[data-tutorial="lidocaine-btn"]',
+    position: 'left'
+  },
+  {
+    title: "Administer Fentanyl 💉",
+    text: "Select **Fentanyl** from the Pharmacopoeia.\n\nType **1.5** in the dose input (representing 1.5 mcg/kg weight-based dose) and click **PUSH** to blunt intubation tachycardic response.",
+    selector: '[data-tutorial="fentanyl-btn"]',
+    position: 'left'
+  },
+  {
+    title: "Administer Propofol 💉",
+    text: "Select **Propofol**.\n\nNOTE: The dose input is weight-based. Type **2.0** mg/kg (instead of 150 mg, because the simulator multiplies dose by weight for weight-based drugs!) and click **PUSH**.",
+    selector: '[data-tutorial="propofol-btn"]',
+    position: 'left'
+  },
+  {
+    title: "Administer Rocuronium (Paralytic) 💉",
+    text: "Select **Rocuronium** from the Pharmacopoeia.\n\nType **0.6** mg/kg in the dose input (weight-based paralytic) and click **PUSH**.",
+    selector: '[data-tutorial="rocuronium-btn"]',
+    position: 'left'
+  },
+  {
+    title: "Airway Obstruction Management 🚨",
+    text: "The patient is asleep, causing upper airway collapse. Click the **💨 O2 Support** dropdown, select **Bag-Mask Valve (BMV)**, click **APPLY 100% BMV**, and click **✊ Perform Larson's Maneuver** to open the airway.",
+    selector: '[data-tutorial="o2-dropdown-btn"]',
+    position: 'right'
+  },
+  {
+    title: "Prepare for Intubation ⚙️",
+    text: "The patient is paralyzed and preoxygenated. Click the green **PREPARE INTUBATION EQUIPMENT** button.",
+    selector: '[data-tutorial="intubation-prepare-btn"]',
+    position: 'right'
+  },
+  {
+    title: "Select Intubation Equipment 🔧",
+    text: "In the setup screen, select Macintosh size 3, ETT size 7.5, malleable stylet, and click the cyan **Proceed to Intubate** button.",
+    selector: '[data-tutorial="proceed-intubate-btn"]',
+    position: 'center'
+  },
+  {
+    title: "Confirm Laryngeal View 👁️",
+    text: "Assess the Cormack-Lehane grade on the direct visualization screen. Click the **Grade I** button to insert the tube.",
+    selector: '[data-tutorial="correct-grade-btn"]',
+    position: 'center'
+  },
+  {
+    title: "Verify Tube Placement 🩺",
+    text: "Click 'Left Lung Field' to listen to breath sounds, verify they are bilateral, and click the close button 'X' in the top right of the stethoscope modal to complete verification.",
+    selector: '[data-tutorial="auscultate-left-btn"]',
+    position: 'center'
+  },
+  {
+    title: "Mechanical Ventilation Monitor 💨",
+    text: "The patient is intubated! Look at the new secondary monitor (Vent Monitor) on the top right, displaying PIP, Pplat, compliance, and Vte.\n\nClick anywhere on this monitor to see the detail guide, then click **Got It**.",
+    selector: '[data-tutorial="vent-monitor-panel"]',
+    position: 'left'
+  },
+  {
+    title: "Volatile Maintenance (Bottom Bar) 🌫️",
+    text: "To keep the patient asleep, turn on gas. Click the volatile select box, choose **Sevoflurane**, and click the **+** button on the vaporizer dial to set it to **2.0%**.",
+    selector: '[data-tutorial="bottom-agent-select"]',
+    position: 'top'
+  },
+  {
+    title: "Place OPA Bite Block 🧼",
+    text: "Click the **Oropharyngeal Airway (OPA)** tool on the left, select size **90mm**, and click **PLACE** to protect the tube from occlusion.",
+    selector: '[data-tutorial="opa-btn"]',
+    position: 'right'
+  },
+  {
+    title: "Yankauer Suction 🧼",
+    text: "Click the **🧼 YANKAUER** button in the Airway Panel to clear oral secretions and complete the airway management sequence.",
+    selector: '[data-tutorial="yankauer-btn"]',
+    position: 'right'
+  },
+  {
+    title: "Congratulations! 🏆",
+    text: "You have completed the Aetheris tutorial!\n\nYou successfully preoxygenated, induced with weight-based drug doses, managed obstruction with Larson's, intubated, verified, secured with a bite block, and set up mechanical ventilation. Good luck!",
+    selector: null,
+    position: 'center'
   }
 ];
 
@@ -100,6 +286,206 @@ const TEGVisualizer = React.memo(({ historyData }) => {
     </div>
   );
 });
+const normalizeMessage = (str) => {
+  return str
+    .replace(/\d+(\.\d+)?/g, '#')
+    .replace(/(rise|rising|fall|falling|drop|dropping|elevated|low|high)/gi, 'state_change')
+    .trim();
+};
+
+const TutorialPopup = ({ stepIndex, onNext, onBack, onSkip }) => {
+  const step = TUTORIAL_STEPS[stepIndex];
+  const [coords, setCoords] = useState({ top: 0, left: 0, isCenter: true });
+  const popupRef = useRef(null);
+  const [dragState, setDragState] = useState({ hasDragged: false });
+
+  // Snap back to target alignment when the step changes
+  useEffect(() => {
+    setDragState({ hasDragged: false });
+  }, [stepIndex]);
+
+  // Scroll target element into view smoothly when stepIndex changes
+  useEffect(() => {
+    if (!step || !step.selector) return;
+    
+    const timer = setTimeout(() => {
+      const targetEl = document.querySelector(step.selector);
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }, 150); // slight delay to allow panels to open/render
+    
+    return () => clearTimeout(timer);
+  }, [stepIndex, step]);
+
+  useEffect(() => {
+    if (!step || !step.selector) {
+      setCoords({ top: 0, left: 0, isCenter: true });
+      return;
+    }
+
+    const updatePosition = () => {
+      // If the user dragged the popup manually during this step, keep that position
+      if (dragState.hasDragged) return;
+
+      const targetEl = document.querySelector(step.selector);
+      if (!targetEl) {
+        setCoords({ top: 0, left: 0, isCenter: true });
+        return;
+      }
+
+      // Add highlight class
+      targetEl.classList.add('tutorial-highlight');
+
+      const rect = targetEl.getBoundingClientRect();
+      const popupRect = popupRef.current?.getBoundingClientRect() || { width: 320, height: 165 };
+      
+      let top = 0;
+      let left = 0;
+
+      // Position logic
+      if (step.position === 'right') {
+        top = rect.top + rect.height / 2 - popupRect.height / 2;
+        left = rect.right + 15;
+      } else if (step.position === 'left') {
+        top = rect.top + rect.height / 2 - popupRect.height / 2;
+        left = rect.left - popupRect.width - 15;
+      } else if (step.position === 'bottom') {
+        top = rect.bottom + 15;
+        left = rect.left + rect.width / 2 - popupRect.width / 2;
+      } else if (step.position === 'bottom-left') {
+        top = rect.bottom + 10;
+        left = rect.left;
+      } else if (step.position === 'top') {
+        top = rect.top - popupRect.height - 15;
+        left = rect.left + rect.width / 2 - popupRect.width / 2;
+      } else {
+        setCoords({ top: 0, left: 0, isCenter: true });
+        return;
+      }
+
+      // Constrain inside viewport
+      const padding = 15;
+      left = Math.max(padding, Math.min(window.innerWidth - popupRect.width - padding, left));
+      top = Math.max(padding, Math.min(window.innerHeight - popupRect.height - padding, top));
+
+      setCoords({ top, left, isCenter: false });
+    };
+
+    updatePosition();
+    const interval = setInterval(updatePosition, 300);
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition);
+      document.querySelectorAll('.tutorial-highlight').forEach(el => {
+        el.classList.remove('tutorial-highlight');
+      });
+    };
+  }, [stepIndex, step, dragState.hasDragged]);
+
+  // Dragging logic
+  const handleMouseDown = (e) => {
+    if (e.button !== 0) return; // Left click only
+    
+    // Prevent default selection text dragging
+    e.preventDefault();
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    
+    const popupEl = popupRef.current;
+    if (!popupEl) return;
+    const rect = popupEl.getBoundingClientRect();
+    const initialLeft = rect.left;
+    const initialTop = rect.top;
+
+    const handleMouseMove = (moveEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const deltaY = moveEvent.clientY - startY;
+      
+      let newLeft = initialLeft + deltaX;
+      let newTop = initialTop + deltaY;
+
+      // Bound within viewport
+      const padding = 10;
+      newLeft = Math.max(padding, Math.min(window.innerWidth - rect.width - padding, newLeft));
+      newTop = Math.max(padding, Math.min(window.innerHeight - rect.height - padding, newTop));
+
+      setCoords({ top: newTop, left: newLeft, isCenter: false });
+      setDragState({ hasDragged: true });
+    };
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  if (!step) return null;
+
+  const isLast = stepIndex === TUTORIAL_STEPS.length - 1;
+
+  return (
+    <div 
+      ref={popupRef}
+      style={
+        coords.isCenter 
+          ? { position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 10000 }
+          : { position: 'fixed', top: `${coords.top}px`, left: `${coords.left}px`, zIndex: 10000 }
+      }
+      className="w-[320px] md:w-[360px] p-5 rounded-2xl border-2 border-cyan-500/70 bg-slate-950/95 shadow-[0_15px_60px_rgba(6,182,212,0.35)] text-slate-200 font-mono flex flex-col gap-3 animate-in zoom-in-95 duration-200 cursor-default"
+    >
+      <div 
+        onMouseDown={handleMouseDown}
+        className="flex justify-between items-center border-b border-cyan-950 pb-2 cursor-move select-none"
+        title="Drag window to reposition"
+      >
+        <h3 className="text-cyan-400 font-black text-[11px] uppercase tracking-wider flex items-center gap-1.5 pointer-events-none">
+          <HelpCircle size={14} className="text-cyan-400 shrink-0" /> {step.title}
+        </h3>
+        <span className="text-[9px] bg-cyan-950 px-2 py-0.5 rounded text-cyan-400 font-extrabold pointer-events-none">
+          {stepIndex + 1} / {TUTORIAL_STEPS.length}
+        </span>
+      </div>
+
+      <p className="text-xs leading-relaxed text-slate-300 whitespace-pre-line font-mono">
+        {step.text}
+      </p>
+
+      <div className="flex items-center justify-between border-t border-slate-900/60 pt-3 mt-1 select-none">
+        <button 
+          onClick={onSkip}
+          className="text-[10px] text-slate-500 hover:text-rose-450 uppercase tracking-widest font-black transition-colors"
+        >
+          Skip Tutorial
+        </button>
+        <div className="flex gap-2">
+          {stepIndex > 0 && !isLast && (
+            <button 
+              onClick={onBack}
+              className="px-3 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-lg text-[10px] text-slate-350 font-bold uppercase transition"
+            >
+              Back
+            </button>
+          )}
+          <button 
+            onClick={onNext}
+            className="px-4 py-1.5 bg-cyan-600/20 hover:bg-cyan-600 border border-cyan-500/30 hover:border-cyan-400 rounded-lg text-[10px] text-cyan-300 hover:text-white font-extrabold uppercase transition shadow-[0_0_12px_rgba(6,182,212,0.15)]"
+          >
+            {isLast ? "Finish" : "Got It"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function App() {
   const [activeCase, setActiveCase] = useState(null);
@@ -112,6 +498,24 @@ export default function App() {
   const [labs, setLabs] = useState({});
   const [showLabPanel, setShowLabPanel] = useState(false);
   const [showFidelityPanel, setShowFidelityPanel] = useState(false);
+  const [showReceptorPanel, setShowReceptorPanel] = useState(false);
+  // UI font scale: 0.88 = compact, 1.0 = default, 1.1 = large, 1.2 = xl
+  const [uiFontScale, setUiFontScale] = useState(1.0);
+  // Vital context panel (click any vital box on any monitor)
+  const [vitalContext, setVitalContext] = useState(null); // { id, rect }
+  const openVitalContext = useCallback((id, e) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setVitalContext(prev => prev?.id === id ? null : { id, rect });
+  }, []);
+
+  // Waveform context panel (click any waveform strip)
+  const [waveformContext, setWaveformContext] = useState(null); // { id, rect }
+  const openWaveformContext = useCallback((id, e) => {
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    setWaveformContext(prev => prev?.id === id ? null : { id, rect });
+  }, []);
   
   const [airwayQuizModal, setAirwayQuizModal] = useState({ show: false, description: '', trueMallampati: 1 });
   const [accessModal, setAccessModal] = useState({ show: false, category: '' });
@@ -127,12 +531,44 @@ export default function App() {
   // eslint-disable-next-line no-unused-vars
   const [showPreOp, setShowPreOp] = useState(false);
   const [stagedCase, setStagedCase] = useState(null);
+  const [tutorialStep, setTutorialStep] = useState(null);
+
+  const startInteractiveTutorial = () => {
+    const tutorialCase = CASES.find(c => c.id === 'tutorial_preset') || CASES[0];
+    startCase(tutorialCase);
+    setSplashState('presets');
+    setPreOpEMR(true);
+    setTutorialStep(0);
+    logEvent("🎓 Guided Tutorial Mode Started. Follow the floating cyan popups to learn the clinical controls!");
+  };
+
   const [msmaidsModal, setMsmaidsModal] = useState(false);
   const [msmaidsComplete, setMsmaidsComplete] = useState(false);
   const [attendingMode, setAttendingMode] = useState('observing');
   const [postIntubationModal, setPostIntubationModal] = useState(false);
   const [extubationModal, setExtubationModal] = useState(false);
   const [ekgModalOpen, setEkgModalOpen] = useState(false);
+  const [drugConsultModal, setDrugConsultModal] = useState({ show: false, agentId: '' });
+  const openDrugConsult = (agentId) => {
+    setDrugConsultModal({ show: true, agentId });
+  };
+  
+  const [soundSettings, setSoundSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem('airway_sim_sound_settings');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return { ...parsed, master: false };
+      }
+    } catch (e) {}
+    return { master: false, pulse: true, vent: true, alarms: true };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('airway_sim_sound_settings', JSON.stringify(soundSettings));
+  }, [soundSettings]);
+
+
   
   const [ventSettings, setVentSettings] = useState({ mode: 'PCV-VG', vt: 500, rr: 12, peep: 5, fio2: 50, pinsp: 20, ieRatio: 2, pmax: 40, ps: 10, air: 0.4, o2: 0.6 });
   const [gasSettings, setGasSettings] = useState({ agent: 'sevoflurane', dial: 0, airFlow: 0.0, o2Flow: 2.0, n2oFlow: 0.0 });
@@ -144,8 +580,34 @@ export default function App() {
 
   const vitalsRef = useRef({ hr: 0, sys: 0, dia: 0, spo2: 0, rr: 0 });
   const timeRef = useRef(0);
+  const lastLoggedRef = useRef({});
 
   const logEvent = useCallback((msg) => {
+    if (typeof msg !== 'string') return;
+    const cleanMsg = msg.trim();
+    // User actions, procedurals, and explicit error feedback that should never be rate-limited
+    const isUserAction = cleanMsg.startsWith('💉') || 
+                         cleanMsg.startsWith('💧') || 
+                         cleanMsg.startsWith('Placed') || 
+                         cleanMsg.startsWith('Stopped') || 
+                         cleanMsg.startsWith('NIBP') || 
+                         cleanMsg.startsWith('Started') || 
+                         cleanMsg.startsWith('Set') || 
+                         cleanMsg.startsWith('Changed') ||
+                         cleanMsg.includes('administer') ||
+                         cleanMsg.includes('FAILED') ||
+                         cleanMsg.startsWith('⚡') ||
+                         cleanMsg.includes('Airway Secured') ||
+                         cleanMsg.includes('Surgical Timeline');
+
+    const now = Date.now();
+    if (!isUserAction) {
+      const norm = normalizeMessage(cleanMsg);
+      if (lastLoggedRef.current[norm] && (now - lastLoggedRef.current[norm]) < 30000) {
+        return;
+      }
+      lastLoggedRef.current[norm] = now;
+    }
     setLogs(prev => [`${formatTime(timeRef.current || 0)} - ${msg}`, ...prev]);
   }, []);
  
@@ -156,12 +618,135 @@ export default function App() {
   } = usePhysiology({
     activeCase,
     isRunning,
-    isPaused: viewModal.show || setupModal || pocusModal.show || airwayQuizModal.show || accessModal.show || tubeConfirmModal.show || preopModal || msmaidsModal || postIntubationModal || extubationModal,
+    setIsRunning,
+    isPaused: viewModal.show || setupModal || pocusModal.show || airwayQuizModal.show || accessModal.show || tubeConfirmModal.show || preopModal || msmaidsModal || postIntubationModal || extubationModal || drugConsultModal.show,
     ventSettings,
     gasSettings,
     logEvent,
     msmaidsComplete
   });
+
+  useEffect(() => {
+    if (tutorialStep === null) return;
+
+    if (tutorialStep === 0) {
+      // Welcome tour (Got It advances)
+    } else if (tutorialStep === 1) {
+      if (vitalContext?.id === 'hr') {
+        setTutorialStep(2);
+      }
+    } else if (tutorialStep === 2) {
+      if (ekgModalOpen) {
+        setTutorialStep(3);
+      }
+    } else if (tutorialStep === 3) {
+      // Bottom Gas (Got It advances)
+    } else if (tutorialStep === 4) {
+      if (showReceptorPanel) {
+        setTutorialStep(5);
+      }
+    } else if (tutorialStep === 5) {
+      // Time Skip & Labs (Got It advances)
+    } else if (tutorialStep === 6) {
+      if (preOpEMR) {
+        setTutorialStep(7);
+      }
+    } else if (tutorialStep === 7) {
+      if (!preOpEMR) {
+        setTutorialStep(8);
+      }
+    } else if (tutorialStep === 8) {
+      if (msmaidsModal) {
+        setTutorialStep(9);
+      }
+    } else if (tutorialStep === 9) {
+      if (!msmaidsModal && msmaidsComplete) {
+        setTutorialStep(10);
+      }
+    } else if (tutorialStep === 10) {
+      if (patient?.timeOutAuthorized) {
+        setTutorialStep(12);
+      }
+    } else if (tutorialStep === 11) {
+      if (patient?.timeOutAuthorized) {
+        setTutorialStep(12);
+      }
+    } else if (tutorialStep === 12) {
+      if (patient?.currentO2Device?.includes('NRB')) {
+        setTutorialStep(13);
+      }
+    } else if (tutorialStep === 13) {
+      if (patient?.currentO2Device?.includes('NRB') && patient?.currentFiO2 === 100 && patient?.currentO2Flow === 15) {
+        setTutorialStep(14);
+      }
+    } else if (tutorialStep === 14) {
+      if (activeMeds?.some(m => m.name?.toLowerCase() === 'lidocaine')) {
+        setTutorialStep(15);
+      }
+    } else if (tutorialStep === 15) {
+      if (activeMeds?.some(m => m.name?.toLowerCase() === 'fentanyl')) {
+        setTutorialStep(16);
+      }
+    } else if (tutorialStep === 16) {
+      if (activeMeds?.some(m => m.name?.toLowerCase() === 'propofol')) {
+        setTutorialStep(17);
+      }
+    } else if (tutorialStep === 17) {
+      if (activeMeds?.some(m => m.name?.toLowerCase() === 'rocuronium')) {
+        setTutorialStep(18);
+      }
+    } else if (tutorialStep === 18) {
+      if (patient?.currentO2Device?.includes('BMV') && !patient.isAirwayObstruction) {
+        setTutorialStep(19);
+      }
+    } else if (tutorialStep === 19) {
+      if (setupModal) {
+        setTutorialStep(20);
+      }
+    } else if (tutorialStep === 20) {
+      if (viewModal?.show) {
+        setTutorialStep(21);
+      }
+    } else if (tutorialStep === 21) {
+      if (patient?.airwaySecured && tubeConfirmModal?.show) {
+        setTutorialStep(22);
+      }
+    } else if (tutorialStep === 22) {
+      if (tubeConfirmModal?.result?.includes('Left Lung') && !tubeConfirmModal?.show) {
+        setTutorialStep(23);
+      }
+    } else if (tutorialStep === 23) {
+      // Vent Monitor (Got It advances)
+    } else if (tutorialStep === 24) {
+      if (gasSettings?.agent === 'sevoflurane' && gasSettings?.dial === 2.0) {
+        setTutorialStep(25);
+      }
+    } else if (tutorialStep === 25) {
+      if (logs?.some(l => l.includes('Oropharyngeal Airway') || l.includes('Placed OPA'))) {
+        setTutorialStep(26);
+      }
+    } else if (tutorialStep === 26) {
+      if (logs?.some(l => l.includes('suction') || l.includes('Yankauer') || l.includes('suctioning'))) {
+        setTutorialStep(27);
+      }
+    }
+  }, [
+    tutorialStep, 
+    preOpEMR, 
+    msmaidsModal, 
+    msmaidsComplete, 
+    surgicalPhase, 
+    activeMeds, 
+    patient, 
+    setupModal, 
+    viewModal, 
+    tubeConfirmModal,
+    vitalContext,
+    ekgModalOpen,
+    showReceptorPanel,
+    gasSettings,
+    logs
+  ]);
 
   useEffect(() => {
     vitalsRef.current = vitals;
@@ -185,7 +770,7 @@ export default function App() {
 
   // Periodic NIBP cycle evaluation
   useEffect(() => {
-    const isPaused = viewModal.show || setupModal || pocusModal.show || airwayQuizModal.show || accessModal.show || tubeConfirmModal.show || preopModal || msmaidsModal || postIntubationModal || extubationModal;
+    const isPaused = viewModal.show || setupModal || pocusModal.show || airwayQuizModal.show || accessModal.show || tubeConfirmModal.show || preopModal || msmaidsModal || postIntubationModal || extubationModal || drugConsultModal.show;
     if (isRunning && !isPaused && nibpIntervalMs > 0 && !patient?.hasALine) {
       const intervalSec = nibpIntervalMs / 1000;
       if (time > 0 && time % intervalSec === 0 && !isCyclingNibp) {
@@ -193,7 +778,24 @@ export default function App() {
         cycleNibp();
       }
     }
-  }, [time, isRunning, nibpIntervalMs, isCyclingNibp, patient?.hasALine, viewModal.show, setupModal, pocusModal.show, airwayQuizModal.show, accessModal.show, tubeConfirmModal.show, preopModal, msmaidsModal, postIntubationModal, extubationModal, cycleNibp]);
+  }, [time, isRunning, nibpIntervalMs, isCyclingNibp, patient?.hasALine, viewModal.show, setupModal, pocusModal.show, airwayQuizModal.show, accessModal.show, tubeConfirmModal.show, preopModal, msmaidsModal, postIntubationModal, extubationModal, drugConsultModal.show, cycleNibp]);
+
+  // Sync physiology to SoundManager on every tick (vitals/patient/vent change frequently)
+  useEffect(() => {
+    const isPausedVal = viewModal.show || setupModal || pocusModal.show || airwayQuizModal.show || accessModal.show || tubeConfirmModal.show || preopModal || msmaidsModal || postIntubationModal || extubationModal || drugConsultModal.show;
+    SoundManager.updatePhysiology(vitals, patient, ventSettings, isPausedVal);
+  }, [vitals, patient, ventSettings, viewModal.show, setupModal, pocusModal.show, airwayQuizModal.show, accessModal.show, tubeConfirmModal.show, preopModal, msmaidsModal, postIntubationModal, extubationModal, drugConsultModal.show]);
+
+  // Sync sound settings only when the user changes them (not on every tick)
+  useEffect(() => {
+    SoundManager.updateSettings(soundSettings);
+  }, [soundSettings]);
+
+  useEffect(() => {
+    return () => {
+      SoundManager.stopAudioLoop();
+    };
+  }, []);
 
   const attendingGuidance = evaluateAttendingGuidance({
     vitals,
@@ -304,9 +906,8 @@ export default function App() {
   };
   const handleSetSurgicalPhase = (val) => {
     if (val === 'Induction' && !msmaidsComplete && !patient?.emergentRSI && !patient?.isFuzzing) {
-      logEvent("⚠️ CLINICAL INTERLOCK BLOCKED: Induction phase locked. Complete MSMAIDS pre-induction checklist first.");
+      logEvent("ℹ️ MSMAIDS checklist is incomplete, but proceeding past restriction as requested.");
       setMsmaidsModal(true);
-      return false;
     }
     if (val === 'PACU' && logQualityEvent) {
       // Aldrete-style PACU readiness check at the moment of transfer (see
@@ -523,40 +1124,151 @@ export default function App() {
         setPatient(p => ({ ...p, turpSurgeryActive: false }));
         logEvent("TURP resection ended. Monitoring for TURP syndrome sequelae.");
       } else if (action.action === 'give_iv_calcium') {
-        pushMed('Calcium Chloride', 1);
+        processMed('calcium', '1000', 'IV', 'Bolus', 'mg');
         logEvent("✅ Calcium Chloride 1g IV administered for citrate-induced ionized hypocalcemia (Phase 5 AcidBaseModel.ts).");
       } else if (action.action === 'give_pcc') {
-        setPatient(p => ({ ...p, pccGiven: true }));
+        processMed('pcc', '25', 'IV', 'Bolus', 'Unit/kg');
         logEvent("✅ 4-Factor PCC (Kcentra) administered -- reverses warfarin within 30 min, much faster than FFP. Appropriate for urgent/emergent warfarin reversal in active hemorrhage.");
       } else if (action.action === 'give_andexanet') {
-        setPatient(p => ({ ...p, andexanetGiven: true }));
+        processMed('andexanet', '800', 'IV', 'Bolus', 'mg');
         logEvent("✅ Andexanet Alfa (Andexxa) administered -- reverses Factor Xa inhibitors (apixaban, rivaroxaban). Rapid onset within minutes.");
       } else if (action.action === 'give_idarucizumab') {
-        setPatient(p => ({ ...p, idarucizumabGiven: true }));
+        processMed('idarucizumab', '5', 'IV', 'Bolus', 'g');
         logEvent("✅ Idarucizumab (Praxbind) administered -- reverses dabigatran (Pradaxa). Near-complete reversal within minutes.");
       } else if (action.action === 'give_ddavp') {
-        pushMed('Desmopressin', 1);
+        processMed('desmopressin', '0.3', 'IV', 'Bolus', 'mcg/kg');
         logEvent("✅ DDAVP (desmopressin) administered -- releases stored VWF from endothelial Weibel-Palade bodies. Effective for Type 1 VWD and mild Hemophilia A; onset ~30 min; NOT for Type 2B VWD.");
       } else if (action.action === 'give_rfviia') {
-        setPatient(p => ({ ...p, fviiaBolusMg: (p.fviiaBolusMg || 0) + 90 })); // 90 mcg/kg typical
+        processMed('rfviia', '90', 'IV', 'Bolus', 'mcg/kg');
         logEvent("✅ Recombinant Factor VIIa (NovoSeven) 90 mcg/kg administered -- bypasses FVIII/FIX deficiency via platelet-surface direct Factor X activation. Thromboembolism risk at supratherapeutic doses.");
       } else if (action.action === 'stop_heparin_hit') {
         const hitMedIdx = (patient.accessLines || []).flatMap(l => l.activeInfusions || []).findIndex(i => i.name && i.name.toLowerCase().includes('heparin'));
         logEvent("✅ ALL HEPARIN STOPPED (flush lines, remove heparin-coated catheters). HIT requires immediate alternative anticoagulation -- do NOT simply hold anticoagulation.");
         setPatient(p => ({ ...p, heparinStopped: true }));
+      } else if (action.action === 'establish_pneumoperitoneum') {
+        setPatient(p => ({ ...p, pneumoperitoneumActive: true, iapMmHg: action.payload || 12, pneumoperitoneumStartTime: time }));
+        logEvent(`CO2 pneumoperitoneum established at IAP ${action.payload || 12} mmHg. Monitor EtCO2 (will rise ~15-20%), increase MV by 15-20%, anticipate IAP-driven SVR increase.`);
+      } else if (action.action === 'release_pneumoperitoneum') {
+        setPatient(p => ({ ...p, pneumoperitoneumActive: false }));
+        logEvent('Pneumoperitoneum released. Physiologic changes reversing.');
+      } else if (action.action === 'trigger_pe') {
+        setPatient(p => ({ ...p, pulmonaryEmbolismActive: true, peOnsetTime: time, peOcclusionFraction: action.payload || 0.6 }));
+        logEvent(`🚨 PULMONARY EMBOLISM event triggered (occlusion ${Math.round((action.payload || 0.6)*100)}%). Watch for EtCO2 drop + hypotension + desaturation.`);
+      } else if (action.action === 'trigger_vae') {
+        setPatient(p => ({ ...p, venousAirEmbolismActive: true, vaeAirVolumeMl: action.payload || 50, vaeOnsetTime: time }));
+        logEvent(`🚨 VENOUS AIR EMBOLISM triggered. ${action.payload || 50} mL air entered venous system.`);
+      } else if (action.action === 'durant_maneuver') {
+        setPatient(p => ({ ...p, durantsManeuvreActive: !p.durantsManeuvreActive }));
+        logEvent(patient.durantsManeuvreActive ? "Durant's maneuver released." : "✅ Durant's maneuver applied (left lateral decubitus + head down) -- VAE treatment.");
+      } else if (action.action === 'give_tpa') {
+        setPatient(p => ({ ...p, tpaActive: true }));
+        logEvent("✅ tPA (alteplase) systemic thrombolysis initiated for massive PE. Lysis begins within minutes.");
       } else if (action.action === 'activate_infectiontype') {
         setPatient(p => ({ ...p, infectionType: action.payload || 'gram_negative_enteric' }));
         logEvent(`✅ Infection type updated to: ${action.payload || 'gram_negative_enteric'} -- antibiotic coverage adequacy will be recalculated by AntibioticPKPDModel.ts.`);
+      } else if (action.action === 'initiate_olv') {
+        setPatient(p => ({ ...p, olvActive: true, olvStartTimeSec: time, dltInPlace: true, prevOlvOnsetLogged: false }));
+        logEvent('🫁 OLV initiated: one-lung ventilation active. Non-ventilated lung deflating. Expect desaturation over next 5-15 min as shunt develops. HPV will partially compensate after ~15 min. FiO2 → 1.0 recommended. Confirm DLT position with FOB.');
+      } else if (action.action === 'terminate_olv') {
+        setPatient(p => ({ ...p, olvActive: false, olvShuntContribution: 0, olvCompliancePenaltyFraction: 0 }));
+        logEvent('✅ OLV terminated: two-lung ventilation restored. Recruitment maneuver recommended (30 cmH2O × 30s) before restoring full tidal volume.');
+      } else if (action.action === 'apply_olv_cpap') {
+        const cpap = action.payload || 5;
+        setPatient(p => ({ ...p, olvCpapCmH2O: cpap }));
+        logEvent(`✅ CPAP ${cpap} cmH2O applied to non-ventilated lung. Expect gradual shunt reduction (~${cpap >= 10 ? '20' : '12'}% decrease in OLV shunt fraction).`);
+      } else if (action.action === 'check_dlt_position') {
+        logEvent('📋 DLT POSITION CHECK: Fiberoptic bronchoscopy confirming position. Left-sided DLT: blue cuff just below carina in left main bronchus. Reposition and re-check after any patient repositioning.');
+      } else if (action.action === 'reposition_dlt') {
+        setPatient(p => ({ ...p, dltMalpositioned: false }));
+        logEvent('✅ DLT repositioned. Position confirmed by FOB. Lung isolation re-established.');
+      } else if (action.action === 'activate_smoke_exposure') {
+        const severity = action.payload || 0.5;
+        setPatient(p => ({ ...p, smokeExposureActive: true, smokeSeverity: severity }));
+        logEvent(`🚨 SMOKE/CO EXPOSURE active (severity ${Math.round(severity*100)}%). COHb rising. SpO2 will read FALSELY NORMAL. Maximize FiO2 to 1.0. Obtain co-oximetry ABG.`);
+      } else if (action.action === 'stop_smoke_exposure') {
+        setPatient(p => ({ ...p, smokeExposureActive: false, smokeSeverity: 0 }));
+        logEvent('✅ Patient removed from smoke exposure. COHb declining per FiO2 (100% O2: t½ ~90 min; room air: t½ ~320 min).');
+      } else if (action.action === 'activate_hbo') {
+        setPatient(p => ({ ...p, hyperbaricO2Active: true }));
+        logEvent('✅ Hyperbaric O2 (HBO) initiated. COHb half-life ~20 min. Indication: COHb >25%, LOC, pregnancy, cardiac ischemia.');
+      } else if (action.action === 'start_ino') {
+        const ppm = action.payload || 20;
+        setPatient(p => ({ ...p, inoActive: true, inoPpm: ppm, inoJustStopped: false, prevInoStartLogged: false }));
+        logEvent(`✅ Inhaled NO (iNO) ${ppm} ppm started. Selective pulmonary vasodilator. Expected PVR reduction 20-40%. Wean gradually — abrupt discontinuation causes rebound PH.`);
+      } else if (action.action === 'stop_ino') {
+        setPatient(p => ({ ...p, inoActive: false, inoPpm: 0, inoJustStopped: true }));
+        logEvent('⚠️ iNO discontinued. Monitor for REBOUND PH over next 30-60 min. Restart at 2-5 ppm if SpO2/mPAP deteriorates. Wean over 30 min minimum before full discontinuation.');
+      } else if (action.action === 'titrate_ino') {
+        const ppm = action.payload || 20;
+        setPatient(p => ({ ...p, inoPpm: ppm }));
+        logEvent(`✅ iNO dose adjusted to ${ppm} ppm. Max benefit typically at 20-40 ppm; limited returns and metHb risk above 40 ppm.`);
+      } else if (action.action === 'start_inhaled_epoprostenol') {
+        const dose = action.payload || 30;
+        setPatient(p => ({ ...p, inhaledEpoprostenolActive: true, inhaledEpoprostenolDose: dose }));
+        logEvent(`✅ Inhaled epoprostenol (prostacyclin) ${dose} ng/kg/min started. Alternative to iNO for selective pulmonary vasodilation. PVR reduction 25-40%.`);
+      } else if (action.action === 'stop_inhaled_epoprostenol') {
+        setPatient(p => ({ ...p, inhaledEpoprostenolActive: false, inhaledEpoprostenolDose: 0 }));
+        logEvent('✅ Inhaled epoprostenol discontinued.');
+      } else if (action.action === 'trigger_afe') {
+        setPatient(p => ({ ...p, afeActive: true, afeOnsetTime: time, prevAFEOnsetLogged: false }));
+        logEvent('🚨 AMNIOTIC FLUID EMBOLISM TRIGGERED. Sudden cardiovascular collapse. Call for help immediately. RSI, vasopressors, MTP, cryoprecipitate, emergent delivery.');
+      } else if (action.action === 'start_nac') {
+        setPatient(p => ({ ...p, nacActive: true }));
+        logEvent('✅ N-Acetylcysteine (NAC) infusion started. 150 mg/kg over 60 min loading dose, then maintenance. Most effective within 8h of APAP ingestion.');
+      } else if (action.action === 'diagnose_preeclampsia') {
+        setPatient(p => ({ ...p, hasPreeclampsia: true }));
+        logEvent('⚠️ Preeclampsia diagnosed. Ensure magnesium sulfate for seizure prophylaxis and antihypertensive therapy for sBP ≥ 160 mmHg. Monitor platelet count and liver enzymes.');
+      } else if (action.action === 'trigger_mi_type1') {
+        setPatient(p => ({ ...p, miActiveType1: true, miActiveType2: false, miOnsetTime: time, prevMIType1Logged: false }));
+        logEvent('🚨 TYPE 1 MI TRIGGERED: Plaque rupture event. ST elevation expected. Activate cath lab. Heparin, aspirin, cardiology consult.');
+      } else if (action.action === 'trigger_mi_type2') {
+        setPatient(p => ({ ...p, miActiveType2: true, miOnsetTime: time }));
+        logEvent('⚠️ TYPE 2 MI (demand ischemia) worsening. Optimize HR, MAP, Hb. Target RPP < 10,000. Cardiology consult.');
+      } else if (action.action === 'trigger_fat_embolism') {
+        const trigType = action.payload || 'fracture';
+        setPatient(p => ({ ...p, femActive: true, femTriggerType: trigType, femOnsetTime: time, prevFEMOnsetLogged: false }));
+        logEvent(`⚠️ FAT EMBOLISM triggered (${trigType}). Monitor P/F ratio, RV strain, mental status. 100% O2, lung-protective ventilation if needed.`);
+      } else if (action.action === 'trigger_bcis') {
+        setPatient(p => ({ ...p, femActive: true, femTriggerType: 'cement', femOnsetTime: time, prevFEMOnsetLogged: false }));
+        logEvent('🚨 BONE CEMENT IMPLANTATION SYNDROME: Acute hypotension and hypoxemia from medullary pressurization. Fluid bolus, vasopressors, 100% O2. Anticipate RV strain on TEE.');
+      } else if (action.action === 'place_isb') {
+        setPatient(p => ({ ...p, isbActive: true, isbPhrenicPalsyLogged: false }));
+        logEvent('✅ Interscalene brachial plexus block placed. 100% ipsilateral phrenic nerve palsy expected (hemidiaphragm paralysis, FVC −25%). Monitor SpO2 closely, especially in COPD patients. Horner\'s syndrome may develop (~25% incidence). Watch for pneumothorax if supraclavicular approach used.');
+      } else if (action.action === 'resolve_isb') {
+        setPatient(p => ({ ...p, isbActive: false, isbCompliancePenalty: 0 }));
+        logEvent('✅ ISB resolving. Phrenic nerve function returning. FVC normalizing.');
       } else if (action.action === 'place_foley') {
         placeFoley();
       } else if (action.action === 'msmaids') {
         setMsmaidsModal(true);
       } else if (action.action === 'preop') {
         setPreopModal(true);
+      } else if (action.action === 'clamp_carotid') {
+        setPatient(p => ({ ...p, carotidClamped: true, prevCEAClampLogged: false }));
+        logEvent('🔬 Carotid ICA cross-clamped. Monitoring collateral perfusion via stump pressure and rSO2. Maintain MAP > 80 mmHg. Watch for EEG/SSEP changes.');
+      } else if (action.action === 'release_carotid_clamp') {
+        setPatient(p => ({ ...p, carotidClamped: false }));
+        logEvent('✅ Carotid clamp released. Reperfusion of ipsilateral hemisphere. Watch for hyperperfusion syndrome (BP spikes, new neurological deficits).');
+      } else if (action.action === 'place_carotid_shunt') {
+        setPatient(p => ({ ...p, carotidShuntInPlace: true }));
+        logEvent('✅ Carotid shunt placed. Cerebral perfusion restored via shunt. Continue MAP and neuromonitoring.');
+      } else if (action.action === 'trigger_reperfusion') {
+        setPatient(p => ({ ...p, reperfusionActive: true, reperfusionStartTime: time, reperfusionType: action.payload || 'hepatic', prevReperfusionLogged: false }));
+        logEvent('🚨 REPERFUSION initiated. Watch for sudden hypotension, hyperkalemia, acidosis, and arrhythmia in next 1-5 min. Ca gluconate 1g IV. Vasopressors ready.');
+      } else if (action.action === 'trigger_organophosphate') {
+        setPatient(p => ({ ...p, organophosphatePoisoning: true, organophosphateConcentration: action.payload || 0.6 }));
+        logEvent('🚨 ORGANOPHOSPHATE POISONING: Cholinergic crisis. SLUDGE + bronchospasm/secretions + bradycardia. Atropine 4mg IV stat, pralidoxime 1-2g IV. Intubate for respiratory failure.');
       } else if (action.action === 'post_intub') {
         setPostIntubationModal(true);
       } else if (action.action === 'extub') {
         setExtubationModal(true);
+      } else if (action.action === 'report_dpt') {
+        const gauge = action.payload || 17;
+        setPatient(p => ({ ...p, dptOccurred: true, dptNeedleGauge: gauge, dptNeedleType: 'cutting', dptOccurredTime: time, prevPDPHOnsetLogged: false }));
+        logEvent(`⚠️ ACCIDENTAL DURAL PUNCTURE: ${gauge}G Tuohy needle punctured dura. Expected PDPH rate ~${gauge <= 18 ? '40-50%' : '10-25%'}. Management: (1) Consider intrathecal catheter (24h) to reduce PDPH risk; (2) If headache develops in 12-48h: conservative (bed rest, caffeine, hydration) then EBP if NRS ≥ 7; (3) DOCUMENT and inform patient.`);
+      } else if (action.action === 'place_blood_patch') {
+        setPatient(p => ({ ...p, bloodPatchGiven: true, bloodPatchTime: time, prevBloodPatchLogged: false }));
+        logEvent('✅ EPIDURAL BLOOD PATCH initiated: 15-20 mL autologous blood drawn and injected at/below puncture level. Expected relief >85% within minutes. Patient supine for 1-2h. Monitor: vital signs, headache resolution, neurological status.');
       } else if (action.action === 'cuff_leak') {
         checkCuffLeak();
       } else if (action.action === 'cpr') {
@@ -770,7 +1482,7 @@ export default function App() {
       stuckInspiratoryValve: false,
       aplValveSetting: 0.0,
       hasPneumothorax: false,
-      cortisolLevel: 15.0,
+      cortisolLevel: 0.1,
       adrenalSuppressionActive: false,
       adrenalSuppressionTime: null,
       prisAccumulation: 0.0,
@@ -1241,7 +1953,7 @@ export default function App() {
           'Serum Fluoride (F-)': { val: fluorideVal.toFixed(1) + ' µM', range: '< 1.5 µM', alert: fluorideVal > 50.0 },
           'Compound A Exposure': { val: compoundAVal.toFixed(1) + ' ppm-h', range: '< 150.0 ppm-h', alert: compoundAVal > 150.0 },
           'Serum Homocysteine': { val: homocysteineVal.toFixed(1) + ' µM', range: '5.0 - 15.0 µM', alert: homocysteineVal > 15.0 },
-          'Cortisol Level': { val: (patient.cortisolLevel !== undefined ? patient.cortisolLevel : 15.0).toFixed(1) + ' mcg/dL', range: '10.0 - 20.0 mcg/dL', alert: (patient.cortisolLevel !== undefined ? patient.cortisolLevel : 15.0) < 5.0 },
+          'Cortisol Level': { val: (patient.cortisolLevel !== undefined ? patient.cortisolLevel * 150.0 : 15.0).toFixed(1) + ' mcg/dL', range: '10.0 - 20.0 mcg/dL', alert: (patient.cortisolLevel !== undefined ? patient.cortisolLevel * 150.0 : 15.0) < 5.0 },
           'Blood Lactate': { val: (patient.lacticAcid !== undefined ? patient.lacticAcid : 1.0).toFixed(1) + ' mmol/L', range: '0.5 - 2.0 mmol/L', alert: (patient.lacticAcid !== undefined ? patient.lacticAcid : 1.0) > 2.0 },
           'Plasma Lipids': { val: patient.prisTriggered ? '⚠️ LIPEMIC' : 'Clear', range: 'Clear', alert: !!patient.prisTriggered }
         };
@@ -1262,25 +1974,41 @@ export default function App() {
         }
       } else if (type === 'Coagulation') {
         const tempFactor = vitals.temp < 36.0 ? Math.pow(1.15, 36.0 - vitals.temp) : 1.0;
-        const ptVal = (12.0 + (coags.r_offset || 0) * 1.8) * tempFactor;
-        const inrVal = ptVal / 12.0;
-        const pttVal = (31.0 + (coags.r_offset || 0) * 3.2) * tempFactor;
+        const inrVal = typeof patient.inr === 'number' ? patient.inr : (((12.0 + (coags.r_offset || 0) * 1.8) * tempFactor) / 12.0);
+        const ptVal = inrVal * 12.0;
+        const pttVal = typeof patient.aptt === 'number' ? patient.aptt : ((31.0 + (coags.r_offset || 0) * 3.2) * tempFactor);
         
         results = {
           'Prothrombin Time (PT)': { val: ptVal.toFixed(1) + ' s', range: '11.0 - 13.5 s', alert: ptVal > 13.5 },
           'INR': { val: inrVal.toFixed(1), range: '0.8 - 1.2', alert: inrVal > 1.2 },
           'Partial Thromboplastin Time (PTT)': { val: pttVal.toFixed(1) + ' s', range: '25.0 - 35.0 s', alert: pttVal > 35.0 }
         };
+
+        if (patient.vwfActivityPercent !== undefined || patient.hasVWD || patient.hasHemophiliaA || patient.hemophiliaA || patient.hasHemophiliaB || patient.hemophiliaB) {
+          const vwfVal = patient.vwfActivityPercent !== undefined ? patient.vwfActivityPercent : 100.0;
+          const fviiiVal = patient.factorVIIIPercent !== undefined ? patient.factorVIIIPercent : 100.0;
+          const fixVal = patient.factorIXPercent !== undefined ? patient.factorIXPercent : 100.0;
+          const pfaADP = patient.pfaADPClosureTimeSec !== undefined ? patient.pfaADPClosureTimeSec : 60.0;
+          const pfaEpi = patient.pfaEpiClosureTimeSec !== undefined ? patient.pfaEpiClosureTimeSec : 100.0;
+
+          results['VWF Activity'] = { val: vwfVal.toFixed(1) + ' %', range: '50.0 - 200.0 %', alert: vwfVal < 50.0 };
+          results['Factor VIII Level'] = { val: fviiiVal.toFixed(1) + ' %', range: '50.0 - 150.0 %', alert: fviiiVal < 50.0 };
+          results['Factor IX Level'] = { val: fixVal.toFixed(1) + ' %', range: '50.0 - 150.0 %', alert: fixVal < 50.0 };
+          results['PFA-100 Coll/ADP'] = { val: pfaADP.toFixed(0) + ' s', range: '< 80 s', alert: pfaADP >= 80 };
+          results['PFA-100 Coll/Epi'] = { val: pfaEpi.toFixed(0) + ' s', range: '< 150 s', alert: pfaEpi >= 150 };
+        }
       } else if (type === 'TEG') {
         const tempDiff = vitals.temp < 36.0 ? 36.0 - vitals.temp : 0;
-        const rTempFactor = 1.0 + tempDiff * 0.20;
-        const rVal = (6.0 + (coags.r_offset || 0)) * rTempFactor;
-        const angleVal = Math.max(10, 65.0 + (coags.angle_offset || 0) - tempDiff * 5);
-        const maVal = Math.max(5, 60.0 + (coags.ma_offset || 0) - tempDiff * 6);
+        const rVal = typeof patient.tegR === 'number' ? patient.tegR : ((6.0 + (coags.r_offset || 0)) * (1.0 + tempDiff * 0.20));
+        const angleVal = typeof patient.tegAlpha === 'number' ? patient.tegAlpha : Math.max(10, 65.0 + (coags.angle_offset || 0) - tempDiff * 5);
+        const maVal = typeof patient.tegMA === 'number' ? patient.tegMA : Math.max(5, 60.0 + (coags.ma_offset || 0) - tempDiff * 6);
+        const ly30Val = typeof patient.tegLY30 === 'number' ? patient.tegLY30 : 1.5;
         results = {
-          'R': { val: rVal.toFixed(1) + ' min', range: '5 - 10 min', alert: rVal > 10.0 },
+          'R': { val: rVal.toFixed(1) + ' min', range: '5 - 10 min', alert: rVal > 10.0 || rVal < 5.0 },
+          'K': { val: (typeof patient.tegK === 'number' ? patient.tegK : 2.0).toFixed(1) + ' min', range: '1 - 3 min', alert: (patient.tegK || 2.0) > 3.0 },
           'Angle': { val: Math.round(angleVal) + ' deg', range: '53 - 72 deg', alert: angleVal < 53.0 },
-          'MA': { val: Math.round(maVal) + ' mm', range: '50 - 70 mm', alert: maVal < 50.0 }
+          'MA': { val: Math.round(maVal) + ' mm', range: '50 - 70 mm', alert: maVal < 50.0 },
+          'LY30': { val: ly30Val.toFixed(1) + ' %', range: '< 3.0 %', alert: ly30Val >= 3.0 }
         };
       } else if (type === 'LFTs') {
         const isCirrhosis = patient.cirrhosis;
@@ -1491,7 +2219,7 @@ export default function App() {
         <div className={`transition-all duration-700 ease-in-out z-50 ${
           isSplash 
             ? 'fixed left-1/2 top-[40%] -translate-x-1/2 -translate-y-1/2 scale-100 splash-logo-container' 
-            : 'absolute left-4 top-4 translate-x-0 translate-y-0 scale-50 sm:scale-75 origin-top-left'
+            : 'opacity-0 pointer-events-none absolute left-4 top-4 translate-x-0 translate-y-0 scale-50 sm:scale-75 origin-top-left'
         }`}>
           <AetherisLogo 
             className="w-56 h-56 sm:w-72 sm:h-72 cursor-pointer" 
@@ -1521,7 +2249,7 @@ export default function App() {
           </div>
 
           {/* Navigation Matrix */}
-          <div className="w-full flex flex-col sm:flex-row items-center justify-center gap-4 px-4">
+          <div className="w-full flex flex-col sm:flex-row flex-wrap items-center justify-center gap-4 px-4">
             <button 
               onClick={() => setSplashState('presets')}
               className="px-6 py-3 w-full sm:w-auto rounded-lg font-bold border border-slate-700 bg-slate-900/60 text-slate-300 hover:text-white hover:border-cyan-500/50 hover:bg-cyan-950/20 shadow-[0_4px_12px_rgba(0,0,0,0.3)] transition-all duration-200 cursor-pointer active:scale-97 text-xs md:text-sm uppercase tracking-wider font-sans"
@@ -1540,21 +2268,41 @@ export default function App() {
             >
               Wing It! 🎲
             </button>
+            <button 
+              onClick={startInteractiveTutorial}
+              className="px-6 py-3 w-full sm:w-auto rounded-lg font-black bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white shadow-[0_0_15px_rgba(6,182,212,0.35)] transition-all duration-200 hover:scale-[1.03] active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 text-xs md:text-sm uppercase tracking-wider font-sans"
+            >
+              Start Tutorial 🎓
+            </button>
           </div>
         </div>
 
         {!isSplash && (
-          <div className={`z-10 w-full flex justify-center mt-12 transition-all duration-500 ease-in-out opacity-100 ${splashState === 'wing-it' ? 'hidden' : ''}`}>
-             <CaseManager 
-               onStart={startCase} 
-               stagedCase={stagedCase}
-               setStagedCase={setStagedCase}
-               openPreOpEMR={openPreOpEMR}
-               initialTab={splashState !== 'wing-it' ? splashState : 'presets'}
-               onBack={() => setSplashState('splash')}
-               autoWingIt={splashState === 'wing-it'}
-             />
-          </div>
+          <>
+            <header className="absolute top-0 left-0 right-0 h-16 flex items-center justify-between px-6 border-b border-white/5 bg-slate-950/20 backdrop-blur-md z-45 select-none animate-in fade-in duration-300">
+              <div 
+                onClick={() => setSplashState('splash')} 
+                className="flex items-center gap-3 cursor-pointer group"
+                title="Back to Splash Screen"
+              >
+                <AetherisLogo className="w-8 h-8 group-hover:scale-105 transition-transform duration-200" glow={true} />
+                <span className="text-xs font-black tracking-widest text-slate-400 group-hover:text-white transition-colors duration-200 font-sans uppercase">Back</span>
+              </div>
+              <div className="text-[10px] text-cyan-500 font-black uppercase tracking-widest font-mono select-none">
+                Aetheris Simulation Platform
+              </div>
+            </header>
+            <div className={`z-10 w-full flex justify-center mt-20 transition-all duration-500 ease-in-out opacity-100 ${splashState === 'wing-it' ? 'hidden' : ''}`}>
+               <CaseManager 
+                 onStart={startCase} 
+                 stagedCase={stagedCase}
+                 setStagedCase={setStagedCase}
+                 openPreOpEMR={openPreOpEMR}
+                 initialTab={splashState !== 'wing-it' ? splashState : 'presets'}
+                 autoWingIt={splashState === 'wing-it'}
+               />
+            </div>
+          </>
         )}
 
         {preOpEMR && stagedCase && (
@@ -1582,13 +2330,52 @@ export default function App() {
   const rrSpeed = Math.round((vitals.rr || 12) / 2) * 2;
 
   return (
-    <div className="min-h-screen bg-[#060913] text-slate-100 p-4 font-sans select-none flex flex-col gap-4 relative overflow-x-hidden">
+    <div className="min-h-screen bg-[#060913] text-slate-100 p-4 font-sans select-none flex flex-col gap-4 relative overflow-x-hidden"
+         style={{ zoom: uiFontScale }}>
       {/* Premium Ambient Subsystem Mesh Glow Orbs */}
       <div className="absolute top-[5%] left-[5%] w-[400px] h-[400px] bg-emerald-500/[0.03] rounded-full blur-[100px] pointer-events-none z-0"></div>
       <div className="absolute top-[25%] right-[10%] w-[450px] h-[450px] bg-cyan-500/[0.03] rounded-full blur-[100px] pointer-events-none z-0"></div>
       <div className="absolute bottom-[20%] left-[15%] w-[400px] h-[400px] bg-purple-500/[0.03] rounded-full blur-[100px] pointer-events-none z-0"></div>
       <div className="absolute bottom-[5%] right-[5%] w-[400px] h-[400px] bg-amber-500/[0.02] rounded-full blur-[100px] pointer-events-none z-0"></div>
       
+      {/* Sleek Fast-Forward Status Overlay */}
+      {patient?.fastForwardRemaining > 0 && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-[200] flex flex-col items-center justify-center pointer-events-auto">
+          <div className="bg-slate-900/90 border border-amber-500/30 p-6 rounded-2xl max-w-sm w-full mx-4 shadow-2xl flex flex-col items-center gap-4 text-center">
+            <div className="relative flex items-center justify-center w-16 h-16">
+              {/* Spinner */}
+              <div className="absolute inset-0 rounded-full border-4 border-amber-500/20 border-t-amber-500 animate-spin" style={{ animationDuration: '0.5s' }}></div>
+              <FastForward size={24} className="text-amber-400 animate-pulse" />
+            </div>
+            
+            <div className="space-y-1">
+              <h3 className="text-lg font-black text-amber-400 tracking-wider flex items-center gap-2 justify-center">
+                <FastForward size={18} className="text-amber-400" /> FAST-FORWARDING TIME
+              </h3>
+              <p className="text-xs text-slate-400 font-mono">Simulating patient physiology and drug kinetics...</p>
+            </div>
+
+            <div className="w-full bg-slate-950 rounded-full h-2 overflow-hidden border border-white/5 relative">
+              <div 
+                className="bg-gradient-to-r from-amber-500 to-yellow-400 h-full rounded-full transition-all duration-150 ease-linear"
+                style={{ width: `${(1 - (patient.fastForwardRemaining || 0) / Math.max(1, patient.fastForwardTotal || 600)) * 100}%` }}
+              ></div>
+            </div>
+
+            <p className="text-sm font-bold text-slate-200 font-mono">
+              {Math.ceil(patient.fastForwardRemaining)}s remaining
+            </p>
+
+            <button 
+              onClick={() => setPatient(prev => ({ ...prev, fastForwardRemaining: 0, fastForwardTotal: 0 }))}
+              className="mt-2 px-5 py-2 rounded-lg bg-rose-950/40 hover:bg-rose-900/40 text-rose-300 border border-rose-500/30 hover:border-rose-500 transition text-xs font-bold font-mono tracking-wider active:scale-95"
+            >
+              HALT FAST-FORWARD
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* EMR SLIDING PANEL */}
       <div className={`fixed top-0 right-0 h-full w-full md:w-[500px] bg-slate-900 border-l border-slate-700 shadow-2xl z-[150] transform transition-transform duration-300 ease-in-out overflow-y-auto p-4 md:p-6 ${showLabPanel ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
@@ -1652,11 +2439,16 @@ export default function App() {
         setShowPreOp={setPreOpEMR}
         showFidelityPanel={showFidelityPanel}
         setShowFidelityPanel={setShowFidelityPanel}
+        showReceptorPanel={showReceptorPanel}
+        setShowReceptorPanel={setShowReceptorPanel}
+        uiFontScale={uiFontScale}
+        setUiFontScale={setUiFontScale}
         surgicalPhase={surgicalPhase}
         setSurgicalPhase={handleSetSurgicalPhase}
         msmaidsComplete={msmaidsComplete}
         setMsmaidsModal={setMsmaidsModal}
         logEvent={logEvent}
+        setPatient={setPatient}
       />
 
       <div className={`grid grid-cols-1 ${patient?.airwaySecured ? 'lg:grid-cols-2' : ''} gap-4`}>
@@ -1675,34 +2467,51 @@ export default function App() {
           electrolytes={electrolytes}
           activeMeds={activeMeds}
           onEkgClick={() => setEkgModalOpen(true)}
+          soundSettings={soundSettings}
+          setSoundSettings={setSoundSettings}
+          onVitalClick={openVitalContext}
+          onWaveformClick={openWaveformContext}
         />
 
         {patient?.airwaySecured && (
-          <VentMonitor 
-            patient={patient} 
-            vitals={vitals} 
-            rrSpeed={rrSpeed} 
-            ventSettings={ventSettings} 
-            setVentSettings={handleSetVentSettings}
-            activeMeds={activeMeds}
-          />
+          <div data-tutorial="vent-monitor-panel" className="flex flex-col gap-4">
+            <VentMonitor
+              patient={patient}
+              vitals={vitals}
+              rrSpeed={rrSpeed}
+              ventSettings={ventSettings}
+              setVentSettings={handleSetVentSettings}
+              activeMeds={activeMeds}
+              onVitalClick={openVitalContext}
+              onWaveformClick={openWaveformContext}
+            />
+          </div>
         )}
       </div>
-      
-        <BottomBar 
-          gasSettings={gasSettings} 
-          setGasSettings={handleSetGasSettings} 
-          ventSettings={ventSettings} 
-          setVentSettings={handleSetVentSettings} 
-          patient={patient} 
-          setPatient={setPatient}
-          vitals={vitals}
-          logEvent={logEvent}
-        />
+        <div data-tutorial="bottom-bar-panel">
+          <BottomBar 
+            gasSettings={gasSettings} 
+            setGasSettings={handleSetGasSettings} 
+            ventSettings={ventSettings} 
+            setVentSettings={handleSetVentSettings} 
+            patient={patient} 
+            setPatient={setPatient}
+            vitals={vitals}
+            logEvent={logEvent}
+            openDrugConsult={openDrugConsult}
+          />
+        </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch" style={{ minHeight: '500px' }}>
-        {/* Column 1: Vascular & Resus Pole (25% width) */}
+        {/* Column 1: Renal Monitor + Vascular & Resus Pole (25% width) */}
         <div className="lg:col-span-3 flex flex-col gap-4">
+          {/* Renal Panel — promoted to top of column for clinical prominence */}
+          <RenalPanel
+            patient={patient}
+            vitals={vitals}
+            activeMeds={activeMeds}
+            onVitalClick={openVitalContext}
+          />
           <LinesResusPanel
              patient={patient}
              setPatient={setPatient}
@@ -1766,11 +2575,13 @@ export default function App() {
              updateFluidRate={handleUpdateFluidRate}
              removeFluid={handleRemoveFluid}
              logEvent={logEvent}
+             openDrugConsult={openDrugConsult}
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <MemoryPanel
                patient={patient}
                vitals={vitals}
+               activeMeds={activeMeds}
                setPatient={setPatient}
                logEvent={logEvent}
                toggleBis={handleToggleBis}
@@ -1866,6 +2677,12 @@ export default function App() {
             hrSpeed={hrSpeed}
             rrSpeed={rrSpeed}
           />
+
+          <DrugConsultModal 
+            data={drugConsultModal} 
+            close={() => setDrugConsultModal({show: false, agentId: ''})} 
+            handleActionClick={handleExecuteClinicalAction}
+          />
         </>
       )}
 
@@ -1879,6 +2696,58 @@ export default function App() {
           logEvent={logEvent}
           logQualityEvent={logQualityEvent}
           intraop={!!activeCase}
+        />
+      )}
+
+      {/* EEG Context Panel — dedicated panel for EEG strip clicks */}
+      {activeCase && vitalContext?.id === 'eeg' && (
+        <EEGContextPanel
+          patient={patient}
+          vitals={vitals}
+          activeMeds={activeMeds}
+          anchorRect={vitalContext.rect}
+          onClose={() => setVitalContext(null)}
+        />
+      )}
+
+      {/* Vital Context Panel — appears on click of any monitor vital box (excludes EEG) */}
+      {activeCase && vitalContext && vitalContext.id !== 'eeg' && (
+        <VitalContextPanel
+          vitalId={vitalContext.id}
+          anchorRect={vitalContext.rect}
+          onClose={() => setVitalContext(null)}
+          vitals={vitals}
+          patient={patient}
+          activeMeds={activeMeds}
+          gasSettings={gasSettings}
+          ventSettings={ventSettings}
+          electrolytes={electrolytes}
+          onProcessMed={handleProcessMed}
+          onSetVent={handleSetVentSettings}
+          onSetGas={handleSetGasSettings}
+          onSetPatient={setPatient}
+          onLogEvent={logEvent}
+        />
+      )}
+
+      {/* Waveform Context Panel — educational morphology guide for waveform strip clicks */}
+      {activeCase && waveformContext && (
+        <WaveformContextPanel
+          waveformId={waveformContext.id}
+          anchorRect={waveformContext.rect}
+          onClose={() => setWaveformContext(null)}
+          patient={patient}
+          vitals={vitals}
+        />
+      )}
+
+      {activeCase && (
+        <ReceptorBodyPanel
+          isOpen={showReceptorPanel}
+          onClose={() => setShowReceptorPanel(false)}
+          activeMeds={activeMeds}
+          vitals={vitals}
+          patient={patient}
         />
       )}
 
@@ -1936,6 +2805,24 @@ export default function App() {
             nearFutureForecast={attendingGuidance.nearFutureForecast}
           />
         </Suspense>
+      )}
+
+      {tutorialStep !== null && (
+        <TutorialPopup
+          stepIndex={tutorialStep}
+          onNext={() => {
+            if (tutorialStep === TUTORIAL_STEPS.length - 1) {
+              setTutorialStep(null);
+            } else {
+              setTutorialStep(prev => prev + 1);
+            }
+          }}
+          onBack={() => setTutorialStep(prev => Math.max(0, prev - 1))}
+          onSkip={() => {
+            setTutorialStep(null);
+            logEvent("🎓 Guided Tutorial Mode Skipped. You can continue exploring on your own.");
+          }}
+        />
       )}
 
       {/* Creator Watermark */}

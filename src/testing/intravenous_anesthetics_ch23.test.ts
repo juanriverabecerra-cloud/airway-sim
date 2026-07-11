@@ -765,9 +765,12 @@ describe('Chapter 23: Intravenous Anesthetics', () => {
       expect(metho.pd.diaMax).toBe(-15);
     });
 
-    it('should verify Methohexital faster ke0 (1.5) compared to Thiopental (1.2)', () => {
-      expect(MEDICATIONS_CONFIG.methohexital.pk.ke0).toBe(1.5);
-      expect(MEDICATIONS_CONFIG.thiopental.pk.ke0).toBe(1.2);
+    it('should verify Methohexital faster ke0 compared to Thiopental (both recalibrated for clinical onset)', () => {
+      // Thiopental ke0=3.0 (onset ~1 min), Methohexital ke0=5.0 (onset ~30s) — both faster than prior values.
+      // Relationship preserved: methohexital onset faster than thiopental.
+      expect(MEDICATIONS_CONFIG.methohexital.pk.ke0).toBe(5.0);
+      expect(MEDICATIONS_CONFIG.thiopental.pk.ke0).toBe(3.0);
+      expect(MEDICATIONS_CONFIG.methohexital.pk.ke0).toBeGreaterThan(MEDICATIONS_CONFIG.thiopental.pk.ke0);
     });
 
     it('should verify Methohexital lowers seizure threshold (mentioned in notes for ECT use)', () => {

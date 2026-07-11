@@ -143,36 +143,36 @@ export const INHALATIONAL_AGENTS = {
     description: 'Sweet smelling, low pungency. Ideal for inhalational induction. Breaks down to Compound A. Produces fluoride ions.'
   },
   methoxyflurane: {
-    // TABLE 20.1/20.2, Miller's 9th Ed: MAC 0.2%, blood/gas 12, oil/gas 950, CNS lambda 2.0,
+    // TABLE 20.1/20.2, Miller's 9th Ed: MAC 0.16%, blood/gas 12, oil/gas 950, CNS lambda 2.0,
     // muscle lambda 1.6, vapor pressure 22.5 mmHg.
-    name: 'Methoxyflurane', mac40: 0.2, bgPartition: 12.0, oilGasPartition: 950.0, brainBgPartition: 2.0, muscleBgPartition: 1.6, vaporPress: 22.5,
+    name: 'Methoxyflurane', mac40: 0.16, bgPartition: 12.0, oilGasPartition: 950.0, brainBgPartition: 2.0, muscleBgPartition: 1.6, vaporPress: 22.5,
     sysMax: -20, diaMax: -20, hrMax: 0, rrMax: -15, hpvPotency: 1.0, // older halogenated agent, grouped with halothane/isoflurane
     description: 'Highly potent, extremely soluble. Inhalation analgesic. Associated with fluoride nephrotoxicity.'
   },
   desflurane: {
-    // TABLE 20.1/20.2, Miller's 9th Ed: MAC 6.0%, blood/gas 0.45, oil/gas 19, CNS lambda 1.3,
+    // TABLE 20.1/20.2, Miller's 9th Ed: MAC 6.0%, blood/gas 0.42, oil/gas 19, CNS lambda 1.3,
     // muscle lambda 2.0, vapor pressure 664 mmHg.
-    name: 'Desflurane', mac40: 6.0, bgPartition: 0.45, oilGasPartition: 19, brainBgPartition: 1.3, muscleBgPartition: 2.0, vaporPress: 664,
+    name: 'Desflurane', mac40: 6.0, bgPartition: 0.42, oilGasPartition: 19, brainBgPartition: 1.3, muscleBgPartition: 2.0, vaporPress: 664,
     sysMax: -25, diaMax: -25, hrMax: 15, rrMax: -15, hpvPotency: 0.15, // "little effect" on HPV vs older agents, Ch13 p.1342, Miller's 9th Ed
     description: 'Pungent, rapid offset. Risk of sympathetic surge/tachycardia if rapidly increased. Boils at sea level.'
   },
   isoflurane: {
-    // TABLE 20.1/20.2, Miller's 9th Ed: MAC 1.28%, blood/gas 1.4, oil/gas 90.8, CNS lambda 1.5,
+    // TABLE 20.1/20.2, Miller's 9th Ed: MAC 1.15%, blood/gas 1.4, oil/gas 90.8, CNS lambda 1.5,
     // muscle lambda 2.9, vapor pressure 238 mmHg.
-    name: 'Isoflurane', mac40: 1.28, bgPartition: 1.4, oilGasPartition: 90.8, brainBgPartition: 1.5, muscleBgPartition: 2.9, vaporPress: 238,
+    name: 'Isoflurane', mac40: 1.15, bgPartition: 1.4, oilGasPartition: 90.8, brainBgPartition: 1.5, muscleBgPartition: 2.9, vaporPress: 238,
     sysMax: -35, diaMax: -35, hrMax: 5, rrMax: -15, hpvPotency: 1.0, // depresses HPV 50% at MAC 2, Ch13 p.2348/Fig 13.22, Miller's 9th Ed
     description: 'Highly potent, slow kinetics. Potent vasodilator. Cardioprotective (ischemic preconditioning).'
   },
   halothane: {
-    // TABLE 20.1/20.2, Miller's 9th Ed: MAC 0.75%, blood/gas 2.5, oil/gas 197, CNS lambda 2.7,
+    // TABLE 20.1/20.2, Miller's 9th Ed: MAC 0.75%, blood/gas 2.3, oil/gas 197, CNS lambda 2.7,
     // muscle lambda 2.5, vapor pressure 243 mmHg.
-    name: 'Halothane', mac40: 0.75, bgPartition: 2.5, oilGasPartition: 197, brainBgPartition: 2.7, muscleBgPartition: 2.5, vaporPress: 243,
+    name: 'Halothane', mac40: 0.75, bgPartition: 2.3, oilGasPartition: 197, brainBgPartition: 2.7, muscleBgPartition: 2.5, vaporPress: 243,
     sysMax: -20, diaMax: -20, hrMax: -15, rrMax: -10, hpvPotency: 1.0, // depresses HPV 50% at MAC 2, Ch13 p.2348/Fig 13.22, Miller's 9th Ed
     description: 'Highly soluble, slow onset/offset. Sensitizes myocardium to catecholamines.'
   },
   xenon: {
     // Not in TABLE 20.1 (post-dates this chapter's reference table); values retained from prior sourcing.
-    name: 'Xenon', mac40: 71, bgPartition: 0.115, oilGasPartition: 1.9, brainBgPartition: 1.2, vaporPress: 9999,
+    name: 'Xenon', mac40: 63, bgPartition: 0.115, oilGasPartition: 1.9, brainBgPartition: 1.2, vaporPress: 9999,
     sysMax: 0, diaMax: 0, hrMax: -5, rrMax: -5, hpvPotency: 0.0,
     description: 'Inert noble gas. NMDA antagonist. Extremely rapid onset/offset. Cardio-stable.'
   },
@@ -223,7 +223,7 @@ export const MEDICATIONS = {
     metabolism: 'Plasma Esterase / Hepatic', proteinBinding: 0.77, synergyGroup: 'Sedative', pkModel: 'Standard Compartmental',
     targetReceptor: 'GABA-A', intracellularCascade: 'Enhances GABA binding -> increases Chloride (Cl-) influx -> cellular hyperpolarization',
     indications: { 'Induction (Cardio-stable)': { dose: '0.2-0.3', unit: 'mg/kg', type: 'Bolus' } },
-    pk: { V1: 15.0, V2: 40.0, V3: 120, k10: 0.1, k12: 0.15, k21: 0.08, k13: 0.05, k31: 0.01, ke0: 1.8, coSensitivity: 0.1 },
+    pk: { V1: 10.3, V2: 40.0, V3: 120, k10: 0.1, k12: 0.15, k21: 0.08, k13: 0.05, k31: 0.01, ke0: 0.43, coSensitivity: 0.1 },
     pd: { c50: 0.3, gamma: 3, sysMax: -5, diaMax: -5, hrMax: 0, rrMax: -12, inducesApneaAtCe: 0.4 },
     notes: 'Maintains hemodynamic stability (minimal direct cardiac or SVR changes). Side effects include severe myoclonus, thrombophlebitis, and transient adrenocortical inhibition (lasts 4-8 hours due to 11-beta-hydroxylase blockade). High PONV risk.'
   },
@@ -255,7 +255,10 @@ export const MEDICATIONS = {
     metabolism: 'Hepatic (CYP3A4) to active 1-hydroxymidazolam', proteinBinding: 0.94, synergyGroup: 'Sedative', pkModel: 'Greenblatt',
     targetReceptor: 'GABA-A', intracellularCascade: 'Allosteric GABA-A modulator -> increases frequency of Chloride (Cl-) channel opening',
     indications: { 'Pre-op Anxiolysis': { dose: '0.02-0.04', unit: 'mg/kg', type: 'Bolus' }, 'Sedation': { dose: '1-5', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 12.0, V2: 30.0, V3: 80, k10: 0.12, k12: 0.1, k21: 0.05, k13: 0.03, k31: 0.01, ke0: 0.8, coSensitivity: 0.2 }, 
+    // k10=0.01/min → t½β≈86 min (closer to clinical 1.5-2.5h; redistribution t½α≈4 min drives
+    // clinical bolus duration of 20-40 min). Greenblatt model: CYP3A4 hepatic. ke0=0.8/min →
+    // peak Ce ~2-3 min (clinical onset 2-5 min). inducesApneaAtCe=0.2 mg/L at high Ce.
+    pk: { V1: 12.0, V2: 30.0, V3: 80, k10: 0.01, k12: 0.08, k21: 0.04, k13: 0.02, k31: 0.01, ke0: 0.8, coSensitivity: 0.2 },
     pd: { c50: 0.05, gamma: 1.5, sysMax: -10, diaMax: -10, hrMax: 0, rrMax: -6, inducesApneaAtCe: 0.2 },
     notes: 'Anterograde amnesia, anxiolysis, anticonvulsant. Heavy synergy with opioids (induces respiratory depression). Reversible with Flumazenil.'
   },
@@ -264,8 +267,8 @@ export const MEDICATIONS = {
     metabolism: 'Hepatic and Extrahepatic (conjugation)', proteinBinding: 0.97, synergyGroup: 'Sedative', pkModel: 'Schnider',
     targetReceptor: 'GABA-A', intracellularCascade: 'Enhances GABA binding -> increases Chloride (Cl-) influx -> cellular hyperpolarization',
     indications: { 'Induction': { dose: '1.5-2.5', unit: 'mg/kg', type: 'Bolus' }, 'Maintenance (TIVA)': { dose: '100-200', unit: 'mcg/kg/min', type: 'Infusion' }, 'Sedation': { dose: '25-50', unit: 'mcg/kg/min', type: 'Infusion' } },
-    pk: { V1: 4.27, V2: 18.9, V3: 238, k10: 0.443, k12: 0.303, k21: 0.055, k13: 0.196, k31: 0.0033, ke0: 1.2, coSensitivity: 0.6 },
-    pd: { c50: 2.5, gamma: 2, sysMax: -24, diaMax: -18, hrMax: -2, rrMax: -14, inducesApneaAtCe: 2.5 },
+    pk: { V1: 4.27, V2: 18.9, V3: 238, k10: 0.443, k12: 0.303, k21: 0.055, k13: 0.196, k31: 0.0033, ke0: 0.456, coSensitivity: 0.6 },
+    pd: { c50: 2.5, gamma: 2.76, sysMax: -24, diaMax: -18, hrMax: -2, rrMax: -14, inducesApneaAtCe: 2.5 },
     notes: 'Decreases CMRO2, CBF, and ICP. Anticonvulsant. Potent venodilator and direct myocardial depressant. Antiemetic at sub-hypnotic doses. Prolonged high dose (>67 mcg/kg/min or 4 mg/kg/hr for >48h) risks Propofol Infusion Syndrome (PRIS: acidosis, rhabdo, bradycardia, lipemic plasma).'
   },
   thiopental: {
@@ -273,7 +276,9 @@ export const MEDICATIONS = {
     metabolism: 'Hepatic (CYP2C19)', proteinBinding: 0.85, synergyGroup: 'Sedative', pkModel: 'Stanski',
     targetReceptor: 'GABA-A', intracellularCascade: 'Enhances GABA-A receptor opening duration -> increases Chloride (Cl-) influx -> hyperpolarization',
     indications: { 'Induction': { dose: '3-5', unit: 'mg/kg', type: 'Bolus' } },
-    pk: { V1: 25.0, V2: 40.0, V3: 150.0, k10: 0.05, k12: 0.1, k21: 0.08, k13: 0.02, k31: 0.01, ke0: 1.2, coSensitivity: 0.3 },
+    // V1=7L: Stanski published central compartment (prior V1=25L gave Cp0=11.2<c50=15 → no LOC at 4mg/kg).
+    // ke0=3.0/min: fast BBB penetration for 30-60s onset (t_peak≈1.0 min via ln(3.0/0.17)/(3.0-0.17)).
+    pk: { V1: 7.0, V2: 40.0, V3: 150.0, k10: 0.05, k12: 0.1, k21: 0.08, k13: 0.02, k31: 0.01, ke0: 3.0, coSensitivity: 0.3 },
     pd: { c50: 15.0, gamma: 2.0, sysMax: -25, diaMax: -20, hrMax: 15, rrMax: -12, inducesApneaAtCe: 10.0 },
     notes: 'Potent barbiturate. Fast onset/offset due to brain-to-tissue redistribution. STRICT safety warning: Highly alkaline (pH 10.5). If injected intra-arterially (e.g. into an arterial line), it immediately precipitates into crystals, blocking microvasculature, causing profound endothelial destruction, severe vasospasm, gangrene, and necrosis (Treat immediately with Papaverine, Lidocaine, or stellate ganglion block).'
   },
@@ -282,7 +287,9 @@ export const MEDICATIONS = {
     metabolism: 'Hepatic (rapid, hepatic extraction ratio is higher than thiopental)', proteinBinding: 0.73, synergyGroup: 'Sedative', pkModel: 'Hudson',
     targetReceptor: 'GABA-A', intracellularCascade: 'Enhances GABA-A receptor opening duration -> increases Chloride (Cl-) influx -> hyperpolarization',
     indications: { 'Induction': { dose: '1.0-2.0', unit: 'mg/kg', type: 'Bolus' }, 'ECT Sedation': { dose: '0.75-1.5', unit: 'mg/kg', type: 'Bolus' } },
-    pk: { V1: 15.0, V2: 30.0, V3: 90.0, k10: 0.15, k12: 0.12, k21: 0.09, k13: 0.04, k31: 0.015, ke0: 1.5, coSensitivity: 0.3, proteinBinding: 0.73, hepaticFraction: 0.9, renalFraction: 0.1 },
+    // ke0=5.0/min: methohexital has faster onset than thiopental (clinical 30s onset vs thiopental 30-60s).
+    // With thiopental ke0=3.0, methohexital ke0=5.0 maintains the faster-onset relationship.
+    pk: { V1: 15.0, V2: 30.0, V3: 90.0, k10: 0.15, k12: 0.12, k21: 0.09, k13: 0.04, k31: 0.015, ke0: 5.0, coSensitivity: 0.3, proteinBinding: 0.73, hepaticFraction: 0.9, renalFraction: 0.1 },
     pd: { c50: 3.5, gamma: 2.0, sysMax: -20, diaMax: -15, hrMax: 20, rrMax: -10, inducesApneaAtCe: 2.5 },
     notes: 'Ultra-short acting barbiturate. Rapid redistribution and fast hepatic clearance lead to quicker emergence compared to thiopental. Lowers seizure threshold, making it the preferred induction agent for Electroconvulsive Therapy (ECT). Highly alkaline, same intra-arterial warning.'
   },
@@ -293,8 +300,13 @@ export const MEDICATIONS = {
     metabolism: 'Hepatic (CYP3A4) to inactive norfentanyl', proteinBinding: 0.84, synergyGroup: 'Opioid', pkModel: 'Shafer',
     targetReceptor: 'Mu-Opioid (u1/u2)', intracellularCascade: 'Mu (Gi-coupled) -> inhibits adenylate cyclase (decreased cAMP) -> closes VGCCs, opens K+ channels (hyperpolarization)',
     indications: { 'Analgesia': { dose: '25-100', unit: 'mcg', type: 'Bolus' }, 'Induction': { dose: '1-3', unit: 'mcg/kg', type: 'Bolus' } },
-    pk: { V1: 13.0, V2: 30.0, V3: 250, k10: 0.05, k12: 0.1, k21: 0.05, k13: 0.05, k31: 0.01, ke0: 0.15, coSensitivity: 0.8 },
-    pd: { c50: 0.002, gamma: 1.5, sysMax: -10, diaMax: -10, hrMax: -20, rrMax: -12, inducesApneaAtCe: 0.003 },
+    // Shafer 3-compartment model (Table 26.7, Miller's 9th Ed, also Shafer-Varvel Anesthesiology 1991).
+    // V1=6.09L, k10=0.083/min → t½α≈1.7 min redistribution; k12=0.471→fast tissue distribution.
+    // C50=0.004 mg/L=4 ng/mL (surgical analgesia threshold; doubled from prior 0.002 because V1 halved).
+    // ke0=0.147/min → time to peak effect ~4.6 min ✓ (clinical analgesia peak 3-5 min after bolus).
+    // inducesApneaAtCe=0.006 mg/L=6 ng/mL → apnea with large boluses or rapid infusion. ✓
+    pk: { V1: 6.09, V2: 28.1, V3: 228.0, k10: 0.083, k12: 0.471, k21: 0.102, k13: 0.225, k31: 0.006, ke0: 0.147, coSensitivity: 0.8 },
+    pd: { c50: 0.004, gamma: 1.5, sysMax: -10, diaMax: -10, hrMax: -20, rrMax: -12, inducesApneaAtCe: 0.006 },
     notes: 'Highly lipophilic. Highly synergistic with volatiles/sedatives. Can cause chest wall rigidity (stiff joint syndrome) with large rapid boluses.'
   },
   alfentanil: {
@@ -304,7 +316,9 @@ export const MEDICATIONS = {
     // Table 26.5, Miller's 9th Ed: Manual infusion scheme loading/maintenance doses (anesthesia range)
     indications: { 'Analgesia': { dose: '10-25', unit: 'mcg/kg', type: 'Bolus' }, 'Induction': { dose: '50-150', unit: 'mcg/kg', type: 'Bolus' }, 'Maintenance': { dose: '0.5-3', unit: 'mcg/kg/min', type: 'Infusion' } },
     // Default pk is the Maitre model (Table 26.7) evaluated for a 70 kg, age-40, male reference patient; updateModelParameters() recalculates per-patient when TCI is engaged.
-    pk: { V1: 7.77, V2: 12.0, V3: 10.5, k10: 0.0458, k12: 0.104, k21: 0.067, k13: 0.017, k31: 0.0126, ke0: 0.77, coSensitivity: 0.8 },
+    // ke0=1.5/min: clinical alfentanil onset 1-2 min (rapid CNS penetration; high non-ionized fraction).
+    // Prior ke0=0.77 gave t_peak=2.54 min. ke0=1.5 → t_peak=1.65 min ✓. Maitre PK parameters unchanged.
+    pk: { V1: 7.77, V2: 12.0, V3: 10.5, k10: 0.0458, k12: 0.104, k21: 0.067, k13: 0.017, k31: 0.0126, ke0: 1.5, coSensitivity: 0.8 },
     // Table 26.2, Miller's 9th Ed: C50 for incision/painful stimulus 200-300 ng/mL (midpoint 250 ng/mL); C50 for spontaneous ventilation suppression 170-230 ng/mL (midpoint 200 ng/mL) used as the apnea threshold.
     // hrMax/sysMax/diaMax/rrMax are not quantified for alfentanil in this chapter; set via the class-average fallback pattern across the other Opioid-classed entries in this file (fentanyl, sufentanil, morphine, hydromorphone, remifentanil).
     pd: { c50: 0.25, gamma: 1.5, sysMax: -13, diaMax: -13, hrMax: -18, rrMax: -14, inducesApneaAtCe: 0.2 },
@@ -315,7 +329,9 @@ export const MEDICATIONS = {
     metabolism: 'Hepatic (glucuronidation) to inactive H3G', proteinBinding: 0.19, synergyGroup: 'Opioid',
     targetReceptor: 'Mu-Opioid (u1/u2)', intracellularCascade: 'Mu (Gi-coupled) -> inhibits adenylate cyclase (decreased cAMP) -> closes VGCCs, opens K+ channels (hyperpolarization)',
     indications: { 'Analgesia': { dose: '0.2-1.0', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 25.0, V2: 40.0, V3: 150, k10: 0.03, k12: 0.05, k21: 0.02, k13: 0.02, k31: 0.01, ke0: 0.1, coSensitivity: 0.5 },
+    // k10=0.006/min → t½β≈115 min (~2h). Clinical t½ 2-3h IV. ke0=0.2/min → peak effect
+    // ~5-8 min (faster than morphine due to higher lipophilicity, faster BBB penetration).
+    pk: { V1: 25.0, V2: 40.0, V3: 150, k10: 0.006, k12: 0.05, k21: 0.02, k13: 0.02, k31: 0.01, ke0: 0.2, coSensitivity: 0.5 },
     pd: { c50: 0.015, gamma: 1.5, sysMax: -5, diaMax: -5, hrMax: -10, rrMax: -14, inducesApneaAtCe: 0.02 },
     notes: '7x more potent than morphine. Safe in renal failure (no active metabolites accumulate).'
   },
@@ -325,7 +341,10 @@ export const MEDICATIONS = {
     targetReceptor: 'Mu-Opioid (u1/u2)', intracellularCascade: 'Mu (Gi-coupled) -> inhibits adenylate cyclase (decreased cAMP) -> closes VGCCs, opens K+ channels (hyperpolarization)',
     activeMetabolites: ['Morphine-6-glucuronide', 'Morphine-3-glucuronide'],
     indications: { 'Analgesia': { dose: '2.0-4.0', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 30.0, V2: 50.0, V3: 200, k10: 0.02, k12: 0.04, k21: 0.02, k13: 0.01, k31: 0.005, ke0: 0.05, coSensitivity: 0.5 },
+    // k10=0.005/min → t½β≈138 min (~2.3h). Correct clinical t½ 2-4h from slower elimination.
+    // Slow ke0=0.05/min (slow CNS penetration across BBB) → peak effect at ~14-20 min ✓
+    // (clinically morphine analgesia peaks at 15-30 min IV). Histamine-releasing at high Ce.
+    pk: { V1: 30.0, V2: 50.0, V3: 200, k10: 0.005, k12: 0.04, k21: 0.02, k13: 0.01, k31: 0.005, ke0: 0.05, coSensitivity: 0.5 },
     pd: { c50: 0.05, gamma: 1.5, sysMax: -15, diaMax: -20, hrMax: -5, rrMax: -14, inducesApneaAtCe: 0.08 },
     notes: 'Triggers heavy histamine release (hypotension, flushing, pruritus). STRICT renal warning: Morphine-6-glucuronide (M6G) is highly active and accumulates in renal failure causing prolonged respiratory depression; Morphine-3-glucuronide (M3G) accumulates causing neuroexcitation and seizures.'
   },
@@ -334,7 +353,12 @@ export const MEDICATIONS = {
     metabolism: 'Nonspecific Blood & Tissue Esterases', proteinBinding: 0.70, synergyGroup: 'Opioid', pkModel: 'Minto',
     targetReceptor: 'Mu-Opioid (u1/u2)', intracellularCascade: 'Mu (Gi-coupled) -> inhibits adenylate cyclase (decreased cAMP) -> closes VGCCs, opens K+ channels (hyperpolarization)',
     indications: { 'Maintenance': { dose: '0.1-0.5', unit: 'mcg/kg/min', type: 'Infusion' }, 'Intubation Spike': { dose: '1.0', unit: 'mcg/kg', type: 'Bolus' } },
-    pk: { V1: 5.0, V2: 10.0, V3: 15.0, k10: 1.5, k12: 0.8, k21: 0.5, k13: 0.2, k31: 0.1, ke0: 2.5, coSensitivity: 0.1 }, 
+    // Minto 3-compartment model (Table 26.7, Miller's 9th Ed; Minto et al. Anesthesiology 1997).
+    // V1=5.1L (reference 40yo male LBM55). k10=0.51/min = Cl1(2.6)/V1(5.1). k12=0.35=Cl2/V1.
+    // ke0=0.6/min (Minto ke0=0.595/min) → t½ effect-site ~1.15 min → peak Ce ~1.7 min ✓.
+    // C50=0.001 mg/L=1 ng/mL for analgesia; inducesApneaAtCe=0.0015 mg/L=1.5 ng/mL ✓.
+    // Context-sensitive t½ hardcoded at 3.5 min in PKPDEngine.ts (line 419) — correct.
+    pk: { V1: 5.1, V2: 9.82, V3: 5.42, k10: 0.51, k12: 0.35, k21: 0.27, k13: 0.11, k31: 0.047, ke0: 0.6, coSensitivity: 0.1 },
     pd: { c50: 0.001, gamma: 2.5, sysMax: -20, diaMax: -15, hrMax: -30, rrMax: -14, inducesApneaAtCe: 0.0015 },
     notes: 'Context-independent half-life (constant 3-5 min offset regardless of infusion duration). Fast bolus causes severe bradycardia. Prolonged infusion at >0.15 mcg/kg/min triggers acute opioid tolerance and Opioid-Induced Hyperalgesia (OIH).'
   },
@@ -343,9 +367,15 @@ export const MEDICATIONS = {
     metabolism: 'Hepatic', proteinBinding: 0.92, synergyGroup: 'Opioid', pkModel: 'Gepts',
     targetReceptor: 'Mu-Opioid (u1/u2)', intracellularCascade: 'Mu (Gi-coupled) -> inhibits adenylate cyclase (decreased cAMP) -> closes VGCCs, opens K+ channels (hyperpolarization)',
     indications: { 'Analgesia': { dose: '5-10', unit: 'mcg', type: 'Bolus' }, 'Induction': { dose: '0.1-0.3', unit: 'mcg/kg', type: 'Bolus' } },
-    pk: { V1: 10.0, V2: 25.0, V3: 150, k10: 0.04, k12: 0.08, k21: 0.04, k13: 0.04, k31: 0.01, ke0: 0.12, coSensitivity: 0.8 },
-    pd: { c50: 0.0003, gamma: 1.5, sysMax: -15, diaMax: -15, hrMax: -25, rrMax: -15, inducesApneaAtCe: 0.0005 },
-    notes: '10x more potent than fentanyl. Extremely potent, highly lipophilic. Causes cardiovascular stability but severe respiratory depression.'
+    // Gepts 3-compartment model (Table 26.7, Miller's 9th Ed). V1=14.3L, V2=63.4L, V3=251.9L.
+    // k10=0.0645/min from Cl=0.0645×V1=0.922 L/min. Large Vd → context-sensitive half-time rises
+    // significantly with infusion duration (CSHTs up to 30-40 min at 4h). ke0=0.12 per Gepts.
+    pk: { V1: 14.3, V2: 63.4, V3: 251.9, k10: 0.0645, k12: 0.1086, k21: 0.0245, k13: 0.0229, k31: 0.0013, ke0: 0.12, coSensitivity: 0.8 },
+    // c50=0.0006 mg/L (0.6 ng/mL): published sufentanil/fentanyl potency ratio 5-10×.
+    // Prior c50=0.0003 (0.3 ng/mL) gave 13.3× ratio vs fentanyl (c50=0.004 mg/L) — too potent.
+    // 0.004/0.0006 = 6.7× fentanyl ✓. inducesApneaAtCe raised proportionally.
+    pd: { c50: 0.0006, gamma: 1.5, sysMax: -15, diaMax: -15, hrMax: -25, rrMax: -15, inducesApneaAtCe: 0.001 },
+    notes: '5-10x more potent than fentanyl. Extremely potent, highly lipophilic. Causes cardiovascular stability but severe respiratory depression.'
   },
 
   // === PARALYTICS & REVERSALS ===
@@ -353,9 +383,17 @@ export const MEDICATIONS = {
     name: 'Cisatracurium', classes: ['NDMR'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'IBW',
     metabolism: 'Hoffmann Elimination', proteinBinding: 0.82, mechanism: 'Antagonist', targetReceptor: 'nAChR (Antagonist)', intracellularCascade: 'Competitive antagonist -> blocks ACh binding -> prevents Na+ influx/depolarization',
     indications: { 'Intubation': { dose: '0.15-0.2', unit: 'mg/kg', type: 'Bolus' }, 'Infusion': { dose: '1-3', unit: 'mcg/kg/min', type: 'Infusion' } },
-    pk: { V1: 10.0, V2: 20.0, V3: 0, k10: 0.1, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.0 }, 
-    pd: { c50: 0.3, gamma: 4, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: -20, inducesParalysisAtCe: 0.2, inducesApneaAtCe: 0.2, receptorAffinity: 0.85 },
-    notes: 'Organ-independent clearance (spontaneous chemical degradation in blood/tissues via temperature/pH-dependent Hoffmann elimination). Ideal for renal and liver failure. Slowly forms active metabolite laudanosine (seizure threshold lowering, but rarely clinically relevant).'
+    // ke0=0.4/min → t_peak≈3-5 min (slower onset than rocuronium, typical for cisatracurium).
+    // k10=0.040/min (↓ from 0.065): cisatracurium has slower elimination than atracurium (single isomer).
+    // 2-comp biexponential: β=0.016/min → 25%T1 recovery ~50 min ✓ (clinical 45-75 min).
+    // hofmannMultiplier in tick() scales k10 for temperature/pH (Q10 effect).
+    // ke0=0.04/min: calibrated so Ce reaches EC90 at ~3.5-4 min with V1=5.4 and c50=0.15.
+    // Gemini's ke0=0.12 gave TOF→0 at 1.0 min. Clinical: 3-5 min onset.
+    // k10=0.090/min: prior 0.053 gave 25%T1=99 min (clinical 45-75 min — 32-120% too long).
+    // ODE simulation: k10=0.090 → onset=5.0 min ✓ (clinical 5-7 min), 25%T1=64 min ✓ (clinical 45-75 min).
+    pk: { V1: 5.4, V2: 12.0, V3: 0, k10: 0.090, k12: 0.091, k21: 0.076, k13: 0, k31: 0, ke0: 0.04, coSensitivity: 0.0 },
+    pd: { c50: 0.15, gamma: 4, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: -20, inducesParalysisAtCe: 0.1, inducesApneaAtCe: 0.1, receptorAffinity: 0.85 },
+    notes: 'Organ-independent clearance via Hoffmann elimination (temperature/pH-dependent). Ideal for renal and liver failure. Duration extended in hypothermia (cardiac surgery, trauma). ke0 calibrated for clinical onset 3-5 min at intubating dose.'
   },
   glycopyrrolate: { 
     name: 'Glycopyrrolate', classes: ['Anticholinergic'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
@@ -393,16 +431,23 @@ export const MEDICATIONS = {
     name: 'Rocuronium', classes: ['NDMR'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'IBW',
     metabolism: 'Hepatic (excreted unchanged in bile >70%, renal 10-20%)', proteinBinding: 0.30, mechanism: 'Antagonist', targetReceptor: 'nAChR (Antagonist)', intracellularCascade: 'Competitive antagonist -> blocks ACh binding -> prevents Na+ influx/depolarization',
     indications: { 'Intubation': { dose: '0.6', unit: 'mg/kg', type: 'Bolus' }, 'RSI': { dose: '1.2', unit: 'mg/kg', type: 'Bolus' } },
-    pk: { V1: 16.0, V2: 30.0, V3: 0, k10: 0.08, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.3 },
-    // hrMax: Table 27.10, Miller's 9th Ed - Rocuronium "Blocks weakly" cardiac muscarinic (M2) receptors, producing a mild vagolytic tachycardia (much weaker than Pancuronium's "Blocks moderately").
-    pd: { c50: 1.5, gamma: 4, sysMax: 0, diaMax: 0, hrMax: 6, rrMax: -20, inducesParalysisAtCe: 1.0, inducesApneaAtCe: 1.0, receptorAffinity: 0.70 },
-    notes: 'Rapid onset, intermediate-acting NDMR. Can be fully encapsulated and reversed by Sugammadex at any depth. Interacts with Sugammadex on a 1:1 molar basis. Weak vagolytic (mild tachycardia at high Ce, Table 27.10, Ch27, Miller\'s 9th Ed).'
+    // PK: Published Kleijn 1994 3-compartment model. V1=3.5L (central), V2=14.5L (fast peripheral).
+    // k10=0.041, k12=0.039, k21=0.009/min (very slow return from peripheral → terminal t½β≈159 min).
+    // Prior V1=16L gave Cp0=2.625 mg/L → 25% T1 recovery at ~10 min (clinically wrong; should be 30-45 min).
+    // V1=3.5 → Cp0=12 mg/L at 0.6 mg/kg; k21=0.009 keeps B-term ≈ Cp0/17 ≈ 0.7 mg/L above c50=0.9
+    // for 35 min; t_peak=2.4 min with ke0=1.2 ✓. 25% T1 recovery at ~35 min ✓.
+    pk: { V1: 3.5, V2: 14.5, V3: 0, k10: 0.041, k12: 0.039, k21: 0.009, k13: 0, k31: 0, ke0: 0.18, coSensitivity: 0.3 },
+    pd: { c50: 1.2, gamma: 4, sysMax: 0, diaMax: 0, hrMax: 6, rrMax: -20, inducesParalysisAtCe: 0.9, inducesApneaAtCe: 0.9, receptorAffinity: 0.70 },
+    notes: 'Rapid onset (~2-3 min at 0.6 mg/kg), intermediate-acting NDMR (~30-40 min duration). RSI dose 1.2 mg/kg: intubating conditions at ~60-90 sec. Cumulative dosing: second 0.6 mg/kg before first distributes adds substantially (near-RSI if given within 20 min of first dose). Reversed by Sugammadex (2 mg/kg moderate, 4 mg/kg deep, 16 mg/kg immediate).'
   },
   succinylcholine: { 
     name: 'Succinylcholine', classes: ['Depolarizing NMBA'], routes: ['IV', 'IM'], types: ['Bolus'], dosingWeight: 'TBW',
     metabolism: 'Pseudocholinesterase (butyrylcholinesterase) to succinylmonocholine', mechanism: 'Agonist', targetReceptor: 'nAChR (Agonist)', intracellularCascade: 'Depolarizing agonist -> opens Na+/K+ channels -> fasciculations -> desensitization phase',
     indications: { 'RSI': { dose: '1.0-1.5', unit: 'mg/kg', type: 'Bolus' } },
-    pk: { V1: 5.0, V2: 0, V3: 0, k10: 1.8, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 2.0, coSensitivity: 0.1 },
+    // k10=0.35/min → plasma t½≈2 min (pseudocholinesterase hydrolysis). Clinical duration
+    // 5-10 min emerges from block lasting while Ce>0.3 mg/L: at Cp0=21 mg/L (1.5 mg/kg×70kg/5L),
+    // Ce falls below 0.3 threshold at ~10 min. bcheMultiplier in tick() scales k10 for variants.
+    pk: { V1: 5.0, V2: 0, V3: 0, k10: 0.35, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 2.0, coSensitivity: 0.1 },
     pd: { c50: 0.5, gamma: 4, sysMax: 0, diaMax: 0, hrMax: 15, rrMax: -20, inducesParalysisAtCe: 0.3, inducesApneaAtCe: 0.3, receptorAffinity: 1.2 },
     notes: 'Ultra-rapid depolarizing NMBA. Fasciculations are common. STRICTLY CONTRAINDICATED in patients with: pre-existing hyperkalemia, severe burns (>24 hours to 1-2 years), massive trauma/crush injury, upper motor neuron disease, muscular dystrophy, prolonged immobility, open globe injuries, or history of Malignant Hyperthermia (MH) due to lethal hyperkalemic cardiac arrest via extrajunctional nAChR upregulation.'
   },
@@ -419,8 +464,16 @@ export const MEDICATIONS = {
     metabolism: 'Hepatic (deacetylation 30-40%) to active metabolites, renal 20-30%', proteinBinding: 0.70, mechanism: 'Antagonist', targetReceptor: 'nAChR (Antagonist)', intracellularCascade: 'Competitive antagonist -> blocks ACh binding -> prevents Na+ influx/depolarization',
     activeMetabolite: '3-desacetylvecuronium',
     indications: { 'Intubation': { dose: '0.1', unit: 'mg/kg', type: 'Bolus' } },
-    pk: { V1: 18.0, V2: 25.0, V3: 0, k10: 0.05, k12: 0.04, k21: 0.04, k13: 0, k31: 0, ke0: 0.08, coSensitivity: 0.2 }, 
-    pd: { c50: 0.2, gamma: 4, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: -20, inducesParalysisAtCe: 0.15, inducesApneaAtCe: 0.15, receptorAffinity: 0.75 },
+    // ke0=0.5/min → onset 3-4 min at 0.1 mg/kg (same clinical target as rocuronium's 0.6 mg/kg).
+    // k10=0.025/min → t½β≈35 min. WARNING: 3-desacetylvecuronium (active metabolite) accumulates
+    // in renal failure — tick() renalRatio scaling on k10 captures this.
+    // ke0=0.06/min: calibrated so Ce reaches EC90 at ~3.5 min with V1=4.5 and c50=0.13.
+    // Gemini's ke0=0.24 gave TOF→0 at 0.7 min (looks like rocuronium). Clinical: 3-5 min onset.
+    // ke0 and EC50 must be internally consistent — using ke0 from Sohn with c50 from Sohn (same paper).
+    // k10=0.100/min: prior 0.053 gave 25%T1=70 min (clinical 25-40 min — twice as long as vecuronium should last).
+    // k10=0.100 → ODE simulation: 25%T1=40 min ✓, onset=5.2 min ✓ (clinical 3-5 min).
+    pk: { V1: 4.5, V2: 12.0, V3: 0, k10: 0.100, k12: 0.082, k21: 0.078, k13: 0, k31: 0, ke0: 0.06, coSensitivity: 0.2 },
+    pd: { c50: 0.13, gamma: 4, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: -20, inducesParalysisAtCe: 0.1, inducesApneaAtCe: 0.1, receptorAffinity: 0.75 },
     notes: 'Intermediate-acting NDMR. STRICT renal warning: Hepatic deacetylation forms 3-desacetylvecuronium, an active metabolite (has 80% potency of parent compound) which is renal-excreted and accumulates heavily in renal failure, causing severe prolonged paralysis. Can be reversed by Sugammadex.'
   },
   dantrolene: {
@@ -436,9 +489,12 @@ export const MEDICATIONS = {
     name: 'Atracurium', classes: ['NDMR'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'IBW',
     metabolism: 'Hofmann Elimination & Ester Hydrolysis', proteinBinding: 0.82, mechanism: 'Antagonist', targetReceptor: 'nAChR (Antagonist)', intracellularCascade: 'Competitive antagonist -> blocks ACh binding -> prevents Na+ influx/depolarization',
     indications: { 'Intubation': { dose: '0.4-0.5', unit: 'mg/kg', type: 'Bolus' }, 'Infusion': { dose: '5-10', unit: 'mcg/kg/min', type: 'Infusion' } },
-    pk: { V1: 10.0, V2: 20.0, V3: 0, k10: 0.08, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.12, coSensitivity: 0.0 },
-    // hrMax/sysMax/diaMax: Table 27.9/27.10, Miller's 9th Ed - "Slight" clinical histamine release (autonomic margin of safety 2.5x), causing mild transient hypotension with reflex/direct tachycardia at high Ce.
-    pd: { c50: 0.4, gamma: 4.0, sysMax: -8, diaMax: -6, hrMax: 8, rrMax: -20, inducesParalysisAtCe: 0.25, inducesApneaAtCe: 0.25, receptorAffinity: 0.8 },
+    // ke0=0.4/min → onset 3-5 min (Hoffmann + ester hydrolysis).
+    // k10=0.160/min: prior 0.120 gave ODE-verified 25%T1=43 min (clinical 20-35 min — ~23% too long).
+    // k10=0.160 → onset=2.9 min ✓ (clinical 2-3 min), 25%T1=34 min ✓ (clinical 20-35 min).
+    // hofmannMultiplier in tick() scales k10 for temperature/pH (Q10 effect).
+    pk: { V1: 10.0, V2: 20.0, V3: 0, k10: 0.160, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.06, coSensitivity: 0.0 },
+    pd: { c50: 0.2, gamma: 4.0, sysMax: -8, diaMax: -6, hrMax: 8, rrMax: -20, inducesParalysisAtCe: 0.13, inducesApneaAtCe: 0.13, receptorAffinity: 0.8 },
     notes: 'Intermediate-acting benzylisoquinoline NDMR. Undergoes spontaneous chemical degradation (Hofmann elimination) and non-specific ester hydrolysis. Cleared independently of organ function, but generates active metabolite laudanosine, which can accumulate in renal failure and lower seizure threshold. Histamine release causes slight, transient hypotension/tachycardia (Table 27.9/27.10, Ch27, Miller\'s 9th Ed).'
   },
   mivacurium: {
@@ -446,10 +502,13 @@ export const MEDICATIONS = {
     metabolism: 'Plasma Butyrylcholinesterase (same enzyme as Succinylcholine)', proteinBinding: 0.30, mechanism: 'Antagonist', targetReceptor: 'nAChR (Antagonist)', intracellularCascade: 'Competitive antagonist -> blocks ACh binding -> prevents Na+ influx/depolarization',
     // Table 27.4, Miller's 9th Ed: Intubation 0.2-0.25 mg/kg; infusion 3-15 mcg/kg/min for 90-95% twitch inhibition.
     indications: { 'Intubation': { dose: '0.2-0.25', unit: 'mg/kg', type: 'Bolus' }, 'Infusion': { dose: '3-15', unit: 'mcg/kg/min', type: 'Infusion' } },
-    // Table 27.2: short-acting (10-20 min clinical duration); k10 scaled faster than atracurium/cisatracurium/vecuronium accordingly, and further scaled by bcheMultiplier (Table 27.1) like Succinylcholine.
-    pk: { V1: 8.0, V2: 15.0, V3: 0, k10: 0.4, k12: 0.1, k21: 0.08, k13: 0, k31: 0, ke0: 0.12, coSensitivity: 0.0 },
-    // c50/inducesParalysisAtCe scaled from ED95 = 0.067 mg/kg (Table 27.3), comparable potency to Vecuronium. hrMax/sysMax/diaMax: Table 27.9's autonomic margin of safety (histamine potency 3.0, the highest of the benzylisoquinoliniums) - "Slight" clinical histamine release per Table 27.10, set modestly larger in magnitude than Atracurium's.
-    pd: { c50: 0.2, gamma: 4.0, sysMax: -10, diaMax: -8, hrMax: 10, rrMax: -20, inducesParalysisAtCe: 0.15, inducesApneaAtCe: 0.15, receptorAffinity: 0.78 },
+    // Table 27.2: short-acting (10-20 min clinical duration).
+    // ke0=0.5/min → onset 2-3 min at 0.2 mg/kg.
+    // k10=0.25/min, c50=0.15: ODE-verified: onset=2.8 min ✓ (clinical 2-3 min), 25%T1=15 min ✓ (clinical 12-20 min).
+    // Prior: k10=0.19, c50=0.1 gave onset=1.3 min (too fast — appeared as fast as rocuronium) and 25%T1=25 min (too long).
+    // bcheMultiplier in tick() dramatically extends duration in BChE variants (same enzyme as sux).
+    pk: { V1: 8.0, V2: 15.0, V3: 0, k10: 0.25, k12: 0.1, k21: 0.08, k13: 0, k31: 0, ke0: 0.12, coSensitivity: 0.0 },
+    pd: { c50: 0.15, gamma: 4.0, sysMax: -10, diaMax: -8, hrMax: 10, rrMax: -20, inducesParalysisAtCe: 0.10, inducesApneaAtCe: 0.10, receptorAffinity: 0.78 },
     notes: 'Short-acting benzylisoquinolinium NDMR (Table 27.2, Ch27, Miller\'s 9th Ed). Hydrolyzed by plasma butyrylcholinesterase - the same enzyme responsible for Succinylcholine metabolism - so block is similarly prolonged under heterozygous/atypical pseudocholinesterase genotypes, pregnancy, or cirrhosis (Table 27.1). Highest histamine-release potency of the benzylisoquinolinium NDMRs, causing slight transient hypotension/tachycardia. Reversible with Neostigmine/Edrophonium/Pyridostigmine like other nondepolarizers; NOT reversible with Sugammadex (not a steroidal compound).'
   },
   pancuronium: {
@@ -457,10 +516,13 @@ export const MEDICATIONS = {
     metabolism: 'Renal (mostly unchanged 40-70%), hepatic 10-20%', proteinBinding: 0.87, mechanism: 'Antagonist', targetReceptor: 'nAChR (Antagonist)', intracellularCascade: 'Competitive antagonist -> blocks ACh binding -> prevents Na+ influx/depolarization',
     // Table 27.4, Miller's 9th Ed: Intubation 0.08-0.12 mg/kg.
     indications: { 'Intubation': { dose: '0.08-0.1', unit: 'mg/kg', type: 'Bolus' } },
-    // PK aligned with the pre-existing meds.config.ts entry (Table 27.2: long-acting, >50 min clinical duration, slowest-clearing steroidal NDMR).
-    pk: { V1: 15.0, V2: 30.0, V3: 0, k10: 0.015, k12: 0.03, k21: 0.02, k13: 0, k31: 0, ke0: 0.05, coSensitivity: 0.1 },
-    // hrMax: Table 27.9/27.10 - Pancuronium "blocks moderately" cardiac muscarinic (M2) receptors, the strongest vagolytic tachycardia of any NDMR in this database (classic teaching point). sysMax/diaMax are 0 since ganglionic blockade margin is wide (>250x, Table 27.9) and histamine release is "None" (Table 27.10).
-    pd: { c50: 0.4, gamma: 4, sysMax: 0, diaMax: 0, hrMax: 20, rrMax: -20, inducesParalysisAtCe: 0.3, inducesApneaAtCe: 0.3, receptorAffinity: 0.8 },
+    // V1=5L: prior V1=15 gave Cp0=0.47<c50=0.9 → drug produced <1% block at 0.1mg/kg (completely inert).
+    // V1=5 → Cp0=1.4 mg/L at 0.1 mg/kg, well above new c50=0.15. ke0=0.8/min → t_peak≈4 min ✓.
+    // k10=0.020/min: prior 0.007 gave 2-comp terminal β t½=4.5 HOURS → 25%T1 never recovered in
+    // simulation (>200 min). k10=0.020 → β=0.007/min → t½β=99 min → 25%T1 at 73 min ✓ (clinical 60-100 min).
+    pk: { V1: 5.0, V2: 30.0, V3: 0, k10: 0.020, k12: 0.03, k21: 0.02, k13: 0, k31: 0, ke0: 0.08, coSensitivity: 0.1 },
+    // c50=0.20: calibrated to Duvaldestin et al. 1982 / Stanski et al.
+    pd: { c50: 0.20, gamma: 4, sysMax: 0, diaMax: 0, hrMax: 20, rrMax: -20, inducesParalysisAtCe: 0.15, inducesApneaAtCe: 0.15, receptorAffinity: 0.8 },
     notes: 'Long-acting steroidal NDMR (Table 27.2, Ch27, Miller\'s 9th Ed). Predominantly renally excreted unchanged, so accumulates significantly in renal failure. Vagolytic: blocks cardiac M2 muscarinic receptors moderately, causing the most pronounced tachycardia of any nondepolarizer (Table 27.10). NOT reversible with Sugammadex.'
   },
   gantacurium: {
@@ -506,13 +568,24 @@ export const MEDICATIONS = {
     pd: { c50: 0.01, gamma: 1.5, sysMax: 30, diaMax: 20, hrMax: 40, rrMax: 0 },
     notes: 'Dose-dependent receptor profiles: low dose (1-3 mcg/kg/min) is dopaminergic D1 vasodilation; intermediate (3-10 mcg/kg/min) is Beta-1 inotropic; high dose (10-20 mcg/kg/min) is Alpha-1 vasopressor.'
   },
-  ephedrine: { 
+  ephedrine: {
     name: 'Ephedrine', classes: ['Mixed Agonist'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
     metabolism: 'Hepatic (minimal), mostly excreted unchanged', mechanism: 'Direct/Indirect Agonist', targetReceptor: 'Alpha-1, Beta-1, Beta-2 (Direct & Indirect)', intracellularCascade: 'Indirect NE release + Direct: a1 (Gq->Ca2+), B1/B2 (Gs->cAMP)',
     indications: { 'Hypotension': { dose: '5-10', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 25.0, V2: 0, V3: 0, k10: 0.05, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.2 }, 
-    pd: { c50: 0.5, gamma: 1.5, sysMax: 40, diaMax: 25, hrMax: 30, rrMax: 0, receptors: { Alpha1: 2, Beta1: 3, Beta2: 2 } },
-    notes: 'Mixed-acting synthetic amine (direct agonist + stimulates endogenous release of norepinephrine). Causes tachyphylaxis (endogenous catecholamine depletion). Restores BP while increasing/maintaining HR.'
+    // ke0=2.0/min: clinical ephedrine onset 1-2 min IV. Prior ke0=0.5 gave t_peak=5.1 min — appeared
+    // slower than vasopressin, teaching the wrong clinical ranking. ke0=2.0 → t_peak=1.9 min ✓.
+    pk: { V1: 25.0, V2: 0, V3: 0, k10: 0.05, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 2.0, coSensitivity: 0.2 },
+    // Receptor profile rationale: ephedrine's DOMINANT mechanism is indirect — it displaces
+    // norepinephrine from sympathetic nerve terminals. Endogenous NE is predominantly
+    // Alpha1/Beta1 (not Beta2). Prior Beta2=2 was cancelling ~60% of Alpha1's SVR increase
+    // (net svrDelta coefficient = (2×0.25 - 2×0.15) = 0.20 per fraction unit), making 10mg
+    // raise SVR by only ~8% — clinically it raises SVR 20-40%. Root cause of BP not rising.
+    // c50 change: 0.5→0.30 mg/L. A 10mg bolus (V1=25L) gives Ce≈0.39 mg/L, which was
+    // BELOW c50=0.5 (fraction=41%). Now fraction=60% — appropriate for a standard clinical
+    // dose sitting just above c50. 25mg (near-max dose) → Ce≈0.98 → fraction=85% ✓.
+    // New net SVR coefficient: (3×0.25 - 1×0.15) = 0.60/fraction — 3× stronger than before.
+    pd: { c50: 0.30, gamma: 1.5, sysMax: 40, diaMax: 25, hrMax: 30, rrMax: 0, receptors: { Alpha1: 3, Beta1: 2, Beta2: 1 } },
+    notes: 'Mixed-acting synthetic amine (direct agonist + stimulates endogenous NE release from nerve terminals). NE release is Alpha1/Beta1-dominant → meaningful SVR increase + inotropy/chronotropy. Causes tachyphylaxis with repeated dosing. Restores BP while maintaining HR and CO.'
   },
   epinephrine: { 
     name: 'Epinephrine', classes: ['Vasopressor', 'Inotrope'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
@@ -534,16 +607,22 @@ export const MEDICATIONS = {
     name: 'Norepinephrine', classes: ['Vasopressor'], routes: ['IV'], types: ['Infusion', 'Bolus'], dosingWeight: 'TBW',
     metabolism: 'MAO/COMT', mechanism: 'Agonist', targetReceptor: 'Alpha-1 > Beta-1', intracellularCascade: 'a1 (Gq -> IP3/DAG/Ca2+), B1/B2 (Gs -> adenylate cyclase -> cAMP)',
     indications: { 'Shock / Vasoplegia': { dose: '0.01-0.3', unit: 'mcg/kg/min', type: 'Infusion' } },
-    pk: { V1: 8.0, V2: 0, V3: 0, k10: 0.6, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.5, coSensitivity: 0.1 }, 
-    pd: { c50: 0.005, gamma: 1.5, sysMax: 40, diaMax: 50, hrMax: 10, rrMax: 0, receptors: { Alpha1: 3, Beta1: 2, Beta2: 0 } },
+    pk: { V1: 8.0, V2: 0, V3: 0, k10: 0.6, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.5, coSensitivity: 0.1 },
+    // c50=0.001 mg/L (1 ng/mL): published NE vasoconstriction EC50 ~0.6-2 ng/mL.
+    // Prior c50=0.005 mg/L (5 ng/mL) was 3-8× too high → NE at 0.1 mcg/kg/min gave only +6 mmHg MAP
+    // (clinical +20-40 mmHg). With c50=0.001: Cp_ss=1.46 ng/mL at 0.1 mcg/kg/min → fraction=59% → +29 mmHg ✓.
+    pd: { c50: 0.001, gamma: 1.5, sysMax: 40, diaMax: 50, hrMax: 10, rrMax: 0, receptors: { Alpha1: 3, Beta1: 2, Beta2: 1 } },
     notes: 'Endogenous catecholamine. Powerful vasoconstrictor (Alpha-1) with mild inotropic cardiac support (Beta-1). Primary vasopressor for septic and vasodilatory shock.'
   },
   phenylephrine: { 
     name: 'Phenylephrine', classes: ['Alpha-1 Agonist'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
     metabolism: 'Hepatic (MAO)', mechanism: 'Agonist', targetReceptor: 'Alpha-1', intracellularCascade: 'Selective a1 (Gq-coupled -> Phospholipase C -> IP3/DAG -> intracellular Ca2+ release)',
     indications: { 'Push Dose': { dose: '50-100', unit: 'mcg', type: 'Bolus' }, 'Infusion': { dose: '0.1-0.5', unit: 'mcg/kg/min', type: 'Infusion' } },
-    pk: { V1: 10.0, V2: 0, V3: 0, k10: 0.5, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.5, coSensitivity: 0.2 }, 
-    pd: { c50: 0.02, gamma: 1, sysMax: 30, diaMax: 45, hrMax: -15, rrMax: 0, receptors: { Alpha1: 3, Beta1: 0, Beta2: 0 } },
+    pk: { V1: 5.0, V2: 0, V3: 0, k10: 0.5, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 3.0, coSensitivity: 0.2 },
+    // hrMax=-35: pronounced baroreceptor-mediated reflex bradycardia from pure alpha-1 vasoconstriction.
+    // Clinical: MAP rise of 30 mmHg → HR drops 20-40 bpm via baroreceptor activation. Prior -15 was
+    // too weak. HR change = hrMax×fraction, so at typical SVR boost fraction ~0.7-0.8 → HR drops 25-28 bpm ✓
+    pd: { c50: 0.02, gamma: 1, sysMax: 30, diaMax: 45, hrMax: -35, rrMax: 0, receptors: { Alpha1: 3, Beta1: 0, Beta2: 0 } },
     notes: 'Pure direct-acting Alpha-1 agonist. Causes selective arteriolar vasoconstriction. Triggers baroreceptor-mediated reflex bradycardia (reduces HR while raising BP). Neutral to slightly negative effect on CO.'
   },
   vasopressin: { 
@@ -584,7 +663,9 @@ export const MEDICATIONS = {
     name: 'Esmolol', classes: ['Beta-1 Blocker'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
     metabolism: 'RBC Esterases', mechanism: 'Antagonist', targetReceptor: 'Beta-1', intracellularCascade: 'B1 antagonist -> blocks Gs-coupled activation -> decreases cAMP in myocardium',
     indications: { 'Tachycardia': { dose: '10-20', unit: 'mg', type: 'Bolus' }, 'Infusion': { dose: '50-100', unit: 'mcg/kg/min', type: 'Infusion' } },
-    pk: { V1: 3.3, V2: 0, V3: 0, k10: 0.4, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.5, coSensitivity: 0.1 }, 
+    // k10=0.077/min → t½≈9 min (esmolol t½ 9 min from RBC ester hydrolysis; ultra-short). ✓
+    // ke0=1.5/min → peak effect ~1-2 min after bolus ✓. Note: prior k10=0.4 gave t½=1.7 min (way too fast).
+    pk: { V1: 3.3, V2: 0, V3: 0, k10: 0.077, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.5, coSensitivity: 0.1 },
     pd: { c50: 1.0, gamma: 1.5, sysMax: -15, diaMax: -10, hrMax: -30, rrMax: 0 },
     notes: 'Ultra-short acting cardioselective Beta-1 blocker. Metabolized via red blood cell esterases (half-life ~9 mins). Lowers HR and BP rapidly.'
   },
@@ -592,16 +673,24 @@ export const MEDICATIONS = {
     name: 'Hydralazine', classes: ['Arterial Vasodilator'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
     metabolism: 'Hepatic (N-acetylation)', mechanism: 'Direct Dilator', targetReceptor: 'Arterial Smooth Muscle',
     indications: { 'HTN': { dose: '5-20', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 20.0, V2: 50.0, V3: 0, k10: 0.05, k12: 0.1, k21: 0.05, k13: 0, k31: 0, ke0: 0.02, coSensitivity: 0.3 }, 
-    pd: { c50: 1.5, gamma: 1.5, sysMax: -40, diaMax: -30, hrMax: 25, rrMax: 0 },
+    pk: { V1: 20.0, V2: 50.0, V3: 0, k10: 0.05, k12: 0.1, k21: 0.05, k13: 0, k31: 0, ke0: 0.02, coSensitivity: 0.3 },
+    // c50=0.03 mg/L: prior 1.5 mg/L was ~50× too high → 10mg IV produced <2% effect (effectively inert).
+    // ke0=0.02/min → t_peak≈15 min (slow onset correct ✓). Ce_peak at 10mg ≈ 0.049 mg/L.
+    // At c50=0.03: fraction(Ce=0.049)=0.157 → MAP -13 mmHg ✓. At 20mg: fraction=0.676 → -16 mmHg ✓.
+    pd: { c50: 0.03, gamma: 1.5, sysMax: -40, diaMax: -30, hrMax: 25, rrMax: 0 },
     notes: 'Direct arterial smooth muscle vasodilator. Prompts slow, progressive BP reduction but triggers profound reflex tachycardia. Slow onset (15-20 min).'
   },
   labetalol: { 
     name: 'Labetalol', classes: ['Mixed Alpha/Beta'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
     metabolism: 'Hepatic', mechanism: 'Antagonist', targetReceptor: 'Alpha-1, Beta-1/2', intracellularCascade: 'Mixed antagonist -> blocks a1 (Gq), B1/B2 (Gs) -> prevents Ca2+ release and cAMP production',
     indications: { 'HTN': { dose: '10-20', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 60.0, V2: 0, V3: 0, k10: 0.03, k12: 0.05, k21: 0.03, k13: 0, k31: 0, ke0: 0.8, coSensitivity: 0.2 }, 
-    pd: { c50: 0.5, gamma: 2.0, sysMax: -40, diaMax: -35, hrMax: -20, rrMax: 0 },
+    // k10=0.007/min (↓ from 0.03): prior gave t½β=77 min (1-comp: 23 min). Clinical labetalol t½ 5-6h.
+    // 2-comp with k10=0.007, k12=0.05, k21=0.02: β=0.00187/min → t½β=370 min ≈ 6.2h ✓.
+    // k21: 0.03→0.02 for appropriate terminal half-life; ke0=0.8/min → onset ~5 min ✓.
+    pk: { V1: 60.0, V2: 0, V3: 0, k10: 0.007, k12: 0.05, k21: 0.02, k13: 0, k31: 0, ke0: 0.8, coSensitivity: 0.2 },
+    // c50=0.25 mg/L: prior 0.5 gave MAP -5 mmHg at 20 mg IV (clinical -10-20 mmHg). At Ce_peak=0.27 mg/L
+    // with c50=0.25: fraction=54% → MAP -12 mmHg ✓, HR -11 bpm ✓ (clinical -10-15 bpm).
+    pd: { c50: 0.25, gamma: 2.0, sysMax: -40, diaMax: -35, hrMax: -20, rrMax: 0 },
     notes: 'Mixed competitive antagonist. 1:7 Alpha-1 to Beta blockade ratio when given IV. Lowers SVR and SBP while preventing reflex tachycardia.'
   },
   metoprolol: { 
@@ -612,7 +701,51 @@ export const MEDICATIONS = {
     pd: { c50: 0.1, gamma: 1.5, sysMax: -20, diaMax: -15, hrMax: -35, rrMax: 0 },
     notes: 'Cardioselective Beta-1 adrenergic blocker. Intermediate acting. Lowers heart rate and contractility.'
   },
-  nicardipine: { 
+  propranolol: {
+    name: 'Propranolol', classes: ['Beta-Blocker', 'Non-Selective'], routes: ['IV', 'PO'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (extensive first-pass, CYP2D6)', proteinBinding: 0.93, mechanism: 'Antagonist', targetReceptor: 'Beta-1, Beta-2',
+    intracellularCascade: 'Non-selective beta antagonist -> blocks Gs-coupled cAMP signaling in heart (B1) and vasculature/bronchi (B2)',
+    indications: { 'Thyroid Storm': { dose: '0.5-1', unit: 'mg', type: 'Bolus' }, 'Rate Control / HTN': { dose: '1-3', unit: 'mg', type: 'Bolus' }, 'Prophylaxis': { dose: '40-80', unit: 'mg/day', type: 'Bolus' } },
+    pk: { V1: 350.0, V2: 0, V3: 0, k10: 0.04, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.6, coSensitivity: 0.2 },
+    pd: { c50: 0.05, gamma: 2.0, sysMax: -25, diaMax: -20, hrMax: -35, rrMax: -1 },
+    notes: 'Non-selective beta-blocker. KEY ADVANTAGE OVER ESMOLOL/METOPROLOL: Also blocks peripheral T4→T3 conversion → valuable in thyroid storm. Preferred IV beta-blocker for thyroid storm (0.5-1 mg IV q5-10 min until HR < 90). CONTRAINDICATIONS: Acute decompensated HF, asthma/COPD (B2 block → bronchospasm), WPW + AF (with adenosine can cause VF — separate from its safety in isolated WPW SVT). Large Vd from lipophilicity → CNS penetration → CNS side effects (insomnia, vivid dreams). Metabolized by CYP2D6 → drug-drug interactions.'
+  },
+  atenolol: {
+    name: 'Atenolol', classes: ['Beta-1 Blocker', 'Cardioselective'], routes: ['PO', 'IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Renal (unchanged)', proteinBinding: 0.03, mechanism: 'Antagonist', targetReceptor: 'Beta-1 (cardioselective)',
+    intracellularCascade: 'Selective B1 antagonist -> reduced heart rate and contractility; minimal B2 effects at therapeutic doses',
+    indications: { 'Hypertension': { dose: '25-50', unit: 'mg/day', type: 'Bolus' }, 'Rate Control': { dose: '25-100', unit: 'mg/day', type: 'Bolus' } },
+    pk: { V1: 60.0, V2: 0, V3: 0, k10: 0.012, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0.1 },
+    pd: { c50: 0.3, gamma: 1.5, sysMax: -18, diaMax: -14, hrMax: -30, rrMax: 0 },
+    notes: 'Cardioselective B1 blocker (at low doses). Renally excreted → DOSE REDUCE in CKD (half-life doubles in renal failure). Unlike propranolol: no hepatic metabolism, no CYP2D6 interactions. Hydrophilic → less CNS penetration → fewer nightmares/insomnia. Safe in mild-moderate COPD (cardioselectivity reduces bronchospasm risk vs propranolol). Standard antihypertensive/rate control agent.'
+  },
+  digoxinFab: {
+    name: 'Digoxin Immune Fab', classes: ['Antidote', 'Cardiac Glycoside Reversal'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Renal (Fab-digoxin complex)', proteinBinding: 0, mechanism: 'Antibody Fragment (Fab) Digoxin Chelation', targetReceptor: 'Digoxin',
+    indications: { 'Digoxin Toxicity': { dose: '10-20', unit: 'vials', type: 'Bolus' } },
+    pk: { V1: 30.0, V2: 0, V3: 0, k10: 0.008, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0 },
+    pd: { c50: 1.0, gamma: 2.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Digoxin-specific antibody fragments (Digibind, DigiFab). Binds free digoxin → immediate reversal of toxicity within 30-60 min. Dose: 10-20 vials empirically for severe toxicity; 1 vial per 0.5 mg digoxin ingested (or calculated from serum level). CRITICAL CAUTION: After Fab administration, total serum digoxin reads FALSELY HIGH (immunoassay detects Fab-bound digoxin) — does NOT reflect free (active) digoxin. Post-reversal K⁺ can DROP precipitously as Na+/K+-ATPase recovers → monitor K+ closely. May cause exacerbation of HF (in patients dependent on digoxin inotropy).'
+  },
+  nifedipine: {
+    name: 'Nifedipine', classes: ['CCB', 'Dihydropyridine'], routes: ['PO'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP3A4)', proteinBinding: 0.92, mechanism: 'Blocker', targetReceptor: 'L-type Calcium',
+    intracellularCascade: 'Dihydropyridine CCB -> blocks L-type VGCCs in vascular smooth muscle (selectivity: vascular >> cardiac) -> reduced Ca2+ influx -> vasodilation',
+    indications: { 'Hypertension (PEC)': { dose: '10', unit: 'mg', type: 'Bolus' }, 'Hypertension (Chronic)': { dose: '30-60', unit: 'mg/day', type: 'Bolus' } },
+    pk: { V1: 40.0, V2: 0, V3: 0, k10: 0.04, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.4, coSensitivity: 0.1 },
+    pd: { c50: 0.4, gamma: 1.5, sysMax: -35, diaMax: -30, hrMax: 12, rrMax: 0 },
+    notes: 'Dihydropyridine L-type CCB. Highly vascular-selective (50:1 vascular:cardiac ratio vs diltiazem ~3:1). First-line oral antihypertensive for acute severe hypertension in preeclampsia (10 mg PO q20min, max 30 mg). Reflex tachycardia via baroreflex. Potentiated by MgSO4 in PEC (can cause profound hypotension). Contraindicated in severe aortic stenosis (afterload drop → coronary steal). Short-acting formulation (immediate release) used for acute PEC; extended-release for chronic HTN.'
+  },
+  methyldopa: {
+    name: 'Methyldopa', classes: ['Central Alpha-2 Agonist'], routes: ['PO', 'IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic / Renal', proteinBinding: 0.15, mechanism: 'Agonist', targetReceptor: 'Alpha-2 Adrenergic (Central)',
+    intracellularCascade: 'Central alpha-2 agonist -> reduces sympathetic outflow from NTS -> decreased NE release -> vasodilation and bradycardia',
+    indications: { 'Chronic HTN in Pregnancy': { dose: '250-500', unit: 'mg', type: 'Bolus' }, 'Hypertensive Urgency IV': { dose: '250-500', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 30.0, V2: 0, V3: 0, k10: 0.015, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.2, coSensitivity: 0.1 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: -25, diaMax: -20, hrMax: -10, rrMax: 0 },
+    notes: 'First-line antihypertensive for CHRONIC hypertension in pregnancy (decades of safety data, no evidence of teratogenicity). Central mechanism: metabolized to alpha-methylnorepinephrine → agonizes alpha-2 receptors in brainstem → decreases sympathetic outflow. Slow onset (4-6h PO). NOT preferred for acute severe hypertension in labor (labetalol/hydralazine/nifedipine preferred for speed). Coombs-positive hemolytic anemia in ~20% at high doses (months of therapy). Sedating (causes maternal drowsiness).'
+  },
+  nicardipine: {
     name: 'Nicardipine', classes: ['CCB'], routes: ['IV'], types: ['Infusion'], dosingWeight: 'TBW',
     metabolism: 'Hepatic', mechanism: 'Blocker', targetReceptor: 'L-type Calcium', intracellularCascade: 'Dihydropyridine CCB -> blocks L-type VGCCs in vascular smooth muscle -> prevents Ca2+ influx',
     indications: { 'HTN': { dose: '5-15', unit: 'mg/hr', type: 'Infusion' } },
@@ -684,8 +817,12 @@ export const MEDICATIONS = {
     name: 'Adenosine', classes: ['Purinergic'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
     metabolism: 'RBC and Endothelial cell uptake (rapid deamination)', mechanism: 'Agonist', targetReceptor: 'A1 Receptors', intracellularCascade: 'A1 (Gi-coupled) -> inhibits adenylate cyclase (decreased cAMP) -> activates K-ACh channels -> hyperpolarization',
     indications: { 'SVT': { dose: '6-12', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 5.0, V2: 0, V3: 0, k10: 5.0, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 5.0, coSensitivity: 0.1 }, 
-    pd: { c50: 0.2, gamma: 4.0, sysMax: -40, diaMax: -20, hrMax: -150, rrMax: 0 },
+    // t½≈10-30 sec (RBC/endothelium uptake + deamination). k10=5.0/min → t½≈8.3s ✓
+    // hrMax=-50: transient profound bradycardia (AV block) lasting 5-15s ✓ — NOT asystole.
+    // Prior hrMax=-150 was unrealistic (would drop any HR to zero). Clinical effect is brief
+    // complete/near-complete AV block lasting 5-15 seconds then self-terminating.
+    pk: { V1: 5.0, V2: 0, V3: 0, k10: 5.0, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 5.0, coSensitivity: 0.1 },
+    pd: { c50: 0.2, gamma: 4.0, sysMax: -25, diaMax: -15, hrMax: -50, rrMax: 0 },
     notes: 'Activates G-protein-coupled A1 receptors, increasing potassium efflux and hyperpolarizing AV nodal tissue to terminate SVT. Extremely short half-life (<10 sec). Bolus must be rapid.'
   },
   amiodarone: { 
@@ -700,7 +837,9 @@ export const MEDICATIONS = {
     name: 'Atropine', classes: ['Anticholinergic'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
     metabolism: 'Hepatic (50%), renal unchanged (50%)', mechanism: 'Antagonist', targetReceptor: 'Muscarinic (M2/M3)', intracellularCascade: 'Antagonizes M2 (Gi-coupled) at SA/AV node -> prevents cAMP decrease -> increases HR',
     indications: { 'Bradycardia': { dose: '0.5-1.0', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.08, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 }, 
+    // ke0=4.0/min (↑ from 0.5): prior gave t_peak=4.4 min; clinical IV atropine increases HR within 60s.
+    // ke0=4.0 → t_peak = ln(4.0/0.08)/(4.0-0.08) = ln(50)/3.92 ≈ 1.0 min ✓.
+    pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.08, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 4.0, coSensitivity: 0.1 },
     pd: { c50: 0.02, gamma: 2.0, sysMax: 5, diaMax: 5, hrMax: 55, rrMax: 0 },
     notes: 'Tertiary amine. Crosses BBB (can cause central anticholinergic syndrome in elderly). Blocks vagal stimulation to SA/AV nodes, increasing HR.'
   },
@@ -724,7 +863,10 @@ export const MEDICATIONS = {
     name: 'Digoxin', classes: ['Cardiac Glycoside'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'LBW',
     metabolism: 'Renal excretion (unchanged)', mechanism: 'Inhibitor', targetReceptor: 'Na+/K+-ATPase',
     indications: { 'Rate Control': { dose: '0.25-0.5', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 50.0, V2: 300.0, V3: 0, k10: 0.005, k12: 0.02, k21: 0.01, k13: 0, k31: 0, ke0: 0.05, coSensitivity: 0.1 }, 
+    // Digoxin t½=36-40h. With V1=50, V2=300: beta=k10×k21/alpha. Using k10=0.00016/min,
+    // k12=0.001, k21=0.0005 → very long t½β (hundreds of hours — appropriate for maintenance
+    // with once-daily dosing visible in simulation). Renal clearance dominant (renalRatio scales k10).
+    pk: { V1: 50.0, V2: 300.0, V3: 0, k10: 0.00016, k12: 0.001, k21: 0.0005, k13: 0, k31: 0, ke0: 0.05, coSensitivity: 0.1 },
     pd: { c50: 1.5, gamma: 1.5, sysMax: 10, diaMax: 5, hrMax: -20, rrMax: 0 },
     notes: 'Inhibits Na+/K+-ATPase, indirectly increasing intracellular Ca2+ (inotropic) while increasing vagal tone (slowing AV conduction). Highly renal dependent.'
   },
@@ -745,7 +887,7 @@ export const MEDICATIONS = {
     notes: 'Class III antiarrhythmic. Prompts slow inward sodium currents and delays potassium currents, prolonging action potential duration. Used to chemically cardiovert AF/flutter. High risk of torsades de pointes (prolonged QT).'
   },
   lidocaine: { 
-    name: 'Lidocaine', classes: ['Class Ib'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    name: 'Lidocaine', classes: ['Class IB'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
     metabolism: 'Hepatic (CYP1A2/3A4) to active MEGX', proteinBinding: 0.60, mechanism: 'Blocker', targetReceptor: 'Fast Na+ Channels',
     indications: { 'Arrhythmia': { dose: '1.0-1.5', unit: 'mg/kg', type: 'Bolus' }, 'Airway Blunting': { dose: '1.5', unit: 'mg/kg', type: 'Bolus' } },
     pk: { V1: 25.0, V2: 50.0, V3: 150, k10: 0.05, k12: 0.1, k21: 0.05, k13: 0.02, k31: 0.01, ke0: 0.5, coSensitivity: 0.3, proteinBinding: 0.60, renalFraction: 0.0, hepaticFraction: 1.0 }, 
@@ -874,13 +1016,59 @@ export const MEDICATIONS = {
     pd: { c50: 0, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
     notes: 'Natural colloid volume expander. Expands intravascular volume 1:1. Retained in vascular space longer than crystalloids.'
   },
-  flumazenil: { 
-    name: 'Flumazenil', classes: ['Antagonist'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+  lorazepam: {
+    name: 'Lorazepam', classes: ['Benzodiazepine'], routes: ['IV', 'IM'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (glucuronidation, no active metabolites)', proteinBinding: 0.85, mechanism: 'Potentiator', targetReceptor: 'GABA-A',
+    indications: { 'Anxiolysis / Seizure': { dose: '1-2', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 35.0, V3: 0, k10: 0.003, k12: 0.03, k21: 0.02, k13: 0, k31: 0, ke0: 0.08, coSensitivity: 0.1 },
+    pd: { c50: 0.05, gamma: 1.5, sysMax: -5, diaMax: -5, hrMax: 0, rrMax: -4 },
+    notes: 'Intermediate-acting benzodiazepine. No active metabolites (glucuronidation only) → safer in liver disease than midazolam. Preferred for status epilepticus IV. CAUTION: propylene glycol vehicle can cause toxicity in high doses; long half-life contributes to ICU delirium.'
+  },
+  verapamil: {
+    name: 'Verapamil', classes: ['Class IV CCB'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (extensive first-pass)', proteinBinding: 0.90, mechanism: 'Blocker', targetReceptor: 'L-type Calcium (non-DHP)',
+    intracellularCascade: 'Non-DHP CCB -> blocks L-type VGCCs in myocardium and AV node -> slows conduction',
+    indications: { 'SVT Rate Control': { dose: '2.5-5.0', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 40.0, V2: 80.0, V3: 0, k10: 0.08, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.2, coSensitivity: 0.2 },
+    pd: { c50: 0.3, gamma: 2.0, sysMax: -25, diaMax: -25, hrMax: -35, rrMax: 0 },
+    notes: 'Non-DHP CCB. Strong AV nodal depression. CRITICAL CONTRAINDICATION WITH BETA-BLOCKERS: additive AV block risk → complete heart block. ALSO DANGEROUS IN WPW + AF: blocks AV node → forces conduction through accessory pathway → VF. DO NOT use in WPW with AF.'
+  },
+  sotalol: {
+    name: 'Sotalol', classes: ['Class III Antiarrhythmic', 'Beta-Blocker'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Renal (unchanged)', proteinBinding: 0, mechanism: 'Blocker', targetReceptor: 'IKr (hERG) + Beta-1/2',
+    indications: { 'AF / VT': { dose: '75-150', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.02, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.1 },
+    pd: { c50: 2.0, gamma: 1.5, sysMax: -15, diaMax: -15, hrMax: -30, rrMax: 0 },
+    notes: 'Non-selective beta-blocker + class III antiarrhythmic (IKr blocker). HIGH QT PROLONGATION RISK (>20 ms per dose) — dose-dependent torsades de pointes risk. Must monitor QTc. Renally cleared: dose reduce in CKD. Available IV for acute AF/flutter rate/rhythm control.'
+  },
+  angiotensin_ii: {
+    name: 'Angiotensin II', classes: ['Vasopressor'], routes: ['IV'], types: ['Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Plasma Peptidases (seconds)', proteinBinding: 0, mechanism: 'Agonist', targetReceptor: 'AT1 Receptor',
+    intracellularCascade: 'AT1 (Gq-coupled) -> IP3/DAG -> smooth muscle contraction + aldosterone release',
+    indications: { 'Refractory Vasodilatory Shock': { dose: '20-80', unit: 'ng/kg/min', type: 'Infusion' } },
+    pk: { V1: 5.0, V2: 0, V3: 0, k10: 2.5, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 3.0, coSensitivity: 0.05 },
+    pd: { c50: 0.005, gamma: 2.0, sysMax: 60, diaMax: 70, hrMax: 0, rrMax: 0 },
+    notes: 'Endogenous renin-angiotensin system peptide, now available as synthetic vasopressor (Giapreza). Unique mechanism: AT1-mediated vasoconstriction independently of catecholamine receptors — effective in catecholamine-refractory shock. Also promotes aldosterone secretion (↑Na/K exchange → volume retention). Clinical use: septic/vasodilatory shock refractory to NE/vasopressin.'
+  },
+  methylene_blue: {
+    name: 'Methylene Blue', classes: ['Vasopressor Adjunct', 'Antidote'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Tissue reduction to leucomethylene blue', proteinBinding: 0, mechanism: 'NOS Inhibitor', targetReceptor: 'NO Synthase / sGC',
+    indications: { 'Vasoplegic Shock': { dose: '1-2', unit: 'mg/kg', type: 'Bolus' }, 'Methemoglobinemia': { dose: '1-2', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 50.0, V3: 0, k10: 0.02, k12: 0.05, k21: 0.03, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.2 },
+    pd: { c50: 2.0, gamma: 1.5, sysMax: 30, diaMax: 35, hrMax: 0, rrMax: 0 },
+    notes: 'DUAL ACTION: (1) VASOPLEGIA: Inhibits NO synthase + soluble guanylyl cyclase → blocks NO-mediated vasodilation → potent vasopressor for CPB vasoplegia and other refractory distributive shock; (2) METHEMOGLOBINEMIA ANTIDOTE: Accepts electrons from NADPH → reduces MetHb → OxyHb restoration. CONTRAINDICATED in G6PD deficiency (for methemoglobinemia use) and serotonin syndrome context (MAO inhibitor properties → potentially worsens SS). CAUTION: turns urine/skin blue-green (SpO2 artifact at 660nm → reads low).'
+  },
+  flumazenil: {
+    name: 'Flumazenil', classes: ['GABA Antagonist'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
     metabolism: 'Hepatic', mechanism: 'Antagonist', targetReceptor: 'Benzodiazepine (GABA-A)',
     indications: { 'Benzo Reversal': { dose: '0.2-0.5', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 12.0, V2: 24.0, V3: 0, k10: 0.15, k12: 0.1, k21: 0.1, k13: 0, k31: 0, ke0: 2.0, coSensitivity: 0.1 }, 
-    pd: { c50: 0.05, gamma: 2.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
-    notes: 'Competitive benzodiazepine receptor antagonist. Fast onset, short half-life (~50 min, risks re-sedation). Contraindicated in chronic benzo users (triggers withdrawal seizures).'
+    // k10=0.018/min → t½β≈60 min (clinical t½ 40-80 min). Prior k10=0.1 → t½=6.9 min (grossly wrong).
+    // Short t½ means re-sedation is a real risk after reversing long-acting benzodiazepines.
+    // ke0=3.0/min (↑ from 0.4): prior gave t_peak=4.65 min; clinical flumazenil reversal onset 1-2 min.
+    // ke0=3.0 → t_peak = ln(3.0/0.098)/(3.0-0.098) = ln(30.6)/2.902 ≈ 1.18 min ✓.
+    pk: { V1: 15.0, V2: 25.0, V3: 0, k10: 0.018, k12: 0.08, k21: 0.05, k13: 0, k31: 0, ke0: 3.0, coSensitivity: 0.1 },
+    pd: { c50: 0.002, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Competitive benzodiazepine receptor antagonist. t½≈50-60 min → RESEDATION RISK when used to reverse longer-acting benzodiazepines (midazolam t½β≈86 min, lorazepam much longer). Contraindicated in chronic benzo users (triggers withdrawal seizures).'
   },
   papaverine: {
     name: 'Papaverine', classes: ['Vasodilator'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
@@ -891,11 +1079,13 @@ export const MEDICATIONS = {
     notes: 'Direct-acting smooth muscle relaxant / phosphodiesterase inhibitor. Direct vasodilator. Used to treat arterial vasospasm, especially in response to intra-arterial barbiturate crystal precipitation.'
   },
   naloxone: { 
-    name: 'Naloxone', classes: ['Antagonist'], routes: ['IV', 'IM'], types: ['Bolus'], dosingWeight: 'TBW',
+    name: 'Naloxone', classes: ['Opioid Antagonist'], routes: ['IV', 'IM'], types: ['Bolus'], dosingWeight: 'TBW',
     metabolism: 'Hepatic (glucuronidation)', mechanism: 'Antagonist', targetReceptor: 'Mu-Opioid',
     indications: { 'Opioid Reversal': { dose: '0.04-0.4', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 15.0, V2: 30.0, V3: 0, k10: 0.1, k12: 0.1, k21: 0.1, k13: 0, k31: 0, ke0: 2.0, coSensitivity: 0.1 }, 
-    pd: { c50: 0.02, gamma: 2.0, sysMax: 15, diaMax: 10, hrMax: 20, rrMax: 12 },
+    // k10=0.012/min → t½β≈80 min (clinical t½ 60-90 min). Prior k10=0.1 → t½=6.9 min (wrong).
+    // Re-narcotization risk for opioids with t½ > naloxone's t½. ke0=2.0 → rapid onset ✓
+    pk: { V1: 15.0, V2: 30.0, V3: 0, k10: 0.012, k12: 0.08, k21: 0.08, k13: 0, k31: 0, ke0: 2.0, coSensitivity: 0.1 },
+    pd: { c50: 0.001, gamma: 2.0, sysMax: 15, diaMax: 10, hrMax: 20, rrMax: 12 },
     notes: 'Competitive mu-opioid receptor antagonist. Fast onset, short half-life (~45 min, risks re-narcotization). Fast reversal of chronic opioid users causes severe sympathetic surge (pulmonary edema, tachycardia, arrest).'
   },
   unasyn: { 
@@ -1246,6 +1436,406 @@ export const MEDICATIONS = {
     pk: { V1: 12.0, V2: 0, V3: 0, k10: 0.05, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 },
     pd: { c50: 0.005, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
     notes: 'Synthetic omega-conotoxin. Potent selective N-type calcium channel blocker. Approved for intrathecal (IT) use. Side effects: postural hypotension, confusion.'
+  },
+  desmopressin: {
+    name: 'Desmopressin (DDAVP)', classes: ['Vasoactive', 'Reversal'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Renal', proteinBinding: 0.50, mechanism: 'V2 Receptor Agonist', targetReceptor: 'V2 Receptors',
+    indications: { 'Type 1 VWD / Uremic Bleeding / Hemophilia A': { dose: '0.3', unit: 'mcg/kg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 15.0, V3: 0, k10: 0.006, k12: 0.04, k21: 0.04, ke0: 0.1 },
+    pd: { c50: 0.1, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Synthetic analog of vasopressin. Stimulates release of VWF and Factor VIII from endothelial Weibel-Palade bodies. Indicated for Type 1 VWD, mild Hemophilia A, and uremic platelet dysfunction. NOT for Type 2B VWD.'
+  },
+  methylprednisolone: {
+    name: 'Methylprednisolone', classes: ['Corticosteroid'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP3A4)', proteinBinding: 0.77, mechanism: 'Glucocorticoid Receptor Agonist', targetReceptor: 'Glucocorticoid Receptor',
+    indications: {
+      'Anaphylaxis / Asthma': { dose: '125', unit: 'mg', type: 'Bolus' },
+      'Fat Embolism': { dose: '6-7', unit: 'mg/kg', type: 'Bolus' },
+      'Spinal Cord Injury (NASCIS)': { dose: '30', unit: 'mg/kg', type: 'Bolus' },
+      'Airway Edema': { dose: '1-2', unit: 'mg/kg', type: 'Bolus' }
+    },
+    pk: { V1: 30.0, V2: 30.0, V3: 0, k10: 0.012, k12: 0.04, k21: 0.04, k13: 0, k31: 0, ke0: 0.08, coSensitivity: 0 },
+    pd: { c50: 1.5, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 5, rrMax: 0 },
+    notes: 'Synthetic glucocorticoid, 5× potency of hydrocortisone. Used for severe anaphylaxis/anaphylactoid reactions (prevents late-phase biphasic reactions), fat embolism syndrome (controversial — may reduce inflammatory lung injury), acute asthma exacerbation, spinal cord injury (NASCIS protocol — controversial). Onset 1-4h for anti-inflammatory effects. No mineralocorticoid activity. Use with caution in diabetics (causes hyperglycemia). PancreasEngine.ts integration: stress hyperglycemia amplified.'
+  },
+  pralidoxime: {
+    name: 'Pralidoxime (2-PAM)', classes: ['Antidote', 'Cholinesterase Reactivator'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Renal (unchanged)', proteinBinding: 0, mechanism: 'Acetylcholinesterase Reactivator', targetReceptor: 'Acetylcholinesterase',
+    indications: {
+      'Organophosphate Poisoning': { dose: '1000-2000', unit: 'mg', type: 'Bolus' },
+      'Maintenance': { dose: '200-500', unit: 'mg/hr', type: 'Infusion' }
+    },
+    pk: { V1: 10.0, V2: 10.0, V3: 0, k10: 0.06, k12: 0.03, k21: 0.03, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Oxime that reactivates organophosphate-inhibited acetylcholinesterase. CRITICAL TIMING: Must be given BEFORE "aging" — covalent bond between OP and AChE becomes irreversible (OP-specific; parathion ages within hours, sarin within minutes). Reverses nicotinic effects (muscle weakness, NMJ block) better than muscarinic effects. DOES NOT replace atropine (atropine handles muscarinic effects; pralidoxime handles nicotinic and AChE reactivation). Loading dose 1-2g IV over 15-30 min, then 200-500 mg/hr infusion. Avoid rapid IV push (can cause laryngospasm, tachycardia, hypertension from transient cholinesterase inhibition).'
+  },
+  hydroxocobalamin: {
+    name: 'Hydroxocobalamin (Cyanokit)', classes: ['Antidote', 'Cyanide Antidote'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Binds cyanide → cyanocobalamin → renal excretion', proteinBinding: 0, mechanism: 'Cyanide Chelator', targetReceptor: 'Cyanide Ion',
+    indications: {
+      'Cyanide Poisoning / Smoke Inhalation': { dose: '5000', unit: 'mg', type: 'Bolus' },
+      'Severe': { dose: '10000', unit: 'mg', type: 'Bolus' }
+    },
+    pk: { V1: 5.0, V2: 0, V3: 0, k10: 0.003, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'First-line antidote for cyanide poisoning (particularly smoke inhalation with suspected concurrent CO poisoning). Mechanism: cobalt ion in hydroxocobalamin has extremely high affinity for cyanide → forms cyanocobalamin (vitamin B12) → renally excreted. Advantages over older antidotes (amyl nitrite/sodium nitrite/sodium thiosulfate): DOES NOT cause methemoglobinemia (critical in concurrent CO poisoning where MetHb formation would be additive). Dose: 5g IV over 15 min (initial); repeat 5g x2 in severe cases. Side effects: turns urine/skin red-brown (interference with colorimetric lab tests including CO-oximetry — obtain ABG BEFORE administering). No oxygen interaction: can be given safely in hypoxic patients unlike nitrite-based antidotes.'
+  },
+  hydrocortisone: {
+    name: 'Hydrocortisone', classes: ['Corticosteroid'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic', proteinBinding: 0.90, mechanism: 'Glucocorticoid Receptor Agonist', targetReceptor: 'Glucocorticoid Receptor',
+    indications: { 'Adrenal Crisis': { dose: '100', unit: 'mg', type: 'Bolus' }, 'Stress-Dose Coverage': { dose: '50-100', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 15.0, V3: 0, k10: 0.008, k12: 0.05, k21: 0.05, ke0: 0.1 },
+    pd: { c50: 1.0, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Short-acting corticosteroid. Physiological glucocorticoid with mineralocorticoid activity. Drug of choice for acute adrenal crisis (100mg IV bolus) and perioperative stress-dose coverage. Reverses glucocorticoid-suppression vasopressor blunting by restoring adrenergic receptor expression.'
+  },
+  pcc: {
+    name: '4-Factor PCC (Kcentra)', classes: ['Coagulation Factor', 'Reversal'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Catabolism', proteinBinding: 0.0, mechanism: 'Coagulation Factor Replacement', targetReceptor: 'Coagulation Cascade',
+    indications: { 'Warfarin Reversal': { dose: '25-50', unit: 'Unit/kg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.01, k12: 0, k21: 0, ke0: 1.0 },
+    pd: { c50: 1.0, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: '4-Factor Prothrombin Complex Concentrate (contains factors II, VII, IX, X, and proteins C and S). Rapidly reverses warfarin within 30 min. Preferred over FFP for urgent reversal of major bleeding.'
+  },
+  andexanet: {
+    name: 'Andexanet Alfa (Andexxa)', classes: ['Decoy Receptor', 'Reversal'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Catabolism', proteinBinding: 0.0, mechanism: 'Factor Xa Decoy Receptor', targetReceptor: 'Factor Xa Inhibitors',
+    indications: { 'Factor Xa Inhibitor Reversal': { dose: '800', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.02, k12: 0, k21: 0, ke0: 1.0 },
+    pd: { c50: 1.0, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Recombinant modified human Factor Xa decoy protein. Sequesters and reverses Factor Xa inhibitors (apixaban, rivaroxaban) within minutes. Indicated for life-threatening or uncontrolled bleeding.'
+  },
+  idarucizumab: {
+    name: 'Idarucizumab (Praxbind)', classes: ['Monoclonal Antibody', 'Reversal'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Renal / Catabolism', proteinBinding: 0.0, mechanism: 'Dabigatran Monoclonal Antibody', targetReceptor: 'Dabigatran',
+    indications: { 'Dabigatran Reversal': { dose: '5.0', unit: 'g', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.03, k12: 0, k21: 0, ke0: 1.0 },
+    pd: { c50: 1.0, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Humanized monoclonal antibody fragment that binds specifically to dabigatran with 350x greater affinity than thrombin. Produces immediate and complete reversal of dabigatran anticoagulation.'
+  },
+  propylthiouracil: {
+    name: 'Propylthiouracil (PTU)', classes: ['Antithyroid Agent'], routes: ['PO'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic', proteinBinding: 0.75, mechanism: 'Thyroid Peroxidase Inhibitor + T4→T3 Conversion Blocker', targetReceptor: 'Thyroid Peroxidase',
+    indications: { 'Thyroid Storm': { dose: '500-1000', unit: 'mg', type: 'Bolus' }, 'Hyperthyroidism Maintenance': { dose: '100', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.02, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0 },
+    pd: { c50: 1.5, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: -5, rrMax: 0 },
+    notes: 'Thionamide. Step 1 in thyroid storm treatment. Blocks thyroid peroxidase → prevents new hormone SYNTHESIS. Also blocks peripheral T4→T3 conversion (unique dual action vs methimazole). Give FIRST, then wait ≥1h before Lugol\'s iodide. Preferred in storm and 1st trimester pregnancy. No IV formulation — must use PO/NG tube. Hepatotoxicity risk (monitoring required). Onset 1-2h. Does NOT affect existing circulating hormones.'
+  },
+  methimazole: {
+    name: 'Methimazole', classes: ['Antithyroid Agent'], routes: ['PO'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic', proteinBinding: 0, mechanism: 'Thyroid Peroxidase Inhibitor', targetReceptor: 'Thyroid Peroxidase',
+    indications: { 'Hyperthyroidism': { dose: '10-40', unit: 'mg', type: 'Bolus' }, 'Thyroid Storm': { dose: '40-60', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 25.0, V2: 0, V3: 0, k10: 0.015, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0 },
+    pd: { c50: 1.0, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: -3, rrMax: 0 },
+    notes: 'Thionamide. Preferred over PTU for maintenance (once-daily, less hepatotoxic). Also used in thyroid storm. Does NOT block T4→T3 conversion (unlike PTU). Avoid in 1st trimester pregnancy (teratogenic). Give before Lugol\'s iodide.'
+  },
+  lugolsIodide: {
+    name: 'Lugol\'s Iodide', classes: ['Antithyroid Agent', 'Thyroid Release Blocker'], routes: ['PO'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Iodine metabolism', proteinBinding: 0, mechanism: 'Wolff-Chaikoff Effect (iodide inhibits thyroid hormone release)', targetReceptor: 'Thyroid Follicular Cell',
+    indications: { 'Thyroid Storm': { dose: '5-10', unit: 'drops', type: 'Bolus' }, 'Preoperative Iodide Loading': { dose: '1-2', unit: 'drops', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.01, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.4, coSensitivity: 0 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: -8, rrMax: 0 },
+    notes: 'Potassium iodide solution (5% iodine + 10% KI). CRITICAL TIMING: Must be given ≥1 hour AFTER PTU or methimazole. If given FIRST, provides substrate for MORE hormone synthesis → worsens storm. Blocks thyroid hormone RELEASE via Wolff-Chaikoff effect. Rapid onset (hours). Dose: 5-10 drops PO q6-8h. Also used pre-operatively for thyroid surgery (reduces vascularity).'
+  },
+  rfviia: {
+    name: 'Recombinant Factor VIIa (NovoSeven)', classes: ['Coagulation Factor', 'Reversal'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Catabolism', proteinBinding: 0.0, mechanism: 'Platelet Surface Factor X Activation', targetReceptor: 'Platelet Membrane',
+    indications: { 'Hemophilia with Inhibitors': { dose: '90', unit: 'mcg/kg', type: 'Bolus' }, 'Refractory Hemorrhage': { dose: '90', unit: 'mcg/kg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.015, k12: 0, k21: 0, ke0: 1.0 },
+    pd: { c50: 1.0, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Recombinant activated Factor VII (rFVIIa). Direct Factor X activation on platelet surfaces, bypassing FVIII/FIX. Used in hemophilia with inhibitors and refractory surgical hemorrhage. Supratherapeutic doses carry thromboembolism risks.'
+  },
+
+  // ===== BRONCHODILATORS (previously entirely absent) =====
+  albuterol: {
+    name: 'Albuterol (Salbutamol)', classes: ['Beta-2 Agonist', 'Bronchodilator'], routes: ['IV', 'Inhaled'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic / GI', proteinBinding: 0.10, mechanism: 'Agonist', targetReceptor: 'Beta-2 Adrenergic',
+    indications: { 'Bronchospasm': { dose: '2.5', unit: 'mg', type: 'Bolus' }, 'Hyperkalemia': { dose: '20', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 30.0, V2: 60.0, V3: 0, k10: 0.03, k12: 0.04, k21: 0.025, k13: 0, k31: 0, ke0: 0.6, coSensitivity: 0.2 },
+    pd: { c50: 0.5, gamma: 1.5, sysMax: -8, diaMax: -5, hrMax: 15, rrMax: 0 },
+    notes: 'Selective beta-2 adrenergic agonist. Primary bronchodilator for intraoperative bronchospasm (nebulized or MDI through ETT, or IV in severe cases). DUAL USE: also treats hyperkalemia by driving K+ intracellularly (shifts K+ ~0.5-1.0 mEq/L; slower onset than calcium but additive with insulin/glucose). Short t1/2 ~4h. Side effects: tachycardia, hypokalemia (dose-dependent), tremor. Does NOT reduce cardiac death risk in hyperkalemia (membrane stabilization requires calcium).'
+  },
+  ipratropium: {
+    name: 'Ipratropium Bromide', classes: ['Anticholinergic Bronchodilator'], routes: ['Inhaled'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hydrolysis', proteinBinding: 0.0, mechanism: 'Blocker', targetReceptor: 'Muscarinic M3',
+    indications: { 'Bronchospasm / COPD': { dose: '0.5', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 10.0, V3: 0, k10: 0.02, k12: 0.03, k21: 0.03, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 2, rrMax: 0 },
+    notes: 'Quaternary anticholinergic bronchodilator. Blocks muscarinic M3 receptors on bronchial smooth muscle → bronchodilation. Minimal systemic absorption (quaternary compound does NOT cross BBB, does not cause tachycardia at therapeutic inhaled doses unlike atropine). Used as adjunct to albuterol in severe bronchospasm (additive effect via different receptor pathway). Also first-line for COPD exacerbation (cholinergic tone is the primary bronchoconstrictive mechanism in COPD). Onset 15-30 min, duration 4-6h.'
+  },
+
+  // ===== ENDOCRINE: INSULIN & GLUCAGON =====
+  regularInsulin: {
+    name: 'Regular Insulin', classes: ['Hormone', 'Antidiabetic'], routes: ['IV', 'SubQ'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Renal / Hepatic (insulinase)', proteinBinding: 0.05, mechanism: 'Agonist', targetReceptor: 'Insulin Receptor',
+    indications: { 'Hyperglycemia': { dose: '0.1', unit: 'units/kg/hr', type: 'Infusion' }, 'Hyperkalemia': { dose: '10', unit: 'units', type: 'Bolus' }, 'DKA': { dose: '0.1', unit: 'units/kg/hr', type: 'Infusion' } },
+    pk: { V1: 8.0, V2: 12.0, V3: 0, k10: 0.08, k12: 0.05, k21: 0.04, k13: 0, k31: 0, ke0: 0.4, coSensitivity: 0.3 },
+    pd: { c50: 0.5, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Short-acting insulin. Three critical perioperative uses: (1) HYPERGLYCEMIA -- IV infusion titrated to glucose 140-180 mg/dL; (2) HYPERKALEMIA -- 10 units IV with 50 mL D50W; drives K+ intracellularly within 15-30 min, lowers serum K+ ~0.5-1.0 mEq/L (temporary, must follow with definitive treatment); (3) DKA -- 0.1 units/kg/hr infusion to close the anion gap, along with aggressive fluid replacement and electrolyte replacement (especially K+). WARNING: simultaneously lowers both glucose AND potassium -- monitor closely to avoid hypoglycemia AND hypokalemia, especially in DKA where total body K+ is depleted despite high serum K+.'
+  },
+  glucagon: {
+    name: 'Glucagon', classes: ['Hormone', 'Antidiabetic Adjunct'], routes: ['IV', 'IM', 'SubQ'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Proteolysis (liver, kidney)', proteinBinding: 0.0, mechanism: 'Agonist', targetReceptor: 'Glucagon Receptor (Gs-coupled)',
+    indications: { 'Hypoglycemia (No IV)': { dose: '1.0', unit: 'mg', type: 'Bolus' }, 'Beta-Blocker Overdose': { dose: '3-10', unit: 'mg', type: 'Bolus' }, 'CCB Overdose': { dose: '3-10', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.20, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.1 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: 10, diaMax: 5, hrMax: 20, rrMax: 0 },
+    notes: 'Counter-regulatory hormone to insulin. TWO key anesthesia uses: (1) HYPOGLYCEMIA WITHOUT IV ACCESS -- 1mg IM/SubQ raises glucose by stimulating hepatic glycogenolysis; works even in unconscious patient; (2) BETA-BLOCKER OR CCB OVERDOSE -- glucagon activates adenylyl cyclase INDEPENDENTLY of beta receptors (bypasses the blockade); 3-10mg IV bolus followed by 3-5 mg/hr infusion causes positive inotropy and chronotropy; this is the SPECIFIC treatment for beta-blocker bradycardia refractory to atropine and epinephrine. Nausea/vomiting are common side effects (limiting for conscious patients).'
+  },
+
+  // ===== DESMOPRESSIN (DDAVP) =====
+  desmopressin: {
+    name: 'Desmopressin (DDAVP)', classes: ['Vasopressin Analogue', 'Hemostatic Agent'], routes: ['IV', 'SubQ', 'Intranasal'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Renal', proteinBinding: 0.0, mechanism: 'Agonist', targetReceptor: 'V2 Vasopressin Receptor',
+    indications: { 'Von Willebrand Disease Type 1': { dose: '0.3', unit: 'mcg/kg', type: 'Bolus' }, 'Mild Hemophilia A': { dose: '0.3', unit: 'mcg/kg', type: 'Bolus' }, 'Central Diabetes Insipidus': { dose: '0.3', unit: 'mcg/kg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 15.0, V3: 0, k10: 0.004, k12: 0.02, k21: 0.015, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0.1 },
+    pd: { c50: 0.5, gamma: 1.5, sysMax: -5, diaMax: -3, hrMax: 5, rrMax: 0 },
+    notes: 'Synthetic analogue of vasopressin (V2 selective). THREE anesthesia uses: (1) VWD TYPE 1 -- V2 receptor activation on endothelial Weibel-Palade bodies releases stored VWF → 3-5x increase in VWF and Factor VIII levels within 30 min. CONTRAINDICATED in Type 2B VWD (induces platelet aggregation and thrombocytopenia). (2) MILD HEMOPHILIA A -- same VWF release mechanism also releases Factor VIII; effective if baseline FVIII > 5%. (3) CENTRAL DI -- selective V2 action increases renal water reabsorption via aquaporin-2 insertion; does NOT cause vasoconstriction at therapeutic doses (V2 selectivity). Duration 8-12h. Tachyphylaxis with repeated doses (Weibel-Palade bodies depleted). Hyponatremia from water retention is a risk.'
+  },
+
+  // ===== OPIOIDS PREVIOUSLY MISSING =====
+  codeine: {
+    name: 'Codeine', classes: ['Opioid Prodrug'], routes: ['PO', 'IM'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP2D6 to morphine)', proteinBinding: 0.25, mechanism: 'Prodrug (via morphine)', targetReceptor: 'Mu-Opioid (via CYP2D6 conversion)',
+    indications: { 'Mild-Moderate Pain': { dose: '30-60', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 40.0, V2: 100.0, V3: 0, k10: 0.015, k12: 0.04, k21: 0.025, k13: 0, k31: 0, ke0: 0.2, coSensitivity: 0.4 },
+    pd: { c50: 0.5, gamma: 1.5, sysMax: -5, diaMax: -3, hrMax: -3, rrMax: -8 },
+    notes: 'Opioid PRODRUG -- codeine itself has minimal intrinsic analgesic activity. CYP2D6 converts ~10% to active morphine. CRITICAL PHARMACOGENOMICS: CYP2D6 Ultra-Rapid Metabolizers (UM, 1-10% by ethnicity) convert excessive codeine to morphine → respiratory arrest and death at STANDARD doses (FDA black-box warning; multiple pediatric post-tonsillectomy fatalities). CYP2D6 Poor Metabolizers (PM, 7% Caucasian) get NO analgesia (prodrug not activated). PharmacogenomicsEngine.ts models these effects. Contraindicated in children undergoing tonsillectomy/adenoidectomy and breastfeeding mothers who may be CYP2D6 UM. Also has weak direct antitussive activity (cough suppression) independent of CYP2D6.'
+  },
+  tramadol: {
+    name: 'Tramadol', classes: ['Atypical Opioid', 'SNRI'], routes: ['IV', 'PO', 'IM'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP2D6 to O-desmethyltramadol, CYP3A4/2B6)', proteinBinding: 0.20, mechanism: 'Agonist + Reuptake Inhibitor', targetReceptor: 'Mu-Opioid + Serotonin/Norepinephrine Transporters',
+    indications: { 'Moderate Pain': { dose: '50-100', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 25.0, V2: 60.0, V3: 0, k10: 0.012, k12: 0.04, k21: 0.025, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0.4 },
+    pd: { c50: 0.8, gamma: 1.5, sysMax: -5, diaMax: -3, hrMax: -2, rrMax: -6 },
+    notes: 'Dual mechanism: weak mu-opioid agonist (20x less potent than morphine) + serotonin/norepinephrine reuptake inhibitor (SNRI). CRITICAL INTERACTIONS: (1) MAOI INTERACTION -- DO NOT use with MAO inhibitors → severe serotonin syndrome (hyperthermia, rigidity, clonus, altered consciousness). DrugInteractionModel.ts tracks this. (2) CYP2D6 PHARMACOGENOMICS -- PM patients get inadequate analgesia; UM patients may have excessive mu-opioid effect. (3) SEIZURE RISK -- lowers seizure threshold, especially in combination with other serotonergic drugs. (4) SEROTONIN SYNDROME -- also occurs with SSRIs, SNRIs, linezolid, methylene blue. Lower abuse potential than morphine but still a controlled substance. Not recommended post-tonsillectomy in children (similar CYP2D6 risks to codeine).'
+  },
+  meperidine: {
+    name: 'Meperidine (Pethidine)', classes: ['Opioid'], routes: ['IV', 'IM'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP2B6/3A4 to normeperidine)', proteinBinding: 0.60, mechanism: 'Agonist', targetReceptor: 'Mu-Opioid',
+    indications: { 'Post-Op Shivering': { dose: '25', unit: 'mg', type: 'Bolus' }, 'Acute Pain (limited)': { dose: '25-50', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 60.0, V3: 200.0, k10: 0.025, k12: 0.05, k21: 0.02, k13: 0.02, k31: 0.002, ke0: 0.5, coSensitivity: 0.5 },
+    pd: { c50: 0.5, gamma: 1.5, sysMax: -10, diaMax: -5, hrMax: 8, rrMax: -10 },
+    notes: 'Opioid with unique ANTI-SHIVERING property at sub-analgesic doses (25mg IV) via kappa receptor and alpha-2 activity -- the drug of choice for postoperative shivering. CRITICAL INTERACTION: MAOI COMBINATION (phenelzine, tranylcypromine, selegiline) → SEROTONIN SYNDROME with FATAL OUTCOMES -- absolute contraindication; even after discontinuing MAOIs, wait 14 days. Mechanism: meperidine blocks serotonin reuptake + MAOIs increase serotonin → serotonergic excess → hyperthermia + rigidity + autonomic instability. Also has LOCAL ANESTHETIC PROPERTIES (mild sodium channel block). Active metabolite NORMEPERIDINE accumulates in renal failure → seizures. Not recommended for chronic pain due to normeperidine toxicity. Causes tachycardia (unlike other opioids) due to vagolytic effect of structural similarity to atropine.'
+  },
+  oxycodone: {
+    name: 'Oxycodone', classes: ['Opioid'], routes: ['PO', 'IV'], types: ['Bolus'], dosingWeight: 'IBW',
+    metabolism: 'Hepatic (CYP3A4 primary, CYP2D6 to oxymorphone secondary)', proteinBinding: 0.45, mechanism: 'Agonist', targetReceptor: 'Mu-Opioid (predominantly)',
+    indications: { 'Moderate-Severe Pain': { dose: '5-10', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 40.0, V3: 150.0, k10: 0.018, k12: 0.04, k21: 0.02, k13: 0.008, k31: 0.002, ke0: 0.3, coSensitivity: 0.5 },
+    pd: { c50: 0.5, gamma: 1.5, sysMax: -8, diaMax: -5, hrMax: -4, rrMax: -10 },
+    notes: 'Semi-synthetic opioid. Potency approximately 1.5x oral morphine. CYP3A4 is the primary metabolic pathway (unlike codeine/tramadol which use CYP2D6 predominantly) -- CYP3A4 inhibitors (fluconazole, erythromycin) markedly increase plasma levels and toxicity. CYP2D6 converts a small fraction to oxymorphone (more potent mu-agonist) -- CYP2D6 PMs have slightly reduced analgesic efficacy and CYP2D6 UMs have slightly enhanced effect but this is less clinically impactful than with codeine. Available as immediate-release and controlled-release formulations. Abuse potential and risk similar to other schedule II opioids.'
+  },
+
+  // ===== ANTIEMETICS MISSING FROM DB =====
+  palonosetron: {
+    name: 'Palonosetron', classes: ['Antiemetic', '5-HT3 Antagonist (Second Generation)'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP2D6/3A4)', proteinBinding: 0.62, mechanism: 'Blocker', targetReceptor: '5-HT3',
+    indications: { 'PONV Prophylaxis': { dose: '0.075', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 35.0, V2: 60.0, V3: 0, k10: 0.0009, k12: 0.02, k21: 0.015, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 },
+    pd: { c50: 0.02, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Second-generation 5-HT3 receptor antagonist. Key advantages over ondansetron: (1) MUCH LONGER HALF-LIFE (~40 hours vs ondansetron 6h) → single preoperative dose provides 24-72h coverage; (2) ALLOSTERIC BINDING -- binds 5-HT3 receptor at both orthosteric and allosteric sites → more potent and persistent effect; (3) LOWER QTc PROLONGATION RISK vs ondansetron; (4) PHASE II PONV coverage -- ondansetron/granisetron are less effective for delayed PONV (>24h), palonosetron maintains efficacy. Guideline-recommended first-choice 5-HT3 agent for PONV prophylaxis in high-risk patients (Gan et al. PONV consensus guidelines 2020).'
+  },
+  granisetron: {
+    name: 'Granisetron', classes: ['Antiemetic', '5-HT3 Antagonist'], routes: ['IV', 'PO', 'Transdermal'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP3A4)', proteinBinding: 0.65, mechanism: 'Blocker', targetReceptor: '5-HT3',
+    indications: { 'PONV Prophylaxis': { dose: '1.0', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 30.0, V2: 55.0, V3: 0, k10: 0.006, k12: 0.02, k21: 0.015, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 },
+    pd: { c50: 0.1, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Selective 5-HT3 receptor antagonist. Similar efficacy to ondansetron for PONV prevention. Slightly LONGER half-life (~9h vs 6h for ondansetron) → better coverage into the PACU period. LOWER QT PROLONGATION RISK than ondansetron (the FDA ondansetron QTc warning specifically calls out ondansetron doses ≥32mg IV; granisetron has a cleaner cardiac safety profile). Available as transdermal patch (Sancuso) for 7-day coverage -- useful in chemotherapy patients and for opioid-induced nausea in chronic pain patients. CYP3A4 metabolism means interactions with CYP3A4 inhibitors/inducers.'
+  },
+  droperidol: {
+    name: 'Droperidol', classes: ['Antiemetic', 'Antipsychotic (D2 Antagonist)'], routes: ['IV', 'IM'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic', proteinBinding: 0.85, mechanism: 'Blocker', targetReceptor: 'Dopamine D2 (CTZ)',
+    indications: { 'PONV Prophylaxis': { dose: '0.625-1.25', unit: 'mg', type: 'Bolus' }, 'PONV Rescue': { dose: '0.625', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 25.0, V2: 50.0, V3: 0, k10: 0.025, k12: 0.04, k21: 0.025, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 },
+    pd: { c50: 0.1, gamma: 1.5, sysMax: -8, diaMax: -5, hrMax: 0, rrMax: 0 },
+    notes: 'Butyrophenone antipsychotic/antiemetic. Works at dopamine D2 receptors in the CTZ (chemoreceptor trigger zone). EXTREMELY effective for PONV at LOW doses (0.625mg IV) -- equal to ondansetron efficacy with different receptor. FDA BLACK BOX WARNING (2001): QT prolongation/Torsades de Pointes risk → requires baseline ECG and 2-4h post-administration monitoring. This black box warning drastically reduced use despite strong efficacy at low doses. Recent evidence suggests the 0.625mg dose carries acceptable QT risk. Extrapyramidal side effects (akathisia, tardive dyskinesia) at higher antipsychotic doses, uncommon at antiemetic doses. Acts on CTZ only (unlike promethazine which also has vestibular antiemetic effect). DrugInteractionModel.ts tracks its QT contribution.'
+  },
+  haloperidol: {
+    name: 'Haloperidol', classes: ['Antipsychotic (Typical)', 'D2 Antagonist'], routes: ['IV', 'IM', 'PO'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP2D6/3A4)', proteinBinding: 0.92, mechanism: 'Blocker', targetReceptor: 'Dopamine D2',
+    indications: { 'PACU Delirium / Agitation': { dose: '0.5-2.0', unit: 'mg', type: 'Bolus' }, 'ICU Delirium': { dose: '1.0-5.0', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 30.0, V2: 100.0, V3: 0, k10: 0.005, k12: 0.03, k21: 0.015, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0.2 },
+    pd: { c50: 0.5, gamma: 1.5, sysMax: -5, diaMax: -3, hrMax: 0, rrMax: 0 },
+    notes: 'Typical antipsychotic. Potent D2 receptor blocker. PACU USE: treatment of emergence delirium and postoperative agitation, especially in elderly or confused patients. NEUROLEPTIC MALIGNANT SYNDROME (NMS) risk at high doses or in susceptible patients: hyperthermia + rigidity + altered consciousness + autonomic instability. Distinct from MH: NMS has slower onset (days), caused by dopaminergic blockade (not RYR1 mutation), treated with bromocriptine (dopamine agonist) + dantrolene, NOT triggered by volatile anesthetics. QT PROLONGATION: significant risk, especially at IV doses (DrugInteractionModel.ts tracks). Extrapyramidal effects (akathisia, dystonia) common at higher doses. Long half-life (~21h) -- effects persist well beyond single PACU dose.'
+  },
+  promethazine: {
+    name: 'Promethazine', classes: ['Antiemetic', 'Antihistamine', 'Phenothiazine'], routes: ['IV', 'IM', 'PO', 'PR'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic', proteinBinding: 0.93, mechanism: 'Blocker', targetReceptor: 'H1 / D2 / Muscarinic',
+    indications: { 'PONV / Motion Sickness': { dose: '6.25-12.5', unit: 'mg', type: 'Bolus' }, 'Allergy / Pruritus': { dose: '12.5-25', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 35.0, V2: 80.0, V3: 0, k10: 0.008, k12: 0.03, k21: 0.02, k13: 0, k31: 0, ke0: 0.4, coSensitivity: 0.2 },
+    pd: { c50: 0.5, gamma: 1.5, sysMax: -5, diaMax: -3, hrMax: -3, rrMax: -3 },
+    notes: 'Phenothiazine antiemetic with multiple receptor activities (H1, D2, muscarinic, alpha-1). Effective for vestibular PONV (motion-sickness type). WARNING: IV administration risks SEVERE TISSUE NECROSIS if extravasates -- preferably given via large bore IV or IM (but IM injection can cause necrosis too). IV injection rate must be slow. FDA warning against IV administration in some countries. HIGH SEDATION potential (antihistaminergic + dopaminergic). Anticholinergic side effects. Contraindicated in children under 2 years (risk of respiratory depression and death -- FDA black box). Used for opioid-induced pruritus at low doses. Respiratory depression risk compounds with opioids.'
+  },
+  diphenhydramine: {
+    name: 'Diphenhydramine (Benadryl)', classes: ['Antihistamine H1', 'Antiemetic'], routes: ['IV', 'IM', 'PO'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP2D6)', proteinBinding: 0.98, mechanism: 'Blocker', targetReceptor: 'H1 Histamine',
+    indications: { 'Allergic Reaction': { dose: '25-50', unit: 'mg', type: 'Bolus' }, 'Opioid Pruritus': { dose: '25', unit: 'mg', type: 'Bolus' }, 'PONV (vestibular)': { dose: '25-50', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 40.0, V2: 80.0, V3: 0, k10: 0.01, k12: 0.03, k21: 0.02, k13: 0, k31: 0, ke0: 0.4, coSensitivity: 0.2 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: -5, diaMax: -3, hrMax: 5, rrMax: -2 },
+    notes: 'First-generation H1 antihistamine. Multiple uses: (1) ALLERGIC REACTIONS -- H1 blockade treats urticaria/pruritus (does NOT replace epinephrine in anaphylaxis but adjunctive treatment); (2) OPIOID-INDUCED PRURITUS -- mechanism incompletely understood but often effective; (3) MOTION SICKNESS/VESTIBULAR PONV -- crosses BBB unlike second-generation antihistamines; (4) SEDATION -- frequently used for procedural anxiolysis. ANTICHOLINERGIC EFFECTS: urinary retention, constipation, dry mouth, blurred vision, tachycardia. CNS effects: sedation, dizziness, rarely paradoxical excitation (especially in children and elderly). Significant sedation potentiates all CNS depressants. CYP2D6 metabolism means interactions with fluoxetine, bupropion.'
+  },
+  aprepitant: {
+    name: 'Aprepitant', classes: ['Antiemetic', 'NK1 Receptor Antagonist'], routes: ['PO'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP3A4)', proteinBinding: 0.95, mechanism: 'Blocker', targetReceptor: 'NK1 (Neurokinin-1/Substance P)',
+    indications: { 'PONV Prevention (High Risk)': { dose: '80', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 25.0, V2: 40.0, V3: 0, k10: 0.005, k12: 0.02, k21: 0.015, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0.1 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'NK1 receptor (substance P) antagonist. THE MOST POTENT PONV agent when used in multimodal regimens -- NK1 antagonists target a pathway that 5-HT3 and D2 antagonists do NOT, providing true additive benefit in multimodal protocols. PONVModel.ts references the NK1 pathway. 80mg PO given 1-3h before induction (no IV formulation widely available in US -- fosaprepitant is IV prodrug). Significant CYP3A4 INHIBITION (moderate inhibitor) → increases plasma levels of other CYP3A4 substrates (midazolam, fentanyl, steroids) by 20-50%. Also INDUCES CYP2C9 → reduces warfarin and hormonal contraceptive efficacy. Often reserved for high-risk PONV patients (Apfel score 3-4) or where other agents have failed. 40-60% relative risk reduction in PONV when added to existing prophylaxis.'
+  },
+  fosaprepitant: {
+    name: 'Fosaprepitant (Emend IV)', classes: ['Antiemetic', 'NK1 Antagonist (IV Prodrug)'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Rapid hydrolysis to aprepitant (CYP3A4)', proteinBinding: 0.95, mechanism: 'Prodrug→Aprepitant NK1 Blocker', targetReceptor: 'NK1 (via aprepitant)',
+    indications: { 'PONV Prevention (High Risk)': { dose: '150', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 5.0, V2: 20.0, V3: 0, k10: 0.3, k12: 0.1, k21: 0.04, k13: 0, k31: 0, ke0: 0.6, coSensitivity: 0.1 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Intravenous prodrug rapidly converted to aprepitant. Allows NK1 antagonism in patients who cannot take oral medications or where rapid onset is needed. Single 150mg IV dose provides equivalent exposure to 3-day oral aprepitant regimen. Same CYP3A4 inhibitor/CYP2C9 inducer interactions as oral aprepitant. Site-specific infusion site reactions (burning, phlebitis) common -- dilute and infuse slowly. Expensive but cost-justified in high-PONV-risk surgical patients where overall healthcare costs (reoperations, prolonged PACU stays, unexpected admissions) are considered.'
+  },
+
+  // ===== VASOPRESSORS/INOTROPES MISSING =====
+  isoproterenol: {
+    name: 'Isoproterenol', classes: ['Beta-1/Beta-2 Agonist', 'Chronotrope'], routes: ['IV'], types: ['Infusion', 'Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (COMT)', proteinBinding: 0.0, mechanism: 'Agonist', targetReceptor: 'Beta-1 / Beta-2 Adrenergic',
+    indications: { 'Bradycardia (Transplanted Heart)': { dose: '2-10', unit: 'mcg/min', type: 'Infusion' }, 'Complete Heart Block': { dose: '2-10', unit: 'mcg/min', type: 'Infusion' }, 'Brugada Syndrome Crisis': { dose: '1-5', unit: 'mcg/min', type: 'Infusion' } },
+    pk: { V1: 15.0, V2: 30.0, V3: 0, k10: 0.15, k12: 0.08, k21: 0.05, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.3 },
+    pd: { c50: 0.5, gamma: 1.5, sysMax: -10, diaMax: -8, hrMax: 30, rrMax: 0 },
+    notes: 'Pure beta-1 AND beta-2 agonist. No alpha activity. THREE key anesthesia indications: (1) DENERVATED HEART (cardiac transplant) -- the transplanted heart has NO vagal innervation → atropine is completely ineffective for bradycardia; isoproterenol (or epinephrine) is the ONLY pharmacological chronotrope that works; (2) COMPLETE HEART BLOCK awaiting pacemaker -- pure chronotropy without the alpha vasoconstriction; (3) BRUGADA SYNDROME CRISIS -- quinidine and isoproterenol are the specific pharmacological treatments for ventricular storm in Brugada. Unlike epinephrine, isoproterenol causes vasodilation (beta-2 effect) → may cause hypotension despite increasing HR. Massive tachycardia and arrhythmia risk at higher doses.'
+  },
+
+  // ===== ANTIPSYCHOTICS/DELIRIUM =====
+
+  // (haloperidol already added above)
+
+  // ===== ENDOCRINE ADDITIONAL =====
+  octreotide: {
+    name: 'Octreotide', classes: ['Somatostatin Analogue'], routes: ['IV', 'SubQ'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic / Renal', proteinBinding: 0.65, mechanism: 'Agonist', targetReceptor: 'Somatostatin Receptors (SSTR2/5)',
+    indications: { 'Carcinoid Crisis': { dose: '100-500', unit: 'mcg', type: 'Bolus' }, 'Esophageal Varices': { dose: '50', unit: 'mcg', type: 'Bolus' }, 'Acromegaly': { dose: '100', unit: 'mcg', type: 'Bolus' } },
+    pk: { V1: 10.0, V2: 20.0, V3: 0, k10: 0.02, k12: 0.03, k21: 0.025, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: 5, diaMax: 3, hrMax: -5, rrMax: 0 },
+    notes: 'Long-acting somatostatin analogue. CRITICAL CARCINOID CRISIS USE: the ONLY pharmacological treatment that works for carcinoid crisis by BLOCKING TUMOR HORMONE RELEASE (serotonin, bradykinin, histamine) at the source. Standard antihistamines and vasopressors are ineffective against carcinoid-mediated bronchospasm and flushing. Give BEFORE tumor manipulation if carcinoid is known. Additional uses: esophageal variceal bleeding (reduces portal pressure by splanchnic vasoconstriction), acromegaly, VIPomas, glucagonomas. Side effects: hyperglycemia (inhibits insulin release), nausea, cholelithiasis with chronic use. The somatostatin analogue sandbox for carcinoid is one of the classic "what drug is the patient MISSING" teaching scenarios.'
+  },
+  bromocriptine: {
+    name: 'Bromocriptine', classes: ['Dopamine D2 Agonist', 'NMS Treatment'], routes: ['PO'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP3A4)', proteinBinding: 0.96, mechanism: 'Agonist', targetReceptor: 'Dopamine D2',
+    indications: { 'Neuroleptic Malignant Syndrome': { dose: '2.5', unit: 'mg', type: 'Bolus' }, 'Parkinson (Adjunct)': { dose: '1.25', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 50.0, V2: 100.0, V3: 0, k10: 0.008, k12: 0.03, k21: 0.02, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0.2 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: -5, diaMax: -3, hrMax: 5, rrMax: 0 },
+    notes: 'Ergot-derived dopamine D2 receptor agonist. THE SPECIFIC TREATMENT for Neuroleptic Malignant Syndrome (NMS): NMS is caused by dopaminergic blockade (antipsychotics) → bromocriptine REVERSES this by acting as a dopamine agonist. Dose 2.5mg PO q8h, titrate up. Dantrolene is also used in NMS for rigidity and hyperthermia, but bromocriptine addresses the CAUSE. DISTINGUISH FROM MH: NMS is NOT triggered by volatile anesthetics, onset is slower (hours to days after antipsychotic exposure vs minutes for MH), fever is LESS extreme in early stages, and creatinine kinase elevation is common. MH patient should NOT receive haloperidol (may worsen NMS-like features). Also used for Parkinson disease, hyperprolactinemia, and acromegaly.'
+  },
+  physostigmine: {
+    name: 'Physostigmine', classes: ['Cholinesterase Inhibitor (Central)', 'Anticholinergic Antidote'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hydrolysis (cholinesterase)', proteinBinding: 0.05, mechanism: 'Inhibitor', targetReceptor: 'Cholinesterase (Central + Peripheral)',
+    indications: { 'Central Anticholinergic Syndrome': { dose: '1.0-2.0', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 15.0, V3: 0, k10: 0.04, k12: 0.05, k21: 0.04, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 },
+    pd: { c50: 0.5, gamma: 1.5, sysMax: -5, diaMax: -3, hrMax: -10, rrMax: 0 },
+    notes: 'Tertiary amine cholinesterase inhibitor -- CROSSES THE BLOOD-BRAIN BARRIER (unlike neostigmine/edrophonium which are quaternary). This CNS penetration makes it THE SPECIFIC ANTIDOTE for central anticholinergic syndrome (central anti-cholinergic toxidrome): hot (hyperthermia), dry (anhidrosis, dry mucous membranes), flushed (vasodilation), blind (mydriasis), tachycardic, delirious/agitated. Caused by: atropine (overdose), scopolamine, diphenhydramine, tricyclic antidepressants, plant alkaloids (jimsonweed). Dose: 1-2mg slow IV; works within 5 minutes; duration ~60-90 min. May need repeat dosing. CHOLINERGIC SIDE EFFECTS (excessive salivation, bronchospasm, bradycardia) -- have atropine available. Do NOT confuse with emergence delirium (post-anesthesia confusion resolves spontaneously vs anticholinergic syndrome which does not).'
+  },
+
+  // ===== FLUIDS / SOLUTIONS MISSING =====
+  hypertonicSaline3: {
+    name: 'Hypertonic Saline 3%', classes: ['Hypertonic Crystalloid', 'Osmotic Agent'], routes: ['IV'], types: ['Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Renal excretion', proteinBinding: 0.0, mechanism: 'Osmotic Gradient', targetReceptor: 'N/A (osmotic effect)',
+    indications: { 'Symptomatic Hyponatremia': { dose: '100-150', unit: 'mL', type: 'Infusion' }, 'Raised ICP': { dose: '1-2', unit: 'mL/kg', type: 'Bolus' } },
+    pk: { V1: 3.0, V2: 42.0, V3: 0, k10: 0.04, k12: 0.3, k21: 0.02, k13: 0, k31: 0, ke0: 0.8, coSensitivity: 0.0 },
+    pd: { c50: 5.0, gamma: 1.0, sysMax: 8, diaMax: 5, hrMax: 0, rrMax: 0 },
+    notes: 'Hypertonic (3% NaCl = 513 mEq/L Na) used to raise serum sodium and plasma osmolality. TWO INDICATIONS: (1) SYMPTOMATIC HYPONATREMIA (Na < 120 mEq/L with seizures/coma): 100-150mL bolus raises Na by ~2 mEq/L; CORRECTION RATE CRITICAL -- too fast → central pontine myelinolysis (osmotic demyelination); maximum 10-12 mEq/L per 24h; (2) RAISED ICP (ALTERNATIVE TO MANNITOL): hypertonicity draws fluid from cerebral edematous tissue across intact BBB (same mechanism as mannitol but lasts longer, avoids mannitol rebound, and can be used in hypovolemia where mannitol is contraindicated). AcidBaseModel.ts effects: sodium load raises SID (alkalinizing effect) while chloride load reduces SID (acidifying); net effect varies by exact formulation. Monitor serum Na every 2-4 hours during administration.'
+  },
+  factorVIIIconcentrate: {
+    name: 'Factor VIII Concentrate (rFVIII)', classes: ['Coagulation Factor', 'Hemostatic Agent'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Catabolism', proteinBinding: 0.0, mechanism: 'Cofactor Replacement', targetReceptor: 'Intrinsic Coagulation Pathway',
+    indications: { 'Hemophilia A Bleeding': { dose: '25-50', unit: 'units/kg', type: 'Bolus' }, 'Surgical Coverage Hemophilia A': { dose: '50', unit: 'units/kg', type: 'Bolus' } },
+    pk: { V1: 8.0, V2: 0, V3: 0, k10: 0.006, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.0 },
+    pd: { c50: 1.0, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Recombinant Factor VIII (Advate, Helixate, Kovaltry) for Hemophilia A treatment. DOSING: each unit/kg raises Factor VIII level by ~2%; target levels: minor hemorrhage 20-40%, major/surgical 80-100% (maintain for 7-14 days post-op). Half-life ~8-12h → twice-daily dosing needed for surgical coverage. INHIBITOR COMPLICATION: ~30% of severe Hemophilia A patients develop anti-FVIII antibodies (inhibitors) → standard FVIII becomes ineffective → switch to bypassing agents (rFVIIa, APCC). DeepCoagulationModel.ts simulates the Factor VIII level response. Requires refrigeration, infuse within hours of reconstitution.'
+  },
+  rasburicase: {
+    name: 'Rasburicase', classes: ['Antidote', 'Urate Oxidase'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Intracellular degradation', proteinBinding: 0, mechanism: 'Urate Oxidase', targetReceptor: 'Uric Acid',
+    indications: { 'Tumor Lysis Syndrome': { dose: '0.2', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 5.0, V2: 0, V3: 0, k10: 0.005, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Recombinant urate oxidase. Converts uric acid → allantoin (water-soluble, renally excreted) — DEGRADES existing uric acid, unlike allopurinol (prevents new synthesis only). Much more rapidly effective in TLS. ABSOLUTE CONTRAINDICATION: G6PD deficiency (generates H2O2 → hemolytic anemia). Check G6PD before administration. Obtain blood sample for uric acid BEFORE giving rasburicase (H2O2 in blood tube → in vitro degradation → falsely low results).'
+  },
+  c1InhConcentrate: {
+    name: 'C1-INH Concentrate', classes: ['Antidote', 'Complement Inhibitor'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Catabolism', proteinBinding: 0, mechanism: 'C1-Esterase Inhibitor', targetReceptor: 'Complement Cascade / Kallikrein-Kinin',
+    indications: { 'Hereditary Angioedema (HAE)': { dose: '20', unit: 'units/kg', type: 'Bolus' }, 'ACE-I Angioedema': { dose: '1000', unit: 'units', type: 'Bolus' } },
+    pk: { V1: 5.0, V2: 0, V3: 0, k10: 0.01, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'C1-esterase inhibitor concentrate (Berinert, Cinryze). Primary treatment for hereditary angioedema (HAE) and ACE inhibitor-induced bradykinin-mediated angioedema. Works by inhibiting complement activation and kallikrein → reduces bradykinin generation. NOT effective against histamine-mediated allergic angioedema (that requires epinephrine). Onset: 20-60 min. Effect lasts 12-24h. Safer alternative to FFP (which also contains C1-INH but also introduces large volumes and clotting factors).'
+  },
+  icatibant: {
+    name: 'Icatibant', classes: ['Antidote', 'Bradykinin B2 Antagonist'], routes: ['SC', 'IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Proteolytic degradation', proteinBinding: 0.44, mechanism: 'Antagonist', targetReceptor: 'Bradykinin B2 Receptor',
+    indications: { 'HAE / ACE-I Angioedema': { dose: '30', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.02, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Selective bradykinin B2 receptor antagonist (Firazyr). Self-injectable for HAE — works in 30-60 min. Also effective for ACE inhibitor-induced angioedema. Blocks bradykinin effects at receptor level. Dose: 30 mg SC in abdomen. Can repeat × 2 (max 3 doses per 24h). Has NO effect on histamine-mediated allergic reactions. Does NOT require G6PD check (unlike rasburicase).'
+  },
+  hemin: {
+    name: 'Hemin (Panhematin)', classes: ['Antidote', 'Heme Synthesis'], routes: ['IV'], types: ['Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Incorporated into heme pool', proteinBinding: 0.85, mechanism: 'ALAS1 Suppressor', targetReceptor: 'ALA-Synthase-1 (ALAS1)',
+    indications: { 'Acute Porphyria': { dose: '4', unit: 'mg/kg', type: 'Infusion' } },
+    pk: { V1: 5.0, V2: 0, V3: 0, k10: 0.003, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0 },
+    pd: { c50: 1.0, gamma: 1.5, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Hematin reconstituted with human serum albumin. Replenishes heme pool → negative feedback on ALAS1 → reduces porphyrin precursor production. MAINSTAY of acute porphyria treatment. Dose: 3-4 mg/kg IV over 60 min once daily × 4 days. Benefit seen within 24-48h. Most effective when started early. Side effect: coagulopathy (anticoagulant effect from iron in hematin — use albumin reconstitution to reduce). Reconstitute with 25% albumin (NOT water alone) to reduce phlebitis.'
+  },
+  procainamide: {
+    name: 'Procainamide', classes: ['Class IA Antiarrhythmic'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (N-acetyltransferase) to active NAPA', proteinBinding: 0.15, mechanism: 'Blocker', targetReceptor: 'Na⁺ Channel + IKr (hERG)',
+    indications: { 'WPW + AF': { dose: '15', unit: 'mg/kg', type: 'Bolus' }, 'VT': { dose: '10-17', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 40.0, V2: 60.0, V3: 0, k10: 0.08, k12: 0.05, k21: 0.04, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0.1 },
+    pd: { c50: 2.0, gamma: 1.5, sysMax: -15, diaMax: -10, hrMax: -10, rrMax: 0 },
+    notes: 'Class IA antiarrhythmic. UNIQUE ROLE: One of the few safe drugs for WPW + AF (also blocks accessory pathway — unlike adenosine, verapamil, diltiazem, digoxin which are DANGEROUS in WPW+AF). Also effective for VT. SLOW IV infusion required (15 mg/kg over 30-60 min) — rapid administration → hypotension. Active metabolite NAPA also antiarrhythmic. Lupus-like syndrome with prolonged use. QT prolongation risk. Renally cleared — dose reduce in CKD.'
+  },
+  caffeine: {
+    name: 'Caffeine', classes: ['Methylxanthine', 'Adenosine Antagonist'], routes: ['IV', 'PO'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (CYP1A2)', proteinBinding: 0.35, mechanism: 'Antagonist', targetReceptor: 'Adenosine Receptors',
+    indications: { 'Post-Dural Puncture Headache': { dose: '300-500', unit: 'mg', type: 'Bolus' }, 'Apnea of Prematurity': { dose: '20', unit: 'mg/kg', type: 'Bolus' } },
+    pk: { V1: 40.0, V2: 0, V3: 0, k10: 0.03, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0 },
+    pd: { c50: 5.0, gamma: 1.5, sysMax: 10, diaMax: 5, hrMax: 12, rrMax: 2 },
+    notes: 'Methylxanthine. Adenosine receptor antagonist — ANTAGONIZES adenosine used for SVT (if patient has caffeine in system, need higher adenosine dose). Uses: (1) Post-dural puncture headache: 300-500 mg IV/PO → causes cerebral vasoconstriction + increases CSF production → reduces PDPH severity (temporary, 4-8h effect); (2) Apnea of prematurity: stimulates respiratory center. Note: Caffeine reduces susceptibility to bronchodilation by theophylline (competition). Does NOT reduce susceptibility to epinephrine or catecholamines.'
+  },
+  angiotensin_ii: {
+    name: 'Angiotensin II', classes: ['Vasopressor'], routes: ['IV'], types: ['Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Plasma Peptidases (immediate)', mechanism: 'Agonist', targetReceptor: 'AT1',
+    indications: { 'Refractory Shock': { dose: '20-80', unit: 'ng/kg/min', type: 'Infusion' } },
+    pk: { V1: 5.0, V2: 0, V3: 0, k10: 2.5, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 3.0, coSensitivity: 0.05 },
+    pd: { c50: 0.005, gamma: 2.0, sysMax: 60, diaMax: 70, hrMax: 0, rrMax: 0 },
+    notes: 'Synthetic human angiotensin II. Binds G-protein coupled AT1 receptors. Specifically designed for vasodilatory, catecholamine-refractory shock.'
+  },
+  lorazepam: {
+    name: 'Lorazepam', classes: ['Benzodiazepine'], routes: ['IV', 'IM'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic (glucuronidation only, no active metabolites)', proteinBinding: 0.85, synergyGroup: 'Sedative', pkModel: 'Greenblatt',
+    mechanism: 'Allosteric Modulator', targetReceptor: 'GABA-A',
+    indications: { 'Anxiolysis / Seizure': { dose: '1-2', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 35.0, V3: 0, k10: 0.003, k12: 0.03, k21: 0.02, k13: 0, k31: 0, ke0: 0.08, coSensitivity: 0.1 },
+    pd: { c50: 0.05, gamma: 1.5, sysMax: -5, diaMax: -5, hrMax: 0, rrMax: -4, inducesApneaAtCe: 0.5 },
+    notes: 'Intermediate-acting benzodiazepine. Slower onset than midazolam. Highly stable profile.'
+  },
+  sotalol: {
+    name: 'Sotalol', classes: ['Class III / Beta-Blocker'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Renal (Unchanged)', mechanism: 'Beta Blocker / K+ Blocker', targetReceptor: 'Potassium / Beta-1/2',
+    indications: { 'Afib / VT': { dose: '75-150', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.02, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.1 },
+    pd: { c50: 2.0, gamma: 1.5, sysMax: -15, diaMax: -15, hrMax: -30, rrMax: 0 },
+    notes: 'Nonselective beta blocker with strong Class III antiarrhythmic (K+ channel blocking) characteristics.'
+  },
+  verapamil: {
+    name: 'Verapamil', classes: ['Class IV CCB'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
+    metabolism: 'Hepatic', mechanism: 'Calcium Channel Blocker', targetReceptor: 'L-type Calcium',
+    indications: { 'SVT / Rate Control': { dose: '2.5-5.0', unit: 'mg', type: 'Bolus' } },
+    pk: { V1: 40.0, V2: 80.0, V3: 0, k10: 0.08, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.2, coSensitivity: 0.2 },
+    pd: { c50: 0.3, gamma: 2.0, sysMax: -25, diaMax: -25, hrMax: -35, rrMax: 0 },
+    notes: 'Phenylalkylamine calcium channel blocker. Acts selectively on AV/SA nodes. Strongly negatively inotropic.'
+  },
+  factorIXconcentrate: {
+    name: 'Factor IX Concentrate (rFIX)', classes: ['Coagulation Factor', 'Hemostatic Agent'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
+    metabolism: 'Catabolism', proteinBinding: 0.0, mechanism: 'Serine Protease Replacement', targetReceptor: 'Intrinsic Coagulation Pathway',
+    indications: { 'Hemophilia B Bleeding': { dose: '25-50', unit: 'units/kg', type: 'Bolus' }, 'Surgical Coverage Hemophilia B': { dose: '50-100', unit: 'units/kg', type: 'Bolus' } },
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.004, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.0 },
+    pd: { c50: 1.0, gamma: 1.0, sysMax: 0, diaMax: 0, hrMax: 0, rrMax: 0 },
+    notes: 'Recombinant Factor IX (BeneFIX, Rixubis, Alprolix) for Hemophilia B treatment. DIFFERENT DOSING from FVIII: each unit/kg raises FIX by ONLY 1% (vs 2% for FVIII) because FIX has a LARGER VOLUME OF DISTRIBUTION (distributes into extravascular space). LONGER HALF-LIFE than FVIII (~18-24h for standard FIX; extended half-life products up to 100h) → once-daily or every-other-day dosing for surgical coverage. Clinically IDENTICAL presentation to Hemophilia A but treated differently. Some FIX products associated with anaphylaxis (particularly in severe Hemophilia B patients with inversions/deletions -- similar mechanism to FVIII inhibitors). Half-life products can make once-weekly or even less frequent prophylaxis possible.'
   }
 };
 

@@ -128,9 +128,10 @@ describe('Chapter 11: Cerebral Physiology & Intracranial Mechanics Tests', () =>
       const outHyper = CerebralEngine.tick(1, { patient, vitals, time: 0 }, activeMeds, { ...baseInputs, paco2: 50 });
       expect(outHyper.cbf / outBase.cbf).toBeCloseTo(1.25, 2);
 
-      // Hypocapnia: PaCO2 = 30 (-1.67% per mmHg -> -16.7%)
+      // Hypocapnia: PaCO2 = 30 (symmetric 2.5%/mmHg → -25%, corrected from asymmetric 1.67%).
+      // Clinical: hyperventilation to PaCO2=30 reduces CBF by ~25% (matching known physiology).
       const outHypo = CerebralEngine.tick(1, { patient, vitals, time: 0 }, activeMeds, { ...baseInputs, paco2: 30 });
-      expect(outHypo.cbf / outBase.cbf).toBeCloseTo(1.0 - 0.167, 2);
+      expect(outHypo.cbf / outBase.cbf).toBeCloseTo(0.75, 2);
     });
 
     it('should blunt Paco2 reactivity in moderate hypotension and abolish in severe hypotension', () => {
@@ -155,6 +156,8 @@ describe('Chapter 11: Cerebral Physiology & Intracranial Mechanics Tests', () =>
       // Paco2 = 50 should trigger blunted +1.3% per mmHg (+13%)
       const outModHypotensionBase = CerebralEngine.tick(1, { patient, vitals, time: 0 }, activeMeds, { ...baseInputs, map: 50, sys: 70, paco2: 40 });
       const outModHypotensionHyper = CerebralEngine.tick(1, { patient, vitals, time: 0 }, activeMeds, { ...baseInputs, map: 50, sys: 70, paco2: 50 });
+      // Moderate hypotension: 1.3%/mmHg slope. At PaCO2=50: +10mmHg → CBF +13% → ratio 1.13.
+      // The slope is unchanged at moderate hypotension (only normotension slope was corrected).
       expect(outModHypotensionHyper.cbf / outModHypotensionBase.cbf).toBeCloseTo(1.13, 2);
 
       // Severe hypotension: MAP = 25 mmHg (reduced by ~72%)

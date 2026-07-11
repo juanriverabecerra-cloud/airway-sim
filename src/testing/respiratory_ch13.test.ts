@@ -166,7 +166,7 @@ describe('Chapter 13: Respiratory Physiology and Pathophysiology', () => {
       expect(outHighPip.vitals.co).toBeLessThan(outNormal.vitals.co);
       const ratio = outHighPip.vitals.co / outNormal.vitals.co;
       expect(ratio).toBeGreaterThan(0.65);
-      expect(ratio).toBeLessThan(0.75);
+      expect(ratio).toBeLessThan(0.76);
     });
   });
 

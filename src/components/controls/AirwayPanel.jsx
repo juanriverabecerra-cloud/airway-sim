@@ -149,6 +149,7 @@ export const AirwayPanel = ({
       <div className="flex flex-col gap-1 mb-1.5" key={id}>
         <button 
           onClick={() => setAirwayToolInput(isActive ? { tool: null, size: '' } : { tool: id, size: sizes[0] })} 
+          data-tutorial={id === 'Oropharyngeal Airway (OPA)' ? "opa-btn" : undefined}
           className={`p-2 rounded-lg text-xs text-left border transition-all glass-button ${isActive ? 'border-yellow-400 text-yellow-200 shadow-inner' : 'border-slate-800'}`}
         >
           <span>{label}</span> <span className="text-slate-500 text-[9px] font-mono float-right">({hint})</span>
@@ -162,7 +163,13 @@ export const AirwayPanel = ({
             >
               {sizes.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
-            <button onClick={() => handlePlaceAirway(id, airwayToolInput.size)} className="w-1/3 glass-button glass-button-cyan py-0.5 text-[10px]">PLACE</button>
+            <button 
+              onClick={() => handlePlaceAirway(id, airwayToolInput.size)} 
+              data-tutorial={id === 'Oropharyngeal Airway (OPA)' ? "apply-opa-btn" : undefined}
+              className="w-1/3 glass-button glass-button-cyan py-0.5 text-[10px]"
+            >
+              PLACE
+            </button>
           </div>
         )}
       </div>
@@ -267,11 +274,11 @@ export const AirwayPanel = ({
         <div className="p-2 flex flex-col gap-1.5 font-mono text-[9px] bg-slate-950/10">
           <div className="grid grid-cols-2 gap-1.5">
             <button onClick={() => { if (setPreopModal) setPreopModal(true); }} className="bg-slate-950 border border-white/5 py-1 px-1.5 rounded-lg text-slate-350 font-bold hover:bg-white/5 text-center">📋 PRE-OP EVALS</button>
-            <button onClick={() => { if (setMsmaidsModal) setMsmaidsModal(true); }} className="bg-slate-950 border border-white/5 py-1 px-1.5 rounded-lg text-slate-355 font-bold hover:bg-white/5 text-center">🛠️ MSMAIDS CHECK</button>
+            <button onClick={() => { if (setMsmaidsModal) setMsmaidsModal(true); }} data-tutorial="msmaids-btn" className="bg-slate-950 border border-white/5 py-1 px-1.5 rounded-lg text-slate-355 font-bold hover:bg-white/5 text-center">🛠️ MSMAIDS CHECK</button>
             <button onClick={() => { if (setPostIntubationModal) setPostIntubationModal(true); }} disabled={!patient?.airwaySecured} className="bg-slate-950 border border-white/5 py-1 px-1.5 rounded-lg text-slate-350 font-bold disabled:opacity-20 disabled:pointer-events-none hover:bg-white/5 text-center">🔄 POST-INTUB</button>
             <button onClick={() => { if (setExtubationModal) setExtubationModal(true); }} disabled={!patient?.airwaySecured} className="bg-slate-950 border border-white/5 py-1 px-1.5 rounded-lg text-slate-350 font-bold disabled:opacity-20 disabled:pointer-events-none hover:bg-white/5 text-center">💨 EXTUBATION</button>
           </div>
-          <button onClick={() => { if (performLarsonManeuver) performLarsonManeuver(); }} className="w-full bg-slate-950 border border-white/5 p-1 rounded-lg text-slate-300 font-bold hover:bg-white/5 text-center">✊ Perform Larson's Maneuver</button>
+          <button onClick={() => { if (performLarsonManeuver) performLarsonManeuver(); }} data-tutorial="larson-btn" className="w-full bg-slate-950 border border-white/5 p-1 rounded-lg text-slate-300 font-bold hover:bg-white/5 text-center">✊ Perform Larson's Maneuver</button>
           <button onClick={() => { if (examineNpoHistory) examineNpoHistory(); }} className="w-full bg-slate-950 border border-white/5 p-1 rounded-lg text-slate-300 font-bold hover:bg-white/5 text-center">📋 Review NPO History</button>
           <button 
             onClick={() => {
@@ -413,12 +420,20 @@ export const AirwayPanel = ({
             <>⚠️ AIRWAY COMPROMISED</>
           ) : patient?.ventilationStatus === 'failed' ? (
             <>🚨 FAILED VENTILATION</>
+          ) : patient?.ventilationStatus === 'mechanical' ? (
+            <>🤖 MECHANICAL VENTILATION</>
+          ) : patient?.airwaySecured ? (
+            <>🌬️ SECURED VENTILATION</>
           ) : (
             <>🌬️ SPONTANEOUS DRIVE</>
           )}
         </div>
         <span className="text-[9px] text-slate-500">
-          {patient?.airwayBlood ? 'Active blood/secretions obscuring pharynx' : 'Ventilation patency is critical'}
+          {patient?.airwayBlood 
+            ? 'Active blood/secretions obscuring pharynx' 
+            : patient?.ventilationStatus === 'mechanical' 
+              ? 'Positive pressure ventilation in progress'
+              : 'Ventilation patency is critical'}
         </span>
       </div>
 
@@ -431,6 +446,7 @@ export const AirwayPanel = ({
         <div className="border border-white/5 bg-slate-950/30 rounded-xl overflow-hidden shrink-0 font-mono">
           <button
             onClick={() => setShowO2(!showO2)}
+            data-tutorial="o2-dropdown-btn"
             className="w-full flex items-center justify-between px-3 py-1.5 bg-slate-950/40 border-b border-white/5 font-mono text-[9px] font-black text-cyan-400 uppercase tracking-wider hover:bg-slate-950/60 transition-all"
           >
             <span className="flex items-center gap-1.5 text-cyan-300">
@@ -461,6 +477,7 @@ export const AirwayPanel = ({
                     }
                     setShowO2(false);
                   }}
+                  data-tutorial={dev.value === 'Bag-Mask Valve (BMV)' ? "bmv-device-btn" : dev.value === 'Non-Rebreather Mask (NRB)' ? "nrb-device-btn" : undefined}
                   className={`glass-button border-slate-800 py-1.5 text-[8.5px] leading-tight ${
                     (patient?.currentO2Device || 'Room Air') === dev.value ? 'bg-cyan-600/30 border-cyan-500 text-cyan-200' : 'text-cyan-300 hover:bg-cyan-950/20'
                   }`}
@@ -478,10 +495,10 @@ export const AirwayPanel = ({
             {o2Input.device === 'Nasal Cannula' && renderAdvancedO2Button('Nasal Cannula', 'Configure Cannula (1-15 L/min)', 'flow')}
             {o2Input.device === 'Simple Face Mask' && renderAdvancedO2Button('Simple Face Mask', 'Configure Mask (5-10 L/min)', 'flow')}
             {o2Input.device === 'Bag-Mask Valve (BMV)' && (
-              <button onClick={() => handleO2Submit('Bag-Mask Valve (BMV)')} className="w-full glass-button glass-button-cyan py-1 text-[9px] font-black font-mono">APPLY 100% BMV</button>
+              <button onClick={() => handleO2Submit('Bag-Mask Valve (BMV)')} data-tutorial="apply-bmv-btn" className="w-full glass-button glass-button-cyan py-1 text-[9px] font-black font-mono">APPLY 100% BMV</button>
             )}
             {o2Input.device === 'Non-Rebreather Mask (NRB)' && (
-              <button onClick={() => handleO2Submit('Non-Rebreather Mask (NRB)')} className="w-full glass-button glass-button-cyan py-1 text-[9px] font-black font-mono">APPLY 100% NRB</button>
+              <button onClick={() => handleO2Submit('Non-Rebreather Mask (NRB)')} data-tutorial="apply-nrb-btn" className="w-full glass-button glass-button-cyan py-1 text-[9px] font-black font-mono">APPLY 100% NRB</button>
             )}
             {o2Input.device === 'High Flow Nasal Cannula (HFNC)' && renderAdvancedO2Button('High Flow Nasal Cannula (HFNC)', 'Configure HFNC', 'hfnc')}
             {o2Input.device === 'CPAP' && renderAdvancedO2Button('CPAP', 'Configure CPAP', 'cpap')}
@@ -510,6 +527,7 @@ export const AirwayPanel = ({
           </button>
           <button 
             onClick={handleSuction} 
+            data-tutorial="yankauer-btn"
             className={`flex-1 p-2 text-[10px] rounded-lg border font-bold transition-all ${
               patient?.airwayBlood 
                 ? 'glass-button-rose text-red-200 border-red-500 shadow-[0_0_12px_rgba(244,63,94,0.35)] animate-pulse' 
@@ -542,6 +560,7 @@ export const AirwayPanel = ({
         <h4 className="text-slate-400 text-[10px] uppercase font-black tracking-wider font-mono border-b border-white/5 pb-1 mt-3">2. Laryngoscopy & Intubation</h4>
         <button 
           onClick={() => setSetupModal(true)} 
+          data-tutorial="intubation-prepare-btn"
           className="w-full bg-green-950/20 hover:bg-green-900/30 border border-green-600/40 p-3 rounded-xl font-black text-green-400 text-xs shadow-[0_0_12px_rgba(34,197,94,0.15)] transition-all active:scale-97 uppercase tracking-wider font-mono"
         >
           PREPARE INTUBATION EQUIPMENT

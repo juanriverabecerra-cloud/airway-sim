@@ -34,6 +34,8 @@ export interface RenalPatientState {
   renalFailure?: boolean;
   isRenal?: boolean;
   age?: number;
+  fluidOverloadEdemaLogged?: boolean;
+  fluidOverloadNoteLogged?: boolean;
   albumin?: number; // Added for glomerular pressures calculation
   mapUnder60Time?: number;
   mapUnder55Time?: number;
@@ -133,6 +135,8 @@ export interface RenalOutput {
   autonomicDysreflexiaActive: boolean;
   autonomicDysreflexiaSeverity: number;
   ureteralObstructionEventLogged: boolean;
+  fluidOverloadEdemaLogged: boolean;
+  fluidOverloadNoteLogged: boolean;
 }
 
 export class RenalEngine {
@@ -270,7 +274,10 @@ export class RenalEngine {
     const bun = typeof patient.bun === 'number' && Number.isFinite(patient.bun) ? patient.bun : 12.0;
     const glucose = typeof patient.glucose === 'number' && Number.isFinite(patient.glucose) ? patient.glucose : 100.0;
     
-    const osm = 2.0 * na + 2.0 * k + (bun / 2.8) + (glucose / 18.0);
+    // Standard Worthington formula: K is excluded (small, tightly regulated, causes baseline drift).
+    // Prior 2×K added 8 mOsm/L → osmolality = 298 (above 280-295 normal range) → chronically
+    // elevated AVP → biased-low baseline UOP.
+    const osm = 2.0 * na + (bun / 2.8) + (glucose / 18.0);
 
     // 6. ADH (AVP) and Aldosterone loops
     const eblRatio = inputs.ebv > 0 ? Math.max(0.0, Math.min(1.0, inputs.ebl / inputs.ebv)) : 0.0;
@@ -383,10 +390,10 @@ export class RenalEngine {
     let mapUnder55AlertTriggered = !!patient.mapUnder55AlertTriggered;
 
     if (inputs.map < 60.0) {
-      mapUnder60Time += safeDt * 60;
+      mapUnder60Time += safeDt;
     }
     if (inputs.map < 55.0) {
-      mapUnder55Time += safeDt * 60;
+      mapUnder55Time += safeDt;
     }
 
     if (mapUnder60Time > 11 * 60) {
@@ -427,13 +434,13 @@ export class RenalEngine {
     const uopPerKgHr = urineOutputRate / weight;
     
     if (uopPerKgHr < 0.5) {
-      uopOliguriaTimer += safeDt * 60; // 1s = 60s patient time
+      uopOliguriaTimer += safeDt;
     } else {
       uopOliguriaTimer = 0;
     }
 
     if (uopPerKgHr < 0.1) {
-      uopAnuriaTimer += safeDt * 60;
+      uopAnuriaTimer += safeDt;
     } else {
       uopAnuriaTimer = 0;
     }
@@ -453,10 +460,13 @@ export class RenalEngine {
     }
 
     // Creatinine and BUN differential accumulation rates
-    const dCr = 0.000018 * (1.0 - (gfr / 125.0) * (creatinine / baselineCreatinine));
+    // Creatinine rise rate: 0.000008/s = 0.69 mg/dL/day at GFR=0. Prior 0.000018/s = 1.56/day
+    // was 2-3× too fast (reached Stage 1 AKI in ~6.6h; clinical ATN takes 24-48h).
+    const dCr = 0.000008 * (1.0 - (gfr / 125.0) * (creatinine / baselineCreatinine));
     const nextCreatinine = Math.max(0.4, Math.min(10.0, creatinine + dCr * safeDt));
 
-    const dBun = 0.00025 * (1.0 - (gfr / 125.0) * (bun / baselineBun) * (1.0 - 0.35 * (1.0 - gfr / 125.0)));
+    // BUN rate scaled proportionally with creatinine correction (was 0.00025, 44% reduction)
+    const dBun = 0.00011 * (1.0 - (gfr / 125.0) * (bun / baselineBun) * (1.0 - 0.35 * (1.0 - gfr / 125.0)));
     const nextBun = Math.max(5.0, Math.min(120.0, bun + dBun * safeDt));
 
     // Tubular function indicators: Urine Osmolality & FE_Na
@@ -484,6 +494,8 @@ export class RenalEngine {
     // Fluid Overload: net fluid balance (inputs - outputs) > 2000 mL and UOP is blunted (< 15 mL/h)
     let hasFluidOverloadEdema = !!patient.hasFluidOverloadEdema;
     let fluidOverloadEdemaRolled = patient.fluidOverloadEdemaRolled;
+    let fluidOverloadEdemaLogged = !!patient.fluidOverloadEdemaLogged;
+    let fluidOverloadNoteLogged = !!patient.fluidOverloadNoteLogged;
 
     if (inputs.netFluidBalance < 1500.0) {
       fluidOverloadEdemaRolled = undefined;
@@ -491,20 +503,36 @@ export class RenalEngine {
 
     const edemaCondition = inputs.netFluidBalance > 2000.0 && urineOutputRate < 15.0;
 
-    if (edemaCondition && !hasFluidOverloadEdema && fluidOverloadEdemaRolled === undefined) {
-      const baseProb = 0.10; // 10% base chance of pulmonary edema under fluid overload
-      const isElderly = typeof patient.age === 'number' && patient.age > 65;
-      const modifier = (patient.chf || patient.cad ? 4.0 : 1.0) * (patient.isRenal || patient.renalFailure || isElderly ? 3.0 : 1.0);
-      const prob = Math.min(1.0, baseProb * modifier);
-      fluidOverloadEdemaRolled = Math.random() < prob;
+    // forceFluidOverloadEdema overrides the probabilistic gate — works unconditionally.
+    if (patient.forceFluidOverloadEdema && !hasFluidOverloadEdema) {
+      hasFluidOverloadEdema = true;
+    }
 
-      if (patient.forceFluidOverloadEdema || fluidOverloadEdemaRolled) {
+    if (edemaCondition) {
+      if (!hasFluidOverloadEdema && fluidOverloadEdemaRolled === undefined) {
+        const baseProb = 0.10; // 10% base chance of pulmonary edema under fluid overload
+        const isElderly = typeof patient.age === 'number' && patient.age > 65;
+        const modifier = (patient.chf || patient.cad ? 4.0 : 1.0) * (patient.isRenal || patient.renalFailure || isElderly ? 3.0 : 1.0);
+        const prob = Math.min(1.0, baseProb * modifier);
+        fluidOverloadEdemaRolled = Math.random() < prob;
+      }
+
+      if (fluidOverloadEdemaRolled) {
         hasFluidOverloadEdema = true;
-        events.push("🚨 CRITICAL EMERGENCY: Fluid Overload Pulmonary Edema! Massive fluid resuscitation in the face of severe oliguria has precipitated alveolar fluid extravasation.");
+        if (!fluidOverloadEdemaLogged) {
+          events.push("🚨 CRITICAL EMERGENCY: Fluid Overload Pulmonary Edema! Massive fluid resuscitation in the face of severe oliguria has precipitated alveolar fluid extravasation.");
+          fluidOverloadEdemaLogged = true;
+        }
       } else {
         fluidOverloadEdemaRolled = false;
-        events.push("⚠️ Clinical Note: Net fluid balance exceeds +2000 mL under oliguric conditions. Fortunately, pulmonary capillary membranes remain intact (no acute pulmonary edema triggered). Monitor compliance.");
+        if (!fluidOverloadNoteLogged) {
+          events.push("⚠️ Clinical Note: Net fluid balance exceeds +2000 mL under oliguric conditions. Fortunately, pulmonary capillary membranes remain intact (no acute pulmonary edema triggered). Monitor compliance.");
+          fluidOverloadNoteLogged = true;
+        }
       }
+    } else {
+      fluidOverloadEdemaLogged = false;
+      fluidOverloadNoteLogged = false;
     }
 
     // Event Logging
@@ -572,7 +600,9 @@ export class RenalEngine {
       distensionSympatheticIndex: bladderModelOutput.distensionSympatheticIndex,
       autonomicDysreflexiaActive: bladderModelOutput.autonomicDysreflexiaActive,
       autonomicDysreflexiaSeverity: bladderModelOutput.autonomicDysreflexiaSeverity,
-      ureteralObstructionEventLogged
+      ureteralObstructionEventLogged,
+      fluidOverloadEdemaLogged,
+      fluidOverloadNoteLogged
     };
   }
 }

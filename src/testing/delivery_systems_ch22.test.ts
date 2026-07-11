@@ -293,6 +293,33 @@ describe('Chapter 22: Anesthesia Delivery Systems & Safety', () => {
       // With closed APL, pre-oxygenation succeeds and oxygen buffer is higher
       expect(stateC.patient.oxygenBuffer).toBeGreaterThan(stateO.patient.oxygenBuffer);
     });
+
+    it('should allow pre-oxygenation to wash in and increase FRC O2 buffer during spontaneous breathing through a bag-mask valve even if APL valve is 0', () => {
+      const stateSpont = createHealthyState();
+      stateSpont.patient.airwaySecured = false;
+      stateSpont.patient.currentO2Device = 'Bag-Mask Valve (BMV)';
+      stateSpont.patient.currentFiO2 = 100;
+      stateSpont.patient.oxygenBuffer = 0.45; // room air low buffer
+      stateSpont.patient.aplValveSetting = 0.0; // fully open (default)
+
+      const drugEffects = createBaselineDrugEffects();
+      drugEffects.maxNMJOccupancy = 0.0; // not paralyzed (spontaneous breathing)
+      const inputs = createBaselineInputs();
+
+      // Tick for 15 seconds
+      let stateS = { ...stateSpont };
+      for (let i = 0; i < 15; i++) {
+        const out = RespiratoryEngine.tick(1, stateS, { mode: 'spontaneous' }, 100, drugEffects, inputs);
+        stateS.patient.oxygenBuffer = out.oxygenBuffer;
+        stateS.vitals = out.vitals;
+        stateS.time++;
+      }
+
+      // Oxygen buffer should rise significantly above 0.45 since the patient is breathing spontaneously
+      expect(stateS.patient.oxygenBuffer).toBeGreaterThan(0.45);
+      // It should rise towards the target (which is recruited FRC * 1.0 = ~2.08)
+      expect(stateS.patient.oxygenBuffer).toBeGreaterThan(1.0);
+    });
   });
 
   describe('4. Stuck Circle Valves and CO2 Absorbent Depletion', () => {
@@ -354,6 +381,70 @@ describe('Chapter 22: Anesthesia Delivery Systems & Safety', () => {
 
       // Stroke volume and MAP must be significantly lower under tension pneumothorax
       expect(outPneumo.vitals.map).toBeLessThan(outHealthy.vitals.map);
+    });
+  });
+
+  describe('7. Unified PEEP Recruitment & Non-Invasive Crossover Contamination', () => {
+    it('should verify that mechanical ventilator PEEP recruits FRC and reduces shunt', () => {
+      const stateNoPeep = createHealthyState();
+      stateNoPeep.patient.airwaySecured = true;
+      
+      const statePeep = createHealthyState();
+      statePeep.patient.airwaySecured = true;
+
+      const drugEffects = createBaselineDrugEffects();
+      const inputs = createBaselineInputs();
+
+      // Tick with PEEP = 0
+      const outNoPeep = RespiratoryEngine.tick(1, stateNoPeep, { mode: 'VCV', peep: 0 }, 100, drugEffects, inputs);
+
+      // Tick with PEEP = 10
+      const outPeep = RespiratoryEngine.tick(1, statePeep, { mode: 'VCV', peep: 10 }, 100, drugEffects, inputs);
+
+      // PEEP should reduce shunt and recruit lung volumes (increasing recruited FRC)
+      expect(outPeep.actualShunt).toBeLessThan(outNoPeep.actualShunt || 0.1);
+    });
+
+    it('should verify that pipeline crossover contaminates non-invasive devices, lowering inspired FiO2', () => {
+      const stateCrossover = createHealthyState();
+      stateCrossover.patient.airwaySecured = false;
+      stateCrossover.patient.currentO2Device = 'Non-Rebreather Mask (NRB)';
+      stateCrossover.patient.currentFiO2 = 100;
+      stateCrossover.patient.oxygenBuffer = 2.0; // pre-oxygenated
+      stateCrossover.patient.isO2PipelineCrossover = true; // crossover active!
+      stateCrossover.patient.isO2PipelineDisconnected = false;
+
+      const drugEffects = createBaselineDrugEffects();
+      const inputs = createBaselineInputs();
+
+      // Tick with crossover
+      let stateC = { ...stateCrossover };
+      for (let i = 0; i < 20; i++) {
+        const out = RespiratoryEngine.tick(1, stateC, { mode: 'spontaneous' }, 10, drugEffects, inputs);
+        stateC.patient.oxygenBuffer = out.oxygenBuffer;
+        stateC.vitals = out.vitals;
+        stateC.time++;
+      }
+
+      const stateNormal = createHealthyState();
+      stateNormal.patient.airwaySecured = false;
+      stateNormal.patient.currentO2Device = 'Non-Rebreather Mask (NRB)';
+      stateNormal.patient.currentFiO2 = 100;
+      stateNormal.patient.oxygenBuffer = 2.0; // pre-oxygenated
+      stateNormal.patient.isO2PipelineCrossover = false; // normal
+      stateNormal.patient.isO2PipelineDisconnected = false;
+
+      // Tick normally
+      let stateN = { ...stateNormal };
+      for (let i = 0; i < 20; i++) {
+        const out = RespiratoryEngine.tick(1, stateN, { mode: 'spontaneous' }, 100, drugEffects, inputs);
+        stateN.patient.oxygenBuffer = out.oxygenBuffer;
+        stateN.vitals = out.vitals;
+        stateN.time++;
+      }
+
+      // Crossover should contaminate the NRB gas, causing washout/decrease of oxygen buffer compared to normal preoxygenation
+      expect(stateC.patient.oxygenBuffer).toBeLessThan(stateN.patient.oxygenBuffer);
     });
   });
 });

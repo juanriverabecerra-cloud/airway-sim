@@ -12,6 +12,7 @@ export interface ConsciousnessInputs {
   isoMac: number;
   haloMac: number;
   n2oMac: number;
+  desMac?: number;  // desflurane — added; absent caused BIS≈98 during desflurane GA
   isSyncShock: boolean;
   time: number;
   f3Ce?: number;
@@ -174,23 +175,34 @@ export class ConsciousnessEngine {
     }
 
     // 2. Connectivity & Pathway Coherences (Functional & Effective Connectivity)
-    // Nonspecific thalamocortical path disconnection best accounts for propofol/sevo LOC
-    const thalamocortical = Math.max(0.0, Math.min(1.0, 1.0 
-      - 0.9 * inputs.propofolCe 
+    // Thalamocortical: propofol coefficients normalized by EC50 (≈3.5 mcg/mL for LOC).
+    // Prior: -0.9 × propofolCe gave -2.7 at Ce=3 (maintenance) → clamped to 0 → BIS ≈ 0.
+    // Fixed: -0.40 × (Ce/3.5) → at Ce=3: -0.34, giving thalamocortical=0.66 → BIS ~45-55 ✓.
+    // Desflurane added (absent before; BIS read ~98 during desflurane anesthesia → false awareness).
+    const desMac = (inputs as any).desMac || 0;
+    const thalamocortical = Math.max(0.0, Math.min(1.0, 1.0
+      - 0.40 * (inputs.propofolCe / 3.5)   // EC50=3.5 mcg/mL for thalamocortical LOC
       - 0.85 * inputs.sevoMac * volatileHypnoticMultiplier
-      - 0.8 * activeIsoMac * volatileHypnoticMultiplier
-      - 0.7 * inputs.midazolamCe 
-      + 0.2 * inputs.ketamineCe // Ketamine spares or activates thalamic connectivity
+      - 0.80 * activeIsoMac * volatileHypnoticMultiplier
+      - 0.80 * desMac * volatileHypnoticMultiplier     // desflurane (similar potency to sevo/iso)
+      - 0.40 * inputs.n2oMac * volatileHypnoticMultiplier // N2O weaker at thalamocortical level
+      - 0.70 * inputs.midazolamCe
+      + 0.20 * inputs.ketamineCe // Ketamine ACTIVATES thalamic connectivity (paradox)
     ));
 
-    // Frontoparietal feedback (top-down) directional connectivity disruption
-    const frontoparietal = Math.max(0.0, Math.min(1.0, 1.0 
-      - 0.95 * inputs.propofolCe 
-      - 0.9 * inputs.sevoMac * volatileHypnoticMultiplier
+    // Frontoparietal: same propofol normalization.
+    // Ketamine paradox: ketamine does NOT suppress frontoparietal connectivity (it disrupts it
+    // differently — keeping EEG/BIS elevated during dissociation). Prior -0.7×ketamineCe caused
+    // frontoparietal=0 at Ce=1.5 → BIS≈0 during ketamine TIVA, triggering false awareness events.
+    const frontoparietal = Math.max(0.0, Math.min(1.0, 1.0
+      - 0.45 * (inputs.propofolCe / 3.5)   // EC50 normalization
+      - 0.90 * inputs.sevoMac * volatileHypnoticMultiplier
       - 0.85 * activeIsoMac * volatileHypnoticMultiplier
-      - 0.85 * inputs.midazolamCe 
-      - 0.8 * effectiveBarbiturateCe 
-      - 0.7 * inputs.ketamineCe
+      - 0.85 * desMac * volatileHypnoticMultiplier
+      - 0.45 * inputs.n2oMac * volatileHypnoticMultiplier
+      - 0.85 * inputs.midazolamCe
+      - 0.80 * effectiveBarbiturateCe
+      - 0.05 * inputs.ketamineCe  // ketamine: very mild disruption (not suppression) of FP
       - 0.15 * gabapentinoidEff
       - 0.10 * topiramateEff
     ));
@@ -379,49 +391,34 @@ export class ConsciousnessEngine {
     }
 
     return {
+      // ── Sleep-wake nuclei (shown in MemoryPanel, affect BIS) ──────────────
       lcActivity: parseFloat(lc.toFixed(3)),
       tmnActivity: parseFloat(tmn.toFixed(3)),
       vlpoActivity: parseFloat(vlpo.toFixed(3)),
-      mnpoActivity: parseFloat(mnpo.toFixed(3)),
-      ldtPptActivity: parseFloat(ldtPpt.toFixed(3)),
-      prfActivity: parseFloat(prf.toFixed(3)),
       vtaActivity: parseFloat(vta.toFixed(3)),
       orexinLevel: parseFloat(orexin.toFixed(3)),
-      slowOscillationPower: parseFloat(soPower.toFixed(3)),
+      // ── Cortical connectivities (drive BIS calculation) ───────────────────
       thalamocorticalConn: parseFloat(thalamocortical.toFixed(3)),
       frontoparietalFeedback: parseFloat(frontoparietal.toFixed(3)),
       corticocorticalConn: parseFloat(corticocortical.toFixed(3)),
       basalGangliaConn: parseFloat(basalGanglia.toFixed(3)),
-      alpha5GabaaOccupancy: parseFloat(alpha5Gabaa.toFixed(3)),
-      alpha4GabaaOccupancy: parseFloat(alpha4Gabaa.toFixed(3)),
+      // ── Memory encoding (awareness risk shown in MemoryPanel) ─────────────
       explicitEncoding: parseFloat(lambda.toFixed(3)),
       explicitConsolidation: parseFloat(psi.toFixed(3)),
       ltpInductionInhibited,
-      p300Amplitude: parseFloat(p300.toFixed(2)),
-      n2p3Amplitude: parseFloat(n2p3.toFixed(2)),
-      p2Amplitude: parseFloat(p2.toFixed(2)),
-      oldNewEffect: parseFloat(oldNew.toFixed(2)),
-      mismatchNegativity: parseFloat(mismatch.toFixed(2)),
-      p1Amplitude: parseFloat(p1.toFixed(2)),
-      n2Latency: n2Lat,
-      hippocampalThetaFreq: parseFloat(thetaFreq.toFixed(2)),
-      hippocampalThetaPower: parseFloat(thetaPower.toFixed(2)),
-      amygdaloHippocampalConn: parseFloat(amygdaloHippocampal.toFixed(3)),
-      rightAmygdaloHippocampalConn: parseFloat(rightAmygdaloHippocampal.toFixed(3)),
-      leftAmygdaloHippocampalConn: parseFloat(leftAmygdaloHippocampal.toFixed(3)),
-      nbmHippocampalConn: parseFloat(nbmHippocampal.toFixed(3)),
-      soPhaseCouplingDecay: parseFloat(soPhaseCouplingDecay.toFixed(3)),
-      hippocampalRecollection: parseFloat(hippocampalRecollection.toFixed(3)),
-      perirhinalFamiliarity: parseFloat(perirhinalFamiliarity.toFixed(3)),
-      caudateProcedural: parseFloat(caudateProcedural.toFixed(3)),
+      // ── Emergence lag (shown in MemoryPanel) ─────────────────────────────
       neuralInertiaLag: parseFloat(inertiaLag.toFixed(3)),
+      // ── Internal sleep-state persistence (needed across ticks) ───────────
+      // These are not shown in the UI but must be returned so ConsciousnessEngine
+      // can read them from patient state on the next tick to continue tracking.
+      // sleepStage is also used by RespiratoryEngine for OSA airway collapse modeling.
       isF6Active,
       isF3Active,
       sleepStage,
       sleepTimeInStage,
       sleepDebt: parseFloat(sleepDebt.toFixed(6)),
       postOpSleepNight,
-      remReboundIntensity
+      remReboundIntensity,
     };
   }
 }

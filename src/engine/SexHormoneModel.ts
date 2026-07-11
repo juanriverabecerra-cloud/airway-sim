@@ -140,7 +140,7 @@ export class SexHormoneModel {
         progesteroneLevel = Math.sin(Math.PI * (cycleDay - 14) / 14);
       }
     }
-    const macReductionFromProgesterone = progesteroneLevel * 0.28; // up to 28% MAC reduction at peak luteal
+    const macReductionFromProgesterone = progesteroneLevel * 0.12; // up to ~12% MAC reduction at peak luteal (published range 5-15%; full 30-40% is a pregnancy-level effect handled by PregnancyPhysiologyEngine)
 
     // Progesterone respiratory drive
     const basePaCO2Adjustment = -(progesteroneLevel * 3); // up to -3 mmHg from respiratory stimulation

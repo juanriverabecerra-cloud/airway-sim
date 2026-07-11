@@ -108,6 +108,17 @@ export const getMedColor = (medId) => {
       focus: 'focus:border-cyan-500 focus:ring-cyan-500'
     };
   }
+
+  // Antibiotics -> Sky Blue
+  if (['cefazolin', 'vancomycin', 'piperacillin_tazobactam', 'meropenem', 'gentamicin', 'metronidazole', 'ciprofloxacin', 'ceftriaxone', 'unasyn'].some(k => id.includes(k))) {
+    return {
+      active: 'border-sky-500/80 text-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.25)] bg-sky-950/10 font-bold',
+      btn: 'glass-button-sky',
+      subBorder: 'border-sky-900/50',
+      text: 'text-sky-400',
+      focus: 'focus:border-sky-500 focus:ring-sky-500'
+    };
+  }
   
   // Default general therapeutic -> Slate/Indigo
   return {
@@ -144,14 +155,28 @@ export const getFluidColor = (fluidId) => {
   };
 };
 
+export const getDefaultLineId = (accessLines) => {
+  if (!accessLines || accessLines.length === 0) return '';
+  const piv = accessLines.find(l => !l.failed && (l.category?.includes('PIV') || l.name?.includes('PIV') || l.category?.includes('Peripheral')));
+  if (piv) return piv.id;
+  const otherVenous = accessLines.find(l => !l.failed && (l.category?.includes('CVC') || l.category?.includes('Central') || l.category?.includes('IO') || l.type?.includes('IO') || l.type?.includes('Intraosseous')));
+  if (otherVenous) return otherVenous.id;
+  const anyVenous = accessLines.find(l => !l.failed && !l.category?.includes('Arterial') && !l.name?.includes('Arterial'));
+  if (anyVenous) return anyVenous.id;
+  const anyNonFailed = accessLines.find(l => !l.failed);
+  if (anyNonFailed) return anyNonFailed.id;
+  return accessLines[0]?.id || '';
+};
+
 export const Pharmacopoeia = ({ 
   pushFluid, 
   processMed, 
   patient,
   setPatient,
-  logEvent
+  logEvent,
+  openDrugConsult
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState('induction'); // 'induction' | 'analgesia' | 'paralytics' | 'hemodynamics' | 'adjuncts' | 'fluids'
+  const [activeSubTab, setActiveSubTab] = useState('induction'); // 'induction' | 'analgesia' | 'paralytics' | 'hemodynamics' | 'antibiotics' | 'adjuncts' | 'fluids'
   const [searchTerm, setSearchTerm] = useState('');
   const [medInput, setMedInput] = useState({ drug: null, dose: '', indication: '', route: 'IV', type: 'Bolus', unit: '', lineId: '' });
   const [fluidInput, setFluidInput] = useState({ fluid: null, dose: '', rate: '', lineId: '' });
@@ -192,7 +217,7 @@ export const Pharmacopoeia = ({
 
   const handleMedSubmit = (medId) => {
     if (medInput.dose) {
-      processMed(medId, medInput.dose, medInput.route, medInput.type, medInput.unit, medInput.lineId || patient?.accessLines?.[0]?.id);
+      processMed(medId, medInput.dose, medInput.route, medInput.type, medInput.unit, medInput.lineId || getDefaultLineId(patient?.accessLines));
       setMedInput({ drug: null, dose: '', indication: '', route: 'IV', type: 'Bolus', unit: '', lineId: '' });
       setSearchTerm('');
     }
@@ -200,7 +225,7 @@ export const Pharmacopoeia = ({
 
   const handleTciSubmit = (medId) => {
     if (tciTarget && tciMode !== 'none') {
-      const selectedLineId = medInput.lineId || patient?.accessLines?.[0]?.id;
+      const selectedLineId = medInput.lineId || getDefaultLineId(patient?.accessLines);
       processMed(medId, tciTarget, 'IV', tciMode, 'mcg/mL', selectedLineId, tciModel);
       setMedInput({ drug: null, dose: '', indication: '', route: 'IV', type: 'Bolus', unit: '', lineId: '' });
       setTciMode('none');
@@ -210,7 +235,7 @@ export const Pharmacopoeia = ({
   };
 
   const handleFluidSubmit = (fluidId) => {
-    const selectedLineId = fluidInput.lineId || patient?.accessLines?.[0]?.id;
+    const selectedLineId = fluidInput.lineId || getDefaultLineId(patient?.accessLines);
     const selectedLine = patient?.accessLines?.find(l => l.id === selectedLineId);
     if (selectedLine?.category === 'Arterial Line') return;
     if (fluidInput.dose) {
@@ -243,113 +268,266 @@ export const Pharmacopoeia = ({
 
   // Group Definitions reorganized by clinical function and sorted alphabetically
   const GROUPS = {
-    induction: [
-      'dexmedetomidine',
-      'esketamine',
-      'etomidate',
-      'f3',
-      'f6',
-      'ketamine',
-      'methohexital',
-      'midazolam',
-      'propofol',
-      'thiopental'
-    ],
-    analgesia: [
-      'acetaminophen',
-      'alfentanil',
-      'benzocaine',
-      'bupivacaine',
-      'carbamazepine',
-      'chloroprocaine',
-      'fentanyl',
-      'gabapentin',
-      'hydromorphone',
-      'ketorolac',
-      'lamotrigine',
-      'levetiracetam',
-      'levobupivacaine',
-      'mepivacaine',
-      'mexiletine',
-      'morphine',
-      'oxcarbazepine',
-      'pregabalin',
-      'prilocaine',
-      'remifentanil',
-      'ropivacaine',
-      'sufentanil',
-      'tetracaine',
-      'topiramate',
-      'ziconotide',
-      'zonisamide'
-    ],
-    paralytics: [
-      'atipamezole',
-      'atracurium',
-      'cisatracurium',
-      'cw002',
-      'edrophonium',
-      'gantacurium',
-      'glycopyrrolate',
-      'l_cysteine',
-      'mivacurium',
-      'neostigmine',
-      'pancuronium',
-      'pyridostigmine',
-      'rocuronium',
-      'scopolamine',
-      'succinylcholine',
-      'sugammadex',
-      'vecuronium'
-    ],
-    hemodynamics: [
-      'adenosine',
-      'amiodarone',
-      'atropine',
-      'clevidipine',
-      'cocaine',
-      'ephedrine',
-      'epinephrine',
-      'esmolol',
-      'labetalol',
-      'lidocaine',
-      'metoprolol',
-      'nicardipine',
-      'nitroglycerin',
-      'norepinephrine',
-      'papaverine',
-      'phenylephrine',
-      'vasopressin'
-    ],
-    adjuncts: [
-      'albuterol',
-      'bicarbonate',
-      'calcium',
-      'dantrolene',
-      'dextrose',
-      'furosemide',
-      'intralipid',
-      'magnesium',
-      'methyleneBlue',
-      'methylphenidate',
-      'unasyn'
-    ],
-    fluids: [
-      'Albumin 5%',
-      'Cryoprecipitate',
-      'Fibrinogen Concentrate',
-      'Fresh Frozen Plasma (FFP)',
-      'Lactated Ringers (LR)',
-      'Normal Saline (0.9% NS)',
-      'Packed Red Blood Cells (PRBC)',
-      'Platelets',
-      'Plasmalyte'
-    ]
+    induction: {
+      'Sedatives & Hypnotics': [
+        'etomidate',
+        'methohexital',
+        'propofol',
+        'thiopental'
+      ],
+      'Alpha-2 Agonists': [
+        'dexmedetomidine'
+      ],
+      'Dissociatives': [
+        'esketamine',
+        'ketamine'
+      ],
+      'Benzodiazepines': [
+        'midazolam'
+      ],
+      'Orexin Receptor Antagonists': [
+        'suvorexant'
+      ]
+    },
+    analgesia: {
+      'Opioids (Intravenous)': [
+        'alfentanil',
+        'fentanyl',
+        'hydromorphone',
+        'meperidine',
+        'morphine',
+        'remifentanil',
+        'sufentanil'
+      ],
+      'Opioids (Oral/Supplemental)': [
+        'codeine',
+        'oxycodone',
+        'tramadol'
+      ],
+      'Local Anesthetics (Amides)': [
+        'bupivacaine',
+        'levobupivacaine',
+        'mepivacaine',
+        'mexiletine',
+        'prilocaine',
+        'ropivacaine'
+      ],
+      'Local Anesthetics (Esters)': [
+        'benzocaine',
+        'chloroprocaine',
+        'tetracaine'
+      ],
+      'Non-Opioid Analgesics': [
+        'acetaminophen',
+        'ketorolac',
+        'ziconotide'
+      ],
+      'Neuropathic & Anticonvulsants': [
+        'carbamazepine',
+        'gabapentin',
+        'lamotrigine',
+        'levetiracetam',
+        'oxcarbazepine',
+        'pregabalin',
+        'topiramate',
+        'zonisamide'
+      ]
+    },
+    paralytics: {
+      'Depolarizing Relaxants': [
+        'succinylcholine'
+      ],
+      'Nondepolarizing (Aminosteroids)': [
+        'pancuronium',
+        'rocuronium',
+        'vecuronium'
+      ],
+      'Nondepolarizing (Benzylisoquinolines)': [
+        'atracurium',
+        'cisatracurium',
+        'cw002',
+        'gantacurium',
+        'mivacurium'
+      ],
+      'Anticholinesterase Inhibitors': [
+        'edrophonium',
+        'neostigmine',
+        'physostigmine',
+        'pyridostigmine'
+      ],
+      'Specific Antagonists & Chelators': [
+        'atipamezole',
+        'flumazenil',
+        'l_cysteine',
+        'naloxone',
+        'sugammadex'
+      ],
+      'Anticholinergics': [
+        'glycopyrrolate',
+        'scopolamine'
+      ]
+    },
+    hemodynamics: {
+      'Inotropes & Vasopressors': [
+        'dobutamine',
+        'dopamine',
+        'ephedrine',
+        'epinephrine',
+        'isoproterenol',
+        'milrinone',
+        'norepinephrine',
+        'phenylephrine',
+        'vasopressin'
+      ],
+      'Beta-Blockers / Sympatholytics': [
+        'esmolol',
+        'labetalol',
+        'metoprolol'
+      ],
+      'Calcium Channel Blockers': [
+        'clevidipine',
+        'diltiazem',
+        'nicardipine',
+        'nifedipine'
+      ],
+      'Nitrates & Vasodilators': [
+        'hydralazine',
+        'nitroglycerin',
+        'nitroprusside',
+        'papaverine'
+      ],
+      'Antiarrhythmics & Chronotropes': [
+        'adenosine',
+        'amiodarone',
+        'atropine',
+        'digoxin',
+        'ibutilide',
+        'lidocaine'
+      ],
+      'Sympathomimetics / Other': [
+        'clonidine',
+        'cocaine',
+        'enalaprilat',
+        'methyldopa',
+        'phentolamine'
+      ]
+    },
+    adjuncts: {
+      'Hematology & Anticoagulation': [
+        'andexanet',
+        'desmopressin',
+        'factorIXconcentrate',
+        'factorVIIIconcentrate',
+        'heparin',
+        'idarucizumab',
+        'pcc',
+        'protamine',
+        'rfviia',
+        'tranexamicAcid'
+      ],
+      'Electrolytes, Osmotherapy & Buffers': [
+        'bicarbonate',
+        'calcium',
+        'dextrose',
+        'hypertonicSaline3',
+        'magnesium',
+        'mannitol',
+        'potassium'
+      ],
+      'Diuretics': [
+        'acetazolamide',
+        'bumetanide',
+        'furosemide'
+      ],
+      'Corticosteroids': [
+        'dexamethasone',
+        'hydrocortisone'
+      ],
+      'Emergency Rescue & Antidotes': [
+        'dantrolene',
+        'intralipid',
+        'methyleneBlue'
+      ],
+      'Gastric Prophylaxis & Antacids': [
+        'famotidine',
+        'pantoprazole',
+        'sodiumCitrate'
+      ],
+      'Antiemetics & Neuroleptics': [
+        'aprepitant',
+        'droperidol',
+        'fosaprepitant',
+        'granisetron',
+        'haloperidol',
+        'metoclopramide',
+        'ondansetron',
+        'palonosetron',
+        'promethazine'
+      ],
+      'Uterotonics': [
+        'carboprost',
+        'methylergonovine',
+        'misoprostol',
+        'oxytocin'
+      ],
+      'Other Specialty Adjuncts': [
+        'albuterol',
+        'bromocriptine',
+        'diphenhydramine',
+        'glucagon',
+        'ipratropium',
+        'methylphenidate',
+        'octreotide',
+        'regularInsulin'
+      ]
+    },
+    antibiotics: {
+      'Cephalosporins': [
+        'cefazolin',
+        'ceftriaxone'
+      ],
+      'Penicillins & Combinations': [
+        'piperacillin_tazobactam',
+        'unasyn'
+      ],
+      'Carbapenems': [
+        'meropenem'
+      ],
+      'Glycopeptides': [
+        'vancomycin'
+      ],
+      'Aminoglycosides': [
+        'gentamicin'
+      ],
+      'Fluoroquinolones': [
+        'ciprofloxacin'
+      ],
+      'Nitroimidazoles': [
+        'metronidazole'
+      ]
+    },
+    fluids: {
+      'Crystalloids': [
+        'Lactated Ringers (LR)',
+        'Normal Saline (0.9% NS)',
+        'Plasmalyte'
+      ],
+      'Colloids': [
+        'Albumin 5%'
+      ],
+      'Blood Products': [
+        'Cryoprecipitate',
+        'Fibrinogen Concentrate',
+        'Fresh Frozen Plasma (FFP)',
+        'Packed Red Blood Cells (PRBC)',
+        'Platelets'
+      ]
+    }
   };
 
   const renderFluidButton = (fluidId) => {
     const isActive = fluidInput.fluid === fluidId;
-    const selectedLineId = fluidInput.lineId || patient?.accessLines?.[0]?.id;
+    const selectedLineId = fluidInput.lineId || getDefaultLineId(patient?.accessLines);
     const selectedLine = patient?.accessLines?.find(l => l.id === selectedLineId);
     const isArterial = selectedLine?.category === 'Arterial Line';
     const colorTheme = getFluidColor(fluidId);
@@ -358,9 +536,19 @@ export const Pharmacopoeia = ({
       <div className="flex flex-col gap-1 mb-1.5" key={fluidId}>
         <button 
           onClick={() => setFluidInput(isActive ? { fluid: null } : { fluid: fluidId, dose: '', rate: '', lineId: selectedLineId })} 
-          className={`p-2 rounded-lg text-xs text-left border transition-all glass-button ${colorTheme.active} ${isActive ? colorTheme.active : 'border-slate-800'}`}
+          className={`p-2 rounded-lg text-xs border transition-all glass-button ${colorTheme.active} ${isActive ? colorTheme.active : 'border-slate-800'} flex justify-between items-center`}
         >
           <span className="font-bold text-slate-100">{fluidId}</span>
+          <span 
+            onClick={(e) => {
+              e.stopPropagation();
+              if (openDrugConsult) openDrugConsult(fluidId);
+            }}
+            className="text-slate-400 text-[9px] uppercase font-mono hover:text-cyan-300 hover:underline cursor-pointer border-b border-dashed border-slate-600/50 pb-0.5 ml-2 shrink-0"
+            title="How does this fluid work? (Ask Attending)"
+          >
+            {FLUIDS[fluidId]?.type || 'Fluid'}
+          </span>
         </button>
         {isActive && (
           <div className={`flex flex-col p-2.5 bg-slate-950/90 border ${colorTheme.subBorder} rounded-lg animate-in slide-in-from-top-1 duration-200`}>
@@ -441,10 +629,20 @@ export const Pharmacopoeia = ({
       <div className="flex flex-col gap-1 mb-2" key={medId}>
         <button 
           onClick={() => setMedInput(isActive ? { drug: null } : { drug: medId, indication: indicationKeys[0], route: med.routes[0], type: med.indications[indicationKeys[0]].type, unit: med.indications[indicationKeys[0]].unit, dose: '' })}
+          data-tutorial={medId + "-btn"}
           className={`p-2 rounded-lg text-xs text-left border transition-all glass-button ${isActive ? colorTheme.active : 'border-slate-800'}`}
         >
           <span className="font-bold text-slate-100">{med.name}</span> 
-          <span className="text-slate-400 text-[9px] float-right uppercase font-mono">{med.classes[0]}</span>
+          <span 
+            onClick={(e) => {
+              e.stopPropagation();
+              if (openDrugConsult) openDrugConsult(medId);
+            }}
+            className="text-slate-400 text-[9px] float-right uppercase font-mono hover:text-cyan-300 hover:underline cursor-pointer border-b border-dashed border-slate-600/50 pb-0.5"
+            title="How does this drug work? (Ask Attending)"
+          >
+            {med.classes[0]}
+          </span>
         </button>
         {isActive && (
           <div className={`flex flex-col gap-2 p-2.5 bg-slate-950/90 border ${colorTheme.subBorder} rounded-lg animate-in slide-in-from-top-1 duration-200 font-mono text-[11px]`}>
@@ -458,7 +656,7 @@ export const Pharmacopoeia = ({
             </select>
             
             {medInput.route === 'IV' && (
-              <select value={medInput.lineId || patient?.accessLines?.[0]?.id || ''} onChange={(e) => setMedInput({...medInput, lineId: e.target.value})} className={`bg-slate-900 text-slate-200 border border-slate-700 rounded p-1 outline-none ${colorTheme.focus}`}>
+              <select value={medInput.lineId || getDefaultLineId(patient?.accessLines) || ''} onChange={(e) => setMedInput({...medInput, lineId: e.target.value})} className={`bg-slate-900 text-slate-200 border border-slate-700 rounded p-1 outline-none ${colorTheme.focus}`}>
                 {patient?.accessLines?.length > 0 ? patient.accessLines.map(l => <option key={l.id} value={l.id}>{l.name}</option>) : <option value="">No Venous Access</option>}
               </select>
             )}
@@ -546,8 +744,37 @@ export const Pharmacopoeia = ({
   };
 
   const term = searchTerm.toLowerCase();
-  const filteredMeds = Object.keys(MEDICATIONS).filter(id => MEDICATIONS[id].name.toLowerCase().includes(term) || MEDICATIONS[id].classes.some(c => c.toLowerCase().includes(term)));
-  const filteredFluids = Object.keys(FLUIDS).filter(id => id.toLowerCase().includes(term));
+  const filteredMeds = Object.keys(MEDICATIONS).filter(id => {
+    const med = MEDICATIONS[id];
+    const name = med.name.toLowerCase();
+    const classes = med.classes.map(c => c.toLowerCase());
+    
+    if (name.includes(term)) return true;
+    
+    // Normalize plural/singular suffix
+    const singularTerm = (term.endsWith('s') && term.length > 3) ? term.slice(0, -1) : term;
+    if (name.includes(singularTerm)) return true;
+    
+    // Check classes with plural/singular and synonym logic
+    for (const c of classes) {
+      if (c.includes(term) || c.includes(singularTerm)) return true;
+      if (term.includes(c) || singularTerm.includes(c)) return true;
+      
+      // Synonym mappings
+      if ((term.includes('benzo') || term.includes('bzd')) && c.includes('benzodiazepine')) return true;
+      if ((term.includes('paralytic') || term.includes('nmba') || term.includes('relaxant')) && 
+          (c.includes('ndmr') || c.includes('depolarizing') || c.includes('relaxant'))) return true;
+      if (term.includes('steroid') && c.includes('corticosteroid')) return true;
+      if (term.includes('pressor') && (c.includes('pressor') || c.includes('vasopressor'))) return true;
+      if (term.includes('blocker') && (c.includes('blocker') || c.includes('ccb') || c.includes('beta-blocker'))) return true;
+    }
+    return false;
+  });
+  const filteredFluids = Object.keys(FLUIDS).filter(id => {
+    const name = id.toLowerCase();
+    const singularTerm = (term.endsWith('s') && term.length > 3) ? term.slice(0, -1) : term;
+    return name.includes(term) || name.includes(singularTerm);
+  });
 
 
   return (
@@ -594,6 +821,7 @@ export const Pharmacopoeia = ({
               { id: 'analgesia', label: 'Analgesics', color: 'text-teal-400' },
               { id: 'paralytics', label: 'NMBAs/Reversal', color: 'text-cyan-400' },
               { id: 'hemodynamics', label: 'Cardio/Vasoactive', color: 'text-rose-400' },
+              { id: 'antibiotics', label: 'Antibiotics', color: 'text-sky-400' },
               { id: 'adjuncts', label: 'Electrolytes/Emergency', color: 'text-purple-400' },
               { id: 'fluids', label: 'Resus Fluids', color: 'text-emerald-400' }
             ].map(sub => (
@@ -610,13 +838,28 @@ export const Pharmacopoeia = ({
           {/* Category Grids */}
           <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
             {activeSubTab === 'fluids' ? (
-              <div className="flex flex-col gap-1">
-                <span className="text-slate-500 text-[9px] font-bold uppercase tracking-wider block mb-2 font-mono">Select Resus Crystalloid or Blood Product:</span>
-                {GROUPS.fluids.map(f => renderFluidButton(f))}
+              <div className="flex flex-col gap-3 font-mono">
+                {Object.entries(GROUPS.fluids).map(([subName, fluidNames]) => (
+                  <div key={subName} className="flex flex-col gap-1.5">
+                    <span className="text-slate-400 text-[8.5px] font-black uppercase tracking-wider border-b border-slate-800/40 pb-0.5 mb-1 font-mono">
+                      {subName}
+                    </span>
+                    {fluidNames.map(f => renderFluidButton(f))}
+                  </div>
+                ))}
               </div>
             ) : (
-              <div className="flex flex-col gap-1">
-                {GROUPS[activeSubTab].map(renderAdvancedMedButton)}
+              <div className="flex flex-col gap-3 font-mono">
+                {Object.entries(GROUPS[activeSubTab]).map(([subName, medIds]) => (
+                  <div key={subName} className="flex flex-col gap-1.5">
+                    <span className="text-slate-400 text-[8.5px] font-black uppercase tracking-wider border-b border-slate-800/40 pb-0.5 mb-1 font-mono">
+                      {subName}
+                    </span>
+                    <div className="flex flex-col gap-1">
+                      {medIds.map(renderAdvancedMedButton)}
+                    </div>
+                  </div>
+                ))}
                 {activeSubTab === 'adjuncts' && (
                   <div className="border border-blue-500/20 bg-blue-950/15 p-2 rounded-xl flex justify-between items-center gap-2 mt-2 font-mono text-[9px] shrink-0">
                     <div className="flex flex-col">

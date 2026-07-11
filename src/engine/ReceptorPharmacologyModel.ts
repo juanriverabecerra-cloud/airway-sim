@@ -130,7 +130,9 @@ export function computeReceptorCoupling(fraction: number, receptors: ReceptorPro
 // E_alpha1_max=1.5) the prior formula used -- see the comparison table in
 // src/testing/receptor_pharmacology_model.test.ts.
 export const ENDOGENOUS_CATECHOLAMINE_PROFILE: ReceptorProfile = { Alpha1: 7, Beta1: 8, Beta2: 2 };
-export const ENDOGENOUS_CATECHOLAMINE_C50 = 50;
+// C50 raised from 50→80: at laryngoscopy nociception=40 (recalibrated from 75),
+// fraction = 40^1.5/(40^1.5+80^1.5) ≈ 0.26 → hrSpike ≈ 8*15*0.26 = 31 bpm ✓ (clinical +20-30).
+export const ENDOGENOUS_CATECHOLAMINE_C50 = 80;
 export const ENDOGENOUS_CATECHOLAMINE_GAMMA = 1.5;
 // E_beta1_max/E_alpha1_max (PainEngine.ts's existing beta-blockade/alpha-blockade/HTN/
 // volatile-vasodilation modulation factors) are normalized by their own un-modulated

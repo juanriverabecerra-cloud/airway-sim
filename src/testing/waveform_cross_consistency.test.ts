@@ -25,7 +25,7 @@ describe('Cross-consistency — CVP/PA derived from one shared cardiac chamber s
   it('synthesizeCvpWaveform\'s cycle-mean pressure matches vitals.cvp exactly (the rescale guarantee, proven end-to-end)', () => {
     const h = 100;
     const mean = cycleMeanPressure(
-      (frac, bd, hh) => synthesizeCvpWaveform(frac, bd, hh, frac, {}, normalVitals),
+      (frac, bd, hh) => synthesizeCvpWaveform(frac, bd, hh, 0.0, {}, normalVitals),
       h, 25
     );
     expect(mean).toBeCloseTo(normalVitals.cvp, 0);
@@ -34,7 +34,7 @@ describe('Cross-consistency — CVP/PA derived from one shared cardiac chamber s
   it('synthesizePacWaveform (pa mode)\'s cycle-mean pressure matches vitals.mPAP exactly', () => {
     const h = 100;
     const mean = cycleMeanPressure(
-      (frac, bd, hh) => synthesizePacWaveform(frac, bd, hh, frac, {}, normalVitals, 'pa'),
+      (frac, bd, hh) => synthesizePacWaveform(frac, bd, hh, 0.0, {}, normalVitals, 'pa'),
       h, 50
     );
     expect(mean).toBeCloseTo(normalVitals.mPAP, 0);

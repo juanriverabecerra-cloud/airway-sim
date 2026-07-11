@@ -2237,3 +2237,60 @@ Phase 6 was initiated after user direction: "target ALL remaining gaps to create
     All Phase 6 patient flags propagated through CaseManager.jsx. Phase 6K also wires all
     new physiologic outputs into finalVitals for state-layer accessibility.
 *   **Final verification**: 1003/1003 tests passing, build clean. Phase 6 complete.
+
+## Gap Closure Session: Medical-Grade Completeness
+
+#### GC.1 Missing Critical Drug Entries (20+ drugs added to both databases)
+
+All added to both `Pharmacology.js` and `meds.config.ts`:
+
+**Bronchodilators (previously absent entirely)**: Albuterol/Salbutamol (beta-2 agonist; primary intraoperative bronchospasm treatment AND hyperkalemia treatment by shifting K+ intracellularly -- the most clinically impactful missing drug; dual-mechanism must be taught explicitly), Ipratropium Bromide (anticholinergic bronchodilator, additive with albuterol via different receptor pathway, preferred in COPD).
+
+**Endocrine**: Regular Insulin (three perioperative uses: hyperglycemia, hyperkalemia [with glucose], DKA -- each requiring different dosing/monitoring understanding), Glucagon (hypoglycemia without IV access AND beta-blocker/CCB overdose -- bypasses receptor blockade via adenylyl cyclase), Desmopressin/DDAVP (VWD Type 1 + mild hemophilia A treatment, central DI -- V2-selective, releases stored VWF from Weibel-Palade bodies, CONTRAINDICATED in Type 2B VWD).
+
+**Opioids missing from DB**: Codeine (CYP2D6 prodrug, fatal in UM patients -- FDA black-box), Tramadol (SNRI+opioid dual mechanism -- MAOI interaction causes fatal serotonin syndrome, CYP2D6-dependent), Meperidine/Pethidine (MAOI absolute contraindication -- mechanism is serotonin reuptake block + MAOI = serotonin syndrome; unique anti-shivering property at 25 mg IV), Oxycodone (CYP3A4/2D6, clinically important PK interactions).
+
+**PONV/Antiemetics**: Palonosetron (second-generation 5-HT3, 40h half-life vs ondansetron 6h, allosteric binding, preferred in PONV guidelines), Granisetron (lower QTc than ondansetron), Droperidol (FDA black-box QT warning; extremely effective at low doses), Haloperidol (D2 blocker for PACU delirium, NMS risk), Promethazine (multi-receptor, IV tissue necrosis risk), Diphenhydramine (H1 antihistamine, adjunct in allergic reactions), Aprepitant (oral NK1 antagonist, most potent PONV drug, CYP3A4 inhibitor), Fosaprepitant (IV NK1 prodrug).
+
+**Specialized**: Isoproterenol (pure beta-1/beta-2 -- ONLY effective chronotrope for denervated transplanted heart), Octreotide (THE specific treatment for carcinoid crisis -- blocks tumor hormone release; standard vasopressors/antihistamines ineffective), Bromocriptine (dopamine agonist -- specific treatment for NMS by reversing dopaminergic blockade causally), Physostigmine (ONLY CNS-penetrating cholinesterase inhibitor -- specific antidote for central anticholinergic syndrome), Hypertonic Saline 3% (hyponatremia correction, ICP management), Factor VIII Concentrate/rFVIII (hemophilia A, each unit/kg raises FVIII by 2%), Factor IX Concentrate/rFIX (hemophilia B, each unit/kg raises FIX by only 1% due to larger Vd).
+
+#### GC.2 MAOI Drug Interaction Model (`MAOIModel.ts`)
+
+The single most dangerous drug interaction category in anesthesia, entirely absent before this. Two distinct crisis types: (1) SEROTONIN SYNDROME from meperidine + MAOI (meperidine blocks serotonin reuptake + MAO inhibition → serotonin accumulates → hyperthermia + rigidity + clonus + cardiovascular instability; ABSOLUTE CONTRAINDICATION, documented fatalities); (2) HYPERTENSIVE CRISIS from indirect sympathomimetics (ephedrine releases stored NE which cannot be degraded → MAP > 200 mmHg → hemorrhagic stroke). MAOI washout modeled (14-day enzyme regeneration for irreversible agents). Ephedrine is MORE DANGEROUS than phenylephrine in MAOI patients -- opposite of standard preference. Wired into usePhysiology.js affecting drugSvrMod and totalHrDelta.
+
+#### GC.3 Pneumoperitoneum Model (`PneumoperitoneumModel.ts`)
+
+Laparoscopic surgery is >60% of abdominal surgery but was physiologically absent. Real mechanisms at 10-15 mmHg IAP: (1) Peritoneal CO2 absorption adds ~4-5 mL/min requiring 15-20% MV increase; (2) IAP-driven SVR increase from mechanical aortic compression; (3) FRC reduction from diaphragm elevation; (4) Renal blood flow reduction 30-60%; (5) ICP elevation (CO2 + Trendelenburg compounds this dramatically); (6) Vagal bradycardia risk during rapid insufflation. Subcutaneous emphysema multiplies CO2 absorption 3×. The CO2 from peritoneum feeds directly into RespiratoryEngine as additional VO2 load.
+
+#### GC.4 Pulmonary Embolism Model (`PulmonaryEmbolismModel.ts`)
+
+Massive/submassive PE crisis including: PVR spike, RV failure, cardiogenic shock, the pathognomonic EtCO2 drop during IPPV (dead space increase -- CO2 can't reach occluded alveoli), PaCO2 rise. Thrombolysis with tPA models clot lysis at ~25%/hour reducing effective occlusion. Fixed a key bug where hemodynamic consequences weren't using post-lysis effective occlusion.
+
+#### GC.5 Venous Air Embolism Model (`VenousAirEmbolismModel.ts`)
+
+Mill-wheel murmur, EtCO2 drop, hemodynamic collapse. N2O diffuses INTO air bubbles (2.5× size increase) → dramatically worsens obstruction -- immediate N2O cessation is critical. Durant's maneuver (left lateral decubitus + head down) + CVC aspiration + 100% O2 model as distinct treatment components. Paradoxical air embolism (via PFO) when RV pressure exceeds LA pressure -- arterial embolization with simultaneous stroke/MI risk.
+
+#### GC.6 Clinical Scoring Engine (`ClinicalScoringEngine.ts`)
+
+Four previously absent validated scoring systems, all now computable from existing engine data:
+- **ACT** (Activated Clotting Time): heparin + hypothermia + thrombocytopenia effects; threshold >480s for CPB safety
+- **Modified Aldrete Score** (0-10): five components, ≥9 = PACU discharge ready
+- **Pre-Extubation Criteria**: TV>5 mL/kg, RR 8-30, SpO2>93% on ≤40% FiO2, TOF>0.9, hemodynamically stable, temp>36°C, conscious -- fails with specific reason listed
+- **ASA Physical Status** (I-V): auto-computed from comorbidity flags
+- **Full SOFA Score** (6 organs, 0-24): Sepsis-3 organ dysfunction criterion
+
+#### GC.7 Surgical Crisis Model (`SurgicalCrisisModel.ts`)
+
+Four distinct perioperative crises now mechanistically represented:
+- **Carcinoid Crisis**: tumor manipulation → serotonin/bradykinin/histamine release → flushing + bronchospasm + profound hypotension; octreotide is THE ONLY treatment (vasopressors and antihistamines are ineffective against the underlying mediator release mechanism)
+- **Pheochromocytoma Intraoperative Crisis**: catecholamine storm during adrenal manipulation (SVR spike to 500+ dyn·s/cm^5), post-ligation withdrawal hypotension
+- **NPPE (Negative-Pressure Pulmonary Edema)**: develops 2-360 minutes after laryngospasm; non-cardiogenic, compliance penalty; treated with CPAP/PEEP
+- **Masseter Muscle Rigidity (MMR)**: first sign of MH in susceptible patients given succinylcholine
+
+#### GC.8 New Case Scenarios (3 additional cases)
+
+- **Carcinoid Tumor Resection** (hepatic metastasectomy): carcinoidTumor flag activates SurgicalCrisisModel; octreotide pre-treatment decision point
+- **Laparoscopic Colectomy Complex** (obese, Trendelenburg): pneumoperitoneumActive at 15 mmHg, Trendelenburg, teaches physiologic compounding
+- **MAOI Patient Emergency Appendectomy**: maoisActive + 14-day washout, teaches drug avoidance (meperidine, ephedrine), correct alternatives (fentanyl, phenylephrine)
+
+**Final verification: 1067/1067 tests passing, build clean.**

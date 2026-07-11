@@ -13,7 +13,9 @@ describe('SexHormoneModel — progesterone, estrogen, testosterone perioperative
     const follicular = SexHormoneModel.tick({ sex: 'female', age: 30, menstrualCycleDay: 7 });
     const luteal = SexHormoneModel.tick({ sex: 'female', age: 30, menstrualCycleDay: 21 });
     expect(luteal.macReductionFromProgesterone).toBeGreaterThan(follicular.macReductionFromProgesterone);
-    expect(luteal.macReductionFromProgesterone).toBeGreaterThan(0.15);
+    // Peak luteal MAC reduction is ~12% (published 5-15% for non-pregnant; pregnancy itself is separate)
+    expect(luteal.macReductionFromProgesterone).toBeGreaterThan(0.05);
+    expect(luteal.macReductionFromProgesterone).toBeLessThanOrEqual(0.15);
   });
 
   it('chronic progestin therapy mimics mid-luteal progesterone levels in MAC reduction', () => {

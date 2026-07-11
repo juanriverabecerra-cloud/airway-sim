@@ -45,7 +45,7 @@ function safeNumber(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
-const GLUCOSE_BASELINE = 100; // mg/dL
+const GLUCOSE_BASELINE = 90; // mg/dL — midpoint of normal fasting range 70-99 (prior 100 = impaired fasting threshold)
 
 export class PancreasEngine {
   /**
@@ -94,8 +94,11 @@ export class PancreasEngine {
     // same cortisol/sympathetic stress signal AdrenalEngine.ts already computes -- real
     // stress hyperglycemia, exaggerated in diabetes) minus insulin-driven peripheral
     // uptake, plus any exogenous dextrose.
+    // Cortisol coefficient 0.08→0.008: prior drove glucose to 150 mg/dL in ~5 min.
+    // Clinical: surgical stress hyperglycemia peaks at 30-120 min (cortisol acts via
+    // gluconeogenesis gene transcription, not acute catecholamine mechanism).
     const hepaticGlucoseOutputMgPerMin = 1.0 * newGlucagon * 10
-      + 0.08 * cortisolLevel * 100 * (1.0 + diabetesSeverity)
+      + 0.008 * cortisolLevel * 100 * (1.0 + diabetesSeverity)
       + 0.015 * sympatheticStimulus * (1.0 + diabetesSeverity);
     const peripheralUptakeMgPerMin = 1.2 * newInsulin * 10 * insulinSensitivity;
     const netGlucoseFluxMgPerMin = hepaticGlucoseOutputMgPerMin - peripheralUptakeMgPerMin + exogenousDextroseMgPerMin;
@@ -104,6 +107,8 @@ export class PancreasEngine {
 
     if (newGlucose < 40 && glucose >= 40) {
       events.push('🚨 CRITICAL EMERGENCY: Severe hypoglycemia (glucose < 40 mg/dL) -- risk of seizure and irreversible neuronal injury. Administer dextrose immediately.');
+    } else if (newGlucose < 50 && glucose >= 50) {
+      events.push('🚨 CRITICAL: Glucose < 50 mg/dL — loss of consciousness and airway compromise imminent. Administer dextrose urgently (D50W 25g IV or D10W infusion).');
     } else if (newGlucose < 70 && glucose >= 70) {
       events.push('⚠️ HYPOGLYCEMIA: Glucose has fallen below 70 mg/dL, triggering counter-regulatory catecholamine/glucagon release.');
     } else if (newGlucose > 300 && glucose <= 300) {

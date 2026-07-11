@@ -29,6 +29,25 @@ export interface RespiratoryPatientState {
   cyanide?: number;
   lacticAcid?: number;
   shuntFraction?: number;
+  olvShuntContribution?: number;           // additive from OneLungVentilationModel
+  olvCompliancePenaltyFraction?: number;   // 0-0.5 multiplicative compliance reduction
+  inhalationInjuryCompliancePenalty?: number; // 0-0.5 from BurnsPhysiologyModel
+  inhalationInjuryResistancePenalty?: number; // cmH2O/L/s additive from BurnsPhysiologyModel
+  inhalationInjuryShuntContribution?: number; // additive from BurnsPhysiologyModel
+  pfoShuntContribution?: number;              // additive from PediatricPhysiologyEngine (PFO R-to-L)
+  n2oDiffusionHypoxiaShunt?: number;          // Fink effect: N2O washout dilutes alveolar O2
+  femShuntContribution?: number;              // fat embolism syndrome V/Q mismatch shunt
+  femCompliancePenalty?: number;              // fat embolism ARDS compliance reduction
+  isbCompliancePenalty?: number;              // interscalene block: 100% ipsilateral phrenic palsy → 25% FVC reduction
+  cholinergicResistancePenalty?: number;      // cholinergic toxidrome: bronchospasm + secretions
+  tacoCompliancePenalty?: number;             // TACO: hydrostatic pulmonary edema
+  acsShuntContribution?: number;              // sickle cell ACS: pulmonary vaso-occlusion
+  acsCompliancePenalty?: number;              // sickle cell ACS: ARDS-like compliance loss
+  angioedemaResistancePenalty?: number;       // bradykinin/allergic angioedema airway swelling
+  hpsShuntContribution?: number;              // hepatopulmonary syndrome intrapulmonary shunts
+  tacoShuntContribution?: number;             // TACO: flooded alveoli shunt
+  tacoResistancePenalty?: number;             // TACO: airway secretions
+  femResistancePenalty?: number;              // fat embolism airway resistance increase
   pulmonaryComorbidity?: string;
   laryngospasm?: boolean;
   bronchospasm?: boolean;
@@ -203,7 +222,9 @@ export class RespiratoryEngine {
     const frc_upright_baseline = frc; // FRC baseline before obesity and position scaling
     const cc_L = frc_upright_baseline * (0.50 + 0.0075 * safeAge); // Fig 13.9, Miller's 9th Ed
 
-    const obesityFactor = safeBmi > 25 ? Math.exp(-0.02 * (safeBmi - 25)) : 1.0;
+    // Obesity FRC: exponent -0.035 (Pelosi 1998). Prior -0.02 gave FRC=74% at BMI=40 (clinical 55-65%),
+    // leading to falsely long safe apnea time (6.8 min vs correct 2-4 min for the obese difficult airway).
+    const obesityFactor = safeBmi > 25 ? Math.exp(-0.035 * (safeBmi - 25)) : 1.0;
     frc *= obesityFactor;
 
     const positionFactors: Record<string, number> = {
@@ -380,26 +401,44 @@ export class RespiratoryEngine {
     );
       const currentFRC_L = currentLungVols.frc_L;
 
+      const safeVentSettings = ventSettings || {
+        mode: 'spontaneous',
+        vt: 500,
+        rr: 12,
+        peep: 5,
+        fio2: 50,
+        pinsp: 20,
+        ieRatio: 2,
+        pmax: 40,
+        ps: 10
+      };
+
       const currentO2DeviceStr = typeof safePatient.currentO2Device === 'string' ? safePatient.currentO2Device : '';
       const isBagMaskActive = currentO2DeviceStr.includes('Bag-Mask') 
         || safePatient.ventilationStatus === 'assisted';
 
-      // Calculate non-invasive positive airway pressure (PEEP)
-      let nippvPeep = 0;
-      if (currentO2DeviceStr.includes('CPAP')) {
-        nippvPeep = safePatient.nippv?.epap || 5;
-      } else if (currentO2DeviceStr.includes('BiPAP')) {
-        nippvPeep = safePatient.nippv?.epap || 5;
-      } else if (currentO2DeviceStr.includes('HFNC') || currentO2DeviceStr.includes('High Flow')) {
-        // HFNC delivers approx 1 cmH2O of PEEP per 10 L/min of flow with mouth closed
-        nippvPeep = Math.min(6.0, (safePatient.currentO2Flow || 50) / 10.0);
-      } else if (isBagMaskActive) {
-        nippvPeep = safePatient.bmvPeep || 5;
+      let effectivePeep = 0;
+      if (safePatient.airwaySecured) {
+        effectivePeep = (ventSettings && typeof ventSettings.peep === 'number') ? ventSettings.peep : 0;
+      } else {
+        if (currentO2DeviceStr.includes('CPAP')) {
+          effectivePeep = safePatient.nippv?.epap || 5;
+        } else if (currentO2DeviceStr.includes('BiPAP')) {
+          effectivePeep = safePatient.nippv?.epap || 5;
+        } else if (currentO2DeviceStr.includes('HFNC') || currentO2DeviceStr.includes('High Flow')) {
+          // HFNC delivers approx 1 cmH2O of PEEP per 10 L/min of flow with mouth closed
+          effectivePeep = Math.min(6.0, (safePatient.currentO2Flow || 50) / 10.0);
+        } else if (isBagMaskActive) {
+          effectivePeep = safePatient.bmvPeep || 5;
+        }
       }
 
       // PEEP recruits collapsed/atelectatic alveoli, expanding the effective FRC volume
-      const shuntReduction = nippvPeep > 0 ? Math.min(0.15, nippvPeep * 0.015) : 0;
-      const lungRecruitment = nippvPeep > 0 ? (safePatient.isObese || safePatient.chf ? 0.045 : 0.03) * nippvPeep : 0;
+      // PEEP reduces shunt by recruiting atelectatic alveoli. Clinical: ~0.3-0.5% per cmH2O in
+      // healthy anesthetized patient (Rothen 1995). Prior 0.015/cmH2O was 3× too aggressive —
+      // PEEP=3 already abolished shunt. Corrected to 0.005/cmH2O: PEEP=3→shunt 3.5%, PEEP=5→2.75%.
+      const shuntReduction = effectivePeep > 0 ? Math.min(0.10, effectivePeep * 0.005) : 0;
+      const lungRecruitment = effectivePeep > 0 ? (safePatient.isObese || safePatient.chf ? 0.045 : 0.03) * effectivePeep : 0;
       let intercostalScale = 1.0;
       if (safeInputs.intercostalContribution !== undefined) {
         intercostalScale = 0.7 + 0.3 * safeInputs.intercostalContribution;
@@ -411,22 +450,49 @@ export class RespiratoryEngine {
         ? safePatient.oxygenBuffer 
         : (recruitedFRC_L * 0.21);
 
+      // Calculate replenishment FiO2
+      let replenishmentFiO2 = 21;
+      if (safePatient.airwaySecured || isBagMaskActive) {
+        replenishmentFiO2 = Number(deliveredFiO2);
+      } else {
+        const deviceFiO2 = Number(safePatient.currentFiO2 || 21);
+        if (safePatient.isO2PipelineCrossover && !safePatient.isO2PipelineDisconnected) {
+          // Wall oxygen pipeline crossover: wall oxygen contains N2O (0% O2).
+          // Dilutes inspired gas depending on device.
+          if (currentO2DeviceStr.includes('Nasal Cannula')) {
+            const flow = safePatient.currentO2Flow || 2;
+            replenishmentFiO2 = Math.max(10, 21 - (flow * 1.5));
+          } else if (currentO2DeviceStr.includes('Face Mask')) {
+            const flow = safePatient.currentO2Flow || 5;
+            replenishmentFiO2 = Math.max(10, 21 - (flow * 1.8));
+          } else {
+            // NRB, HFNC, CPAP, BiPAP deliver pure N2O.
+            replenishmentFiO2 = 10; // minimum O2% in crossed closed system
+          }
+        } else {
+          replenishmentFiO2 = deviceFiO2;
+        }
+      }
+      if (isNaN(replenishmentFiO2) || !Number.isFinite(replenishmentFiO2)) {
+        replenishmentFiO2 = 21;
+      }
+      replenishmentFiO2 = Math.max(10, Math.min(100, replenishmentFiO2));
+
       let passiveO2Influx = 0;
       if ((isParalyzed || isApneic) && !safePatient.airwaySecured && !isBagMaskActive) {
         const currentO2Flow = safePatient.currentO2Flow || 0;
-        const currentFiO2 = safePatient.currentFiO2 || 21;
         
-        if (currentO2Flow > 0 && currentFiO2 > 21) {
+        if (currentO2Flow > 0 && replenishmentFiO2 > 21) {
           const flowFraction = Math.min(1.0, currentO2Flow / 15.0);
-          const fiO2Fraction = (currentFiO2 - 21) / (100 - 21);
+          const fiO2Fraction = Math.max(0, (replenishmentFiO2 - 21) / (100 - 21));
           passiveO2Influx = VO2_sec * 0.9 * flowFraction * fiO2Fraction;
         }
         
         if (currentO2DeviceStr.includes('HFNC') || currentO2DeviceStr.includes('High Flow')) {
-          const fiO2Fraction = (currentFiO2 - 21) / (100 - 21);
+          const fiO2Fraction = Math.max(0, (replenishmentFiO2 - 21) / (100 - 21));
           passiveO2Influx = VO2_sec * 0.98 * fiO2Fraction;
         } else if (currentO2DeviceStr.includes('CPAP') || currentO2DeviceStr.includes('BiPAP')) {
-          const fiO2Fraction = (currentFiO2 - 21) / (100 - 21);
+          const fiO2Fraction = Math.max(0, (replenishmentFiO2 - 21) / (100 - 21));
           passiveO2Influx = VO2_sec * 0.95 * fiO2Fraction;
         }
       }
@@ -452,12 +518,17 @@ export class RespiratoryEngine {
         if (safePatient.airwaySecured) {
           effectiveMV_L_min = safeVitals.mv || 6.0;
         } else if (isBagMaskActive) {
-          if (aplSetting < 5) {
-            effectiveMV_L_min = 0;
-          } else if (aplSetting < 15) {
-            effectiveMV_L_min = 5.0 * (aplSetting / 15);
+          if (isApneic) {
+            if (aplSetting < 5) {
+              effectiveMV_L_min = 0;
+            } else if (aplSetting < 15) {
+              effectiveMV_L_min = 5.0 * (aplSetting / 15);
+            } else {
+              effectiveMV_L_min = 5.0;
+            }
           } else {
-            effectiveMV_L_min = 5.0;
+            const currentRR = safeVitals.rr !== undefined && Number.isFinite(safeVitals.rr) ? safeVitals.rr : 12;
+            effectiveMV_L_min = (currentRR * 0.5);
           }
         } else if (!isParalyzed && !isApneic) {
           const currentRR = safeVitals.rr !== undefined && Number.isFinite(safeVitals.rr) ? safeVitals.rr : 12;
@@ -466,12 +537,6 @@ export class RespiratoryEngine {
       }
 
       if (effectiveMV_L_min > 0.1) {
-        let replenishmentFiO2 = safePatient.airwaySecured ? Number(deliveredFiO2) : Number(safePatient.currentFiO2 || 21);
-        if (isNaN(replenishmentFiO2) || !Number.isFinite(replenishmentFiO2)) {
-          replenishmentFiO2 = 21;
-        }
-        replenishmentFiO2 = Math.max(10, Math.min(100, replenishmentFiO2));
-        
         const targetO2_L = recruitedFRC_L * (replenishmentFiO2 / 100);
         const k = effectiveMV_L_min / 60 / recruitedFRC_L;
 
@@ -559,14 +624,41 @@ export class RespiratoryEngine {
       currentCompliance *= (safePatient.surfactantProduction / 100.0);
     }
 
-    if (safePatient.bronchospasm) {
-      currentCompliance *= 0.5;
-    }
+    // Bronchospasm is a disease of airway RESISTANCE, not compliance.
+    // Static compliance (Pplat) should be normal; only dynamic compliance falls
+    // (from air trapping/auto-PEEP). Removing the erroneous 0.5× compliance multiplication
+    // preserves the key teaching: bronchospasm = high PIP with near-normal Pplat.
+    // (Auto-PEEP from air trapping is modeled separately via the resistance + PEEP terms.)
     if (safePatient.laryngospasm) {
       currentCompliance = 2;
     }
     if (safePatient.opioidRigidityActive) {
       currentCompliance = 3.0; // drops compliance to 3 mL/cmH2O
+    }
+
+    // OLV: ventilating one lung with same TV ≈ halved compliance.
+    if (safePatient.olvCompliancePenaltyFraction && safePatient.olvCompliancePenaltyFraction > 0) {
+      currentCompliance *= (1.0 - safePatient.olvCompliancePenaltyFraction);
+    }
+    // Inhalation injury: alveolar edema and mucosal injury progressively reduce compliance
+    if (safePatient.inhalationInjuryCompliancePenalty && safePatient.inhalationInjuryCompliancePenalty > 0) {
+      currentCompliance *= (1.0 - safePatient.inhalationInjuryCompliancePenalty);
+    }
+    // Fat embolism: biochemical ARDS phase reduces compliance
+    if (safePatient.femCompliancePenalty && safePatient.femCompliancePenalty > 0) {
+      currentCompliance *= (1.0 - safePatient.femCompliancePenalty);
+    }
+    // ISB phrenic nerve palsy: ipsilateral hemidiaphragm paralysis → ~22% compliance reduction
+    if (safePatient.isbCompliancePenalty && safePatient.isbCompliancePenalty > 0) {
+      currentCompliance *= (1.0 - safePatient.isbCompliancePenalty);
+    }
+    // TACO: hydrostatic pulmonary edema (cardiogenic, responds to diuresis)
+    if (safePatient.tacoCompliancePenalty && safePatient.tacoCompliancePenalty > 0) {
+      currentCompliance *= (1.0 - safePatient.tacoCompliancePenalty);
+    }
+    // Sickle cell ACS: ARDS-like pulmonary vaso-occlusion
+    if (safePatient.acsCompliancePenalty && safePatient.acsCompliancePenalty > 0) {
+      currentCompliance *= (1.0 - safePatient.acsCompliancePenalty);
     }
     currentCompliance = Math.max(2, currentCompliance);
 
@@ -638,6 +730,27 @@ export class RespiratoryEngine {
       currentResistance += 35.0 * safeInputs.airwayObstructionIndex;
     }
 
+    // Inhalation injury: mucosal swelling, bronchospasm from combustion products
+    if (safePatient.inhalationInjuryResistancePenalty && safePatient.inhalationInjuryResistancePenalty > 0) {
+      currentResistance += safePatient.inhalationInjuryResistancePenalty;
+    }
+    // Fat embolism: biochemical-driven airway inflammation
+    if (safePatient.femResistancePenalty && safePatient.femResistancePenalty > 0) {
+      currentResistance += safePatient.femResistancePenalty;
+    }
+    // Cholinergic toxidrome: bronchospasm + secretion flooding
+    if (safePatient.cholinergicResistancePenalty && safePatient.cholinergicResistancePenalty > 0) {
+      currentResistance += safePatient.cholinergicResistancePenalty;
+    }
+    // TACO: airway secretions from hydrostatic edema
+    if (safePatient.tacoResistancePenalty && safePatient.tacoResistancePenalty > 0) {
+      currentResistance += safePatient.tacoResistancePenalty;
+    }
+    // Angioedema: subglottic/supraglottic swelling (bradykinin or histamine-mediated)
+    if (safePatient.angioedemaResistancePenalty && safePatient.angioedemaResistancePenalty > 0) {
+      currentResistance += safePatient.angioedemaResistancePenalty;
+    }
+
     // Ventilation settings and dynamic pressure calculations
     let newPip = 0; let newVte = 0; let newPplat = 0; let newPmean = 0; let newMv = 0; let newPeep = 0;
 
@@ -681,45 +794,56 @@ export class RespiratoryEngine {
       }
     }
 
-    if (safePatient.airwaySecured && ventSettings) {
-      newPeep = ventSettings.peep || 0;
 
-      if (ventSettings.mode === 'PSV') {
+
+    // ibwVal needed by vent mode branching below and again for dead space (moved before use)
+    let ibwVal = Number(safePatient.ibw);
+    if (isNaN(ibwVal) || !Number.isFinite(ibwVal) || ibwVal <= 0) {
+      ibwVal = 70.0;
+    }
+
+    if (safePatient.airwaySecured && safeVentSettings) {
+      newPeep = safeVentSettings.peep || 0;
+
+      if (safeVentSettings.mode === 'PSV') {
         targetRR = patientDriveRR;
         if (targetRR === 0) {
           newPip = newPeep; newVte = 0;
         } else {
-          newPip = newPeep + (ventSettings.ps || 10);
+          newPip = newPeep + (safeVentSettings.ps || 10);
           newPplat = newPip - 2;
           newVte = (newPplat - newPeep) * currentCompliance;
         }
+      } else if (safeVentSettings.mode === 'spontaneous') {
+        targetRR = patientDriveRR;
+        newVte = targetRR > 0 ? (ibwVal * 7) : 0;
+        newPip = newPeep;
+        newPplat = newPeep;
       } else {
-        targetRR = Math.max(patientDriveRR, (ventSettings.rr || 12));
-        if (ventSettings.mode === 'VCV') {
-          newVte = ventSettings.vt || 500;
+        targetRR = Math.max(patientDriveRR, (safeVentSettings.rr || 12));
+        if (safeVentSettings.mode === 'VCV') {
+          newVte = safeVentSettings.vt || 500;
           newPplat = newPeep + (newVte / currentCompliance);
 
-          const ieRatio = ventSettings.ieRatio || 2;
+          const ieRatio = safeVentSettings.ieRatio || 2;
           const inspTimeSec = (60 / targetRR) * (1 / (1 + ieRatio));
-          const flow_L_s = (newVte / 1000) / inspTimeSec;
-          // Resistive pressure drop = R * flow (Ohm's-law analog for airway resistance,
-          // cmH2O/(L/s) * L/s = cmH2O) — no additional scaling factor. A previous x5
-          // multiplier here had no unit-conversion justification and inflated the
-          // PIP-Pplat gap 5x, most consequentially in high-resistance states
-          // (bronchospasm/COPD), where it could spuriously peg ventSettings.pmax.
+          // VCV square-wave flow: clamp to clinical minimum 40 L/min (0.667 L/s).
+          // Prior formula used I:E time-cycle only, producing 18 L/min — so low that
+          // bronchospasm PIP only reached 26 vs clinical ~58 cmH2O at resistance=45 cmH2O/L/s.
+          const flow_L_s = Math.max(0.667, (newVte / 1000) / inspTimeSec);
           newPip = newPplat + (flow_L_s * currentResistance);
-        } else if (ventSettings.mode === 'PCV') {
-          newPip = (ventSettings.pinsp || 20) + newPeep;
+        } else if (safeVentSettings.mode === 'PCV') {
+          newPip = (safeVentSettings.pinsp || 20) + newPeep;
           newPplat = newPip - 2;
           newVte = (newPplat - newPeep) * currentCompliance;
-        } else if (ventSettings.mode === 'PCV-VG') {
-          newVte = ventSettings.vt || 500;
+        } else if (safeVentSettings.mode === 'PCV-VG') {
+          newVte = safeVentSettings.vt || 500;
           newPplat = newPeep + (newVte / currentCompliance);
           newPip = newPplat + 2;
         }
       }
-      if (ventSettings.pmax && newPip > ventSettings.pmax) {
-        newPip = ventSettings.pmax;
+      if (safeVentSettings.pmax && newPip > safeVentSettings.pmax) {
+        newPip = safeVentSettings.pmax;
         newPplat = newPip - 2;
         newVte = Math.max(0, (newPplat - newPeep) * currentCompliance);
       }
@@ -738,10 +862,6 @@ export class RespiratoryEngine {
     }
 
     // Alveolar Ventilation
-    let ibwVal = Number(safePatient.ibw);
-    if (isNaN(ibwVal) || !Number.isFinite(ibwVal) || ibwVal <= 0) {
-      ibwVal = 70.0;
-    }
     const deadSpace = ((ibwVal * 2.2) / 1000) * deadSpaceMultiplier;
     const tidalVolLiters = (safePatient.airwaySecured ? (newVte / 1000) : ((ibwVal * 7) / 1000)) * vtGaspMultiplier;
     const currentAlvVent_L_min = Math.max(0, (tidalVolLiters - deadSpace) * targetRR);
@@ -812,7 +932,9 @@ export class RespiratoryEngine {
       if (safeSys < 80) co2Gradient += (80 - safeSys) * 0.5;
       targetEtco2 = Math.max(0, targetPaCO2 - co2Gradient);
     }
-    const newPaCO2 = safePaCO2 + (targetPaCO2 - safePaCO2) * 0.05;
+    // CO2 store time constant: 0.015/s (τ≈67s, 90% response in ~2.5 min).
+    // Prior 0.05/s was 5× too fast — doubled RR dropped PaCO2 fully in 60s (clinical: 3-5 min).
+    const newPaCO2 = safePaCO2 + (targetPaCO2 - safePaCO2) * 0.015;
 
     // pH calculation
     const newPh = 6.1 + Math.log10(safeHco3 / (0.03 * newPaCO2));
@@ -820,7 +942,9 @@ export class RespiratoryEngine {
       // Riley Shunt exchange mathematics using recruited FRC
       const alveolarFiO2 = Math.min(100, (currentBuffer / recruitedFRC_L) * 100);
     const PAO2 = (713 * (alveolarFiO2 / 100)) - (newPaCO2 / 0.8);
-    const baseAaGradient = ((safePatient.age || 40) / 4) + 4;
+    // A-a gradient: Murray & Nadel formula. Prior +4 produced A-a=14 at age 40 → SpO2 96-97%.
+    // Corrected to +2.5: age 40 → 12.5 mmHg → SpO2 ~97% (clinical 97-99% for healthy adults).
+    const baseAaGradient = ((safePatient.age || 40) / 4) + 2.5;
     const AaGradient = baseAaGradient + (safePatient.isObese ? 12 : 0) + (safePatient.isSeptic ? 15 : 0) + (safePatient.hasAspirated ? 25 : 0);
     const capillaryPO2 = Math.max(10, PAO2 - AaGradient);
 
@@ -834,7 +958,13 @@ export class RespiratoryEngine {
     const effectiveCapillaryPO2 = Math.max(0, Math.min(10000.0, capillaryPO2 * bohrShift));
     const ScO2 = Math.min(100, ((Math.pow(effectiveCapillaryPO2, 3) + 150 * effectiveCapillaryPO2) / (Math.pow(effectiveCapillaryPO2, 3) + 150 * effectiveCapillaryPO2 + 23400)) * 100);
 
-    const capillaryO2Content = (safeCurrentHb * 1.34 * (ScO2 / 100)) + (capillaryPO2 * 0.0031);
+    // CO poisoning: CoHb% reduces functional Hb proportionally.
+    // SpO2 reads falsely high (handled in pulse-ox model below) but actual O2 transport
+    // is limited to the remaining Hb not bound by CO. This is the primary tissue hypoxia
+    // mechanism in CO poisoning — ABG PaO2 normal, SaO2 looks OK, but O2 delivery crashes.
+    const coHbFraction = Math.max(0, Math.min(0.95, (safePatient.coHb || 1.0) / 100));
+    const functionalHb = safeCurrentHb * (1.0 - coHbFraction);
+    const capillaryO2Content = (functionalHb * 1.34 * (ScO2 / 100)) + (capillaryPO2 * 0.0031);
     const VO2_ml_min = VO2_sec * 60 * 1000;
 
     // Fick equation for mixed venous O2 content
@@ -851,27 +981,35 @@ export class RespiratoryEngine {
         : 0.0;
       const airwayClosureShunt = 0.12 * airwayClosureFraction; // Up to 12% additional shunt due to dependent airway closure
       
-      const actualShunt = Math.max(0.02, baselineShunt - shuntReduction + hpsShunt + 0.15 * atelectasis + shuntHpvPenalty + airwayClosureShunt);
+      const olvShunt = Math.max(0, safePatient.olvShuntContribution || 0);
+      const inhalShunt = Math.max(0, safePatient.inhalationInjuryShuntContribution || 0);
+      const pfoShunt = Math.max(0, safePatient.pfoShuntContribution || 0);
+      const finkShunt = Math.max(0, safePatient.n2oDiffusionHypoxiaShunt || 0);
+      const femShunt = Math.max(0, safePatient.femShuntContribution || 0);
+      const tacoShunt = Math.max(0, safePatient.tacoShuntContribution || 0);
+      const acsShunt = Math.max(0, safePatient.acsShuntContribution || 0);
+      const hepPulmShunt = Math.max(0, safePatient.hpsShuntContribution || 0); // hepatopulmonary syndrome
+      const actualShunt = Math.max(0.02, baselineShunt - shuntReduction + hpsShunt + 0.15 * atelectasis + shuntHpvPenalty + airwayClosureShunt + olvShunt + inhalShunt + pfoShunt + finkShunt + femShunt + tacoShunt + acsShunt + hepPulmShunt);
     const arterialO2Content = (capillaryO2Content * (1 - actualShunt)) + (venousO2Content * actualShunt);
 
-    const contentDenom = Math.max(0.1, safeCurrentHb * 1.34);
+    const contentDenom = Math.max(0.1, functionalHb * 1.34);
     let targetSpo2 = Math.min(100, (arterialO2Content / contentDenom) * 100);
     let targetPaO2 = capillaryPO2 * (1 - (actualShunt * 1.5));
 
-    // Optical pulse oximetry model
-    const SaO2 = targetSpo2;
-    const SM = (safePatient.metHb || 0.8) / 100;
-    const SC = (safePatient.coHb || 1.0) / 100;
-    const SO = (SaO2 / 100) * (1 - SM - SC);
-    const SD = ((100 - SaO2) / 100) * (1 - SM - SC);
-    const A660 = 0.1 * SO + 1.0 * SD + 1.0 * SM + 0.1 * SC;
-    const A940 = 1.0 * SO + 0.1 * SD + 1.0 * SM + 1.0 * SC;
-    
-    // Clamp A940 denominator to prevent division-by-zero
-    const R_ratio = A940 > 0.0001 ? A660 / A940 : A660 / 0.0001;
-
-    let measuredSpo2 = 110 - 25 * R_ratio;
-    measuredSpo2 = Math.min(100, Math.max(0, measuredSpo2));
+    // Pulse oximetry artifact model (Barker & Tremper 1987, empirically validated):
+    //
+    // MetHb: reads toward 85% regardless of true SaO2 as MetHb rises.
+    //   SpO2_display = trueSaO2 + (85 - trueSaO2) × MetHb_frac
+    //   Prior A660/A940 ratio model failed — at MetHb=30% + SaO2=97%, it read 100%.
+    //
+    // COHb: COHb absorbs like OxyHb at 660nm → reads as falsely high SpO2.
+    //   SpO2_display = trueSaO2 × (1 - COHb_frac) + COHb_frac × 100
+    //   (COHb "counts" as OxyHb at the sensor)
+    const SM_frac = Math.max(0, Math.min(0.95, (safePatient.metHb || 0.8) / 100));
+    const SC_frac = Math.max(0, Math.min(0.95, (safePatient.coHb || 1.0) / 100));
+    const metHbAdjusted = targetSpo2 + (85 - targetSpo2) * SM_frac;       // drag toward 85%
+    const coHbAdjusted = metHbAdjusted * (1 - SC_frac) + SC_frac * 100;   // COHb reads as OxyHb
+    let measuredSpo2 = Math.min(100, Math.max(0, coHbAdjusted));
 
     if (safePatient.cyanide && safePatient.cyanide > 0.3) {
       measuredSpo2 = 100;
@@ -880,7 +1018,7 @@ export class RespiratoryEngine {
     let newSpo2 = (safeVitals.spo2 || 100) + (measuredSpo2 - (safeVitals.spo2 || 100)) * 0.05;
     newSpo2 = Math.min(100, Math.max(0, newSpo2 + safeRuleSpo2Offset));
 
-    const activeMechanicalVent = safePatient.airwaySecured && ventSettings && (ventSettings.rr > 0 || ventSettings.mode === 'PCV' || ventSettings.mode === 'VCV' || ventSettings.mode === 'PCV-VG');
+    const activeMechanicalVent = safePatient.airwaySecured && safeVentSettings && (safeVentSettings.rr > 0 || safeVentSettings.mode === 'PCV' || safeVentSettings.mode === 'VCV' || safeVentSettings.mode === 'PCV-VG');
     const isBMVActiveVal = safePatient.ventilationStatus === 'assisted';
     const hasTidalExchange = activeMechanicalVent || isBMVActiveVal || (!isApneic && targetRR > 0);
 

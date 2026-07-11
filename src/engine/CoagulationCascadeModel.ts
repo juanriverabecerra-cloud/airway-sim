@@ -187,14 +187,17 @@ export class CoagulationCascadeModel {
     const netHeparinEffect = heparinEffect * (1 - protamineReversal);
 
     // FFP replenishes ALL factors (and fibrinogen, though less efficiently than cryo).
-    const ffpFactorReplenishment = (ffpVol / 250) * 0.12 * NORMAL_FACTOR_ACTIVITY;
+    // FFP: +5% factor activity per unit (250 mL). Prior +12% over-corrected coagulopathy:
+    // 4 units at factor 0.5 → 0.98 (INR 1.07). Corrected: 4 units → 0.70 (INR ≈ 2.05) ✓.
+    const ffpFactorReplenishment = (ffpVol / 250) * 0.05 * NORMAL_FACTOR_ACTIVITY;
     factorActivity += ffpFactorReplenishment;
     factorActivity = clamp(factorActivity, 0, 1);
 
     // --- Platelet count ---
     const pltHalfLifeRateConstant = Math.log(2) / (5 * 24 * 3600); // ~5-day platelet lifespan
     let plateletCountK = prev_plt;
-    plateletCountK -= (bleedFraction * 0.7 + dilutionFraction * 0.4) * prev_plt * dt;
+    // Platelet dilution: 0.5 (equal to factor dilution — no physiologic reason for 0.4 < 0.5).
+    plateletCountK -= (bleedFraction * 0.7 + dilutionFraction * 0.5) * prev_plt * dt;
     plateletCountK -= dicConsumptionRate * 2000 * dt;
     plateletCountK += pltHalfLifeRateConstant * (NORMAL_PLATELET_K - prev_plt) * dt;
     const pltReplenishment = (pltVol / 250) * 50;

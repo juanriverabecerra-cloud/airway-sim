@@ -1,0 +1,359 @@
+Created At: 2026-07-10T01:05:45Z
+Completed At: 2026-07-10T01:05:45Z
+File Path: `file:///Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/components/ReceptorBodyPanel.jsx`
+Total Lines: 1383
+Total Bytes: 107876
+Showing lines 600 to 950
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+600: }
+601: 
+602: function computeActivity(activeMeds, vitals) {
+603:   const sites = { brain: {}, cardiac: {}, arterial: {}, venous: {}, pulmonary: {}, nmj: {}, gi: {}, spinal: {} };
+604:   const currentMac = vitals?.mac || 0;
+605: 
+606:   const merge = (site, receptor, occ, entry, drugName) => {
+607:     if (!sites[site]) return;
+608:     const mech = getMech(drugName, receptor, entry.action);
+609:     if (!sites[site][receptor]) {
+610:       sites[site][receptor] = { occ: 0, action: entry.action, color: entry.color, label: entry.label, detail: entry.detail, drugs: [], contribs: [] };
+611:     }
+612:     const rec = sites[site][receptor];
+613:     if (occ > rec.occ) {
+614:       rec.occ = occ; rec.action = entry.action; rec.color = entry.color;
+615:       rec.label = entry.label; rec.detail = entry.detail;
+616:     }
+617:     if (!rec.drugs.includes(drugName)) rec.drugs.push(drugName);
+618:     // Track per-drug contribution with mechanism
+619:     if (!rec.contribs.find(c => c.name === drugName && c.receptor === receptor)) {
+620:       rec.contribs.push({ name: drugName, occ, mech, action: entry.action, color: entry.color, label: entry.label, detail: entry.detail });
+621:     }
+622:   };
+623: 
+624:   (activeMeds || []).forEach(model => {
+625:     if (!model?.name || !model.Ce || model.Ce <= 0) return;
+626:     const entries = DRUG_RECEPTOR_MAP[model.name];
+627:     if (!entries) return;
+628:     entries.forEach(entry => {
+629:       const Ce = entry.isMac ? currentMac : model.Ce;
+630:       const occ = hillOcc(Ce, entry.c50, entry.gamma);
+631:       if (occ < 0.02) return;
+632:       merge(entry.site, entry.receptor, occ, entry, model.name);
+633:     });
+634:   });
+635: 
+636:   // Compute net effect for each receptor after all drugs are merged
+637:   Object.values(sites).forEach(site => {
+638:     Object.values(site).forEach(rec => { rec.netEffect = computeNetEffect(rec.contribs); });
+639:   });
+640: 
+641:   return sites;
+642: }
+643: 
+644: // Colour palette per action type
+645: const ACTION_COLORS = {
+646:   agonist:    { bar: '#22d3ee', glow: 'rgba(34,211,238,', border: '#0891b2', text: '#a5f3fc', label: 'AGONIST' },
+647:   antagonist: { bar: '#f87171', glow: 'rgba(248,113,113,', border: '#dc2626', text: '#fca5a5', label: 'ANTAGONIST' },
+648:   modulator:  { bar: '#a78bfa', glow: 'rgba(167,139,250,', border: '#7c3aed', text: '#c4b5fd', label: 'MODULATOR' },
+649:   inhibitor:  { bar: '#fb923c', glow: 'rgba(251,146,60,',  border: '#ea580c', text: '#fed7aa', label: 'INHIBITOR' },
+650: };
+651: 
+652: // Override color based on drug-semantic color field
+653: const SEMANTIC_COLORS = {
+654:   blue:   { bar: '#818cf8', glow: 'rgba(129,140,248,', border: '#4f46e5', text: '#c7d2fe', label: '↓ CNS' },
+655:   green:  { bar: '#34d399', glow: 'rgba(52,211,153,',  border: '#059669', text: '#a7f3d0', label: '↑ ACTIVE' },
+656:   red:    { bar: '#f87171', glow: 'rgba(248,113,113,', border: '#dc2626', text: '#fca5a5', label: '↓ BLOCKED' },
+657:   amber:  { bar: '#fbbf24', glow: 'rgba(251,191,36,',  border: '#d97706', text: '#fde68a', label: '± MIXED' },
+658:   violet: { bar: '#c084fc', glow: 'rgba(192,132,252,', border: '#9333ea', text: '#e9d5ff', label: 'MODULATES' },
+659: };
+660: 
+661: const getColor = (entry) => SEMANTIC_COLORS[entry.color] || ACTION_COLORS[entry.action] || ACTION_COLORS.agonist;
+662: 
+663: // Max occupancy across a site's receptors → glow intensity 0-1
+664: const siteMaxOcc = (siteMap) => Math.max(0, ...Object.values(siteMap || {}).map(r => r.occ));
+665: 
+666: const SITE_META = {
+667:   brain:     { label: "Brain / CNS",        short: "CNS",   icon: "🧠" },
+668:   cardiac:   { label: "Heart",              short: "HEART", icon: "♥" },
+669:   arterial:  { label: "Systemic Arteries",  short: "ART",   icon: "〜" },
+670:   venous:    { label: "Venous System",       short: "VEN",   icon: "≈" },
+671:   pulmonary: { label: "Pulmonary",          short: "PULM",  icon: "🫁" },
+672:   nmj:       { label: "Neuromuscular Jxn",  short: "NMJ",   icon: "⚡" },
+673:   gi:        { label: "GI / Smooth Muscle", short: "GI",    icon: "⊙" },
+674:   spinal:    { label: "Spinal / Pain",      short: "SPINE", icon: "⋮" },
+675: };
+676: 
+677: const BodySvg = ({ activity, hoveredSite, onSiteEnter, onSiteLeave }) => {
+678:   const sg = useMemo(() => {
+679:     const compute = (site) => {
+680:       const occ = siteMaxOcc(activity[site]);
+681:       if (occ < 0.03) return { occ: 0, color: "#1e3a5f", bar: "#1e3a5f" };
+682:       const receptors = Object.values(activity[site] || {});
+683:       const dominant = receptors.reduce((a, b) => (a.occ > b.occ ? a : b), { occ: 0, color: "blue" });
+684:       const col = getColor(dominant);
+685:       return { occ, color: col.bar, bar: col.bar };
+686:     };
+687:     return {
+688:       brain: compute("brain"), cardiac: compute("cardiac"), arterial: compute("arterial"),
+689:       venous: compute("venous"), pulmonary: compute("pulmonary"), nmj: compute("nmj"),
+690:       gi: compute("gi"), spinal: compute("spinal"),
+691:     };
+692:   }, [activity]);
+693: 
+694:   const vis = (site) => {
+695:     const { occ, color } = sg[site];
+696:     const active = hoveredSite === site;
+697:     return {
+698:       pointerEvents: "none",
+699:       fill: color,
+700:       fillOpacity: active ? Math.min(0.9, 0.26 + occ * 0.62 + 0.14) : Math.max(0.07, 0.09 + occ * 0.55),
+701:       stroke: color,
+702:       strokeOpacity: active ? 0.95 : (occ > 0.05 ? 0.70 : 0.22),
+703:       strokeWidth: active ? 1.9 : 1.1,
+704:       filter: (active || occ > 0.25) ? "url(#gbody)" : undefined,
+705:       transition: "fill 0.3s,stroke 0.3s,fill-opacity 0.3s,stroke-opacity 0.3s",
+706:     };
+707:   };
+708: 
+709:   const line = (site, sw = 1.8, dash) => ({
+710:     ...vis(site), fill: "none", strokeWidth: sw,
+711:     strokeDasharray: dash || undefined,
+712:   });
+713: 
+714:   const region = (site) => {
+715:     const { occ, color } = sg[site];
+716:     const active = hoveredSite === site;
+717:     return {
+718:       pointerEvents: "none", stroke: "none",
+719:       fill: color,
+720:       fillOpacity: active ? Math.max(0.14, 0.06 + occ * 0.22) : Math.max(0.03, 0.02 + occ * 0.13),
+721:       transition: "fill-opacity 0.35s,fill 0.35s",
+722:     };
+723:   };
+724: 
+725:   const vessel = (site, dashed = false) => {
+726:     const { occ, color } = sg[site];
+727:     const active = hoveredSite === site;
+728:     return {
+729:       pointerEvents: "none", fill: "none", stroke: color,
+730:       strokeOpacity: active ? 0.95 : (occ > 0.08 ? 0.70 : 0.22),
+731:       strokeWidth: active ? 2.6 : 1.9,
+732:       strokeDasharray: dashed ? "5,3.5" : undefined,
+733:       filter: (active || occ > 0.22) ? "url(#gbody)" : undefined,
+734:       transition: "stroke 0.3s,stroke-opacity 0.3s",
+735:     };
+736:   };
+737: 
+738:   const hit = () => ({ fill: "transparent", stroke: "none", cursor: "pointer" });
+739: 
+740:   return (
+741:     <svg viewBox="0 0 320 510" className="w-full select-none" style={{ height: "auto", display: "block" }}>
+742:       <defs>
+743:         <filter id="gbody" x="-55%" y="-55%" width="210%" height="210%">
+744:           <feGaussianBlur stdDeviation="4" result="blur"/>
+745:           <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+746:         </filter>
+747:       </defs>
+748:       {/* ═══ BODY SILHOUETTE — clean geometric form, no anatomical detail ══════ */}
+749:       {/* Head */}
+750:       <circle cx="160" cy="70" r="28" fill="#060d1b" stroke="#162844" strokeWidth="1.2" style={{pointerEvents:'none'}}/>
+751:       {/* Neck */}
+752:       <rect x="154" y="97" width="12" height="17" rx="5" fill="#060d1b" stroke="#162844" strokeWidth="1" style={{pointerEvents:'none'}}/>
+753:       {/* Torso — slightly tapered at waist */}
+754:       <path d="M 132,113 L 188,113 Q 194,145 192,200 Q 190,252 186,292 L 134,292 Q 130,252 128,200 Q 126,145 132,113 Z"
+755:             fill="#060d1b" stroke="#162844" strokeWidth="1.2" style={{pointerEvents:'none'}}/>
+756:       {/* Left arm — angled outward, rounded terminus (no hand detail) */}
+757:       <path d="M 132,117 Q 106,130 84,158 Q 68,178 64,208 Q 62,220 72,222 Q 82,222 88,208 Q 100,182 120,158 Q 138,136 136,119 Z"
+758:             fill="#060d1b" stroke="#162844" strokeWidth="1" style={{pointerEvents:'none'}}/>
+759:       {/* Right arm — mirrored */}
+760:       <path d="M 188,117 Q 214,130 236,158 Q 252,178 256,208 Q 258,220 248,222 Q 238,222 232,208 Q 220,182 200,158 Q 182,136 184,119 Z"
+761:             fill="#060d1b" stroke="#162844" strokeWidth="1" style={{pointerEvents:'none'}}/>
+762:       {/* Left leg */}
+763:       <path d="M 135,291 L 137,390 Q 136,438 136,466 Q 136,476 143,479 Q 151,480 154,473 Q 155,463 154,438 Q 153,408 155,291 Z"
+764:             fill="#060d1b" stroke="#162844" strokeWidth="1" style={{pointerEvents:'none'}}/>
+765:       {/* Right leg */}
+766:       <path d="M 165,291 L 165,408 Q 164,438 163,463 Q 162,473 165,479 Q 169,481 177,479 Q 184,476 184,466 Q 184,438 183,390 L 185,291 Z"
+767:             fill="#060d1b" stroke="#162844" strokeWidth="1" style={{pointerEvents:'none'}}/>
+768: 
+769:       {/* ═══ REGION OVERLAYS — glow fills per pharmacological site ════════════ */}
+770:       <circle cx="160" cy="70" r="25" {...region('brain')}/>
+771:       <ellipse cx="182" cy="178" rx="16" ry="18" {...region('cardiac')}/>
+772:       <ellipse cx="142" cy="182" rx="13" ry="20" {...region('pulmonary')}/>
+773:       <ellipse cx="178" cy="182" rx="13" ry="20" {...region('pulmonary')}/>
+774:       <ellipse cx="160" cy="252" rx="22" ry="24" {...region('gi')}/>
+775:       <rect x="157" y="120" width="10" height="168" rx="3" {...region('arterial')}/>
+776: 
+777:       {/* ═══ VASCULAR LINES ═════════════════════════════════════════════════ */}
+778:       {/* Aortic arch + descending */}
+779:       <path d="M 178,175 L 178,153 Q 178,143 166,142 Q 158,143 158,153 L 158,292" {...line('arterial', 2)}/>
+780:       {/* SVC */}
+781:       <path d="M 154,133 L 154,168 Q 154,174 162,174" {...line('venous', 1.6, '3,2.5')}/>
+782:       {/* IVC */}
+783:       <path d="M 162,192 Q 156,192 156,200 L 156,292" {...line('venous', 1.6, '3,2.5')}/>
+784:       {/* Arm vessels */}
+785:       <path d="M 152,148 Q 116,168 84,198 Q 72,210 66,218" {...vessel('arterial')}/>
+786:       <path d="M 168,148 Q 204,168 236,198 Q 248,210 254,218" {...vessel('arterial')}/>
+787:       <path d="M 148,152 Q 112,172 80,202 Q 68,214 62,222" {...vessel('venous', true)}/>
+788:       <path d="M 172,152 Q 208,172 240,202 Q 252,214 258,222" {...vessel('venous', true)}/>
+789:       {/* Leg vessels */}
+790:       <path d="M 156,292 Q 148,316 144,355 L 144,472" {...vessel('arterial')}/>
+791:       <path d="M 164,292 Q 172,316 176,355 L 176,472" {...vessel('arterial')}/>
+792:       <path d="M 153,292 Q 145,318 141,358 L 141,472" {...vessel('venous', true)}/>
+793:       <path d="M 167,292 Q 175,318 179,358 L 179,472" {...vessel('venous', true)}/>
+794: 
+795:       {/* ═══ ORGANS — minimal iconic representations ════════════════════════ */}
+796:       {/* Brain: two clean symmetric lobes + midline */}
+797:       <path d="M 160,55 Q 147,55 144,65 Q 141,75 145,82 Q 152,87 160,87 L 160,55 Z" {...vis('brain')}/>
+798:       <path d="M 160,55 Q 173,55 176,65 Q 179,75 175,82 Q 168,87 160,87 L 160,55 Z" {...vis('brain')}/>
+799:       <line x1="160" y1="55" x2="160" y2="87" style={{pointerEvents:'none'}} stroke={sg.brain.color}
+800:             strokeWidth="0.7" strokeDasharray="2.5,2" strokeOpacity={sg.brain.occ > 0.05 ? 0.6 : 0.2}/>
+801: 
+802:       {/* Heart: clean two-bump silhouette (anatomically right = viewer right) */}
+803:       <path d="M 182,170 Q 178,164 173,164 Q 165,164 165,173 Q 165,182 182,193 Q 199,182 199,173 Q 199,164 191,164 Q 186,164 182,170 Z"
+804:             {...vis('cardiac')}/>
+805: 
+806:       {/* Lungs: bilateral simple arches */}
+807:       <path d="M 143,163 Q 134,165 132,180 Q 130,196 136,203 Q 141,207 148,202 Q 153,196 151,178 Q 149,163 143,163 Z" {...vis('pulmonary')}/>
+808:       <path d="M 177,163 Q 186,165 188,180 Q 190,196 184,203 Q 179,207 172,202 Q 167,196 169,178 Q 171,163 177,163 Z" {...vis('pulmonary')}/>
+809:       {/* Trachea + main bronchi (three clean lines, no sub-branching) */}
+810:       <line x1="160" y1="128" x2="160" y2="162" {...line('pulmonary', 1.6)}/>
+811:       <path d="M 160,162 Q 152,168 144,180" {...line('pulmonary', 1.3)}/>
+812:       <path d="M 160,162 Q 168,168 176,180" {...line('pulmonary', 1.3)}/>
+813: 
+814:       {/* GI: single clean oval with two intestinal loops */}
+815:       <ellipse cx="160" cy="252" rx="21" ry="21" {...vis('gi')}/>
+816:       <path d="M 142,248 Q 155,244 160,248 Q 165,252 178,248" {...line('gi', 0.9)}/>
+817:       <path d="M 142,256 Q 155,260 160,256 Q 165,252 178,256" {...line('gi', 0.8)}/>
+818: 
+819:       {/* ==================== CALLOUT GROUPS ==================== */}
+820:       {/* CNS Callout Group */}
+821:       <g cursor="pointer" onMouseEnter={()=>onSiteEnter('brain')} onMouseLeave={onSiteLeave}>
+822:         <path d="M 152,85 L 120,30 L 45,30" fill="none" stroke={sg.brain.color} strokeWidth="0.8" strokeOpacity="0.6" style={{pointerEvents:'none'}} />
+823:         <circle cx="152" cy="85" r="2" fill={sg.brain.color} style={{pointerEvents:'none'}} />
+824:         <text x="40" y="26" textAnchor="end" fontSize="9.5" fontFamily="monospace" fontWeight="bold" fill={sg.brain.color} style={{pointerEvents:'none'}}>CNS</text>
+825:         <text x="40" y="37" textAnchor="end" fontSize="7.5" fontFamily="monospace" fill={sg.brain.color} fillOpacity="0.65" style={{pointerEvents:'none'}}>{Math.round(sg.brain.occ * 100)}%</text>
+826:         <rect x="10" y="29" width="30" height="2.5" fill="#111827" stroke="#1e293b" strokeWidth="0.5" rx="1" style={{pointerEvents:'none'}} />
+827:         <rect x="10" y="29" width={30 * sg.brain.occ} height="2.5" fill={sg.brain.color} rx="1" style={{pointerEvents:'none'}} />
+828:         <rect x="5" y="16" width="38" height="26" fill="rgba(0,0,0,0)" stroke="none" />
+829:       </g>
+830:       <circle cx="160" cy="85" r="38" {...hit()} onMouseEnter={()=>onSiteEnter('brain')} onMouseLeave={onSiteLeave}/>
+831: 
+832:       {/* HEART Callout Group */}
+833:       <g cursor="pointer" onMouseEnter={()=>onSiteEnter('cardiac')} onMouseLeave={onSiteLeave}>
+834:         <path d="M 182,185 L 220,110 L 275,110" fill="none" stroke={sg.cardiac.color} strokeWidth="0.8" strokeOpacity="0.6" style={{pointerEvents:'none'}} />
+835:         <circle cx="182" cy="185" r="2" fill={sg.cardiac.color} style={{pointerEvents:'none'}} />
+836:         <text x="280" y="106" textAnchor="start" fontSize="9.5" fontFamily="monospace" fontWeight="bold" fill={sg.cardiac.color} style={{pointerEvents:'none'}}>HEART</text>
+837:         <text x="280" y="117" textAnchor="start" fontSize="7.5" fontFamily="monospace" fill={sg.cardiac.color} fillOpacity="0.65" style={{pointerEvents:'none'}}>{Math.round(sg.cardiac.occ * 100)}%</text>
+838:         <rect x="280" y="109" width="30" height="2.5" fill="#111827" stroke="#1e293b" strokeWidth="0.5" rx="1" style={{pointerEvents:'none'}} />
+839:         <rect x="280" y="109" width={30 * sg.cardiac.occ} height="2.5" fill={sg.cardiac.color} rx="1" style={{pointerEvents:'none'}} />
+840:         <rect x="275" y="96" width="40" height="28" fill="rgba(0,0,0,0)" stroke="none" />
+841:       </g>
+842:       <ellipse cx="182" cy="185" rx="24" ry="22" {...hit()} onMouseEnter={()=>onSiteEnter('cardiac')} onMouseLeave={onSiteLeave}/>
+843: 
+844:       {/* LUNGS Callout Group */}
+845:       <g cursor="pointer" onMouseEnter={()=>onSiteEnter('pulmonary')} onMouseLeave={onSiteLeave}>
+846:         <path d="M 144,190 L 80,110 L 45,110" fill="none" stroke={sg.pulmonary.color} strokeWidth="0.8" strokeOpacity="0.6" style={{pointerEvents:'none'}} />
+847:         <circle cx="144" cy="190" r="2" fill={sg.pulmonary.color} style={{pointerEvents:'none'}} />
+848:         <text x="40" y="106" textAnchor="end" fontSize="9.5" fontFamily="monospace" fontWeight="bold" fill={sg.pulmonary.color} style={{pointerEvents:'none'}}>LUNGS</text>
+849:         <text x="40" y="117" textAnchor="end" fontSize="7.5" fontFamily="monospace" fill={sg.pulmonary.color} fillOpacity="0.65" style={{pointerEvents:'none'}}>{Math.round(sg.pulmonary.occ * 100)}%</text>
+850:         <rect x="10" y="109" width="30" height="2.5" fill="#111827" stroke="#1e293b" strokeWidth="0.5" rx="1" style={{pointerEvents:'none'}} />
+851:         <rect x="10" y="109" width={30 * sg.pulmonary.occ} height="2.5" fill={sg.pulmonary.color} rx="1" style={{pointerEvents:'none'}} />
+852:         <rect x="5" y="96" width="38" height="26" fill="rgba(0,0,0,0)" stroke="none" />
+853:       </g>
+854:       <ellipse cx="144" cy="190" rx="20" ry="32" {...hit()} onMouseEnter={()=>onSiteEnter('pulmonary')} onMouseLeave={onSiteLeave}/>
+855:       <ellipse cx="176" cy="190" rx="20" ry="32" {...hit()} onMouseEnter={()=>onSiteEnter('pulmonary')} onSiteLeave={onSiteLeave}/>
+856: 
+857:       {/* ARTERIAL Callout Group */}
+858:       <g cursor="pointer" onMouseEnter={()=>onSiteEnter('arterial')} onMouseLeave={onSiteLeave}>
+859:         <path d="M 158,260 L 100,180 L 45,180" fill="none" stroke={sg.arterial.color} strokeWidth="0.8" strokeOpacity="0.6" style={{pointerEvents:'none'}} />
+860:         <circle cx="158" cy="260" r="2" fill={sg.arterial.color} style={{pointerEvents:'none'}} />
+861:         <text x="40" y="176" textAnchor="end" fontSize="9.5" fontFamily="monospace" fontWeight="bold" fill={sg.arterial.color} style={{pointerEvents:'none'}}>ARTERIAL</text>
+862:         <text x="40" y="187" textAnchor="end" fontSize="7.5" fontFamily="monospace" fill={sg.arterial.color} fillOpacity="0.65" style={{pointerEvents:'none'}}>{Math.round(sg.arterial.occ * 100)}%</text>
+863:         <rect x="10" y="179" width="30" height="2.5" fill="#111827" stroke="#1e293b" strokeWidth="0.5" rx="1" style={{pointerEvents:'none'}} />
+864:         <rect x="10" y="179" width={30 * sg.arterial.occ} height="2.5" fill={sg.arterial.color} rx="1" style={{pointerEvents:'none'}} />
+865:         <rect x="5" y="166" width="38" height="26" fill="rgba(0,0,0,0)" stroke="none" />
+866:       </g>
+867:       <rect x="158" y="120" width="12" height="185" rx="2" {...hit()} onMouseEnter={()=>onSiteEnter('arterial')} onMouseLeave={onSiteLeave}/>
+868: 
+869:       {/* VENOUS Callout Group */}
+870:       <g cursor="pointer" onMouseEnter={()=>onSiteEnter('venous')} onMouseLeave={onSiteLeave}>
+871:         <path d="M 154,210 L 220,180 L 275,180" fill="none" stroke={sg.venous.color} strokeWidth="0.8" strokeOpacity="0.6" style={{pointerEvents:'none'}} />
+872:         <circle cx="154" cy="210" r="2" fill={sg.venous.color} style={{pointerEvents:'none'}} />
+873:         <text x="280" y="176" textAnchor="start" fontSize="9.5" fontFamily="monospace" fontWeight="bold" fill={sg.venous.color} style={{pointerEvents:'none'}}>VENOUS</text>
+874:         <text x="280" y="187" textAnchor="start" fontSize="7.5" fontFamily="monospace" fill={sg.venous.color} fillOpacity="0.65" style={{pointerEvents:'none'}}>{Math.round(sg.venous.occ * 100)}%</text>
+875:         <rect x="280" y="179" width="30" height="2.5" fill="#111827" stroke="#1e293b" strokeWidth="0.5" rx="1" style={{pointerEvents:'none'}} />
+876:         <rect x="280" y="179" width={30 * sg.venous.occ} height="2.5" fill={sg.venous.color} rx="1" style={{pointerEvents:'none'}} />
+877:         <rect x="275" y="166" width="40" height="28" fill="rgba(0,0,0,0)" stroke="none" />
+878:       </g>
+879:       <rect x="144" y="120" width="12" height="185" rx="2" {...hit()} onMouseEnter={()=>onSiteEnter('venous')} onMouseLeave={onSiteLeave}/>
+880: 
+881:       {/* NMJ Callout Group */}
+882:       <g cursor="pointer" onMouseEnter={()=>onSiteEnter('nmj')} onMouseLeave={onSiteLeave}>
+883:         <path d="M 142,400 L 80,360 L 45,360" fill="none" stroke={sg.nmj.color} strokeWidth="0.8" strokeOpacity="0.6" style={{pointerEvents:'none'}} />
+884:         <circle cx="142" cy="400" r="2" fill={sg.nmj.color} style={{pointerEvents:'none'}} />
+885:         <text x="40" y="356" textAnchor="end" fontSize="9.5" fontFamily="monospace" fontWeight="bold" fill={sg.nmj.color} style={{pointerEvents:'none'}}>NMJ</text>
+886:         <text x="40" y="367" textAnchor="end" fontSize="7.5" fontFamily="monospace" fill={sg.nmj.color} fillOpacity="0.65" style={{pointerEvents:'none'}}>{Math.round(sg.nmj.occ * 100)}%</text>
+887:         <rect x="10" y="359" width="30" height="2.5" fill="#111827" stroke="#1e293b" strokeWidth="0.5" rx="1" style={{pointerEvents:'none'}} />
+888:         <rect x="10" y="359" width={30 * sg.nmj.occ} height="2.5" fill={sg.nmj.color} rx="1" style={{pointerEvents:'none'}} />
+889:         <rect x="5" y="346" width="38" height="26" fill="rgba(0,0,0,0)" stroke="none" />
+890:       </g>
+891:       {/* Physical NMJ node shapes */}
+892:       <circle cx="85" cy="335" r="8" {...vis('nmj')}/>
+893:       <circle cx="85" cy="335" r="5" fill="none" stroke={sg.nmj.color} strokeWidth="0.5" strokeOpacity="0.5" style={{pointerEvents:'none'}} />
+894:       <line x1="85" y1="335" x2="85" y2="323" {...line('nmj',1)}/><line x1="85" y1="335" x2="77" y2="344" {...line('nmj',1)}/><line x1="85" y1="335" x2="93" y2="344" {...line('nmj',1)}/>
+895:       <circle cx="235" cy="335" r="8" {...vis('nmj')}/>
+896:       <circle cx="235" cy="335" r="5" fill="none" stroke={sg.nmj.color} strokeWidth="0.5" strokeOpacity="0.5" style={{pointerEvents:'none'}} />
+897:       <line x1="235" y1="335" x2="235" y2="323" {...line('nmj',1)}/><line x1="235" y1="335" x2="227" y2="344" {...line('nmj',1)}/><line x1="235" y1="335" x2="243" y2="344" {...line('nmj',1)}/>
+898:       <circle cx="142" cy="400" r="8" {...vis('nmj')}/>
+899:       <circle cx="142" cy="400" r="5" fill="none" stroke={sg.nmj.color} strokeWidth="0.5" strokeOpacity="0.5" style={{pointerEvents:'none'}} />
+900:       <line x1="142" y1="400" x2="142" y2="388" {...line('nmj',1)}/><line x1="142" y1="400" x2="134" y2="409" {...line('nmj',1)}/><line x1="142" y1="400" x2="150" y2="409" {...line('nmj',1)}/>
+901:       <circle cx="178" cy="400" r="8" {...vis('nmj')}/>
+902:       <circle cx="178" cy="400" r="5" fill="none" stroke={sg.nmj.color} strokeWidth="0.5" strokeOpacity="0.5" style={{pointerEvents:'none'}} />
+903:       <line x1="178" y1="400" x2="178" y2="388" {...line('nmj',1)}/><line x1="178" y1="400" x2="170" y2="409" {...line('nmj',1)}/><line x1="178" y1="400" x2="186" y2="409" {...line('nmj',1)}/>
+904:       <ellipse cx="85" cy="335" rx="16" ry="24" {...hit()} onMouseEnter={()=>onSiteEnter('nmj')} onMouseLeave={onSiteLeave}/>
+905:       <ellipse cx="235" cy="335" rx="16" ry="24" {...hit()} onMouseEnter={()=>onSiteEnter('nmj')} onMouseLeave={onSiteLeave}/>
+906:       <ellipse cx="142" cy="400" rx="16" ry="20" {...hit()} onMouseEnter={()=>onSiteEnter('nmj')} onMouseLeave={onSiteLeave}/>
+907:       <ellipse cx="178" cy="400" rx="16" ry="20" {...hit()} onMouseEnter={()=>onSiteEnter('nmj')} onMouseLeave={onSiteLeave}/>
+908: 
+909:       {/* GI Callout Group */}
+910:       <g cursor="pointer" onMouseEnter={()=>onSiteEnter('gi')} onMouseLeave={onSiteLeave}>
+911:         <path d="M 146,275 L 100,260 L 45,260" fill="none" stroke={sg.gi.color} strokeWidth="0.8" strokeOpacity="0.6" style={{pointerEvents:'none'}} />
+912:         <circle cx="146" cy="275" r="2" fill={sg.gi.color} style={{pointerEvents:'none'}} />
+913:         <text x="40" y="256" textAnchor="end" fontSize="9.5" fontFamily="monospace" fontWeight="bold" fill={sg.gi.color} style={{pointerEvents:'none'}}>GI TRACT</text>
+914:         <text x="40" y="267" textAnchor="end" fontSize="7.5" fontFamily="monospace" fill={sg.gi.color} fillOpacity="0.65" style={{pointerEvents:'none'}}>{Math.round(sg.gi.occ * 100)}%</text>
+915:         <rect x="10" y="259" width="30" height="2.5" fill="#111827" stroke="#1e293b" strokeWidth="0.5" rx="1" style={{pointerEvents:'none'}} />
+916:         <rect x="10" y="259" width={30 * sg.gi.occ} height="2.5" fill={sg.gi.color} rx="1" style={{pointerEvents:'none'}} />
+917:         <rect x="5" y="246" width="38" height="26" fill="rgba(0,0,0,0)" stroke="none" />
+918:       </g>
+919:       <ellipse cx="160" cy="265" rx="30" ry="36" {...hit()} onMouseEnter={()=>onSiteEnter('gi')} onMouseLeave={onSiteLeave}/>
+920: 
+921:       {/* SPINE Callout Group */}
+922:       <g cursor="pointer" onMouseEnter={()=>onSiteEnter('spinal')} onMouseLeave={onSiteLeave}>
+923:         <path d="M 224,212 L 250,250 L 275,250" fill="none" stroke={sg.spinal.color} strokeWidth="0.8" strokeOpacity="0.6" style={{pointerEvents:'none'}} />
+924:         <circle cx="224" cy="212" r="2" fill={sg.spinal.color} style={{pointerEvents:'none'}} />
+925:         <text x="280" y="246" textAnchor="start" fontSize="9.5" fontFamily="monospace" fontWeight="bold" fill={sg.spinal.color} style={{pointerEvents:'none'}}>SPINE</text>
+926:         <text x="280" y="257" textAnchor="start" fontSize="7.5" fontFamily="monospace" fill={sg.spinal.color} fillOpacity="0.65" style={{pointerEvents:'none'}}>{Math.round(sg.spinal.occ * 100)}%</text>
+927:         <rect x="280" y="249" width="30" height="2.5" fill="#111827" stroke="#1e293b" strokeWidth="0.5" rx="1" style={{pointerEvents:'none'}} />
+928:         <rect x="280" y="249" width={30 * sg.spinal.occ} height="2.5" fill={sg.spinal.color} rx="1" style={{pointerEvents:'none'}} />
+929:         <rect x="275" y="236" width="40" height="28" fill="rgba(0,0,0,0)" stroke="none" />
+930:       </g>
+931:       {/* Physical spine nodes - placed off to the side (at x=224) to keep torso clean */}
+932:       <path d="M 224,120 L 224,320" stroke={sg.spinal.color} strokeOpacity={0.15} strokeWidth="1.2" style={{pointerEvents:'none'}}/>
+933:       {[120, 137, 154, 171, 188, 205, 222, 239, 256, 273, 290, 307].map((y,i)=>(
+934:         <g key={`vert-group-${i}`}>
+935:           <path d={`M 221,${y} L 227,${y}`} stroke={sg.spinal.color} strokeOpacity={0.25} strokeWidth="1" style={{pointerEvents:'none'}}/>
+936:           <circle cx="224" cy={y} r={i<9?3.8:3.2}
+937:             fill={sg.spinal.color}
+938:             fillOpacity={sg.spinal.occ<0.03 ? 0.08 : 0.13+sg.spinal.occ*0.50}
+939:             stroke={sg.spinal.color}
+940:             strokeOpacity={sg.spinal.occ>0.05 ? 0.55 : 0.17}
+941:             strokeWidth="0.8"
+942:             style={{pointerEvents:'none', filter:(hoveredSite==='spinal'||sg.spinal.occ>0.22)?'url(#gbody)':undefined, transition:'all 0.25s'}}
+943:           />
+944:         </g>
+945:       ))}
+946:       <rect x="209" y="110" width="32" height="212" rx="8" {...hit()} onMouseEnter={()=>onSiteEnter('spinal')} onMouseLeave={onSiteLeave}/>
+947:     </svg>
+948:   );
+949: };
+950: 
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

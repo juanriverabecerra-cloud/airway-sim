@@ -59,6 +59,9 @@ If you are starting a new chapter-integration session, also read `CLAUDE.md` (pr
     *   [19. Chapter 35 — Neuromuscular Disorders, Malignant Hyperthermia, and Other Genetic Disorders](docs/chapters/ch35.md)
     *   [20. Chapter 36 — Cardiovascular Monitoring](docs/chapters/ch36.md)
     *   [21. Physics-Grounded Waveform Redesign (Cross-Cutting)](docs/chapters/physics_redesign_waveforms.md)
+    *   [22. Preloaded Attending Consults & Clickable UI Integration (Cross-Cutting)](docs/chapters/preloaded_attending_consults.md)
+    *   [23. Anesthesia Monitor Sound Engine (Cross-Cutting)](docs/chapters/anesthesia_monitor_sounds.md)
+
 
 ---
 
@@ -421,4 +424,7 @@ This stage's content is the historical "what was built and why" record for each 
 | 19 | Ch35 — Neuromuscular Disorders, MH, and Other Genetic Disorders | [`docs/chapters/ch35.md`](docs/chapters/ch35.md) | Dantrolene PK/PD, the MH crisis loop, neuromuscular disease sensitivity rules, the MG ventilation risk scorecard, and periodic paralysis (HyperPP/HypoPP) — all already living in §5.10/§6.81-6.84; this entry is an index, not new content. |
 | 20 | Ch36 — Cardiovascular Monitoring | [`docs/chapters/ch36.md`](docs/chapters/ch36.md) | `CvpWaveformModel.js` and `PulmonaryArteryCatheterModel.js` (new: CVP a/c/v/x/y waveform morphology, PA/PCWP pressure derivation and waveform shape, AFib/AV-dissociation/tricuspid-regurgitation/mitral-regurgitation patterns), arterial-line fast-flush dynamic-response classification, and a PAC-placement Monitoring `QualityEvent` (§4.1.1/§4.1.2). |
 | 21 | Physics-Grounded Waveform Redesign (Cross-Cutting) | [`docs/chapters/physics_redesign_waveforms.md`](docs/chapters/physics_redesign_waveforms.md) | Replaced hand-tuned parametric shapes with real differential-equation physics across all four monitor waveforms: `LungComplianceModel.js`/`RespiratoryMechanicsModel.js` (unified equation-of-motion solver driving the flow-volume loop, ventilator strips, and PV loop from one trajectory) and `CardiacChamberModel.js` (coupled RA/RV/PA elastance+valve+Windkessel ODE driving CVP/PA/wedge, replacing per-pattern magic numbers) (§4.1.3/§4.6.2-4.6.3). |
+| 22 | Preloaded Attending Consults (Cross-Cutting) | [`docs/chapters/preloaded_attending_consults.md`](docs/chapters/preloaded_attending_consults.md) | Integrates preloaded, textbook-grounded clinical consults for all medications, volatile gases, and resuscitation fluids in the simulator, exposing them via interactive, clickable UI descriptors and a premium floating study card. |
+| 23 | Anesthesia Monitor Sound Engine (Cross-Cutting) | [`docs/chapters/anesthesia_monitor_sounds.md`](docs/chapters/anesthesia_monitor_sounds.md) | Synthesizes pulse oximetry pitch-mapped tones, ventilator mechanical breaths, IEC 60601-1-8 high-priority hypoxia alarm patterns, and continuous cardiac arrest flatline warning hums using native Web Audio. |
+
 
