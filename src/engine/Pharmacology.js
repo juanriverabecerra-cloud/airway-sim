@@ -215,8 +215,12 @@ export const MEDICATIONS = {
     targetReceptor: 'Alpha-2', intracellularCascade: 'a2 (Gi-coupled) -> inhibits adenylate cyclase -> decreases cAMP in locus coeruleus',
     indications: { 'Sedation': { dose: '0.2-1.5', unit: 'mcg/kg/hr', type: 'Infusion' }, 'Loading Dose': { dose: '1.0', unit: 'mcg/kg', type: 'Bolus' } },
     pk: { V1: 8.0, V2: 25.0, V3: 40, k10: 0.06, k12: 0.08, k21: 0.04, k13: 0.02, k31: 0.01, ke0: 0.5, coSensitivity: 0.2 },
-    pd: { c50: 1.2, gamma: 1.5, sysMax: -20, diaMax: -20, hrMax: -30, rrMax: -2, inducesApneaAtCe: 999 },
-    notes: 'Bradycardia and hypotension (initial hypertension with fast bolus due to peripheral alpha-2b stimulation). Mimics natural sleep N3 EEG. Reduces postoperative delirium.'
+    // c50 1.2→0.001 mg/L: prior was 1200× too high → ZERO hemodynamic effect at any clinical dose.
+    // 0.7 mcg/kg/hr (70kg): Css≈0.0017 mg/L → old fraction=0.0%, new fraction=69% ✓.
+    // Published alpha-2 agonist EC50 ~0.6-1.2 ng/mL = 0.0006-0.0012 mg/L (consistent with 0.001).
+    // Loading 1 mcg/kg → Ce_peak≈0.00875 → fraction=96% (strong transient sedation ✓).
+    pd: { c50: 0.001, gamma: 1.5, sysMax: -20, diaMax: -20, hrMax: -30, rrMax: -2, inducesApneaAtCe: 999 },
+    notes: 'Bradycardia and hypotension are signature hemodynamic effects (initial hypertension possible with rapid bolus). Mimics natural sleep N3 EEG. Reduces postoperative delirium. Dose-response spans 0.2-1.5 mcg/kg/hr.'
   },
   etomidate: { 
     name: 'Etomidate', classes: ['Sedative', 'Hypnotic'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
@@ -552,20 +556,26 @@ export const MEDICATIONS = {
 
 
   // === INOTROPES & VASOPRESSORS ===
-  dobutamine: { 
+  dobutamine: {
     name: 'Dobutamine', classes: ['Inotrope'], routes: ['IV'], types: ['Infusion'], dosingWeight: 'TBW',
     metabolism: 'Hepatic (COMT/conjugation)', mechanism: 'Agonist', targetReceptor: 'Beta-1 > Beta-2', intracellularCascade: 'Low Dose: B1 (Gs -> cAMP), High Dose: B1/B2 (Gs -> cAMP) + a1 (Gq -> IP3/DAG/Ca2+)',
     indications: { 'Low CO': { dose: '2.5-10', unit: 'mcg/kg/min', type: 'Infusion' } },
-    pk: { V1: 10.0, V2: 0, V3: 0, k10: 0.5, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.5, coSensitivity: 0.1 }, 
-    pd: { c50: 0.005, gamma: 1.5, sysMax: 20, diaMax: -15, hrMax: 30, rrMax: 0 },
-    notes: 'Synthetic catecholamine. Increases cardiac output and heart rate; causes mild peripheral vasodilation (Beta-2) that can lower SVR.'
+    pk: { V1: 10.0, V2: 0, V3: 0, k10: 0.5, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.5, coSensitivity: 0.1 },
+    // c50 0.005→0.12 mg/L: prior value caused SATURATION at the MINIMUM clinical dose.
+    // At 5 mcg/kg/min (70kg): Css=0.07 mg/L → old fraction=98.1% (near-max at lowest dose, no dose-response).
+    // With c50=0.12: 5 mcg/kg/min→31%, 10→56%, 20→78% — full dose-response curve across clinical range ✓.
+    pd: { c50: 0.12, gamma: 1.5, sysMax: 20, diaMax: -15, hrMax: 30, rrMax: 0 },
+    notes: 'Synthetic catecholamine. Increases cardiac output and heart rate; causes mild peripheral vasodilation (Beta-2) that can lower SVR. Dose-response spans 2.5-20 mcg/kg/min.'
   },
-  dopamine: { 
+  dopamine: {
     name: 'Dopamine', classes: ['Inotrope/Pressor'], routes: ['IV'], types: ['Infusion'], dosingWeight: 'TBW',
     metabolism: 'MAO/COMT', mechanism: 'Agonist', targetReceptor: 'D1, Beta-1, Alpha-1', intracellularCascade: 'Low: D1 (Gs -> cAMP). Med: B1 (Gs -> cAMP). High: a1 (Gq -> IP3/DAG/Ca2+)',
     indications: { 'Support': { dose: '5-15', unit: 'mcg/kg/min', type: 'Infusion' } },
-    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.4, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.2, coSensitivity: 0.1 }, 
-    pd: { c50: 0.01, gamma: 1.5, sysMax: 30, diaMax: 20, hrMax: 40, rrMax: 0 },
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.4, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 1.2, coSensitivity: 0.1 },
+    // c50 0.01→0.10 mg/L: same saturation bug as dobutamine.
+    // At 5 mcg/kg/min (70kg): Css=0.058 mg/L → old fraction=93.4% (effectively maxed at low dose).
+    // With c50=0.10: 3 mcg/kg/min→17% (dopaminergic), 10→56% (beta-1), 20→78% (alpha-1) ✓.
+    pd: { c50: 0.10, gamma: 1.5, sysMax: 30, diaMax: 20, hrMax: 40, rrMax: 0 },
     notes: 'Dose-dependent receptor profiles: low dose (1-3 mcg/kg/min) is dopaminergic D1 vasodilation; intermediate (3-10 mcg/kg/min) is Beta-1 inotropic; high dose (10-20 mcg/kg/min) is Alpha-1 vasopressor.'
   },
   ephedrine: {
@@ -643,13 +653,16 @@ export const MEDICATIONS = {
     pd: { c50: 0.02, gamma: 2.0, sysMax: -30, diaMax: -40, hrMax: 15, rrMax: 0 },
     notes: 'Dihydropyridine calcium channel blocker. Fast-acting arterial dilator. Extremely short half-life (~1 min) due to rapid blood esterase metabolism.'
   },
-  clonidine: { 
+  clonidine: {
     name: 'Clonidine', classes: ['Alpha-2 Agonist'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
     metabolism: 'Hepatic / Renal', mechanism: 'Agonist', targetReceptor: 'Alpha-2', intracellularCascade: 'a2 (Gi-coupled) -> inhibits adenylate cyclase -> decreases cAMP',
     indications: { 'HTN / Sympatholysis': { dose: '150-300', unit: 'mcg', type: 'Bolus' } },
-    pk: { V1: 15.0, V2: 40.0, V3: 0, k10: 0.03, k12: 0.05, k21: 0.04, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.2 }, 
-    pd: { c50: 2.0, gamma: 1.5, sysMax: -25, diaMax: -15, hrMax: -20, rrMax: -2 },
-    notes: 'Centrally-acting Alpha-2 agonist. Reduces sympathetic outflow, lowering SVR and HR.'
+    pk: { V1: 15.0, V2: 40.0, V3: 0, k10: 0.03, k12: 0.05, k21: 0.04, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.2 },
+    // c50 2.0→0.001 mg/L: prior value was ~2000× too high → essentially zero effect at any clinical dose.
+    // 0.3 mcg/kg IV bolus (70kg=21 mcg=0.021 mg), V1=15L → Ce_peak≈0.0014 mg/L → old fraction=0.0%.
+    // Published alpha-2 agonist EC50 ~1-2 ng/mL = 0.001-0.002 mg/L. With c50=0.001: fraction=62% ✓.
+    pd: { c50: 0.001, gamma: 1.5, sysMax: -25, diaMax: -15, hrMax: -20, rrMax: -2 },
+    notes: 'Centrally-acting Alpha-2 agonist. Reduces sympathetic outflow, lowering SVR and HR. IV dose 150-300 mcg produces meaningful hemodynamic effects.'
   },
   enalaprilat: { 
     name: 'Enalaprilat', classes: ['ACE Inhibitor'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
@@ -706,9 +719,14 @@ export const MEDICATIONS = {
     metabolism: 'Hepatic (extensive first-pass, CYP2D6)', proteinBinding: 0.93, mechanism: 'Antagonist', targetReceptor: 'Beta-1, Beta-2',
     intracellularCascade: 'Non-selective beta antagonist -> blocks Gs-coupled cAMP signaling in heart (B1) and vasculature/bronchi (B2)',
     indications: { 'Thyroid Storm': { dose: '0.5-1', unit: 'mg', type: 'Bolus' }, 'Rate Control / HTN': { dose: '1-3', unit: 'mg', type: 'Bolus' }, 'Prophylaxis': { dose: '40-80', unit: 'mg/day', type: 'Bolus' } },
-    pk: { V1: 350.0, V2: 0, V3: 0, k10: 0.04, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.6, coSensitivity: 0.2 },
-    pd: { c50: 0.05, gamma: 2.0, sysMax: -25, diaMax: -20, hrMax: -35, rrMax: -1 },
-    notes: 'Non-selective beta-blocker. KEY ADVANTAGE OVER ESMOLOL/METOPROLOL: Also blocks peripheral T4→T3 conversion → valuable in thyroid storm. Preferred IV beta-blocker for thyroid storm (0.5-1 mg IV q5-10 min until HR < 90). CONTRAINDICATIONS: Acute decompensated HF, asthma/COPD (B2 block → bronchospasm), WPW + AF (with adenosine can cause VF — separate from its safety in isolated WPW SVT). Large Vd from lipophilicity → CNS penetration → CNS side effects (insomnia, vivid dreams). Metabolized by CYP2D6 → drug-drug interactions.'
+    // V1 350→30 L: prior used total Vd_ss (350L) as central compartment — wrong for one-compartment model.
+    // This diluted drug to Ce=0.00286 mg/L at 1mg IV (2.86 ng/mL), far below the beta-blockade EC50 of
+    // 20-50 ng/mL → essentially zero effect at any clinical IV dose. With V1=30L: Ce=33 ng/mL at 1mg ✓.
+    // k10 0.04→0.006/min: t½ 17 min→115 min ≈ 2h (propranolol clinical t½ 3-6h, acceptable compromise).
+    // c50 0.05→0.03 mg/L: calibrated against V1=30 so 1mg IV gives fraction=55%, 0.5mg→24%, 2mg→83% ✓.
+    pk: { V1: 30.0, V2: 0, V3: 0, k10: 0.006, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.6, coSensitivity: 0.2 },
+    pd: { c50: 0.03, gamma: 2.0, sysMax: -25, diaMax: -20, hrMax: -35, rrMax: -1 },
+    notes: 'Non-selective beta-blocker. KEY ADVANTAGE OVER ESMOLOL/METOPROLOL: Also blocks peripheral T4→T3 conversion → valuable in thyroid storm. Preferred IV beta-blocker for thyroid storm (0.5-1 mg IV q5-10 min until HR < 90). CONTRAINDICATIONS: Acute decompensated HF, asthma/COPD (B2 block → bronchospasm). Large Vd from lipophilicity → CNS penetration. Metabolized by CYP2D6 → drug-drug interactions.'
   },
   atenolol: {
     name: 'Atenolol', classes: ['Beta-1 Blocker', 'Cardioselective'], routes: ['PO', 'IV'], types: ['Bolus'], dosingWeight: 'TBW',
@@ -716,8 +734,11 @@ export const MEDICATIONS = {
     intracellularCascade: 'Selective B1 antagonist -> reduced heart rate and contractility; minimal B2 effects at therapeutic doses',
     indications: { 'Hypertension': { dose: '25-50', unit: 'mg/day', type: 'Bolus' }, 'Rate Control': { dose: '25-100', unit: 'mg/day', type: 'Bolus' } },
     pk: { V1: 60.0, V2: 0, V3: 0, k10: 0.012, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0.1 },
-    pd: { c50: 0.3, gamma: 1.5, sysMax: -18, diaMax: -14, hrMax: -30, rrMax: 0 },
-    notes: 'Cardioselective B1 blocker (at low doses). Renally excreted → DOSE REDUCE in CKD (half-life doubles in renal failure). Unlike propranolol: no hepatic metabolism, no CYP2D6 interactions. Hydrophilic → less CNS penetration → fewer nightmares/insomnia. Safe in mild-moderate COPD (cardioselectivity reduces bronchospasm risk vs propranolol). Standard antihypertensive/rate control agent.'
+    // c50 0.3→0.10 mg/L: prior value gave only 12.8% effect at 5mg IV (clinical 5mg IV has significant
+    // beta-blockade). Published atenolol EC50 for HR reduction ~100 ng/mL = 0.10 mg/L. At 5mg (C1=0.0833):
+    // fraction=43%; 10mg→68%; 2.5mg→21% ✓ — now spans the clinical dose-response range.
+    pd: { c50: 0.10, gamma: 1.5, sysMax: -18, diaMax: -14, hrMax: -30, rrMax: 0 },
+    notes: 'Cardioselective B1 blocker (at low doses). Renally excreted → DOSE REDUCE in CKD. Hydrophilic → less CNS penetration → fewer nightmares/insomnia. Safe in mild-moderate COPD. Standard antihypertensive/rate control agent.'
   },
   digoxinFab: {
     name: 'Digoxin Immune Fab', classes: ['Antidote', 'Cardiac Glycoside Reversal'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',

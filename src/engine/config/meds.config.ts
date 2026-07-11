@@ -45,7 +45,7 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
       "coSensitivity": 0.2
     },
     "pd": {
-      "c50": 1.2,
+      "c50": 0.001,
       "gamma": 1.5,
       "sysMax": -20,
       "diaMax": -20,
@@ -1404,14 +1404,14 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
       "coSensitivity": 0.1
     },
     "pd": {
-      "c50": 0.005,
+      "c50": 0.12,
       "gamma": 1.5,
       "sysMax": 20,
       "diaMax": -15,
       "hrMax": 30,
       "rrMax": 0
     },
-    "notes": "Synthetic catecholamine. Increases cardiac output and heart rate; causes mild peripheral vasodilation (Beta-2) that can lower SVR."
+    "notes": "Synthetic catecholamine. Increases cardiac output and heart rate; causes mild peripheral vasodilation (Beta-2) that can lower SVR. Dose-response spans 2.5-20 mcg/kg/min."
   },
   dopamine: {
     "name": "Dopamine",
@@ -1448,7 +1448,7 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
       "coSensitivity": 0.1
     },
     "pd": {
-      "c50": 0.01,
+      "c50": 0.10,
       "gamma": 1.5,
       "sysMax": 30,
       "diaMax": 20,
@@ -1850,14 +1850,14 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
       "coSensitivity": 0.2
     },
     "pd": {
-      "c50": 2,
+      "c50": 0.001,
       "gamma": 1.5,
       "sysMax": -25,
       "diaMax": -15,
       "hrMax": -20,
       "rrMax": -2
     },
-    "notes": "Centrally-acting Alpha-2 agonist. Reduces sympathetic outflow, lowering SVR and HR."
+    "notes": "Centrally-acting Alpha-2 agonist. Reduces sympathetic outflow, lowering SVR and HR. IV dose 150-300 mcg produces meaningful hemodynamic effects."
   },
   enalaprilat: {
     "name": "Enalaprilat",
@@ -2119,10 +2119,10 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
       }
     },
     "pk": {
-      "V1": 350,
+      "V1": 30,
       "V2": 0,
       "V3": 0,
-      "k10": 0.04,
+      "k10": 0.006,
       "k12": 0,
       "k21": 0,
       "k13": 0,
@@ -2131,14 +2131,14 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
       "coSensitivity": 0.2
     },
     "pd": {
-      "c50": 0.05,
+      "c50": 0.03,
       "gamma": 2,
       "sysMax": -25,
       "diaMax": -20,
       "hrMax": -35,
       "rrMax": -1
     },
-    "notes": "Non-selective beta-blocker. Also blocks T4→T3 conversion → preferred in thyroid storm. High Vd, CNS penetrating.",
+    "notes": "Non-selective beta-blocker. Also blocks T4→T3 conversion → preferred in thyroid storm. 1mg IV → 55% effect; 2mg → 83% effect.",
     "proteinBinding": 0.93,
     "intracellularCascade": "Non-selective beta antagonist -> blocks Gs-coupled cAMP signaling in heart (B1) and vasculature/bronchi (B2)"
   },
@@ -2183,14 +2183,14 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
       "coSensitivity": 0.1
     },
     "pd": {
-      "c50": 0.3,
+      "c50": 0.10,
       "gamma": 1.5,
       "sysMax": -18,
       "diaMax": -14,
       "hrMax": -30,
       "rrMax": 0
     },
-    "notes": "Cardioselective B1 blocker. Renally excreted → dose reduce in CKD. Hydrophilic → less CNS side effects than propranolol.",
+    "notes": "Cardioselective B1 blocker. Renally excreted → dose reduce in CKD. Hydrophilic → less CNS side effects than propranolol. 5mg IV gives 43% effect; 10mg gives 68%.",
     "proteinBinding": 0.03,
     "intracellularCascade": "Selective B1 antagonist -> reduced heart rate and contractility; minimal B2 effects at therapeutic doses"
   },
