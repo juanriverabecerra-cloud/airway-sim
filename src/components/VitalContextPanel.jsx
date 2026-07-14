@@ -55,6 +55,7 @@ export const VitalContextPanel = ({
   onSetVent,
   onSetGas,
   onSetPatient,
+  onSetO2,        // handleSetO2(id, flow, fio2) — O2 device for non-intubated patients
   onLogEvent,
 }) => {
   const panelRef = useRef(null);
@@ -169,6 +170,7 @@ export const VitalContextPanel = ({
     setVent:    onSetVent,
     setGas:     onSetGas,
     setPatient: onSetPatient,
+    setO2:      onSetO2,
     logEvent:   onLogEvent,
   };
   try { actions = config.getActions ? config.getActions(ctx, callbacks) : []; } catch (e) { console.error('VitalContextPanel actions error:', e); }

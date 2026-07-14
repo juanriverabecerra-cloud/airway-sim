@@ -1,20 +1,28 @@
 import React, { useEffect, useRef } from 'react';
-import { generateFlowVolumeLoop } from '../engine/FlowVolumeLoopModel';
+import { generateFlowVolumeLoop, generateVentilatorFlowVolumeLoop } from '../engine/FlowVolumeLoopModel';
 
 /**
- * Renders a flow-volume loop: an X-Y plot (volume on X, flow on Y), not a
- * scrolling time-strip like CanvasWaveform — the loop persists and retraces
- * once per breath, with a bright marker sweeping around it in sync with the
- * current breath so it reads as live rather than a static reference image.
+ * Renders a flow-volume loop.
+ *
+ * Two display modes, switched automatically:
+ * - VENTILATED (patient.airwaySecured): tidal ventilator loop (0 → Vt), matching
+ *   the real-time display on GE Carestation / Dräger Primus. Inspiratory flow is
+ *   positive (above zero line), expiratory is negative. VCV shows a rectangular
+ *   inspiratory step; PCV/PSV shows a decelerating curve. Auto-PEEP is visible as
+ *   the loop failing to return to zero volume.
+ * - NOT VENTILATED: forced-PFT flow-volume loop (RV → TLC) showing maximal-effort
+ *   effort-independent expiratory flow-limitation patterns (COPD scooping, restriction,
+ *   extrathoracic obstruction). Expiratory flow is positive (above zero), matching
+ *   PFT convention.
  */
-export const FlowVolumeLoopCanvas = React.memo(({ patient, vitals, active = true }) => {
+export const FlowVolumeLoopCanvas = React.memo(({ patient, vitals, ventSettings, active = true }) => {
   const canvasRef = useRef(null);
   const drawState = useRef({ tBeat: 0, lastTime: null });
-  const propsRef = useRef({ patient, vitals, active });
+  const propsRef = useRef({ patient, vitals, ventSettings, active });
 
   useEffect(() => {
-    propsRef.current = { patient, vitals, active };
-  }, [patient, vitals, active]);
+    propsRef.current = { patient, vitals, ventSettings, active };
+  }, [patient, vitals, ventSettings, active]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -30,19 +38,21 @@ export const FlowVolumeLoopCanvas = React.memo(({ patient, vitals, active = true
       drawState.current.lastTime = time;
       if (dtMs > 100) dtMs = 16;
 
-      const { patient: p, vitals: v, active: isActive } = propsRef.current;
+      const { patient: p, vitals: v, ventSettings: vs, active: isActive } = propsRef.current;
 
       const rect = canvas.parentElement.getBoundingClientRect();
       const w = Math.floor(rect.width);
       const h = Math.floor(rect.height);
-      if (w === 0 || h === 0) {
-        animationFrameId = requestAnimationFrame(render);
-        return;
-      }
+      if (w === 0 || h === 0) { animationFrameId = requestAnimationFrame(render); return; }
       if (Math.abs(canvas.width - w) > 4 || Math.abs(canvas.height - h) > 4) {
-        canvas.width = w;
-        canvas.height = h;
+        canvas.width = w; canvas.height = h;
       }
+
+      const isVentilated = !!p?.airwaySecured && !!vs;
+      const loop = isVentilated
+        ? generateVentilatorFlowVolumeLoop(p, v, vs)
+        : generateFlowVolumeLoop(p, v);
+      const { points } = loop;
 
       const rr = typeof v?.rr === 'number' && Number.isFinite(v.rr) ? v.rr : 12;
       const beatDuration = (isActive && rr > 0) ? (60 / rr) : 4.0;
@@ -50,25 +60,40 @@ export const FlowVolumeLoopCanvas = React.memo(({ patient, vitals, active = true
       if (drawState.current.tBeat >= beatDuration) drawState.current.tBeat %= beatDuration;
       const progress = Math.max(0, Math.min(1, drawState.current.tBeat / beatDuration));
 
-      const loop = generateFlowVolumeLoop(p, v);
-      const { points, tlc, rv, fvc, pef, pif } = loop;
-
-      const margin = { left: 42, right: 14, top: 14, bottom: 28 };
+      const margin = { left: 44, right: 14, top: 22, bottom: 28 };
       const plotW = Math.max(10, w - margin.left - margin.right);
       const plotH = Math.max(10, h - margin.top - margin.bottom);
 
-      const pad = Math.max(0.3, fvc * 0.18);
-      const xMin = Math.max(0, rv - pad);
-      const xMax = tlc + pad;
-      const yMax = Math.max(1, pef * 1.2);
-      const yMin = -Math.max(1, pif * 1.2);
+      let xMin, xMax, yMin, yMax, topLabel, botLabel;
 
-      const px = (vol) => margin.left + ((vol - xMin) / (xMax - xMin || 1)) * plotW;
-      const py = (flow) => margin.top + ((yMax - flow) / (yMax - yMin || 1)) * plotH;
+      if (isVentilated) {
+        // Vent loop: X from 0 to Vt, Y positive = inspiratory (above zero), negative = expiratory
+        const vtL = Math.max(0.2, (loop.vte ?? 0) / 1000);
+        xMin = 0;
+        xMax = vtL * 1.3;
+        yMax = Math.max(0.3, (loop.pif ?? 0) * 1.3);
+        yMin = -Math.max(0.3, (loop.pef ?? 0) * 1.3);
+        topLabel = 'Insp';
+        botLabel = 'Exp';
+      } else {
+        // PFT loop: X from RV to TLC, Y positive = expiratory (above zero)
+        const { tlc, rv, fvc, pef, pif } = loop;
+        const pad = Math.max(0.3, fvc * 0.18);
+        xMin = Math.max(0, rv - pad);
+        xMax = tlc + pad;
+        yMax = Math.max(1, pef * 1.2);
+        yMin = -Math.max(1, pif * 1.2);
+        topLabel = 'Exp';
+        botLabel = 'Insp';
+      }
+
+      const pxf = (vol)  => margin.left + ((vol - xMin) / (xMax - xMin || 1)) * plotW;
+      const pyf = (flow) => margin.top + ((yMax - flow) / (yMax - yMin || 1)) * plotH;
 
       ctx.clearRect(0, 0, w, h);
 
-      // Grid + zero-flow axis
+      // ── Reference lines ──────────────────────────────────────────────────────
+      // Axes (left + bottom)
       ctx.strokeStyle = 'rgba(148, 163, 184, 0.18)';
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -77,45 +102,124 @@ export const FlowVolumeLoopCanvas = React.memo(({ patient, vitals, active = true
       ctx.lineTo(margin.left + plotW, margin.top + plotH);
       ctx.stroke();
 
+      // Zero-flow horizontal baseline
       ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
       ctx.beginPath();
-      ctx.moveTo(margin.left, py(0));
-      ctx.lineTo(margin.left + plotW, py(0));
+      ctx.moveTo(margin.left, pyf(0));
+      ctx.lineTo(margin.left + plotW, pyf(0));
       ctx.stroke();
 
-      // Axis labels
+      // Vent loop: zero-volume dashed vertical reference (loop should close here)
+      if (isVentilated) {
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(pxf(0), margin.top);
+        ctx.lineTo(pxf(0), margin.top + plotH);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // ── Axis labels ───────────────────────────────────────────────────────────
       ctx.fillStyle = 'rgba(148, 163, 184, 0.7)';
       ctx.font = '9px monospace';
       ctx.textAlign = 'center';
       ctx.fillText('Volume (L)', margin.left + plotW / 2, h - 6);
       ctx.save();
-      ctx.translate(10, margin.top + plotH / 2);
+      ctx.translate(11, margin.top + plotH / 2);
       ctx.rotate(-Math.PI / 2);
       ctx.fillText('Flow (L/s)', 0, 0);
       ctx.restore();
       ctx.textAlign = 'left';
-      ctx.fillText('Insp', margin.left + 2, margin.top + plotH - 4);
-      ctx.fillText('Exp', margin.left + 2, margin.top + 10);
+      ctx.fillText(topLabel, margin.left + 2, margin.top - 2);
+      ctx.fillText(botLabel, margin.left + 2, margin.top + plotH + 11);
 
-      // Persistent loop trace
-      ctx.strokeStyle = 'rgba(34, 197, 94, 0.85)';
+      // ── X-axis tick marks ─────────────────────────────────────────────────────
+      ctx.fillStyle = 'rgba(148, 163, 184, 0.5)';
+      ctx.font = '8px monospace';
+      ctx.textAlign = 'center';
+      const xTickStep = xMax > 4 ? 1.0 : xMax > 1.5 ? 0.5 : 0.2;
+      for (let tv = Math.ceil(xMin / xTickStep) * xTickStep; tv <= xMax + 0.001; tv += xTickStep) {
+        const tx = pxf(tv);
+        if (tx >= margin.left && tx <= margin.left + plotW) {
+          ctx.beginPath();
+          ctx.strokeStyle = 'rgba(148, 163, 184, 0.2)';
+          ctx.lineWidth = 1;
+          ctx.moveTo(tx, margin.top + plotH - 3);
+          ctx.lineTo(tx, margin.top + plotH + 3);
+          ctx.stroke();
+          ctx.fillText(tv.toFixed(1), tx, margin.top + plotH + 12);
+        }
+      }
+      ctx.textAlign = 'left';
+
+      // ── Main loop trace ───────────────────────────────────────────────────────
+      ctx.strokeStyle = 'rgba(34, 197, 94, 0.88)';
       ctx.lineWidth = 2;
       ctx.beginPath();
       points.forEach((pt, i) => {
-        const x = px(pt.volume);
-        const y = py(pt.flow);
+        const x = pxf(pt.volume);
+        const y = pyf(pt.flow);
         if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
       });
-      ctx.closePath();
+      // Close loop for PFT; leave open for vent (auto-PEEP visible as open loop)
+      if (!isVentilated) ctx.closePath();
       ctx.stroke();
 
-      // Sweeping marker synced to the current breath
+      // ── Auto-PEEP indicator ───────────────────────────────────────────────────
+      if (isVentilated && loop.hasAutoPeep) {
+        const finalVol = points[points.length - 1]?.volume ?? 0;
+        if (finalVol > 0.01) {
+          const trapX = pxf(0);
+          const trapW = pxf(finalVol) - trapX;
+          if (trapW > 2) {
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.12)';
+            ctx.fillRect(trapX, margin.top, trapW, plotH);
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.55)';
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(pxf(finalVol), margin.top);
+            ctx.lineTo(pxf(finalVol), margin.top + plotH);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.8)';
+            ctx.font = '8px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('auto-PEEP', trapX + trapW / 2, pyf(0) - 4);
+            ctx.textAlign = 'left';
+          }
+        }
+      }
+
+      // ── Numeric readouts (top-left overlay) ──────────────────────────────────
+      ctx.fillStyle = 'rgba(148, 163, 184, 0.75)';
+      ctx.font = '8px monospace';
+      ctx.textAlign = 'left';
+      if (isVentilated) {
+        const vteMl  = Math.round(loop.vte ?? 0);
+        const pifStr = (loop.pif ?? 0).toFixed(1);
+        const pefStr = (loop.pef ?? 0).toFixed(1);
+        const tau    = (loop.timeConstant ?? 0).toFixed(1);
+        ctx.fillText(`Vte ${vteMl} mL  τ=${tau}s`, margin.left, margin.top - 3);
+        ctx.fillStyle = 'rgba(148, 163, 184, 0.55)';
+        ctx.fillText(`PIF ${pifStr}  PEF ${pefStr} L/s`, margin.left, margin.top + 7);
+      } else {
+        const fvcStr = (loop.fvc ?? 0).toFixed(2);
+        const pefStr = (loop.pef ?? 0).toFixed(1);
+        const pifStr = (loop.pif ?? 0).toFixed(1);
+        ctx.fillText(`FVC ${fvcStr}L  PEF ${pefStr}  PIF ${pifStr} L/s`, margin.left, margin.top - 3);
+      }
+      ctx.textAlign = 'left';
+
+      // ── Sweeping marker ───────────────────────────────────────────────────────
       if (isActive && points.length > 1) {
         const idx = Math.min(points.length - 1, Math.floor(progress * (points.length - 1)));
         const cur = points[idx];
         ctx.beginPath();
         ctx.fillStyle = '#facc15';
-        ctx.arc(px(cur.volume), py(cur.flow), 4, 0, Math.PI * 2);
+        ctx.arc(pxf(cur.volume), pyf(cur.flow), 4, 0, Math.PI * 2);
         ctx.fill();
       }
 

@@ -1189,7 +1189,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
                     const fluidData = FLUIDS[infusions[infIndex].name];
                     const eta = fluidData ? Math.max(0.01, fluidData.viscosity || 1.0) : 1.0;
                     
-                    let rTubing = 400;
+                    let rTubing = 150;
                     if (lType === 'ranger') rTubing = 800;
                     else if (lType === 'belmont') rTubing = 200;
                     
@@ -1384,7 +1384,21 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
       const bio = route === 'IV' ? 1.0 : (route === 'IM' ? 0.8 : 0.5);
       existingModel.giveBolus(doseInMg * bio);
       logEvent(`💉 Pushed ${doseInput} ${unit} of ${medData.name} via ${route}.`);
-      
+
+      // ACLS timing tracker: record when epinephrine is given during arrest.
+      // Used by the ACLS console to display the inter-dose interval timer (every 3-5 min per AHA).
+      if (medId === 'epinephrine') {
+          setPatient(prev => ({ ...prev, lastEpiPushTime: stateRef.current.time || 0 }));
+      }
+      // Track amiodarone doses for second-dose guidance (300mg first, 150mg second)
+      if (medId === 'amiodarone' && stateRef.current.patient?.isArrest) {
+          setPatient(prev => ({
+              ...prev,
+              amioDosesGivenInArrest: (prev.amioDosesGivenInArrest || 0) + 1,
+              lastAmioPushTime: stateRef.current.time || 0
+          }));
+      }
+
       if (medId === 'intralipid') {
           const volInMl = doseInMg * bio;
           setPatient(prev => ({
@@ -2010,6 +2024,15 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
           let currentCOForPK = Number(st.vitals.co);
           if (isNaN(currentCOForPK) || !isFinite(currentCOForPK) || currentCOForPK <= 0) {
               currentCOForPK = 5.0;
+          }
+          // High-quality CPR provides ~25-30% of normal CO (~1.5 L/min).
+          // Without this, coRatio=0 freezes all PKPD rate constants (k10, ke0 floored
+          // at 10%), preventing drugs given during CPR from ever reaching their effect
+          // compartments and making epinephrine/amiodarone/etc appear to "do nothing."
+          // With coRatio=0.3, epi's Ce builds to therapeutic levels in ~3-5 minutes of
+          // CPR, matching the clinical reality of ACLS drug distribution during compressions.
+          if (st.patient.isArrest && st.patient.cprActive) {
+              currentCOForPK = Math.max(currentCOForPK, 1.5);
           }
           const coRatio = currentCOForPK / 5.0;
 
@@ -5474,12 +5497,22 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
           st.patient.pcrit = pcrit;
           patientAfterFluidics.pcrit = pcrit;
           let airwayObstructionIndex = 0.0;
-          
+
           if (!st.patient.airwaySecured && st.patient.ventilationStatus === 'spontaneous') {
               airwayObstructionIndex = Math.max(0.0, Math.min(1.0, (1.0 - dilatorMuscleTone) * (pcrit + 6.0) / 7.0));
               if (st.patient.postExtubationLaryngealEdema) {
                   airwayObstructionIndex = Math.max(airwayObstructionIndex, 0.8);
               }
+
+              // Jaw thrust / two-hand mask seal (bmvOptimized) mechanically displaces the
+              // mandible anteriorly, lifting the tongue and epiglottis off the posterior
+              // pharyngeal wall. Reduces obstruction index by 0.45 — enough to resolve
+              // moderate drug-induced obstruction (index 0.6→0.15) but not laryngeal edema
+              // (floor clamped to 0.8) which is anatomical, not just muscle-tone dependent.
+              if (st.patient.bmvOptimized && !st.patient.postExtubationLaryngealEdema) {
+                  airwayObstructionIndex = Math.max(0.0, airwayObstructionIndex - 0.45);
+              }
+
               if (airwayObstructionIndex > 0.6 && !isAirwayObstruction) {
                   isAirwayObstruction = true;
                   if (st.patient.postExtubationLaryngealEdema) {

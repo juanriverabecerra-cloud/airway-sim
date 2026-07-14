@@ -18,6 +18,7 @@ export const LinesResusPanel = ({
   checkRhythm,
   time,
   formatTime,
+  vitals,
   setAccessModal,
   generateLab,
   placeEpidural,
@@ -29,6 +30,7 @@ export const LinesResusPanel = ({
   const [showAccess, setShowAccess] = useState(false);
   const [showLabs, setShowLabs] = useState(false);
   const [showRegional, setShowRegional] = useState(false);
+  const [showHTs, setShowHTs] = useState(false);
   const [epiduralLevelInput, setEpiduralLevelInput] = useState(8);
 
   useEffect(() => {
@@ -83,6 +85,37 @@ export const LinesResusPanel = ({
       totalMedInfusionsCount += l.activeMedInfusions.filter(m => m && parseFloat(m.rate) > 0).length;
     }
   });
+
+  // ACLS computed values
+  const aclsRhythm = patient?.cardiacRhythm || 'normal';
+  const aclsIsShockable = aclsRhythm === 'vfib' || aclsRhythm === 'vtach';
+  const aclsIsNonShockable = aclsRhythm === 'pea' || aclsRhythm === 'asystole';
+  const codeElapsed = patient?.isArrest ? Math.max(0, Math.floor((time || 0) - (patient?.codeStartTime || time || 0))) : 0;
+  const cprCycleTime = codeElapsed > 0 ? codeElapsed % 120 : 0;
+  const cprCycleNum = codeElapsed > 0 ? Math.floor(codeElapsed / 120) + 1 : 1;
+  const secsSinceEpi = (patient?.lastEpiPushTime != null && patient?.isArrest) ? Math.floor((time || 0) - patient.lastEpiPushTime) : null;
+  const epiDueIn = secsSinceEpi != null ? Math.max(0, 300 - secsSinceEpi) : null;
+  const epiOverdue = secsSinceEpi != null && secsSinceEpi >= 300;
+  const epiNearlySoon = epiDueIn != null && epiDueIn <= 60 && !epiOverdue;
+  const etco2Display = vitals?.etco2 != null ? Math.round(vitals.etco2) : 0;
+  const amioDoses = patient?.amioDosesGivenInArrest || 0;
+
+  const fmtSec = (s) => {
+    if (s == null || s < 0) return '--:--';
+    const m = Math.floor(s / 60); const sc = Math.floor(s % 60);
+    return `${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`;
+  };
+  const pushACLS = (medId, dose, unit) => {
+    if (processMed) processMed(medId, dose, 'IV', 'Bolus', unit, null, null);
+  };
+  const rhythmConfig = {
+    vfib:     { label: 'V-FIB',     sub: 'SHOCKABLE ⚡',       bg: 'bg-red-950/60',     border: 'border-red-500',   text: 'text-red-400',     pulse: true  },
+    vtach:    { label: 'V-TACH',    sub: 'SHOCKABLE ⚡',       bg: 'bg-red-950/60',     border: 'border-red-500',   text: 'text-red-400',     pulse: true  },
+    pea:      { label: 'PEA',       sub: 'NON-SHOCKABLE',      bg: 'bg-yellow-950/50',  border: 'border-yellow-600',text: 'text-yellow-400',  pulse: false },
+    asystole: { label: 'ASYSTOLE',  sub: 'NON-SHOCKABLE',      bg: 'bg-slate-900/80',   border: 'border-slate-600', text: 'text-slate-300',   pulse: false },
+    normal:   { label: 'ORGANIZED', sub: '✅ ROSC',            bg: 'bg-emerald-950/50', border: 'border-emerald-600',text: 'text-emerald-400', pulse: false },
+  };
+  const rc = rhythmConfig[aclsRhythm] || { label: aclsRhythm?.toUpperCase() || '---', sub: '', bg: 'bg-slate-900/60', border: 'border-slate-700', text: 'text-slate-300', pulse: false };
 
   return (
     <div className="glass-panel glass-purple p-4 flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
@@ -185,79 +218,230 @@ export const LinesResusPanel = ({
       </div>
 
 
-      {/* CPR & Defibrillation Console */}
+      {/* ACLS Console — Defib & CPR */}
       <div className="border border-red-500/20 bg-red-950/5 rounded-xl overflow-hidden shrink-0">
-        <button 
+        <button
           onClick={() => setShowCPRDefib(!showCPRDefib)}
           className="w-full flex items-center justify-between px-3 py-1.5 bg-red-950/20 border-b border-white/5 font-mono text-[9px] font-black text-red-400 uppercase tracking-wider hover:bg-red-950/30 transition-all"
         >
           <span className="flex items-center gap-1.5">
-            <Activity size={12} className={patient?.isArrest || patient?.cprActive ? "text-red-500 animate-pulse" : "text-red-400"}/> 
-            Defib & CPR Console
+            <Activity size={12} className={isCodeActive ? 'text-red-500 animate-pulse' : 'text-red-400'}/>
+            Defib &amp; ACLS Console
           </span>
           <span>{showCPRDefib ? '▲' : '▼'}</span>
         </button>
+
         {showCPRDefib && (
           <div className="p-2.5 flex flex-col gap-2 font-mono">
-            {(patient?.cprActive || patient?.isArrest) && (
-              <div className="bg-red-950/40 border border-red-900/40 p-2 rounded-lg flex justify-between items-center shadow-inner text-[9px] font-bold">
-                <span className="text-red-400 animate-pulse flex items-center gap-1">
-                  🚨 {patient?.isArrest ? 'CODE BLUE ACTIVE' : 'CPR ACTIVE'}
+
+            {/* Rhythm Banner */}
+            <div className={`${rc.bg} border ${rc.border} rounded-lg p-2 flex items-center justify-between`}>
+              <div className="flex flex-col gap-0.5">
+                <span className={`text-[11px] font-black tracking-wider ${rc.text} ${rc.pulse ? 'animate-pulse' : ''}`}>
+                  {rc.label}
                 </span>
-                <span className="text-white">
-                  {formatTime(time - (patient?.isArrest ? (patient?.codeStartTime ?? time) : (patient?.cprStartTime ?? time)))}
-                </span>
+                <span className="text-[8px] text-slate-400">{rc.sub}</span>
+              </div>
+              {patient?.isArrest && patient?.biologicalDeath ? (
+                <span className="text-[8px] text-red-500 font-black animate-pulse">BIOLOGICAL DEATH</span>
+              ) : patient?.isArrest ? (
+                <div className="text-right">
+                  <div className="text-[7px] text-slate-500 uppercase">Code Time</div>
+                  <div className="text-[11px] text-white font-bold tabular-nums">{fmtSec(codeElapsed)}</div>
+                </div>
+              ) : (
+                <span className="text-[8px] text-slate-600">No active code</span>
+              )}
+            </div>
+
+            {/* Timers Row (active code only) */}
+            {patient?.isArrest && !patient?.biologicalDeath && (
+              <div className="grid grid-cols-3 gap-1">
+                <div className="bg-slate-950/60 border border-white/5 rounded-lg p-1.5 text-center">
+                  <div className="text-[7px] text-slate-500 uppercase">Cycle {cprCycleNum}</div>
+                  <div className={`text-[9px] font-bold tabular-nums ${cprCycleTime > 90 ? 'text-yellow-400' : 'text-emerald-400'}`}>
+                    {fmtSec(cprCycleTime)}/2:00
+                  </div>
+                </div>
+                <div className="bg-slate-950/60 border border-white/5 rounded-lg p-1.5 text-center">
+                  <div className="text-[7px] text-slate-500 uppercase">EtCO₂</div>
+                  <div className={`text-[9px] font-bold tabular-nums ${etco2Display >= 20 ? 'text-emerald-400' : etco2Display > 0 ? 'text-yellow-300' : 'text-slate-600'}`}>
+                    {etco2Display > 0 ? `${etco2Display} mmHg` : '---'}
+                  </div>
+                </div>
+                <div className={`border rounded-lg p-1.5 text-center ${epiOverdue ? 'bg-red-950/50 border-red-500' : epiNearlySoon ? 'bg-yellow-950/30 border-yellow-700' : 'bg-slate-950/60 border-white/5'}`}>
+                  <div className="text-[7px] text-slate-500 uppercase">EPI Due</div>
+                  <div className={`text-[9px] font-bold tabular-nums ${epiOverdue ? 'text-red-400 animate-pulse' : epiNearlySoon ? 'text-yellow-400' : epiDueIn == null ? 'text-slate-500' : 'text-white'}`}>
+                    {epiDueIn == null ? 'GIVE NOW' : epiOverdue ? 'OVERDUE' : fmtSec(epiDueIn)}
+                  </div>
+                </div>
               </div>
             )}
-            <div className="flex gap-2">
-              <button 
-                onClick={() => { if (toggleCPR) toggleCPR(); }} 
+
+            {/* CPR Controls */}
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => toggleCPR?.()}
                 className={`flex-1 py-1.5 rounded-lg text-[9px] font-black border transition active:scale-97 ${
-                  patient?.cprActive 
-                    ? 'bg-rose-600 border-red-500 text-white shadow-[0_0_8px_rgba(244,63,94,0.35)] animate-pulse' 
+                  patient?.cprActive
+                    ? 'bg-rose-600 border-red-500 text-white shadow-[0_0_8px_rgba(244,63,94,0.35)] animate-pulse'
                     : 'glass-button border-red-950/30 text-red-300 hover:bg-red-950/20'
                 }`}
               >
-                {patient?.cprActive ? 'STOP CPR' : 'START CPR'}
+                {patient?.cprActive ? '■ STOP CPR' : '▶ START CPR'}
               </button>
-              <button 
-                onClick={() => { if (checkRhythm) checkRhythm(); }} 
-                disabled={!patient?.cprActive && !patient?.isArrest} 
+              <button
+                onClick={() => checkRhythm?.()}
+                disabled={!patient?.cprActive && !patient?.isArrest}
                 className="flex-1 glass-button text-[9px] border border-slate-800 disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center gap-1 py-1.5"
               >
-                <Eye size={12}/> CHECK RHYTHM
+                <Eye size={10}/> RHYTHM CHECK
               </button>
             </div>
-            {defibSettings && (
-              <div className="flex gap-1.5 items-center mt-1">
-                <select 
-                  value={defibSettings.joules} 
-                  onChange={(e) => setDefibSettings({...defibSettings, joules: parseInt(e.target.value)})} 
-                  className="bg-slate-950 border border-white/5 rounded-lg p-1 text-[9px] text-slate-300 outline-none flex-1 h-7 font-mono"
-                >
-                  <option value={50}>50 J</option>
-                  <option value={100}>100 J</option>
-                  <option value={150}>150 J</option>
-                  <option value={200}>200 J (Max)</option>
-                </select>
-                <button 
-                  onClick={() => setDefibSettings({...defibSettings, sync: !defibSettings.sync})} 
-                  className={`px-2 h-7 text-[9px] rounded-lg border font-black transition ${
-                    defibSettings.sync 
-                      ? 'bg-amber-600/20 text-yellow-300 border-yellow-500 shadow-[0_0_8px_rgba(245,158,11,0.25)]' 
-                      : 'glass-button border-slate-800'
+
+            {/* ACLS Drug Quick Panel */}
+            {patient?.isArrest && !patient?.biologicalDeath && (
+              <div className="flex flex-col gap-1">
+                <div className="text-[7.5px] text-slate-500 uppercase tracking-wider font-bold border-b border-white/5 pb-0.5">ACLS Drugs</div>
+
+                {/* Epinephrine — universal first-line */}
+                <button
+                  onClick={() => pushACLS('epinephrine', '1.0', 'mg')}
+                  className={`w-full py-1.5 px-2 rounded-lg text-[9px] font-black border transition active:scale-97 text-left ${
+                    epiOverdue
+                      ? 'bg-red-700/40 border-red-500 text-white animate-pulse'
+                      : 'glass-button border-red-900/50 text-red-300 hover:bg-red-950/30'
                   }`}
                 >
-                  SYNC
+                  💉 EPINEPHRINE 1mg IV
+                  <span className="text-[7.5px] ml-1 opacity-70">
+                    {epiDueIn == null ? '(give q3-5 min)' : epiOverdue ? '← OVERDUE, give now' : `· ${fmtSec(epiDueIn)} until due`}
+                  </span>
                 </button>
-                <button 
-                  onClick={() => { if (deliverShock) deliverShock(defibSettings.joules, defibSettings.sync); }} 
-                  className="glass-button glass-button-rose border-rose-500 hover:bg-red-600 px-3 h-7 rounded-lg text-[9px] text-white"
-                >
-                  SHOCK
-                </button>
+
+                {/* VF/pVT shockable-rhythm antiarrhythmics */}
+                {aclsIsShockable && (
+                  <>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => pushACLS('amiodarone', '300', 'mg')}
+                        disabled={amioDoses >= 1}
+                        className="flex-1 glass-button border-amber-900/50 text-amber-300 hover:bg-amber-950/20 py-1.5 text-[8.5px] font-bold disabled:opacity-25 disabled:pointer-events-none rounded-lg border transition"
+                      >
+                        AMIO 300mg <span className="text-[7px] opacity-60">(1st dose)</span>
+                      </button>
+                      <button
+                        onClick={() => pushACLS('amiodarone', '150', 'mg')}
+                        disabled={amioDoses < 1 || amioDoses >= 2}
+                        className="flex-1 glass-button border-amber-900/50 text-amber-300 hover:bg-amber-950/20 py-1.5 text-[8.5px] font-bold disabled:opacity-25 disabled:pointer-events-none rounded-lg border transition"
+                      >
+                        AMIO 150mg <span className="text-[7px] opacity-60">(2nd dose)</span>
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => pushACLS('lidocaine', '1.5', 'mg/kg')}
+                      className="w-full glass-button border-amber-900/30 text-amber-200/70 hover:bg-amber-950/10 py-1 text-[8.5px] font-bold rounded-lg border transition"
+                    >
+                      LIDOCAINE 1.5mg/kg <span className="text-[7px] opacity-60">(alt if no amio)</span>
+                    </button>
+                  </>
+                )}
+
+                {/* Treat the H's — supportive/metabolic */}
+                <div className="grid grid-cols-3 gap-1 mt-0.5">
+                  <button
+                    onClick={() => pushACLS('bicarbonate', '50', 'mEq')}
+                    className="glass-button border-slate-700 text-slate-300 hover:bg-slate-800/30 py-1.5 text-[8px] font-bold rounded-lg border transition text-center"
+                  >
+                    NaHCO₃<br/><span className="text-[6.5px] text-slate-500">50mEq · H⁺ / HyperK</span>
+                  </button>
+                  <button
+                    onClick={() => pushACLS('calcium', '1.0', 'g')}
+                    className="glass-button border-slate-700 text-slate-300 hover:bg-slate-800/30 py-1.5 text-[8px] font-bold rounded-lg border transition text-center"
+                  >
+                    CaCl₂ 1g<br/><span className="text-[6.5px] text-slate-500">HyperK / CCB / Ca²⁺</span>
+                  </button>
+                  <button
+                    onClick={() => pushACLS('magnesium', '2.0', 'g')}
+                    className="glass-button border-slate-700 text-slate-300 hover:bg-slate-800/30 py-1.5 text-[8px] font-bold rounded-lg border transition text-center"
+                  >
+                    MgSO₄ 2g<br/><span className="text-[6.5px] text-slate-500">Torsades</span>
+                  </button>
+                </div>
               </div>
             )}
+
+            {/* Defibrillator */}
+            <div className="flex flex-col gap-1.5">
+              <div className="text-[7.5px] text-slate-500 uppercase tracking-wider font-bold border-b border-white/5 pb-0.5 flex items-center gap-1.5">
+                Defibrillator
+                {aclsIsShockable && <span className="text-red-400 animate-pulse">⚡ SHOCK INDICATED</span>}
+                {aclsIsNonShockable && patient?.isArrest && <span className="text-slate-500">· Non-Shockable Rhythm</span>}
+              </div>
+              {defibSettings && (
+                <div className="flex gap-1.5 items-center">
+                  <select
+                    value={defibSettings.joules}
+                    onChange={(e) => setDefibSettings({...defibSettings, joules: parseInt(e.target.value)})}
+                    className="bg-slate-950 border border-white/5 rounded-lg p-1 text-[9px] text-slate-300 outline-none flex-1 h-7 font-mono"
+                  >
+                    <option value={50}>50 J</option>
+                    <option value={100}>100 J</option>
+                    <option value={150}>150 J</option>
+                    <option value={200}>200 J (Biphasic Max)</option>
+                    <option value={360}>360 J (Monophasic)</option>
+                  </select>
+                  <button
+                    onClick={() => setDefibSettings({...defibSettings, sync: !defibSettings.sync})}
+                    className={`px-2 h-7 text-[9px] rounded-lg border font-black transition ${
+                      defibSettings.sync
+                        ? 'bg-amber-600/20 text-yellow-300 border-yellow-500 shadow-[0_0_8px_rgba(245,158,11,0.25)]'
+                        : 'glass-button border-slate-800'
+                    }`}
+                  >
+                    SYNC
+                  </button>
+                  <button
+                    onClick={() => deliverShock?.(defibSettings.joules, defibSettings.sync)}
+                    className={`h-7 px-3 rounded-lg text-[9px] font-black border transition ${
+                      aclsIsShockable
+                        ? 'bg-red-600 border-red-500 text-white shadow-[0_0_10px_rgba(220,38,38,0.5)] hover:bg-red-500'
+                        : 'glass-button border-slate-700 text-slate-400 hover:opacity-80'
+                    }`}
+                  >
+                    ⚡ SHOCK
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* H's and T's */}
+            <div className="border border-white/5 rounded-lg overflow-hidden">
+              <button
+                onClick={() => setShowHTs(!showHTs)}
+                className="w-full flex items-center justify-between px-2 py-1 text-[8px] font-bold text-slate-400 hover:bg-slate-800/20 transition"
+              >
+                <span>H&#39;s &amp; T&#39;s — Reversible Causes</span>
+                <span className="text-slate-600">{showHTs ? '▲' : '▼'}</span>
+              </button>
+              {showHTs && (
+                <div className="px-2 pb-2 grid grid-cols-2 gap-x-3 text-[8px]">
+                  <div>
+                    <div className="text-slate-500 font-bold uppercase text-[7px] mt-1 mb-0.5">H&#39;s</div>
+                    {['Hypovolemia','Hypoxia','H⁺ Ion (Acidosis)','Hypo/Hyperkalemia','Hypothermia'].map(h => (
+                      <div key={h} className="text-slate-300 py-0.5">{h}</div>
+                    ))}
+                  </div>
+                  <div>
+                    <div className="text-slate-500 font-bold uppercase text-[7px] mt-1 mb-0.5">T&#39;s</div>
+                    {['Tension PTX','Tamponade','Thrombosis (PE)','Thrombosis (MI)','Toxins (Drugs)'].map(t => (
+                      <div key={t} className="text-slate-300 py-0.5">{t}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
           </div>
         )}
       </div>
@@ -486,7 +670,7 @@ export const LinesResusPanel = ({
                       </div>
 
                       <div className="flex justify-between items-center text-[8px] text-slate-500">
-                        <span>Flow: <span className={`font-extrabold ${isBlood ? 'text-red-400' : 'text-cyan-400'}`}>{fluid.currentRate ? Math.round(fluid.currentRate) : 0} mL/hr</span></span>
+                        <span>Flow: <span className={`font-extrabold ${isBlood ? 'text-red-400' : 'text-cyan-400'}`}>{fluid.currentRate ? (fluid.currentRate / 60).toFixed(1) : '0.0'} mL/min</span><span className="text-slate-600 ml-1">({fluid.currentRate ? Math.round(fluid.currentRate) : 0}/hr)</span></span>
                         <span>{Math.round(pct)}% left</span>
                       </div>
                       <div className="flex gap-1 mt-0.5">

@@ -446,11 +446,14 @@ describe('Chapter 24: Opioids', () => {
     });
 
     it('overflow leak engages at a lower bladder volume for female than male patients, preventing unbounded volume growth', () => {
-      const female = RenalEngine.tick(3600, {
+      // At 850 mL, bladder pressure ≈ 5 + 0.000333×450² ≈ 72 cmH2O — above female closure
+      // threshold (60 cmH2O) but below male (90 cmH2O). dt=1 keeps inflow negligible so the
+      // starting volume drives the sex-differentiated result directly.
+      const female = RenalEngine.tick(1, {
         patient: { bladderVolume: 850, urinaryRetentionActive: true, hasFoley: false, weight: 70.0, sex: 'female' },
         vitals: { map: 110.0, vasopressinLevel: 0.1 } as any, time: 0
       }, [], baseInputs);
-      const male = RenalEngine.tick(3600, {
+      const male = RenalEngine.tick(1, {
         patient: { bladderVolume: 850, urinaryRetentionActive: true, hasFoley: false, weight: 70.0, sex: 'male' },
         vitals: { map: 110.0, vasopressinLevel: 0.1 } as any, time: 0
       }, [], baseInputs);

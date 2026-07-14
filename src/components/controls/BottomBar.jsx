@@ -59,14 +59,15 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
     gasSettings.agent.includes('xen') ? 'XEN' :
     gasSettings.agent.toUpperCase().slice(0, 3)
   ) : 'SEV';
+
   // === PHYSIOLOGICAL STOICHIOMETRY ===
   // Mirrors usePhysiology.js's gas-source derivation so this preview reflects the same Link-25 +
   // fail-safe-valve-protected mixture the engine will actually deliver (Ch22, Miller's 9th Ed).
-  const isPipelineConnected = !patient?.isO2PipelineDisconnected;
+  const isPipelineConnected = !patient?.isO2PipelineCrossover ? !patient?.isO2PipelineDisconnected : !patient?.isO2PipelineDisconnected;
   const isCrossover = !!patient?.isO2PipelineCrossover;
   const isCylinderOpen = !!patient?.isO2CylinderOpen;
   let hasO2Supply = false, o2SourceIsO2 = false, o2SourceIsN2O = false;
-  if (isPipelineConnected) {
+  if (!patient?.isO2PipelineDisconnected) {
     hasO2Supply = true;
     if (isCrossover) { o2SourceIsN2O = true; } else { o2SourceIsO2 = true; }
   } else if (isCylinderOpen) {
@@ -76,43 +77,55 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
   const gasMix = calculateLink25GasMixture(gasSettings, hasO2Supply, o2SourceIsO2, o2SourceIsN2O);
   const totalFGF = gasMix.freshGasFlow;
   const deliveredFiO2 = Math.round(gasMix.deliveredFiO2);
-  const isHypoxic = deliveredFiO2 < 25;
- 
+
+  // Hypoxic warning: only when N2O is dialed and driving FiO2 toward the 25% Link-25 floor,
+  // or when crossover/supply failure produces a genuinely sub-atmospheric oxygen fraction.
+  // Pure air delivery (21%) is NOT hypoxic and must not trigger this flag.
+  const isHypoxic = deliveredFiO2 < 21 || (gasSettings.n2oFlow > 0 && deliveredFiO2 < 25);
+
   // === VAPORIZER MECHANICAL LIMITS ===
-  const maxDialMap = { 
-    sevoflurane: 8.0, 
-    desflurane: 18.0, 
-    isoflurane: 5.0,
-    halothane: 5.0,
-    methoxyflurane: 3.0,
-    xenon: 75.0,
+  // These match the physical vaporizer dial stops for each agent.
+  const maxDialMap = {
+    sevoflurane: 8.0,    // Dräger D-Vapor 3000 / GE Tec 7: 0–8%
+    desflurane: 18.0,    // Aladin 2 cassette / Dräger D-Vapor: 0–18%
+    isoflurane: 5.0,     // Dräger Vapor 2000: 0–5%
+    halothane: 5.0,      // Fluotec Mk5: 0–5%
+    methoxyflurane: 3.0, // Historical; high-dose anesthesia abandoned (nephrotoxicity)
+    xenon: 75.0,         // MAC ≈ 63–71%; 75% leaves O2 headroom
     f3: 5.0,
     f6: 5.0,
     s_isoflurane: 5.0,
     r_isoflurane: 5.0
   };
   const currentMaxDial = maxDialMap[gasSettings.agent] || 8.0;
- 
+
   // === DYNAMIC VENTILATOR TARGETS ===
+  // Tidal volume IBW targets: 6–8 mL/kg IBW for routine surgery (Serpa Neto 2012 meta-analysis);
+  // 6 mL/kg IBW for ARDSnet LPV (ARMA trial, N Engl J Med 2000). 8 mL/kg is the upper limit
+  // for non-ARDS patients. Show per-kg range so the user understands the IBW basis.
+  const ibw = patient?.ibw || 70;
+  const vtLow  = Math.round(ibw * 6);
+  const vtHigh = Math.round(ibw * 8);
+
   let primaryTargetLabel = 'Vt (mL)';
   let primaryTargetValue = ventSettings.vt;
-  let primaryTargetTarget = `[IBW] Target: ${Math.round((patient?.ibw || 70)*6)}-${Math.round((patient?.ibw || 70)*8)}`;
-  
-  if (ventSettings.mode === 'PCV') { 
-      primaryTargetLabel = 'Pinsp (cmH2O)'; 
-      primaryTargetValue = ventSettings.pinsp; 
-      primaryTargetTarget = 'Target: 15-20';
+  let primaryTargetTarget = `6–8 mL/kg IBW (${vtLow}–${vtHigh} mL)`;
+
+  if (ventSettings.mode === 'PCV') {
+      primaryTargetLabel = 'Pinsp (cmH₂O)';
+      primaryTargetValue = ventSettings.pinsp;
+      primaryTargetTarget = 'Titrate → Vt 6–8 mL/kg IBW';
   } else if (ventSettings.mode === 'PSV') {
-      primaryTargetLabel = 'PS (cmH2O)';
+      primaryTargetLabel = 'PS (cmH₂O)';
       primaryTargetValue = ventSettings.ps || 10;
-      primaryTargetTarget = 'Overcome Resistance';
+      primaryTargetTarget = 'Overcome circuit resistance';
   }
 
   const handleTargetChange = (direction) => {
       setVentSettings(s => {
           if (s.mode === 'PCV') return { ...s, pinsp: Math.max(5, Math.min(40, s.pinsp + (direction * 1))) };
           if (s.mode === 'PSV') return { ...s, ps: Math.max(0, Math.min(30, (s.ps || 10) + (direction * 1))) };
-          return { ...s, vt: Math.max(50, Math.min(1000, s.vt + (direction * 10))) }; // VCV
+          return { ...s, vt: Math.max(100, Math.min(1000, s.vt + (direction * 10))) };
       });
   };
 
@@ -130,9 +143,53 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
       });
   };
 
+  // I:E ratio: stored as the expiratory ratio (ieRatio=2 → 1:2 normal; 3 → 1:3 COPD/asthma).
+  // Step through clinically meaningful presets. Inverse ratio (ieRatio<1) used in ARDS IRV.
+  const ieRatio = ventSettings.ieRatio || 2;
+  const iePresets = [0.5, 1, 1.5, 2, 3, 4];
+  const ieIdx     = iePresets.indexOf(ieRatio);
+  const handleIeChange = (dir) => {
+    const next = iePresets[Math.max(0, Math.min(iePresets.length - 1, ieIdx + dir))];
+    setVentSettings(s => ({ ...s, ieRatio: next }));
+  };
+  const ieLabel = ieRatio < 1 ? `${Math.round(1/ieRatio)}:1` : `1:${ieRatio}`;
+  const ieHint  = ieRatio <= 1 ? 'IRV (ARDS)' : ieRatio <= 2 ? 'Normal' : ieRatio <= 3 ? 'COPD/Asthma' : 'Severe obstruction';
+
+  // Mapleson circuit minimum FGF: displayed as a clinical hint in the circuit section.
+  // Mapleson A: spontaneous ≥ MV, controlled ≥ 3× MV (Mapleson 1954; Bain & Spoerel 1972).
+  // Mapleson D: spontaneous ≥ 2.5× MV, controlled ≥ 2× MV.
+  // Circle: low-flow feasible once equilibrated (≥ 0.5 L/min maintenance; ≥ 2 L/min induction).
+  const circuitType = patient?.breathingCircuitType || 'circle';
+  const estimatedMV = vitals?.mv || 6.0;
+  const minFGFHint = (() => {
+    if (circuitType === 'Mapleson A') {
+      const isControlled = patient?.airwaySecured;
+      const req = isControlled ? Math.round(3 * estimatedMV * 10) / 10 : Math.round(estimatedMV * 10) / 10;
+      return `Min FGF: ${req} L/min (${isControlled ? '3× MV, controlled' : '1× MV, spontaneous'})`;
+    }
+    if (circuitType === 'Mapleson D') {
+      const isControlled = patient?.airwaySecured;
+      const req = isControlled ? Math.round(2 * estimatedMV * 10) / 10 : Math.round(2.5 * estimatedMV * 10) / 10;
+      return `Min FGF: ${req} L/min (${isControlled ? '2× MV, controlled' : '2.5× MV, spontaneous'})`;
+    }
+    return totalFGF < 1.0 ? 'Low-flow ✓ (soda lime active)' : `FGF ${totalFGF.toFixed(1)} L/min`;
+  })();
+
+  const minFGFWarning = (() => {
+    if (circuitType === 'Mapleson A') {
+      const req = patient?.airwaySecured ? 3 * estimatedMV : estimatedMV;
+      return totalFGF < req;
+    }
+    if (circuitType === 'Mapleson D') {
+      const req = patient?.airwaySecured ? 2 * estimatedMV : 2.5 * estimatedMV;
+      return totalFGF < req;
+    }
+    return false;
+  })();
+
   return (
     <div className="flex flex-wrap items-stretch gap-2.5 glass-panel glass-cyan p-3 shadow-2xl w-full">
-      
+
       {/* 1. Fresh Gas Flow & Stoichiometry */}
       <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-[1_1_240px] max-w-sm" style={{ minWidth: 0 }}>
         <div className="flex justify-between items-center mb-1 px-1 border-b border-white/5 pb-1">
@@ -140,19 +197,19 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
             <div className="flex gap-2">
                 <span className="text-[10px] text-slate-400 font-bold font-mono">Total: <span className="text-white">{totalFGF.toFixed(1)} L</span></span>
                 <span className={`text-[10px] font-bold font-mono ${isHypoxic ? 'text-red-500 animate-pulse' : 'text-blue-400'}`}>
-                    FiO2: {deliveredFiO2}%
+                    FiO₂: {deliveredFiO2}%{isHypoxic ? ' ⚠' : ''}
                 </span>
             </div>
         </div>
         <div className="flex justify-around gap-1 sm:gap-2 mt-1">
           <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg p-1 border border-white/5 shadow-inner">
             <div className="h-5 flex items-center justify-center">
-              <span className="text-[10px] text-green-400 font-bold">O2</span>
+              <span className="text-[10px] text-green-400 font-bold">O₂</span>
             </div>
             <div className="flex items-center w-full justify-between px-0.5 sm:px-1 h-9 sm:h-10">
-              <HoldButton onTrigger={() => setGasSettings(s => ({...s, o2Flow: Math.max(0, s.o2Flow - 0.5)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-emerald font-bold text-xs sm:text-base cursor-pointer">-</HoldButton>
+              <HoldButton onTrigger={() => setGasSettings(s => ({...s, o2Flow: Math.max(0, Math.round((s.o2Flow - 0.5) * 10) / 10)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-emerald font-bold text-xs sm:text-base cursor-pointer">-</HoldButton>
               <span className="text-xs sm:text-sm font-black text-green-400 text-center font-mono">{gasSettings.o2Flow.toFixed(1)}</span>
-              <HoldButton onTrigger={() => setGasSettings(s => ({...s, o2Flow: Math.min(15, s.o2Flow + 0.5)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-emerald font-bold text-xs sm:text-base cursor-pointer">+</HoldButton>
+              <HoldButton onTrigger={() => setGasSettings(s => ({...s, o2Flow: Math.min(15, Math.round((s.o2Flow + 0.5) * 10) / 10)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-emerald font-bold text-xs sm:text-base cursor-pointer">+</HoldButton>
             </div>
             <div className="h-5" />
           </div>
@@ -161,20 +218,20 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
               <span className="text-[10px] text-yellow-400 font-bold">Air</span>
             </div>
             <div className="flex items-center w-full justify-between px-0.5 sm:px-1 h-9 sm:h-10">
-              <HoldButton onTrigger={() => setGasSettings(s => ({...s, airFlow: Math.max(0, s.airFlow - 0.5)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-amber font-bold text-xs sm:text-base cursor-pointer">-</HoldButton>
+              <HoldButton onTrigger={() => setGasSettings(s => ({...s, airFlow: Math.max(0, Math.round((s.airFlow - 0.5) * 10) / 10)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-amber font-bold text-xs sm:text-base cursor-pointer">-</HoldButton>
               <span className="text-xs sm:text-sm font-black text-yellow-400 text-center font-mono">{gasSettings.airFlow.toFixed(1)}</span>
-              <HoldButton onTrigger={() => setGasSettings(s => ({...s, airFlow: Math.min(15, s.airFlow + 0.5)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-amber font-bold text-xs sm:text-base cursor-pointer">+</HoldButton>
+              <HoldButton onTrigger={() => setGasSettings(s => ({...s, airFlow: Math.min(15, Math.round((s.airFlow + 0.5) * 10) / 10)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-amber font-bold text-xs sm:text-base cursor-pointer">+</HoldButton>
             </div>
             <div className="h-5" />
           </div>
           <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg p-1 border border-white/5 shadow-inner">
             <div className="h-5 flex items-center justify-center">
-              <span className="text-[10px] text-blue-400 font-bold">N2O</span>
+              <span className="text-[10px] text-blue-400 font-bold">N₂O</span>
             </div>
             <div className="flex items-center w-full justify-between px-0.5 sm:px-1 h-9 sm:h-10">
-              <HoldButton onTrigger={() => setGasSettings(s => ({...s, n2oFlow: Math.max(0, s.n2oFlow - 0.5)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-blue font-bold text-xs sm:text-base cursor-pointer">-</HoldButton>
+              <HoldButton onTrigger={() => setGasSettings(s => ({...s, n2oFlow: Math.max(0, Math.round((s.n2oFlow - 0.5) * 10) / 10)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-blue font-bold text-xs sm:text-base cursor-pointer">-</HoldButton>
               <span className="text-xs sm:text-sm font-black text-blue-400 text-center font-mono">{gasSettings.n2oFlow.toFixed(1)}</span>
-              <HoldButton onTrigger={() => setGasSettings(s => ({...s, n2oFlow: Math.min(15, s.n2oFlow + 0.5)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-blue font-bold text-xs sm:text-base cursor-pointer">+</HoldButton>
+              <HoldButton onTrigger={() => setGasSettings(s => ({...s, n2oFlow: Math.min(15, Math.round((s.n2oFlow + 0.5) * 10) / 10)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-blue font-bold text-xs sm:text-base cursor-pointer">+</HoldButton>
             </div>
             <div className="h-5" />
           </div>
@@ -209,7 +266,7 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
           </div>
         </div>
       </div>
-      
+
       {/* 2b. Gas Analyzer - Inspired & Expired Concentrations */}
       <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-[1_1_150px] max-w-[180px]" style={{ minWidth: 0 }}>
         <div className="flex justify-between items-center mb-1 px-1 border-b border-white/5 pb-1">
@@ -248,7 +305,7 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
 
           {/* Agent Gas Block */}
           <div className="flex items-center justify-between bg-slate-950/60 rounded-lg px-2 py-1 border border-white/5 shadow-inner">
-            <button 
+            <button
               onClick={() => {
                 if (openDrugConsult && gasSettings?.agent) {
                   openDrugConsult(gasSettings.agent);
@@ -272,15 +329,16 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
           </div>
         </div>
       </div>
-      
+
       {/* 3. Ventilator Settings */}
       {patient?.airwaySecured && (
-        <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-[2_2_320px] max-w-md">
+        <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-[2_2_380px] max-w-xl">
           <div className="flex justify-between items-center mb-1 px-1 border-b border-white/5 pb-1">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Ventilator Setup</span>
           </div>
           <div className="flex flex-wrap md:flex-nowrap gap-2 mt-1">
-            
+
+            {/* Mode */}
             <div className="flex flex-col flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[70px]">
               <div className="h-5 flex items-center justify-center">
                 <span className="text-[9px] text-slate-400 font-bold text-center">MODE</span>
@@ -292,7 +350,8 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
                 <span className="text-[8px] text-slate-650 text-center uppercase font-bold">Control</span>
               </div>
             </div>
-            
+
+            {/* Vt / Pinsp / PS */}
             <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[85px] sm:min-w-[100px]">
               <div className="h-5 flex items-center justify-center">
                 <span className="text-[9px] text-slate-400 font-bold text-center">{primaryTargetLabel}</span>
@@ -306,49 +365,67 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
                 <span className="text-[8px] text-slate-500 text-center font-mono leading-none">{primaryTargetTarget}</span>
               </div>
             </div>
-            
+
+            {/* RR */}
             <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[80px] sm:min-w-[90px]">
               <div className="h-5 flex items-center justify-center">
                 <span className="text-[9px] text-slate-400 font-bold text-center">RR (bpm)</span>
               </div>
               <div className="flex items-center justify-between w-full px-1 h-9 sm:h-10">
-                 <HoldButton onTrigger={() => setVentSettings(s => ({...s, rr: Math.max(4, s.rr - 1)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">-</HoldButton>
+                 <HoldButton onTrigger={() => setVentSettings(s => ({...s, rr: Math.max(6, s.rr - 1)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">-</HoldButton>
                  <span className="text-base sm:text-lg font-black text-white text-center font-mono">{ventSettings.rr}</span>
                  <HoldButton onTrigger={() => setVentSettings(s => ({...s, rr: Math.min(40, s.rr + 1)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">+</HoldButton>
               </div>
               <div className="h-5 flex items-center justify-center">
-                <span className="text-[8px] text-slate-500 text-center leading-none">{ventSettings.mode === 'PSV' ? 'Apnea Backup' : 'Target: 10-14'}</span>
+                <span className="text-[8px] text-slate-500 text-center leading-none">{ventSettings.mode === 'PSV' ? 'Apnea backup rate' : 'Target: 10–14 bpm'}</span>
               </div>
             </div>
-            
+
+            {/* PEEP */}
             <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[80px] sm:min-w-[90px]">
               <div className="h-5 flex items-center justify-center">
-                <span className="text-[9px] text-slate-400 font-bold text-center">PEEP (cmH2O)</span>
+                <span className="text-[9px] text-slate-400 font-bold text-center">PEEP (cmH₂O)</span>
               </div>
               <div className="flex items-center justify-between w-full px-1 h-9 sm:h-10">
                  <HoldButton onTrigger={() => setVentSettings(s => ({...s, peep: Math.max(0, s.peep - 1)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">-</HoldButton>
-                 <span className="text-base sm:text-lg font-black text-white text-center font-mono">{ventSettings.peep}</span>
+                 <span className={`text-base sm:text-lg font-black text-center font-mono ${ventSettings.peep < 3 ? 'text-amber-400' : 'text-white'}`}>{ventSettings.peep}</span>
                  <HoldButton onTrigger={() => setVentSettings(s => ({...s, peep: Math.min(20, s.peep + 1)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">+</HoldButton>
               </div>
               <div className="h-5 flex items-center justify-center">
-                <span className="text-[8px] text-slate-500 text-center leading-none">Target: 4-8</span>
+                <span className="text-[8px] text-slate-500 text-center leading-none">{ventSettings.peep < 3 ? '≥5 prevents atelectasis' : 'Target: 5–8 cmH₂O'}</span>
               </div>
             </div>
-            
+
+            {/* I:E Ratio */}
+            <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[70px] sm:min-w-[80px]">
+              <div className="h-5 flex items-center justify-center">
+                <span className="text-[9px] text-slate-400 font-bold text-center">I:E</span>
+              </div>
+              <div className="flex items-center justify-between w-full px-1 h-9 sm:h-10">
+                <button onClick={() => handleIeChange(-1)} disabled={ieIdx <= 0} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer disabled:opacity-30">-</button>
+                <span className="text-sm sm:text-base font-black text-white text-center font-mono">{ieLabel}</span>
+                <button onClick={() => handleIeChange(1)} disabled={ieIdx >= iePresets.length - 1} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer disabled:opacity-30">+</button>
+              </div>
+              <div className="h-5 flex items-center justify-center">
+                <span className={`text-[8px] text-center leading-none font-mono ${ieRatio > 2 ? 'text-amber-400' : ieRatio < 1 ? 'text-cyan-400' : 'text-slate-500'}`}>{ieHint}</span>
+              </div>
+            </div>
+
+            {/* Pmax */}
             <div className="flex flex-col items-center flex-1 bg-slate-950/60 rounded-lg border border-white/5 p-1 justify-between min-w-[80px] sm:min-w-[90px]">
               <div className="h-5 flex items-center justify-center">
-                <span className="text-[9px] text-slate-400 font-bold text-center">Pmax (cmH2O)</span>
+                <span className="text-[9px] text-slate-400 font-bold text-center">Pmax (cmH₂O)</span>
               </div>
               <div className="flex items-center w-full justify-between px-1 h-9 sm:h-10">
-                 <HoldButton onTrigger={() => setVentSettings(s => ({...s, pmax: Math.max(10, (s.pmax||40) - 1)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">-</HoldButton>
-                 <span className="text-base sm:text-lg font-black text-white text-center font-mono">{ventSettings.pmax || 40}</span>
+                 <HoldButton onTrigger={() => setVentSettings(s => ({...s, pmax: Math.max(15, (s.pmax||40) - 1)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">-</HoldButton>
+                 <span className={`text-base sm:text-lg font-black text-center font-mono ${(ventSettings.pmax||40) < 20 ? 'text-amber-400' : 'text-white'}`}>{ventSettings.pmax || 40}</span>
                  <HoldButton onTrigger={() => setVentSettings(s => ({...s, pmax: Math.min(80, (s.pmax||40) + 1)}))} className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-cyan font-bold cursor-pointer">+</HoldButton>
               </div>
               <div className="h-5 flex items-center justify-center">
-                <span className="text-[8px] text-slate-500 text-center leading-none">Alarm Limit</span>
+                <span className="text-[8px] text-slate-500 text-center leading-none">PIP alarm limit</span>
               </div>
             </div>
-   
+
           </div>
         </div>
       )}
@@ -357,52 +434,58 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
       <div className="flex flex-col bg-slate-950/40 border border-white/5 rounded-xl p-2 justify-between shadow-inner flex-[1_1_210px] max-w-xs" style={{ minWidth: 0 }}>
         <div className="flex justify-between items-center mb-1 px-1 border-b border-white/5 pb-1">
           <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Breathing Circuit</span>
-          <span className="text-[10px] text-emerald-300 font-bold font-mono">APL: {patient?.aplValveSetting || 0} cmH2O</span>
+          <span className="text-[10px] text-emerald-300 font-bold font-mono">APL: {patient?.aplValveSetting || 0} cmH₂O</span>
         </div>
-        <div className="flex-1 flex items-center justify-center gap-2 mt-1">
-          <select 
-            value={patient?.breathingCircuitType || 'circle'} 
-            style={{ textAlignLast: 'center' }} 
-            onChange={(e) => {
-              const val = e.target.value;
-              if (setPatient) {
-                setPatient(p => ({ ...p, breathingCircuitType: val }));
-              }
-            }} 
-            className="flex-1 glass-input text-xs font-bold text-emerald-300 border border-white/10 rounded-lg outline-none appearance-none px-2 py-2 text-center h-9 sm:h-10 cursor-pointer hover:border-emerald-500/80 transition font-mono"
-          >
-            <option value="circle">Circle System</option>
-            <option value="Mapleson A">Mapleson A</option>
-            <option value="Mapleson D">Mapleson D</option>
-          </select>
-          <div className="flex items-center justify-between bg-slate-950/60 rounded-lg border border-white/5 w-28 sm:w-32 px-0.5 py-0.5 sm:px-1 sm:py-1 h-9 sm:h-10 shadow-inner">
-            <HoldButton 
-              onTrigger={() => {
-                const currentVal = typeof patient?.aplValveSetting === 'number' ? patient.aplValveSetting : 0;
-                const nextVal = Math.max(0, currentVal - 5);
+        <div className="flex-1 flex flex-col gap-1.5 mt-1">
+          <div className="flex items-center gap-2">
+            <select
+              value={patient?.breathingCircuitType || 'circle'}
+              style={{ textAlignLast: 'center' }}
+              onChange={(e) => {
+                const val = e.target.value;
                 if (setPatient) {
-                  setPatient(p => ({ ...p, aplValveSetting: nextVal }));
+                  setPatient(p => ({ ...p, breathingCircuitType: val }));
                 }
-              }} 
-              className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-emerald font-bold text-xs sm:text-base cursor-pointer"
+              }}
+              className="flex-1 glass-input text-xs font-bold text-emerald-300 border border-white/10 rounded-lg outline-none appearance-none px-2 py-2 text-center h-9 sm:h-10 cursor-pointer hover:border-emerald-500/80 transition font-mono"
             >
-              -
-            </HoldButton>
-            <span className="text-sm sm:text-base font-black text-center flex-1 font-mono text-white">
-              {patient?.aplValveSetting || 0}
-            </span>
-            <HoldButton 
-              onTrigger={() => {
-                const currentVal = typeof patient?.aplValveSetting === 'number' ? patient.aplValveSetting : 0;
-                const nextVal = Math.min(70, currentVal + 5);
-                if (setPatient) {
-                  setPatient(p => ({ ...p, aplValveSetting: nextVal }));
-                }
-              }} 
-              className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-emerald font-bold text-xs sm:text-base cursor-pointer"
-            >
-              +
-            </HoldButton>
+              <option value="circle">Circle System</option>
+              <option value="Mapleson A">Mapleson A</option>
+              <option value="Mapleson D">Mapleson D</option>
+            </select>
+            <div className="flex items-center justify-between bg-slate-950/60 rounded-lg border border-white/5 w-28 sm:w-32 px-0.5 py-0.5 sm:px-1 sm:py-1 h-9 sm:h-10 shadow-inner">
+              <HoldButton
+                onTrigger={() => {
+                  const currentVal = typeof patient?.aplValveSetting === 'number' ? patient.aplValveSetting : 0;
+                  const nextVal = Math.max(0, currentVal - 5);
+                  if (setPatient) {
+                    setPatient(p => ({ ...p, aplValveSetting: nextVal }));
+                  }
+                }}
+                className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-emerald font-bold text-xs sm:text-base cursor-pointer"
+              >
+                -
+              </HoldButton>
+              <span className="text-sm sm:text-base font-black text-center flex-1 font-mono text-white">
+                {patient?.aplValveSetting || 0}
+              </span>
+              <HoldButton
+                onTrigger={() => {
+                  const currentVal = typeof patient?.aplValveSetting === 'number' ? patient.aplValveSetting : 0;
+                  const nextVal = Math.min(70, currentVal + 5);
+                  if (setPatient) {
+                    setPatient(p => ({ ...p, aplValveSetting: nextVal }));
+                  }
+                }}
+                className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center glass-button glass-button-emerald font-bold text-xs sm:text-base cursor-pointer"
+              >
+                +
+              </HoldButton>
+            </div>
+          </div>
+          {/* Mapleson FGF minimum guidance */}
+          <div className={`text-[9px] font-mono px-1 leading-tight ${minFGFWarning ? 'text-amber-400' : 'text-slate-600'}`}>
+            {minFGFWarning ? '⚠ ' : ''}{minFGFHint}
           </div>
         </div>
       </div>
@@ -420,41 +503,46 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
           </div>
         </div>
         <div className="flex-1 flex items-center mt-1">
-          <select 
-            value="" 
-            style={{ textAlignLast: 'center' }} 
+          <select
+            value=""
+            style={{ textAlignLast: 'center' }}
             onChange={(e) => {
               const action = e.target.value;
               if (action === 'crossover') {
                 const nextVal = !patient?.isO2PipelineCrossover;
                 setPatient(p => ({ ...p, isO2PipelineCrossover: nextVal }));
-                if (logEvent) logEvent(`Action: ${nextVal ? 'Simulated pipeline crossover! Wall oxygen pipeline now delivers nitrous oxide.' : 'Resolved pipeline crossover. Wall oxygen pipeline restored.'}`);
+                if (logEvent) logEvent(`Action: ${nextVal ? '🚨 PIPELINE CROSSOVER! Wall O₂ pipeline is delivering N₂O. FiO₂ will fall — identify source by smell and switch to backup cylinder immediately.' : '✅ Pipeline crossover resolved. Wall O₂ pipeline restored to oxygen.'}`);
               } else if (action === 'disconnect') {
                 const nextVal = !patient?.isO2PipelineDisconnected;
                 setPatient(p => ({ ...p, isO2PipelineDisconnected: nextVal }));
-                if (logEvent) logEvent(`Action: ${nextVal ? 'Disconnected oxygen pipeline from wall outlet.' : 'Connected oxygen pipeline to wall outlet.'}`);
+                if (logEvent) logEvent(`Action: ${nextVal ? '⚠️ O₂ pipeline disconnected from wall outlet. Gas supply now from backup E-cylinder (if open) only.' : '✅ O₂ pipeline reconnected to wall outlet.'}`);
               } else if (action === 'cylinder') {
                 const nextVal = !patient?.isO2CylinderOpen;
                 setPatient(p => ({ ...p, isO2CylinderOpen: nextVal }));
-                if (logEvent) logEvent(`Action: ${nextVal ? 'Opened backup oxygen cylinder (E-cylinder).' : 'Closed backup oxygen cylinder.'}`);
+                if (logEvent) logEvent(`Action: ${nextVal ? '🛢️ Backup E-cylinder opened. Check pressure gauge — a full E-cylinder holds ~660 L O₂ at 2000 psi.' : 'Backup O₂ E-cylinder closed.'}`);
               } else if (action === 'valves') {
                 const hasStuck = patient?.stuckInspiratoryValve || patient?.stuckExpiratoryValve;
                 if (hasStuck) {
                   setPatient(p => ({ ...p, stuckInspiratoryValve: false, stuckExpiratoryValve: false }));
-                  if (logEvent) logEvent("Action: Unstuck breathing circuit unidirectional valves.");
+                  if (logEvent) logEvent("✅ Circuit unidirectional valves freed. CO₂ rebreathing resolved.");
                 } else {
                   setPatient(p => ({ ...p, stuckInspiratoryValve: true }));
-                  if (logEvent) logEvent("Action: Sticking circle system inspiratory unidirectional valve open (rebreathing induced).");
+                  if (logEvent) logEvent("⚠️ Inspiratory unidirectional valve stuck OPEN. Expired gas can now enter the inspiratory limb → CO₂ rebreathing. Monitor: rising FiCO₂ and EtCO₂. Fix: check and replace valve.");
                 }
               } else if (action === 'flush') {
-                const isInsp = patient?.ventilationStatus === 'mechanical' || patient?.ventilationStatus === 'assisted'; 
+                // O2 flush valve: 35–75 L/min of 100% O2 (varies by machine manufacturer).
+                // Barotrauma risk: flushing against a nearly-closed APL (≥55 cmH2O) or during
+                // active PPV inspiration can transiently generate pressures above barotrauma
+                // threshold (~50+ cmH2O). APL at 30 cmH2O will pop open, so true danger only
+                // with high/closed APL. Teaching threshold set at 55 cmH2O.
+                const isInsp = patient?.ventilationStatus === 'mechanical' || patient?.ventilationStatus === 'assisted';
                 const aplSetting = typeof patient?.aplValveSetting === 'number' ? patient.aplValveSetting : 0;
-                const closedApl = aplSetting >= 30;
+                const closedApl = aplSetting >= 55;
                 const triggersPneumo = isInsp || closedApl;
 
                 setPatient(p => {
                   const lungVols = p.lungVolumes || { frc_L: 2.5 };
-                  const nextO2Buffer = lungVols.frc_L * 1.0; 
+                  const nextO2Buffer = lungVols.frc_L * 1.0;
                   return {
                     ...p,
                     isOxygenFlushPressed: true,
@@ -464,42 +552,44 @@ export const BottomBar = ({ gasSettings, setGasSettings, ventSettings, setVentSe
                 });
 
                 if (triggersPneumo) {
-                  if (logEvent) logEvent("🚨 BAROTRAUMA! Pressed Oxygen Flush valve with a closed APL valve or during positive-pressure inspiration, triggering a TENSION PNEUMOTHORAX!");
+                  if (logEvent) logEvent("🚨 BAROTRAUMA! O₂ flush valve pressed against near-closed APL or during PPV inspiration. High-flow 100% O₂ (35–75 L/min) generated supraphysiologic airway pressure → TENSION PNEUMOTHORAX.");
                 } else {
-                  if (logEvent) logEvent("💨 Pressed Oxygen Flush valve. Momentum flush pre-oxygenates FRC buffer and dilutes circuit anesthetic agents by 50%.");
+                  if (logEvent) logEvent("💨 O₂ flush valve pressed (~50 L/min, 100% O₂). Circuit washed out with O₂ — FiO₂ and O₂ buffer transiently maximized. Vaporizer dial unchanged; EtAgent will fall briefly then recover. Avoid flushing during active PPV or with APL near-closed.");
                 }
               } else if (action === 'canister') {
                 setPatient(p => ({
                   ...p,
                   absorbent: { waterContent: 15.0, temperature: 22.0, type: 'soda_lime' },
+                  co2AbsorptiveCapacity: 100.0,
                   isAirwayFire: false,
                   hasCoPoisoningLog: false,
-                  hasCompoundALog: false
+                  hasCompoundALog: false,
+                  hasAbsorbentExhaustedLog: false,
                 }));
-                if (logEvent) logEvent("✅ SUCCESS: CO2 absorbent canister replaced with a fresh, hydrated canister! Temperature reset to 22.0°C and circuit fire resolved.");
+                if (logEvent) logEvent("✅ CO₂ absorbent canister replaced with fresh, hydrated soda lime (water content 13–15%, temp 22°C). Capacity restored to 100%. CO compound A and CO production risk eliminated.");
               }
-            }} 
+            }}
             className="w-full glass-input text-xs font-bold text-red-300 border border-white/10 rounded-lg outline-none appearance-none px-2 py-2 text-center h-9 sm:h-10 cursor-pointer hover:border-red-500/80 transition font-mono"
           >
             <option value="" disabled>🛠️ Troubleshooting Overrides</option>
             <option value="flush">💨 Press Oxygen Flush Valve</option>
-            <option value="canister">🔄 Replace CO2 Absorbent</option>
+            <option value="canister">🔄 Replace CO₂ Absorbent</option>
             <option value="cylinder">
-              {patient?.isO2CylinderOpen ? '🛢️ Close Backup O2 Cylinder' : '🛢️ Open Backup O2 Cylinder'}
+              {patient?.isO2CylinderOpen ? '🛢️ Close Backup O₂ Cylinder' : '🛢️ Open Backup O₂ Cylinder'}
             </option>
             <option value="disconnect">
-              {patient?.isO2PipelineDisconnected ? '🔌 Connect O2 Pipeline' : '🔌 Disconnect O2 Pipeline'}
+              {patient?.isO2PipelineDisconnected ? '🔌 Connect O₂ Pipeline' : '🔌 Disconnect O₂ Pipeline'}
             </option>
             <option value="crossover">
               {patient?.isO2PipelineCrossover ? '⚠️ Fix Pipeline Crossover' : '⚠️ Simulate Pipeline Crossover'}
             </option>
             <option value="valves">
-              {(patient?.stuckInspiratoryValve || patient?.stuckExpiratoryValve) ? '🔄 Unstick Unidirectional Valves' : '🔄 Stick Circle Valve Open'}
+              {(patient?.stuckInspiratoryValve || patient?.stuckExpiratoryValve) ? '🔄 Unstick Unidirectional Valves' : '🔄 Stick Inspiratory Valve Open'}
             </option>
           </select>
         </div>
       </div>
-      
+
     </div>
   );
 };

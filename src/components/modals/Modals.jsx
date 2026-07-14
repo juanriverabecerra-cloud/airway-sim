@@ -76,33 +76,39 @@ export const AccessModal = ({ data, close, establishAccess }) => {
 
   if (!data.show) return null;
 
-  // Helper to calculate gravity crystalloid flow rate using Poiseuille Series model
-  const getFlowStats = (rad, len, venousP, veinR) => {
-    const rTubing = 400; // gravity
-    const rCath = len / Math.pow(rad, 4);
+  // Poiseuille series model for IV flow.
+  // rTubing=150: calibrated to a macro-drip gravity set (150 cm, 4mm ID tubing) at 1 m head height.
+  // pInfusion=74 mmHg ≈ 100 cmH2O ≈ standard 1 m gravity head.
+  // pInfusion=300 mmHg = inflated pressure bag (Level 1 / Belmont equivalent driving pressure).
+  // viscosity η=1.0 for crystalloid; blood products (η≈3.5) flow 3.5× slower at same pressure.
+  const getFlowStats = (rad, len, venousP, veinR, pInfusion = 74) => {
+    const rTubing = 150;
+    const rCath = len / Math.pow(Math.max(0.01, rad), 4);
     const rTotal = rTubing + rCath + veinR;
-    const deltaP = Math.max(0, 74 - venousP);
+    const deltaP = Math.max(0, pInfusion - venousP);
     const q_ml_min = (1200 * deltaP) / rTotal;
-    const q_ml_hr = q_ml_min * 60;
     return {
-      min: q_ml_min.toFixed(1),
-      hr: Math.round(q_ml_hr),
+      min: parseFloat(q_ml_min.toFixed(1)),
+      hr: Math.round(q_ml_min * 60),
       rCath: Math.round(rCath),
       rTotal: Math.round(rTotal)
     };
   };
 
-  const getPivParams = (type) => {
-    let rad = 0.475;
-    let len = 32;
-    if (type === '14G') { rad = 0.85; len = 45; }
-    else if (type === '16G') { rad = 0.665; len = 45; }
-    else if (type === '18G') { rad = 0.475; len = 32; }
-    else if (type === '20G') { rad = 0.405; len = 30; }
-    else if (type === '22G') { rad = 0.30; len = 25; }
-    else if (type === '24G') { rad = 0.235; len = 19; }
-    return { rad, len };
+  // Inner radii (r, mm) and lengths calibrated to BD Angiocath published gravity flow rates.
+  // Note: Poiseuille is exact for laminar flow (Re < 2100). At 14G/16G peak gravity flows,
+  // Re ≈ 2500–3500 → turbulent transition adds unmeasured resistance, so 14G will
+  // compute ~180 mL/min here vs the published ~240 mL/min (Poiseuille underestimates large-bore).
+  // 18G–24G remain laminar throughout clinical flow ranges and match published data closely.
+  const PIV_SPECS = {
+    '14G': { rad: 0.85, len: 45, id: 1.70, od: 2.11, bloodOk: true,  note: 'Trauma / massive transfusion' },
+    '16G': { rad: 0.665, len: 45, id: 1.33, od: 1.65, bloodOk: true,  note: 'Surgery / rapid resuscitation' },
+    '18G': { rad: 0.490, len: 32, id: 0.98, od: 1.27, bloodOk: true,  note: 'Standard perioperative access' },
+    '20G': { rad: 0.415, len: 30, id: 0.83, od: 0.91, bloodOk: true,  note: 'Routine adult access' },
+    '22G': { rad: 0.343, len: 25, id: 0.69, od: 0.72, bloodOk: false, note: 'Peds / difficult access only' },
+    '24G': { rad: 0.258, len: 19, id: 0.52, od: 0.57, bloodOk: false, note: 'Neonatal / peds only' },
   };
+  const getPivParams = (type) => PIV_SPECS[type] || PIV_SPECS['18G'];
 
   const getCvcLumens = (type) => {
     if (type === 'Triple Lumen CVC') {
@@ -177,105 +183,126 @@ export const AccessModal = ({ data, close, establishAccess }) => {
 
         {/* --- PERIPHERAL IV --- */}
         {data.category === 'Peripheral IV' && (() => {
-          const { rad, len } = getPivParams(pivType);
-          const acStats = getFlowStats(rad, len, 8, 200);
-          const armStats = getFlowStats(rad, len, 12, 800);
-          const handStats = getFlowStats(rad, len, 18, 2200);
-          
+          const { rad, len, id: pivId, od, bloodOk, note } = getPivParams(pivType);
+          // Gravity (74 mmHg ≈ 1 m head) and pressure-bag (300 mmHg) for crystalloid
+          const acGrav  = getFlowStats(rad, len, 8,  200);
+          const armGrav = getFlowStats(rad, len, 12, 800);
+          const handGrav= getFlowStats(rad, len, 18, 2200);
+          const acPB    = getFlowStats(rad, len, 8,  200, 300);
+          const armPB   = getFlowStats(rad, len, 12, 800, 300);
+          const handPB  = getFlowStats(rad, len, 18, 2200, 300);
+          // Blood product (pRBC) gravity: viscosity ≈ 3.5× crystalloid
+          const acBloodGrav = parseFloat((acGrav.min / 3.5).toFixed(1));
+
+          const FlowRow = ({ label, gravMin, pbMin, note: rowNote }) => (
+            <div className="flex items-center text-[11px] font-mono py-0.5">
+              <span className="text-slate-400 w-28 shrink-0">{label}</span>
+              <span className="text-cyan-400 font-bold w-28 shrink-0 text-right tabular-nums">{gravMin} mL/min</span>
+              <span className="text-amber-400 font-bold w-32 shrink-0 text-right tabular-nums">{pbMin} mL/min</span>
+              {rowNote && <span className="text-slate-500 text-[10px] ml-4">{rowNote}</span>}
+            </div>
+          );
+
           return (
             <div className="flex flex-col gap-6">
-              {/* Dropdown Selection */}
+              {/* Dropdown */}
               <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div>
                   <label className="text-slate-300 font-bold block mb-1 text-sm font-mono">Select Catheter Gauge</label>
-                  <p className="text-xs text-slate-500">Larger gauges have smaller diameter and higher resistance.</p>
+                  <p className="text-xs text-slate-500">Smaller gauge number = larger bore = higher flow. OD = outer diameter (catheter body). ID = inner lumen (drives Poiseuille flow).</p>
                 </div>
-                <select 
-                  value={pivType} 
+                <select
+                  value={pivType}
                   onChange={e => setPivType(e.target.value)}
-                  className="w-full md:w-80 bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 font-bold focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 font-mono"
+                  className="w-full md:w-96 bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 font-bold focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 font-mono"
                 >
-                  <option value="14G">14G (1.70mm OD, 45mm L)</option>
-                  <option value="16G">16G (1.33mm OD, 45mm L)</option>
-                  <option value="18G">18G (0.95mm OD, 32mm L)</option>
-                  <option value="20G">20G (0.81mm OD, 30mm L)</option>
-                  <option value="22G">22G (0.60mm OD, 25mm L)</option>
-                  <option value="24G">24G (0.47mm OD, 19mm L)</option>
+                  <option value="14G">14G — OD 2.11mm / ID 1.70mm / 45mm L — Trauma, MTP</option>
+                  <option value="16G">16G — OD 1.65mm / ID 1.33mm / 45mm L — Surgery, rapid resus</option>
+                  <option value="18G">18G — OD 1.27mm / ID 0.98mm / 32mm L — Standard perioperative</option>
+                  <option value="20G">20G — OD 0.91mm / ID 0.83mm / 30mm L — Routine adult</option>
+                  <option value="22G">22G — OD 0.72mm / ID 0.69mm / 25mm L — Peds / difficult access</option>
+                  <option value="24G">24G — OD 0.57mm / ID 0.52mm / 19mm L — Neonatal / peds</option>
                 </select>
               </div>
 
-              {/* Physical specs display */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center font-mono">
+              {/* Physical specs */}
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-center font-mono">
                 <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800/80">
                   <span className="text-[10px] text-slate-500 uppercase block">Inner Radius (r)</span>
-                  <span className="text-lg font-extrabold text-white">{rad} mm</span>
+                  <span className="text-base font-extrabold text-white">{rad} mm</span>
                 </div>
                 <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800/80">
-                  <span className="text-[10px] text-slate-500 uppercase block">Length (L)</span>
-                  <span className="text-lg font-extrabold text-white">{len} mm</span>
+                  <span className="text-[10px] text-slate-500 uppercase block">Catheter Length</span>
+                  <span className="text-base font-extrabold text-white">{len} mm</span>
                 </div>
                 <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800/80">
-                  <span className="text-[10px] text-slate-500 uppercase block">R_catheter (L / r⁴)</span>
-                  <span className="text-lg font-extrabold text-cyan-400">{Math.round(len / Math.pow(rad, 4))}</span>
+                  <span className="text-[10px] text-slate-500 uppercase block">R_cath (L/r⁴)</span>
+                  <span className="text-base font-extrabold text-cyan-400">{Math.round(len / Math.pow(rad, 4))}</span>
                 </div>
                 <div className="bg-slate-900/60 p-3 rounded-lg border border-slate-800/80">
-                  <span className="text-[10px] text-slate-500 uppercase block">R_tubing (Gravity)</span>
-                  <span className="text-lg font-extrabold text-cyan-400">400</span>
+                  <span className="text-[10px] text-slate-500 uppercase block">R_tubing</span>
+                  <span className="text-base font-extrabold text-cyan-400">150</span>
+                </div>
+                <div className={`p-3 rounded-lg border text-center ${bloodOk ? 'bg-emerald-950/30 border-emerald-800/60' : 'bg-red-950/30 border-red-800/60'}`}>
+                  <span className="text-[10px] text-slate-500 uppercase block">Blood Products</span>
+                  <span className={`text-base font-extrabold ${bloodOk ? 'text-emerald-400' : 'text-red-400'}`}>{bloodOk ? '✓ OK' : '✗ Avoid'}</span>
                 </div>
               </div>
 
-              {/* Anatomy Flow Rate Estimation Dashboard */}
+              {/* Note */}
+              <div className="text-xs font-mono text-slate-400 bg-slate-900/40 rounded-lg px-3 py-2 border border-slate-800/60">
+                <span className="text-cyan-400 font-bold">Clinical Use: </span>{note}.
+                {!bloodOk && <span className="text-amber-400"> Blood products flow extremely slowly through {pivType} (η×3.5); use ≥18G for transfusion.</span>}
+                {pivType === '14G' || pivType === '16G' ? <span className="text-slate-500"> Note: at peak gravity flow, Reynolds number exceeds 2100 (turbulent transition) — actual flow ~10–25% higher than laminar Poiseuille predicts. Use pressure bag for max throughput.</span> : ''}
+              </div>
+
+              {/* Flow table header */}
+              <div className="bg-slate-900/50 rounded-xl border border-slate-800/80 overflow-hidden">
+                <div className="bg-slate-900/80 px-4 py-2 border-b border-slate-800 flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold text-slate-300 uppercase tracking-wide">Crystalloid Max Flow by Site</span>
+                  <span className="text-[10px] text-slate-500 ml-2">viscosity η = 1.0 · Blood products: divide by 3.5</span>
+                </div>
+                <div className="px-4 py-1">
+                  <div className="flex items-center text-[10px] text-slate-600 font-mono uppercase tracking-wider pb-1 border-b border-slate-800/60 mb-1">
+                    <span className="w-28 shrink-0">Site</span>
+                    <span className="w-28 shrink-0 text-right text-cyan-600">Gravity</span>
+                    <span className="w-32 shrink-0 text-right text-amber-600">Pressure Bag</span>
+                  </div>
+                  <FlowRow label="AC Fossa" gravMin={acGrav.min} pbMin={acPB.min} note={`pRBC gravity: ~${acBloodGrav} mL/min`} />
+                  <FlowRow label="Forearm" gravMin={armGrav.min} pbMin={armPB.min} />
+                  <FlowRow label="Hand Dorsum" gravMin={handGrav.min} pbMin={handPB.min} />
+                </div>
+                <div className="px-4 py-1.5 bg-slate-950/40 border-t border-slate-800/60 text-[10px] font-mono text-slate-500">
+                  Gravity = 74 mmHg (1 m bag height). Pressure Bag = 300 mmHg. Bolus push rates are not pressure-limited.
+                </div>
+              </div>
+
+              {/* Placement buttons */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* AC */}
-                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
+                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col gap-3">
                   <div>
-                    <h3 className="font-extrabold text-cyan-400 mb-2 border-b border-slate-800 pb-1 text-sm font-mono text-center">Antecubital Vein (AC)</h3>
-                    <div className="text-xs font-mono space-y-1 text-slate-400 mb-4">
-                      <div className="flex justify-between"><span>Vein Resistance:</span><span className="text-white">200</span></div>
-                      <div className="flex justify-between"><span>Venous Pressure:</span><span className="text-white">8 mmHg</span></div>
-                      <div className="flex justify-between border-t border-slate-800/80 pt-1 mt-1 font-bold">
-                        <span>Max Flow (Crystalloid):</span>
-                        <span className="text-cyan-400">{acStats.hr} mL/hr ({acStats.min} mL/min)</span>
-                      </div>
-                    </div>
+                    <h3 className="font-extrabold text-cyan-400 mb-1 text-sm font-mono text-center">Antecubital (AC)</h3>
+                    <p className="text-[10px] text-slate-500 text-center font-mono">{acGrav.min} mL/min gravity · {acPB.min} mL/min w/ bag</p>
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => establishAccess('PIV', `${pivType} PIV`, 'Right AC')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Right AC</button>
                     <button onClick={() => establishAccess('PIV', `${pivType} PIV`, 'Left AC')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Left AC</button>
                   </div>
                 </div>
-
-                {/* Forearm */}
-                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
+                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col gap-3">
                   <div>
-                    <h3 className="font-extrabold text-cyan-400 mb-2 border-b border-slate-800 pb-1 text-sm font-mono text-center">Forearm Vein</h3>
-                    <div className="text-xs font-mono space-y-1 text-slate-400 mb-4">
-                      <div className="flex justify-between"><span>Vein Resistance:</span><span className="text-white">800</span></div>
-                      <div className="flex justify-between"><span>Venous Pressure:</span><span className="text-white">12 mmHg</span></div>
-                      <div className="flex justify-between border-t border-slate-800/80 pt-1 mt-1 font-bold">
-                        <span>Max Flow (Crystalloid):</span>
-                        <span className="text-cyan-400">{armStats.hr} mL/hr ({armStats.min} mL/min)</span>
-                      </div>
-                    </div>
+                    <h3 className="font-extrabold text-cyan-400 mb-1 text-sm font-mono text-center">Forearm Vein</h3>
+                    <p className="text-[10px] text-slate-500 text-center font-mono">{armGrav.min} mL/min gravity · {armPB.min} mL/min w/ bag</p>
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => establishAccess('PIV', `${pivType} PIV`, 'Right Forearm')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Right Arm</button>
                     <button onClick={() => establishAccess('PIV', `${pivType} PIV`, 'Left Forearm')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Left Arm</button>
                   </div>
                 </div>
-
-                {/* Hand */}
-                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
+                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col gap-3">
                   <div>
-                    <h3 className="font-extrabold text-cyan-400 mb-2 border-b border-slate-800 pb-1 text-sm font-mono text-center">Hand Dorsal Plexus</h3>
-                    <div className="text-xs font-mono space-y-1 text-slate-400 mb-4">
-                      <div className="flex justify-between"><span>Vein Resistance:</span><span className="text-white">2200</span></div>
-                      <div className="flex justify-between"><span>Venous Pressure:</span><span className="text-white">18 mmHg</span></div>
-                      <div className="flex justify-between border-t border-slate-800/80 pt-1 mt-1 font-bold text-[11px]">
-                        <span>Max Flow (Crystalloid):</span>
-                        <span className="text-cyan-400">{handStats.hr} mL/hr ({handStats.min} mL/min)</span>
-                      </div>
-                    </div>
+                    <h3 className="font-extrabold text-cyan-400 mb-1 text-sm font-mono text-center">Hand Dorsal Plexus</h3>
+                    <p className="text-[10px] text-slate-500 text-center font-mono">{handGrav.min} mL/min gravity · {handPB.min} mL/min w/ bag</p>
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => establishAccess('PIV', `${pivType} PIV`, 'Right Hand')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Right Hand</button>
@@ -315,19 +342,25 @@ export const AccessModal = ({ data, close, establishAccess }) => {
 
               {/* Lumen Flow Breakdown Dashboard */}
               <div className="bg-slate-900/50 p-4 rounded-xl border border-slate-800/80">
-                <h4 className="font-bold text-slate-300 text-xs font-mono uppercase tracking-wide mb-3">Lumen Poiseuille Flow Estimates (Gravity, CVP = 5, R_vein = 0)</h4>
+                <h4 className="font-bold text-slate-300 text-xs font-mono uppercase tracking-wide mb-3">
+                  Lumen Flow Estimates — Gravity (CVP=5 mmHg) · Pressure Bag (300 mmHg)
+                </h4>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 font-mono">
                   {lumens.map((l, i) => {
-                    const stats = getFlowStats(l.rad, l.len, 5, 0);
+                    const grav = getFlowStats(l.rad, l.len, 5, 0);
+                    const pb   = getFlowStats(l.rad, l.len, 5, 0, 300);
+                    const bloodGrav = parseFloat((grav.min / 3.5).toFixed(1));
                     return (
                       <div key={i} className="bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs">
                         <span className="font-extrabold text-indigo-400 block mb-1.5">{l.name}</span>
                         <div className="space-y-0.5 text-slate-400 text-[11px]">
-                          <div>Radius: <span className="text-white">{l.rad} mm</span></div>
+                          <div>Inner radius: <span className="text-white">{l.rad} mm</span></div>
                           <div>Length: <span className="text-white">{l.len} mm</span></div>
-                          <div>Resistance (L/r⁴): <span className="text-white">{stats.rCath}</span></div>
-                          <div className="text-indigo-400 font-extrabold border-t border-slate-900 mt-1 pt-1">
-                            Flow: {stats.hr} mL/hr ({stats.min} mL/min)
+                          <div>R_cath (L/r⁴): <span className="text-white">{grav.rCath}</span></div>
+                          <div className="border-t border-slate-900 mt-1 pt-1 space-y-0.5">
+                            <div className="text-cyan-400 font-bold">Gravity: <span className="text-cyan-300">{grav.min} mL/min</span></div>
+                            <div className="text-amber-400 font-bold">Pressure bag: <span className="text-amber-300">{pb.min} mL/min</span></div>
+                            <div className="text-red-400 text-[10px]">pRBC (gravity): ~{bloodGrav} mL/min</div>
                           </div>
                         </div>
                       </div>
@@ -366,61 +399,75 @@ export const AccessModal = ({ data, close, establishAccess }) => {
 
         {/* --- INTRAOSSEOUS ACCESS --- */}
         {data.category === 'Intraosseous (IO)' && (() => {
-          const tibiaStats = getFlowStats(0.45, 25, 18, 2500);
-          const humeralStats = getFlowStats(0.45, 25, 15, 1500);
-          
+          // IO: EZ-IO 15G needle. r=0.45mm (ID 0.9mm), L=25mm.
+          // Bony medullary sinusoids create very high resistance; gravity flow is slow.
+          // In ACLS: push drugs as IV bolus followed immediately by 20 mL NS flush to propel
+          // drug centrally (manual syringe pressure, not gravity). Pressure infuser needed for
+          // meaningful fluid resuscitation rates.
+          const tibGrav  = getFlowStats(0.45, 25, 18, 2500);       // gravity
+          const tibPB    = getFlowStats(0.45, 25, 18, 2500, 300);  // pressure infuser
+          const humGrav  = getFlowStats(0.45, 25, 15, 1500);
+          const humPB    = getFlowStats(0.45, 25, 15, 1500, 300);
+
           return (
             <div className="flex flex-col gap-6">
-              {/* Dropdown Selection */}
               <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800 flex flex-col md:flex-row gap-4 items-center justify-between">
                 <div>
                   <label className="text-slate-300 font-bold block mb-1 text-sm font-mono">Select IO System</label>
-                  <p className="text-xs text-slate-500">Rigid bones constrain bone marrow venous sinusoids.</p>
+                  <p className="text-xs text-slate-500">Rigid cortical bone constrains medullary sinusoid compliance. Gravity flow is limited; pressure infusion is required for resuscitation volumes.</p>
                 </div>
-                <select 
-                  value={ioType} 
+                <select
+                  value={ioType}
                   onChange={e => setIoType(e.target.value)}
                   className="w-full md:w-80 bg-slate-950 border border-slate-800 text-white rounded-lg p-2.5 font-bold focus:border-amber-500 focus:outline-none focus:ring-1 focus:ring-amber-500 font-mono"
                 >
-                  <option value="EZ-IO">EZ-IO (15G Needle / 1.1mm ID)</option>
+                  <option value="EZ-IO">EZ-IO 15G (Vidacare) — ID 0.9mm, 25mm</option>
                 </select>
               </div>
 
-              {/* Placements and estimated flows */}
+              {/* Critical clinical note */}
+              <div className="bg-amber-950/30 border border-amber-800/50 rounded-xl p-3 text-xs font-mono text-amber-200">
+                <span className="font-black text-amber-400">⚠️ IO DRUG ADMINISTRATION:</span> Push each drug as a rapid IV bolus, then immediately flush with a 20 mL NS manual push to propel drug into the central circulation via the nutrient vein. Gravity drip alone moves drug too slowly. Use a pressure infuser (300 mmHg) or manual push for fluid resuscitation.
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-extrabold text-amber-400 mb-2 border-b border-slate-800 pb-1 text-sm font-mono text-center">Proximal Tibia</h3>
-                    <div className="text-xs font-mono space-y-1 text-slate-400 mb-4">
-                      <div className="flex justify-between"><span>Catheter (15G):</span><span className="text-white">r: 0.45mm, L: 25mm</span></div>
-                      <div className="flex justify-between"><span>Bony Sinusoid Resistance:</span><span className="text-white">2500</span></div>
-                      <div className="flex justify-between"><span>Intramedullary Pressure:</span><span className="text-white">18 mmHg</span></div>
-                      <div className="flex justify-between border-t border-slate-800/80 pt-1 mt-1 font-bold text-[11px]">
-                        <span>Gravity Crystalloid Flow:</span>
-                        <span className="text-amber-400">{tibiaStats.hr} mL/hr ({tibiaStats.min} mL/min)</span>
+                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col gap-3">
+                  <h3 className="font-extrabold text-amber-400 border-b border-slate-800 pb-1 text-sm font-mono text-center">Proximal Tibia</h3>
+                  <div className="text-xs font-mono space-y-1 text-slate-400">
+                    <div className="flex justify-between"><span>Needle (15G EZ-IO):</span><span className="text-white">r=0.45mm, L=25mm</span></div>
+                    <div className="flex justify-between"><span>Intramedullary Pressure:</span><span className="text-white">18 mmHg</span></div>
+                    <div className="flex justify-between"><span>Sinusoid Resistance:</span><span className="text-white">2500</span></div>
+                    <div className="border-t border-slate-800/80 pt-1 mt-1 space-y-0.5">
+                      <div className="flex justify-between font-bold">
+                        <span>Gravity flow:</span><span className="text-amber-400">{tibGrav.min} mL/min</span>
+                      </div>
+                      <div className="flex justify-between font-bold">
+                        <span>Pressure infuser:</span><span className="text-amber-300">{tibPB.min} mL/min</span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 mt-auto">
                     <button onClick={() => establishAccess('IO', ioType, 'Right Proximal Tibia')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Right Tibia</button>
                     <button onClick={() => establishAccess('IO', ioType, 'Left Proximal Tibia')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Left Tibia</button>
                   </div>
                 </div>
 
-                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-extrabold text-amber-400 mb-2 border-b border-slate-800 pb-1 text-sm font-mono text-center">Humeral Head</h3>
-                    <div className="text-xs font-mono space-y-1 text-slate-400 mb-4">
-                      <div className="flex justify-between"><span>Catheter (15G):</span><span className="text-white">r: 0.45mm, L: 25mm</span></div>
-                      <div className="flex justify-between"><span>Humeral Sinusoid Resistance:</span><span className="text-white">1500</span></div>
-                      <div className="flex justify-between"><span>Intramedullary Pressure:</span><span className="text-white">15 mmHg</span></div>
-                      <div className="flex justify-between border-t border-slate-800/80 pt-1 mt-1 font-bold text-[11px]">
-                        <span>Gravity Crystalloid Flow:</span>
-                        <span className="text-amber-400">{humeralStats.hr} mL/hr ({humeralStats.min} mL/min)</span>
+                <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800/80 flex flex-col gap-3">
+                  <h3 className="font-extrabold text-amber-400 border-b border-slate-800 pb-1 text-sm font-mono text-center">Humeral Head</h3>
+                  <div className="text-xs font-mono space-y-1 text-slate-400">
+                    <div className="flex justify-between"><span>Needle (15G EZ-IO):</span><span className="text-white">r=0.45mm, L=25mm</span></div>
+                    <div className="flex justify-between"><span>Intramedullary Pressure:</span><span className="text-white">15 mmHg</span></div>
+                    <div className="flex justify-between"><span>Sinusoid Resistance:</span><span className="text-white">1500</span></div>
+                    <div className="border-t border-slate-800/80 pt-1 mt-1 space-y-0.5">
+                      <div className="flex justify-between font-bold">
+                        <span>Gravity flow:</span><span className="text-amber-400">{humGrav.min} mL/min</span>
+                      </div>
+                      <div className="flex justify-between font-bold">
+                        <span>Pressure infuser:</span><span className="text-amber-300">{humPB.min} mL/min</span>
                       </div>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 mt-auto">
                     <button onClick={() => establishAccess('IO', ioType, 'Right Humeral Head')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Right Humerus</button>
                     <button onClick={() => establishAccess('IO', ioType, 'Left Humeral Head')} className={`w-1/2 p-2 rounded-lg font-bold text-xs transition-all ${currentTheme.btn}`}>Left Humerus</button>
                   </div>

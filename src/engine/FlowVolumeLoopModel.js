@@ -32,6 +32,7 @@
  */
 
 import { calibrateComplianceCurve, elasticRecoilPressure } from './LungComplianceModel.js';
+import { buildMechanicsParams, getBreathTrajectory } from './RespiratoryMechanicsModel.js';
 
 const DEFAULT_R = 5;     // cmH2O/L/s, matches VentModel.js/EtCo2Model.js's own baseline
 const DEFAULT_C = 60;    // mL/cmH2O, matches VentModel.js/EtCo2Model.js's own baseline
@@ -210,4 +211,84 @@ export function generateFlowVolumeLoop(patient, vitals, numPoints = 80) {
   }
 
   return { points, tlc, rv: rvVal, fvc, pef, pif, pattern, title, alertType, interpretation };
+}
+
+/**
+ * Ventilator tidal flow-volume loop: plots the actual mechanics-derived breath trajectory
+ * (flow vs. accumulated tidal volume) identical to what ICU ventilator displays show.
+ *
+ * DISTINCT from `generateFlowVolumeLoop` (which is a forced-PFT maximal-effort curve):
+ * - X-axis spans 0 → Vt only (not TLC → RV)
+ * - Inspiratory shape reflects the ventilator mode:
+ *   VCV = constant flow (rectangular step); PCV/PCV-VG/PSV = decelerating (exponential)
+ * - Expiratory limb is passive recoil against resistance, not a maximal-effort Mead-Fry envelope
+ * - Auto-PEEP visible when the loop fails to return to zero volume by end of expiration
+ *
+ * Sources: Miller's Anesthesia 9e Ch13/14; Tobin, "Principles and Practice of Mechanical
+ * Ventilation" 3e; GE Carestation / Dräger Primus ventilator operator manuals.
+ */
+export function generateVentilatorFlowVolumeLoop(patient, vitals, ventSettings) {
+  const params = buildMechanicsParams(patient, vitals, ventSettings);
+  const trajectory = getBreathTrajectory(params);
+
+  // Ventilator convention: positive flow = inspiratory (into patient), negative = expiratory
+  const points = trajectory.map(s => ({
+    volume: s.deltaV / 1000,  // mL → L above PEEP/FRC
+    flow: s.flow              // L/s, positive = inspiratory
+  }));
+
+  const vte = Math.max(0, ...trajectory.map(s => s.deltaV));          // mL
+  const pif = Math.max(0.1, ...trajectory.map(s => s.flow));          // L/s, peak inspiratory
+  const pef = Math.max(0.1, ...trajectory.map(s => -s.flow));         // L/s, peak expiratory
+
+  // Auto-PEEP: breath ends before exhalation is complete (incomplete loop closure)
+  const finalDeltaV = trajectory[trajectory.length - 1]?.deltaV ?? 0;
+  const hasAutoPeep = vte > 50 && finalDeltaV > vte * 0.15;
+
+  const R = params.R;
+  const staticC = params.complianceCurve?.cFrc ?? 60;      // mL/cmH₂O
+  const timeConstant = (R * staticC) / 1000;               // τ = R·C in seconds
+  const mode = params.mode;
+
+  if (vte < 0.5) {
+    return {
+      points: [{ volume: 0, flow: 0 }, { volume: 0, flow: 0 }],
+      vte: 0, pif: 0, pef: 0, hasAutoPeep: false, timeConstant: 0,
+      pattern: 'apneic', title: 'No Ventilatory Flow', alertType: 'critical',
+      interpretation: 'No respiratory flow detected. Check ventilator and airway.', mode
+    };
+  }
+
+  let pattern, title, alertType, interpretation;
+  const modeLabel = {
+    vcv: 'VCV: square inspiratory flow',
+    pcv: 'PCV: decelerating inspiratory flow',
+    'pcv-vg': 'PCV-VG: decelerating flow (volume-guaranteed)',
+    psv: 'PSV: effort-triggered decelerating flow',
+    spontaneous: 'Spontaneous tidal breathing'
+  };
+
+  if (hasAutoPeep) {
+    pattern = 'auto_peep';
+    title = 'Auto-PEEP / Gas Trapping';
+    alertType = 'critical';
+    interpretation = `Gas trapping: ${Math.round(finalDeltaV)} mL retained at breath start. Increase expiratory time (↑ I:E or ↓ RR) or treat bronchospasm.`;
+  } else if (R > 15) {
+    pattern = 'high_resistance_vent';
+    title = 'High Resistance';
+    alertType = 'warning';
+    interpretation = `Scooped expiratory limb: elevated airway resistance (R=${R.toFixed(0)} cmH₂O/L/s). τ=${timeConstant.toFixed(1)}s — watch for gas trapping.`;
+  } else if (staticC < 30) {
+    pattern = 'low_compliance_vent';
+    title = 'Low Compliance';
+    alertType = 'critical';
+    interpretation = `Narrow loop: stiff lungs (C=${staticC.toFixed(0)} mL/cmH₂O). Maintain Vt 6 mL/kg IBW, target Pplat < 30 cmH₂O.`;
+  } else {
+    pattern = 'normal_vent';
+    title = 'Normal Tidal Loop';
+    alertType = 'info';
+    interpretation = `${modeLabel[mode] ?? 'Ventilated tidal loop'} — passive exponential expiration. τ=${timeConstant.toFixed(1)}s.`;
+  }
+
+  return { points, vte, pif, pef, hasAutoPeep, timeConstant, pattern, title, alertType, interpretation, mode };
 }

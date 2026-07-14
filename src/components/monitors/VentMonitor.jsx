@@ -85,7 +85,7 @@ export const VentMonitor = ({ patient, vitals, rrSpeed, ventSettings, setVentSet
                 <span className="text-[8px] bg-emerald-500/20 text-emerald-400 px-1 py-0.5 rounded uppercase tracking-wider font-extrabold">Guide</span>
               </div>
               {activeLoop === 'fv' ? (
-                <FlowVolumeLoopCanvas patient={patient} vitals={vitals} active={!!vitals?.rr} />
+                <FlowVolumeLoopCanvas patient={patient} vitals={vitals} ventSettings={ventSettings} active={!!vitals?.rr} />
               ) : (
                 <PressureVolumeLoopCanvas patient={patient} vitals={vitals} ventSettings={ventSettings} active={!!vitals?.rr} />
               )}

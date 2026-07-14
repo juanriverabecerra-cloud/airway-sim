@@ -144,7 +144,7 @@ export class FluidicsEngine {
       const fluidData: FluidProfile = FLUIDS_CONFIG[currentInfusion.name];
       const eta = fluidData ? (fluidData.viscosity || 1.0) : 1.0;
       
-      let rTubing = 400;
+      let rTubing = 150; // calibrated from BD Angiocath published gravity flow rates
       if (lType === 'ranger') rTubing = 800;
       else if (lType === 'belmont') rTubing = 200;
       

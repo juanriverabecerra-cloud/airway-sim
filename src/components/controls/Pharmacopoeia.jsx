@@ -1,12 +1,12 @@
 /* eslint-disable react-refresh/only-export-components */
 import { useState, useEffect, useRef } from 'react';
 import { MEDICATIONS, FLUIDS } from '../../engine/Pharmacology';
-import { Search, X } from 'lucide-react';
+import { Search, X, Star, Syringe } from 'lucide-react';
 
 // ASTM / ISO standard-inspired color coordination profiles for clinical anesthesia agents
 export const getMedColor = (medId) => {
   const id = medId.toLowerCase();
-  
+
   // Induction Hypnotics -> Yellow
   if (['propofol', 'etomidate', 'ketamine', 'dexmedetomidine', 'thiopental', 'methohexital', 'f3', 'f6'].some(k => id.includes(k))) {
     return {
@@ -97,7 +97,6 @@ export const getMedColor = (medId) => {
       focus: 'focus:border-indigo-500 focus:ring-indigo-500'
     };
   }
-
   // Local Anesthetics -> Cyan
   if (['bupivacaine', 'ropivacaine', 'levobupivacaine', 'tetracaine', 'chloroprocaine', 'benzocaine', 'prilocaine', 'mepivacaine'].some(k => id.includes(k))) {
     return {
@@ -108,7 +107,6 @@ export const getMedColor = (medId) => {
       focus: 'focus:border-cyan-500 focus:ring-cyan-500'
     };
   }
-
   // Antibiotics -> Sky Blue
   if (['cefazolin', 'vancomycin', 'piperacillin_tazobactam', 'meropenem', 'gentamicin', 'metronidazole', 'ciprofloxacin', 'ceftriaxone', 'unasyn'].some(k => id.includes(k))) {
     return {
@@ -119,7 +117,6 @@ export const getMedColor = (medId) => {
       focus: 'focus:border-sky-500 focus:ring-sky-500'
     };
   }
-  
   // Default general therapeutic -> Slate/Indigo
   return {
     active: 'border-purple-400/80 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.15)] bg-slate-900/40',
@@ -132,8 +129,6 @@ export const getMedColor = (medId) => {
 
 export const getFluidColor = (fluidId) => {
   const id = fluidId.toLowerCase();
-  
-  // Blood Products -> Red/Rose
   if (id.includes('prbc') || id.includes('fresh frozen') || id.includes('platelets') || id.includes('cryo') || id.includes('fibrinogen') || id.includes('blood') || id.includes('ffp')) {
     return {
       active: 'border-rose-500/80 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.25)] bg-red-950/10 font-bold',
@@ -144,7 +139,6 @@ export const getFluidColor = (fluidId) => {
       focus: 'focus:border-rose-500 focus:ring-rose-500'
     };
   }
-  // Crystalloids / Colloids -> Cyan/Teal
   return {
     active: 'border-cyan-400/80 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.25)] bg-cyan-950/10 font-bold',
     btn: 'glass-button-cyan',
@@ -168,22 +162,91 @@ export const getDefaultLineId = (accessLines) => {
   return accessLines[0]?.id || '';
 };
 
-export const Pharmacopoeia = ({ 
-  pushFluid, 
-  processMed, 
+// === Absolute-dose helpers ===
+
+/**
+ * For weight-based boluses (mg/kg, mcg/kg), returns the flat unit the user types in total.
+ * Infusion rates (per /min or /hr) are left unchanged — you set a pump rate, not a total dose.
+ */
+function getEffectiveUnit(type, unit) {
+  if (type === 'Bolus' && unit.includes('/kg') && !unit.includes('/min') && !unit.includes('/hr')) {
+    return unit.includes('mcg') ? 'mcg' : 'mg';
+  }
+  return unit;
+}
+
+/** Resolve which patient weight value matches the med's dosingWeight field */
+function getPatientDosingWeight(key, patient) {
+  if (!patient) return null;
+  if (key === 'IBW') return patient.ibw ?? patient.weight;
+  if (key === 'LBW') return patient.lbw ?? patient.weight;
+  return patient.weight; // TBW
+}
+
+/**
+ * For weight-based boluses, compute the recommended TOTAL dose for THIS patient.
+ * Returns a display string like "120–200 mg" or null if not applicable.
+ */
+function computeRecommendedTotal(indication, med, patient) {
+  const { dose: doseStr, unit, type } = indication;
+  if (type !== 'Bolus') return null;
+  if (!unit.includes('/kg') || unit.includes('/min') || unit.includes('/hr')) return null;
+  const weight = getPatientDosingWeight(med.dosingWeight, patient);
+  if (!weight || isNaN(weight)) return null;
+  const flatUnit = unit.includes('mcg') ? 'mcg' : 'mg';
+  const parts = String(doseStr).split('-').map(Number);
+  const min = parts[0];
+  const max = parts.length > 1 ? parts[1] : parts[0];
+  const minT = Math.round(min * weight);
+  const maxT = Math.round(max * weight);
+  const weightLabel = `${Math.round(weight)}kg ${med.dosingWeight || 'TBW'}`;
+  if (parts.length > 1 && minT !== maxT) {
+    return `${minT}–${maxT} ${flatUnit} (${weightLabel})`;
+  }
+  return `${minT} ${flatUnit} (${weightLabel})`;
+}
+
+export const Pharmacopoeia = ({
+  pushFluid,
+  processMed,
   patient,
   setPatient,
   logEvent,
   openDrugConsult
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState('induction'); // 'induction' | 'analgesia' | 'paralytics' | 'hemodynamics' | 'antibiotics' | 'adjuncts' | 'fluids'
+  const [activeSubTab, setActiveSubTab] = useState('induction');
   const [searchTerm, setSearchTerm] = useState('');
   const [medInput, setMedInput] = useState({ drug: null, dose: '', indication: '', route: 'IV', type: 'Bolus', unit: '', lineId: '' });
   const [fluidInput, setFluidInput] = useState({ fluid: null, dose: '', rate: '', lineId: '' });
   const [tciMode, setTciMode] = useState('none');
   const [tciTarget, setTciTarget] = useState('');
   const [tciModel, setTciModel] = useState('Schnider');
+
+  // Favorites: persisted to localStorage
+  const [favorites, setFavorites] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('airway-sim-favorites') || '[]')); }
+    catch { return new Set(); }
+  });
+
+  // Top Drawer: persisted to localStorage
+  const [topDrawer, setTopDrawer] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('airway-sim-top-drawer') || '[]'); }
+    catch { return []; }
+  });
+
+  // Inline edit state for drawer items
+  const [editingDrawerId, setEditingDrawerId] = useState(null);
+  const [editingDose, setEditingDose] = useState('');
+
   const searchRef = useRef(null);
+
+  useEffect(() => {
+    localStorage.setItem('airway-sim-favorites', JSON.stringify([...favorites]));
+  }, [favorites]);
+
+  useEffect(() => {
+    localStorage.setItem('airway-sim-top-drawer', JSON.stringify(topDrawer));
+  }, [topDrawer]);
 
   useEffect(() => {
     setTciMode('none');
@@ -203,7 +266,6 @@ export const Pharmacopoeia = ({
     }
   }, [medInput.drug]);
 
-  // QoL: Global Keyboard Shortcut to focus search
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
@@ -214,6 +276,8 @@ export const Pharmacopoeia = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  // === Handlers ===
 
   const handleMedSubmit = (medId) => {
     if (medInput.dose) {
@@ -245,6 +309,53 @@ export const Pharmacopoeia = ({
     }
   };
 
+  const toggleFavorite = (medId, e) => {
+    e.stopPropagation();
+    setFavorites(prev => {
+      const next = new Set(prev);
+      if (next.has(medId)) next.delete(medId); else next.add(medId);
+      return next;
+    });
+  };
+
+  const handleDrawUp = (medId) => {
+    const dose = parseFloat(medInput.dose);
+    if (isNaN(dose) || dose <= 0) return;
+    const med = MEDICATIONS[medId];
+    const item = {
+      id: `td-${Date.now()}-${Math.floor(Math.random() * 10000)}`,
+      medId,
+      medName: med?.name || medId,
+      totalDose: dose,
+      unit: medInput.unit,
+      route: medInput.route,
+      type: medInput.type,
+    };
+    setTopDrawer(prev => [...prev, item]);
+    setMedInput({ drug: null, dose: '', indication: '', route: 'IV', type: 'Bolus', unit: '', lineId: '' });
+    setSearchTerm('');
+  };
+
+  const handleTopDrawerPush = (item) => {
+    const lineId = getDefaultLineId(patient?.accessLines);
+    processMed(item.medId, String(item.totalDose), item.route, item.type, item.unit, lineId);
+  };
+
+  const handleTopDrawerRemove = (id) => {
+    setTopDrawer(prev => prev.filter(item => item.id !== id));
+  };
+
+  const handleTopDrawerEditSave = (id) => {
+    const val = parseFloat(editingDose);
+    if (!isNaN(val) && val > 0) {
+      setTopDrawer(prev => prev.map(item => item.id === id ? { ...item, totalDose: val } : item));
+    }
+    setEditingDrawerId(null);
+    setEditingDose('');
+  };
+
+  // === Utility ===
+
   const getFluidUnitLabel = (fluidId) => {
     if (fluidId.includes('Fibrinogen')) return 'g';
     const type = FLUIDS[fluidId]?.type;
@@ -257,273 +368,72 @@ export const Pharmacopoeia = ({
     if (isNaN(dose) || dose <= 0) return '';
     const fluid = FLUIDS[fluidId];
     if (!fluid) return '';
-    if (fluidId.includes('Fibrinogen')) {
-      return `≈ ${dose * 50} mL (${dose} g)`;
-    }
-    if (fluid.type === 'Blood Product' || fluid.type === 'Colloid') {
-      return `≈ ${dose * (fluid.defaultVol || 300)} mL (${dose} Units)`;
-    }
+    if (fluidId.includes('Fibrinogen')) return `≈ ${dose * 50} mL (${dose} g)`;
+    if (fluid.type === 'Blood Product' || fluid.type === 'Colloid') return `≈ ${dose * (fluid.defaultVol || 300)} mL (${dose} Units)`;
     return '';
   };
 
-  // Group Definitions reorganized by clinical function and sorted alphabetically
+  // Group Definitions reorganized by clinical function
   const GROUPS = {
     induction: {
-      'Sedatives & Hypnotics': [
-        'etomidate',
-        'methohexital',
-        'propofol',
-        'thiopental'
-      ],
-      'Alpha-2 Agonists': [
-        'dexmedetomidine'
-      ],
-      'Dissociatives': [
-        'esketamine',
-        'ketamine'
-      ],
-      'Benzodiazepines': [
-        'midazolam'
-      ],
-      'Orexin Receptor Antagonists': [
-        'suvorexant'
-      ]
+      'Sedatives & Hypnotics': ['etomidate', 'methohexital', 'propofol', 'thiopental'],
+      'Alpha-2 Agonists': ['dexmedetomidine'],
+      'Dissociatives': ['esketamine', 'ketamine'],
+      'Benzodiazepines': ['midazolam'],
+      'Orexin Receptor Antagonists': ['suvorexant']
     },
     analgesia: {
-      'Opioids (Intravenous)': [
-        'alfentanil',
-        'fentanyl',
-        'hydromorphone',
-        'meperidine',
-        'morphine',
-        'remifentanil',
-        'sufentanil'
-      ],
-      'Opioids (Oral/Supplemental)': [
-        'codeine',
-        'oxycodone',
-        'tramadol'
-      ],
-      'Local Anesthetics (Amides)': [
-        'bupivacaine',
-        'levobupivacaine',
-        'mepivacaine',
-        'mexiletine',
-        'prilocaine',
-        'ropivacaine'
-      ],
-      'Local Anesthetics (Esters)': [
-        'benzocaine',
-        'chloroprocaine',
-        'tetracaine'
-      ],
-      'Non-Opioid Analgesics': [
-        'acetaminophen',
-        'ketorolac',
-        'ziconotide'
-      ],
-      'Neuropathic & Anticonvulsants': [
-        'carbamazepine',
-        'gabapentin',
-        'lamotrigine',
-        'levetiracetam',
-        'oxcarbazepine',
-        'pregabalin',
-        'topiramate',
-        'zonisamide'
-      ]
+      'Opioids (Intravenous)': ['alfentanil', 'fentanyl', 'hydromorphone', 'meperidine', 'morphine', 'remifentanil', 'sufentanil'],
+      'Opioids (Oral/Supplemental)': ['codeine', 'oxycodone', 'tramadol'],
+      'Local Anesthetics (Amides)': ['bupivacaine', 'levobupivacaine', 'mepivacaine', 'mexiletine', 'prilocaine', 'ropivacaine'],
+      'Local Anesthetics (Esters)': ['benzocaine', 'chloroprocaine', 'tetracaine'],
+      'Non-Opioid Analgesics': ['acetaminophen', 'ketorolac', 'ziconotide'],
+      'Neuropathic & Anticonvulsants': ['carbamazepine', 'gabapentin', 'lamotrigine', 'levetiracetam', 'oxcarbazepine', 'pregabalin', 'topiramate', 'zonisamide']
     },
     paralytics: {
-      'Depolarizing Relaxants': [
-        'succinylcholine'
-      ],
-      'Nondepolarizing (Aminosteroids)': [
-        'pancuronium',
-        'rocuronium',
-        'vecuronium'
-      ],
-      'Nondepolarizing (Benzylisoquinolines)': [
-        'atracurium',
-        'cisatracurium',
-        'cw002',
-        'gantacurium',
-        'mivacurium'
-      ],
-      'Anticholinesterase Inhibitors': [
-        'edrophonium',
-        'neostigmine',
-        'physostigmine',
-        'pyridostigmine'
-      ],
-      'Specific Antagonists & Chelators': [
-        'atipamezole',
-        'flumazenil',
-        'l_cysteine',
-        'naloxone',
-        'sugammadex'
-      ],
-      'Anticholinergics': [
-        'glycopyrrolate',
-        'scopolamine'
-      ]
+      'Depolarizing Relaxants': ['succinylcholine'],
+      'Nondepolarizing (Aminosteroids)': ['pancuronium', 'rocuronium', 'vecuronium'],
+      'Nondepolarizing (Benzylisoquinolines)': ['atracurium', 'cisatracurium', 'cw002', 'gantacurium', 'mivacurium'],
+      'Anticholinesterase Inhibitors': ['edrophonium', 'neostigmine', 'physostigmine', 'pyridostigmine'],
+      'Specific Antagonists & Chelators': ['atipamezole', 'flumazenil', 'l_cysteine', 'naloxone', 'sugammadex'],
+      'Anticholinergics': ['glycopyrrolate', 'scopolamine']
     },
     hemodynamics: {
-      'Inotropes & Vasopressors': [
-        'dobutamine',
-        'dopamine',
-        'ephedrine',
-        'epinephrine',
-        'isoproterenol',
-        'milrinone',
-        'norepinephrine',
-        'phenylephrine',
-        'vasopressin'
-      ],
-      'Beta-Blockers / Sympatholytics': [
-        'esmolol',
-        'labetalol',
-        'metoprolol'
-      ],
-      'Calcium Channel Blockers': [
-        'clevidipine',
-        'diltiazem',
-        'nicardipine',
-        'nifedipine'
-      ],
-      'Nitrates & Vasodilators': [
-        'hydralazine',
-        'nitroglycerin',
-        'nitroprusside',
-        'papaverine'
-      ],
-      'Antiarrhythmics & Chronotropes': [
-        'adenosine',
-        'amiodarone',
-        'atropine',
-        'digoxin',
-        'ibutilide',
-        'lidocaine'
-      ],
-      'Sympathomimetics / Other': [
-        'clonidine',
-        'cocaine',
-        'enalaprilat',
-        'methyldopa',
-        'phentolamine'
-      ]
+      'Inotropes & Vasopressors': ['dobutamine', 'dopamine', 'ephedrine', 'epinephrine', 'isoproterenol', 'milrinone', 'norepinephrine', 'phenylephrine', 'vasopressin'],
+      'Beta-Blockers / Sympatholytics': ['esmolol', 'labetalol', 'metoprolol'],
+      'Calcium Channel Blockers': ['clevidipine', 'diltiazem', 'nicardipine', 'nifedipine'],
+      'Nitrates & Vasodilators': ['hydralazine', 'nitroglycerin', 'nitroprusside', 'papaverine'],
+      'Antiarrhythmics & Chronotropes': ['adenosine', 'amiodarone', 'atropine', 'digoxin', 'ibutilide', 'lidocaine'],
+      'Sympathomimetics / Other': ['clonidine', 'cocaine', 'enalaprilat', 'methyldopa', 'phentolamine']
     },
     adjuncts: {
-      'Hematology & Anticoagulation': [
-        'andexanet',
-        'desmopressin',
-        'factorIXconcentrate',
-        'factorVIIIconcentrate',
-        'heparin',
-        'idarucizumab',
-        'pcc',
-        'protamine',
-        'rfviia',
-        'tranexamicAcid'
-      ],
-      'Electrolytes, Osmotherapy & Buffers': [
-        'bicarbonate',
-        'calcium',
-        'dextrose',
-        'hypertonicSaline3',
-        'magnesium',
-        'mannitol',
-        'potassium'
-      ],
-      'Diuretics': [
-        'acetazolamide',
-        'bumetanide',
-        'furosemide'
-      ],
-      'Corticosteroids': [
-        'dexamethasone',
-        'hydrocortisone'
-      ],
-      'Emergency Rescue & Antidotes': [
-        'dantrolene',
-        'intralipid',
-        'methyleneBlue'
-      ],
-      'Gastric Prophylaxis & Antacids': [
-        'famotidine',
-        'pantoprazole',
-        'sodiumCitrate'
-      ],
-      'Antiemetics & Neuroleptics': [
-        'aprepitant',
-        'droperidol',
-        'fosaprepitant',
-        'granisetron',
-        'haloperidol',
-        'metoclopramide',
-        'ondansetron',
-        'palonosetron',
-        'promethazine'
-      ],
-      'Uterotonics': [
-        'carboprost',
-        'methylergonovine',
-        'misoprostol',
-        'oxytocin'
-      ],
-      'Other Specialty Adjuncts': [
-        'albuterol',
-        'bromocriptine',
-        'diphenhydramine',
-        'glucagon',
-        'ipratropium',
-        'methylphenidate',
-        'octreotide',
-        'regularInsulin'
-      ]
+      'Hematology & Anticoagulation': ['andexanet', 'desmopressin', 'factorIXconcentrate', 'factorVIIIconcentrate', 'heparin', 'idarucizumab', 'pcc', 'protamine', 'rfviia', 'tranexamicAcid'],
+      'Electrolytes, Osmotherapy & Buffers': ['bicarbonate', 'calcium', 'dextrose', 'hypertonicSaline3', 'magnesium', 'mannitol', 'potassium'],
+      'Diuretics': ['acetazolamide', 'bumetanide', 'furosemide'],
+      'Corticosteroids': ['dexamethasone', 'hydrocortisone'],
+      'Emergency Rescue & Antidotes': ['dantrolene', 'intralipid', 'methyleneBlue'],
+      'Gastric Prophylaxis & Antacids': ['famotidine', 'pantoprazole', 'sodiumCitrate'],
+      'Antiemetics & Neuroleptics': ['aprepitant', 'droperidol', 'fosaprepitant', 'granisetron', 'haloperidol', 'metoclopramide', 'ondansetron', 'palonosetron', 'promethazine'],
+      'Uterotonics': ['carboprost', 'methylergonovine', 'misoprostol', 'oxytocin'],
+      'Other Specialty Adjuncts': ['albuterol', 'bromocriptine', 'diphenhydramine', 'glucagon', 'ipratropium', 'methylphenidate', 'octreotide', 'regularInsulin']
     },
     antibiotics: {
-      'Cephalosporins': [
-        'cefazolin',
-        'ceftriaxone'
-      ],
-      'Penicillins & Combinations': [
-        'piperacillin_tazobactam',
-        'unasyn'
-      ],
-      'Carbapenems': [
-        'meropenem'
-      ],
-      'Glycopeptides': [
-        'vancomycin'
-      ],
-      'Aminoglycosides': [
-        'gentamicin'
-      ],
-      'Fluoroquinolones': [
-        'ciprofloxacin'
-      ],
-      'Nitroimidazoles': [
-        'metronidazole'
-      ]
+      'Cephalosporins': ['cefazolin', 'ceftriaxone'],
+      'Penicillins & Combinations': ['piperacillin_tazobactam', 'unasyn'],
+      'Carbapenems': ['meropenem'],
+      'Glycopeptides': ['vancomycin'],
+      'Aminoglycosides': ['gentamicin'],
+      'Fluoroquinolones': ['ciprofloxacin'],
+      'Nitroimidazoles': ['metronidazole']
     },
     fluids: {
-      'Crystalloids': [
-        'Lactated Ringers (LR)',
-        'Normal Saline (0.9% NS)',
-        'Plasmalyte'
-      ],
-      'Colloids': [
-        'Albumin 5%'
-      ],
-      'Blood Products': [
-        'Cryoprecipitate',
-        'Fibrinogen Concentrate',
-        'Fresh Frozen Plasma (FFP)',
-        'Packed Red Blood Cells (PRBC)',
-        'Platelets'
-      ]
+      'Crystalloids': ['Lactated Ringers (LR)', 'Normal Saline (0.9% NS)', 'Plasmalyte'],
+      'Colloids': ['Albumin 5%'],
+      'Blood Products': ['Cryoprecipitate', 'Fibrinogen Concentrate', 'Fresh Frozen Plasma (FFP)', 'Packed Red Blood Cells (PRBC)', 'Platelets']
     }
   };
+
+  // === Renderers ===
 
   const renderFluidButton = (fluidId) => {
     const isActive = fluidInput.fluid === fluidId;
@@ -534,16 +444,13 @@ export const Pharmacopoeia = ({
 
     return (
       <div className="flex flex-col gap-1 mb-1.5" key={fluidId}>
-        <button 
-          onClick={() => setFluidInput(isActive ? { fluid: null } : { fluid: fluidId, dose: '', rate: '', lineId: selectedLineId })} 
+        <button
+          onClick={() => setFluidInput(isActive ? { fluid: null } : { fluid: fluidId, dose: '', rate: '', lineId: selectedLineId })}
           className={`p-2 rounded-lg text-xs border transition-all glass-button ${colorTheme.active} ${isActive ? colorTheme.active : 'border-slate-800'} flex justify-between items-center`}
         >
           <span className="font-bold text-slate-100">{fluidId}</span>
-          <span 
-            onClick={(e) => {
-              e.stopPropagation();
-              if (openDrugConsult) openDrugConsult(fluidId);
-            }}
+          <span
+            onClick={(e) => { e.stopPropagation(); if (openDrugConsult) openDrugConsult(fluidId); }}
             className="text-slate-400 text-[9px] uppercase font-mono hover:text-cyan-300 hover:underline cursor-pointer border-b border-dashed border-slate-600/50 pb-0.5 ml-2 shrink-0"
             title="How does this fluid work? (Ask Attending)"
           >
@@ -553,15 +460,13 @@ export const Pharmacopoeia = ({
         {isActive && (
           <div className={`flex flex-col p-2.5 bg-slate-950/90 border ${colorTheme.subBorder} rounded-lg animate-in slide-in-from-top-1 duration-200`}>
             <label className="text-[10px] font-bold text-slate-400 mb-1 uppercase tracking-wider font-mono">Select Resus Line</label>
-            <select 
-              value={selectedLineId || ''} 
-              onChange={(e) => setFluidInput({...fluidInput, lineId: e.target.value})} 
+            <select
+              value={selectedLineId || ''}
+              onChange={(e) => setFluidInput({...fluidInput, lineId: e.target.value})}
               className={`w-full bg-slate-900 text-xs text-slate-300 border border-slate-700 rounded-md p-1.5 mb-2 focus:outline-none font-mono ${colorTheme.focus}`}
             >
               {patient?.accessLines?.length > 0 ? patient.accessLines.map(l => (
-                <option key={l.id} value={l.id}>
-                  {l.name}{l.failed ? ' (FAILED)' : ''}
-                </option>
+                <option key={l.id} value={l.id}>{l.name}{l.failed ? ' (FAILED)' : ''}</option>
               )) : <option value="">No Lines Placed</option>}
             </select>
 
@@ -574,23 +479,23 @@ export const Pharmacopoeia = ({
 
             <div className="flex gap-2">
               <div className="w-1/2 flex flex-col gap-1.5">
-                <input 
-                  autoFocus 
-                  type="number" 
+                <input
+                  autoFocus
+                  type="number"
                   disabled={isArterial}
-                  placeholder={`Vol (${getFluidUnitLabel(fluidId)})`} 
-                  className={`w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white outline-none font-mono ${isArterial ? 'opacity-40' : ''} ${colorTheme.focus}`} 
-                  value={fluidInput.dose} 
-                  onChange={(e) => setFluidInput({...fluidInput, dose: e.target.value})} 
+                  placeholder={`Vol (${getFluidUnitLabel(fluidId)})`}
+                  className={`w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white outline-none font-mono ${isArterial ? 'opacity-40' : ''} ${colorTheme.focus}`}
+                  value={fluidInput.dose}
+                  onChange={(e) => setFluidInput({...fluidInput, dose: e.target.value})}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !isArterial) handleFluidSubmit(fluidId); }}
                 />
-                <input 
-                  type="number" 
+                <input
+                  type="number"
                   disabled={isArterial}
-                  placeholder="Rate (mL/hr) (opt)" 
-                  className={`w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white outline-none font-mono ${isArterial ? 'opacity-40' : ''} ${colorTheme.focus}`} 
-                  value={fluidInput.rate || ''} 
-                  onChange={(e) => setFluidInput({...fluidInput, rate: e.target.value})} 
+                  placeholder="Rate (mL/hr) (opt)"
+                  className={`w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-xs text-white outline-none font-mono ${isArterial ? 'opacity-40' : ''} ${colorTheme.focus}`}
+                  value={fluidInput.rate || ''}
+                  onChange={(e) => setFluidInput({...fluidInput, rate: e.target.value})}
                   onKeyDown={(e) => { if (e.key === 'Enter' && !isArterial) handleFluidSubmit(fluidId); }}
                 />
                 {fluidInput.dose && getFluidVolumePreview(fluidId, fluidInput.dose) && (
@@ -599,8 +504,8 @@ export const Pharmacopoeia = ({
                   </div>
                 )}
               </div>
-              <button 
-                onClick={() => handleFluidSubmit(fluidId)} 
+              <button
+                onClick={() => handleFluidSubmit(fluidId)}
                 disabled={isArterial}
                 className={`w-1/2 glass-button ${isArterial ? 'opacity-30 cursor-not-allowed' : colorTheme.btn} py-1.5 text-xs flex items-center justify-center`}
               >
@@ -617,75 +522,127 @@ export const Pharmacopoeia = ({
     const med = MEDICATIONS[medId];
     if (!med) return null;
     const isActive = medInput.drug === medId;
+    const isFav = favorites.has(medId);
     const indicationKeys = Object.keys(med.indications);
     const colorTheme = getMedColor(medId);
 
     const handleIndicationChange = (e) => {
-      const ind = e.target.value; const data = med.indications[ind];
-      setMedInput({ ...medInput, indication: ind, route: med.routes[0], type: data.type, unit: data.unit, dose: '' });
+      const ind = e.target.value;
+      const data = med.indications[ind];
+      const effectiveUnit = getEffectiveUnit(data.type, data.unit);
+      setMedInput({ ...medInput, indication: ind, route: med.routes[0], type: data.type, unit: effectiveUnit, dose: '' });
     };
+
+    const openMed = () => {
+      const indKey = indicationKeys[0];
+      const indData = med.indications[indKey];
+      setMedInput({
+        drug: medId,
+        indication: indKey,
+        route: med.routes[0],
+        type: indData.type,
+        unit: getEffectiveUnit(indData.type, indData.unit),
+        dose: '',
+        lineId: ''
+      });
+    };
+
+    // Dropdown label: per-kg hint + total-dose for this patient inline
+    const indicationOptionLabel = (ind) => {
+      const data = med.indications[ind];
+      const shortTotal = computeRecommendedTotal(data, med, patient)?.replace(/ \([^)]+\)$/, '');
+      return shortTotal
+        ? `${ind} (Rec: ${data.dose} ${data.unit}  ≈  ${shortTotal})`
+        : `${ind} (Rec: ${data.dose} ${data.unit})`;
+    };
+
+    // Current indication data (for the dose input area)
+    const currentInd = medInput.indication && med.indications[medInput.indication] ? med.indications[medInput.indication] : med.indications[indicationKeys[0]];
+    const isInfusion = medInput.type === 'Infusion';
 
     return (
       <div className="flex flex-col gap-1 mb-2" key={medId}>
-        <button 
-          onClick={() => setMedInput(isActive ? { drug: null } : { drug: medId, indication: indicationKeys[0], route: med.routes[0], type: med.indications[indicationKeys[0]].type, unit: med.indications[indicationKeys[0]].unit, dose: '' })}
-          data-tutorial={medId + "-btn"}
-          className={`p-2 rounded-lg text-xs text-left border transition-all glass-button ${isActive ? colorTheme.active : 'border-slate-800'}`}
-        >
-          <span className="font-bold text-slate-100">{med.name}</span> 
-          <span 
-            onClick={(e) => {
-              e.stopPropagation();
-              if (openDrugConsult) openDrugConsult(medId);
-            }}
-            className="text-slate-400 text-[9px] float-right uppercase font-mono hover:text-cyan-300 hover:underline cursor-pointer border-b border-dashed border-slate-600/50 pb-0.5"
-            title="How does this drug work? (Ask Attending)"
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => isActive ? setMedInput({ drug: null }) : openMed()}
+            data-tutorial={medId + "-btn"}
+            className={`flex-1 min-w-0 p-2 rounded-lg text-xs text-left border transition-all glass-button ${isActive ? colorTheme.active : 'border-slate-800'} flex items-center justify-between gap-1`}
           >
-            {med.classes[0]}
-          </span>
-        </button>
+            <span className="font-bold text-slate-100 flex-1 min-w-0 truncate">{med.name}</span>
+            <span
+              onClick={(e) => { e.stopPropagation(); if (openDrugConsult) openDrugConsult(medId); }}
+              className="text-slate-400 text-[9px] uppercase font-mono hover:text-cyan-300 hover:underline cursor-pointer border-b border-dashed border-slate-600/50 pb-0.5 shrink-0 ml-2"
+              title="How does this drug work? (Ask Attending)"
+            >
+              {med.classes[0]}
+            </span>
+          </button>
+          <button
+            onClick={(e) => toggleFavorite(medId, e)}
+            className={`shrink-0 px-1.5 py-1.5 rounded transition-colors text-[13px] leading-none ${isFav ? 'text-yellow-400' : 'text-slate-600 hover:text-yellow-500'}`}
+            title={isFav ? 'Remove from Favorites' : 'Add to Favorites'}
+          >
+            ★
+          </button>
+        </div>
+
         {isActive && (
           <div className={`flex flex-col gap-2 p-2.5 bg-slate-950/90 border ${colorTheme.subBorder} rounded-lg animate-in slide-in-from-top-1 duration-200 font-mono text-[11px]`}>
             <div className={`flex justify-between items-center text-[10px] ${colorTheme.text} font-bold border-b border-slate-900 pb-1`}>
               <span>Dosing Profile</span>
-              <span className="bg-slate-900 px-2 py-0.5 rounded text-slate-300">Uses {med.dosingWeight || 'TBW'}</span>
+              <span className="bg-slate-900 px-2 py-0.5 rounded text-slate-300">{med.dosingWeight || 'TBW'}</span>
             </div>
-            
-            <select value={medInput.indication} onChange={handleIndicationChange} className={`bg-slate-900 text-slate-200 border border-slate-700 rounded p-1 outline-none ${colorTheme.focus}`}>
-              {indicationKeys.map(ind => <option key={ind} value={ind}>{ind} (Rec: {med.indications[ind].dose} {med.indications[ind].unit})</option>)}
+
+            <select value={medInput.indication} onChange={handleIndicationChange} className={`w-full bg-slate-900 text-slate-200 border border-slate-700 rounded p-1 outline-none ${colorTheme.focus}`}>
+              {indicationKeys.map(ind => (
+                <option key={ind} value={ind}>{indicationOptionLabel(ind)}</option>
+              ))}
             </select>
-            
+
             {medInput.route === 'IV' && (
               <select value={medInput.lineId || getDefaultLineId(patient?.accessLines) || ''} onChange={(e) => setMedInput({...medInput, lineId: e.target.value})} className={`bg-slate-900 text-slate-200 border border-slate-700 rounded p-1 outline-none ${colorTheme.focus}`}>
                 {patient?.accessLines?.length > 0 ? patient.accessLines.map(l => <option key={l.id} value={l.id}>{l.name}</option>) : <option value="">No Venous Access</option>}
               </select>
             )}
-            
+
             <div className="flex gap-2">
-              <select value={medInput.route} onChange={(e)=>setMedInput({...medInput, route: e.target.value})} className={`bg-slate-900 text-slate-200 border border-slate-700 rounded p-1 w-1/3 outline-none ${colorTheme.focus}`}>
+              <select value={medInput.route} onChange={(e) => setMedInput({...medInput, route: e.target.value})} className={`bg-slate-900 text-slate-200 border border-slate-700 rounded p-1 w-1/4 outline-none ${colorTheme.focus}`}>
                 {med.routes.map(r => <option key={r} value={r}>{r}</option>)}
               </select>
-              <input 
-                autoFocus 
-                type="number" 
-                placeholder={`Dose (${medInput.unit})`} 
-                className={`w-1/3 bg-slate-900 border border-slate-700 rounded p-1 text-white outline-none ${colorTheme.focus}`}
-                value={medInput.dose} 
-                onChange={(e) => setMedInput({...medInput, dose: e.target.value})} 
+              <input
+                autoFocus
+                type="number"
+                placeholder={`Total (${medInput.unit})`}
+                className={`w-2/4 bg-slate-900 border border-slate-700 rounded p-1 text-white outline-none ${colorTheme.focus}`}
+                value={medInput.dose}
+                onChange={(e) => setMedInput({...medInput, dose: e.target.value})}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleMedSubmit(medId); }}
               />
-              <button onClick={() => handleMedSubmit(medId)} className={`w-1/3 glass-button ${colorTheme.btn} py-1 text-[10px]`}>
-                {medInput.type === 'Infusion' ? 'START INF' : 'PUSH'}
-              </button>
+              <div className="flex flex-col gap-1 w-1/4">
+                <button onClick={() => handleMedSubmit(medId)} className={`glass-button ${colorTheme.btn} py-1 text-[9px] font-black uppercase`}>
+                  {isInfusion ? 'START' : 'PUSH'}
+                </button>
+                <button
+                  onClick={() => handleDrawUp(medId)}
+                  disabled={!medInput.dose || parseFloat(medInput.dose) <= 0}
+                  title="Save to Top Drawer without pushing"
+                  className={`py-1 text-[8px] font-black uppercase rounded border transition font-mono
+                    ${!medInput.dose || parseFloat(medInput.dose) <= 0
+                      ? 'border-slate-800 text-slate-700 cursor-not-allowed'
+                      : 'border-slate-600 text-slate-400 hover:border-purple-500 hover:text-purple-300 hover:bg-purple-950/20'}`}
+                >
+                  + DRAWER
+                </button>
+              </div>
             </div>
 
             {['propofol', 'ketamine', 'esketamine', 'remifentanil', 'sufentanil', 'fentanyl', 'alfentanil'].includes(medId) && (
               <div className="flex flex-col gap-1.5 border-t border-slate-800/60 pt-2 mt-1 font-mono">
                 <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Target Controlled Infusion (TCI)</div>
                 <div className="flex gap-2">
-                  <select 
-                    value={tciMode} 
-                    onChange={(e) => setTciMode(e.target.value)} 
+                  <select
+                    value={tciMode}
+                    onChange={(e) => setTciMode(e.target.value)}
                     className={`bg-slate-900 text-slate-200 border border-slate-700 rounded p-1 w-1/2 outline-none ${colorTheme.focus}`}
                   >
                     <option value="none">Manual Mode</option>
@@ -693,9 +650,9 @@ export const Pharmacopoeia = ({
                     <option value="TCI_Ce">TCI (Target Ce)</option>
                   </select>
                   {tciMode !== 'none' && (
-                    <select 
-                      value={tciModel} 
-                      onChange={(e) => setTciModel(e.target.value)} 
+                    <select
+                      value={tciModel}
+                      onChange={(e) => setTciModel(e.target.value)}
                       className={`bg-slate-900 text-slate-200 border border-slate-700 rounded p-1 w-1/2 outline-none ${colorTheme.focus}`}
                     >
                       {medId === 'propofol' ? (
@@ -721,12 +678,12 @@ export const Pharmacopoeia = ({
                 </div>
                 {tciMode !== 'none' && (
                   <div className="flex gap-2">
-                    <input 
-                      type="number" 
+                    <input
+                      type="number"
                       step="0.1"
-                      placeholder="Target (mcg/mL)" 
+                      placeholder="Target (mcg/mL)"
                       className={`w-2/3 bg-slate-900 border border-slate-700 rounded p-1 text-white outline-none ${colorTheme.focus}`}
-                      value={tciTarget} 
+                      value={tciTarget}
                       onChange={(e) => setTciTarget(e.target.value)}
                       onKeyDown={(e) => { if (e.key === 'Enter') handleTciSubmit(medId); }}
                     />
@@ -743,26 +700,149 @@ export const Pharmacopoeia = ({
     );
   };
 
+  const renderTopDrawerCard = (item) => {
+    const med = MEDICATIONS[item.medId];
+    if (!med) return null;
+    const colorTheme = getMedColor(item.medId);
+    const isEditing = editingDrawerId === item.id;
+    const isInfusion = item.type === 'Infusion';
+
+    return (
+      <div key={item.id} className={`flex items-center gap-2 p-2 rounded-lg border ${colorTheme.active}`}>
+        <Syringe size={11} className={`shrink-0 ${colorTheme.text}`} />
+        <div className="flex-1 min-w-0">
+          <div className={`font-black text-[10px] uppercase font-mono ${colorTheme.text} truncate`}>{item.medName}</div>
+          {isEditing ? (
+            <div className="flex items-center gap-1 mt-0.5">
+              <input
+                autoFocus
+                type="number"
+                value={editingDose}
+                onChange={e => setEditingDose(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') handleTopDrawerEditSave(item.id);
+                  if (e.key === 'Escape') setEditingDrawerId(null);
+                }}
+                className={`w-16 bg-slate-900 border border-slate-700 rounded p-0.5 text-white text-[10px] font-mono outline-none ${colorTheme.focus}`}
+              />
+              <span className="text-[9px] text-slate-400 font-mono">{item.unit}</span>
+              <button onClick={() => handleTopDrawerEditSave(item.id)} className="text-emerald-400 text-[10px] font-bold hover:text-emerald-300 ml-1">✓</button>
+              <button onClick={() => setEditingDrawerId(null)} className="text-slate-500 text-[10px] hover:text-slate-300">✗</button>
+            </div>
+          ) : (
+            <div
+              className="text-[9px] text-slate-400 font-mono cursor-pointer hover:text-slate-200 transition"
+              onClick={() => { setEditingDrawerId(item.id); setEditingDose(String(item.totalDose)); }}
+              title="Click to edit dose"
+            >
+              {item.totalDose} {item.unit} · {item.route} · {isInfusion ? 'INF' : 'BOLUS'}
+            </div>
+          )}
+        </div>
+        <button
+          onClick={() => handleTopDrawerPush(item)}
+          className={`glass-button ${colorTheme.btn} px-2.5 py-1 text-[9px] font-black uppercase font-mono shrink-0`}
+        >
+          {isInfusion ? 'START' : 'PUSH'}
+        </button>
+        <button
+          onClick={() => handleTopDrawerRemove(item.id)}
+          className="text-slate-600 hover:text-rose-400 transition shrink-0 ml-0.5"
+          title="Remove from drawer"
+        >
+          <X size={11} />
+        </button>
+      </div>
+    );
+  };
+
+  const renderTopDrawerTab = () => {
+    const boluses = topDrawer.filter(i => i.type !== 'Infusion');
+    const infusions = topDrawer.filter(i => i.type === 'Infusion');
+
+    return (
+      <div className="flex flex-col gap-3 font-mono">
+        {topDrawer.length === 0 ? (
+          <div className="text-center py-8 px-4">
+            <Syringe size={28} className="mx-auto text-slate-700 mb-3" />
+            <div className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">Drawer Empty</div>
+            <div className="text-slate-600 text-[10px] leading-relaxed">
+              Open any medication below and type a dose, then click{' '}
+              <span className="text-slate-400 font-bold border border-slate-700 px-1 rounded">+ DRAWER</span>{' '}
+              to pre-draw it. During the case, come back here to push with one click.
+            </div>
+          </div>
+        ) : (
+          <>
+            {boluses.length > 0 && (
+              <div>
+                <div className="text-slate-400 text-[8.5px] font-black uppercase tracking-wider border-b border-slate-800/40 pb-0.5 mb-2">
+                  Bolus Syringes ({boluses.length})
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {boluses.map(renderTopDrawerCard)}
+                </div>
+              </div>
+            )}
+            {infusions.length > 0 && (
+              <div>
+                <div className="text-slate-400 text-[8.5px] font-black uppercase tracking-wider border-b border-slate-800/40 pb-0.5 mb-2">
+                  Infusion Lines Ready ({infusions.length})
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  {infusions.map(renderTopDrawerCard)}
+                </div>
+              </div>
+            )}
+            <div className="text-center">
+              <button
+                onClick={() => setTopDrawer([])}
+                className="text-[9px] text-slate-700 hover:text-rose-500 transition font-mono uppercase tracking-wider"
+                title="Clear all drawn-up syringes"
+              >
+                Clear Drawer
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
+
+  const renderFavoritesTab = () => {
+    const favMedIds = [...favorites].filter(id => MEDICATIONS[id]);
+    if (favMedIds.length === 0) {
+      return (
+        <div className="text-center py-8 px-4">
+          <Star size={28} className="mx-auto text-slate-700 mb-3" />
+          <div className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">No Favorites Yet</div>
+          <div className="text-slate-600 text-[10px] leading-relaxed">
+            Click the <span className="text-yellow-500 font-bold">★</span> on any medication to add it to your quick-access list.
+          </div>
+        </div>
+      );
+    }
+    return (
+      <div className="flex flex-col gap-1.5 font-mono">
+        {favMedIds.map(renderAdvancedMedButton)}
+      </div>
+    );
+  };
+
+  // === Search filter ===
   const term = searchTerm.toLowerCase();
   const filteredMeds = Object.keys(MEDICATIONS).filter(id => {
     const med = MEDICATIONS[id];
     const name = med.name.toLowerCase();
     const classes = med.classes.map(c => c.toLowerCase());
-    
     if (name.includes(term)) return true;
-    
-    // Normalize plural/singular suffix
     const singularTerm = (term.endsWith('s') && term.length > 3) ? term.slice(0, -1) : term;
     if (name.includes(singularTerm)) return true;
-    
-    // Check classes with plural/singular and synonym logic
     for (const c of classes) {
       if (c.includes(term) || c.includes(singularTerm)) return true;
       if (term.includes(c) || singularTerm.includes(c)) return true;
-      
-      // Synonym mappings
       if ((term.includes('benzo') || term.includes('bzd')) && c.includes('benzodiazepine')) return true;
-      if ((term.includes('paralytic') || term.includes('nmba') || term.includes('relaxant')) && 
+      if ((term.includes('paralytic') || term.includes('nmba') || term.includes('relaxant')) &&
           (c.includes('ndmr') || c.includes('depolarizing') || c.includes('relaxant'))) return true;
       if (term.includes('steroid') && c.includes('corticosteroid')) return true;
       if (term.includes('pressor') && (c.includes('pressor') || c.includes('vasopressor'))) return true;
@@ -776,16 +856,27 @@ export const Pharmacopoeia = ({
     return name.includes(term) || name.includes(singularTerm);
   });
 
+  const TABS = [
+    { id: 'topdrawer', label: 'Top Drawer', color: 'text-orange-400' },
+    { id: 'favorites', label: 'Favorites', color: 'text-slate-300' },
+    { id: 'induction', label: 'Induction/Sedation', color: 'text-yellow-400' },
+    { id: 'analgesia', label: 'Analgesics', color: 'text-teal-400' },
+    { id: 'paralytics', label: 'NMBAs/Reversal', color: 'text-cyan-400' },
+    { id: 'hemodynamics', label: 'Cardio/Vasoactive', color: 'text-rose-400' },
+    { id: 'antibiotics', label: 'Antibiotics', color: 'text-sky-400' },
+    { id: 'adjuncts', label: 'Electrolytes/Emergency', color: 'text-purple-400' },
+    { id: 'fluids', label: 'Resus Fluids', color: 'text-emerald-400' }
+  ];
 
   return (
     <div className="col-span-1 glass-panel glass-purple p-4 flex flex-col gap-4 overflow-y-auto overflow-x-hidden custom-scrollbar min-h-[500px] max-h-[800px]">
-      
+
       {/* Omni-Search */}
       <div className="relative shrink-0 font-mono">
         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
           <Search size={14} className="text-purple-400" />
         </div>
-        <input 
+        <input
           ref={searchRef}
           type="text"
           placeholder="Search Meds & Fluids (Cmd+F)"
@@ -804,7 +895,7 @@ export const Pharmacopoeia = ({
         <div className="flex flex-col gap-1 overflow-y-auto custom-scrollbar flex-1 pr-1">
           {filteredMeds.length > 0 && <span className="text-cyan-400 text-[10px] font-black uppercase tracking-widest border-b border-cyan-950 pb-1 mt-2 mb-1 font-mono">Medications</span>}
           {filteredMeds.map(m => renderAdvancedMedButton(m))}
-          
+
           {filteredFluids.length > 0 && <span className="text-teal-400 text-[10px] font-black uppercase tracking-widest border-b border-teal-950 pb-1 mt-3 mb-1 font-mono">Resus Fluids</span>}
           {filteredFluids.map(f => renderFluidButton(f))}
 
@@ -816,28 +907,32 @@ export const Pharmacopoeia = ({
         <div className="flex flex-col gap-3 flex-1 overflow-hidden">
           {/* Category Sub-Tabs */}
           <div className="flex gap-1 overflow-x-auto shrink-0 pb-1 border-b border-white/5 custom-scrollbar font-mono text-[9px] font-black uppercase tracking-wider">
-            {[
-              { id: 'induction', label: 'Induction/Sedation', color: 'text-yellow-400' },
-              { id: 'analgesia', label: 'Analgesics', color: 'text-teal-400' },
-              { id: 'paralytics', label: 'NMBAs/Reversal', color: 'text-cyan-400' },
-              { id: 'hemodynamics', label: 'Cardio/Vasoactive', color: 'text-rose-400' },
-              { id: 'antibiotics', label: 'Antibiotics', color: 'text-sky-400' },
-              { id: 'adjuncts', label: 'Electrolytes/Emergency', color: 'text-purple-400' },
-              { id: 'fluids', label: 'Resus Fluids', color: 'text-emerald-400' }
-            ].map(sub => (
-              <button 
-                key={sub.id} 
+            {TABS.map(sub => (
+              <button
+                key={sub.id}
                 onClick={() => setActiveSubTab(sub.id)}
-                className={`px-2.5 py-1.5 rounded-md transition shrink-0 ${activeSubTab === sub.id ? 'bg-white/10 text-white font-bold' : 'text-slate-500 hover:text-slate-300'}`}
+                className={`px-2.5 py-1.5 rounded-md transition shrink-0 relative ${activeSubTab === sub.id ? 'bg-white/10 text-white font-bold' : 'text-slate-500 hover:text-slate-300'}`}
               >
                 <span className={sub.color}>{sub.label}</span>
+                {sub.id === 'topdrawer' && topDrawer.length > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-orange-500 text-white text-[7px] font-black rounded-full w-3.5 h-3.5 flex items-center justify-center leading-none">
+                    {topDrawer.length}
+                  </span>
+                )}
+                {sub.id === 'favorites' && favorites.size > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-slate-400 text-black text-[7px] font-black rounded-full w-3.5 h-3.5 flex items-center justify-center leading-none">
+                    {favorites.size}
+                  </span>
+                )}
               </button>
             ))}
           </div>
 
-          {/* Category Grids */}
+          {/* Content area */}
           <div className="flex-1 overflow-y-auto pr-1 custom-scrollbar">
-            {activeSubTab === 'fluids' ? (
+            {activeSubTab === 'topdrawer' && renderTopDrawerTab()}
+            {activeSubTab === 'favorites' && renderFavoritesTab()}
+            {activeSubTab === 'fluids' && (
               <div className="flex flex-col gap-3 font-mono">
                 {Object.entries(GROUPS.fluids).map(([subName, fluidNames]) => (
                   <div key={subName} className="flex flex-col gap-1.5">
@@ -848,9 +943,10 @@ export const Pharmacopoeia = ({
                   </div>
                 ))}
               </div>
-            ) : (
+            )}
+            {!['topdrawer', 'favorites', 'fluids'].includes(activeSubTab) && (
               <div className="flex flex-col gap-3 font-mono">
-                {Object.entries(GROUPS[activeSubTab]).map(([subName, medIds]) => (
+                {Object.entries(GROUPS[activeSubTab] || {}).map(([subName, medIds]) => (
                   <div key={subName} className="flex flex-col gap-1.5">
                     <span className="text-slate-400 text-[8.5px] font-black uppercase tracking-wider border-b border-slate-800/40 pb-0.5 mb-1 font-mono">
                       {subName}
@@ -866,7 +962,7 @@ export const Pharmacopoeia = ({
                       <span className="font-black text-blue-300 uppercase">Cobalamin & Folate</span>
                       <span className="text-[8px] text-slate-500 leading-tight">Intravenous rescue for N2O toxicity</span>
                     </div>
-                    <button 
+                    <button
                       onClick={() => {
                         if (setPatient) {
                           setPatient(p => ({
@@ -881,7 +977,7 @@ export const Pharmacopoeia = ({
                         if (logEvent) {
                           logEvent("✅ SUCCESS: High-dose intravenous cobalamin (Vitamin B12) and folate administered! Methionine synthase activity restored to 100% and homocysteine levels normalized.");
                         }
-                      }} 
+                      }}
                       className="glass-button glass-button-blue py-1.5 px-3 rounded-lg text-[9px] font-black uppercase tracking-wider text-white shrink-0 hover:bg-blue-600/40"
                     >
                       Administer

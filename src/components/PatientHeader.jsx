@@ -27,13 +27,22 @@ export const PatientHeader = ({
   logEvent,
   setPatient
 }) => {
-  const FONT_STEPS = [0.88, 1.0, 1.1, 1.2];
-  const FONT_LABELS = ['S', 'M', 'L', 'XL'];
-  const currentFontIdx = FONT_STEPS.findIndex(s => Math.abs(s - (uiFontScale || 1.0)) < 0.01);
-  const cycleFontSize = (e) => {
+  const FONT_MIN = 0.80;
+  const FONT_MAX = 1.50;
+  const FONT_STEP = 0.05;
+  const currentScale = uiFontScale || 1.1;
+  const scalePct = Math.round(currentScale * 100);
+  const decreaseFontSize = (e) => {
     e.stopPropagation();
-    const nextIdx = ((currentFontIdx === -1 ? 1 : currentFontIdx) + 1) % FONT_STEPS.length;
-    if (setUiFontScale) setUiFontScale(FONT_STEPS[nextIdx]);
+    if (setUiFontScale) setUiFontScale(prev => Math.max(FONT_MIN, Math.round((prev - FONT_STEP) * 100) / 100));
+  };
+  const increaseFontSize = (e) => {
+    e.stopPropagation();
+    if (setUiFontScale) setUiFontScale(prev => Math.min(FONT_MAX, Math.round((prev + FONT_STEP) * 100) / 100));
+  };
+  const resetFontSize = (e) => {
+    e.stopPropagation();
+    if (setUiFontScale) setUiFontScale(1.1);
   };
   const [showTimeOutModal, setShowTimeOutModal] = useState(false);
   const [showFfDropdown, setShowFfDropdown] = useState(false);
@@ -392,19 +401,37 @@ export const PatientHeader = ({
               <Dna size={14} /> RECEPTORS
             </button>
 
-            {/* Font Size Cycle Control */}
+            {/* Font Size Control */}
             {setUiFontScale && (
-              <button
-                onClick={cycleFontSize}
-                onMouseDown={e => e.stopPropagation()}
-                title={`UI text size: ${FONT_LABELS[currentFontIdx === -1 ? 1 : currentFontIdx]} — click to cycle S → M → L → XL`}
-                className="px-3 py-2 text-xs font-bold flex items-center justify-center gap-1 flex-1 xl:flex-none whitespace-nowrap rounded-lg shadow-md transition duration-200 active:scale-95 border glass-button hover:bg-slate-800/40 border-slate-700 hover:border-slate-500"
+              <div
+                className="flex items-stretch gap-0 rounded-lg border border-slate-700 overflow-hidden shadow-md flex-1 xl:flex-none"
+                title="Adjust UI text size — persists across sessions"
               >
-                {/* Visual: smaller A and larger A side by side to indicate text size */}
-                <span className="font-black leading-none" style={{ fontSize: '0.7em', color: '#94a3b8' }}>A</span>
-                <span className="font-black leading-none" style={{ fontSize: '1.05em', color: '#e2e8f0' }}>A</span>
-                <span className="text-slate-400 font-mono" style={{ fontSize: '0.65em' }}>{FONT_LABELS[currentFontIdx === -1 ? 1 : currentFontIdx]}</span>
-              </button>
+                <button
+                  onClick={decreaseFontSize}
+                  onMouseDown={e => e.stopPropagation()}
+                  disabled={currentScale <= FONT_MIN}
+                  className="px-2.5 py-2 text-sm font-black text-slate-300 hover:bg-slate-700/60 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition border-r border-slate-700 select-none"
+                >
+                  A<span style={{ fontSize: '0.65em', verticalAlign: 'super' }}>−</span>
+                </button>
+                <button
+                  onClick={resetFontSize}
+                  onMouseDown={e => e.stopPropagation()}
+                  className="px-2 py-2 font-mono text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-700/40 active:scale-95 transition min-w-[36px] text-center select-none tabular-nums"
+                  title="Reset to default (110%)"
+                >
+                  {scalePct}%
+                </button>
+                <button
+                  onClick={increaseFontSize}
+                  onMouseDown={e => e.stopPropagation()}
+                  disabled={currentScale >= FONT_MAX}
+                  className="px-2.5 py-2 text-sm font-black text-slate-300 hover:bg-slate-700/60 active:scale-95 disabled:opacity-30 disabled:pointer-events-none transition border-l border-slate-700 select-none"
+                >
+                  A<span style={{ fontSize: '0.65em', verticalAlign: 'super' }}>+</span>
+                </button>
+              </div>
             )}
 
             {/* Timeskip / Fast-Forward Control */}

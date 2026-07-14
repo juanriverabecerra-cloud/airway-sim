@@ -499,8 +499,11 @@ export default function App() {
   const [showLabPanel, setShowLabPanel] = useState(false);
   const [showFidelityPanel, setShowFidelityPanel] = useState(false);
   const [showReceptorPanel, setShowReceptorPanel] = useState(false);
-  // UI font scale: 0.88 = compact, 1.0 = default, 1.1 = large, 1.2 = xl
-  const [uiFontScale, setUiFontScale] = useState(1.0);
+  // UI font scale: persisted to localStorage, default 1.1 (slightly larger than browser default)
+  const [uiFontScale, setUiFontScale] = useState(() => {
+    const saved = parseFloat(localStorage.getItem('airway-font-scale'));
+    return (isNaN(saved) || saved < 0.5 || saved > 2.0) ? 1.1 : saved;
+  });
   // Vital context panel (click any vital box on any monitor)
   const [vitalContext, setVitalContext] = useState(null); // { id, rect }
   const openVitalContext = useCallback((id, e) => {
@@ -567,6 +570,10 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('airway_sim_sound_settings', JSON.stringify(soundSettings));
   }, [soundSettings]);
+
+  useEffect(() => {
+    localStorage.setItem('airway-font-scale', uiFontScale.toString());
+  }, [uiFontScale]);
 
 
   
@@ -1665,10 +1672,10 @@ export default function App() {
     
     if (type.includes('14G') && !type.includes('CVC')) { radius = 0.85; length = 45; }
     else if (type.includes('16G') && !type.includes('CVC')) { radius = 0.665; length = 45; }
-    else if (type.includes('18G') && !type.includes('CVC')) { radius = 0.475; length = 32; }
-    else if (type.includes('20G') && !type.includes('CVC')) { radius = 0.405; length = 30; }
-    else if (type.includes('22G') && !type.includes('CVC')) { radius = 0.30; length = 25; }
-    else if (type.includes('24G') && !type.includes('CVC')) { radius = 0.235; length = 19; }
+    else if (type.includes('18G') && !type.includes('CVC')) { radius = 0.490; length = 32; }
+    else if (type.includes('20G') && !type.includes('CVC')) { radius = 0.415; length = 30; }
+    else if (type.includes('22G') && !type.includes('CVC')) { radius = 0.343; length = 25; }
+    else if (type.includes('24G') && !type.includes('CVC')) { radius = 0.258; length = 19; }
     else if (type.includes('Single Lumen CVC')) { radius = 0.85; length = 200; venousPressure = 5; veinResistance = 0; }
     else if (type.includes('CVC')) { radius = 0.475; length = 200; venousPressure = 5; veinResistance = 0; }
     else if (type.includes('Trauma Cordis')) { radius = 1.15; length = 100; venousPressure = 5; veinResistance = 0; }
@@ -1763,11 +1770,25 @@ export default function App() {
       logEvent(`❌ FAILED: Attempted to place ${device}, but massive blood/secretions in the airway rendered it immediately ineffective and triggered gagging/coughing.`);
       return;
     }
-    if (patient.isTopicalized === false && !patient.isApneic && device.includes('OPA')) {
-      logEvent(`❌ FAILED: Patient is awake! Placing an OPA caused severe gagging and laryngospasm!`);
-      return;
+    // Same depth gate as processIntubation — protective reflexes are lost when paralyzed,
+    // apneic, RR < 5 (opioid/propofol depression), or BIS < 65 (deep sedation).
+    const hasLostProtectiveReflexes =
+      patient.isParalyzed ||
+      patient.isApneic ||
+      (vitals?.rr !== undefined && vitals.rr < 5) ||
+      (vitals?.bis !== undefined && vitals.bis < 65);
+
+    if (!hasLostProtectiveReflexes && device.includes('OPA')) {
+      if (!patient.isTopicalized) {
+        logEvent(`❌ FAILED: Patient is awake! Placing an OPA caused severe gagging and laryngospasm!`);
+        return;
+      }
     }
     if (device.includes('Laryngeal Mask Airway')) {
+      if (!hasLostProtectiveReflexes && !patient.isTopicalized) {
+        logEvent(`❌ FAILED: Patient is conscious! LMA placement triggered coughing, gagging, and laryngospasm. Deepen anesthesia or use neuromuscular blockade before placing a supraglottic airway.`);
+        return;
+      }
       logEvent(`✅ Placed ${device}. Airway secured via supraglottic device.`);
       setPatient(p => ({...p, airwaySecured: true, ventilationStatus: 'successful', currentO2Device: 'LMA (100% FiO2)', currentFiO2: 100, currentO2Flow: 15, lastAirwayManipulationTime: time, lastAirwayManipulationType: 'device'}));
       return;
@@ -1787,10 +1808,24 @@ export default function App() {
     let tFio2 = 21;
     let tFlow = flow ? parseInt(flow) : (id.includes('Cannula') ? 2 : 15);
 
-    if (id === 'Bag-Mask Valve (BMV)' || id.includes('Non-Rebreather')) { tFio2 = 100; tFlow = 15; }
-    else if (id.includes('Nasal Cannula')) tFio2 = 21 + (tFlow * 4);
-    else if (id.includes('Face Mask')) tFio2 = 40 + (tFlow * 2);
-    else if (id.includes('High Flow') || id.includes('CPAP') || id.includes('BiPAP')) tFio2 = fio2 ? parseInt(fio2) : 100;
+    if (id === 'Bag-Mask Valve (BMV)' || id.includes('Non-Rebreather')) {
+      tFio2 = 100; tFlow = 15;
+    } else if (id.includes('High Flow') || id.includes('CPAP') || id.includes('BiPAP')) {
+      // HFNC/CPAP/BiPAP: FiO2 is user-specified (21-100%). Must check BEFORE 'Nasal Cannula'
+      // because 'High Flow Nasal Cannula' contains the substring 'Nasal Cannula'.
+      tFio2 = fio2 ? Math.min(100, Math.max(21, parseInt(fio2))) : 100;
+    } else if (id.includes('Nasal Cannula')) {
+      // Standard NC: validated only to 6 L/min (+4%/L). Above 6 L/min requires HFNC.
+      const cappedFlow = Math.min(6, Math.max(1, tFlow));
+      tFlow = cappedFlow;
+      tFio2 = 21 + (cappedFlow * 4); // 25-45%
+    } else if (id.includes('Face Mask')) {
+      // Simple face mask: minimum 5 L/min (below → CO2 rebreathing in mask dead space);
+      // max benefit at ~10-12 L/min (~60% FiO2).
+      const cappedFlow = Math.min(12, Math.max(5, tFlow));
+      tFlow = cappedFlow;
+      tFio2 = Math.min(60, 40 + (cappedFlow * 2));
+    }
 
     saveState(`Applied ${desc}. O2 Buffer equilibrating...`);
     setPatient(p => ({ 
@@ -2163,9 +2198,18 @@ export default function App() {
     setSetupModal(false);
     setPatient(p => ({...p, dlAttempts: (p.dlAttempts || 0) + 1, laryngoscopyActive: true, laryngoscopyTime: time}));
 
-    if (!patient.isApneic && !blade.includes('Fiberoptic')) {
+    // Protective airway reflexes are lost when paralyzed, apneic, deeply sedated
+    // (BIS < 65 covers propofol/volatile induction), or when RR < 5 (deep opioid/propofol).
+    // Fiberoptic intubation is performed awake-with-topicalization and bypasses this gate.
+    const hasAdequateDepthForIntubation =
+      patient.isParalyzed ||
+      patient.isApneic ||
+      (vitals?.rr !== undefined && vitals.rr < 5) ||
+      (vitals?.bis !== undefined && vitals.bis < 65);
+
+    if (!hasAdequateDepthForIntubation && !blade.includes('Fiberoptic')) {
        if (!patient.isTopicalized) {
-          logEvent(`❌ FAILED: Patient is awake and not topicalized! Severe gag reflex and laryngospasm triggered!`);
+          logEvent(`❌ FAILED: Patient retains protective airway reflexes. Severe gag reflex and laryngospasm triggered during laryngoscopy. Ensure adequate anesthetic depth, administer a neuromuscular blocking agent, or topicalize the airway before direct laryngoscopy.`);
           setPatient(p => ({...p, ventilationStatus: 'failed', targetBuffer: 0, laryngoscopyActive: false}));
           return;
        }
@@ -2527,6 +2571,7 @@ export default function App() {
              checkRhythm={handleCheckRhythm}
              time={time}
              formatTime={formatTime}
+             vitals={vitals}
              setAccessModal={setAccessModal}
              generateLab={generateLab}
              placeEpidural={handlePlaceEpidural}
@@ -2562,6 +2607,7 @@ export default function App() {
              msmaidsComplete={msmaidsComplete}
              performLarsonManeuver={performLarsonManeuver}
              examineNpoHistory={examineNpoHistory}
+             vitals={vitals}
           />
         </div>
         
@@ -2577,26 +2623,25 @@ export default function App() {
              logEvent={logEvent}
              openDrugConsult={openDrugConsult}
           />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <MemoryPanel
-               patient={patient}
-               vitals={vitals}
-               activeMeds={activeMeds}
-               setPatient={setPatient}
-               logEvent={logEvent}
-               toggleBis={handleToggleBis}
-               toggleTof={handleToggleTof}
-               toggleTofMode={handleToggleTofMode}
-               surgicalPhase={surgicalPhase}
-            />
-            <LogPanel
-               logs={logs} 
-               formatTime={formatTime} 
-               onActionClick={handleExecuteClinicalAction}
-            />
-          </div>
+          <MemoryPanel
+             patient={patient}
+             vitals={vitals}
+             activeMeds={activeMeds}
+             setPatient={setPatient}
+             logEvent={logEvent}
+             toggleBis={handleToggleBis}
+             toggleTof={handleToggleTof}
+             toggleTofMode={handleToggleTofMode}
+             surgicalPhase={surgicalPhase}
+          />
         </div>
       </div>
+
+      {/* Clinical log drawer — fixed right-side, z-[120], self-contained toggle */}
+      <LogPanel
+        logs={logs}
+        onActionClick={handleExecuteClinicalAction}
+      />
 
       {!patient?.isFuzzing && (
         <>
@@ -2726,6 +2771,7 @@ export default function App() {
           onSetVent={handleSetVentSettings}
           onSetGas={handleSetGasSettings}
           onSetPatient={setPatient}
+          onSetO2={handleSetO2}
           onLogEvent={logEvent}
         />
       )}

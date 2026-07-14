@@ -155,38 +155,104 @@ export const VITAL_CONFIG = {
           status: anaphylaxisActive ? 'critical' : 'ok' },
       ];
     },
-    getActions: ({ vitals, patient, activeMeds, ventSettings }, { processMed, setVent, logEvent }) => {
-      const spo2 = vitals?.spo2 || 98;
-      const fio2 = vitals?.fiO2 || 21;
-      const wt   = patient?.weight || 70;
+    getActions: ({ vitals, patient, activeMeds, ventSettings }, { processMed, setVent, setO2, logEvent }) => {
+      const spo2     = vitals?.spo2 || 98;
+      const fio2     = vitals?.fiO2 || 21;
+      const wt       = patient?.weight || 70;
+      const secured  = !!patient?.airwaySecured;
       // Airway obstruction from ANY source
-      const rawResistance    = vitals?.res || 5;
-      const airwayObstructed = patient?.bronchospasm || rawResistance > 9;
-      const anaphylaxisActive= patient?.anaphylaxisTriggered || patient?.anaphylaxisActive || false;
+      const rawRes   = vitals?.res || 5;
+      const obstr    = patient?.bronchospasm || rawRes > 9;
+      const anaph    = !!(patient?.anaphylaxisTriggered || patient?.anaphylaxisActive);
+      const metHb    = vitals?.metHb || 0;
+      const coHb     = vitals?.coHb || 0;
+
+      // Current O2 device rank (used to avoid showing downgrades)
+      const dev      = patient?.currentO2Device || 'Room Air';
+      const isNC     = dev.includes('Nasal Cannula') && !dev.includes('High Flow');
+      const isFM     = dev.includes('Face Mask') && !dev.includes('Non-Rebreather');
+      const isNRM    = dev.includes('Non-Rebreather') || dev.includes('Non-Rebreather');
+      const isHFNC   = dev.includes('High Flow');
+      const isNIPPV  = dev.includes('BiPAP') || dev.includes('CPAP');
+      const devRank  = dev === 'Room Air' ? 0 : isNC ? 1 : isFM ? 2 : isNRM ? 3 : isHFNC ? 4 : isNIPPV ? 5 : 6;
+
       return [
-        { label: 'FiO₂ → 100%', category: 'vent', urgent: spo2 < 90, hidden: fio2 >= 99,
-          detail: 'Maximize alveolar O2. First step for any hypoxemia.',
+        // ── Supplemental O2 for non-intubated (escalating ladder) ────────────
+        { label: 'Nasal Cannula 2 L', category: 'vent', urgent: false,
+          hidden: secured || devRank >= 1 || spo2 >= 96,
+          detail: 'Low-flow O2 (FiO2 ~29%). For SpO2 90-95%, comfort supplementation, or at-risk patients.',
+          action: () => setO2('Nasal Cannula', 2) },
+        { label: 'Nasal Cannula 4 L', category: 'vent', urgent: false,
+          hidden: secured || devRank > 1 || spo2 >= 93,
+          detail: 'Standard NC at 4 L/min (FiO2 ~37%). Comfortable; max validated is 6 L/min.',
+          action: () => setO2('Nasal Cannula', 4) },
+        { label: 'Face Mask 8 L', category: 'vent', urgent: spo2 < 90,
+          hidden: secured || devRank >= 3 || spo2 >= 95,
+          detail: 'Simple face mask at 8 L/min (FiO2 ~56%). Use ≥5 L/min to flush CO2 from mask dead-space.',
+          action: () => setO2('Face Mask', 8) },
+        { label: 'Non-Rebreather 15 L', category: 'vent', urgent: spo2 < 88,
+          hidden: secured || devRank >= 3 || spo2 >= 92,
+          detail: 'NRM at 15 L/min delivers ~100% FiO2. First-line for moderate-severe hypoxemia and CO poisoning.',
+          action: () => setO2('Non-Rebreather Mask', 15) },
+        { label: 'HFNC 40 L, 100%', category: 'vent', urgent: spo2 < 85,
+          hidden: secured || devRank >= 4 || spo2 >= 88,
+          detail: 'High-flow nasal cannula (FiO2 100%, 40 L/min). Generates ~3-5 cmH2O PEEP effect. Better tolerance than NRM for prolonged use.',
+          action: () => setO2('High Flow Nasal Cannula (HFNC)', 40, 100) },
+        { label: 'BiPAP IPAP 10/EPAP 5', category: 'vent', urgent: spo2 < 82,
+          hidden: secured || devRank >= 5 || spo2 >= 85,
+          detail: 'Non-invasive positive pressure ventilation. Reduces work of breathing + PEEP effect. Consider before intubation in COPD/pulmonary edema.',
+          action: () => setO2('BiPAP', 15, 100, 10, 5, 12) },
+
+        // ── Vent adjustments for intubated patients ───────────────────────────
+        { label: 'FiO₂ → 100%', category: 'vent', urgent: spo2 < 90,
+          hidden: !secured || fio2 >= 99,
+          detail: 'Maximize alveolar PO2. First step for any intraoperative hypoxemia.',
           action: () => { setVent({ fio2: 100 }); logEvent('FiO2 increased to 100%.'); } },
-        { label: 'FiO₂ → 50%',  category: 'vent', urgent: false, hidden: fio2 >= 50,
-          detail: 'Increase inspired O2 for mild hypoxemia.',
-          action: () => { setVent({ fio2: 50 }); logEvent('FiO2 set to 50%.'); } },
-        { label: '+PEEP 2 cmH2O', category: 'vent', urgent: false, hidden: !patient?.airwaySecured,
-          detail: 'Recruits atelectatic alveoli → ↓shunt. Most common cause of intraop hypoxemia.',
+        { label: 'FiO₂ → 60%',  category: 'vent', urgent: false,
+          hidden: !secured || fio2 >= 60 || fio2 <= 35,
+          detail: 'Moderate FiO2 increase for mild hypoxemia. Avoids absorption atelectasis risk of 100%.',
+          action: () => { setVent({ fio2: 60 }); logEvent('FiO2 set to 60%.'); } },
+        { label: 'FiO₂ → 40%',  category: 'vent', urgent: false,
+          hidden: !secured || fio2 >= 40 || fio2 <= 21,
+          detail: 'Titrate FiO2 downward once SpO2 ≥95%. Reduces risk of oxygen toxicity and absorption atelectasis.',
+          action: () => { setVent({ fio2: 40 }); logEvent('FiO2 set to 40%.'); } },
+        { label: '+PEEP 2 cmH2O', category: 'vent', urgent: false,
+          hidden: !secured,
+          detail: 'Recruits atelectatic alveoli → ↓shunt. Most common intraop hypoxemia mechanism.',
           action: () => { setVent({ peep: Math.min(20, (ventSettings?.peep || 5) + 2) }); logEvent('PEEP increased by 2 cmH2O.'); } },
-        { label: 'Albuterol 2.5mg', category: 'med', urgent: airwayObstructed, hidden: !airwayObstructed,
-          detail: 'β2 bronchodilator → relaxes bronchial smooth muscle → ↓airway resistance.',
+        { label: '+PEEP 5 cmH2O', category: 'vent', urgent: spo2 < 88 && secured,
+          hidden: !secured || spo2 >= 90,
+          detail: 'Aggressive PEEP titration for refractory hypoxemia (ARDS, atelectasis). Monitor for RV strain.',
+          action: () => { setVent({ peep: Math.min(20, (ventSettings?.peep || 5) + 5) }); logEvent('PEEP increased by 5 cmH2O.'); } },
+
+        // ── Bronchospasm ──────────────────────────────────────────────────────
+        { label: 'Albuterol 2.5mg', category: 'med', urgent: obstr,
+          hidden: !obstr,
+          detail: 'β2 bronchodilator → ↓airway resistance. First-line for bronchospasm.',
           action: () => processMed('albuterol', '2.5', 'IV', 'Bolus', 'mg') },
-        { label: 'Ketamine 0.5mg/kg', category: 'med', urgent: airwayObstructed && rawResistance > 15, hidden: rawResistance < 12,
+        { label: 'Ketamine 0.5 mg/kg', category: 'med', urgent: obstr && rawRes > 15,
+          hidden: rawRes < 12,
           detail: 'Bronchodilator via catecholamine release. Use for severe/refractory bronchospasm.',
           action: () => processMed('ketamine', String(Math.round(wt * 0.5)), 'IV', 'Bolus', 'mg') },
-        { label: 'Epinephrine 0.3mg IM', category: 'med', urgent: anaphylaxisActive, hidden: !anaphylaxisActive,
-          detail: 'First-line anaphylaxis: α1 (↑SVR) + β2 (bronchodilation). Fastest IM onset = thigh.',
+
+        // ── Anaphylaxis ───────────────────────────────────────────────────────
+        { label: 'Epinephrine 0.3mg IM', category: 'med', urgent: anaph,
+          hidden: !anaph,
+          detail: 'First-line anaphylaxis: α1 (↑SVR) + β2 (bronchodilation). Fastest onset via anterolateral thigh.',
           action: () => processMed('epinephrine', '0.3', 'IV', 'Bolus', 'mg') },
-        { label: 'Methylene Blue 1mg/kg', category: 'med', urgent: (vitals?.metHb || 0) > 20, hidden: (vitals?.metHb || 0) < 10 || patient?.g6pdDeficiency,
-          detail: 'Reduces MetHb → HbO2. CONTRAINDICATED in G6PD deficiency.',
+
+        // ── Hemoglobin dysfunction ────────────────────────────────────────────
+        { label: 'Methylene Blue 1 mg/kg', category: 'med', urgent: metHb > 20,
+          hidden: metHb < 10 || !!patient?.g6pdDeficiency,
+          detail: 'Reduces MetHb → functional HbO2. CONTRAINDICATED in G6PD deficiency (hemolysis risk).',
           action: () => processMed('methylene_blue', String(Math.round(wt)), 'IV', 'Bolus', 'mg') },
-        { label: '100% O2 (CO poisoning)', category: 'other', urgent: (vitals?.coHb || 0) > 20, hidden: (vitals?.coHb || 0) < 5,
-          detail: 'Displaces CO from Hb. Half-life: 6h on room air → 60-90 min on 100% O2.',
+        { label: 'NRM 100% O2 (CO)', category: 'vent', urgent: coHb > 20,
+          hidden: coHb < 5 || secured,
+          detail: 'Displaces CO from Hb (competes at same binding site). T½: 6h room air → 60-90 min on 100% O2.',
+          action: () => setO2('Non-Rebreather Mask', 15) },
+        { label: 'FiO₂ 100% (CO)', category: 'vent', urgent: coHb > 20,
+          hidden: coHb < 5 || !secured || fio2 >= 99,
+          detail: 'Maximizes CO elimination via competitive displacement. T½ 60-90 min on 100% O2 vs 6h room air.',
           action: () => { setVent({ fio2: 100 }); logEvent('FiO2 100% for CO poisoning treatment.'); } },
       ].filter(a => !a.hidden);
     },

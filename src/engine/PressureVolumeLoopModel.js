@@ -133,12 +133,22 @@ export function generatePressureVolumeLoopFromMechanics(patient, vitals, ventSet
   const pip = Math.max(...trajectory.map((s) => s.paw));
   const peep = params.peep;
   const vte = Math.max(...trajectory.map((s) => s.deltaV));
+
+  // pplat = plateau pressure: the airway pressure at peak volume (end of inspiration),
+  // where flow has decelerated to zero and only elastic recoil pressure remains.
+  // For VCV: pplat < PIP (resistive drop gone); for PCV: pplat ≈ target pressure.
+  // Clinical use: Cstat = Vt / (Pplat - PEEP); Presist = PIP - Pplat.
+  let iMaxV = 0;
+  trajectory.forEach((s, i) => { if (s.deltaV > (trajectory[iMaxV]?.deltaV ?? 0)) iMaxV = i; });
+  const pplat = trajectory[iMaxV]?.paw ?? pip;
+  const staticCompliance = vte > 0.5 ? vte / Math.max(1, pplat - peep) : params.complianceCurve?.cFrc ?? DEFAULT_C;
+  const resistivePressureDrop = Math.max(0, pip - pplat);
+
   // "Dynamic" compliance (Vt / (PIP-PEEP)) is a real clinical term, but it conflates
   // resistance and elastic stiffness (PIP includes the resistive pressure drop). Check
   // resistance directly (R alone, unconflated) FIRST so a clear high-resistance/near-
   // normal-static-compliance case (bronchospasm) is not mislabeled "low compliance."
   const dynamicCompliance = vte > 0.5 ? vte / Math.max(1, pip - peep) : params.complianceCurve?.cFrc || DEFAULT_C;
-  const staticCompliance = params.complianceCurve?.cFrc || DEFAULT_C;
 
   let pattern = 'normal';
   let title = 'Normal P-V Loop';
@@ -165,11 +175,11 @@ export function generatePressureVolumeLoopFromMechanics(patient, vitals, ventSet
   if (vte < 0.5) {
     return {
       points: trajectory.map((s) => ({ pressure: peep, volume: frcL })),
-      pip: peep, peep, vte: 0, dynamicCompliance: 0,
+      pip: peep, peep, pplat: peep, vte: 0, dynamicCompliance: 0, staticCompliance: 0, resistivePressureDrop: 0,
       pattern: 'apneic', title: 'Apneic Flatline', alertType: 'critical',
       interpretation: 'No respiratory cycles. Loop collapsed at baseline PEEP.'
     };
   }
 
-  return { points, pip, peep, vte, dynamicCompliance, pattern, title, alertType, interpretation };
+  return { points, pip, peep, pplat, vte, dynamicCompliance, staticCompliance, resistivePressureDrop, pattern, title, alertType, interpretation };
 }

@@ -189,10 +189,13 @@ describe('Chapter 17 Renal Physiology and Pathophysiology Unit Tests', () => {
       expect(out0.akiStage).toBe(0);
 
       // 2. Stage 1 (Oliguria >= 6h)
+      // Must run under genuinely oliguric conditions (MAP=65, C_cat=15 → UOP ~10 mL/hr)
+      // so the pre-loaded timer is NOT reset by adequate-UOP logic this tick.
+      // The Stage 3 anuria test below uses the same design pattern (map: 25).
       const out1_timer = RenalEngine.tick(1, {
         patient: { weight: 70, baselineCreatinine: 0.85, creatinine: 0.85, uopOliguriaTimer: 7 * 3600, uopAnuriaTimer: 0 },
         vitals, time: 0
-      }, [], baseInputs);
+      }, [], { ...baseInputs, map: 65.0, C_cat: 15.0 });
       expect(out1_timer.akiStage).toBe(1);
 
       // 3. Stage 1 (Creatinine ratio >= 1.5)
@@ -202,11 +205,11 @@ describe('Chapter 17 Renal Physiology and Pathophysiology Unit Tests', () => {
       }, [], baseInputs);
       expect(out1_cr.akiStage).toBe(1);
 
-      // 4. Stage 2 (Oliguria >= 12h)
+      // 4. Stage 2 (Oliguria >= 12h) — same design as Stage 1 timer test above
       const out2_timer = RenalEngine.tick(1, {
         patient: { weight: 70, baselineCreatinine: 0.85, creatinine: 0.85, uopOliguriaTimer: 13 * 3600, uopAnuriaTimer: 0 },
         vitals, time: 0
-      }, [], baseInputs);
+      }, [], { ...baseInputs, map: 65.0, C_cat: 15.0 });
       expect(out2_timer.akiStage).toBe(2);
 
       // 5. Stage 2 (Creatinine ratio >= 2.0)

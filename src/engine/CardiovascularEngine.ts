@@ -802,10 +802,24 @@ export class CardiovascularEngine {
     let roundedDia = Math.max(0, Math.round(newMap - (1 / 3) * basePP + diaNoise));
     if (roundedDia >= roundedSys - 10) roundedDia = Math.max(0, roundedSys - 10);
 
-    // CPR Resuscitation Pressures
+    // CPR Resuscitation Pressures (first pass — used for ischemic damage calculation below)
+    // Alpha-1 vasoconstriction from epinephrine increases diastolic BP during CPR,
+    // directly raising coronary perfusion pressure (CPP = diastolic − LVEDP), the
+    // primary physiologic determinant of ROSC (Paradis et al. JAMA 1990; AHA 2020).
+    // Vasopressin provides an additive CPP boost via V1 receptor vasoconstriction.
+    const cprEpiAlpha1 = (isArrestState && patient.cprActive)
+      ? Math.min(1.0, safeAlpha1ActivityIndex / 1.5) : 0;
+    const cprVasopressinPresent = isArrestState && patient.cprActive
+      && inputs.activeMeds.some(m => m.name === 'Vasopressin' && (m as any).A1 > 0.01);
+    const cprDiastolicBoost = cprEpiAlpha1 * 22 + (cprVasopressinPresent ? 8 : 0);
     if (isArrestState) {
-      roundedSys = patient.cprActive ? Math.round(80 + (Math.random() * 15)) : 0;
-      roundedDia = patient.cprActive ? Math.round(25 + (Math.random() * 10)) : 0;
+      if (patient.cprActive) {
+        roundedSys = Math.round(80 + cprDiastolicBoost * 0.7 + Math.random() * 15);
+        roundedDia = Math.round(22 + cprDiastolicBoost + Math.random() * 8);
+      } else {
+        roundedSys = 0;
+        roundedDia = 0;
+      }
       newMap = Math.max(0, Math.round(roundedDia + (roundedSys - roundedDia) / 3));
     }
 
@@ -904,10 +918,34 @@ export class CardiovascularEngine {
     }
 
     // Spontaneous ROSC (PEA/Asystole)
+    // Model: ROSC probability per tick scales with coronary perfusion pressure (CPP)
+    // during CPR. CPP = diastolic BP during compressions − LVEDP. Epinephrine raises
+    // diastolic pressure via alpha-1 vasoconstriction, which is why it is the first-line
+    // drug in ACLS. Target CPP > 15 mmHg correlates with ROSC (AHA 2020 guidelines).
     let spontaneousRosc = false;
-    if (isArrestState && (currentRhythm === 'pea' || currentRhythm === 'asystole') && patient.cprActive) {
-      const hasEpi = activeMeds.find(m => m.name === 'Epinephrine' && (m as any).A1 > 0.1);
-      if (safeBuffer > (safeFRC_L * 0.50) && safeBloodLossRatio < 0.2 && hasEpi && tCv < 1.3 && Math.random() < 0.04) {
+    if (isArrestState && (currentRhythm === 'pea' || currentRhythm === 'asystole') && patient.cprActive && !patient.biologicalDeath) {
+      // Estimated CPP during CPR (uses same drug-augmented diastolic as the pressure block above)
+      const cprCPP = Math.max(0, (22 + cprDiastolicBoost) - lvedpVal);
+
+      // ROSC probability per tick: nonlinear function of CPP.
+      // CPP=0→ ~0.05%/tick, CPP=10→ ~0.19%/tick, CPP=20→ ~0.85%/tick, CPP=30→ ~4%/tick
+      let roscProb = 0.0005 + Math.min(0.04, Math.pow(cprCPP / 30, 2) * 0.04);
+
+      // Oxygenation: severe hypoxia during CPR severely impairs ROSC probability.
+      // Relaxed from the prior hard gate (buffer > 50% FRC) to a probability modifier,
+      // covering scenarios where the airway is not yet secured but bag-mask is being used.
+      if (safeBuffer < safeFRC_L * 0.25) roscProb *= 0.15;
+
+      // Hypovolemia: hemorrhagic PEA requires volume resuscitation — ROSC is impaired
+      // but not impossible (tourniquet application, proximal aortic compression in trauma).
+      if (safeBloodLossRatio > 0.4) roscProb *= 0.05;
+      else if (safeBloodLossRatio > 0.2) roscProb *= 0.25;
+
+      // LAST (local anesthetic cardiac toxicity): highly refractory to standard ACLS.
+      // Requires Intralipid lipid-sink rescue to terminate.
+      if (tCv >= 1.3) roscProb *= 0.05;
+
+      if (Math.random() < roscProb) {
         spontaneousRosc = true;
       }
     }
@@ -915,14 +953,21 @@ export class CardiovascularEngine {
     if (spontaneousRosc) {
       isArrestState = false;
       currentRhythm = 'normal';
-      events.push(`✅ SPONTANEOUS ROSC ACHIEVED from PEA/Asystole! Underlying causes treated.`);
+      events.push(`✅ ROSC ACHIEVED! Organized rhythm restored. Monitor EtCO₂ (should rise), check pulse, and treat reversible causes to prevent re-arrest.`);
     }
 
-    // Vitals overrides under arrest
+    // Final vitals overrides under arrest — must be last to capture all arrest triggers
     if (isArrestState) {
-      roundedSys = patient.cprActive ? 80 + Math.round(Math.random() * 15) : 0;
-      roundedDia = patient.cprActive ? 25 + Math.round(Math.random() * 10) : 0;
-      newMap = Math.max(0, Math.round(roundedDia + (roundedSys - roundedDia) / 3));
+      if (patient.cprActive) {
+        // Drug-augmented CPR pressures (same formula as first-pass block above, for consistency)
+        roundedSys = Math.round(80 + cprDiastolicBoost * 0.7 + Math.random() * 15);
+        roundedDia = Math.round(22 + cprDiastolicBoost + Math.random() * 8);
+        newMap = Math.max(0, Math.round(roundedDia + (roundedSys - roundedDia) / 3));
+      } else {
+        roundedSys = 0;
+        roundedDia = 0;
+        newMap = 0;
+      }
       if (!patient.cprActive || currentRhythm === 'vfib' || currentRhythm === 'asystole') newHr = 0;
     }
 
@@ -949,6 +994,9 @@ export class CardiovascularEngine {
 
     if (isArrestState && !st.patient.isArrest) {
       patient.codeStartTime = safeTime;
+      // Reset ACLS drug counters on new arrest so the UI timers start fresh
+      (patient as any).lastEpiPushTime = null;
+      (patient as any).amioDosesGivenInArrest = 0;
     }
     if (!isArrestState) {
       patient.codeStartTime = null;

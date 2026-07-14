@@ -282,9 +282,21 @@ export class RenalEngine {
     // 6. ADH (AVP) and Aldosterone loops
     const eblRatio = inputs.ebv > 0 ? Math.max(0.0, Math.min(1.0, inputs.ebl / inputs.ebv)) : 0.0;
     const avpVol = eblRatio > 0.1 ? Math.min(1.0, (eblRatio - 0.1) / 0.2) : 0.0;
+    // avpStress: driven by the catecholamine pool but clamped to prevent it from
+    // being the primary oscillation source. C_cat fluctuates tick-to-tick from the
+    // PainEngine ODE; we read its smoothed contribution here, not its raw value.
+    // The /38 divisor produces the same scaling, but the 12 threshold means C_cat
+    // must meaningfully exceed resting tone before AVP rises (no hairline sensitivity).
     const avpStress = Math.max(0.0, Math.min(0.8, (inputs.C_cat - 12.0) / 38.0));
-    
-    const vasopressinLevel = Math.max(0.05, Math.min(1.0, 0.1 + (osm - 280.0) / 20.0 + avpVol + avpStress));
+
+    // AVP osm-threshold recalibrated to the true physiological set-point (285 mOsm/kg)
+    // and a steeper slope (/25 → full AVP at 310 mOsm/kg).
+    // Prior formula (threshold 280, slope /20) gave vasopressinLevel ≈ 0.55 at normal
+    // osm=289, producing a steady-state UOP of ~37 mL/hr — chronic borderline oliguria
+    // that is clinically wrong and drove the rapid displayed fluctuations.
+    // New formula: vasopressinLevel ≈ 0.21 at osm=289 → ~60 mL/hr baseline UOP.
+    const osmAVP = Math.max(0.0, (osm - 285.0) / 25.0);
+    const vasopressinLevel = Math.max(0.05, Math.min(1.0, 0.05 + osmAVP + avpVol + avpStress));
     const aldosteroneLevel = Math.max(0.05, Math.min(1.0, 0.1 + 0.65 * symp + 0.25 * vasopressinLevel));
     // Renin-Angiotensin II: the proximate RAAS secretagogue for aldosterone release, driven by the
     // same sympathetic/hypovolemic afferents already used above (juxtaglomerular beta-1 stimulation
@@ -360,8 +372,22 @@ export class RenalEngine {
       });
     }
 
+    // urineOutput accumulates actual urine produced using the raw instantaneous rate —
+    // the total is used for fluid balance and hourly totals so it must stay accurate.
     const urineOutput = parseFloat(Math.max(0.0, prevUop + drainedVolume + (uopMlMinBody * (safeDt / 60.0))).toFixed(2));
-    const urineOutputRate = parseFloat((uopMlMinBody * 60.0).toFixed(2));
+
+    // urineOutputRate is what clinicians display and what triggers the oliguria timer.
+    // Clinically, UOP is always assessed over 15-60 min windows, never second-to-second.
+    // A 5-minute EMA (tau=300s) suppresses second-to-second MAP/C_cat noise while still
+    // responding to real clinical events (diuretics, hemorrhage) within 5-10 minutes.
+    // Prior code displayed the raw instantaneous rate, which flickered visibly every tick
+    // because C_cat and MAP oscillate each second from their respective ODE/cardiac engines.
+    const rawUrineOutputRateHr = uopMlMinBody * 60.0;
+    const prevUrineOutputRate = typeof patient.urineOutputRate === 'number' && Number.isFinite(patient.urineOutputRate) && patient.urineOutputRate >= 0
+      ? patient.urineOutputRate
+      : rawUrineOutputRateHr;
+    const uopEmaAlpha = safeDt / (300.0 + safeDt); // tau = 300 s
+    const urineOutputRate = parseFloat(Math.max(0, prevUrineOutputRate + uopEmaAlpha * (rawUrineOutputRateHr - prevUrineOutputRate)).toFixed(2));
 
     // Cortical vs. Medullary perfusion & oxygenation (Table 17.1, Miller's 9th Ed)
     const cortexRbf = 0.94 * rbf;

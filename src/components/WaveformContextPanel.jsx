@@ -335,9 +335,10 @@ const VENTF_PATHS = {
 //   Upper limb: expiratory (right→left, above zero line)
 //   Lower limb: inspiratory (left→right, below zero line)
 function makeFVPath({ W = 155, H = 112, obstruct = 0, restrict = 1.0, fixedObsFlow = 0, extrathoracic = 0 } = {}) {
-  const zeroY = H * 0.50;  // zero-flow line (horizontal center of loop)
-  const expAmp = H * 0.43; // max expiratory flow amplitude above zero
-  const insAmp = H * 0.37; // max inspiratory flow amplitude below zero
+  // zeroY anchored to match SVG's dashed reference line at y=48 (see large-view render code)
+  const zeroY = 48;         // zero-flow line — matches SVG reference baseline
+  const expAmp = 36;        // max expiratory flow amplitude above zero (upward = smaller y)
+  const insAmp = 30;        // max inspiratory flow amplitude below zero (downward = larger y)
   const N = 100;
 
   // Effective volume axis: restrictive disease reduces total loop width
@@ -406,7 +407,7 @@ function makeFVPath({ W = 155, H = 112, obstruct = 0, restrict = 1.0, fixedObsFl
 function makeCOPDFVPath() {
   // Same as makeFVPath but with rightward RV shift to simulate air trapping
   const W = 155, H = 112;
-  const zeroY = H * 0.50, expAmp = H * 0.35, insAmp = H * 0.32;
+  const zeroY = 48, expAmp = 30, insAmp = 26;
   const N = 100;
   const xRV = W * 0.22; // RV shifted right (increased by air trapping)
   const xTLC = W * 0.94;
@@ -443,49 +444,77 @@ const FV_PATHS = {
 };
 
 // ─── Pressure-Volume Loop (parametric, 2D) ────────────────────────────────────
-// Axes: X = tidal volume (left=0/PEEP, right=VT), Y = airway pressure (top=PIP, bottom=PEEP)
-// Loop traversal: clockwise (inspiratory limb goes right+up, expiratory goes left+down)
-// The two limbs are slightly offset (hysteresis) due to airway resistance
+// Axes: X = airway pressure (left=PEEP, right=PIP), Y = volume (SVG bottom=FRC, SVG top=FRC+Vt).
+// Matches the live PressureVolumeLoopCanvas orientation (X=Pressure, Y=Volume).
+// SVG y increases downward, so yBot > yTop numerically.
+//
+// Traversal is clockwise in SVG coords (= counter-clockwise in clinical coords):
+//   INSPIRATORY LIMB: lower-left (PEEP,FRC) → upper-right (PIP,FRC+Vt), bowing RIGHT
+//     at any given volume, inspiration needs MORE pressure (resistive driving pressure)
+//   EXPIRATORY LIMB: upper-right (PIP,FRC+Vt) → lower-left (PEEP,FRC), bowing LEFT
+//     at any given volume, expiration needs LESS pressure (elastic recoil drives flow out)
+//
+// compliance < 1 → same pressure range yields LESS volume (shorter loop, sits near bottom)
+// resistance > 1 → WIDER horizontal hysteresis (fat oval = more resistive work per breath)
+// autoPeep   > 0 → loop start shifts RIGHT (trapped gas: never returns to set PEEP)
+// overdist      → upper-right corner bends rightward (upper inflection point — compliance drop)
 function makePVPath({ W = 155, H = 112, compliance = 1.0, resistance = 1.0, autoPeep = 0, overdist = false } = {}) {
-  const N = 100;
-  // PEEP end-expiratory point: lower-left
-  const xStart = W * 0.08;
-  // End-inspiratory point: upper-right. Low compliance = same VT but much higher pressure (taller, narrower).
-  // compliance=1 → xEnd at 88% width; reduced compliance keeps VT but shifts pressure axis
-  const xEnd = W * (0.08 + 0.80 / compliance ** 0.35);  // slightly narrows for very stiff lungs
-  const yBot = H * (0.88 - autoPeep * 0.12); // PEEP line (bottom, possibly elevated by auto-PEEP)
-  // PIP height: compliance drives how far up we go. Low compliance = higher up (higher pressure for same VT).
-  const yTop = H * (0.10 + (1 - compliance) * 0.32);
+  const N = 120;
+
+  // Y axis: yBot=FRC (anchored to match the SVG's dashed reference line at y≈88)
+  const yBot = 88;
+  // Volume range scales with compliance: ARDS lungs achieve less Vt for the same ΔP
+  const vtFrac  = Math.min(1.0, compliance ** 0.6);
+  const vtPx    = vtFrac * 72;   // max loop height 72 pixels (full height from y=88 to y=16)
+  const yTop    = yBot - vtPx;
+
+  // X axis: xLeft=PEEP side, xRight=PIP side (fixed); auto-PEEP shifts xLeft right
+  const autoPeepShiftX = autoPeep * W * 0.20;
+  const xLeft  = W * 0.06 + autoPeepShiftX;
+  const xRight = W * 0.91;
+  const dP     = xRight - xLeft;
+
+  // Hysteresis per limb: resistance × pressure-range × calibrated factor
+  // Clinical basis: at flow = 0.5 L/s, R=5 → ΔP_resist = 2.5 cmH₂O ≈ 17% of normal ΔP=15 cmH₂O
+  const bowI = resistance * dP * 0.17;  // inspiratory limb bows RIGHT
+  const bowE = resistance * dP * 0.11;  // expiratory limb bows LEFT
+
   const pts = [];
 
-  // === INSPIRATORY LIMB (lower-left → upper-right, slightly bowing right due to resistance) ===
+  // INSPIRATORY LIMB: lower-left → upper-right, bowing RIGHT
   for (let i = 0; i <= N; i++) {
     const p = i / N;
-    // Resistance bows the inspiratory limb slightly to the RIGHT (pressure leads volume)
-    const x = Math.min(W * 0.96, xStart + p * (xEnd - xStart) + resistance * 10 * Math.sin(p * Math.PI) * (1 - p * 0.5));
-    const y = yBot - p * (yBot - yTop);
-    // Over-distension: at top of loop, pressure rises steeply for minimal volume gain (upper inflection)
-    const overdistKink = overdist && p > 0.82 ? (p - 0.82) / 0.18 * H * 0.08 : 0;
-    pts.push([x, y - overdistKink]);
+    const baseX = xLeft + p * dP;
+    const y = yBot - p * vtPx;
+    let x = baseX + bowI * Math.sin(p * Math.PI);
+    if (overdist && p > 0.78) {
+      // Upper inflection: compliance drops → pressure rises faster for same volume gain
+      const od = ((p - 0.78) / 0.22) ** 2;
+      x += dP * 0.18 * od;
+    }
+    pts.push([Math.min(W * 0.98, x), y]);
   }
 
-  // === EXPIRATORY LIMB (upper-right → lower-left, bowing slightly LEFT = less pressure at same volume) ===
+  // EXPIRATORY LIMB: upper-right → lower-left, bowing LEFT
   for (let i = 0; i <= N; i++) {
     const p = i / N;
-    const x = Math.max(W * 0.02, xEnd - p * (xEnd - xStart) - resistance * 6 * Math.sin(p * Math.PI) * (1 - p * 0.5));
-    const y = yTop + p * (yBot - yTop);
-    pts.push([x, y]);
+    const baseX = xRight - p * dP;
+    const y = yTop + p * vtPx;
+    const x = baseX - bowE * Math.sin(p * Math.PI);
+    pts.push([Math.max(W * 0.01, x), y]);
   }
 
-  return pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ') + ' Z';
+  return pts.map(([x, y], i) =>
+    `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
+  ).join(' ') + ' Z';
 }
 
 const PV_PATHS = {
   normal:   makePVPath({}),
-  ards:     makePVPath({ compliance: 0.28, resistance: 0.8 }),
-  highRes:  makePVPath({ resistance: 2.8 }),
-  autoPeep: makePVPath({ autoPeep: 0.75 }),
-  overdist: makePVPath({ compliance: 0.6, overdist: true }),
+  ards:     makePVPath({ compliance: 0.28, resistance: 0.85 }),
+  highRes:  makePVPath({ resistance: 2.6 }),
+  autoPeep: makePVPath({ autoPeep: 0.55, compliance: 0.80 }),
+  overdist: makePVPath({ compliance: 0.62, overdist: true }),
 };
 
 // ─── Waveform configuration ───────────────────────────────────────────────────
