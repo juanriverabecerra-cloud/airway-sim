@@ -7,6 +7,8 @@
  * from CLINICAL_ACTIONS (rendered as clickable buttons).
  */
 
+import { getJaffeProcedure } from './JaffeProcedureKnowledgeEngine.ts';
+
 function fmt(val, decimals = 0) {
   if (typeof val !== 'number' || !Number.isFinite(val)) {
     if (typeof val === 'string' && val.trim() !== '') return val;
@@ -26,6 +28,10 @@ export function evaluateAttendingGuidance(params) {
   const attendingMode = safeParams.attendingMode || 'observing';
   const msmaidsComplete = !!safeParams.msmaidsComplete;
   const ventSettings = safeParams.ventSettings || {};
+  // When this case is paired with a Procedure Library entry, ground the step-by-step
+  // teaching narrative in that specific procedure's expected course (Teaching mode only
+  // consumes this -- see below). Purely additive: cases without one behave unchanged.
+  const jaffeProc = patient.jaffeProcedureId ? getJaffeProcedure(patient.jaffeProcedureId) : null;
 
 
   const alerts = [];
@@ -281,9 +287,18 @@ export function evaluateAttendingGuidance(params) {
   let teachingGuide;
 
   if (!msmaidsComplete) {
+    let procedureIntro = "";
+    if (jaffeProc) {
+      const s = jaffeProc.surgical;
+      procedureIntro = ` Today's procedure: ${jaffeProc.name}.`;
+      if (s.surgicalTimeRange) procedureIntro += ` Expect a surgical time of about ${s.surgicalTimeRange}`;
+      if (s.eblExpected) procedureIntro += `${s.surgicalTimeRange ? ' and' : ' Expect'} typical blood loss of ${s.eblExpected}`;
+      procedureIntro += '.';
+      if (s.uniqueConsiderations) procedureIntro += ` Keep in mind: ${s.uniqueConsiderations}`;
+    }
     teachingGuide = {
       step: 'MSMAIDS Pre-Induction Setup',
-      message: "The patient is on the OR table. Prior to general anesthesia induction, it is mandatory to perform a standardized MSMAIDS checklist. Click the 'MSMAIDS' button in the Action Panel to verify your Machine, Suction, Monitors, Airway gear, IV access, Drugs, and Safety backup. Confirm everything is fully functional.",
+      message: `The patient is on the OR table. Prior to general anesthesia induction, it is mandatory to perform a standardized MSMAIDS checklist. Click the 'MSMAIDS' button in the Action Panel to verify your Machine, Suction, Monitors, Airway gear, IV access, Drugs, and Safety backup. Confirm everything is fully functional.${procedureIntro}`,
       suggestion: "Action: Run the [msmaids checklist] checklist."
     };
   } else if (patient.airwayBlood && !airwaySecured && !patient.isSuctioned) {
@@ -376,9 +391,16 @@ Once met, suction oral secretions, perform [cuff leak test], deflate the cuff, a
     } else if (pos === 'Trendelenburg') {
       positionWarning = " Patient is in Trendelenburg position. Gravity is compressing diaphragmatic volumes and spiking Peak Inspiratory Pressures. Check compliance and ensure deep paralysis.";
     }
+    let procedureContext = "";
+    if (jaffeProc) {
+      const s = jaffeProc.surgical;
+      if (s.surgicalTimeRange || s.eblExpected) {
+        procedureContext = ` Reminder for this ${jaffeProc.name}: typical surgical time is ${s.surgicalTimeRange || 'not specified'} with expected blood loss of ${s.eblExpected || 'not specified'} -- reassess if you're significantly outside those ranges.`;
+      }
+    }
     teachingGuide = {
       step: 'Maintenance Phase Monitoring',
-      message: `We are in the maintenance phase of anesthesia. Maintain a steady state: titrate vaporizer dial to keep MAC between 0.8 and 1.0 (BIS 40-60), adjust ventilator RR and VT to maintain arterial PaCO2 at 35-45 mmHg, monitor blood loss, and replace fluids to maintain hemodynamic stability. If surgical neuromuscular blockade is requested, administer intermittent [vecuronium] or [rocuronium].${positionWarning}`,
+      message: `We are in the maintenance phase of anesthesia. Maintain a steady state: titrate vaporizer dial to keep MAC between 0.8 and 1.0 (BIS 40-60), adjust ventilator RR and VT to maintain arterial PaCO2 at 35-45 mmHg, monitor blood loss, and replace fluids to maintain hemodynamic stability. If surgical neuromuscular blockade is requested, administer intermittent [vecuronium] or [rocuronium].${positionWarning}${procedureContext}`,
       suggestion: "Action: Monitor vitals, maintain MAC at 0.8-1.0, and keep PaCO2 at 40 mmHg."
     };
   }

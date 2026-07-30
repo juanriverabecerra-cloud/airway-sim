@@ -41,6 +41,7 @@ import { elasticRecoilPressure, calibrateComplianceCurve } from './LungComplianc
 
 const SUBSTEP_SEC = 0.001;
 const OUTPUT_POINTS = 150;
+const LOOP_OUTPUT_POINTS = 260;
 
 function safeNumber(value, fallback) {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
@@ -59,7 +60,7 @@ function airwayResistanceAtVolume(volumeMl, frcMl, rFrc, obstructionSeverity) {
   return Math.max(0.5, rFrc * Math.pow(frcMl / safeVolume, k));
 }
 
-function downsample(rawSamples, totalDuration, numPoints) {
+function downsampleTimeUniform(rawSamples, totalDuration, numPoints) {
   const out = new Array(numPoints);
   let rawIdx = 0;
   for (let i = 0; i < numPoints; i++) {
@@ -71,6 +72,71 @@ function downsample(rawSamples, totalDuration, numPoints) {
     const frac = span > 0 ? Math.max(0, Math.min(1, (targetT - a.t) / span)) : 0;
     out[i] = {
       t: targetT,
+      paw: a.paw + frac * (b.paw - a.paw),
+      flow: a.flow + frac * (b.flow - a.flow),
+      deltaV: a.deltaV + frac * (b.deltaV - a.deltaV)
+    };
+  }
+  return out;
+}
+
+/**
+ * Curve-shape-preserving resample: uniform in cumulative arc length through the
+ * normalized (paw, flow, deltaV) state space, rather than uniform in time. A
+ * time-uniform grid (`downsampleTimeUniform`, used for the scrolling ventilator
+ * strips) starves fast-but-brief dynamics -- e.g. the ~30ms expiratory valve-opening
+ * transient (tau_valve, below) -- of points relative to the many seconds of
+ * comparatively static end-expiratory pause in the same breath. That's fine for a
+ * scrolling time-strip (a flat segment doesn't need many points to read correctly),
+ * but it turns that fast transient into a visible straight-line "kink" when the same
+ * sparse points are instead connected as a closed pressure-volume or flow-volume
+ * LOOP, where the eye is judging the traced shape, not its timing. This is the
+ * standard curve-reparametrization fix (arc-length resampling) -- it changes only
+ * which of the already-computed high-resolution points are kept for display, not
+ * the underlying physics.
+ */
+function resampleArcLength(rawSamples, numPoints) {
+  const n = rawSamples.length;
+  if (n < 2) return rawSamples.slice();
+
+  let pawMin = Infinity, pawMax = -Infinity;
+  let flowMin = Infinity, flowMax = -Infinity;
+  let dvMin = Infinity, dvMax = -Infinity;
+  for (const s of rawSamples) {
+    if (s.paw < pawMin) pawMin = s.paw;
+    if (s.paw > pawMax) pawMax = s.paw;
+    if (s.flow < flowMin) flowMin = s.flow;
+    if (s.flow > flowMax) flowMax = s.flow;
+    if (s.deltaV < dvMin) dvMin = s.deltaV;
+    if (s.deltaV > dvMax) dvMax = s.deltaV;
+  }
+  // Normalize each axis by its own range within this breath so no single dimension
+  // (e.g. deltaV in mL vs. flow in L/s) dominates the arc-length metric.
+  const pawScale = Math.max(1e-6, pawMax - pawMin);
+  const flowScale = Math.max(1e-6, flowMax - flowMin);
+  const dvScale = Math.max(1e-6, dvMax - dvMin);
+
+  const arc = new Array(n);
+  arc[0] = 0;
+  for (let i = 1; i < n; i++) {
+    const dPaw = (rawSamples[i].paw - rawSamples[i - 1].paw) / pawScale;
+    const dFlow = (rawSamples[i].flow - rawSamples[i - 1].flow) / flowScale;
+    const dDv = (rawSamples[i].deltaV - rawSamples[i - 1].deltaV) / dvScale;
+    arc[i] = arc[i - 1] + Math.sqrt(dPaw * dPaw + dFlow * dFlow + dDv * dDv);
+  }
+  const totalArc = arc[n - 1] || 1;
+
+  const out = new Array(numPoints);
+  let rawIdx = 0;
+  for (let i = 0; i < numPoints; i++) {
+    const targetArc = (i / (numPoints - 1)) * totalArc;
+    while (rawIdx < n - 2 && arc[rawIdx + 1] < targetArc) rawIdx++;
+    const a = rawSamples[rawIdx];
+    const b = rawSamples[Math.min(n - 1, rawIdx + 1)];
+    const span = arc[rawIdx + 1] - arc[rawIdx];
+    const frac = span > 0 ? Math.max(0, Math.min(1, (targetArc - arc[rawIdx]) / span)) : 0;
+    out[i] = {
+      t: a.t + frac * (b.t - a.t),
       paw: a.paw + frac * (b.paw - a.paw),
       flow: a.flow + frac * (b.flow - a.flow),
       deltaV: a.deltaV + frac * (b.deltaV - a.deltaV)
@@ -92,9 +158,10 @@ function downsample(rawSamples, totalDuration, numPoints) {
  * @param {number} params.targetPinsp - cmH2O above PEEP, used when mode='pcv'
  * @param {number} params.inspTimeSec
  * @param {number} params.expTimeSec
- * @returns {Array<{t:number, paw:number, flow:number, deltaV:number}>} sampled over one full breath
+ * @returns {{raw: Array<{t:number, paw:number, flow:number, deltaV:number}>, totalDuration:number}}
+ *   the full-resolution (1ms substep) trajectory, before any display resampling.
  */
-export function computeBreathTrajectory(params) {
+export function computeRawBreath(params) {
   const mode = params?.mode || 'vcv';
   const R = Math.max(0.5, safeNumber(params?.R, 5));
   const curve = params?.complianceCurve;
@@ -114,12 +181,13 @@ export function computeBreathTrajectory(params) {
     for (let i = 0; i < nSteps; i++) {
       raw.push({ t: i * dt, paw: peep, flow: 0, deltaV: 0 });
     }
-    return raw;
+    return { raw, totalDuration, pip: peep, pplat: peep };
   }
 
   // Iterative solver to reach steady-state trapped volume (auto-PEEP)
   let startV = 0;
   let raw = [];
+  let lastPAlvEnd = null; // true zero-flow (inspiratory-hold-equivalent) plateau pressure
   const numIters = 15;
 
   for (let iter = 0; iter < numIters; iter++) {
@@ -166,7 +234,7 @@ export function computeBreathTrajectory(params) {
         const tau_rise = 0.03; // 30ms rapid flow rise
         const effInspTime = inspTimeSec - tau_rise * (1 - Math.exp(-inspTimeSec / tau_rise));
         const Qconst = (targetVtMl / 1000) / Math.max(0.1, effInspTime); // L/s
-        const nSteps = Math.max(10, Math.round(inspTimeSec / SUBSTEP_SEC));
+        const nSteps = Math.max(12, Math.round(inspTimeSec / SUBSTEP_SEC));
         const dt = inspTimeSec / nSteps;
         for (let i = 0; i <= nSteps; i++) {
           const ti = i * dt;
@@ -178,7 +246,7 @@ export function computeBreathTrajectory(params) {
         }
       } else {
         // PCV: decelerating flow profile
-        const nSteps = Math.max(10, Math.round(inspTimeSec / SUBSTEP_SEC));
+        const nSteps = Math.max(12, Math.round(inspTimeSec / SUBSTEP_SEC));
         const dt = inspTimeSec / nSteps;
         const tau_rise = 0.05; // 50ms pressure rise
         for (let i = 0; i <= nSteps; i++) {
@@ -194,22 +262,30 @@ export function computeBreathTrajectory(params) {
       // Passive Expiration (both modes)
       const tInspEnd = raw[raw.length - 1].t;
       const pAlvEnd = peep + deltaPel(dV, frc, curve);
-      const nStepsExp = Math.max(10, Math.round(expTimeSec / SUBSTEP_SEC));
+      lastPAlvEnd = pAlvEnd;
+      const nStepsExp = Math.max(12, Math.round(expTimeSec / SUBSTEP_SEC));
       const dtExp = expTimeSec / nStepsExp;
-      const tau_valve = 0.03; // 30ms rapid valve opening
+      const tau_valve = 0.04; // 40ms expiratory valve opening acceleration ramp
       const R_circuit = 1.5;
 
       for (let i = 1; i <= nStepsExp; i++) {
         const ti = i * dtExp;
-        const pAlv = peep + deltaPel(dV, frc, curve);
+        const pEl = deltaPel(dV, frc, curve);
+        const pAlv = peep + pEl;
         const currentR = airwayResistanceAtVolume(frc + dV, frc, R, obstructionSeverity);
         
-        // Calculate steady-state expiratory Paw and Flow based on circuit resistance:
-        const flow_ss = (peep - pAlv) / (currentR + R_circuit);
-        const paw_ss = peep - flow_ss * R_circuit;
-        
-        const paw = paw_ss + (pAlvEnd - paw_ss) * Math.exp(-ti / tau_valve);
-        const flowLs = (paw - pAlv) / currentR;
+        // Dynamic volume-dependent expiratory airway resistance (airways narrow as lungs empty):
+        const volFrac = Math.max(0, Math.min(1, dV / Math.max(1, targetVtMl)));
+        const dynamicExpR = currentR * (1 + 0.35 * Math.pow(1 - volFrac, 1.8));
+
+        // Expiratory valve opening acceleration factor (rounds PEF peak at start of exhalation):
+        const valveRamp = 1 - Math.exp(-ti / tau_valve);
+
+        // Expiratory flow driven by elastic recoil above PEEP:
+        const flowLs = valveRamp * (peep - pAlv) / (dynamicExpR + R_circuit);
+        // Expiratory Paw follows alveolar elastic recoil back to PEEP as volume empties:
+        const paw_valve_transient = (pAlvEnd - (peep + pEl * (R_circuit / (dynamicExpR + R_circuit)))) * Math.exp(-ti / tau_valve);
+        const paw = peep + pEl * (R_circuit / (dynamicExpR + R_circuit)) + paw_valve_transient;
         
         dV = Math.max(0, dV + flowLs * 1000 * dtExp);
         raw.push({ t: tInspEnd + ti, paw: Math.max(peep, paw), flow: flowLs, deltaV: dV });
@@ -219,7 +295,70 @@ export function computeBreathTrajectory(params) {
     startV = dV;
   }
 
-  return downsample(raw, raw[raw.length - 1].t, OUTPUT_POINTS);
+  // pip: exact peak airway pressure over the full high-resolution breath (VCV reaches this
+  // at the very last inspiratory sample, since flow is still rising/near-constant right up
+  // to the abrupt cutoff into expiration -- PCV reaches it via its pressure-ramp target).
+  // pplat: the true zero-flow plateau pressure -- the elastic-recoil-only pressure at
+  // end-inspiratory volume, i.e. what a real end-inspiratory-hold maneuver would read.
+  // Computed directly here (lastPAlvEnd, captured where the expiratory-phase solve already
+  // needed this exact quantity) rather than inferred after the fact from "the trajectory
+  // point of maximum volume": in VCV that point is at PEAK flow, not zero flow (flow doesn't
+  // decelerate before the ventilator cuts over to expiration), so that heuristic silently
+  // collapsed PIP and Pplat to the same value for every VCV breath regardless of resistance.
+  // null for spontaneous breathing, where a ventilator-hold-style plateau isn't meaningful.
+  const pip = Math.max(...raw.map((s) => s.paw));
+  const pplat = mode === 'spontaneous' ? null : lastPAlvEnd;
+
+  return { raw, totalDuration: raw[raw.length - 1].t, pip, pplat };
+}
+
+let _cachedRawKey = null;
+let _cachedRawBreath = null;
+
+/**
+ * Cache for computeRawBreath() itself, sitting beneath both getBreathTrajectory() and
+ * getLoopTrajectory()'s own caches -- the numeric integration (the 15-iteration
+ * steady-state solve) is the expensive part, and time-strip and loop consumers are often
+ * called with identical params within the same animation frame, so this avoids running it
+ * twice for one breath.
+ */
+function getCachedRawBreath(params) {
+  const key = JSON.stringify(params);
+  if (key === _cachedRawKey && _cachedRawBreath) return _cachedRawBreath;
+  _cachedRawKey = key;
+  _cachedRawBreath = computeRawBreath(params);
+  return _cachedRawBreath;
+}
+
+/**
+ * Time-strip trajectory: time-uniform resampling of computeRawBreath()'s output, for
+ * consumers that scrub through the breath by elapsed time (the ventilator Paw/Flow/Volume
+ * strips via paw()/flow()/deltaVolume() below).
+ */
+export function computeBreathTrajectory(params) {
+  const { raw, totalDuration } = getCachedRawBreath(params);
+  return downsampleTimeUniform(raw, totalDuration, OUTPUT_POINTS);
+}
+
+/**
+ * Loop-display trajectory: arc-length resampling of the same computeRawBreath() output,
+ * for consumers that trace a closed 2D shape (the flow-volume and pressure-volume loops)
+ * rather than scrub by time. See resampleArcLength() for why this differs from
+ * computeBreathTrajectory().
+ */
+export function computeLoopTrajectory(params) {
+  const { raw } = getCachedRawBreath(params);
+  return resampleArcLength(raw, LOOP_OUTPUT_POINTS);
+}
+
+/**
+ * Exact PIP/Pplat for this breath, computed directly during integration rather than
+ * inferred from a resampled trajectory (see computeRawBreath()'s docstring on why that
+ * inference silently breaks for VCV). pplat is null for spontaneous breathing.
+ */
+export function getBreathPressureSummary(params) {
+  const { pip, pplat } = getCachedRawBreath(params);
+  return { pip, pplat };
 }
 
 let _cachedKey = null;
@@ -238,6 +377,22 @@ export function getBreathTrajectory(params) {
   _cachedKey = key;
   _cachedTrajectory = computeBreathTrajectory(params);
   return _cachedTrajectory;
+}
+
+let _cachedLoopKey = null;
+let _cachedLoopTrajectory = null;
+
+/**
+ * Loop-display counterpart to getBreathTrajectory(): same memoization pattern (see above),
+ * but backed by computeLoopTrajectory()'s arc-length resampling so F-V/P-V loop consumers
+ * get a smooth closed curve instead of the time strips' time-uniform point spacing.
+ */
+export function getLoopTrajectory(params) {
+  const key = JSON.stringify(params);
+  if (key === _cachedLoopKey && _cachedLoopTrajectory) return _cachedLoopTrajectory;
+  _cachedLoopKey = key;
+  _cachedLoopTrajectory = computeLoopTrajectory(params);
+  return _cachedLoopTrajectory;
 }
 
 function interpolateField(trajectory, tBeat, beatDuration, field) {

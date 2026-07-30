@@ -18,7 +18,11 @@ simultaneously: (a) a physiology/PK-PD simulator, (b) a case-prep and "ask an at
 reasoning partner, (c) an eventual outcome-scoring/debrief tool, and (d) eventually a
 platform for procedural/spatial skill practice (regional/neuraxial, POCUS/TTE/TEE/FAST).
 Chapters are integrated one at a time via a standing "SET THIS ONCE: CHAPTER NUMBER = N"
-prompt — see `docs/chapter_integration_prompt.md` for the current canonical version.
+prompt — see `docs/chapter_integration_prompt.md` for the current canonical version. A
+sibling prompt, `docs/case_integration_prompt.md`, drives the analogous per-procedure
+sessions that ingest Jaffe's Anesthesiologist's Manual of Surgical Procedures — Jaffe is
+organized by operation, not physiology topic, so it feeds new verified cases in
+`JaffeCases.js` rather than the physiology/pharmacology engines directly.
 
 ## Document map (see `goldenversion.md` for the full table)
 
@@ -100,6 +104,37 @@ Don't default to "intraoperative" — check explicitly where the content actuall
 - **This repo is worked on by more than one AI tool** (Claude Code and Gemini/Antigravity
   have both made commits here). Don't assume only your own session's conventions exist —
   grep for the symbol/pattern before assuming something doesn't exist yet.
+- **Verified cases live in per-source-book "case bank" files, not inline in
+  `CaseManager.jsx`**: `caseBanks/MillersCases.js` (14 cases actually traceable to a
+  documented Miller's chapter-integration session, or the original foundational
+  one-per-specialty set), `caseBanks/GeneralKnowledgeCases.js` (23 cases split out from
+  the above in a 2026-07 audit — real, engine-backed physiology, but general
+  clinical/board-exam knowledge with no textbook citation, unlike the other two banks),
+  and `caseBanks/JaffeCases.js` (procedure-based cases from Jaffe's Anesthesiologist's
+  Manual of Surgical Procedures, populated via `docs/case_integration_prompt.md`). Each
+  exports a `*_CASE_PRESETS` array and `*_CASE_METADATA` object that `CaseManager.jsx`
+  merges into the `PRESETS`/`PRESET_METADATA` it already used everywhere, tagging each
+  with a `source` field (`millers`/`general`/`jaffe`) at merge time — no other file
+  changes when a new bank is added. `id` must stay unique across all banks. `source` is
+  an **internal-only** dev/debugging tag now (see the no-book-branding rule below) — do
+  not resurrect a source filter/badge in the presets UI keyed on it.
+- **No book title, chapter/page citation, or publisher name may appear anywhere a user
+  can see it** (UI text, chat/quiz responses, tooltips, generated AI prompts whose output
+  reaches the user) — established 2026-07 because the app is headed toward commercial
+  release and can't carry Miller's/Jaffe royalty exposure. The underlying clinical
+  accuracy still comes from those texts and that's fine to keep in code comments, file
+  names (`JaffeCases.js`, `JaffeProcedureKnowledgeEngine.ts`, etc.), and internal data
+  fields (`chapterSource`, `citationPage`) — none of that is user-facing. What actually
+  is user-facing and must stay generic: the KB citation helper `extractChapterLabel()`
+  (`ClinicalAiChat.js`/`AttendingPanel.jsx`) already strips the book name down to a bare
+  `Ch.N` label — always route any rendered `record.chapter_title`/`source_book` value
+  through it (or a `"Clinical Reference"`/`"Ref"` wrapper) rather than interpolating the
+  raw DB value, which is a literal ingested PDF filename like
+  `"Millers_Anaesthesia_9th_Edition_Chapter_18.pdf"` and will leak the title verbatim if
+  rendered directly. Also check any AI-facing prompt string you add for the same thing —
+  a prompt that tells the model "cite Miller's Ch.X" will produce book-branded output.
+  A case's `jaffeProcedureId`-backed Case Brief is described to users as a content-depth
+  feature ("📋 Procedure Guide" / "Case Brief"), never as a book citation.
 
 ## Closing-report convention
 

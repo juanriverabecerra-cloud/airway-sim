@@ -1,0 +1,65 @@
+{
+  "_NEEDS_MANUAL_QA": [
+    {
+      "name": "DENTAL SURGERY",
+      "page": 1
+    }
+  ],
+  "procedures": [
+    {
+      "type": "procedure",
+      "name": "TEMPOROMANDIBULAR JOINT",
+      "chapterSource": "Jaffe_AMSP_6th_Edition_Chapter_4",
+      "startPage": 2,
+      "endPage": 5,
+      "description": "Figure 4.1 Anatomy for TMJ procedure.\nUsual preop diagnosis\nInternal derangement; subluxation; and ankylosis of TMJ\nERAS: Preop counseling by the surgeon/anesthesiologist should include limiting\nNPO duration, carb loading, and postop pain management options. See Appendix\nK: Enhanced Recovery After Surgery, p. K-1.",
+      "variantApproaches": "",
+      "fields": {},
+      "anestheticConsiderationsRaw": "derangements of the temporomandibular joint. J Oral Maxillofac Surg 2001;\n59(3):308–12.\n5. Laskin DM: Temporomandibular disorders: the past, present and future. Odontology\n2007; 95(1):10–5.\n6. Lieblich S: Providing anesthesia in the Oral and Maxillofacial Surgery Office: a look\nback, where we are now and a look ahead. J Oral Maxillofac Surg 2018; 76(5):917–\n25.\n7. Rajapakse S, Ahmed N, Sidebottom AJ: Current thinking about the management o\ndysfunction of the temporomandibular joint: a review. Br J Oral Maxillofac Surg\n2017; 55(4):351–6.\n8. Rigon M, Pereira LM, Bortoluzzi MC, et al: Arthroscopy for temporomandibula\ndisorders. Cochrane Database Syst Rev 2011; (5):CD006385.\n9. Tsuyama M, Kondoh T, Seto K, et al: Complications of temporomandibular joint\narthroscopy: a retrospective analysis of 301 lysis and lavage procedures performed\nusing the triangulation technique. J Oral Maxillofac Surg 2000; 58(5):500–5.",
+      "crossReferenceTarget": null,
+      "rawSpanPreview": "\nDescription\nTemporomandibular joint (TMJ) surgical procedures include both open and closed\nsurgical techniques.\nTMJ arthrotomy involves a preauricular, postauricular, or endaural incision to gain\naccess to the joint compartment. It usually is performed for severe fibrous adhesion\nremoval in the TMJ"
+    },
+    {
+      "type": "procedure",
+      "name": "ORAL SURGERY",
+      "chapterSource": "Jaffe_AMSP_6th_Edition_Chapter_4",
+      "startPage": 5,
+      "endPage": 7,
+      "description": "teeth and dentures. Surgical treatment of oral pathology can range from removal of\ndentigerous cysts, with and without bone graft, to laser or surgical removal of mucosal\nlesions.\nERAS: Preop counseling by the surgeon/anesthesiologist should include limiting\nNPO duration, carb loading, and postop pain management options. See Appendix K,\np. K-1.",
+      "variantApproaches": "",
+      "fields": {},
+      "anestheticConsiderationsRaw": "",
+      "crossReferenceTarget": null,
+      "rawSpanPreview": "\nDescription\nThe most common surgeries of the oral cavity are third-molar removal, surgical\nextractions, apicoectomies, orthodontic exposures of teeth, osseointegrated implants,\nbone grafting, treatment of oral pathologic conditions, and preprosthetic surgery.\nSurgical extractions of teeth involve i"
+    },
+    {
+      "type": "procedure",
+      "name": "RESTORATIVE DENTISTRY",
+      "chapterSource": "Jaffe_AMSP_6th_Edition_Chapter_4",
+      "startPage": 7,
+      "endPage": 7,
+      "description": "",
+      "variantApproaches": "",
+      "fields": {
+        "Surgical time": "variable. Generally, blood loss is not a problem. by the surgeon/anesthesiologist should include limiting and postop pain management options. See Appendix K, Supine Intraoral",
+        "Special instrumentation": "Dental armamentarium Nasal intubation; throat pack"
+      },
+      "anestheticConsiderationsRaw": "",
+      "crossReferenceTarget": null,
+      "rawSpanPreview": "\nDescription\nMultiple dental restorative procedures are performed under GA when there are rampant\ncaries, and an extensive amount of dental work must be performed at one time. The\nsecond most common indication for GA is for procedures that need to be performed on\nmentally retarded patients who are n"
+    },
+    {
+      "type": "sharedPlan",
+      "name": "ANESTHETIC CONSIDERATIONS FOR DENTAL/ORAL",
+      "chapterSource": "Jaffe_AMSP_6th_Edition_Chapter_4",
+      "startPage": 8,
+      "endPage": 12,
+      "description": "",
+      "variantApproaches": "",
+      "fields": {},
+      "anestheticConsiderationsRaw": "Airway\nPatients presenting for TMJ procedures may have\nproblems with mouth opening (2° pain, trismus, and\narthritis), making airway examination difficult. Mouth\nopening may not improve with GA and muscle\nrelaxation. Nasotracheal intubation using FOL (done\nawake in patients with difficult airways) should be\nplanned. Examine nares for patency; check for loose\nteeth.\nRespiratory\nSurgery should be postponed (at least 2 wk) in\npatients presenting with Sx of acute RTI (fever,\ncoughing, purulent sputum, etc.). Sx of chronic\nrespiratory disease should be sought and treated\nbefore surgery. LMA use has been reported to\ndecrease respiratory complications in children with\nupper RTIs.\nTests: As indicated from H&P\nCardiovascular\nPatients with dysrhythmias may be sensitive to the\nepinephrine used in local anesthetic solutions\nadministered intraop. As with other types of elective\nsurgery, preexisting cardiovascular problems should\nbe treated before surgery. Prophylactic antibiotics for\nendocarditis are not required in most patients;\nexceptions include patients with prosthetic valves,\ncongenital heart disease, h/o infective endocarditis,\nor heart transplant. Endocarditis prophylaxis:\namoxicillin 2 g po or cefazolin 2 g iv 30–60 min\nbefore procedure.\nTests: As indicated from H&P\nNeurologic\nPatients with seizure disorders should be on optimal\nmedical therapy before surgery. Discuss precipitating\nfactors and prodromal Sx with the patient.\nTests: ✓ therapeutic levels of anticonvulsant (e.g.,\nlevetiracetam = 12–46 mcg/mL; phenytoin = 10–20\nmcg/mL,; carbamazepine = 3–12 mcg/mL;\nphenobarbital = 10–40 mcg/mL)\nMusculoskeletal\nIn addition to TMJ problems, rheumatoid arthritis is\n\nassociated with cricoarytenoid joint immobility and\ncervical spine immobility/instability that may\ncomplicate intubation. Patients with prosthetic joints\ndo not require special antibiotic prophylaxis.\nLaboratory\nOther tests as indicated from H&P\nPremedication\nStandard premedication usually is appreciated,\nalthough, in patients with limited airway access,\nsedation may be inappropriate. If FOL is planned,\npretreatment with an antisialagogue (e.g.,\nglycopyrrolate 4 mcg/kg) is useful. Metoclopramide\n(e.g., 10–20 mg iv adult) will reduce the incidence of\nPONV 2° swallowed blood. Avoid long-lasting\nsedative medications.\nERAS\nCheck compliance with presurgical ERAS\nrecommendations (see above) including NPO status.\nConsider preop acetaminophen (adult: 1000 mg po;\npeds: 10–15 mg/kg iv or po as an elixir).\n\nthe nose into the trachea, either blindly or assisted\nby Magill forceps under direct laryngoscopy. The ETT\nis often sewn to the nasal septum. The successful\nuse of a flexible reinforced LMA in both adult and\npediatric dental patients has been reported. Claimed\nadvantages include no risk of epistaxis and no need\nfor a throat pack, laryngoscopy, or muscle relaxation.\nDisadvantages include interference with the\nprocedure, throat trauma (e.g., swelling of the\nepiglottis), and aspiration risk.\nERAS\nVerify preincision antibiotics. Maintain normovolemia\nand normothermia.\nMaintenance\nStandard maintenance\nEmergence\nNB: throat packs must be removed prior to\nextubation. An LMA is typically removed after the\npatient is awake and able to follow commands.\nBlood and fluid\nIV: 18 ga × 1\nNS/LR @ 4–6 mL/kg/h\nSee Zero Balance Fluid Management, Appendix K, p.\nK-2.\nMonitoring\nStandard monitors\nPositioning\n✓ pad pressure points\n✓ eyes\nrequirements",
+      "crossReferenceTarget": null,
+      "rawSpanPreview": " \nMost patients presenting for dental or oral surgery usually will require only local\nanesthesia provided by the dentist/oral surgeon. Deep sedation or GA may be required,\nhowever, for several unique patient groups: (a) young children (some with systemic\ndiseases such as CHD and hemophilia), (b) the"
+    }
+  ]
+}

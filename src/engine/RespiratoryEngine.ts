@@ -44,6 +44,11 @@ export interface RespiratoryPatientState {
   acsShuntContribution?: number;              // sickle cell ACS: pulmonary vaso-occlusion
   acsCompliancePenalty?: number;              // sickle cell ACS: ARDS-like compliance loss
   angioedemaResistancePenalty?: number;       // bradykinin/allergic angioedema airway swelling
+  pneumothoraxCompliancePenalty?: number;     // instructor-triggered tension pneumothorax: lung collapse
+  ardsProgressionCompliancePenalty?: number;  // instructor-triggered timed ARDS compliance drop
+  bronchospasmTrendResistancePenalty?: number; // instructor-triggered timed bronchospasm resistance rise
+  cuffLeakVtePenalty?: number;                // instructor-triggered ET tube cuff leak: fraction of Vte lost around cuff
+  circuitDisconnected?: boolean;              // instructor-triggered breathing circuit disconnection
   hpsShuntContribution?: number;              // hepatopulmonary syndrome intrapulmonary shunts
   tacoShuntContribution?: number;             // TACO: flooded alveoli shunt
   tacoResistancePenalty?: number;             // TACO: airway secretions
@@ -660,6 +665,14 @@ export class RespiratoryEngine {
     if (safePatient.acsCompliancePenalty && safePatient.acsCompliancePenalty > 0) {
       currentCompliance *= (1.0 - safePatient.acsCompliancePenalty);
     }
+    // Tension pneumothorax (instructor incident injection): intrapleural air collapses the lung
+    if (safePatient.pneumothoraxCompliancePenalty && safePatient.pneumothoraxCompliancePenalty > 0) {
+      currentCompliance *= (1.0 - safePatient.pneumothoraxCompliancePenalty);
+    }
+    // Timed ARDS progression (instructor incident injection): gradual diffuse alveolar damage
+    if (safePatient.ardsProgressionCompliancePenalty && safePatient.ardsProgressionCompliancePenalty > 0) {
+      currentCompliance *= (1.0 - safePatient.ardsProgressionCompliancePenalty);
+    }
     currentCompliance = Math.max(2, currentCompliance);
 
     let currentResistance = 5;
@@ -742,6 +755,10 @@ export class RespiratoryEngine {
     if (safePatient.cholinergicResistancePenalty && safePatient.cholinergicResistancePenalty > 0) {
       currentResistance += safePatient.cholinergicResistancePenalty;
     }
+    // Timed bronchospasm progression (instructor incident injection): gradual airway narrowing
+    if (safePatient.bronchospasmTrendResistancePenalty && safePatient.bronchospasmTrendResistancePenalty > 0) {
+      currentResistance += safePatient.bronchospasmTrendResistancePenalty;
+    }
     // TACO: airway secretions from hydrostatic edema
     if (safePatient.tacoResistancePenalty && safePatient.tacoResistancePenalty > 0) {
       currentResistance += safePatient.tacoResistancePenalty;
@@ -802,7 +819,7 @@ export class RespiratoryEngine {
       ibwVal = 70.0;
     }
 
-    if (safePatient.airwaySecured && safeVentSettings) {
+    if (safePatient.airwaySecured && !safePatient.circuitDisconnected && safeVentSettings) {
       newPeep = safeVentSettings.peep || 0;
 
       if (safeVentSettings.mode === 'PSV') {
@@ -846,6 +863,11 @@ export class RespiratoryEngine {
         newPip = safeVentSettings.pmax;
         newPplat = newPip - 2;
         newVte = Math.max(0, (newPplat - newPeep) * currentCompliance);
+      }
+      // ET tube cuff leak (instructor incident injection): a fraction of each delivered breath
+      // escapes around the cuff before it reaches the exhalation limb sensor.
+      if (safePatient.cuffLeakVtePenalty && safePatient.cuffLeakVtePenalty > 0) {
+        newVte *= (1.0 - safePatient.cuffLeakVtePenalty);
       }
       newPmean = newPeep + ((newPip - newPeep) / 3);
       newMv = (newVte * targetRR) / 1000;
@@ -1018,9 +1040,11 @@ export class RespiratoryEngine {
     let newSpo2 = (safeVitals.spo2 || 100) + (measuredSpo2 - (safeVitals.spo2 || 100)) * 0.05;
     newSpo2 = Math.min(100, Math.max(0, newSpo2 + safeRuleSpo2Offset));
 
-    const activeMechanicalVent = safePatient.airwaySecured && safeVentSettings && (safeVentSettings.rr > 0 || safeVentSettings.mode === 'PCV' || safeVentSettings.mode === 'VCV' || safeVentSettings.mode === 'PCV-VG');
+    const activeMechanicalVent = !safePatient.circuitDisconnected && safePatient.airwaySecured && safeVentSettings && (safeVentSettings.rr > 0 || safeVentSettings.mode === 'PCV' || safeVentSettings.mode === 'VCV' || safeVentSettings.mode === 'PCV-VG');
     const isBMVActiveVal = safePatient.ventilationStatus === 'assisted';
-    const hasTidalExchange = activeMechanicalVent || isBMVActiveVal || (!isApneic && targetRR > 0);
+    // A disconnected breathing circuit reads zero EtCO2 regardless of the patient's own
+    // respiratory drive — no sample line is connected to the airway to measure it from.
+    const hasTidalExchange = !safePatient.circuitDisconnected && (activeMechanicalVent || isBMVActiveVal || (!isApneic && targetRR > 0));
 
     let newEtco2 = !hasTidalExchange ? 0 : (targetRR === 0 ? 0 : (safeVitals.etco2 || 40) + (targetEtco2 - (safeVitals.etco2 || 40)) * 0.2);
 

@@ -4,7 +4,7 @@ import { calculatePacPressures, synthesizePacWaveform } from '../engine/Pulmonar
 import { getFourChamberCycle } from '../engine/FourChamberCircuitModel';
 import { generateFlowVolumeLoop } from '../engine/FlowVolumeLoopModel.js';
 import { generatePressureVolumeLoopFromMechanics } from '../engine/PressureVolumeLoopModel.js';
-import { buildMechanicsParams, getBreathTrajectory, paw } from '../engine/RespiratoryMechanicsModel.js';
+import { buildMechanicsParams, getBreathTrajectory, getLoopTrajectory, paw } from '../engine/RespiratoryMechanicsModel.js';
 
 const normalLv = { tlc_mL: 6000, rv_mL: 1500, frc_mL: 2400 };
 const normalPatient = { lungVolumes: normalLv };
@@ -78,17 +78,24 @@ describe('Cross-consistency — flow-volume loop, PV loop, and ventilator strips
 
   it('the PV loop and the ventilator pressure/volume strips are provably the same underlying trajectory, not independently approximated', () => {
     const params = buildMechanicsParams(normalPatient, normalVitals, ventSettings);
+    // The time-strip trajectory (time-uniform spacing) and the loop trajectory (arc-length
+    // spacing, for a kink-free traced shape -- see RespiratoryMechanicsModel.js's
+    // resampleArcLength) are deliberately DIFFERENT resamplings of the same
+    // computeRawBreath() output, so they no longer land on matching array indices. Compare
+    // by time instead -- the one parameter both resamplings still agree on -- which is the
+    // actually shared-computation invariant this test is meant to prove.
     const trajectory = getBreathTrajectory(params);
-    const loop = generatePressureVolumeLoopFromMechanics(normalPatient, normalVitals, ventSettings);
+    const loopTrajectory = getLoopTrajectory(params);
 
-    // Sample the trajectory at a mid-inspiration phase and confirm the PV loop's point
-    // at the equivalent fractional position along its own points array reports the same
-    // pressure (within floating-point/resampling tolerance) -- proof they are reads of
-    // one shared computation, not two separate approximations of the same breath.
     const midIdx = Math.floor(trajectory.length * 0.25);
+    const targetT = trajectory[midIdx].t;
     const expectedPressure = trajectory[midIdx].paw;
-    const loopIdx = Math.floor(loop.points.length * 0.25);
-    expect(loop.points[loopIdx].pressure).toBeCloseTo(expectedPressure, 0);
+
+    let closest = loopTrajectory[0];
+    for (const s of loopTrajectory) {
+      if (Math.abs(s.t - targetT) < Math.abs(closest.t - targetT)) closest = s;
+    }
+    expect(closest.paw).toBeCloseTo(expectedPressure, 0);
   });
 
   it('lowering compliance simultaneously flattens the PV loop and does not change the flow-volume loop\'s qualitative obstructive/restrictive classification incorrectly', () => {

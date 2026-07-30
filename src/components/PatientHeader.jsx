@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Undo2, FileText, CheckCircle2, Lock, Unlock, ShieldAlert, Check, FlaskConical, FastForward, Gauge, Dna } from 'lucide-react';
+import { Undo2, FileText, CheckCircle2, Lock, Unlock, ShieldAlert, Check, FlaskConical, FastForward, Gauge, Dna, Monitor } from 'lucide-react';
 import { AetherisLogo } from './AetherisLogo';
 
 export const PatientHeader = ({
@@ -25,7 +25,9 @@ export const PatientHeader = ({
   msmaidsComplete,
   setMsmaidsModal,
   logEvent,
-  setPatient
+  setPatient,
+  onOpenDisplaySync,
+  onOpenUltrasoundStudio
 }) => {
   const FONT_MIN = 0.80;
   const FONT_MAX = 1.50;
@@ -401,6 +403,26 @@ export const PatientHeader = ({
               <Dna size={14} /> RECEPTORS
             </button>
 
+            {/* Ultrasound Studio Modal Toggle */}
+            {onOpenUltrasoundStudio && (
+              <button
+                onClick={onOpenUltrasoundStudio}
+                className="px-4 py-2 text-xs md:text-sm font-black flex items-center justify-center gap-1.5 flex-1 xl:flex-none whitespace-nowrap rounded-lg shadow-md transition duration-200 active:scale-95 border bg-cyan-500/20 text-cyan-300 border-cyan-500/60 hover:bg-cyan-500/30 shadow-[0_0_10px_rgba(34,211,238,0.25)]"
+              >
+                📡 ULTRASOUND STUDIO
+              </button>
+            )}
+
+            {/* Multi-Display & Remote Sync Modal Toggle */}
+            {onOpenDisplaySync && (
+              <button
+                onClick={onOpenDisplaySync}
+                className="px-4 py-2 text-xs md:text-sm font-black flex items-center justify-center gap-1.5 flex-1 xl:flex-none whitespace-nowrap rounded-lg shadow-md transition duration-200 active:scale-95 border bg-emerald-500/20 text-emerald-300 border-emerald-500/60 hover:bg-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.25)]"
+              >
+                <Monitor size={14} /> MULTI-DISPLAY
+              </button>
+            )}
+
             {/* Font Size Control */}
             {setUiFontScale && (
               <div
@@ -518,7 +540,17 @@ export const PatientHeader = ({
               )}
             </div>
 
-            <button onClick={() => setShowLabPanel(!showLabPanel)} data-tutorial="labs-btn" className="px-4 py-2 glass-button glass-button-purple text-xs md:text-sm font-bold flex items-center justify-center flex-1 xl:flex-none whitespace-nowrap">Live Labs</button>
+            <button 
+              onClick={() => setShowLabPanel(!showLabPanel)} 
+              data-tutorial="labs-btn" 
+              className={`px-4 py-2 text-xs md:text-sm font-bold flex items-center justify-center gap-1.5 flex-1 xl:flex-none whitespace-nowrap rounded-lg shadow-md transition duration-200 active:scale-95 border ${
+                showLabPanel
+                  ? 'bg-purple-500/20 text-purple-300 border-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.35)] font-black animate-pulse'
+                  : 'glass-button glass-button-purple hover:border-purple-400/50'
+              }`}
+            >
+              <FlaskConical size={14} /> Live Labs
+            </button>
             
             <button 
               onClick={() => setIsRunning(!isRunning)} 

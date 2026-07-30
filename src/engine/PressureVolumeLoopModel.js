@@ -2,7 +2,10 @@
  * Pressure-Volume Loop Synthesizer
  *
  * Models the dynamic compliance and airway resistance of mechanical ventilation:
- * Airway Pressure (Paw, cmH2O) on the X-axis and Lung Volume (L) on the Y-axis.
+ * Airway Pressure (Paw, cmH2O) on the X-axis and volume on the Y-axis. The original
+ * generatePressureVolumeLoop() plots absolute (FRC-referenced) lung volume; the newer
+ * generatePressureVolumeLoopFromMechanics() plots TIDAL volume above the PEEP baseline
+ * (0 at PEEP), matching the standard ICU ventilator P-V loop display.
  *
  * Compliance determines the slope (Volume / Pressure) of the loop: stiff lungs (ARDS)
  * result in a flatter loop. Airway resistance determines the loop width (hysteresis)
@@ -11,7 +14,7 @@
  * Traced counter-clockwise: PEEP -> (inspiration) -> PIP -> (expiration) -> PEEP.
  */
 
-import { buildMechanicsParams, getBreathTrajectory } from './RespiratoryMechanicsModel.js';
+import { buildMechanicsParams, getLoopTrajectory, getBreathPressureSummary } from './RespiratoryMechanicsModel.js';
 
 const DEFAULT_R = 5;      // cmH2O/L/s
 const DEFAULT_C = 60;     // mL/cmH2O
@@ -125,22 +128,28 @@ export function generatePressureVolumeLoop(patient, vitals, numPoints = 80) {
  */
 export function generatePressureVolumeLoopFromMechanics(patient, vitals, ventSettings) {
   const params = buildMechanicsParams(patient, vitals, ventSettings);
-  const trajectory = getBreathTrajectory(params);
+  const trajectory = getLoopTrajectory(params);
 
-  const frcL = params.frc / 1000;
-  const points = trajectory.map((s) => ({ pressure: s.paw, volume: frcL + s.deltaV / 1000 }));
+  // Y-axis is TIDAL VOLUME above the PEEP baseline (L), starting at 0 — the standard ICU
+  // ventilator P-V loop convention, so the loop strictly begins at (Paw=PEEP, V=0). deltaV
+  // is already measured as volume above FRC/PEEP by the equation-of-motion solver, so this
+  // is a direct read, not an FRC-referenced offset. (For gas trapping the first point sits
+  // at deltaV=trapped>0, i.e. the loop origin lifts off baseline — the auto-PEEP signature.)
+  const points = trajectory.map((s) => ({ pressure: s.paw, volume: s.deltaV / 1000 }));
 
-  const pip = Math.max(...trajectory.map((s) => s.paw));
   const peep = params.peep;
   const vte = Math.max(...trajectory.map((s) => s.deltaV));
 
-  // pplat = plateau pressure: the airway pressure at peak volume (end of inspiration),
-  // where flow has decelerated to zero and only elastic recoil pressure remains.
-  // For VCV: pplat < PIP (resistive drop gone); for PCV: pplat ≈ target pressure.
+  // pip/pplat: computed directly by the equation-of-motion solver during integration (see
+  // RespiratoryMechanicsModel.js's getBreathPressureSummary/computeRawBreath), not inferred
+  // from "the trajectory point of peak volume" -- for VCV that point is at peak FLOW (the
+  // ventilator cuts to expiration before flow decelerates), not zero flow, so that
+  // inference silently collapsed PIP and Pplat to the same value for every VCV breath.
+  // pplat = the true zero-flow plateau pressure (what an inspiratory-hold would read).
   // Clinical use: Cstat = Vt / (Pplat - PEEP); Presist = PIP - Pplat.
-  let iMaxV = 0;
-  trajectory.forEach((s, i) => { if (s.deltaV > (trajectory[iMaxV]?.deltaV ?? 0)) iMaxV = i; });
-  const pplat = trajectory[iMaxV]?.paw ?? pip;
+  const pressureSummary = getBreathPressureSummary(params);
+  const pip = pressureSummary.pip ?? Math.max(...trajectory.map((s) => s.paw));
+  const pplat = pressureSummary.pplat ?? pip;
   const staticCompliance = vte > 0.5 ? vte / Math.max(1, pplat - peep) : params.complianceCurve?.cFrc ?? DEFAULT_C;
   const resistivePressureDrop = Math.max(0, pip - pplat);
 
@@ -174,7 +183,7 @@ export function generatePressureVolumeLoopFromMechanics(patient, vitals, ventSet
 
   if (vte < 0.5) {
     return {
-      points: trajectory.map((s) => ({ pressure: peep, volume: frcL })),
+      points: trajectory.map(() => ({ pressure: peep, volume: 0 })),
       pip: peep, peep, pplat: peep, vte: 0, dynamicCompliance: 0, staticCompliance: 0, resistivePressureDrop: 0,
       pattern: 'apneic', title: 'Apneic Flatline', alertType: 'critical',
       interpretation: 'No respiratory cycles. Loop collapsed at baseline PEEP.'

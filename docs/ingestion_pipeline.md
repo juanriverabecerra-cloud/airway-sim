@@ -32,6 +32,15 @@ The simulator parses clinical textbooks into runtime rules and profiles during b
     $$\text{Rank}_{\text{Miller}} = 1000 + \text{Edition} \quad \text{Rank}_{\text{Other}} = 100 + \text{Edition}$$
 5.  `ClientDbBridge.onLoaded` fires, initiating the dynamic registries.
 
+**Multi-textbook support already exists.** `priority_resolver.ts`'s `parseTextbookMetadata()`
+derives book identity, edition, and Miller's-vs-other status purely from the source
+filename — nothing in the pipeline hardcodes "Miller's" as the only supported book. A
+second textbook (e.g. Jaffe's Anesthesiologist's Manual of Surgical Procedures — see
+`docs/case_integration_prompt.md`) needs no code changes to ingest: name its PDFs with the
+edition token before any chapter number (so the edition-number regex doesn't misread the
+chapter number as the edition) and it automatically ranks below Miller's whenever the two
+disagree.
+
 #### 9.2 Dynamic Medication Ingestion (`DynamicMedicationRegistry.ts`)
 1.  **Matrix Table Scanner**: Scans `physiologicalMatrices` records with `is_authoritative === 1` that contain keywords like `pharmacokinetics` or `dosing`.
 2.  **Prose Markdown Scanner**: Scans `textbookProse` records with `is_authoritative === 1` and parses markdown tables (`|`) using regex to extract drug rows.

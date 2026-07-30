@@ -227,10 +227,12 @@ export const AirwayPanel = ({
       {showExams && (
         <div className="p-2.5 grid grid-cols-2 gap-2">
           {[
+            { label: '📡 Ultrasound Studio', value: 'Studio' },
             { label: 'Airway Assessment', value: 'Airway' },
             { label: 'Cardiac (TTE POCUS)', value: 'Cardiac (TTE)' },
             { label: 'Lung POCUS', value: 'Lung' },
             { label: 'Gastric POCUS', value: 'Gastric' },
+            { label: 'eFAST Exam', value: 'eFAST' },
           ].map(exam => (
             <button
               key={exam.value}

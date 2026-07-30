@@ -199,7 +199,7 @@ async function queryGeminiAI(query, sources, apiKey, onChunk) {
     const truncatedBody = bodyText.length > MAX_SOURCE_CHARS
       ? bodyText.slice(0, MAX_SOURCE_CHARS) + ' [… truncated]'
       : bodyText;
-    return `[Source ${idx + 1}] Section: ${src.record.section_heading || 'General'}\nChapter: Miller's Anesthesia 9th Ed. ${chapterLabel}\nText: ${truncatedBody}`;
+    return `[Source ${idx + 1}] Section: ${src.record.section_heading || 'General'}\nReference: ${chapterLabel}\nText: ${truncatedBody}`;
   }).join('\n\n');
 
   const systemInstruction = `You are a knowledge-grounded Senior Anesthesiology Attending teaching residents in the OR.
@@ -560,7 +560,7 @@ export default function AttendingPanel({
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setQuizReferenceContext([{
           record: {
-            chapter_title: generatedQuestion.reference.chapter || 'Miller Anesthesia',
+            chapter_title: generatedQuestion.reference.chapter || 'Clinical Reference',
             section_heading: generatedQuestion.reference.section || 'General Reference',
             body_text: generatedQuestion.reference.text || ''
           },
@@ -805,7 +805,7 @@ export default function AttendingPanel({
               for (const result of kbResults.slice(0, 5)) {
                 const { record, score } = result;
                 const chLabel = extractChapterLabel(record.chapter_title);
-                fallback += `**${record.section_heading || 'General'}** *(Miller's ${chLabel}, relevance: ${score.toFixed(1)})*\n\n`;
+                fallback += `**${record.section_heading || 'General'}** *(${chLabel}, relevance: ${score.toFixed(1)})*\n\n`;
                 const bodySnippet = (record.body_text || '').slice(0, 1500);
                 fallback += `${bodySnippet}\n\n---\n\n`;
               }
@@ -819,12 +819,12 @@ export default function AttendingPanel({
               const { record, score, rank } = result;
               const confidenceLabel = score > 2.0 ? '🟢 HIGH' : score > 1.0 ? '🟡 MODERATE' : '🟠 PARTIAL';
               const chapterLabel = extractChapterLabel(record.chapter_title);
-              const citation = ` [Miller ${chapterLabel}: ${record.section_heading || 'Untitled Section'}]`;
+              const citation = ` [Ref ${chapterLabel}: ${record.section_heading || 'Untitled Section'}]`;
               const citedBody = record.body_text + citation;
 
               attendingReply += `---\n`;
               attendingReply += `**Source ${rank}** — *${record.section_heading || 'Untitled Section'}*\n`;
-              attendingReply += `📄 *[${record.chapter_title}]* | Relevance: ${confidenceLabel} (${score.toFixed(2)})\n\n`;
+              attendingReply += `📄 *[Clinical Reference ${chapterLabel}]* | Relevance: ${confidenceLabel} (${score.toFixed(2)})\n\n`;
               
               if (rank <= 5) {
                 attendingReply += `${citedBody}\n\n`;
@@ -1479,7 +1479,7 @@ export default function AttendingPanel({
                                 return;
                               }
                               const sourcesText = kbResults.slice(0, 12).map((src, idx) =>
-                                `[Source ${idx + 1}] Chapter: ${src.record.chapter_title}\nSection: ${src.record.section_heading || 'General'}\nText: ${src.record.body_text}`
+                                `[Source ${idx + 1}] Reference: ${extractChapterLabel(src.record.chapter_title)}\nSection: ${src.record.section_heading || 'General'}\nText: ${src.record.body_text}`
                               ).join('\n\n');
                               
                               const response = await geminiApiFetch({
@@ -1499,7 +1499,7 @@ Respond ONLY with a single JSON object containing a "questions" array (no markdo
       "explanation": "Detailed explanation of the correct answer",
       "category": "topic category",
       "reference": {
-        "chapter": "Miller Chapter Title or Number (e.g. Miller Ch.9 or Miller Chapter 10)",
+        "chapter": "Reference chapter or number (e.g. Ch.9 or Chapter 10)",
         "section": "Section Heading (e.g. Ketamine Pharmacology)",
         "text": "Exact short verbatim passage from the sources that supports the correct answer"
       }
@@ -1826,7 +1826,7 @@ Rules:
                             {quizReferenceContext.map((res, rIdx) => {
                               const { record, score } = res;
                               const chapterLabel = extractChapterLabel(record.chapter_title);
-                              const chapterDisplay = record.chapter_title.startsWith('Miller') ? record.chapter_title : `Miller's Anesthesia ${chapterLabel}`;
+                              const chapterDisplay = `Clinical Reference ${chapterLabel}`;
                               return (
                                 <details key={rIdx} className="bg-slate-950/45 border border-slate-900 rounded-lg p-2 text-[9px] text-slate-300 group">
                                   <summary className="font-bold text-blue-400 hover:text-blue-300 transition cursor-pointer select-none flex justify-between items-center">
@@ -2005,7 +2005,7 @@ Rules:
                       for (const result of kbResults.slice(0, 5)) {
                         const { record, score } = result;
                         const chLabel = extractChapterLabel(record.chapter_title);
-                        fallback += `**${record.section_heading || 'General'}** *(Miller's ${chLabel}, relevance: ${score.toFixed(1)})*\n\n`;
+                        fallback += `**${record.section_heading || 'General'}** *(${chLabel}, relevance: ${score.toFixed(1)})*\n\n`;
                         const bodySnippet = (record.body_text || '').slice(0, 1500);
                         fallback += `${bodySnippet}\n\n---\n\n`;
                       }
@@ -2018,12 +2018,12 @@ Rules:
                       const { record, score, rank } = result;
                       const confidenceLabel = score > 2.0 ? '🟢 HIGH' : score > 1.0 ? '🟡 MODERATE' : '🟠 PARTIAL';
                       const chapterLabel = extractChapterLabel(record.chapter_title);
-                      const citation = ` [Miller ${chapterLabel}: ${record.section_heading || 'Untitled Section'}]`;
+                      const citation = ` [Ref ${chapterLabel}: ${record.section_heading || 'Untitled Section'}]`;
                       const citedBody = record.body_text + citation;
 
                       attendingReply += `---\n`;
                       attendingReply += `**Source ${rank}** — *${record.section_heading || 'Untitled Section'}*\n`;
-                      attendingReply += `📄 *[${record.chapter_title}]* | Relevance: ${confidenceLabel} (${score.toFixed(2)})\n\n`;
+                      attendingReply += `📄 *[Clinical Reference ${chapterLabel}]* | Relevance: ${confidenceLabel} (${score.toFixed(2)})\n\n`;
                       
                       if (rank <= 5) {
                         attendingReply += `${citedBody}\n\n`;

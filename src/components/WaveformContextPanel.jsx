@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { X, GripVertical, Activity } from 'lucide-react';
+import { generateVentilatorFlowVolumeLoop } from '../engine/FlowVolumeLoopModel';
+import { generatePressureVolumeLoopFromMechanics } from '../engine/PressureVolumeLoopModel';
 
 // ─── SVG path generator ───────────────────────────────────────────────────────
 // fn(t) returns y_normalized [0=top/high, 1=bottom/low].
@@ -328,194 +330,109 @@ const VENTF_PATHS = {
   autoPeep:  makeP(t => ventF(t, { mode: 'vcv', hasAutoPeep: true, rr: 22 }), { dur: 5 }),
 };
 
-// ─── Flow-Volume Loop (parametric, 2D) ────────────────────────────────────────
-// Axes: X = lung volume (left=RV/zero, right=TLC/full), Y = flow (up=expiratory, down=inspiratory)
-// In SVG: large x=right=TLC, small y=top=high expiratory flow, large y=bottom=deep inspiratory flow
-// Loop traversal: COUNTER-CLOCKWISE (clinical convention)
-//   Upper limb: expiratory (right→left, above zero line)
-//   Lower limb: inspiratory (left→right, below zero line)
-function makeFVPath({ W = 155, H = 112, obstruct = 0, restrict = 1.0, fixedObsFlow = 0, extrathoracic = 0 } = {}) {
-  // zeroY anchored to match SVG's dashed reference line at y=48 (see large-view render code)
-  const zeroY = 48;         // zero-flow line — matches SVG reference baseline
-  const expAmp = 36;        // max expiratory flow amplitude above zero (upward = smaller y)
-  const insAmp = 30;        // max inspiratory flow amplitude below zero (downward = larger y)
-  const N = 100;
+// ─── Flow-Volume Loop reference tracings (ventilator tidal loops) ─────────────
+// These teaching references are generated from the SAME engine that draws the patient's
+// live ventilator flow-volume loop (generateVentilatorFlowVolumeLoop), so a reference and
+// the live loop are one source of truth rather than two separately-drawn shapes. Convention
+// matches the live FlowVolumeLoopCanvas exactly:
+//   • Y = flow. EXPIRATION is the UPPER limb (above the zero-flow line), INSPIRATION lower.
+//   • X = tidal volume. A fully-exhaled lung (volume 0) sits at the RIGHT edge; higher tidal
+//     volume runs LEFT. A breath that fails to return to the right edge is gas trapping.
+//
+// Rendered into the loop viewBox (0 0 160 110) with the zero-flow line at y=48. All four
+// loops share ONE fixed volume/flow scale, so a reduced peak flow (high resistance) or a
+// reduced tidal volume (low compliance) reads as a genuinely smaller loop against the
+// greyed normal reference drawn behind it — the comparison would break under per-loop
+// autoscaling.
+const FV_ZERO_Y = 48;        // zero-flow baseline (px), matches the rendered reference line
+const FV_X_RIGHT = 145;      // volume 0 (fully exhaled) anchored at the right edge
+const FV_VOL_SCALE = 195;    // px per litre of tidal volume (higher volume → further left);
+                             // calibrated so the widest loop (normal, ~0.65 L) fits the viewBox
+const FV_FLOW_SCALE = 20.5;  // px per L/s (expiration positive → up, inspiration → down)
 
-  // Effective volume axis: restrictive disease reduces total loop width
-  const xRV  = W * 0.06;
-  const xTLC = W * (0.06 + 0.88 * restrict);
+const clampFvY = (y) => Math.max(4, Math.min(106, y));
 
-  const pts = [];
-
-  // === EXPIRATORY LIMB (right→left, upper half) ===
-  // Clinical shape: zero flow at TLC, rapid rise to PEF at ~85% of VC, then NEAR-LINEAR fall to RV
-  // peakVolFrac = fraction of VC above RV where PEF occurs (0.85 = 15% from TLC)
-  const peakVolFrac = 0.85;
-
-  for (let i = 0; i <= N; i++) {
-    const volFrac = 1 - i / N;  // 1→0: TLC → RV
-    const xPos = xRV + volFrac * (xTLC - xRV);
-    let flow;
-
-    if (volFrac > peakVolFrac) {
-      // TLC → PEF location: rapid rise from zero to maximum PEF
-      // At TLC (volFrac=1): riseP=0 → flow=0  ✓
-      // At PEF (volFrac=0.85): riseP=1 → flow=1  ✓
-      const riseP = (1 - volFrac) / (1 - peakVolFrac);
-      flow = riseP ** 0.55; // concave upward (flow rises faster than linear near TLC)
-    } else {
-      // PEF → RV: near-linear fall (normal) or concave (obstructed)
-      // At PEF (volFrac=0.85): fallP=1 → flow=1  ✓
-      // At RV  (volFrac=0):   fallP=0 → flow=0  ✓
-      const fallP = volFrac / peakVolFrac;
-      if (obstruct > 0) {
-        // Obstructive (COPD/asthma): scooped-out concave expiratory limb
-        // Flow drops faster than linear then curves back toward zero
-        flow = fallP * (1 - obstruct * 0.78 * (1 - fallP) ** 0.6);
-      } else {
-        flow = fallP; // normal: roughly linear from PEF to RV
-      }
-    }
-
-    flow = Math.max(0, flow);
-    if (fixedObsFlow > 0) flow = Math.min(flow, 1 - fixedObsFlow * 0.52); // fixed plateau ceiling
-    pts.push([xPos, zeroY - flow * expAmp]);
-  }
-
-  // === INSPIRATORY LIMB (left→right, lower half) ===
-  // Clinical shape: rounded sinusoidal bowl; peak inspiratory flow near mid-VC
-  for (let i = 0; i <= N; i++) {
-    const volFrac = i / N;  // 0→1: RV → TLC
-    const xPos = xRV + volFrac * (xTLC - xRV);
-    let flow = Math.sin(volFrac * Math.PI); // symmetric rounded curve
-    if (fixedObsFlow > 0) flow = Math.min(flow, 1 - fixedObsFlow * 0.52);
-    if (extrathoracic > 0) {
-      // Variable extrathoracic obstruction: flattens ONLY the inspiratory limb
-      // (collapse of extrathoracic airway during inspiration when -ve intraluminal pressure)
-      flow = Math.min(flow, 1 - extrathoracic * 0.68);
-    }
-    pts.push([xPos, zeroY + flow * insAmp]);
-  }
-
-  return pts.map(([x, y], i) =>
-    `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
-  ).join(' ') + ' Z';
-}
-
-// COPD: the obstruct parameter produces a scooped-out concave expiratory limb.
-// Also shift xRV right (air trapping = increased RV) for realism.
-function makeCOPDFVPath() {
-  // Same as makeFVPath but with rightward RV shift to simulate air trapping
-  const W = 155, H = 112;
-  const zeroY = 48, expAmp = 30, insAmp = 26;
-  const N = 100;
-  const xRV = W * 0.22; // RV shifted right (increased by air trapping)
-  const xTLC = W * 0.94;
-  const peakVolFrac = 0.85;
-  const pts = [];
-  for (let i = 0; i <= N; i++) {
-    const volFrac = 1 - i / N;
-    const xPos = xRV + volFrac * (xTLC - xRV);
-    let flow;
-    if (volFrac > peakVolFrac) {
-      const riseP = (1 - volFrac) / (1 - peakVolFrac);
-      flow = riseP ** 0.6;
-    } else {
-      const fallP = volFrac / peakVolFrac;
-      // Strong scooping: severe mid-volume flow limitation
-      flow = fallP * (1 - 0.78 * (1 - fallP) ** 0.6);
-    }
-    pts.push([xPos, zeroY - Math.max(0, flow) * expAmp]);
-  }
-  for (let i = 0; i <= N; i++) {
-    const volFrac = i / N;
-    const xPos = xRV + volFrac * (xTLC - xRV);
-    pts.push([xPos, zeroY + Math.sin(volFrac * Math.PI) * insAmp]);
-  }
+// Maps a live-model tidal loop ({volume L, flow L/s}) into viewBox SVG path coordinates.
+function ventLoopToPath(points) {
+  const pts = points.map((p) => [
+    FV_X_RIGHT - p.volume * FV_VOL_SCALE,
+    clampFvY(FV_ZERO_Y - p.flow * FV_FLOW_SCALE),
+  ]);
   return pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ') + ' Z';
 }
 
-const FV_PATHS = {
-  normal:        makeFVPath({}),
-  copd:          makeCOPDFVPath(),
-  restrictive:   makeFVPath({ restrict: 0.55 }),
-  fixedObs:      makeFVPath({ fixedObsFlow: 0.62, restrict: 0.88 }),
-  extrathoracic: makeFVPath({ extrathoracic: 0.75 }),
+const FV_LUNG = { tlc_mL: 6000, rv_mL: 1500, frc_mL: 2400 };
+const FV_PATIENT = { airwaySecured: true, lungVolumes: FV_LUNG, ibw: 70 };
+// Representative decelerating-flow (PCV) breaths — the full, rounded loop a bedside
+// ventilator shows — with each pathology's driver dialed so it is unmistakable against
+// the normal: high resistance (bronchospasm), low compliance (ARDS), gas trapping (severe
+// resistance + fast rate + short expiratory time).
+const FV_SCENARIOS = {
+  normal:   { patient: FV_PATIENT,                            vitals: { res: 5,  compl: 60, rr: 12 }, vent: { mode: 'PCV', pinsp: 11, rr: 12, peep: 5,  ieRatio: 2 } },
+  highRes:  { patient: { ...FV_PATIENT, bronchospasm: true }, vitals: { res: 26, compl: 55, rr: 12 }, vent: { mode: 'PCV', pinsp: 13, rr: 12, peep: 5,  ieRatio: 2 } },
+  lowComp:  { patient: FV_PATIENT,                            vitals: { res: 6,  compl: 22, rr: 16 }, vent: { mode: 'PCV', pinsp: 15, rr: 16, peep: 10, ieRatio: 2 } },
+  autoPeep: { patient: { ...FV_PATIENT, bronchospasm: true }, vitals: { res: 34, compl: 55, rr: 26 }, vent: { mode: 'PCV', pinsp: 16, rr: 26, peep: 5,  ieRatio: 1 } },
 };
 
-// ─── Pressure-Volume Loop (parametric, 2D) ────────────────────────────────────
-// Axes: X = airway pressure (left=PEEP, right=PIP), Y = volume (SVG bottom=FRC, SVG top=FRC+Vt).
-// Matches the live PressureVolumeLoopCanvas orientation (X=Pressure, Y=Volume).
-// SVG y increases downward, so yBot > yTop numerically.
-//
-// Traversal is clockwise in SVG coords (= counter-clockwise in clinical coords):
-//   INSPIRATORY LIMB: lower-left (PEEP,FRC) → upper-right (PIP,FRC+Vt), bowing RIGHT
-//     at any given volume, inspiration needs MORE pressure (resistive driving pressure)
-//   EXPIRATORY LIMB: upper-right (PIP,FRC+Vt) → lower-left (PEEP,FRC), bowing LEFT
-//     at any given volume, expiration needs LESS pressure (elastic recoil drives flow out)
-//
-// compliance < 1 → same pressure range yields LESS volume (shorter loop, sits near bottom)
-// resistance > 1 → WIDER horizontal hysteresis (fat oval = more resistive work per breath)
-// autoPeep   > 0 → loop start shifts RIGHT (trapped gas: never returns to set PEEP)
-// overdist      → upper-right corner bends rightward (upper inflection point — compliance drop)
-function makePVPath({ W = 155, H = 112, compliance = 1.0, resistance = 1.0, autoPeep = 0, overdist = false } = {}) {
-  const N = 120;
+const FV_PATHS = Object.fromEntries(
+  Object.entries(FV_SCENARIOS).map(([key, s]) => [
+    key,
+    ventLoopToPath(generateVentilatorFlowVolumeLoop(s.patient, s.vitals, s.vent).points),
+  ])
+);
 
-  // Y axis: yBot=FRC (anchored to match the SVG's dashed reference line at y≈88)
-  const yBot = 88;
-  // Volume range scales with compliance: ARDS lungs achieve less Vt for the same ΔP
-  const vtFrac  = Math.min(1.0, compliance ** 0.6);
-  const vtPx    = vtFrac * 72;   // max loop height 72 pixels (full height from y=88 to y=16)
-  const yTop    = yBot - vtPx;
-
-  // X axis: xLeft=PEEP side, xRight=PIP side (fixed); auto-PEEP shifts xLeft right
-  const autoPeepShiftX = autoPeep * W * 0.20;
-  const xLeft  = W * 0.06 + autoPeepShiftX;
-  const xRight = W * 0.91;
-  const dP     = xRight - xLeft;
-
-  // Hysteresis per limb: resistance × pressure-range × calibrated factor
-  // Clinical basis: at flow = 0.5 L/s, R=5 → ΔP_resist = 2.5 cmH₂O ≈ 17% of normal ΔP=15 cmH₂O
-  const bowI = resistance * dP * 0.17;  // inspiratory limb bows RIGHT
-  const bowE = resistance * dP * 0.11;  // expiratory limb bows LEFT
-
-  const pts = [];
-
-  // INSPIRATORY LIMB: lower-left → upper-right, bowing RIGHT
-  for (let i = 0; i <= N; i++) {
-    const p = i / N;
-    const baseX = xLeft + p * dP;
-    const y = yBot - p * vtPx;
-    let x = baseX + bowI * Math.sin(p * Math.PI);
-    if (overdist && p > 0.78) {
-      // Upper inflection: compliance drops → pressure rises faster for same volume gain
-      const od = ((p - 0.78) / 0.22) ** 2;
-      x += dP * 0.18 * od;
-    }
-    pts.push([Math.min(W * 0.98, x), y]);
-  }
-
-  // EXPIRATORY LIMB: upper-right → lower-left, bowing LEFT
-  for (let i = 0; i <= N; i++) {
-    const p = i / N;
-    const baseX = xRight - p * dP;
-    const y = yTop + p * vtPx;
-    const x = baseX - bowE * Math.sin(p * Math.PI);
-    pts.push([Math.max(W * 0.01, x), y]);
-  }
-
-  return pts.map(([x, y], i) =>
-    `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`
-  ).join(' ') + ' Z';
+function makeFVPath(type = 'normal') {
+  return FV_PATHS[type] || FV_PATHS.normal;
 }
 
-const PV_PATHS = {
-  normal:   makePVPath({}),
-  ards:     makePVPath({ compliance: 0.28, resistance: 0.85 }),
-  highRes:  makePVPath({ resistance: 2.6 }),
-  autoPeep: makePVPath({ autoPeep: 0.55, compliance: 0.80 }),
-  overdist: makePVPath({ compliance: 0.62, overdist: true }),
+// ─── Pressure-Volume Loop reference tracings (ventilator tidal loops) ─────────
+// Generated from the SAME engine that draws the patient's live P-V loop
+// (generatePressureVolumeLoopFromMechanics), so a reference and the live loop are one
+// source of truth. Convention matches the live PressureVolumeLoopCanvas:
+//   • X = airway pressure (cmH2O), increasing rightward from the PEEP origin to PIP.
+//   • Y = tidal volume above PEEP (SVG y inverted, so higher volume = smaller y). The loop
+//     begins at (PEEP, 0); an origin lifted off that baseline is gas trapping.
+// The loop is traced up the RIGHT-bowing inspiratory limb (at any volume, inspiration needs
+// MORE pressure — the resistive driving pressure) and down the LEFT-bowing expiratory limb;
+// the enclosed area is the resistive work of the breath.
+//
+// Rendered into the loop viewBox (0 0 160 110) with the volume=0 baseline at y=88 (the line
+// the renderer draws for the P-V loop). All four share ONE fixed pressure/volume scale, so a
+// flatter slope (low compliance) or a wider loop (high resistance) reads as a genuine
+// deviation against the greyed normal drawn behind it. Volume-control (VCV) breaths are used:
+// the canonical P-V loop, where the slope reads directly as compliance and the PIP−Pplat gap
+// (loop width) reads as resistance — PCV's rectangular loop hides both.
+const PV_Y0 = 88;         // volume=0 (PEEP) baseline, matches the panel's P-V reference line
+const PV_X0 = 12;         // pressure 0 anchor (left)
+const PV_PSCALE = 4.25;   // px per cmH2O (pressure increases rightward)
+const PV_VSCALE = 115;    // px per litre of tidal volume (higher volume → up)
+
+const clampPvY = (y) => Math.max(6, Math.min(104, y));
+
+// Maps a live-model P-V loop ({pressure cmH2O, volume L}) into viewBox SVG path coordinates.
+function pvLoopToPath(points) {
+  const pts = points.map((p) => [
+    PV_X0 + p.pressure * PV_PSCALE,
+    clampPvY(PV_Y0 - p.volume * PV_VSCALE),
+  ]);
+  return pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ') + ' Z';
+}
+
+const PV_LUNG = { tlc_mL: 6000, rv_mL: 1500, frc_mL: 2400 };
+const PV_PATIENT = { airwaySecured: true, lungVolumes: PV_LUNG, ibw: 70 };
+const PV_SCENARIOS = {
+  normal:   { patient: PV_PATIENT,                            vitals: { res: 5,  compl: 60, rr: 12 }, vent: { mode: 'VCV', vt: 500, rr: 12, peep: 5,  ieRatio: 2 } },
+  highRes:  { patient: { ...PV_PATIENT, bronchospasm: true }, vitals: { res: 26, compl: 55, rr: 12 }, vent: { mode: 'VCV', vt: 500, rr: 12, peep: 5,  ieRatio: 2 } },
+  lowComp:  { patient: PV_PATIENT,                            vitals: { res: 6,  compl: 22, rr: 16 }, vent: { mode: 'VCV', vt: 380, rr: 16, peep: 10, ieRatio: 2 } },
+  autoPeep: { patient: { ...PV_PATIENT, bronchospasm: true }, vitals: { res: 28, compl: 55, rr: 20 }, vent: { mode: 'VCV', vt: 450, rr: 20, peep: 5,  ieRatio: 1.5 } },
 };
+
+const PV_PATHS = Object.fromEntries(
+  Object.entries(PV_SCENARIOS).map(([key, s]) => [
+    key,
+    pvLoopToPath(generatePressureVolumeLoopFromMechanics(s.patient, s.vitals, s.vent).points),
+  ])
+);
 
 // ─── Waveform configuration ───────────────────────────────────────────────────
 const WAVEFORM_CONFIGS = {
@@ -951,134 +868,123 @@ const WAVEFORM_CONFIGS = {
     color: '#10b981',
     isLoop: true,
     anatomy: [
-      { label: 'Expiratory Limb (upper)', desc: 'Peak expiratory flow → linear descent to RV. Shape reveals obstructive disease.' },
-      { label: 'PEF', desc: 'Peak Expiratory Flow — achieved at ~85% of TLC. Effort-dependent.' },
-      { label: 'Inspiratory Limb (lower)', desc: 'Inspiration from RV to TLC. Normally symmetric oval. Flattened = extrathoracic obstruction.' },
-      { label: 'Loop Area', desc: 'Total lung capacity (right end) minus residual volume (left end) = VC.' },
+      { label: 'Inspiratory Limb (lower)', desc: 'Machine-delivered flow into the patient — tidal volume rises from 0 (right) toward Vt (left), below the zero-flow line. VCV is a flat step; PCV/PSV is a decelerating curve.' },
+      { label: 'Expiratory Limb (upper)', desc: 'Passive elastic recoil against airway resistance — peaks at PEF, then decays exponentially (time constant τ = R·C) back toward zero as the lungs empty.' },
+      { label: 'PEF (peak expiratory flow)', desc: 'The top of the expiratory limb. Falls, and the limb flattens/scoops, when airway resistance is high (bronchospasm, COPD, secretions, a kinked tube).' },
+      { label: 'Closure at zero volume', desc: 'A complete breath returns to the right edge (0 volume, 0 flow). An expiratory limb that stops short of it is gas trapping / auto-PEEP.' },
     ],
     states: [
       {
         id: 'normal',
         label: 'Normal',
-        subtitle: 'Symmetric oval — full VC',
-        path: FV_PATHS.normal,
-        mechanism: 'Rapid peak expiratory flow followed by linear descent (uniform alveolar emptying). Inspiratory limb is symmetric. Loop area = vital capacity.',
-        clinical: 'Normal: PEF achieved early, smooth linear expiratory descent. FEV1/FVC > 0.70. Inspiratory and expiratory limbs mirror each other.',
-        pearls: ['Expiratory limb characterizes airway disease; inspiratory limb characterizes extrathoracic disease', 'Loop shifts left in obstructive disease (air trapping increases RV)', 'Loop narrows in restrictive disease'],
+        subtitle: 'Full loop, closes at zero volume',
+        get path() { return makeFVPath('normal'); },
+        mechanism: 'A passive mechanical breath: the ventilator drives gas in (inspiratory limb, below the zero line), then elastic recoil pushes it back out against airway resistance (expiratory limb, above the line), decaying exponentially to zero. The loop is smooth and closes cleanly at zero volume.',
+        clinical: 'Baseline for comparison. Peak expiratory flow, loop width (tidal volume) and closure at zero volume are all preserved. The enclosed area is the resistive work of the breath.',
+        pearls: ['Expiratory limb shape is set by the time constant τ = R·C', 'A complete breath returns to (0 volume, 0 flow) — the right edge', 'Compare loop-to-loop: a shrinking loop means falling Vt or worsening mechanics'],
         drugs: [],
       },
       {
-        id: 'copd',
-        label: 'Obstructive (COPD/Asthma)',
-        subtitle: 'Concave expiratory — "scooped out"',
-        path: FV_PATHS.copd,
-        mechanism: 'Dynamic airway collapse during exhalation causes flow limitation at all lung volumes. The expiratory limb curves concavely inward rather than descending linearly. Air trapping shifts the loop rightward (increased RV).',
-        clinical: 'FEV1/FVC < 0.70 (post-bronchodilator). COPD classified by FEV1% predicted. Asthma may show reversibility with bronchodilator (≥12% FEV1 improvement).',
-        pearls: ['Scooped out = dynamic collapse = expiratory flow limitation', 'Loop also wider/shifted right due to air trapping', 'Post-bronchodilator improvement = reversible = asthma component', 'Inhaled anesthetics and IV ketamine are bronchodilators'],
-        drugs: ['Albuterol: reverses dynamic obstruction in asthma', 'Volatile anesthetics: bronchodilate — use in preference to IV-only technique'],
+        id: 'highRes',
+        label: 'High Airway Resistance',
+        subtitle: 'Bronchospasm / COPD — scooped, low expiratory flow',
+        get path() { return makeFVPath('highRes'); },
+        mechanism: 'Elevated airway resistance slows expiratory flow at every lung volume, so peak expiratory flow falls and the expiratory limb flattens and "scoops". The time constant lengthens, prolonging exhalation.',
+        clinical: 'Bronchospasm, COPD, a kinked or secretion-filled ETT, an obstructed HME. On the pressure waveform this is a wide PIP–Pplat gap (resistive, not compliance). A long τ risks incomplete emptying and auto-PEEP.',
+        pearls: ['Scooped, low expiratory limb = high resistance', 'PIP rises but Pplat stays normal (PIP–Pplat gap widens)', 'Rule out a mechanical cause first: kinked tube, bitten tube, mucus plug, bronchial cuff'],
+        drugs: ['Albuterol / ipratropium — first-line for bronchospasm', 'Volatile anesthetics, IV ketamine — bronchodilators'],
       },
       {
-        id: 'restrictive',
-        label: 'Restrictive',
-        subtitle: 'Small loop, normal shape',
-        path: FV_PATHS.restrictive,
-        mechanism: 'Reduced TLC and VC from stiff lungs or chest wall restriction. The loop retains normal shape (no expiratory scooping) but is smaller. Flow rates relatively preserved compared to volumes.',
-        clinical: 'Pulmonary fibrosis, obesity, pleural effusion, neuromuscular disease, ARDS. TLC < 80% predicted. FEV1/FVC normal (both reduced proportionally).',
-        pearls: ['Normal FEV1/FVC with reduced FVC = restrictive pattern', 'DLCO: severely reduced in parenchymal restriction (ILD), normal in chest-wall restriction', 'High FVC with narrow loop = think neuromuscular disease'],
+        id: 'lowComp',
+        label: 'Low Compliance',
+        subtitle: 'ARDS / restriction — narrow loop, small Vt',
+        get path() { return makeFVPath('lowComp'); },
+        mechanism: 'Stiff lungs deliver a smaller tidal volume for the same driving pressure, so the loop is narrow (reduced volume span). Elastic recoil is brisk, so peak expiratory flow is preserved or even increased.',
+        clinical: 'ARDS, pulmonary edema, fibrosis, chest-wall/abdominal restriction, pneumothorax, mainstem intubation. Pplat is elevated — keep driving pressure (Pplat − PEEP) ≤ 15 cmH₂O and Vt ≈ 6 mL/kg IBW.',
+        pearls: ['Narrow loop with a normal-shaped (non-scooped) expiratory limb = restriction', 'PIP and Pplat both rise together (small PIP–Pplat gap)', 'A sudden intra-op narrowing = pneumothorax or mainstem intubation until proven otherwise'],
         drugs: [],
       },
       {
-        id: 'fixedObs',
-        label: 'Fixed Upper Airway Obstruction',
-        subtitle: 'Plateau on BOTH inspiratory and expiratory',
-        path: FV_PATHS.fixedObs,
-        mechanism: 'Rigid obstruction (tracheal stenosis, tracheal tumor, goiter) limits maximum flow equally during inspiration and expiration, creating flat "plateau" on both limbs.',
-        clinical: 'Tracheal stenosis from prior intubation, thyroid enlargement, post-radiation fibrosis. Inspiratory stridor + expiratory wheeze. Difficult airway alert.',
-        pearls: ['Fixed obstruction = plateau on BOTH limbs (inspiration AND expiration)', 'Variable extrathoracic = flattened inspiration only', 'Variable intrathoracic = flattened expiration only', 'Critical airway: awake fiberoptic intubation or surgical airway backup essential'],
-        drugs: ['Helium-oxygen mixture (Heliox): reduces turbulent flow resistance — temporizing bridge'],
-      },
-      {
-        id: 'extrathoracic',
-        label: 'Variable Extrathoracic Obstruction',
-        subtitle: 'Inspiratory plateau — vocal cord/laryngeal',
-        path: FV_PATHS.extrathoracic,
-        mechanism: 'Extrathoracic airways (vocal cords, larynx, upper trachea) collapse on inspiration when negative intraluminal pressure exceeds atmospheric. Expiration is unaffected (positive transmural pressure keeps airway open).',
-        clinical: 'Vocal cord paralysis, subglottic stenosis, laryngomalacia, paradoxical vocal cord motion. Inspiratory stridor on examination.',
-        pearls: ['Inspiratory stridor + inspiratory plateau = extrathoracic variable obstruction', 'Paradoxical vocal cord motion: psychogenic, often post-exercise', 'Laryngomalacia: worsened by supine position', 'Ensure airway backup secured before inducing general anesthesia'],
-        drugs: [],
+        id: 'autoPeep',
+        label: 'Auto-PEEP / Gas Trapping',
+        subtitle: 'Expiratory limb fails to reach zero volume',
+        get path() { return makeFVPath('autoPeep'); },
+        mechanism: 'Exhalation is cut off by the next breath before the lungs fully empty, so the expiratory limb stops short of zero volume — trapped gas. Driven by high resistance, a fast rate, or inverse I:E (too little expiratory time).',
+        clinical: 'Severe bronchospasm/COPD with a high RR. Trapped gas raises intrathoracic pressure → hypotension and barotrauma. Fix: lengthen expiratory time (↓ RR, ↓ I:E), treat the resistance, or briefly disconnect the circuit to let the lungs empty.',
+        pearls: ['Expiratory limb not returning to zero volume = gas trapping', 'Quantify with an expiratory-hold (measures total PEEP)', 'Hypotension + rising airway pressures on a fast, obstructive patient = auto-PEEP until proven otherwise', 'Permissive hypercapnia is the usual trade-off'],
+        drugs: ['Bronchodilators — reduce resistance and speed emptying', 'Deepen anesthesia / paralysis if the patient is breath-stacking'],
       },
     ],
     getCurrent(patient, vitals) {
       const res = vitals?.res || 5;
       const compl = vitals?.compl || 60;
-      if (patient?.hasCopd || patient?.asthma) return { label: 'Obstructive pattern expected', detail: 'Concave expiratory limb, scooped-out appearance. FEV1/FVC reduced.', color: '#f97316' };
-      if (patient?.atelectasis > 0.15 || compl < 30) return { label: 'Reduced loop area', detail: 'Restrictive pattern — low compliance. Small loop expected.', color: '#f97316' };
-      if (res > 20) return { label: 'Obstructive morphology', detail: `High resistance ${res} cmH₂O/L/s — scooping expected on expiratory limb.`, color: '#f97316' };
-      return { label: 'Normal loop expected', detail: `Resistance ${res}, compliance ${compl} mL/cmH₂O. Normal oval shape.`, color: '#22c55e' };
+      if (patient?.autoPeep || patient?.gasTrapping) return { label: 'Auto-PEEP / gas trapping', detail: 'Expiratory limb not returning to zero volume. Lengthen expiratory time (↓ RR / ↓ I:E) and treat resistance.', color: '#ef4444' };
+      if (patient?.hasCopd || patient?.asthma || patient?.bronchospasm || res > 15) return { label: 'High airway resistance', detail: `Resistance ${res} cmH₂O/L/s — scooped, low-flow expiratory limb expected; watch for gas trapping (long τ).`, color: '#f97316' };
+      if (compl < 30 || patient?.atelectasis > 0.15) return { label: 'Low compliance', detail: `Cdyn ${compl} mL/cmH₂O — narrow tidal loop (small Vt for the driving pressure). Keep driving pressure ≤ 15.`, color: '#f97316' };
+      return { label: 'Normal tidal loop', detail: `Resistance ${res}, compliance ${compl} mL/cmH₂O. Full loop that closes at zero volume.`, color: '#22c55e' };
     },
   },
 
   pvLoop: {
     name: 'Pressure-Volume Loop',
     abbrev: 'P-V Loop',
-    color: '#a78bfa',
+    color: '#eab308',
     isLoop: true,
     anatomy: [
-      { label: 'Inspiratory Limb', desc: 'Volume increases with pressure — slope = dynamic compliance (VTe/ΔP)' },
-      { label: 'Lower Inflection Point', desc: 'Pressure below which alveoli collapse on expiration. Set PEEP at or above this.' },
-      { label: 'Upper Inflection Point', desc: 'Pressure above which overdistension begins. Dangerous in ARDS.' },
-      { label: 'Expiratory Limb', desc: 'Hysteresis loop — different path on exhalation due to surfactant and airway mechanics' },
-      { label: 'Loop Width', desc: 'Reflects work against resistance (wider = more resistive work)' },
+      { label: 'Inspiratory limb (right-bowing)', desc: 'Volume rises with pressure from the PEEP origin to PIP. At any volume it needs MORE pressure than expiration — the extra is the resistive driving pressure (flow × R).' },
+      { label: 'Slope = compliance', desc: 'The overall steepness is dynamic compliance, Vt / (PIP − PEEP). A flatter slope means stiffer lungs.' },
+      { label: 'Loop width = resistance', desc: 'The horizontal gap between the limbs is the resistive work per breath (the PIP − Pplat difference). Wider = more resistance.' },
+      { label: 'Origin at PEEP', desc: 'A normal breath starts and ends at (PEEP, zero volume). An origin lifted off that baseline is gas trapping / auto-PEEP.' },
     ],
     states: [
       {
         id: 'normal',
         label: 'Normal Compliance',
-        subtitle: 'Wide oval, gentle slope',
+        subtitle: 'Steep slope, narrow loop',
         path: PV_PATHS.normal,
-        mechanism: 'Normal lung compliance ~50-100 mL/cmH₂O. Gentle pressure rise for moderate volume. Normal hysteresis loop. No inflection points visible at normal tidal volumes.',
-        clinical: 'Normal Cdyn = VTe / (PIP - PEEP). Normal ≥ 60 mL/cmH₂O. The slope of the P-V loop visually represents compliance.',
-        pearls: ['Steeper slope = higher compliance (less pressure needed)', 'Wider loop = more resistive work', 'Normal loop closes cleanly at PEEP → no auto-PEEP'],
+        mechanism: 'A passive VCV breath: pressure rises with volume from PEEP to PIP (inspiratory limb, bowing right against airway resistance), then recoil returns it to PEEP (expiratory limb). The slope is compliance; the enclosed area is the resistive work of the breath.',
+        clinical: 'Cdyn = Vt / (PIP − PEEP), normally ≥ 60 mL/cmH₂O. The loop starts and closes at the PEEP origin. PIP − Pplat (loop width) is small when resistance is low.',
+        pearls: ['Steeper slope = higher compliance', 'Loop width tracks resistive work (PIP − Pplat)', 'A clean return to the PEEP origin means no gas trapping'],
         drugs: [],
       },
       {
-        id: 'ards',
-        label: 'ARDS — Low Compliance',
-        subtitle: 'Steep, narrow loop — high pressure for small volume',
-        path: PV_PATHS.ards,
-        mechanism: 'Consolidated alveoli and surfactant loss reduce lung compliance dramatically. Same tidal volume requires much higher pressure change. Loop is narrow and shifted right on the pressure axis.',
-        clinical: 'Severe ARDS: Cdyn < 30 mL/cmH₂O. Lung-protective strategy essential: TV 4-6 mL/kg IBW, Pplat ≤ 30, driving pressure ≤ 15, PEEP by ARDSNet table.',
-        pearls: ['"Baby lung" concept: ARDS lungs are small, not stiff — recruit before using high pressures', 'Lower inflection point visible on severely abnormal P-V loops', 'Recruitment maneuvers may open collapsed alveoli temporarily'],
-        drugs: ['Cisatracurium: NMB in severe ARDS for 48h (ACURASYS trial)', 'Prone positioning: improves V/Q mismatch'],
+        id: 'highRes',
+        label: 'High Airway Resistance',
+        subtitle: 'Wide loop — large PIP − Pplat gap',
+        path: PV_PATHS.highRes,
+        mechanism: 'Elevated airway resistance needs a large resistive pressure (flow × R) to drive gas in, so PIP climbs well above Pplat and the loop fattens horizontally — the enclosed (resistive-work) area grows. The underlying compliance slope is preserved.',
+        clinical: 'Bronchospasm, secretions, a kinked or bitten ETT, an obstructed HME. The widened PIP − Pplat gap is the tell; Pplat (compliance) stays near normal.',
+        pearls: ['Wide loop with a preserved slope = resistance, not compliance', 'PIP rises, Pplat stays normal', 'Rule out a mechanical cause first: kink, mucus plug, bronchial cuff'],
+        drugs: ['Albuterol / ipratropium — first-line', 'Volatile anesthetics, IV ketamine — bronchodilators'],
       },
       {
-        id: 'highRes',
-        label: 'High Resistance',
-        subtitle: 'Wide loop — increased resistive work',
-        path: PV_PATHS.highRes,
-        mechanism: 'High airway resistance forces greater pressure differential between PIP and plateau. The loop widens at both inspiratory and expiratory limbs, reflecting resistive work of breathing.',
-        clinical: 'Bronchospasm, secretions, ETT kink. Loop area = resistive work per breath. High with severe obstruction.',
-        pearls: ['Wider P-V loop = more work against resistance', 'Treat the underlying cause, not just the loop appearance', 'Dynamic compliance (slope) relatively preserved if only resistance is high'],
-        drugs: ['Albuterol, deep volatile anesthesia: narrow the loop by reducing resistance'],
+        id: 'lowComp',
+        label: 'Low Compliance (ARDS)',
+        subtitle: 'Flat slope — high pressure for a small volume',
+        path: PV_PATHS.lowComp,
+        mechanism: 'Stiff lungs need a much larger pressure change for the same volume, so the loop flattens and shifts right on the pressure axis. Both PIP and Pplat rise together (the gap stays small — this is elastic, not resistive).',
+        clinical: 'ARDS, pulmonary edema, fibrosis, chest-wall/abdominal restriction, pneumothorax, mainstem intubation. Keep driving pressure (Pplat − PEEP) ≤ 15 cmH₂O and Vt ≈ 6 mL/kg IBW; "baby lung" — recruit before pushing pressure.',
+        pearls: ['Flat slope = low compliance', 'PIP and Pplat both rise together (small gap)', 'A sudden intra-op flattening = pneumothorax / mainstem until proven otherwise'],
+        drugs: ['Cisatracurium — early severe ARDS (ACURASYS)', 'Prone positioning — improves V/Q'],
       },
       {
         id: 'autoPeep',
-        label: 'Auto-PEEP / Air Trapping',
-        subtitle: 'Loop starts above PEEP baseline',
+        label: 'Auto-PEEP / Gas Trapping',
+        subtitle: 'Origin lifts off the PEEP baseline',
         path: PV_PATHS.autoPeep,
-        mechanism: 'Trapped gas means the actual end-expiratory pressure exceeds the set PEEP. The loop begins at a higher pressure than the PEEP dial setting, appearing shifted upward from where it should start.',
-        clinical: 'Obstructive disease, high RR, insufficient expiratory time. Dynamic hyperinflation increases functional residual capacity, reducing diaphragm efficiency.',
-        pearls: ['Loop does not start at set PEEP → suspect auto-PEEP', 'Increase expiratory time: reduce RR or increase I:E ratio', 'COPD/asthma patients especially vulnerable at high RR'],
-        drugs: ['Bronchodilators: reduce expiratory resistance → allow more complete emptying'],
+        mechanism: 'Incomplete exhalation leaves trapped gas, so the next breath begins at a volume and pressure above the set PEEP — the whole loop lifts off the baseline origin (dynamic hyperinflation) rather than starting at (PEEP, 0).',
+        clinical: 'Severe bronchospasm/COPD with a high rate or too little expiratory time. Trapping raises intrathoracic pressure → hypotension and barotrauma. Lengthen expiratory time (↓ RR, ↓ I:E), treat resistance, or briefly disconnect the circuit.',
+        pearls: ['Loop not starting at the set PEEP = auto-PEEP', 'Quantify with an expiratory-hold (total PEEP)', 'Hypotension + rising airway pressures on a fast obstructive patient = auto-PEEP until proven otherwise'],
+        drugs: ['Bronchodilators — speed lung emptying', 'Deepen anesthesia / paralysis if the patient is breath-stacking'],
       },
     ],
     getCurrent(patient, vitals) {
       const compl = vitals?.compl || 60;
       const res = vitals?.res || 5;
-      if (compl < 25) return { label: 'Severely reduced compliance', detail: `Cdyn ${compl} mL/cmH₂O — steep narrow loop. ARDS pattern. Lung-protective ventilation essential.`, color: '#ef4444' };
-      if (compl < 40) return { label: 'Reduced compliance', detail: `Cdyn ${compl} mL/cmH₂O — compliance below normal. Review PEEP strategy.`, color: '#f97316' };
-      if (res > 20) return { label: 'High resistance loop', detail: `Resistance ${res} cmH₂O/L/s — wider loop expected, increased resistive work.`, color: '#f97316' };
-      return { label: 'Normal P-V loop', detail: `Cdyn ${compl} mL/cmH₂O, resistance ${res} cmH₂O/L/s. Normal compliance and shape.`, color: '#22c55e' };
+      if (patient?.autoPeep || patient?.gasTrapping) return { label: 'Auto-PEEP / gas trapping', detail: 'Loop origin lifted off the PEEP baseline. Lengthen expiratory time (↓ RR / ↓ I:E) and treat resistance.', color: '#ef4444' };
+      if (patient?.bronchospasm || patient?.hasCopd || patient?.asthma || res > 15) return { label: 'High airway resistance', detail: `Resistance ${res} cmH₂O/L/s — wide loop, large PIP − Pplat gap.`, color: '#f97316' };
+      if (compl < 30 || patient?.atelectasis > 0.15) return { label: 'Low compliance', detail: `Cdyn ${compl} mL/cmH₂O — flat slope, high pressure for a small volume. Keep driving pressure ≤ 15.`, color: '#f97316' };
+      return { label: 'Normal P-V loop', detail: `Cdyn ${compl} mL/cmH₂O, resistance ${res} cmH₂O/L/s. Steep slope, narrow loop, closes at PEEP.`, color: '#22c55e' };
     },
   },
 };
@@ -1130,6 +1036,17 @@ export function WaveformContextPanel({ waveformId, anchorRect, onClose, patient,
 
   const currentInterp = config.getCurrent ? config.getCurrent(patient, vitals) : null;
   const selState = selectedState ? config.states.find(s => s.id === selectedState) : null;
+
+  // For loop guides (F-V, P-V), draw a faint grey outline of the NORMAL loop behind a
+  // pathology so the deviation (scooping, plateau, narrowing, flattened slope) reads at a
+  // glance against the reference. Returns null for the normal state itself and for the
+  // non-loop time-series guides (pleth, A-line, capnography, ventilator strips).
+  const ghostNormal = (currentId) => {
+    if (!config.isLoop) return null;
+    const normal = config.states[0];
+    if (!normal || currentId === normal.id) return null;
+    return <path d={normal.path} fill="none" stroke="#94a3b8" strokeWidth="1.3" strokeOpacity="0.45" />;
+  };
 
   return (
     <div
@@ -1195,7 +1112,7 @@ export function WaveformContextPanel({ waveformId, anchorRect, onClose, patient,
                         preserveAspectRatio="xMidYMid meet"
                       >
                         {config.isLoop
-                          ? <path d={st.path} fill={config.color + '15'} stroke={config.color} strokeWidth="1.5" />
+                          ? <>{ghostNormal(st.id)}<path d={st.path} fill={config.color + '15'} stroke={config.color} strokeWidth="1.5" /></>
                           : <path d={st.path} fill="none" stroke={config.color} strokeWidth="1.5" strokeLinecap="round" />
                         }
                       </svg>
@@ -1231,6 +1148,7 @@ export function WaveformContextPanel({ waveformId, anchorRect, onClose, patient,
                       <>
                         <line x1="80" y1="0" x2="80" y2="110" stroke="#334155" strokeWidth="0.5" strokeDasharray="2,3" />
                         <line x1="0" y1={waveformId === 'flowVolume' ? '48' : '88'} x2="160" y2={waveformId === 'flowVolume' ? '48' : '88'} stroke="#334155" strokeWidth="0.5" strokeDasharray="2,3" />
+                        {ghostNormal(selState.id)}
                         <path d={selState.path} fill={config.color + '18'} stroke={config.color} strokeWidth="2" />
                       </>
                     ) : (
@@ -1349,6 +1267,7 @@ export function WaveformContextPanel({ waveformId, anchorRect, onClose, patient,
                       if (s.id === 'hyperdyn' && (l.includes('hyper') || l.includes('sepsis'))) return true;
                       if (s.id === 'highRes' && l.includes('resist')) return true;
                       if (s.id === 'lowComp' && (l.includes('compli') || l.includes('ards'))) return true;
+                      if (s.id === 'autoPeep' && (l.includes('auto') || l.includes('trap'))) return true;
                       if (s.id === 'tamponade' && l.includes('tampona')) return true;
                       if (s.id === 'afib' && l.includes('af')) return true;
                       return false;
@@ -1358,7 +1277,7 @@ export function WaveformContextPanel({ waveformId, anchorRect, onClose, patient,
                         style={{ height: config.isLoop ? 70 : 50, display: 'block' }}
                         preserveAspectRatio="xMidYMid meet">
                         {config.isLoop
-                          ? <path d={matchState.path} fill={config.color + '15'} stroke={config.color} strokeWidth="1.8" />
+                          ? <>{ghostNormal(matchState.id)}<path d={matchState.path} fill={config.color + '15'} stroke={config.color} strokeWidth="1.8" /></>
                           : <path d={matchState.path} fill="none" stroke={config.color} strokeWidth="1.8" strokeLinecap="round" />
                         }
                       </svg>

@@ -37,9 +37,15 @@ The following lists the exact variables, structures, and data types stored in th
 *   `isCyclingNibp`: `boolean` (Indicates active 15s non-invasive cuff cycle).
 *   `isAirwayCollapsed`: `boolean` (Indicates complete soft tissue upper airway obstruction).
 *   `preopModal`: `boolean`, `preOpEMR`: `boolean`, `showPreOp`: `boolean`
-*   `stagedCase`: `Object | null` (Config staged for initialization).
+*   `stagedCase`: `Object | null` (Config staged for initialization). Set by `PreOpEMR`'s
+    `handleProceed()` to include `playthroughMode`: `'guided' | 'freeform'` (the case-start
+    Playthrough Style choice) alongside the existing `patient`/`baseVitals`/etc. fields;
+    read once by `App.jsx`'s `startCase()` to set the initial `attendingMode`.
 *   `msmaidsModal`: `boolean`, `msmaidsComplete`: `boolean`
-*   `attendingMode`: `string` ('observing' | 'coaching' | 'teaching').
+*   `attendingMode`: `string` ('silent' | 'observing' | 'teaching'). Its starting value for
+    a case is set by the case-start "Playthrough Style" choice (Guided → 'teaching',
+    Freeform → 'observing'; see `stagedCase.playthroughMode` below) but remains a live,
+    user-adjustable toggle in `AttendingPanel` for the rest of the case.
 *   `postIntubationModal`: `boolean`, `extubationModal`: `boolean`, `ekgModalOpen`: `boolean`
 *   `ventSettings`: `Object` (Ventilator manifold dial values):
     *   `mode`: `string` ('PCV-VG', 'VCV', 'PCV', 'PSV')

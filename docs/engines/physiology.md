@@ -658,36 +658,52 @@ ight) \cdot \left(1.0 - \min(0.3, 0.3 \cdot \text{Volatile}_{\text{MAC}})\right)
 *   **Inputs reused, not duplicated**: `vitals.res`/`vitals.compl` (§4.6) and
     `patient.lungVolumes.{tlc_mL, rv_mL, frc_mL, fvc_mL, fev1FvcRatio}` (§4.6.1), plus the
     shared nonlinear compliance curve from §4.6.3 below.
-*   **Axis convention**: Volume (L) increases left-to-right, RV at the left margin, TLC
-    at the right. Expiratory flow is positive (above the zero-flow line), inspiratory
-    flow negative (below). Traced TLC → (expiration) → RV → (inspiration) → TLC.
-*   **Expiratory limb — real flow-limitation physics**:
+*   **Axis convention**: the display uses the standard clinical spirometry orientation —
+    the x-axis is EXHALED volume (0 at TLC on the LEFT, rising to FVC at RV on the right),
+    so peak expiratory flow sits at the far left. Expiratory flow is positive (above the
+    zero-flow line), inspiratory flow negative (below). Traced TLC → (expiration) → RV →
+    (inspiration) → TLC. The `FlowVolumeLoopModel` still emits points in ABSOLUTE lung
+    volume (RV..TLC); `FlowVolumeLoopCanvas` performs the exhaled-volume flip at display
+    time (`flipX`). *(This replaced an earlier RV-left/TLC-right absolute-volume layout —
+    valid physiology-textbook convention, but the mirror image of what every PFT machine
+    and clinical reference shows, so it read as "backwards".)*
+*   **PEF magnitude — real flow-limitation physics; limb SHAPE — canonical MEFV morphology.**
+    The two are deliberately split (a change from the earlier design, which fed the raw
+    physics curve straight to the display). The *magnitude* of peak expiratory flow is the
+    peak of the effort-independent maximal-flow relationship
     $$\dot V_{\max}(V) = \text{FLOW\_SCALE\_FACTOR} \cdot \frac{P_{el}(V)}{R_{aw}(V)}$$
     where $P_{el}(V)$ is the shared elastic recoil curve (§4.6.3) and $R_{aw}(V)$ is a
-    volume-dependent airway resistance: above FRC, $R_{aw}(V) = R_{FRC} \cdot (FRC/V)$ (a
-    fixed, modest exponent — airways are progressively more patent at higher volumes,
-    independent of obstruction severity); below FRC,
-    $R_{aw}(V) = R_{FRC} \cdot (FRC/V)^{k}$ with $k = 1 + 3\cdot\text{obstructionSeverity}$
-    (radial-traction loss accelerates narrowing toward RV, markedly more so with
-    obstructive disease). The two formulas are deliberately decoupled at FRC — an earlier
-    single-exponent design was found to make obstructive lungs *more* patent than normal
-    near TLC (where PEF actually occurs), since amplifying one shared exponent for "more
-    dramatic narrowing toward RV" also amplified "more dramatic opening toward TLC" on
-    the same curve, the wrong direction. `FLOW_SCALE_FACTOR` (≈0.165) is a disclosed
-    calibration constant bridging $P_{el}(V)$'s total-system-compliance convention (§4.6.3)
-    to a realistic absolute PEF (~8 L/s normal) — the *shape* of how flow varies with
-    volume, resistance, and compliance comes entirely from the real $P_{el}(V)/R_{aw}(V)$
-    physics; only the absolute scale is calibrated. Verified against realistic
-    inputs: normal PEF ≈9.3 L/s, mild COPD ≈2.4, severe COPD ≈0.7, bronchospasm ≈1.2,
-    restrictive ≈9.6 (narrower volume span, near-normal flow) — monotonic and clinically
-    plausible across the range.
-*   **Inspiratory limb**: not flow-limited in healthy lungs (no dynamic airway
-    compression on inspiration), so it remains a volitional-effort-driven smooth profile
-    — but PIF is now $PMUS_{\max}/R_{aw}(RV)$ (a representative effort-pressure constant
-    divided by resistance at the start of inspiration) rather than a fixed ratio of PEF.
+    volume-dependent airway resistance: above FRC, $R_{aw}(V) = R_{FRC} \cdot (FRC/V)$;
+    below FRC, $R_{aw}(V) = R_{FRC} \cdot (FRC/V)^{k}$ with
+    $k = 1 + 3\cdot\text{obstructionSeverity}$ (radial-traction loss accelerates narrowing
+    toward RV, markedly more so with obstructive disease). `FLOW_SCALE_FACTOR` (≈0.165) is a
+    disclosed calibration constant bridging $P_{el}(V)$'s total-system-compliance convention
+    (§4.6.3) to a realistic absolute PEF (~9 L/s normal). This keeps PEF correctly disease-
+    responsive: normal ≈9-11 L/s, severe COPD <1.5 L/s.
+*   **Why the shape is imposed rather than read off $P_{el}(V)/R_{aw}(V)$ directly**: feeding
+    that curve straight to the display was verified numerically to produce a strongly
+    concave/scooped descent *even for a normal lung* (normalized flow ≈0.65/0.37/0.20/0.09
+    across the descent, vs. a near-linear normal), making the normal and obstructive loops
+    nearly indistinguishable — the exact opposite of the single most important teaching
+    contrast this display exists to show (normal = straight descent, obstructive = scooped).
+    The descent SHAPE now comes from a shared canonical function,
+    `expiratoryFlowFraction(exhaledFrac, {obstruction, plateau})`: a near-vertical rise to
+    PEF at ~12% of the VC below TLC, then $(1-e)^{p}$ with $p = 1 + 3.4\cdot\text{obstruction}$
+    — $p=1$ (straight line) for a normal lung, rising to a deeply coved concave descent as
+    obstruction severity rises. The peak MAGNITUDE still comes entirely from the physics
+    above; only the descent CURVATURE is the canonical shape.
+*   **Inspiratory limb**: not flow-limited in healthy lungs (no dynamic airway compression
+    on inspiration), so it is a smooth symmetric semicircle,
+    `inspiratoryFlowFraction(inhaledFrac, {plateau})` $= \min(\sin(\pi\cdot\text{inhaledFrac}), \text{plateau})$,
+    scaled to PIF $= PMUS_{\max}/R_{aw}(RV)$ (a representative effort-pressure constant over
+    the resistance at the start of inspiration).
+*   **Shared with the guide/example cards**: `expiratoryFlowFraction`/`inspiratoryFlowFraction`
+    are exported from `FlowVolumeLoopModel.js` and consumed by `WaveformContextPanel.jsx`'s
+    static teaching cards too, so the "example" a user taps and the patient's own live loop
+    are drawn from one source of truth rather than two separately-tuned approximations.
 *   **Restrictive pattern**: no separate shape parameter — `restrictive` already
     compresses `lungVolumes` (TLC/RV/FVC ×0.52, §4.6.1) without raising resistance, so a
-    narrowed-but-normally-shaped loop falls out of reusing those volumes directly.
+    narrowed-but-normally-shaped ("witch's hat") loop falls out of reusing those volumes.
 *   **Variable extrathoracic obstruction**: reuses `RespiratoryEngine.ts`'s own
     Starling-resistor upper-airway formula ($R = R_{base}/dilatorTone^{2.5} \cdot
     \exp(0.5(pcrit-P_{aw}))$, §4.6 — the same physics already driving OSA there),
@@ -696,12 +712,15 @@ ight) \cdot \left(1.0 - \min(0.3, 0.3 \cdot \text{Volatile}_{\text{MAC}})\right)
     normally uses) in place of the previous arbitrary collapse-index fudge factor — a
     disclosed, reasoned adaptation to a different mechanical regime, not a fully implicit
     self-consistent solve.
-*   **Deliberately not modeled** (documented gap, not an oversight): fixed upper-airway
-    obstruction (e.g. tracheal stenosis — flattens *both* limbs) and variable
-    intrathoracic obstruction (e.g. an intrathoracic tracheal mass — flattens only the
-    *expiratory* limb). Neither has an existing patient flag to drive it credibly without
-    inventing new state; pick this up if/when a relevant chapter or flag materializes —
-    see `docs/chapter_integration_prompt.md`'s pulmonary-function-content bullet.
+*   **Fixed upper-airway obstruction** (tracheal stenosis — flattens *both* limbs) and
+    **variable intrathoracic obstruction** (intrathoracic tracheal mass — flattens only the
+    *expiratory* limb) are now rendered as static teaching cards in `WaveformContextPanel.jsx`
+    (via the exported `expiratoryFlowFraction`/`inspiratoryFlowFraction` plateau parameter),
+    alongside normal/obstructive/restrictive/variable-extrathoracic. They are **not yet
+    driven live** off a patient flag, though — neither has an existing live state variable to
+    trigger the live loop credibly without inventing new state; wire the live trigger up
+    if/when a relevant chapter or flag materializes (see `docs/chapter_integration_prompt.md`'s
+    pulmonary-function-content bullet).
 
 #### 4.6.3 Unified Respiratory Mechanics Solver & Pressure-Volume Loop (`LungComplianceModel.js`, `RespiratoryMechanicsModel.js`)
 > **Sourcing note**: general respiratory mechanics (the single-compartment equation of

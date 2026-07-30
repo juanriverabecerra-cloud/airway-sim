@@ -3,7 +3,7 @@ import './App.css';
 import { usePhysiology } from './engine/usePhysiology';
 import { calculatePacuReadiness } from './engine/OutcomeScoringEngine.ts';
 import { ProceduralEngine } from './engine/ProceduralEngine';
-import { Search, Activity, FastForward, FlaskConical as FlaskDna, HelpCircle, Award } from 'lucide-react';
+import { Search, Activity, FastForward, FlaskConical, HelpCircle, Award } from 'lucide-react';
 import { ReceptorBodyPanel } from './components/ReceptorBodyPanel';
 import { VitalContextPanel } from './components/VitalContextPanel';
 import { EEGContextPanel } from './components/EEGContextPanel';
@@ -23,6 +23,7 @@ import { LinesResusPanel } from './components/controls/LinesResusPanel';
 import { RenalPanel } from './components/monitors/RenalPanel';
 import { MemoryPanel } from './components/controls/MemoryPanel';
 import { AccessModal, PocusModal, SetupModal, TubeConfirmModal, AirwayQuizModal, ViewModal, PreopModal, MsmaidsModal, PostIntubationModal, ExtubationModal } from './components/modals/Modals';
+import { UltrasoundStudioModal } from './components/ultrasound/UltrasoundStudioModal';
 import { PreOpEMR } from './components/modals/PreOpEMR';
 import { EkgModal } from './components/modals/EkgModal';
 import { DrugConsultModal } from './components/modals/DrugConsultModal';
@@ -32,6 +33,11 @@ import * as SoundManager from './engine/SoundManager';
 import { evaluateAttendingGuidance } from './engine/AttendingEngine';
 import FidelityPanel from './components/controls/FidelityPanel';
 import { CLINICAL_ACTIONS } from './engine/ClinicalActions';
+
+// Multi-Display & Distributed Sync Architecture
+import { DisplayRouter } from './components/displays/DisplayRouter';
+import { DisplaySyncModal } from './components/modals/DisplaySyncModal';
+import { syncEngine } from './sync/SyncEngine';
 
 // Lazy-loaded: this panel (via ClinicalAiChat -> KnowledgeSearch) eagerly
 // fetches and parses the full textbook search index on module load. Splitting
@@ -499,6 +505,7 @@ export default function App() {
   const [showLabPanel, setShowLabPanel] = useState(false);
   const [showFidelityPanel, setShowFidelityPanel] = useState(false);
   const [showReceptorPanel, setShowReceptorPanel] = useState(false);
+  const [showDisplaySyncModal, setShowDisplaySyncModal] = useState(false);
   // UI font scale: persisted to localStorage, default 1.1 (slightly larger than browser default)
   const [uiFontScale, setUiFontScale] = useState(() => {
     const saved = parseFloat(localStorage.getItem('airway-font-scale'));
@@ -526,6 +533,7 @@ export default function App() {
   const [viewModal, setViewModal] = useState({ show: false, blade: '', bladeSize: '', tubeSize: '', adjunct: '', description: '', trueGrade: 1 });
   const [setupModal, setSetupModal] = useState(false);
   const [pocusModal, setPocusModal] = useState({ show: false, title: '', finding: '' });
+  const [ultrasoundStudioModal, setUltrasoundStudioModal] = useState({ show: false, initialProcedureId: 'ij_cvc' });
   const [isCyclingNibp, setIsCyclingNibp] = useState(false);
   const [isAirwayCollapsed, setIsAirwayCollapsed] = useState(false);
 
@@ -632,6 +640,104 @@ export default function App() {
     logEvent,
     msmaidsComplete
   });
+
+  const [poppedOutPanels, setPoppedOutPanels] = useState({});
+
+  // Instructor "God Mode" timed disease-progression trends (ARDS compliance drop, gradual
+  // bronchospasm) ramp a compliance/resistance penalty on an interval rather than snapping
+  // instantly, so they need their own cleanup-able timer handles.
+  const ardsProgressionTimerRef = useRef(null);
+  const bronchospasmTrendTimerRef = useRef(null);
+
+  const startArdsProgressionTrend = useCallback(() => {
+    if (ardsProgressionTimerRef.current) clearInterval(ardsProgressionTimerRef.current);
+    const durationMs = 120000; // 2 min, per Instructor Remote's "C: 60 -> 15" spec
+    const stepMs = 1000;
+    const targetPenalty = 0.75; // baseline compliance ~60 mL/cmH2O -> ~15 mL/cmH2O
+    const startedAt = Date.now();
+    ardsProgressionTimerRef.current = setInterval(() => {
+      const frac = Math.min(1, (Date.now() - startedAt) / durationMs);
+      setPatient(prev => prev ? { ...prev, ardsProgressionCompliancePenalty: targetPenalty * frac } : prev);
+      if (frac >= 1 && ardsProgressionTimerRef.current) {
+        clearInterval(ardsProgressionTimerRef.current);
+        ardsProgressionTimerRef.current = null;
+      }
+    }, stepMs);
+  }, [setPatient]);
+
+  const startBronchospasmTrend = useCallback(() => {
+    if (bronchospasmTrendTimerRef.current) clearInterval(bronchospasmTrendTimerRef.current);
+    const durationMs = 90000; // 90 sec, per Instructor Remote's "Raw: 5 -> 30" spec
+    const stepMs = 1000;
+    const targetPenalty = 25; // additive cmH2O/L/s, baseline ~5 -> ~30
+    const startedAt = Date.now();
+    bronchospasmTrendTimerRef.current = setInterval(() => {
+      const frac = Math.min(1, (Date.now() - startedAt) / durationMs);
+      setPatient(prev => prev ? { ...prev, bronchospasmTrendResistancePenalty: targetPenalty * frac } : prev);
+      if (frac >= 1 && bronchospasmTrendTimerRef.current) {
+        clearInterval(bronchospasmTrendTimerRef.current);
+        bronchospasmTrendTimerRef.current = null;
+      }
+    }, stepMs);
+  }, [setPatient]);
+
+  useEffect(() => {
+    return () => {
+      if (ardsProgressionTimerRef.current) clearInterval(ardsProgressionTimerRef.current);
+      if (bronchospasmTrendTimerRef.current) clearInterval(bronchospasmTrendTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    const unsubscribe = syncEngine.subscribe((event) => {
+      if (event.type === 'TRIGGER_INCIDENT') {
+        const { incidentId, active } = event.payload;
+        if (incidentId === 'afib') {
+          setVitals(prev => prev ? { ...prev, hr: active ? 145 : 72, rhythm: active ? 'afib' : 'sr' } : prev);
+        } else if (incidentId === 'vtach') {
+          setVitals(prev => prev ? { ...prev, hr: active ? 180 : 72, rhythm: active ? 'vtach' : 'sr', sbp: active ? 70 : 120, dbp: active ? 40 : 80 } : prev);
+        } else if (incidentId === 'bronchospasm') {
+          setPatient(prev => prev ? { ...prev, bronchospasm: active } : prev);
+        } else if (incidentId === 'laryngospasm') {
+          setPatient(prev => prev ? { ...prev, laryngospasm: active } : prev);
+        } else if (incidentId === 'pneumothorax') {
+          setPatient(prev => prev ? { ...prev, pneumothorax: active, pneumothoraxCompliancePenalty: active ? 0.83 : 0 } : prev);
+        } else if (incidentId === 'circuit_disconnect') {
+          setPatient(prev => prev ? { ...prev, circuitDisconnected: active } : prev);
+        } else if (incidentId === 'cuff_leak') {
+          setPatient(prev => prev ? { ...prev, cuffLeakPresent: active, cuffLeakVtePenalty: active ? 0.6 : 0 } : prev);
+        } else if (incidentId === 'ards_progression') {
+          if (active) {
+            startArdsProgressionTrend();
+          } else {
+            if (ardsProgressionTimerRef.current) { clearInterval(ardsProgressionTimerRef.current); ardsProgressionTimerRef.current = null; }
+            setPatient(prev => prev ? { ...prev, ardsProgressionCompliancePenalty: 0 } : prev);
+          }
+        } else if (incidentId === 'bronchospasm_trend') {
+          if (active) {
+            startBronchospasmTrend();
+          } else {
+            if (bronchospasmTrendTimerRef.current) { clearInterval(bronchospasmTrendTimerRef.current); bronchospasmTrendTimerRef.current = null; }
+            setPatient(prev => prev ? { ...prev, bronchospasmTrendResistancePenalty: 0 } : prev);
+          }
+        }
+      } else if (event.type === 'UPDATE_VENT_SETTINGS') {
+        setVentSettings(prev => ({ ...prev, ...event.payload }));
+      } else if (event.type === 'TOGGLE_POPOUT') {
+        setPoppedOutPanels(prev => ({
+          ...prev,
+          [event.payload.panelId]: event.payload.isPoppedOut,
+        }));
+      } else if (event.type === 'PUSH_MED') {
+        const { drugId, amount, isWeightBased } = event.payload;
+        if (pushMed) pushMed(drugId, amount, isWeightBased);
+      } else if (event.type === 'PUSH_FLUID') {
+        const { type, volume } = event.payload;
+        if (pushFluid) pushFluid(type, volume);
+      }
+    });
+    return unsubscribe;
+  }, [setVitals, setPatient, setVentSettings, pushMed, pushFluid, startArdsProgressionTrend, startBronchospasmTrend]);
 
   useEffect(() => {
     if (tutorialStep === null) return;
@@ -911,6 +1017,62 @@ export default function App() {
       };
     });
   };
+
+  // Expose live in-memory state & action handlers for zero-latency pop-out window access
+  if (typeof window !== 'undefined') {
+    window.__AETHERIS_HOST__ = {
+      patient,
+      vitals,
+      nibp,
+      nibpIntervalMs,
+      isCyclingNibp,
+      cycleNibp,
+      setNibpIntervalMs,
+      ventSettings,
+      gasSettings,
+      activeMeds,
+      electrolytes,
+      logs,
+      history,
+      time,
+      surgicalPhase,
+      activeCase,
+      attendingGuidance,
+      pushMed,
+      pushFluid,
+      updateFluidRate,
+      removeFluid,
+      setPatient,
+      setVitals,
+      setVentSettings,
+      setGasSettings,
+      soundSettings,
+      setSoundSettings,
+      logEvent,
+    };
+  }
+
+  // Multi-Display Synchronization Broadcast
+  useEffect(() => {
+    if (patient && vitals) {
+      syncEngine.broadcastState({
+        patient,
+        vitals,
+        nibp,
+        nibpIntervalMs,
+        isCyclingNibp,
+        ventSettings,
+        gasSettings,
+        activeMeds,
+        electrolytes,
+        logs,
+        history,
+        time,
+        surgicalPhase,
+        activeCase,
+      });
+    }
+  }, [patient, vitals, nibp, nibpIntervalMs, isCyclingNibp, ventSettings, gasSettings, activeMeds, electrolytes, logs, history, time, surgicalPhase, activeCase]);
   const handleSetSurgicalPhase = (val) => {
     if (val === 'Induction' && !msmaidsComplete && !patient?.emergentRSI && !patient?.isFuzzing) {
       logEvent("ℹ️ MSMAIDS checklist is incomplete, but proceeding past restriction as requested.");
@@ -1454,6 +1616,10 @@ export default function App() {
   const startCase = (selectedCase) => {
     setActiveCase(selectedCase);
     setMsmaidsComplete(false);
+    // Guided/Freeform choice made at case start (PreOpEMR's 'plan' tab, or a sensible
+    // default for paths that skip it) just sets the starting attendingMode -- the live
+    // in-session toggle in AttendingPanel remains free to override this at any time.
+    setAttendingMode(selectedCase.playthroughMode === 'freeform' ? 'observing' : 'teaching');
     const initialMap = Math.round(selectedCase.baseVitals.dia + (selectedCase.baseVitals.sys - selectedCase.baseVitals.dia) / 3);
     setVitals({ ...selectedCase.baseVitals, pip: 0, pplat: 0, vte: 0, map: initialMap, cmap: initialMap });
     setTargetVitals({ ...selectedCase.baseVitals });
@@ -1850,9 +2016,18 @@ export default function App() {
   };
 
   const handlePocus = (type) => {
+    let procId = 'ij_cvc';
+    const safeType = (type || '').toLowerCase();
+    if (safeType.includes('cardiac') || safeType.includes('tte')) procId = 'tte_plax';
+    else if (safeType.includes('gastric')) procId = 'gastric_pocus';
+    else if (safeType.includes('airway') || safeType.includes('lung')) procId = 'lung_pocus';
+    else if (safeType.includes('efast') || safeType.includes('fast')) procId = 'efast_pocus';
+    else if (safeType.includes('regional') || safeType.includes('block')) procId = 'interscalene_block';
+    else if (safeType.includes('aline') || safeType.includes('arterial')) procId = 'radial_aline';
+
+    setUltrasoundStudioModal({ show: true, initialProcedureId: procId });
     const finding = ProceduralEngine.performPocus(type, patient);
-    setPocusModal({ show: true, title: `${type} Ultrasound`, finding });
-    logEvent(`Performed ${type} Ultrasound.`);
+    logEvent(`Opened Ultrasound Simulation Studio for ${type}. (${finding})`);
   };
 
   const generateClinicalHint = () => {
@@ -1888,6 +2063,14 @@ export default function App() {
 
     logEvent(`💡 ATTENDING CONSULT:\n[STATUS] ${currentStatus}\n[FORECAST] ${forecast}`);
   };
+
+  // handleExecuteClinicalAction and generateClinicalHint are declared after the main
+  // __AETHERIS_HOST__ assignment above, so they're patched onto the same host object here
+  // (same render pass, same object reference) for zero-latency access from pop-out windows.
+  if (typeof window !== 'undefined' && window.__AETHERIS_HOST__) {
+    window.__AETHERIS_HOST__.handleExecuteClinicalAction = handleExecuteClinicalAction;
+    window.__AETHERIS_HOST__.generateClinicalHint = generateClinicalHint;
+  }
 
   const generateLab = (type) => {
     let delay = 3000; // default 3s for POC iSTAT
@@ -2420,40 +2603,62 @@ export default function App() {
         </div>
       )}
 
-      {/* EMR SLIDING PANEL */}
-      <div className={`fixed top-0 right-0 h-full w-full md:w-[500px] bg-slate-900 border-l border-slate-700 shadow-2xl z-[150] transform transition-transform duration-300 ease-in-out overflow-y-auto p-4 md:p-6 ${showLabPanel ? 'translate-x-0' : 'translate-x-full'}`}>
-        <div className="flex justify-between items-center mb-6 border-b border-slate-700 pb-4">
-          <h2 className="text-xl md:text-2xl font-bold text-blue-400 flex items-center gap-2"><Search size={20} className="md:w-6 md:h-6"/> Electronic Medical Record</h2>
-          <button onClick={() => setShowLabPanel(false)} className="text-slate-400 hover:text-white text-3xl leading-none">&times;</button>
+      {/* EMR / LIVE LABS SLIDING PANEL */}
+      <div className={`fixed top-0 right-0 h-full w-full sm:w-[520px] md:w-[560px] glass-panel glass-purple border-l border-purple-500/30 shadow-[0_0_50px_rgba(168,85,247,0.2)] z-[150] transform transition-transform duration-300 ease-in-out overflow-y-auto p-4 md:p-6 custom-scrollbar bg-slate-950/92 backdrop-blur-2xl ${showLabPanel ? 'translate-x-0' : 'translate-x-full'}`}>
+        <div className="flex justify-between items-center mb-6 border-b border-purple-500/20 pb-4">
+          <h2 className="text-xl md:text-2xl font-black text-purple-300 flex items-center gap-2.5 tracking-tight">
+            <FlaskConical size={24} className="text-purple-400 animate-pulse" /> Live Laboratory Results
+          </h2>
+          <button 
+            onClick={() => setShowLabPanel(false)} 
+            className="w-8 h-8 rounded-lg glass-button glass-button-rose flex items-center justify-center text-rose-300 font-bold text-lg cursor-pointer hover:scale-105 active:scale-95 transition-all"
+            title="Close Laboratory Panel"
+          >
+            &times;
+          </button>
         </div>
 
         {Object.keys(labs).length === 0 ? (
-          <div className="text-slate-500 italic text-center mt-20">No laboratory data available. Order labs from the clinical menu.</div>
+          <div className="flex flex-col items-center justify-center text-slate-400 italic text-center my-20 p-8 rounded-2xl bg-slate-950/60 border border-purple-500/10 shadow-inner">
+            <FlaskConical size={40} className="text-purple-500/40 mb-3" />
+            <span className="text-sm font-medium">No laboratory data drawn yet.</span>
+            <span className="text-xs text-slate-500 mt-1">Order ABG, CBC, CMP, or Coag panels from the clinical menu.</span>
+          </div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {Object.entries(labs).map(([labType, labData]) => (
-              <div key={labType} className="bg-slate-950 rounded-lg border border-slate-800 overflow-hidden">
-                <div className="bg-slate-800 px-4 py-2 font-bold text-sm text-blue-200 uppercase tracking-wider">{labType} Panel</div>
+              <div key={labType} className="bg-slate-950/70 rounded-2xl border border-purple-500/20 shadow-xl overflow-hidden backdrop-blur-md">
+                <div className="bg-purple-950/40 border-b border-purple-500/20 px-4 py-2.5 flex items-center justify-between">
+                  <span className="font-black text-xs md:text-sm text-purple-200 uppercase tracking-widest flex items-center gap-2 font-mono">
+                    <span className="w-2 h-2 rounded-full bg-purple-400 animate-ping" />
+                    {labType} Panel
+                  </span>
+                  <span className="text-[10px] font-mono text-purple-400/80 bg-purple-950/60 px-2 py-0.5 rounded-full border border-purple-800/40">
+                    {labData.history.length} Draw(s)
+                  </span>
+                </div>
                 {labType === 'TEG' && <TEGVisualizer historyData={labData.history} />}
-                <div className="overflow-x-auto pb-2">
-                  <table className="w-full text-left text-xs border-collapse min-w-[350px]">
+                <div className="overflow-x-auto custom-scrollbar">
+                  <table className="w-full text-left text-xs border-collapse min-w-[360px]">
                     <thead>
-                      <tr className="border-b border-slate-800">
-                        <th className="p-3 text-slate-500 font-normal">Test Name</th>
+                      <tr className="border-b border-purple-500/15 bg-slate-950/40">
+                        <th className="p-3 text-slate-400 font-bold uppercase tracking-wider text-[10px]">Test Name</th>
                         {labData.history.map((h, i) => (
-                          <th key={i} className="p-3 text-center text-slate-300 whitespace-nowrap">@ {h.time}</th>
+                          <th key={i} className="p-3 text-center text-purple-300 font-mono text-[11px] whitespace-nowrap">@ {h.time}</th>
                         ))}
-                        <th className="p-3 text-slate-500 font-normal">Ref Range</th>
+                        <th className="p-3 text-slate-400 font-bold uppercase tracking-wider text-[10px]">Ref Range</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-white/5 font-mono">
                       {labData.testNames.map(testName => (
-                        <tr key={testName} className="border-b border-slate-900 hover:bg-slate-900/50">
-                          <td className="p-3 font-bold text-slate-300">{testName}</td>
+                        <tr key={testName} className="hover:bg-purple-950/20 transition-colors">
+                          <td className="p-3 font-bold text-slate-200 text-xs font-sans">{testName}</td>
                           {labData.history.map((h, i) => (
-                            <td key={i} className={`p-3 text-center font-mono text-sm ${h.results[testName].alert ? 'text-red-500 font-bold' : 'text-green-400'}`}>{h.results[testName].val}</td>
+                            <td key={i} className={`p-3 text-center text-xs ${h.results[testName].alert ? 'text-red-400 font-black animate-pulse' : 'text-emerald-400 font-bold'}`}>
+                              {h.results[testName].val}
+                            </td>
                           ))}
-                          <td className="p-3 text-slate-500 italic whitespace-nowrap">{labData.history[0].results[testName].range}</td>
+                          <td className="p-3 text-slate-400 text-[11px] italic whitespace-nowrap">{labData.history[0].results[testName].range}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -2493,6 +2698,8 @@ export default function App() {
         setMsmaidsModal={setMsmaidsModal}
         logEvent={logEvent}
         setPatient={setPatient}
+        onOpenDisplaySync={() => setShowDisplaySyncModal(true)}
+        onOpenUltrasoundStudio={() => setUltrasoundStudioModal({ show: true, initialProcedureId: 'ij_cvc' })}
       />
 
       <div className={`grid grid-cols-1 ${patient?.airwaySecured ? 'lg:grid-cols-2' : ''} gap-4`}>
@@ -2648,6 +2855,13 @@ export default function App() {
           <PocusModal 
             data={pocusModal} 
             close={() => setPocusModal({show: false, title: '', finding: ''})} 
+          />
+
+          <UltrasoundStudioModal
+            show={ultrasoundStudioModal.show}
+            onClose={() => setUltrasoundStudioModal({ show: false, initialProcedureId: 'ij_cvc' })}
+            patientState={patient}
+            initialProcedureId={ultrasoundStudioModal.initialProcedureId}
           />
 
           <AirwayQuizModal 
@@ -2870,6 +3084,12 @@ export default function App() {
           }}
         />
       )}
+
+      {/* Multi-Display & Remote Synchronization Control Modal */}
+      <DisplaySyncModal
+        isOpen={showDisplaySyncModal}
+        onClose={() => setShowDisplaySyncModal(false)}
+      />
 
       {/* Creator Watermark */}
       <div className="fixed bottom-4 left-4 z-50 pointer-events-none select-none text-[10px] sm:text-xs text-white/20 font-sans tracking-wide">

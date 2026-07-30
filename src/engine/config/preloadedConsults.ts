@@ -851,7 +851,7 @@ export function getPreloadedConsult(id: string, medDatabase?: any): string {
 === DETAILED CONSULTATION ===
 ### 🧬 Mechanism & Receptor Pharmacology
 - **Pharmacodynamics**: This agent interacts with specific receptors or cellular pathways to achieve therapeutic effects.
-- **Selectivity**: Refer to standard anesthesia textbooks (e.g. Miller's Anesthesia) for exact affinity constants and selectivity profiles.
+- **Selectivity**: Refer to a standard anesthesia reference text for exact affinity constants and selectivity profiles.
 
 ### 💊 Clinical Dosing & Pharmacokinetics
 - **Administration Guidelines**: Administer intravenously or via approved routes. Titrate to effect.

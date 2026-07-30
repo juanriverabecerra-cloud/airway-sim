@@ -30,3 +30,8 @@ src/airway_ingest/source_material/
 # Local Environment Variables (Secrets)
 .env
 
+# Generated podcast-source markdown (rebuild with `npm run podcast`).
+# The README is kept; generated chapters and the auto index are not.
+podcast_source/*_chapter_*.md
+podcast_source/INDEX.md
+

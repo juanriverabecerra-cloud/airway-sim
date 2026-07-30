@@ -17,7 +17,7 @@ self.onmessage = async (e: MessageEvent) => {
       const SQL = await initSqlJs({
         locateFile: (file: string) => {
           if (file.endsWith('.wasm')) {
-            return `https://cdn.jsdelivr.net/npm/sql.js@1.14.1/dist/sql-wasm.wasm`;
+            return '/sql-wasm.wasm';
           }
           return `https://cdn.jsdelivr.net/npm/sql.js@1.14.1/dist/${file}`;
         }

@@ -2,7 +2,9 @@ import React, { useEffect, useRef } from 'react';
 import { generatePressureVolumeLoopFromMechanics } from '../engine/PressureVolumeLoopModel';
 
 /**
- * Renders a pressure-volume loop (Paw on X, lung volume on Y).
+ * Renders a pressure-volume loop (Paw on X, TIDAL volume above the PEEP baseline on Y).
+ * Standard ICU ventilator convention: the loop strictly begins at (Paw=PEEP, V=0) and the
+ * Y-axis reads tidal volume 0 → Vt, not absolute FRC-referenced lung volume.
  *
  * Clinical reference lines added (Miller's 9e Ch13; ARDSNet protocol):
  * - PEEP vertical: where the breath starts/ends
@@ -10,9 +12,9 @@ import { generatePressureVolumeLoopFromMechanics } from '../engine/PressureVolum
  *   the denominator in Cstat = Vt / (Pplat − PEEP). PIP > Pplat iff resistance > 0.
  * - 30 cmH₂O dashed red reference: the ARDSNet / lung-protective ventilation
  *   Pplat ceiling above which overdistension risk rises sharply.
- * - Static compliance slope line from (PEEP, FRC) to (Pplat, FRC+Vt): visually
- *   shows the effective static compliance; the loop bowing left of this line
- *   represents resistive hysteresis.
+ * - Static compliance slope line from (PEEP, 0) to (Pplat, Vt): visually shows the
+ *   effective static compliance; the loop bowing right of this line represents
+ *   resistive hysteresis (inspiration needs extra pressure to drive flow).
  * - Numeric overlay: PIP, Pplat, PEEP, Cstat, Cdyn (mL/cmH₂O).
  */
 export const PressureVolumeLoopCanvas = React.memo(({ patient, vitals, ventSettings, active = true }) => {
@@ -64,11 +66,12 @@ export const PressureVolumeLoopCanvas = React.memo(({ patient, vitals, ventSetti
 
       const xMin = 0;
       const xMax = Math.max(35, pip * 1.25);
-      const lv = p?.lungVolumes;
-      const frc = lv?.frc_L || 2.2;
+      // Y-axis is tidal volume above the PEEP baseline (L), 0 at PEEP. A small negative
+      // floor keeps the V=0 baseline just off the bottom axis so the loop's PEEP origin is
+      // legible; headroom above Vt leaves room for the overdistension "beak".
       const vtL = Math.max(0.1, vte / 1000);
-      const yMin = Math.max(0, frc - 0.2);
-      const yMax = frc + vtL * 1.4;
+      const yMin = -vtL * 0.05;
+      const yMax = vtL * 1.35;
 
       const pxf = (pressure) => margin.left + ((pressure - xMin) / (xMax - xMin || 1)) * plotW;
       const pyf = (volume)   => margin.top  + ((yMax - volume)   / (yMax - yMin   || 1)) * plotH;
@@ -85,10 +88,16 @@ export const PressureVolumeLoopCanvas = React.memo(({ patient, vitals, ventSetti
         ctx.lineTo(pxf(30), margin.top + plotH);
         ctx.stroke();
         ctx.setLineDash([]);
-        ctx.fillStyle = 'rgba(239, 68, 68, 0.5)';
-        ctx.font = '8px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('30', pxf(30), margin.top + plotH + 12);
+        // Skip the "30" text (keep the dashed line) when Pplat sits close enough to
+        // overlap it — clinically the most common time this line matters is exactly
+        // when Pplat is near 30, so this collision is a real, not just theoretical, case.
+        const pplatNearThirty = pplat && pplat > peep + 0.5 && pplat < pip - 0.5 && Math.abs(pxf(30) - pxf(pplat)) < 14;
+        if (!pplatNearThirty) {
+          ctx.fillStyle = 'rgba(239, 68, 68, 0.5)';
+          ctx.font = '8px monospace';
+          ctx.textAlign = 'center';
+          ctx.fillText('30', pxf(30), margin.top + plotH + 12);
+        }
       }
 
       // ── Reference line: PEEP vertical ─────────────────────────────────────────
@@ -116,14 +125,22 @@ export const PressureVolumeLoopCanvas = React.memo(({ patient, vitals, ventSetti
         ctx.fillText('Ppl', pxf(pplat), margin.top + plotH + 12);
       }
 
-      // ── Static compliance slope line: (PEEP, FRC) → (Pplat, FRC+Vt) ─────────
+      // ── Zero-volume (PEEP) baseline: the V=0 line the loop begins and ends on ──
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.18)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(margin.left, pyf(0));
+      ctx.lineTo(margin.left + plotW, pyf(0));
+      ctx.stroke();
+
+      // ── Static compliance slope line: (PEEP, 0) → (Pplat, Vt) ────────────────
       if (showPplat && vtL > 0.05) {
         ctx.strokeStyle = 'rgba(34, 197, 94, 0.28)';
         ctx.lineWidth = 1.5;
         ctx.setLineDash([5, 4]);
         ctx.beginPath();
-        ctx.moveTo(pxf(peep),  pyf(frc));
-        ctx.lineTo(pxf(pplat), pyf(frc + vtL));
+        ctx.moveTo(pxf(peep),  pyf(0));
+        ctx.lineTo(pxf(pplat), pyf(vtL));
         ctx.stroke();
         ctx.setLineDash([]);
       }
@@ -142,6 +159,13 @@ export const PressureVolumeLoopCanvas = React.memo(({ patient, vitals, ventSetti
       ctx.font = '8px monospace';
       ctx.textAlign = 'center';
       const xTickStep = xMax > 45 ? 10 : xMax > 25 ? 5 : 5;
+      // Tick numbers share the same text row as the "30" ARDSNet reference label and the
+      // "Ppl" plateau-pressure label below — skip a tick's number where it would land
+      // close enough to either to overlap into an illegible smear (the tick mark itself
+      // still draws either way).
+      const labelExclusionX = [];
+      if (xMax > 28) labelExclusionX.push(pxf(30));
+      if (showPplat) labelExclusionX.push(pxf(pplat));
       for (let tv = 0; tv <= xMax + 0.1; tv += xTickStep) {
         const tx = pxf(tv);
         if (tx >= margin.left && tx <= margin.left + plotW) {
@@ -151,8 +175,11 @@ export const PressureVolumeLoopCanvas = React.memo(({ patient, vitals, ventSetti
           ctx.moveTo(tx, margin.top + plotH - 3);
           ctx.lineTo(tx, margin.top + plotH + 3);
           ctx.stroke();
-          ctx.fillStyle = 'rgba(148, 163, 184, 0.5)';
-          ctx.fillText(String(tv), tx, margin.top + plotH + 12);
+          const collides = labelExclusionX.some((ex) => Math.abs(ex - tx) < 12);
+          if (!collides) {
+            ctx.fillStyle = 'rgba(148, 163, 184, 0.5)';
+            ctx.fillText(String(tv), tx, margin.top + plotH + 12);
+          }
         }
       }
       ctx.textAlign = 'left';
@@ -165,7 +192,7 @@ export const PressureVolumeLoopCanvas = React.memo(({ patient, vitals, ventSetti
       ctx.save();
       ctx.translate(11, margin.top + plotH / 2);
       ctx.rotate(-Math.PI / 2);
-      ctx.fillText('Volume (L)', 0, 0);
+      ctx.fillText('Tidal Volume (L)', 0, 0);
       ctx.restore();
 
       // ── Main P-V loop trace ───────────────────────────────────────────────────

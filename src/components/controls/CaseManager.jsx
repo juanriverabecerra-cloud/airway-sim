@@ -3,811 +3,47 @@ import { Activity, Dices, FileText, ArrowLeft, Info, Settings, Heart, ShieldAler
 import { calculateIBW, calculateLungVolumes } from '../../engine/Pharmacology';
 import { AetherisLogo } from '../AetherisLogo';
 
-const PRESETS = [
-  {
-    id: 'general',
-    name: 'General - Laparoscopic Appendectomy',
-    specialty: 'General Surgery',
-    description: 'Elective appendectomy for acute appendicitis in a healthy adult.',
-    age: 38, sex: 'male', height: 175, weight: 80,
-    hr: 72, sys: 120, dia: 80, spo2: 99, rr: 12, temp: 37.2,
-    mallampati: 1, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'Laparoscopic Appendectomy',
-    ebl: 'Low', duration: 45, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 4, ef: 60, gfr: 100,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false,
-    emergentRSI: false
-  },
-  {
-    id: 'trauma',
-    name: 'Trauma - Penetrating Polytrauma',
-    specialty: 'Trauma',
-    description: 'Emergent exploratory laparotomy for gunshot wound. Severe hemorrhage.',
-    age: 25, sex: 'male', height: 180, weight: 85,
-    hr: 125, sys: 82, dia: 45, spo2: 93, rr: 24, temp: 35.8,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: true,
-    obese: false, septic: false, trauma: true, copd: false, chf: false,
-    position: 'Supine', procedure: 'Exploratory Laparotomy',
-    ebl: 'High', duration: 120, penicillinAllergy: false,
-    npoSolids: 1, npoLiquids: 1, ef: 65, gfr: 90,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false,
-    emergentRSI: true
-  },
-  {
-    id: 'neuro',
-    name: 'Neurosurgery - Awake Craniotomy',
-    specialty: 'Neurosurgery',
-    description: 'Elective craniotomy for tumor resection. Elevated baseline intracranial pressure.',
-    age: 52, sex: 'female', height: 165, weight: 62,
-    hr: 68, sys: 135, dia: 82, spo2: 98, rr: 14, temp: 36.6,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'Craniotomy (Awake)',
-    ebl: 'Moderate', duration: 240, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 4, ef: 60, gfr: 95,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false
-  },
-  {
-    id: 'cardiac',
-    name: 'Cardiac - CABG & Valve Replacement',
-    specialty: 'Cardiac',
-    description: 'Severe CAD, severe Aortic Stenosis (gradient 45mmHg), Atrial Fibrillation. High risk induction!',
-    age: 69, sex: 'male', height: 172, weight: 88,
-    hr: 82, sys: 110, dia: 65, spo2: 96, rr: 16, temp: 36.8,
-    mallampati: 3, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: true,
-    position: 'Supine', procedure: 'CABG & Aortic Valve Replacement',
-    ebl: 'High', duration: 300, penicillinAllergy: true,
-    npoSolids: 8, npoLiquids: 4, ef: 35, gfr: 52,
-    betaBlocker: true, cad: true, afib: true, as: true, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: true
-  },
-  {
-    id: 'thoracic',
-    name: 'Thoracic - Lobectomy (OLV)',
-    specialty: 'Thoracic',
-    description: 'Video-Assisted Thoracoscopic Surgery (VATS) lobectomy requiring One-Lung Ventilation (OLV). Severe COPD.',
-    age: 64, sex: 'female', height: 160, weight: 58,
-    hr: 88, sys: 130, dia: 78, spo2: 92, rr: 18, temp: 37.0,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: true, chf: false,
-    position: 'Lateral', procedure: 'VATS Lobectomy (OLV)',
-    ebl: 'Moderate', duration: 180, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 4, ef: 55, gfr: 80,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false
-  },
-  {
-    id: 'bariatric',
-    name: 'Bariatric - Gastric Sleeve Bypass',
-    specialty: 'Bariatric',
-    description: 'Morbid obesity (BMI 51.4), severe OSA, active GERD / aspiration risk.',
-    age: 39, sex: 'female', height: 165, weight: 140,
-    hr: 80, sys: 138, dia: 84, spo2: 95, rr: 16, temp: 37.2,
-    mallampati: 3, neckMobility: 'normal', airwayBlood: false,
-    obese: true, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Ramped', procedure: 'Laparoscopic Gastric Sleeve',
-    ebl: 'Low', duration: 90, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 4, ef: 60, gfr: 110,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: true, as: false,
-    diabetes: true, insulin: true
-  },
-  {
-    id: 'obgyn',
-    name: 'OB/GYN - Emergent C-Section (PPH)',
-    specialty: 'OB/GYN',
-    description: 'Emergent Cesarean for fetal distress followed by severe postpartum hemorrhage.',
-    age: 29, sex: 'female', height: 162, weight: 95,
-    hr: 115, sys: 95, dia: 55, spo2: 98, rr: 18, temp: 37.4,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'Emergent Cesarean Section',
-    ebl: 'High', duration: 75, penicillinAllergy: false,
-    npoSolids: 2, npoLiquids: 2, ef: 65, gfr: 120,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false,
-    emergentRSI: true,
-    // Phase 4 §4.27/§4.28: activates PregnancyPhysiologyEngine.ts (Stage A) and
-    // UterineToneModel.ts (Stage C) -- this case starts at the PPH crisis the title/
-    // description name (deliveryOccurred: true), not the earlier fetal-distress phase, since
-    // no case-progression/"deliver" workflow action exists yet to transition between them.
-    isPregnant: true, gestationalAgeWeeks: 39, deliveryOccurred: true
-  },
-  {
-    id: 'ortho',
-    name: 'Orthopedic - Spine Fusion',
-    specialty: 'Orthopedic',
-    description: 'Multilevel spinal fusion in prone position. Advanced age, osteoarthritis.',
-    age: 76, sex: 'female', height: 158, weight: 65,
-    hr: 65, sys: 125, dia: 75, spo2: 97, rr: 12, temp: 36.4,
-    mallampati: 2, neckMobility: 'reduced', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Prone', procedure: 'Posterior Lumbar Spinal Fusion',
-    ebl: 'Moderate', duration: 240, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 4, ef: 60, gfr: 68,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false
-  },
-  {
-    id: 'vascular',
-    name: 'Vascular - Open AAA Repair',
-    specialty: 'Vascular',
-    description: 'Abdominal Aortic Aneurysm repair. High baseline SVR, chronic renal insufficiency.',
-    age: 71, sex: 'male', height: 176, weight: 80,
-    hr: 70, sys: 155, dia: 90, spo2: 95, rr: 14, temp: 36.5,
-    mallampati: 3, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'Open AAA Repair',
-    ebl: 'High', duration: 180, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 4, ef: 50, gfr: 38,
-    betaBlocker: true, cad: true, afib: false, as: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: true
-  },
-  {
-    id: 'ent',
-    name: 'ENT/Airway - Awake Tracheostomy',
-    specialty: 'ENT/Airway',
-    description: 'Subglottic stenosis. Severe compromised airway, Mallampati IV, rigid neck.',
-    age: 48, sex: 'male', height: 172, weight: 75,
-    hr: 95, sys: 142, dia: 88, spo2: 90, rr: 20, temp: 37.1,
-    mallampati: 4, neckMobility: 'reduced', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Sitting', procedure: 'Awake Tracheostomy',
-    ebl: 'Low', duration: 60, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 4, ef: 60, gfr: 90,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false
-  },
-  {
-    id: 'urology',
-    name: 'Urology - Radical Nephrectomy',
-    specialty: 'Urology',
-    description: 'Renal cell carcinoma resection in lateral position. Dialysis-dependent CKD.',
-    age: 62, sex: 'male', height: 170, weight: 78,
-    hr: 75, sys: 130, dia: 82, spo2: 98, rr: 12, temp: 36.8,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Lateral', procedure: 'Radical Nephrectomy',
-    ebl: 'Moderate', duration: 150, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 4, ef: 55, gfr: 12,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: true, as: false
-  },
-  {
-    id: 'transplant',
-    name: 'Transplant - Liver Transplant',
-    specialty: 'Transplant',
-    description: 'ESLD (MELD 28), Child-Pugh C liver cirrhosis, baseline anemia, severe coagulopathy.',
-    age: 58, sex: 'male', height: 173, weight: 70,
-    hr: 90, sys: 105, dia: 55, spo2: 94, rr: 16, temp: 36.0,
-    mallampati: 3, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'Orthotopic Liver Transplant',
-    ebl: 'High', duration: 360, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 4, ef: 60, gfr: 72,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'C', htn: false, as: false,
-    cirrhosis: true, childPugh: 'C',
-    anemia: true, coagulopathy: true, thrombocytopenia: true
-  },
-  {
-    id: 'mh_susceptible',
-    name: 'Neuromuscular - Malignant Hyperthermia Susceptible',
-    specialty: 'General Surgery',
-    description: 'Laparoscopic hernia repair in a patient with a family history of Malignant Hyperthermia. Volatiles/Succinylcholine triggered.',
-    age: 32, sex: 'male', height: 180, weight: 85,
-    hr: 72, sys: 120, dia: 80, spo2: 99, rr: 12, temp: 37.0,
-    mallampati: 1, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'Laparoscopic Inguinal Hernia Repair',
-    ebl: 'Low', duration: 60, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 4, ef: 65, gfr: 100,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false,
-    mhSusceptible: true
-  },
-  {
-    id: 'myasthenia_gravis',
-    name: 'Neuromuscular - Myasthenia Gravis',
-    specialty: 'Thoracic',
-    description: 'Transsternal thymectomy for a patient with severe generalized Myasthenia Gravis. High NDMR sensitivity, postoperative ventilation risk.',
-    age: 44, sex: 'female', height: 165, weight: 60,
-    hr: 80, sys: 115, dia: 70, spo2: 97, rr: 14, temp: 36.8,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'Transsternal Thymectomy',
-    ebl: 'High', duration: 120, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 4, ef: 60, gfr: 90,
-    betaBlocker: false, cad: false, afib: false, mg: true,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false,
-    mgDurationYears: 8, pyridostigmineDoseMgPerDay: 480, bulbarSymptoms: true, historyMyasthenicCrisis: false, antiAchR: 120, decrementalResponse: true, vitalCapacity: 2.5
-  },
-  {
-    id: 'von_willebrand_disease',
-    name: 'Hematology - Von Willebrand Disease (Type 1, Elective Hip Arthroplasty)',
-    specialty: 'Hematology / Orthopedic',
-    description: 'Type 1 VWD patient undergoing total hip arthroplasty. Reduced VWF activity → impaired primary hemostasis and mildly reduced Factor VIII. Preoperative DDAVP test dose confirmed responder. Management: DDAVP at induction, regional anesthesia with caution given platelet function, Type & Screen. PFA-100 C-ADP and C-Epi closure times will be abnormal pre-DDAVP.',
-    age: 42, sex: 'female', weight: 68, height: 164,
-    hr: 72, sys: 118, dia: 72, spo2: 99, rr: 13, temp: 36.8,
-    mallampati: 1, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Lateral', procedure: 'Total Hip Arthroplasty',
-    ebl: 'Moderate', duration: 120, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 2, ef: 62, gfr: 98,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false,
-    hasVWD: true, vwdType: '1', factorVIIIPercent: 35, vwfActivityPercent: 35
-  },
-  {
-    id: 'hemophilia_a',
-    name: 'Hematology - Hemophilia A (Moderate, Orthopedic Procedure)',
-    specialty: 'Hematology / Orthopedic',
-    description: 'Moderate Hemophilia A (FVIII 3%) undergoing knee washout for hemarthrosis. Requires Factor VIII concentrate loading before incision. Monitor Factor VIII levels during case. Risk of acquired inhibitors (~30% of severe cases). Hemostasis critically depends on Factor VIII target >50% before surgery.',
-    age: 28, sex: 'male', weight: 78, height: 181,
-    hr: 75, sys: 122, dia: 75, spo2: 99, rr: 14, temp: 37.0,
-    mallampati: 1, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'Knee Joint Washout',
-    ebl: 'Low', duration: 45, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 2, ef: 60, gfr: 110,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false,
-    hemophiliaA: true, factorVIIIPercent: 3
-  },
-  {
-    id: 'cyp2d6_um_codeine',
-    name: 'Pharmacogenomics - CYP2D6 Ultra-Rapid Metabolizer (Codeine Toxicity)',
-    specialty: 'Pharmacogenomics / Acute Pain',
-    description: 'Patient with CYP2D6 UM phenotype (multiple gene copies) received codeine 30mg PO for post-tonsillectomy pain. Ultra-rapid conversion to morphine → respiratory depression requiring hospitalization. FDA black-box warning scenario. Management: identify UM phenotype, immediately switch to non-CYP2D6-dependent analgesic (hydromorphone, fentanyl, oxymorphone), naloxone support, oxygen.',
-    age: 8, sex: 'male', weight: 28, height: 127,
-    hr: 48, sys: 88, dia: 55, spo2: 88, rr: 6, temp: 37.1,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'Post-Tonsillectomy Pain Management',
-    ebl: 'Low', duration: 0, penicillinAllergy: false,
-    npoSolids: 2, npoLiquids: 1, ef: 65, gfr: 115,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false,
-    cyp2d6Phenotype: 'UM'
-  },
-  {
-    id: 'g6pd_methb',
-    name: 'Pharmacogenomics - G6PD Deficiency + Methemoglobinemia',
-    specialty: 'Hematology / Toxicology',
-    description: 'G6PD-deficient patient developed methemoglobinemia from benzocaine spray during bronchoscopy. SpO2 reads ~85% (MetHb artifact -- true SaO2 is 78%). Standard treatment is METHYLENE BLUE -- but in G6PD deficiency, methylene blue causes oxidative hemolysis! Correct treatment: high-dose IV Vitamin C (ascorbic acid) + 100% oxygen + transfusion if severe.',
-    age: 34, sex: 'male', weight: 72, height: 175,
-    hr: 110, sys: 100, dia: 65, spo2: 85, rr: 22, temp: 37.2,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'Bronchoscopy Recovery',
-    ebl: 'Low', duration: 0, penicillinAllergy: false,
-    npoSolids: 6, npoLiquids: 2, ef: 65, gfr: 105,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false,
-    g6pdDeficiency: true
-  },
-  {
-    id: 'adrenal_crisis',
-    name: 'Endocrinology - Perioperative Adrenal Crisis (Chronic Steroid Use)',
-    specialty: 'Endocrinology / General Surgery',
-    description: 'Patient on chronic prednisone 15 mg/day for 2 years (RA) undergoing colectomy. Did NOT receive stress-dose steroids at induction. Develops refractory hypotension unresponsive to vasopressors during case -- classic perioperative adrenal crisis. Recognition and immediate hydrocortisone IV bolus is the only effective treatment.',
-    age: 58, sex: 'female', weight: 74, height: 162,
-    hr: 118, sys: 72, dia: 42, spo2: 97, rr: 18, temp: 36.5,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'Laparoscopic Colectomy',
-    ebl: 'Moderate', duration: 180, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 2, ef: 60, gfr: 82,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false,
-    chronicPrednisoneDoseMgPerDay: 15, chronicSteroidDurationWeeks: 104, infectionType: 'mixed_abdominal'
-  },
-  {
-    id: 'turp',
-    name: 'Urology - Transurethral Prostate Resection (TURP)',
-    specialty: 'Urology',
-    description: 'Elderly male undergoing TURP for BPH. Monitor for TURP syndrome (dilutional hyponatremia, volume overload, hypothermia from irrigation fluid absorption). Spinal anesthesia preferred -- early CNS signs of TURP syndrome are only detectable in an awake patient.',
-    age: 74, sex: 'male', weight: 82, height: 172,
-    hr: 68, sys: 148, dia: 88, spo2: 97, rr: 14, temp: 36.8,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Lithotomy', procedure: 'Transurethral Resection of Prostate',
-    ebl: 'Low', duration: 90, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 4, ef: 55, gfr: 72,
-    betaBlocker: true, cad: true, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: true, as: false,
-    bphSeverity: 0.7
-  },
-  {
-    id: 'sci_autonomic_dysreflexia',
-    name: 'SCI - Autonomic Dysreflexia / TURP',
-    specialty: 'Urology',
-    description: 'Thoracic spinal cord injury (T4) presenting for TURP. At risk for severe autonomic dysreflexia triggered by bladder distension, surgical stimulation, or urinary retention -- a life-threatening hypertensive crisis unique to SCI patients above T6. Untreated, MAP can exceed 200 mmHg.',
-    age: 38, sex: 'male', weight: 71, height: 178,
-    hr: 55, sys: 98, dia: 60, spo2: 98, rr: 14, temp: 36.9,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Lithotomy', procedure: 'Transurethral Resection of Prostate',
-    ebl: 'Low', duration: 75, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 4, ef: 60, gfr: 80,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false,
-    hasSpinalCordInjuryAboveT6: true, bphSeverity: 0.5
-  },
-  {
-    id: 'last_regional',
-    name: 'Orthopedic - Interscalene Block (LAST Risk)',
-    specialty: 'Regional Anesthesia',
-    description: 'Shoulder arthroplasty under interscalene brachial plexus block. Bupivacaine 0.5% administered. Risk of local anesthetic systemic toxicity from intravascular injection or peak absorption. Intralipid 20% rescue is available in the facility but must be recognized and initiated promptly (ASRA LAST Checklist).',
-    age: 62, sex: 'female', weight: 71, height: 163,
-    hr: 72, sys: 128, dia: 78, spo2: 99, rr: 13, temp: 36.9,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Beach Chair', procedure: 'Total Shoulder Arthroplasty',
-    ebl: 'Low', duration: 120, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 2, ef: 60, gfr: 88,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false
-  },
-  {
-    id: 'carcinoid_crisis',
-    name: 'Oncology - Carcinoid Tumor Resection (Carcinoid Crisis Risk)',
-    specialty: 'Oncology / General Surgery',
-    description: 'Patient with known ileal carcinoid and hepatic metastases undergoing liver resection. Carcinoid crisis risk during tumor manipulation: sudden release of serotonin, bradykinin, histamine → profound flushing, bronchospasm, and hemodynamic collapse. Octreotide is THE ONLY effective treatment -- standard vasopressors and antihistamines do NOT block carcinoid mediator release. Pre-treat with octreotide 100 mcg IV bolus before skin incision and have infusion ready.',
-    age: 58, sex: 'female', weight: 67, height: 163,
-    hr: 78, sys: 125, dia: 72, spo2: 97, rr: 14, temp: 37.0,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'Hepatic Metastasectomy (Carcinoid)',
-    ebl: 'Moderate', duration: 240, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 2, ef: 58, gfr: 88,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false,
-    carcinoidTumor: true, infectionType: 'gram_negative_enteric'
-  },
-  {
-    id: 'laparoscopic_colectomy_complex',
-    name: 'Colorectal - Laparoscopic Colectomy (Complex Physiology)',
-    specialty: 'Colorectal Surgery',
-    description: 'Obese patient with chronic obstructive sleep apnea undergoing laparoscopic sigmoid colectomy. Combined physiologic challenges: steep Trendelenburg + CO2 pneumoperitoneum (IAP 15 mmHg) → elevated ICP, increased airway pressures, reduced CO, compromised venous return, significant CO2 absorption requiring ~20% MV increase. Monitor EtCO2 closely; expect PIPs of 35-40 cmH2O. PneumoperitoneumModel.ts active throughout.',
-    age: 56, sex: 'male', weight: 112, height: 178,
-    hr: 80, sys: 145, dia: 88, spo2: 96, rr: 14, temp: 36.8,
-    mallampati: 3, neckMobility: 'normal', airwayBlood: false,
-    obese: true, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Trendelenburg', procedure: 'Laparoscopic Sigmoid Colectomy',
-    ebl: 'Moderate', duration: 180, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 2, ef: 58, gfr: 85,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: true, as: false,
-    pneumoperitoneumActive: true, iapMmHg: 15, infectionType: 'mixed_abdominal'
-  },
-  {
-    id: 'maoi_patient',
-    name: 'Psychiatry - MAOI Patient for Emergency Appendectomy',
-    specialty: 'Psychiatry / General Surgery',
-    description: 'Patient on phenelzine (irreversible MAOI, 14-day washout required) presenting with acute appendicitis requiring emergency appendectomy. The most dangerous drug interaction in anesthesia must be managed: AVOID meperidine (pethidine) → serotonin syndrome; AVOID ephedrine → hypertensive crisis; AVOID indirect sympathomimetics. Use phenylephrine (direct alpha-1) for hypotension. Use fentanyl/remifentanil cautiously (weak serotonin activity vs meperidine). Regional if possible.',
-    age: 44, sex: 'female', weight: 65, height: 165,
-    hr: 95, sys: 115, dia: 70, spo2: 99, rr: 18, temp: 38.2,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'Emergency Appendectomy',
-    ebl: 'Low', duration: 60, penicillinAllergy: false,
-    npoSolids: 3, npoLiquids: 1, ef: 60, gfr: 95,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false,
-    emergentRSI: true, maoisActive: true, maoiWashoutDaysRemaining: 14, infectionType: 'gram_negative_enteric'
-  },
-  {
-    id: 'thoracic_lobectomy_olv',
-    name: 'Thoracic - Right Upper Lobe Lobectomy (One-Lung Ventilation)',
-    specialty: 'Thoracic Surgery',
-    description: 'Patient with RUL lung adenocarcinoma undergoing VATS right upper lobectomy. Requires one-lung ventilation (OLV) via double-lumen tube — the defining anesthetic challenge in thoracic surgery. During OLV: right lung collapses (ventilated = left only), massive obligate right-to-left shunt develops (~50% of pulmonary blood flow, no ventilation). HPV develops over 15 min but is inhibited by volatile agents. OLV management: FiO2 1.0, TV 4-6 mL/kg IBW (left lung only), PEEP 5-8 cmH2O, permissive hypercapnia. SpO2 < 90%: CPAP 5-10 cmH2O to right lung, confirm DLT position by FOB, consider switching to TIVA (IV propofol) to preserve HPV.',
-    age: 64, sex: 'male', weight: 78, height: 174,
-    hr: 72, sys: 138, dia: 82, spo2: 97, rr: 14, temp: 36.9,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: true, chf: false,
-    position: 'Lateral', procedure: 'VATS Right Upper Lobe Lobectomy',
-    ebl: 'Moderate', duration: 180, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 2, ef: 52, gfr: 78,
-    betaBlocker: true, cad: true, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: true, as: false,
-    olvActive: false, olvLateralOperativeLungUp: true, dltInPlace: false,
-    infectionType: 'gram_positive_staph'
-  },
-  {
-    id: 'house_fire_co_poisoning',
-    name: 'Trauma / Toxicology - House Fire with CO Poisoning + Inhalation Injury',
-    specialty: 'Trauma / Burn Surgery',
-    description: 'Patient rescued from residential house fire. 35% TBSA burns (2nd/3rd degree), suspected inhalation injury (carbonaceous sputum, singed eyebrows, hoarse voice), and CO poisoning from combustion gases. SpO2 reads FALSELY NORMAL on pulse oximetry — this is the critical teaching point. Actual COHb may be 30-50% from fire exposure duration. Immediate priorities: (1) 100% O2 via tight NRB or ETT (reduces CO half-life from 320 min → 90 min); (2) EARLY INTUBATION before progressive airway edema makes it impossible (inhalation injury + burns cause laryngeal/supraglottic edema over 2-8h); (3) Parkland resuscitation (4 mL × 95 kg × 35% TBSA = 13,300 mL in 24h, half in first 8h); (4) Succinylcholine CONTRAINDICATED after 48h post-burn.',
-    age: 42, sex: 'male', weight: 95, height: 180,
-    hr: 118, sys: 98, dia: 58, spo2: 97, rr: 22, temp: 37.8,
-    mallampati: 3, neckMobility: 'limited', airwayBlood: true,
-    obese: false, septic: false, trauma: true, copd: false, chf: false,
-    position: 'Supine', procedure: 'Emergent Burn Debridement / Airway Stabilization',
-    ebl: 'Moderate', duration: 120, penicillinAllergy: false,
-    npoSolids: 0, npoLiquids: 0, ef: 55, gfr: 72,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: true, immobility: false, cp: 'none', htn: false, as: false,
-    emergentRSI: true,
-    burnsTBSAPercent: 35, hoursPostBurn: 2, inhalationInjury: true, inhalationSeverity: 0.7,
-    smokeExposureActive: false, coHb: 38.0, infectionType: 'gram_positive_staph'
-  },
-  {
-    id: 'pah_noncardiac_surgery',
-    name: 'Cardiology - Severe PAH for Non-Cardiac Surgery (Highest Perioperative Mortality)',
-    specialty: 'Cardiology / Anesthesia',
-    description: 'Patient with severe idiopathic PAH (WHO Group 1, mPAP 58 mmHg, PVR 11 Wood units) on dual oral therapy (sildenafil + bosentan) presenting for laparoscopic cholecystectomy. This case has 10-26% reported perioperative mortality in published series. Anesthetic priorities: AVOID all PH triggers (hypoxia, hypercarbia, acidosis, high PEEP, pain, sympathetic activation, N2O). Continue all oral PH medications on day of surgery. Have iNO and inhaled epoprostenol available at the airway. Use vasopressin > norepinephrine for systemic hypotension (less pulmonary vasoconstriction). Milrinone for RV support. Consider epidural to minimize sympathetic stimulation. Monitor: PAC for mPAP/CO/PVR (or TEE for RV function). Prepare for ECMO/RVAD rescue if acute RV failure.',
-    age: 38, sex: 'female', weight: 58, height: 162,
-    hr: 88, sys: 95, dia: 58, spo2: 92, rr: 18, temp: 36.8,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'Laparoscopic Cholecystectomy',
-    ebl: 'Low', duration: 90, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 2, ef: 48, gfr: 82,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false,
-    phPresent: true, phWhoGroup: 1, phSeverity: 'severe', baselineMpap: 58,
-    infectionType: 'gram_negative_enteric'
-  },
-  {
-    id: 'pediatric_infant_inguinal',
-    name: 'Pediatrics - 4-Month-Old Infant for Inguinal Herniorrhaphy',
-    specialty: 'Pediatric Surgery',
-    description: '4-month-old (0.33 years), 6 kg infant for right inguinal hernia repair. CRITICAL PEDIATRIC DIFFERENCES: (1) MAC CORRECTION: Sevoflurane MAC in infants 1-6 months = 3.2% (vs adult 2.0%) — at 2.0% sevo the infant is only ~0.63 MAC (light plane, awareness risk); (2) HR 120-160 is NORMAL — do NOT treat unless < 80 bpm (cardiac output is HR-dependent in infants); (3) Apneic SpO2 drop 4× faster than adults — pre-oxygenate thoroughly; (4) Bradycardia from vagal response is common — have atropine 0.02 mg/kg = 0.12 mg drawn up; (5) Immature CYP3A4 → prolonged fentanyl/midazolam effect; (6) Temperature instability — forced-air warming mandatory.',
-    age: 0.33, sex: 'male', weight: 6, height: 62,
-    hr: 140, sys: 80, dia: 48, spo2: 99, rr: 40, temp: 37.2,
-    mallampati: 1, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'Right Inguinal Herniorrhaphy',
-    ebl: 'Low', duration: 45, penicillinAllergy: false,
-    npoSolids: 4, npoLiquids: 2, ef: 65, gfr: 40,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false,
-    infectionType: 'gram_positive_staph'
-  },
-  {
-    id: 'severe_preeclampsia_cs',
-    name: 'Obstetrics - Severe Preeclampsia for Emergent Cesarean Section',
-    specialty: 'Obstetrics / Maternal-Fetal Medicine',
-    description: 'G2P1 at 34 weeks gestation with severe preeclampsia features: sBP 178/112 mmHg, platelets 78,000/μL, AST 148 U/L, ALT 122 U/L, headache, visual changes = HELLP syndrome. Emergent cesarean section required for maternal/fetal deterioration. Critical management decisions: (1) Neuraxial vs. general anesthesia — PLT 78k is at the borderline (most centers proceed with spinal if PLT ≥ 70-80k, no trend to worsen); (2) Magnesium sulfate MUST be running for seizure prophylaxis before neuraxial placement; (3) Antihypertensive to keep sBP < 160 before intubation (labetalol 20mg IV or hydralazine 5mg IV); (4) If GA required: expect exaggerated hypertensive response to laryngoscopy → pre-treat with opioid/esmolol; expect airway edema; have video laryngoscope and surgical airway kit. The Mg-labetalol-neuraxial triad defines excellence in PEC anesthesia.',
-    age: 29, sex: 'female', weight: 78, height: 163,
-    hr: 96, sys: 178, dia: 112, spo2: 98, rr: 18, temp: 37.1,
-    mallampati: 3, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'Emergent Cesarean Section (34 wks PEC/HELLP)',
-    ebl: 'Moderate', duration: 60, penicillinAllergy: false,
-    npoSolids: 2, npoLiquids: 1, ef: 62, gfr: 55,
-    betaBlocker: false, cad: false, afib: false, mg: true,
-    burns: false, immobility: false, cp: 'none', htn: true, as: false,
-    hasPreeclampsia: true, isPregnant: true, gestationalAgeWeeks: 34,
-    infectionType: 'gram_negative_enteric'
-  },
-  {
-    id: 'apap_overdose_alf',
-    name: 'Toxicology - Acetaminophen Overdose with Evolving Acute Liver Failure',
-    specialty: 'Toxicology / Hepatology',
-    description: 'Patient took 20g acetaminophen (285 mg/kg) in an intentional overdose 18 hours ago. Now presenting with RUQ pain, nausea, rising transaminases (AST 2,800 U/L, ALT 3,100 U/L), INR 2.4, encephalopathy grade I. Acute liver failure criteria: INR > 1.5 + encephalopathy. Critical decisions: (1) NAC infusion IMMEDIATELY (still effective up to 36h, 150 mg/kg over 1h loading dose); (2) Obtain urgent hepatology/transplant consult + apply King\'s College Criteria for transplant listing (pH < 7.30, OR [PT > 100s + Cr > 3.4 + grade 3-4 encephalopathy]); (3) Monitor glucose hourly (liver failure → hypoglycemia from impaired gluconeogenesis); (4) ICP monitoring if grade 3-4 encephalopathy (cerebral edema = #1 cause of death in ALF); (5) Coagulopathy does NOT need FFP unless bleeding or invasive procedure (INR is a prognostic marker, not a treatment target). No additional APAP in any form.',
-    age: 24, sex: 'female', weight: 70, height: 165,
-    hr: 108, sys: 95, dia: 58, spo2: 98, rr: 22, temp: 37.4,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'Medical Management - APAP Overdose / ALF',
-    ebl: 'Low', duration: 0, penicillinAllergy: false,
-    npoSolids: 0, npoLiquids: 0, ef: 60, gfr: 48,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false,
-    alcoholic: false, malnourished: false,
-    infectionType: 'gram_negative_enteric'
-  },
-  {
-    id: 'cemented_total_hip_bcis',
-    name: 'Orthopedics - Cemented Total Hip Arthroplasty (BCIS Risk)',
-    specialty: 'Orthopedic Surgery',
-    description: 'Elderly patient with severe hip osteoarthritis undergoing cemented total hip arthroplasty. BONE CEMENT IMPLANTATION SYNDROME (BCIS) is the critical teaching point: medullary pressurization during cementation forces fat + marrow emboli into the femoral vein → acute RV strain → sudden hypotension, hypoxemia, and cardiac arrest in severe cases. Risk factors: cemented stem (vs cementless), hypovolemia, pre-existing cardiopulmonary disease, pathological bone (cancer/Paget\'s disease). Prevention: irrigate and pressurize-then-suction medullary canal before cement; maintain normovolemia; head-up tilt during cementation to reduce fat embolism load; use cementless implant when feasible. Monitor with TEE — RV dilation/dysfunction is the first sign. Treatment: immediate fluid bolus + vasopressors. Fat Embolism Syndrome may develop 24-48h later (hypoxemia, confusion, petechiae). ISB or spinal anesthesia may be used — ISB phrenic nerve palsy affects ipsilateral hemidiaphragm.',
-    age: 74, sex: 'female', weight: 72, height: 158,
-    hr: 76, sys: 135, dia: 78, spo2: 97, rr: 14, temp: 36.9,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: true, chf: false,
-    position: 'Lateral', procedure: 'Cemented Total Hip Arthroplasty',
-    ebl: 'Moderate', duration: 90, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 2, ef: 50, gfr: 62,
-    betaBlocker: true, cad: true, afib: false, mg: false,
-    burns: false, immobility: true, cp: 'none', htn: true, as: false,
-    infectionType: 'gram_positive_staph'
-  },
-  {
-    id: 'high_risk_cardiac_mace',
-    name: 'High-Risk Cardiac - Major Abdominal Surgery (MACE/PMI Risk)',
-    specialty: 'Cardiac / General Surgery',
-    description: 'Patient with established 3-vessel CAD (prior CABG 8 years ago, recent catheterization showing 60% graft disease), EF 35%, T2DM, CKD3 (RCRI score = 5, predicted MACE risk ~15%) presenting for emergent sigmoid colectomy for perforated diverticulitis. Perioperative MI risk is extreme. KEY TEACHING: Rate-Pressure Product (RPP = HR × SBP) drives myocardial O2 demand; Coronary Perfusion Pressure (DBP - LVEDP) drives supply. DUAL GOAL: Keep HR 60-80 (beta-blocker, avoid tachycardia); maintain DBP > 60 (vasopressors over fluids); Hb > 8 (transfuse threshold lowered in active CAD). Even brief tachycardia (HR 120) + hypotension (MAP 55) = Type 2 MI (demand ischemia) in minutes. Troponin will rise in PACU — monitor for MINS (hs-TnT > 14 ng/L). Arterial line mandatory.',
-    age: 68, sex: 'male', weight: 88, height: 172,
-    hr: 84, sys: 145, dia: 82, spo2: 95, rr: 18, temp: 38.4,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: true, trauma: false, copd: false, chf: true,
-    position: 'Supine', procedure: 'Emergency Sigmoid Colectomy (Perforated Diverticulum)',
-    ebl: 'High', duration: 180, penicillinAllergy: false,
-    npoSolids: 0, npoLiquids: 0, ef: 35, gfr: 48,
-    betaBlocker: true, cad: true, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: true, as: false,
-    priorMI: true, emergentRSI: true, infectionType: 'mixed_abdominal'
-  },
-  {
-    id: 'thyroid_storm',
-    name: 'Endocrine - Thyroid Storm for Emergency Thyroidectomy',
-    specialty: 'Endocrine / General Surgery',
-    description: 'Patient with uncontrolled Graves\' disease presenting with thyroid storm (Burch-Wartofsky score 65): temperature 39.8°C, HR 162/min, atrial fibrillation, agitation, and acute liver failure secondary to the hypermetabolic state. Emergency thyroidectomy planned after hemodynamic stabilization. TREATMENT CASCADE (in order): (1) PTU 1000 mg PO/NG NOW (blocks synthesis + T4→T3); (2) Wait ≥60 min, THEN Lugol\'s iodide 10 drops q6h (if given first → provides substrate → worsens storm); (3) Propranolol IV to HR < 90 (also blocks T4→T3); (4) Hydrocortisone 100 mg IV q8h; (5) Cooling for hyperthermia; (6) ICU monitoring. Anesthesia: total IV anesthesia (TIVA) preferred; avoid succinylcholine (upregulated AChRs in thyrotoxicosis); avoid desflurane (tachycardia); ketamine avoided (sympathomimetic).',
-    age: 34, sex: 'female', weight: 58, height: 163,
-    hr: 162, sys: 142, dia: 82, spo2: 95, rr: 24, temp: 39.8,
-    mallampati: 3, neckMobility: 'limited', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'Emergency Thyroidectomy (Thyroid Storm)',
-    ebl: 'Moderate', duration: 90, penicillinAllergy: false,
-    npoSolids: 0, npoLiquids: 0, ef: 55, gfr: 60,
-    betaBlocker: false, cad: false, afib: true, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false,
-    infectionType: 'gram_positive_staph'
-  },
-  {
-    id: 'wpw_cardiac_surgery',
-    name: 'Cardiology/Electrophysiology - WPW Syndrome + Cardiac Surgery',
-    specialty: 'Cardiac Surgery / Electrophysiology',
-    description: 'Patient with known Wolff-Parkinson-White (WPW) syndrome (delta waves on ECG, accessory pathway — Bundle of Kent) presenting for CABG surgery. CRITICAL MANAGEMENT: During surgery, atrial fibrillation (AF) may develop. WPW + AF = LIFE-THREATENING. Standard AF drugs (digoxin, verapamil, diltiazem, adenosine) BLOCK AV NODE only → force all conduction through accessory pathway → RVR 300+ bpm → VF → cardiac arrest. SAFE drugs for WPW + AF: IV procainamide (15 mg/kg over 30 min) or amiodarone; OR immediate synchronized cardioversion. Pre-operative planning: EP study, catheter ablation of accessory pathway recommended before major surgery. If emergency: have procainamide and external defibrillator immediately available. Dental-dose lidocaine does NOT block accessory pathway.',
-    age: 44, sex: 'male', weight: 82, height: 178,
-    hr: 78, sys: 128, dia: 76, spo2: 98, rr: 14, temp: 36.8,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'CABG (Coronary Artery Bypass Grafting)',
-    ebl: 'Moderate', duration: 240, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 2, ef: 42, gfr: 72,
-    betaBlocker: true, cad: true, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: true, as: false,
-    hasWPW: true, infectionType: 'gram_positive_staph'
-  },
-  {
-    id: 'end_stage_liver_olt',
-    name: 'Transplant - End-Stage Liver Disease for OLT (Liver Transplant)',
-    specialty: 'Transplant Surgery',
-    description: 'Patient with alcoholic cirrhosis (MELD 32, Child-Pugh C) undergoing orthotopic liver transplantation. Three phases: (1) Pre-anhepatic: hyperdynamic circulation (high CO, low SVR from splanchnic vasodilation), severe coagulopathy (INR 3.2), thrombocytopenia (PLT 65k), ascites, hepatopulmonary syndrome (SpO2 88% on room air from intrapulmonary vascular dilations — worsens upright, improves supine: orthodeoxia); (2) ANHEPATIC: IVC/portal clamping → 40-60% ↓venous return → profound hypotension — vasopressors + possibly VVB; no hepatic function → no glucose production (check BG q15 min), no lactate clearance, no citrate metabolism (Ca²⁺ drops with each FFP unit); (3) REPERFUSION: cold hyperkalemic (K⁺ 115-130 mEq/L) preservation solution flushes → sudden hyperkalemia → bradycardia/VF risk; treat with Ca gluconate BEFORE unclamping. Intraoperative monitoring: TEE mandatory (RV function, air), PAC or advanced hemodynamic monitoring, TEG/ROTEM, frequent ABG.',
-    age: 52, sex: 'male', weight: 74, height: 172,
-    hr: 102, sys: 88, dia: 52, spo2: 88, rr: 22, temp: 37.1,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'Orthotopic Liver Transplantation',
-    ebl: 'High', duration: 480, penicillinAllergy: false,
-    npoSolids: 8, npoLiquids: 4, ef: 60, gfr: 38,
-    betaBlocker: false, cad: false, afib: false, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false,
-    meldScore: 32, hasHepPulmonarySyndrome: true, oltPhase: 'pre_anhepatic',
-    alcoholic: true, infectionType: 'mixed_abdominal'
-  },
-  {
-    id: 'wpw_af_arrest',
-    name: 'Emergency - WPW + AF Leading to Cardiac Arrest',
-    specialty: 'Emergency / Electrophysiology',
-    description: 'Patient with undiagnosed WPW who receives adenosine for "SVT" in the emergency department → within 30 seconds: adenosine blocks AV node → all AF conduction via accessory pathway → RVR 280 bpm → ventricular fibrillation → cardiac arrest. This scenario teaches the most dangerous drug error in emergency arrhythmia management. Rescue: immediate CPR + defibrillation (200J unsynchronized). After return of spontaneous circulation: IV amiodarone or procainamide for rhythm control. Definitive treatment: electrophysiology study + catheter ablation of accessory pathway.',
-    age: 28, sex: 'female', weight: 62, height: 167,
-    hr: 220, sys: 70, dia: 40, spo2: 88, rr: 28, temp: 37.0,
-    mallampati: 2, neckMobility: 'normal', airwayBlood: false,
-    obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'Emergency Resuscitation / Cardioversion',
-    ebl: 'Low', duration: 30, penicillinAllergy: false,
-    npoSolids: 4, npoLiquids: 2, ef: 65, gfr: 98,
-    betaBlocker: false, cad: false, afib: true, mg: false,
-    burns: false, immobility: false, cp: 'none', htn: false, as: false,
-    hasWPW: true, wpwHasAF: true, infectionType: 'gram_negative_enteric'
-  }
-];
+import { MILLERS_CASE_PRESETS, MILLERS_CASE_METADATA } from './caseBanks/MillersCases';
+import { GENERAL_KNOWLEDGE_CASE_PRESETS, GENERAL_KNOWLEDGE_CASE_METADATA } from './caseBanks/GeneralKnowledgeCases';
+import { JAFFE_CASE_PRESETS, JAFFE_CASE_METADATA } from './caseBanks/JaffeCases';
+import { JAFFE_PROCEDURES, getJaffeProceduresBySubspecialty } from '../../engine/JaffeProcedureKnowledgeEngine';
 
-const PRESET_METADATA = {
-  general: {
-    category: 'Airway & Ventilation',
-    difficulty: 'Easy',
-    duration: 45,
-    teachingObjective: 'Basic induction, airway maintenance, and laparoscopy exposure.',
-    challenges: ['Trendelenburg ventilation changes', 'Basic pharmacology titration']
-  },
-  trauma: {
-    category: 'Obstetrics & Specialty',
-    difficulty: 'Hard',
-    duration: 120,
-    teachingObjective: 'Resuscitation of massive hemorrhagic shock and emergent RSI.',
-    challenges: ['Severe hemorrhagic shock', 'Airway contamination / blood', 'Emergent RSI protocol']
-  },
-  neuro: {
-    category: 'Neuromuscular & Neuro',
-    difficulty: 'Hard',
-    duration: 240,
-    teachingObjective: 'Managing intracranial pressure (ICP) and hemodynamics in craniotomy.',
-    challenges: ['Elevated intracranial pressure', 'Hemodynamic tight control', 'Awake craniotomy management']
-  },
-  cardiac: {
-    category: 'Cardiovascular & Hemodynamics',
-    difficulty: 'Hard',
-    duration: 300,
-    teachingObjective: 'Fixed stroke volume dynamics in severe aortic stenosis and CAD.',
-    challenges: ['Severe Aortic Stenosis (fixed stroke volume)', 'Low Ejection Fraction (35%)', 'Atrial Fibrillation rhythm control']
-  },
-  thoracic: {
-    category: 'Airway & Ventilation',
-    difficulty: 'Medium',
-    duration: 180,
-    teachingObjective: 'Initiating One-Lung Ventilation (OLV) and managing hypoxic pulmonary vasoconstriction.',
-    challenges: ['One-Lung Ventilation', 'Severe COPD physiology', 'Lateral positioning ventilation shifts']
-  },
-  bariatric: {
-    category: 'Airway & Ventilation',
-    difficulty: 'Medium',
-    duration: 90,
-    teachingObjective: 'Morbid obesity induction, OSA airway safety, and rapid sequence intubation (RSI) for GERD.',
-    challenges: ['Morbid obesity (BMI 51)', 'Aspiration risk (GERD)', 'Ramped positioning requirements']
-  },
-  obgyn: {
-    category: 'Obstetrics & Specialty',
-    difficulty: 'Hard',
-    duration: 75,
-    teachingObjective: 'Pregnancy-associated respiratory changes and massive postpartum hemorrhage.',
-    challenges: ['Postpartum Hemorrhage (PPH) crisis', 'Pregnancy hypercoagulability/engorgement', 'Emergent RSI requirements']
-  },
-  ortho: {
-    category: 'Airway & Ventilation',
-    difficulty: 'Easy',
-    duration: 240,
-    teachingObjective: 'Prone position ventilation dynamics and geriatric physiology.',
-    challenges: ['Prone position complications', 'Reduced cervical range of motion', 'Geriatric organ reserve']
-  },
-  vascular: {
-    category: 'Cardiovascular & Hemodynamics',
-    difficulty: 'Hard',
-    duration: 180,
-    teachingObjective: 'High SVR control, renal protection, and aortic cross-clamp hemodynamics.',
-    challenges: ['Aortic cross-clamp SVR surges', 'Chronic renal insufficiency', 'Severe hypertension']
-  },
-  ent: {
-    category: 'Airway & Ventilation',
-    difficulty: 'Hard',
-    duration: 60,
-    teachingObjective: 'Awake fiberoptic or surgical airway management in severe subglottic stenosis.',
-    challenges: ['Mallampati IV / rigid neck', 'Severe subglottic stenosis airway compromise', 'Awake tracheostomy flow']
-  },
-  urology: {
-    category: 'Obstetrics & Specialty',
-    difficulty: 'Medium',
-    duration: 150,
-    teachingObjective: 'Renal clearance limitations in end-stage CKD and lateral position ventilation.',
-    challenges: ['Dialysis-dependent CKD (GFR 12)', 'Lateral positioning compliance changes', 'Careful volume titration']
-  },
-  transplant: {
-    category: 'Obstetrics & Specialty',
-    difficulty: 'Hard',
-    duration: 360,
-    teachingObjective: 'Cirrhosis portal hypertension, severe coagulopathy, and transfusion management.',
-    challenges: ['Child-Pugh C cirrhosis', 'Severe pre-existing coagulopathy', 'High volume blood loss / OLT']
-  },
-  mh_susceptible: {
-    category: 'Neuromuscular & Neuro',
-    difficulty: 'Hard',
-    duration: 120,
-    teachingObjective: 'Identifying Malignant Hyperthermia crisis triggers and administering Dantrolene.',
-    challenges: ['Malignant Hyperthermia triggers', 'Rapid hyperthermia and acidemic spikes', 'Administering Dantrolene rescue']
-  },
-  myasthenia_gravis: {
-    category: 'Neuromuscular & Neuro',
-    difficulty: 'Medium',
-    duration: 120,
-    teachingObjective: 'Sensitivity to neuromuscular blockers and postoperative respiratory weakness.',
-    challenges: ['Extreme NDMR sensitivity', 'Pre-existing chronic muscle weakness', 'Post-op respiratory failure risk']
-  },
-  von_willebrand_disease: {
-    category: 'Pharmacogenomics & Crisis',
-    difficulty: 'Medium',
-    duration: 90,
-    teachingObjective: 'Preoperative DDAVP administration and monitoring primary hemostasis.',
-    challenges: ['Impaired primary platelet adhesion', 'Careful neuraxial contraindications', 'DDAVP response checking']
-  },
-  hemophilia_a: {
-    category: 'Pharmacogenomics & Crisis',
-    difficulty: 'Medium',
-    duration: 120,
-    teachingObjective: 'Factor VIII loading calculations and monitoring secondary hemostasis.',
-    challenges: ['Severe factor VIII deficiency', 'Transfusion factor replacement math', 'Monitoring baseline aPTT/TEG']
-  },
-  cyp2d6_um_codeine: {
-    category: 'Pharmacogenomics & Crisis',
-    difficulty: 'Hard',
-    duration: 60,
-    teachingObjective: 'Identifying codeine toxicity in ultra-rapid metabolizers.',
-    challenges: ['CYP2D6 ultra-rapid conversion to morphine', 'Pediatric respiratory depression', 'Direct opioid rescue and swap']
-  },
-  g6pd_methb: {
-    category: 'Pharmacogenomics & Crisis',
-    difficulty: 'Hard',
-    duration: 90,
-    teachingObjective: 'Methylene blue contraindication in G6PD deficiency with benzocaine-induced methemoglobinemia.',
-    challenges: ['Benzocaine-induced methemoglobinemia', 'Methylene blue oxidative hemolysis risk', 'High-dose Vitamin C / transfusion rescue']
-  },
-  adrenal_crisis: {
-    category: 'Obstetrics & Specialty',
-    difficulty: 'Medium',
-    duration: 90,
-    teachingObjective: 'Hypothalamic-pituitary-adrenal (HPA) axis suppression from chronic steroid therapy.',
-    challenges: ['Refractory shock from lack of stress-dose steroids', 'Neglected perioperative hydrocortisone', 'Adrenal crisis recognition']
-  },
-  turp: {
-    category: 'Obstetrics & Specialty',
-    difficulty: 'Hard',
-    duration: 90,
-    teachingObjective: 'TURP syndrome fluid absorption, dilutional hyponatremia, and awake neurological checks.',
-    challenges: ['Dilutional hyponatremia', 'Irrigation fluid volume overload', 'Neurological monitoring in spinal anesthesia']
-  },
-  sci_autonomic_dysreflexia: {
-    category: 'Cardiovascular & Hemodynamics',
-    difficulty: 'Hard',
-    duration: 120,
-    teachingObjective: 'Autonomic dysreflexia reflex loop in spinal cord injuries above T6.',
-    challenges: ['Severe autonomic dysreflexia reflex loop', 'Hypertensive crisis from bladder/surgical stimulus', 'Vasodilator / deep anesthesia rescue']
-  },
-  last_regional: {
-    category: 'Pharmacogenomics & Crisis',
-    difficulty: 'Hard',
-    duration: 90,
-    teachingObjective: 'Identifying Local Anesthetic Systemic Toxicity (LAST) and initiating Lipid Emulsion rescue.',
-    challenges: ['Intravascular bupivacaine injection toxicity', 'Cardiac arrest from local anesthetics', 'Intralipid 20% rescue protocol']
-  },
-  carcinoid_crisis: {
-    category: 'Pharmacogenomics & Crisis',
-    difficulty: 'Hard',
-    duration: 120,
-    teachingObjective: 'Managing carcinoid crisis serotonin storms and octreotide administration.',
-    challenges: ['Tumor manipulation serotonin release', 'Severe bronchospasm and flushing', 'Profound shock requiring Octreotide']
-  },
-  laparoscopic_colectomy_complex: {
-    category: 'Airway & Ventilation',
-    difficulty: 'Medium',
-    duration: 120,
-    teachingObjective: 'Steep Trendelenburg positioning and CO2 pneumoperitoneum ventilation shifts.',
-    challenges: ['Pneumoperitoneum IAP 15 mmHg compliance drop', 'Steep Trendelenburg positioning ICP surges', 'High peak airway pressures (PIPs)']
-  },
-  maoi_patient: {
-    category: 'Pharmacogenomics & Crisis',
-    difficulty: 'Hard',
-    duration: 90,
-    teachingObjective: 'Irreversible MAOI interactions with sympathomimetics and meperidine.',
-    challenges: ['Hypertensive crisis from indirect sympathomimetics', 'Serotonin syndrome from meperidine', 'Direct alpha-1 vasopressor selection']
-  },
-  thoracic_lobectomy_olv: {
-    category: 'Airway & Ventilation',
-    difficulty: 'Medium',
-    duration: 180,
-    teachingObjective: 'Hypoxic pulmonary vasoconstriction (HPV) dynamics and shunt management in double-lumen tubes.',
-    challenges: ['Double-lumen tube positioning', 'Right-to-left pulmonary shunt', 'HPV blunting by volatile anesthetics']
-  },
-  house_fire_co_poisoning: {
-    category: 'Obstetrics & Specialty',
-    difficulty: 'Hard',
-    duration: 120,
-    teachingObjective: 'Carbon monoxide oximetry artifact, early intubation, and burn fluid resuscitation.',
-    challenges: ['Carbon monoxide oximetry artifact (false high SpO2)', 'Progressive inhalation airway edema', 'Parkland burn fluid calculations']
-  },
-  pah_noncardiac_surgery: {
-    category: 'Cardiovascular & Hemodynamics',
-    difficulty: 'Hard',
-    duration: 90,
-    teachingObjective: 'Avoiding pulmonary hypertensive triggers and managing right ventricular (RV) failure.',
-    challenges: ['Idiopathic PAH right ventricular strain', 'Vasopressin selection for coronary perfusion', 'Avoiding hypercarbia/acidosis PH triggers']
-  },
-  pediatric_infant_inguinal: {
-    category: 'Obstetrics & Specialty',
-    difficulty: 'Hard',
-    duration: 45,
-    teachingObjective: 'MAC corrections and cardiac output maintenance in neonatal inguinal herniorrhaphy.',
-    challenges: ['Sevoflurane MAC elevated to 3.2%', 'HR-dependent cardiac output', 'Rapid apneic desaturation']
-  }
-};
+// Physiology engines (RespiratoryEngine.ts, usePhysiology.js, PositioningKnowledgeEngine.ts,
+// etc.) do strict equality checks against this exact small set of position strings -- e.g.
+// `patient.position === 'Trendelenburg'`. Jaffe's own "Position" field is free descriptive
+// text (e.g. "Supine, arms tucked"), which would silently fail every one of those checks if
+// assigned directly, degrading positioning-physiology and POVL-risk lookups for that case
+// without ever throwing. Order matters: check more specific terms before the generic ones
+// they'd otherwise be swallowed by (e.g. "Beach Chair"/"Reverse Trendelenburg" before "Sitting"/"Trendelenburg").
+const KNOWN_PATIENT_POSITIONS = ['Reverse Trendelenburg', 'Trendelenburg', 'Beach Chair', 'Lithotomy', 'Prone', 'Lateral', 'Sitting', 'Standing', 'Ramped', 'Supine'];
+function normalizeJaffePosition(rawText) {
+  if (!rawText) return null;
+  const lower = rawText.toLowerCase();
+  return KNOWN_PATIENT_POSITIONS.find(p => lower.startsWith(p.toLowerCase())) || null;
+}
+
+// `source` is tagged here at merge time (not per-case in the bank files) so every case
+// bank added in the future gets it automatically -- see docs/case_integration_prompt.md.
+// Three banks, not two: MillersCases.js was audited (2026-07) and split into the subset
+// actually traceable to a documented Miller's chapter session (or the original
+// foundational one-per-specialty set) vs. general-knowledge crisis/pharmacogenomics/
+// toxicology vignettes that were never citation-backed -- see that file's header comment.
+const PRESETS = [
+  ...MILLERS_CASE_PRESETS.map(p => ({ ...p, source: 'millers' })),
+  ...GENERAL_KNOWLEDGE_CASE_PRESETS.map(p => ({ ...p, source: 'general' })),
+  ...JAFFE_CASE_PRESETS.map(p => ({ ...p, source: 'jaffe' })),
+];
+const PRESET_METADATA = { ...MILLERS_CASE_METADATA, ...GENERAL_KNOWLEDGE_CASE_METADATA, ...JAFFE_CASE_METADATA };
+// Category tabs are derived from whatever categories actually exist in the data rather
+// than a hardcoded list -- the hardcoded list this replaced didn't include "General
+// Surgery" at all, so the Jaffe cases added this session were reachable only via "All".
+// Deriving it keeps every future chapter's subspecialty automatically filterable.
+const PRESET_CATEGORIES = ['All', ...new Set(PRESETS.map(p => (PRESET_METADATA[p.id] || {}).category).filter(Boolean))];
+// Computed once at module load (JAFFE_PROCEDURES is a static constant, not per-render
+// state) rather than inside the component -- the custom-case form re-renders on every
+// keystroke across its many fields, and this grouping has no reason to redo that work
+// each time. Matters more once the KB grows past a couple hundred procedures.
+const JAFFE_PROCEDURES_BY_SUBSPECIALTY = getJaffeProceduresBySubspecialty();
 
 export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSetStagedCase, openPreOpEMR, onStart, initialTab, onBack, autoWingIt }) => {
   const [activeTab, setActiveTab] = useState(initialTab || 'presets'); 
@@ -837,7 +73,7 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
     hr: 75, sys: 120, dia: 80, spo2: 99, rr: 14, temp: 37.0,
     mallampati: 1, neckMobility: 'normal', airwayBlood: false,
     obese: false, septic: false, trauma: false, copd: false, chf: false,
-    position: 'Supine', procedure: 'Elective Exploratory Laparoscopy',
+    position: 'Supine', procedure: 'Elective Exploratory Laparoscopy', jaffeProcedureId: null,
     ebl: 'Low', duration: 90, penicillinAllergy: false,
     npoSolids: 8, npoLiquids: 4, ef: 60, gfr: 100,
     betaBlocker: false, cad: false, afib: false, as: false, mg: false,
@@ -1162,6 +398,7 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
         allergies: data.penicillinAllergy ? 'Penicillin' : 'NKDA',
         pmhx: briefing.pmhx,
         procedure: data.procedure || 'surgery',
+        jaffeProcedureId: data.jaffeProcedureId || null,
         emergentRSI: !!data.emergentRSI,
         anemia: !!data.anemia,
         thrombocytopenia: !!data.thrombocytopenia,
@@ -1410,7 +647,7 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
               
               {/* Category Filter Tabs */}
               <div className="flex gap-1.5 overflow-x-auto shrink-0 pb-1.5 border-b border-slate-800 custom-scrollbar font-mono text-[9px] font-black uppercase tracking-wider">
-                {['All', 'Airway & Ventilation', 'Cardiovascular & Hemodynamics', 'Neuromuscular & Neuro', 'Pharmacogenomics & Crisis', 'Obstetrics & Specialty'].map(cat => (
+                {PRESET_CATEGORIES.map(cat => (
                   <button
                     key={cat}
                     type="button"
@@ -1438,7 +675,7 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
                   if (filtered.length === 0) {
                     return (
                       <div className="text-slate-500 text-xs italic text-center py-12 font-mono">
-                        No presets found in this category.
+                        No presets found for this category.
                       </div>
                     );
                   }
@@ -1459,7 +696,14 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
                         }`}
                       >
                         <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-wider font-mono">
-                          <span className="text-slate-500">{meta.category}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-slate-500">{meta.category}</span>
+                            {preset.jaffeProcedureId && (
+                              <span className="px-1.5 py-0.5 rounded bg-amber-950/50 border border-amber-800/60 text-amber-400" title="Includes a full procedural case brief">
+                                📋 PROCEDURE GUIDE
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2">
                             <span className="text-slate-500">⏱️ {meta.duration} min</span>
                             <span className={`px-2 py-0.5 rounded border font-bold ${
@@ -1537,9 +781,16 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
                   <>
                     <div className="border-b border-slate-850/60 pb-3 flex flex-col gap-1.5">
                       <div className="flex justify-between items-center">
-                        <span className="text-[9px] text-cyan-400 font-black uppercase tracking-wider bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-900/50 font-mono">
-                          {currentPreset.specialty}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] text-cyan-400 font-black uppercase tracking-wider bg-cyan-950/60 px-2 py-0.5 rounded border border-cyan-900/50 font-mono">
+                            {currentPreset.specialty}
+                          </span>
+                          {currentPreset.jaffeProcedureId && (
+                            <span className="text-[9px] text-amber-400 font-black uppercase tracking-wider bg-amber-950/50 px-2 py-0.5 rounded border border-amber-800/60 font-mono" title="Includes a full procedural case brief">
+                              📋 PROCEDURE GUIDE
+                            </span>
+                          )}
+                        </div>
                         <span className={`px-2 py-0.5 rounded border font-bold text-[9px] font-mono ${
                           diffInfo.level === 'Easy' ? 'bg-green-950/40 border-green-800 text-green-400' :
                           diffInfo.level === 'Medium' ? 'bg-yellow-950/40 border-yellow-800 text-yellow-400' :
@@ -1885,14 +1136,59 @@ export const CaseManager = ({ stagedCase: propStagedCase, setStagedCase: propSet
                       Surgical Procedure
                     </h3>
                     <div className="flex flex-col gap-1.5">
+                      <label className="text-[10px] text-slate-500 uppercase font-black tracking-wider font-mono">
+                        Procedure Library <span className="text-slate-600 normal-case font-semibold">(optional -- pairs any patient below with a full case brief)</span>
+                      </label>
+                      <select
+                        value={customForm.jaffeProcedureId || ''}
+                        onChange={e => {
+                          const proc = JAFFE_PROCEDURES.find(p => p.id === e.target.value);
+                          setCustomForm({
+                            ...customForm,
+                            jaffeProcedureId: proc ? proc.id : null,
+                            procedure: proc ? proc.name : customForm.procedure,
+                            position: (proc && normalizeJaffePosition(proc.surgical.position)) || customForm.position,
+                          });
+                        }}
+                        className="bg-slate-900 border border-slate-700 text-white rounded-lg p-2 text-xs font-bold outline-none focus:border-cyan-500"
+                      >
+                        <option value="">-- Not selected (free-text procedure below) --</option>
+                        {Object.entries(JAFFE_PROCEDURES_BY_SUBSPECIALTY).map(([subspecialty, procs]) => (
+                          <optgroup key={subspecialty} label={subspecialty}>
+                            {procs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                          </optgroup>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
                       <label className="text-[10px] text-slate-500 uppercase font-black tracking-wider font-mono">Procedure Name</label>
-                      <input 
-                        type="text" 
-                        value={customForm.procedure} 
-                        onChange={e => setCustomForm({...customForm, procedure: e.target.value})} 
-                        className="bg-slate-900 border border-slate-700 text-white rounded-lg p-2 text-xs font-bold outline-none focus:border-cyan-500" 
+                      <input
+                        type="text"
+                        value={customForm.procedure}
+                        onChange={e => setCustomForm({...customForm, procedure: e.target.value, jaffeProcedureId: null})}
+                        className="bg-slate-900 border border-slate-700 text-white rounded-lg p-2 text-xs font-bold outline-none focus:border-cyan-500"
                       />
                     </div>
+                    {customForm.jaffeProcedureId && (() => {
+                      const proc = JAFFE_PROCEDURES.find(p => p.id === customForm.jaffeProcedureId);
+                      if (!proc) return null;
+                      const s = proc.surgical;
+                      return (
+                        <div className="bg-slate-950/60 border border-cyan-900/50 rounded-lg p-3 text-[10px] font-mono text-slate-300 space-y-1">
+                          <div className="text-cyan-400 font-black uppercase tracking-wider mb-1.5">📋 Case Brief Preview</div>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                            {s.position && <div><span className="text-slate-500">Position:</span> {s.position}</div>}
+                            {s.incision && <div><span className="text-slate-500">Incision:</span> {s.incision}</div>}
+                            {s.surgicalTimeRange && <div><span className="text-slate-500">Surgical time:</span> {s.surgicalTimeRange}</div>}
+                            {s.eblExpected && <div><span className="text-slate-500">EBL:</span> {s.eblExpected}</div>}
+                            {s.painScore && <div><span className="text-slate-500">Pain score:</span> {s.painScore}/10</div>}
+                            {s.mortality && <div><span className="text-slate-500">Mortality:</span> {s.mortality}</div>}
+                          </div>
+                          {s.uniqueConsiderations && <div className="pt-1 text-amber-400/90">⚠ {s.uniqueConsiderations}</div>}
+                          <div className="text-slate-500 pt-1">Full preop/intraop/postop anesthetic plan available in the Anesthesia Plan tab once the case is staged.</div>
+                        </div>
+                      );
+                    })()}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
                       <div className="flex flex-col gap-1">
                         <label className="text-[10px] text-slate-500 uppercase font-black tracking-wider font-mono">Expected EBL</label>

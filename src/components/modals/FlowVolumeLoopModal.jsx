@@ -2,10 +2,13 @@ import { Wind, X, ShieldAlert } from 'lucide-react';
 import { FlowVolumeLoopCanvas } from '../FlowVolumeLoopCanvas';
 import { generateFlowVolumeLoop } from '../../engine/FlowVolumeLoopModel';
 
-export const FlowVolumeLoopModal = ({ show, close, patient, vitals }) => {
+export const FlowVolumeLoopModal = ({ show, close, patient, vitals, ventSettings }) => {
   if (!show) return null;
 
-  const loop = generateFlowVolumeLoop(patient, vitals);
+  const isVentilated = !!patient?.airwaySecured && !!ventSettings;
+  const loop = isVentilated
+    ? generateVentilatorFlowVolumeLoop(patient, vitals, ventSettings)
+    : generateFlowVolumeLoop(patient, vitals);
   const alertType = loop.alertType || 'info';
   const title = loop.title || 'Flow-Volume Loop';
 
@@ -29,23 +32,31 @@ export const FlowVolumeLoopModal = ({ show, close, patient, vitals }) => {
             <div className="hidden sm:flex items-center gap-3 bg-black/40 border border-slate-800 px-3 py-1.5 rounded-lg text-xs">
               <div className="flex items-center gap-1.5">
                 <span className="text-slate-400 font-bold">PEF:</span>
-                <span className="text-green-400 font-mono font-black text-sm">{loop.pef.toFixed(1)} <span className="text-[9px]">L/s</span></span>
+                <span className="text-green-400 font-mono font-black text-sm">{(loop.pef || 0).toFixed(1)} <span className="text-[9px]">L/s</span></span>
               </div>
               <div className="w-[1px] h-3 bg-slate-800"></div>
               <div className="flex items-center gap-1.5">
                 <span className="text-slate-400 font-bold">PIF:</span>
-                <span className="text-yellow-400 font-mono font-black text-sm">{loop.pif.toFixed(1)} <span className="text-[9px]">L/s</span></span>
+                <span className="text-yellow-400 font-mono font-black text-sm">{(loop.pif || 0).toFixed(1)} <span className="text-[9px]">L/s</span></span>
               </div>
-              <div className="w-[1px] h-3 bg-slate-800"></div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-slate-400 font-bold">TLC:</span>
-                <span className="text-slate-200 font-mono font-black text-sm">{loop.tlc.toFixed(1)} <span className="text-[9px]">L</span></span>
-              </div>
-              <div className="w-[1px] h-3 bg-slate-800"></div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-slate-400 font-bold">RV:</span>
-                <span className="text-slate-200 font-mono font-black text-sm">{loop.rv.toFixed(1)} <span className="text-[9px]">L</span></span>
-              </div>
+              {loop.tlc != null && (
+                <>
+                  <div className="w-[1px] h-3 bg-slate-800"></div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-400 font-bold">TLC:</span>
+                    <span className="text-slate-200 font-mono font-black text-sm">{loop.tlc.toFixed(1)} <span className="text-[9px]">L</span></span>
+                  </div>
+                </>
+              )}
+              {loop.rv != null && (
+                <>
+                  <div className="w-[1px] h-3 bg-slate-800"></div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-400 font-bold">RV:</span>
+                    <span className="text-slate-200 font-mono font-black text-sm">{loop.rv.toFixed(1)} <span className="text-[9px]">L</span></span>
+                  </div>
+                </>
+              )}
             </div>
             <button onClick={close} className="text-slate-400 hover:text-white p-1 rounded hover:bg-slate-800 transition">
               <X size={20} />
@@ -78,7 +89,7 @@ export const FlowVolumeLoopModal = ({ show, close, patient, vitals }) => {
 
         {/* Loop Rendering Area */}
         <div className="flex-1 relative min-h-0 bg-slate-950 p-2">
-          <FlowVolumeLoopCanvas patient={patient} vitals={vitals} active={!!vitals?.rr} />
+          <FlowVolumeLoopCanvas patient={patient} vitals={vitals} ventSettings={ventSettings} active={!!vitals?.rr} />
         </div>
       </div>
     </div>

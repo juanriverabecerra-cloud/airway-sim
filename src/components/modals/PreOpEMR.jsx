@@ -3,6 +3,7 @@ import { X, Activity, FileText, ClipboardList, CheckSquare, ShieldAlert, Award, 
 import { calculateLungVolumes, calculateIBW, calculateLBW, calculateHumeLBM, calculateJanmahasatianFFM, calculateCBW, calculateMFFM, calculatePKM } from '../../engine/Pharmacology';
 import { HERBAL_MEDICINES, DIETARY_SUPPLEMENTS } from '../../engine/CAMKnowledgeEngine';
 import { POSITIONS_DATA, NERVES_DATA, POVL_DATA, checkPovlRisk } from '../../engine/PositioningKnowledgeEngine';
+import { getJaffeProcedure, getJaffeAnestheticPlan } from '../../engine/JaffeProcedureKnowledgeEngine';
 
 // Revised Cardiac Risk Index (RCRI), Lee et al. - the 6 criteria cited in Chapter 30, Miller's 9th Ed
 // ("Risk of Anesthesia"): high-risk surgery, ischemic heart disease, congestive heart failure,
@@ -298,6 +299,8 @@ export const assessPheoBlockadeAdequacy = (criteria) => {
 
 export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logEvent, logQualityEvent, intraop = false }) => {
   const [activeTab, setActiveTab] = useState('chart'); // 'chart' | 'orders' | 'results' | 'risk' | 'plan'
+  const [jaffeBriefSection, setJaffeBriefSection] = useState('surgical'); // 'surgical' | 'preop' | 'intraop' | 'postop'
+  const [playthroughMode, setPlaythroughMode] = useState('guided'); // 'guided' | 'freeform' -- sets the case's starting attendingMode
   
   // Extract patient/case details safely
   const patient = stagedCase?.patient || {};
@@ -1533,6 +1536,7 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
     const updatedCase = {
       ...stagedCase,
       preOpLabs: preOpLabRecords,
+      playthroughMode,
       patient: {
         ...stagedCase.patient,
         preOpOrders: orders,
@@ -1579,19 +1583,24 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
   if (!show || !stagedCase) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border-2 border-indigo-500 rounded-xl max-w-6xl w-full h-[90vh] flex flex-col shadow-2xl overflow-hidden font-mono text-white animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/85 backdrop-blur-md p-2 sm:p-4 md:p-6">
+      <div className="glass-panel glass-indigo bg-slate-950/92 backdrop-blur-2xl border border-indigo-500/30 rounded-2xl max-w-6xl w-full h-[92vh] flex flex-col shadow-[0_0_50px_rgba(99,102,241,0.2)] overflow-hidden text-white animate-in zoom-in-95 duration-200">
         
         {/* Header */}
-        <div className="bg-gradient-to-r from-slate-900 to-indigo-950 px-6 py-4 border-b border-indigo-500/30 flex justify-between items-center shrink-0">
+        <div className="bg-gradient-to-r from-slate-950 via-indigo-950/40 to-slate-950 px-6 py-4 border-b border-indigo-500/30 flex justify-between items-center shrink-0">
           <div>
-            <h2 className="text-xl md:text-2xl font-black text-cyan-400 flex items-center gap-2">
+            <h2 className="text-xl md:text-2xl font-black text-indigo-300 flex items-center gap-2.5 tracking-tight">
               <ClipboardList className="text-indigo-400 animate-pulse"/> Pre-Operative EMR & Risk Assessment
             </h2>
             <p className="text-xs text-slate-400">Review Patient Chart, Order Pre-Op Workup, Perform Risk Staging, and Lock Anesthesia Plan</p>
           </div>
-          <button onClick={close} data-tutorial="emr-close" className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition">
-            <X size={24}/>
+          <button 
+            onClick={close} 
+            data-tutorial="emr-close" 
+            className="w-8 h-8 rounded-lg glass-button glass-button-rose flex items-center justify-center text-rose-300 font-bold text-lg cursor-pointer hover:scale-105 active:scale-95 transition-all"
+            title="Close EMR"
+          >
+            <X size={18}/>
           </button>
         </div>
 
@@ -3043,7 +3052,96 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
           {/* TAB 5: ANESTHESIA PLAN */}
           {activeTab === 'plan' && (
             <div className="space-y-6">
-              
+
+              {/* ─── PROCEDURE CASE BRIEF: reference-only, shown alongside (not instead ─── */}
+              {/* of) the resident's own plan below.                                     */}
+              {patient.jaffeProcedureId && (() => {
+                const proc = getJaffeProcedure(patient.jaffeProcedureId);
+                if (!proc) return null;
+                const plan = getJaffeAnestheticPlan(proc.anestheticPlanId);
+                const s = proc.surgical;
+                const pop = proc.patientPopulation;
+                const sections = [
+                  { key: 'surgical', label: 'Surgical & Patient Profile' },
+                  { key: 'preop', label: 'Preoperative' },
+                  { key: 'intraop', label: 'Intraoperative' },
+                  { key: 'postop', label: 'Postoperative' },
+                ];
+                return (
+                  <div className="bg-gradient-to-br from-amber-950/20 to-slate-900 border border-amber-800/50 rounded-xl shadow-lg overflow-hidden">
+                    <div className="bg-gradient-to-r from-amber-950/40 to-orange-950/20 px-5 py-4 border-b border-amber-900/40">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-amber-600/30 border border-amber-500/50 flex items-center justify-center text-amber-300 text-base">📋</div>
+                        <div>
+                          <h3 className="text-base font-extrabold text-white">Case Brief -- {proc.name}</h3>
+                          <p className="text-[10px] text-amber-400 mt-0.5">
+                            {proc.subspecialty}{proc.subgroup ? ` · ${proc.subgroup}` : ''}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="px-5 py-4 space-y-4">
+                      <div className="flex gap-2 flex-wrap">
+                        {sections.map(sec => (
+                          <button
+                            key={sec.key}
+                            type="button"
+                            onClick={() => setJaffeBriefSection(sec.key)}
+                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-colors cursor-pointer ${
+                              jaffeBriefSection === sec.key
+                                ? 'bg-amber-600/30 border-amber-500/60 text-amber-200'
+                                : 'bg-slate-950/50 border-slate-800 text-slate-500 hover:border-slate-700'
+                            }`}
+                          >
+                            {sec.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {jaffeBriefSection === 'surgical' && (
+                        <div className="space-y-3 text-[11px] text-slate-300 leading-relaxed">
+                          {s.description && <p className="whitespace-pre-line">{s.description}</p>}
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2 bg-slate-950/50 border border-slate-900 rounded-lg p-3 font-mono text-[10px]">
+                            {s.usualPreopDiagnosis && <div><span className="text-slate-500">Usual preop dx:</span> {s.usualPreopDiagnosis}</div>}
+                            {s.position && <div><span className="text-slate-500">Position:</span> {s.position}</div>}
+                            {s.incision && <div><span className="text-slate-500">Incision:</span> {s.incision}</div>}
+                            {s.specialInstrumentation && <div><span className="text-slate-500">Special equipment:</span> {s.specialInstrumentation}</div>}
+                            {s.antibiotics && <div><span className="text-slate-500">Antibiotics:</span> {s.antibiotics}</div>}
+                            {s.surgicalTimeRange && <div><span className="text-slate-500">Surgical time:</span> {s.surgicalTimeRange}</div>}
+                            {s.eblExpected && <div><span className="text-slate-500">EBL:</span> {s.eblExpected}</div>}
+                            {s.postopCare && <div><span className="text-slate-500">Postop care:</span> {s.postopCare}</div>}
+                            {s.mortality && <div><span className="text-slate-500">Mortality:</span> {s.mortality}</div>}
+                            {s.painScore && <div><span className="text-slate-500">Pain score:</span> {s.painScore}/10</div>}
+                            {pop.ageRange && <div><span className="text-slate-500">Age range:</span> {pop.ageRange}</div>}
+                            {pop.maleFemaleRatio && <div><span className="text-slate-500">M:F:</span> {pop.maleFemaleRatio}</div>}
+                          </div>
+                          {s.uniqueConsiderations && (
+                            <div className="bg-amber-950/30 border border-amber-800/40 rounded-lg p-3 text-amber-300">⚠ <span className="font-bold">Unique considerations:</span> {s.uniqueConsiderations}</div>
+                          )}
+                          {s.morbidity?.length > 0 && (
+                            <div className="text-[10px] text-slate-400">
+                              <span className="text-slate-500 font-bold uppercase tracking-wider">Morbidity: </span>
+                              {s.morbidity.map((m) => `${m.finding} (${m.rate})`).join(', ')}
+                            </div>
+                          )}
+                          {pop.etiology && <div className="text-[10px] text-slate-400"><span className="text-slate-500 font-bold uppercase tracking-wider">Etiology: </span>{pop.etiology}</div>}
+                          {pop.associatedConditions && <div className="text-[10px] text-slate-400"><span className="text-slate-500 font-bold uppercase tracking-wider">Associated conditions: </span>{pop.associatedConditions}</div>}
+                        </div>
+                      )}
+
+                      {jaffeBriefSection !== 'surgical' && plan && (
+                        <div className="text-[11px] text-slate-300 leading-relaxed whitespace-pre-line">
+                          {plan[jaffeBriefSection] || 'Not separately specified for this procedure -- see the full plan text.'}
+                        </div>
+                      )}
+                      {jaffeBriefSection !== 'surgical' && !plan && (
+                        <div className="text-[11px] text-slate-500 italic">No anesthetic plan linked for this procedure yet.</div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
               {/* ─── SECTION I: MULTI-MODAL ANESTHETIC TECHNIQUE ─── */}
               <div className="bg-gradient-to-br from-slate-950 to-slate-900 border border-slate-800 rounded-xl shadow-lg overflow-hidden">
                 <div className="bg-gradient-to-r from-indigo-950/40 to-violet-950/30 px-5 py-4 border-b border-slate-800">
@@ -3309,6 +3407,40 @@ export const PreOpEMR = ({ show, close, stagedCase, setStagedCase, onStart, logE
                     </span>
                   )}
                 </div>
+              </div>
+
+              {/* ─── PLAYTHROUGH STYLE: sets the case's starting attendingMode. Physiology  ─── */}
+              {/* is identical either way -- this only controls whether the attending      */}
+              {/* proactively coaches step-by-step or stays hands-off until called.         */}
+              <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-4">
+                <h3 className="text-[10px] text-slate-500 uppercase font-black tracking-wider font-mono mb-3">Playthrough Style</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setPlaythroughMode('guided')}
+                    className={`text-left p-3 rounded-lg border transition cursor-pointer ${
+                      playthroughMode === 'guided'
+                        ? 'border-cyan-500 bg-cyan-950/20 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
+                        : 'border-slate-800 bg-slate-900/30 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="font-extrabold text-sm text-slate-100">🎓 Guided</div>
+                    <div className="text-[11px] text-slate-400 mt-1 leading-relaxed">An attending walks you through every step, explains the reasoning, and suggests what to do next.</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPlaythroughMode('freeform')}
+                    className={`text-left p-3 rounded-lg border transition cursor-pointer ${
+                      playthroughMode === 'freeform'
+                        ? 'border-cyan-500 bg-cyan-950/20 shadow-[0_0_15px_rgba(6,182,212,0.15)]'
+                        : 'border-slate-800 bg-slate-900/30 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="font-extrabold text-sm text-slate-100">🕊️ Freeform</div>
+                    <div className="text-[11px] text-slate-400 mt-1 leading-relaxed">You're in charge. The attending stays quiet unless something becomes truly critical.</div>
+                  </button>
+                </div>
+                <p className="text-[10px] text-slate-600 mt-2">You can still switch this live during the case from the Attending panel.</p>
               </div>
 
             </div>

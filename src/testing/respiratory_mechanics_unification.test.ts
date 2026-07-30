@@ -145,3 +145,28 @@ describe('Cross-consistency: PV loop and flow-volume loop respond to the same R/
     expect(pvLowC.pattern).toBe('low_compliance');
   });
 });
+
+describe('PV loop uses the ICU ventilator tidal-volume convention (Y = tidal volume above PEEP, 0 at PEEP)', () => {
+  const ventSettings = { mode: 'VCV', vt: 450, ieRatio: 2, peep: 8 };
+  const vitals = { res: 5, compl: 60, rr: 12, peep: 8 };
+
+  it('strictly begins at (Paw = PEEP, V = 0), not at FRC-referenced absolute volume', () => {
+    const pv = generatePressureVolumeLoopFromMechanics(normalPatient, vitals, ventSettings);
+    const first = pv.points[0];
+    expect(first.volume).toBeCloseTo(0, 2);     // tidal volume, not FRC (~2.4 L)
+    expect(first.pressure).toBeCloseTo(pv.peep, 0);
+    // Every plotted volume is a tidal excursion, so it stays well below any absolute lung volume.
+    const maxVol = Math.max(...pv.points.map((pt) => pt.volume));
+    expect(maxVol).toBeGreaterThan(0.3);        // reaches ~Vt (0.45 L)
+    expect(maxVol).toBeLessThan(1.0);           // but is NOT FRC + Vt (~2.8 L)
+    expect(maxVol * 1000).toBeCloseTo(pv.vte, -2);
+  });
+
+  it('collapses to a flat (PEEP, 0) point when apneic / no effective tidal volume', () => {
+    const apneic = generatePressureVolumeLoopFromMechanics(normalPatient, { ...vitals, rr: 0 }, { ...ventSettings, mode: 'spontaneous' });
+    for (const pt of apneic.points) {
+      expect(pt.volume).toBeCloseTo(0, 3);
+      expect(Number.isFinite(pt.pressure)).toBe(true);
+    }
+  });
+});

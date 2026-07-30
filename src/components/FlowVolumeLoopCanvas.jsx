@@ -64,30 +64,42 @@ export const FlowVolumeLoopCanvas = React.memo(({ patient, vitals, ventSettings,
       const plotW = Math.max(10, w - margin.left - margin.right);
       const plotH = Math.max(10, h - margin.top - margin.bottom);
 
-      let xMin, xMax, yMin, yMax, topLabel, botLabel;
+      let xMin, xMax, yMin, yMax, topLabel, botLabel, xAxisTitle;
+      // flipX renders higher lung volume on the LEFT — the standard clinical spirometry
+      // orientation, where forced expiration begins at TLC (left), peak expiratory flow
+      // sits at the far left, and the limb descends rightward toward RV. The x-axis is then
+      // read as EXHALED volume (0 at TLC on the left, rising to FVC at RV on the right).
+      let flipX = false;
+      const tlcRef = loop.tlc ?? 6;
 
       if (isVentilated) {
-        // Vent loop: X from 0 to Vt, Y positive = inspiratory (above zero), negative = expiratory
         const vtL = Math.max(0.2, (loop.vte ?? 0) / 1000);
         xMin = 0;
         xMax = vtL * 1.3;
-        yMax = Math.max(0.3, (loop.pif ?? 0) * 1.3);
-        yMin = -Math.max(0.3, (loop.pef ?? 0) * 1.3);
-        topLabel = 'Insp';
-        botLabel = 'Exp';
-      } else {
-        // PFT loop: X from RV to TLC, Y positive = expiratory (above zero)
-        const { tlc, rv, fvc, pef, pif } = loop;
-        const pad = Math.max(0.3, fvc * 0.18);
-        xMin = Math.max(0, rv - pad);
-        xMax = tlc + pad;
-        yMax = Math.max(1, pef * 1.2);
-        yMin = -Math.max(1, pif * 1.2);
+        yMax = Math.max(0.3, (loop.pef ?? 0) * 1.3);   // top    = peak expiratory flow
+        yMin = -Math.max(0.3, (loop.pif ?? 0) * 1.3);  // bottom = peak inspiratory flow
         topLabel = 'Exp';
         botLabel = 'Insp';
+        xAxisTitle = 'Volume (L)';
+        flipX = true;
+      } else {
+        // PFT loop: Expiration on TOP (positive) and Inspiration on BOTTOM (negative).
+        const { tlc, rv, fvc, pef, pif } = loop;
+        const pad = Math.max(0.3, fvc * 0.14);
+        xMin = Math.max(0, rv - pad);
+        xMax = tlc + pad;
+        yMax = Math.max(1, pef * 1.2);    // top    = peak expiratory flow
+        yMin = -Math.max(1, pif * 1.2);   // bottom = peak inspiratory flow
+        topLabel = 'Exp';
+        botLabel = 'Insp';
+        xAxisTitle = 'Exhaled Volume (L)';
+        flipX = true;
       }
 
-      const pxf = (vol)  => margin.left + ((vol - xMin) / (xMax - xMin || 1)) * plotW;
+      const pxf = (vol) => {
+        const t = (vol - xMin) / (xMax - xMin || 1);
+        return margin.left + (flipX ? 1 - t : t) * plotW;
+      };
       const pyf = (flow) => margin.top + ((yMax - flow) / (yMax - yMin || 1)) * plotH;
 
       ctx.clearRect(0, 0, w, h);
@@ -125,15 +137,20 @@ export const FlowVolumeLoopCanvas = React.memo(({ patient, vitals, ventSettings,
       ctx.fillStyle = 'rgba(148, 163, 184, 0.7)';
       ctx.font = '9px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('Volume (L)', margin.left + plotW / 2, h - 6);
+      ctx.fillText(xAxisTitle, margin.left + plotW / 2, h - 6);
       ctx.save();
       ctx.translate(11, margin.top + plotH / 2);
       ctx.rotate(-Math.PI / 2);
       ctx.fillText('Flow (L/s)', 0, 0);
       ctx.restore();
+      // Direction labels sit at the plot's top-right/bottom-right corners (right-aligned)
+      // rather than top-left/bottom-left — the left side is already used by the numeric
+      // readout overlay (top) and the volume-axis "0" tick label (bottom), and sharing
+      // that corner produced an illegible overlapping smear of text.
+      ctx.textAlign = 'right';
+      ctx.fillText(topLabel, margin.left + plotW - 3, margin.top + 9);
+      ctx.fillText(botLabel, margin.left + plotW - 3, margin.top + plotH - 5);
       ctx.textAlign = 'left';
-      ctx.fillText(topLabel, margin.left + 2, margin.top - 2);
-      ctx.fillText(botLabel, margin.left + 2, margin.top + plotH + 11);
 
       // ── X-axis tick marks ─────────────────────────────────────────────────────
       ctx.fillStyle = 'rgba(148, 163, 184, 0.5)';
@@ -142,14 +159,16 @@ export const FlowVolumeLoopCanvas = React.memo(({ patient, vitals, ventSettings,
       const xTickStep = xMax > 4 ? 1.0 : xMax > 1.5 ? 0.5 : 0.2;
       for (let tv = Math.ceil(xMin / xTickStep) * xTickStep; tv <= xMax + 0.001; tv += xTickStep) {
         const tx = pxf(tv);
-        if (tx >= margin.left && tx <= margin.left + plotW) {
+        // PFT axis is exhaled volume (TLC − absolute volume): 0 at TLC, rising toward RV.
+        const labelVal = flipX ? tlcRef - tv : tv;
+        if (tx >= margin.left && tx <= margin.left + plotW && labelVal >= -0.001) {
           ctx.beginPath();
           ctx.strokeStyle = 'rgba(148, 163, 184, 0.2)';
           ctx.lineWidth = 1;
           ctx.moveTo(tx, margin.top + plotH - 3);
           ctx.lineTo(tx, margin.top + plotH + 3);
           ctx.stroke();
-          ctx.fillText(tv.toFixed(1), tx, margin.top + plotH + 12);
+          ctx.fillText(labelVal.toFixed(1), tx, margin.top + plotH + 12);
         }
       }
       ctx.textAlign = 'left';
@@ -168,11 +187,18 @@ export const FlowVolumeLoopCanvas = React.memo(({ patient, vitals, ventSettings,
       ctx.stroke();
 
       // ── Auto-PEEP indicator ───────────────────────────────────────────────────
+      // The trapped-gas band spans from the zero-volume line to the volume the expiratory
+      // limb actually stops at. Derive its screen extent from min/abs of the two mapped x's
+      // rather than a bare subtraction, so it renders correctly regardless of flipX (with
+      // flipX, pxf(0) is the RIGHT edge and pxf(finalVol) sits to its left — a plain
+      // pxf(finalVol) - pxf(0) goes negative and the band silently disappears).
       if (isVentilated && loop.hasAutoPeep) {
         const finalVol = points[points.length - 1]?.volume ?? 0;
         if (finalVol > 0.01) {
-          const trapX = pxf(0);
-          const trapW = pxf(finalVol) - trapX;
+          const xZero = pxf(0);
+          const xTrap = pxf(finalVol);
+          const trapX = Math.min(xZero, xTrap);
+          const trapW = Math.abs(xTrap - xZero);
           if (trapW > 2) {
             ctx.fillStyle = 'rgba(239, 68, 68, 0.12)';
             ctx.fillRect(trapX, margin.top, trapW, plotH);
@@ -180,8 +206,8 @@ export const FlowVolumeLoopCanvas = React.memo(({ patient, vitals, ventSettings,
             ctx.lineWidth = 1;
             ctx.setLineDash([3, 3]);
             ctx.beginPath();
-            ctx.moveTo(pxf(finalVol), margin.top);
-            ctx.lineTo(pxf(finalVol), margin.top + plotH);
+            ctx.moveTo(xTrap, margin.top);
+            ctx.lineTo(xTrap, margin.top + plotH);
             ctx.stroke();
             ctx.setLineDash([]);
             ctx.fillStyle = 'rgba(239, 68, 68, 0.8)';

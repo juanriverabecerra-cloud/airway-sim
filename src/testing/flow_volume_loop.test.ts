@@ -1,8 +1,49 @@
 import { describe, it, expect } from 'vitest';
-import { generateFlowVolumeLoop } from '../engine/FlowVolumeLoopModel.js';
+import {
+  generateFlowVolumeLoop,
+  expiratoryFlowFraction,
+  inspiratoryFlowFraction,
+} from '../engine/FlowVolumeLoopModel.js';
 
 const normalPatient = { lungVolumes: { tlc_mL: 6000, rv_mL: 1500, fvc_mL: 4500, fev1FvcRatio: 82 } };
 const normalVitals = { res: 5, compl: 60, rr: 12 };
+
+describe('Canonical MEFV limb shape (the core "normal is linear, obstruction is scooped" contrast)', () => {
+  it('normal expiratory descent is near-linear (NOT scooped)', () => {
+    // Sample the descent from PEF (~12% exhaled) to RV. For a straight line, the flow at
+    // the midpoint of the descent should be close to the midpoint flow value (~0.5).
+    const atQuarter = expiratoryFlowFraction(0.12 + 0.25 * 0.88, { obstruction: 0 });
+    const atMid = expiratoryFlowFraction(0.12 + 0.5 * 0.88, { obstruction: 0 });
+    const atThreeQ = expiratoryFlowFraction(0.12 + 0.75 * 0.88, { obstruction: 0 });
+    // Near-linear: quarter ≈ 0.75, mid ≈ 0.5, three-quarter ≈ 0.25 (each within 0.1).
+    expect(Math.abs(atQuarter - 0.75)).toBeLessThan(0.1);
+    expect(Math.abs(atMid - 0.5)).toBeLessThan(0.1);
+    expect(Math.abs(atThreeQ - 0.25)).toBeLessThan(0.1);
+  });
+
+  it('obstruction makes the descent concave/scooped — flow sits well below the normal line', () => {
+    const normalMid = expiratoryFlowFraction(0.12 + 0.5 * 0.88, { obstruction: 0 });
+    const obstructedMid = expiratoryFlowFraction(0.12 + 0.5 * 0.88, { obstruction: 0.7 });
+    // The scoop pulls mid-descent flow substantially below the normal (near-linear) value.
+    expect(obstructedMid).toBeLessThan(normalMid - 0.2);
+  });
+
+  it('peak expiratory flow is reached early (near TLC) and both limbs return to zero at the ends', () => {
+    expect(expiratoryFlowFraction(0, { obstruction: 0 })).toBeCloseTo(0, 5); // zero flow at TLC
+    expect(expiratoryFlowFraction(0.12, { obstruction: 0 })).toBeCloseTo(1, 2); // PEF at ~12% exhaled
+    expect(expiratoryFlowFraction(1, { obstruction: 0 })).toBeCloseTo(0, 5); // zero flow at RV
+    expect(inspiratoryFlowFraction(0)).toBeCloseTo(0, 5); // zero at RV
+    expect(inspiratoryFlowFraction(1)).toBeCloseTo(0, 5); // zero at TLC
+    expect(inspiratoryFlowFraction(0.5)).toBeCloseTo(1, 5); // peak mid-VC (symmetric semicircle)
+  });
+
+  it('a plateau caps the limb flat (upper-airway obstruction morphology)', () => {
+    // Expiratory plateau (fixed / variable-intrathoracic): peak clipped to the ceiling.
+    expect(expiratoryFlowFraction(0.12, { obstruction: 0, plateau: 0.4 })).toBeCloseTo(0.4, 5);
+    // Inspiratory plateau (fixed / variable-extrathoracic): mid-VC clipped to the ceiling.
+    expect(inspiratoryFlowFraction(0.5, { plateau: 0.3 })).toBeCloseTo(0.3, 5);
+  });
+});
 
 describe('Flow-Volume Loop Model', () => {
   it('produces a closed loop with no NaN/non-finite points for a normal patient', () => {
@@ -35,8 +76,8 @@ describe('Flow-Volume Loop Model', () => {
     // (concave/coved descent vs. the normal near-linear one).
     const midIdxNormal = Math.floor(normal.points.length * 0.25);
     const midIdxCopd = Math.floor(copd.points.length * 0.25);
-    const normalizedNormal = normal.points[midIdxNormal].flow / normal.pef;
-    const normalizedCopd = copd.points[midIdxCopd].flow / copd.pef;
+    const normalizedNormal = Math.abs(normal.points[midIdxNormal].flow) / normal.pef;
+    const normalizedCopd = Math.abs(copd.points[midIdxCopd].flow) / copd.pef;
     expect(normalizedCopd).toBeLessThan(normalizedNormal);
   });
 

@@ -124,7 +124,7 @@ describe('Clinical AI Chat Engine (getAttendingResponse)', () => {
   describe('Phase 3: Source Anchoring, Hallucination Verification & Board Study Mode', () => {
     it('should calculate inline citations in the formatted response text', () => {
       const res = getAttendingResponse('GABA receptors propofol', {});
-      expect(res).toContain('[Miller ');
+      expect(res).toContain('[Ref ');
     });
 
     it('should verify response grounding against current simulator vitals state', () => {

@@ -39,7 +39,12 @@ export class TextExtractor {
           {
             encoding: 'utf-8',
             maxBuffer: 100 * 1024 * 1024,
-            timeout: 120000,
+            // Phase 1 runs once per whole document (not per-figure like Phase 2 below),
+            // so its cost scales with page/figure count. 120s was tuned against files up
+            // to ~9MB/292pp; a 16.7MB/283pp chapter (Jaffe Ch7) timed out at that ceiling
+            // (spawnSync ETIMEDOUT, 0 chars extracted) despite being a valid, parseable
+            // PDF -- bumped to give large image-heavy chapters real headroom.
+            timeout: 600000,
             env: {
               ...process.env,
               PATH: `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${process.env.PATH || ''}`

@@ -19,6 +19,7 @@ import { calculatePacuReadiness } from './OutcomeScoringEngine.ts';
 import { calculateCvpWaveComponents } from './CvpWaveformModel.js';
 import { calculatePacPressures } from './PulmonaryArteryCatheterModel.js';
 import { calculateDynamicResponse } from './ArterialLineModel.js';
+import { getJaffeProcedure, getJaffeAnestheticPlan } from './JaffeProcedureKnowledgeEngine.ts';
 
 function fmt(val, decimals = 0) {
   if (typeof val !== 'number' || !Number.isFinite(val)) {
@@ -582,7 +583,7 @@ We are witnessing severe, progressive bradycardia (HR: ${fmt(hr)} bpm) due to un
       q.includes('asa class') || q.includes('asa status') || q.includes('asa physical status')) {
     const rcri = calculateRcriFactors(patient, caseId);
     let msg = `### Preoperative Risk Assessment — Revised Cardiac Risk Index (RCRI)\n`;
-    msg += `*Lee et al., as cited in Ch30, Miller's 9th Ed ("Risk of Anesthesia")*\n\n`;
+    msg += `*Lee et al., "Risk of Anesthesia"*\n\n`;
     msg += `| Criterion | Present |\n| --- | --- |\n`;
     msg += `| High-risk surgical procedure | ${rcri.rcriHighRisk ? '✅ Yes' : '— No'} |\n`;
     msg += `| Ischemic heart disease | ${rcri.rcriIhd ? '✅ Yes' : '— No'} |\n`;
@@ -813,6 +814,51 @@ Myocardial perfusion has collapsed due to tachycardia or severe hypotension.
     return msg;
   }
 
+  // Jaffe Procedure Case Brief -- grounded in the specific procedure attached to this
+  // case (patient.jaffeProcedureId), not generic reference knowledge. Checked before the
+  // Positioning handler below since "what's the plan for positioning" should prefer this
+  // procedure-specific answer over the generic positioning-physiology one when a Jaffe
+  // procedure is attached.
+  //
+  // Deliberately multi-word, procedure-referencing phrases only -- single generic words
+  // like bare 'consider'/'watch'/'plan'/'blood loss'/'morbidity' were tested and confirmed
+  // to hijack unrelated live-crisis questions (e.g. "Should I consider giving
+  // phenylephrine right now?" during an active MAP-56 hypotensive episode returned this
+  // static reference card instead of the real-time hemodynamics handler). A training tool
+  // silently suppressing crisis guidance in favor of static reference text is a real safety
+  // regression, not just a UX quirk -- keep this list narrow even if it costs some recall.
+  const jaffeBriefPhrases = [
+    'case brief', 'jaffe', 'surgical consideration', 'unique consideration',
+    'expected ebl', 'expected blood loss', 'anesthetic plan for this', 'anesthetic technique for this',
+    'plan for this case', 'plan for this procedure', 'plan for this surgery',
+    "what's the plan", 'what is the plan', 'expect during this procedure', 'expect for this procedure',
+    'expect during this surgery', 'expect for this surgery', 'typical surgical time', 'expected surgical time',
+  ];
+  if (patient.jaffeProcedureId && jaffeBriefPhrases.some(phrase => q.includes(phrase))) {
+    const proc = getJaffeProcedure(patient.jaffeProcedureId);
+    if (proc) {
+      const s = proc.surgical;
+      const plan = getJaffeAnestheticPlan(proc.anestheticPlanId);
+      let msg = `### 📋 Case Brief — ${proc.name}\n`;
+      msg += `*${proc.subspecialty}${proc.subgroup ? ` · ${proc.subgroup}` : ''}*\n\n`;
+      if (s.position || s.incision) msg += `**Position/Incision**: ${s.position || 'not specified'}${s.incision ? ` — ${s.incision}` : ''}\n`;
+      if (s.surgicalTimeRange) msg += `**Surgical time**: ${s.surgicalTimeRange}\n`;
+      if (s.eblExpected) msg += `**Expected EBL**: ${s.eblExpected}\n`;
+      if (s.painScore) msg += `**Expected pain score**: ${s.painScore}/10\n`;
+      if (s.mortality || s.morbidity?.length) {
+        msg += `**Mortality/morbidity**: ${s.mortality || 'not specified'}`;
+        if (s.morbidity?.length) msg += ` — ${s.morbidity.map(m => `${m.finding} (${m.rate})`).join(', ')}`;
+        msg += `\n`;
+      }
+      if (s.uniqueConsiderations) msg += `\n⚠️ **Unique considerations**: ${s.uniqueConsiderations}\n`;
+      if (plan) {
+        msg += `\n**Anesthetic technique (intraop)**: ${(plan.intraop || plan.fullText || '').split('\n').find(l => l.trim().length > 0)?.slice(0, 400) || 'See the Anesthesia Plan tab for the full preop/intraop/postop plan.'}`;
+        msg += `\n\nOpen the Anesthesia Plan tab in the pre-op chart for the complete preop/intraop/postop breakdown — this is a summary, not the full plan.`;
+      }
+      return msg;
+    }
+  }
+
   // I. Positioning Physiology
   if (q.includes('position') || q.includes('sitting') || q.includes('beach chair') || q.includes('trendelenburg') || q.includes('lithotomy') || q.includes('prone') || q.includes('ramped')) {
     let msg = `### 📐 Positioning Physiology & Telemetry Audit\n`;
@@ -897,12 +943,12 @@ Myocardial perfusion has collapsed due to tachycardia or severe hypotension.
       const confidenceLabel = score > 2.0 ? '🟢 HIGH' : score > 1.0 ? '🟡 MODERATE' : '🟠 PARTIAL';
       
       const chapterLabel = extractChapterLabel(record.chapter_title);
-      const citation = ` [Miller ${chapterLabel}: ${record.section_heading || 'Untitled Section'}]`;
+      const citation = ` [Ref ${chapterLabel}: ${record.section_heading || 'Untitled Section'}]`;
       const citedBody = record.body_text + citation;
 
       kbResponse += `---\n`;
       kbResponse += `**Source ${rank}** — *${record.section_heading || 'Untitled Section'}*\n`;
-      kbResponse += `📄 *[${record.chapter_title}]* | Relevance: ${confidenceLabel} (${score.toFixed(2)})\n\n`;
+      kbResponse += `📄 *[Clinical Reference ${chapterLabel}]* | Relevance: ${confidenceLabel} (${score.toFixed(2)})\n\n`;
       
       if (rank <= 5) {
         kbResponse += `${citedBody}\n\n`;
