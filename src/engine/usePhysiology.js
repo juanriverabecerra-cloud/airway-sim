@@ -6876,154 +6876,27 @@ export function runPhysicsStep(__ctx) {
   return { skipped: false };
 }
 
-export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, ventSettings, gasSettings, logEvent, msmaidsComplete }) {
-  const [timeVal, setTimeState] = useState(0);
-  const [vitalsVal, setVitalsState] = useState({});
-  const [targetVitalsVal, setTargetVitalsState] = useState({});
-  const [patientVal, setPatientState] = useState({});
-  const [activeMedsVal, setActiveMedsState] = useState([]);
-  const [gasModels, setGasModels] = useState({});
-  
-  const [intravascularVolumeVal, setIntravascularVolumeState] = useState(0); 
-  const [totalBodyWaterLitersVal, setTotalBodyWaterLitersState] = useState(42);
-  const [electrolytesVal, setElectrolytesState] = useState({ na: 140, k: 4.0, cl: 100, ca: 9.0, ph: 7.4 });
-  const [coagsVal, setCoagsState] = useState({ r_offset: 0, ma_offset: 0, angle_offset: 0 });
-  const [surgicalPhaseVal, setSurgicalPhaseState] = useState('Pre-Op');
-  const [prevCaseId, setPrevCaseId] = useState(null);
+/**
+ * Layer 1B: pure case-initialization, extracted verbatim from the init useEffect so a faithful
+ * starting sim-state can be built headless (for golden-master / fuzz harnesses) using the exact
+ * same logic production uses. Local setter shims collect into __s instead of touching React.
+ * ventSettings/gasSettings/msmaidsComplete are supplied separately by the caller (they are props,
+ * not case-derived). See docs/architecture/audit_layer1_physics_core.md.
+ */
+export function createInitialSimState(activeCase) {
+  const __s = {};
+  const setVitals = (u) => { __s.vitals = typeof u === 'function' ? u(__s.vitals || {}) : { ...(__s.vitals || {}), ...u }; };
+  const setTargetVitals = (u) => { __s.targetVitals = typeof u === 'function' ? u(__s.targetVitals || {}) : { ...(__s.targetVitals || {}), ...u }; };
+  const setPatient = (u) => { __s.patient = typeof u === 'function' ? u(__s.patient || {}) : { ...(__s.patient || {}), ...u }; };
+  const setElectrolytes = (u) => { __s.electrolytes = typeof u === 'function' ? u(__s.electrolytes || {}) : { ...(__s.electrolytes || {}), ...u }; };
+  const setCoags = (u) => { __s.coags = typeof u === 'function' ? u(__s.coags || {}) : { ...(__s.coags || {}), ...u }; };
+  const setTime = (u) => { __s.time = typeof u === 'function' ? u(__s.time ?? 0) : u; };
+  const setActiveMeds = (u) => { __s.activeMeds = typeof u === 'function' ? u(__s.activeMeds ?? []) : u; };
+  const setIntravascularVolume = (u) => { __s.intravascularVolume = typeof u === 'function' ? u(__s.intravascularVolume ?? 0) : u; };
+  const setTotalBodyWaterLiters = (u) => { __s.totalBodyWaterLiters = typeof u === 'function' ? u(__s.totalBodyWaterLiters ?? 0) : u; };
+  const setSurgicalPhase = (u) => { __s.surgicalPhase = typeof u === 'function' ? u(__s.surgicalPhase ?? 'Pre-Op') : u; };
+  const setGasModels = (u) => { __s.gasModels = typeof u === 'function' ? u(__s.gasModels ?? {}) : u; };
 
-  const ffRemainingRef = useRef(0);
-  const ffTotalRef = useRef(0);
-
-  // Synchronous State Setter Wrappers to synchronously bridge changes into stateRef
-  const stateRef = useRef({ time: timeVal, vitals: vitalsVal, targetVitals: targetVitalsVal, patient: patientVal, activeMeds: activeMedsVal, gasModels, intravascularVolume: intravascularVolumeVal, electrolytes: electrolytesVal, ventSettings, gasSettings, surgicalPhase: surgicalPhaseVal, msmaidsComplete });
-
-  const setTime = (update) => {
-    const prev = stateRef.current.time !== undefined ? stateRef.current.time : timeVal;
-    const next = typeof update === 'function' ? update(prev) : update;
-    stateRef.current.time = next;
-    setTimeState(next);
-  };
-
-  const setVitals = (update) => {
-    const prev = stateRef.current.vitals || vitalsVal;
-    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
-    stateRef.current.vitals = next;
-    setVitalsState(next);
-  };
-
-  const setTargetVitals = (update) => {
-    const prev = stateRef.current.targetVitals || targetVitalsVal;
-    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
-    stateRef.current.targetVitals = next;
-    setTargetVitalsState(next);
-  };
-
-  const setPatient = (update) => {
-    const prev = stateRef.current.patient || patientVal;
-    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
-    
-    // Sync fast-forward refs ONLY if they were explicitly changed by the update (not just spread from prev)
-    if (next.fastForwardRemaining !== undefined && next.fastForwardRemaining !== prev.fastForwardRemaining) {
-      ffRemainingRef.current = next.fastForwardRemaining || 0;
-    }
-    if (next.fastForwardTotal !== undefined && next.fastForwardTotal !== prev.fastForwardTotal) {
-      ffTotalRef.current = next.fastForwardTotal || 0;
-    }
-
-    stateRef.current.patient = next;
-    setPatientState(next);
-  };
-
-  const setActiveMeds = (update) => {
-    const prev = stateRef.current.activeMeds || activeMedsVal;
-    const next = typeof update === 'function' ? update(prev) : update;
-    stateRef.current.activeMeds = next;
-    setActiveMedsState(next);
-  };
-
-  const setIntravascularVolume = (update) => {
-    const prev = stateRef.current.intravascularVolume !== undefined ? stateRef.current.intravascularVolume : intravascularVolumeVal;
-    const next = typeof update === 'function' ? update(prev) : update;
-    stateRef.current.intravascularVolume = next;
-    setIntravascularVolumeState(next);
-  };
-
-  const setTotalBodyWaterLiters = (update) => {
-    const prev = stateRef.current.totalBodyWaterLiters !== undefined ? stateRef.current.totalBodyWaterLiters : totalBodyWaterLitersVal;
-    const next = typeof update === 'function' ? update(prev) : update;
-    stateRef.current.totalBodyWaterLiters = next;
-    setTotalBodyWaterLitersState(next);
-  };
-
-  const setElectrolytes = (update) => {
-    const prev = stateRef.current.electrolytes || electrolytesVal;
-    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
-    stateRef.current.electrolytes = next;
-    setElectrolytesState(next);
-  };
-
-  const setCoags = (update) => {
-    const prev = stateRef.current.coags || coagsVal;
-    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
-    stateRef.current.coags = next;
-    setCoagsState(next);
-  };
-
-  const setSurgicalPhase = (update) => {
-    const prev = stateRef.current.surgicalPhase || surgicalPhaseVal;
-    const next = typeof update === 'function' ? update(prev) : update;
-    stateRef.current.surgicalPhase = next;
-    setSurgicalPhaseState(next);
-  };
-
-  // Structured, scorable quality-of-care event log (distinct from the narrative `logEvent`
-  // text log). Introduced as part of the Ch9-30 retroactive sweep to give a future
-  // debrief/outcome-score feature (see OutcomeScoringEngine.ts) real data to consume.
-  // Mapping from the simulator's existing 5-stage surgical timeline to the broader 4-phase
-  // continuum-of-care model (PreOp/Intraoperative/PACU/PostDischarge) used by quality events.
-  const mapSurgicalPhaseToCareOfPhase = (surgPhase) => {
-    if (surgPhase === 'Pre-Op') return 'PreOp';
-    if (surgPhase === 'PACU') return 'PACU';
-    return 'Intraoperative';
-  };
-
-  const logQualityEvent = (input) => {
-    const currentPhase = input?.phase || mapSurgicalPhaseToCareOfPhase(stateRef.current.surgicalPhase);
-    const event = createQualityEvent({
-      ...input,
-      time: typeof input?.time === 'number' ? input.time : stateRef.current.time,
-      phase: currentPhase
-    });
-    const currentPatient = stateRef.current.patient || patientVal;
-    const existingEvents = Array.isArray(currentPatient.qualityEvents) ? currentPatient.qualityEvents : [];
-    setPatient(prev => ({ ...prev, qualityEvents: [...existingEvents, event] }));
-    if (logEvent && event.description) {
-      logEvent(`📋 [${event.category}/${event.severity.toUpperCase()}] ${event.description}`);
-    }
-  };
-
-  const time = timeVal;
-  const vitals = vitalsVal;
-  const targetVitals = targetVitalsVal;
-  const patient = patientVal;
-  const activeMeds = activeMedsVal;
-  const intravascularVolume = intravascularVolumeVal;
-  const totalBodyWaterLiters = totalBodyWaterLitersVal;
-  const electrolytes = electrolytesVal;
-  const coags = coagsVal;
-  const surgicalPhase = surgicalPhaseVal;
-
-  useEffect(() => {
-    stateRef.current = { 
-      time, vitals, targetVitals, patient, activeMeds, gasModels, intravascularVolume, totalBodyWaterLiters, electrolytes, coags, ventSettings, gasSettings, surgicalPhase, msmaidsComplete 
-    };
-  });
-
-  useEffect(() => {
-    if (activeCase && activeCase.id !== prevCaseId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPrevCaseId(activeCase.id);
-      DynamicMedicationRegistry.hydrate();
         const safeBaseVitals = activeCase.baseVitals || {};
         const baseDia = typeof safeBaseVitals.dia === 'number' && Number.isFinite(safeBaseVitals.dia) ? safeBaseVitals.dia : 80;
         const baseSys = typeof safeBaseVitals.sys === 'number' && Number.isFinite(safeBaseVitals.sys) ? safeBaseVitals.sys : 120;
@@ -7732,6 +7605,167 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
         setTotalBodyWaterLiters(clampedWeight * 0.6); 
         setElectrolytes({ na: 140, k: safePatientObj.trauma ? 5.2 : 4.0, cl: 100, ca: 9.0, ph: safePatientObj.isSeptic ? 7.2 : 7.4 });
         setCoags({ r_offset: safePatientObj.trauma ? 6 : 0, ma_offset: safePatientObj.trauma ? -15 : 0, angle_offset: safePatientObj.trauma ? -15 : 0 });
+
+  return __s;
+}
+
+export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, ventSettings, gasSettings, logEvent, msmaidsComplete }) {
+  const [timeVal, setTimeState] = useState(0);
+  const [vitalsVal, setVitalsState] = useState({});
+  const [targetVitalsVal, setTargetVitalsState] = useState({});
+  const [patientVal, setPatientState] = useState({});
+  const [activeMedsVal, setActiveMedsState] = useState([]);
+  const [gasModels, setGasModels] = useState({});
+  
+  const [intravascularVolumeVal, setIntravascularVolumeState] = useState(0); 
+  const [totalBodyWaterLitersVal, setTotalBodyWaterLitersState] = useState(42);
+  const [electrolytesVal, setElectrolytesState] = useState({ na: 140, k: 4.0, cl: 100, ca: 9.0, ph: 7.4 });
+  const [coagsVal, setCoagsState] = useState({ r_offset: 0, ma_offset: 0, angle_offset: 0 });
+  const [surgicalPhaseVal, setSurgicalPhaseState] = useState('Pre-Op');
+  const [prevCaseId, setPrevCaseId] = useState(null);
+
+  const ffRemainingRef = useRef(0);
+  const ffTotalRef = useRef(0);
+
+  // Synchronous State Setter Wrappers to synchronously bridge changes into stateRef
+  const stateRef = useRef({ time: timeVal, vitals: vitalsVal, targetVitals: targetVitalsVal, patient: patientVal, activeMeds: activeMedsVal, gasModels, intravascularVolume: intravascularVolumeVal, electrolytes: electrolytesVal, ventSettings, gasSettings, surgicalPhase: surgicalPhaseVal, msmaidsComplete });
+
+  const setTime = (update) => {
+    const prev = stateRef.current.time !== undefined ? stateRef.current.time : timeVal;
+    const next = typeof update === 'function' ? update(prev) : update;
+    stateRef.current.time = next;
+    setTimeState(next);
+  };
+
+  const setVitals = (update) => {
+    const prev = stateRef.current.vitals || vitalsVal;
+    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+    stateRef.current.vitals = next;
+    setVitalsState(next);
+  };
+
+  const setTargetVitals = (update) => {
+    const prev = stateRef.current.targetVitals || targetVitalsVal;
+    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+    stateRef.current.targetVitals = next;
+    setTargetVitalsState(next);
+  };
+
+  const setPatient = (update) => {
+    const prev = stateRef.current.patient || patientVal;
+    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+    
+    // Sync fast-forward refs ONLY if they were explicitly changed by the update (not just spread from prev)
+    if (next.fastForwardRemaining !== undefined && next.fastForwardRemaining !== prev.fastForwardRemaining) {
+      ffRemainingRef.current = next.fastForwardRemaining || 0;
+    }
+    if (next.fastForwardTotal !== undefined && next.fastForwardTotal !== prev.fastForwardTotal) {
+      ffTotalRef.current = next.fastForwardTotal || 0;
+    }
+
+    stateRef.current.patient = next;
+    setPatientState(next);
+  };
+
+  const setActiveMeds = (update) => {
+    const prev = stateRef.current.activeMeds || activeMedsVal;
+    const next = typeof update === 'function' ? update(prev) : update;
+    stateRef.current.activeMeds = next;
+    setActiveMedsState(next);
+  };
+
+  const setIntravascularVolume = (update) => {
+    const prev = stateRef.current.intravascularVolume !== undefined ? stateRef.current.intravascularVolume : intravascularVolumeVal;
+    const next = typeof update === 'function' ? update(prev) : update;
+    stateRef.current.intravascularVolume = next;
+    setIntravascularVolumeState(next);
+  };
+
+  const setTotalBodyWaterLiters = (update) => {
+    const prev = stateRef.current.totalBodyWaterLiters !== undefined ? stateRef.current.totalBodyWaterLiters : totalBodyWaterLitersVal;
+    const next = typeof update === 'function' ? update(prev) : update;
+    stateRef.current.totalBodyWaterLiters = next;
+    setTotalBodyWaterLitersState(next);
+  };
+
+  const setElectrolytes = (update) => {
+    const prev = stateRef.current.electrolytes || electrolytesVal;
+    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+    stateRef.current.electrolytes = next;
+    setElectrolytesState(next);
+  };
+
+  const setCoags = (update) => {
+    const prev = stateRef.current.coags || coagsVal;
+    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+    stateRef.current.coags = next;
+    setCoagsState(next);
+  };
+
+  const setSurgicalPhase = (update) => {
+    const prev = stateRef.current.surgicalPhase || surgicalPhaseVal;
+    const next = typeof update === 'function' ? update(prev) : update;
+    stateRef.current.surgicalPhase = next;
+    setSurgicalPhaseState(next);
+  };
+
+  // Structured, scorable quality-of-care event log (distinct from the narrative `logEvent`
+  // text log). Introduced as part of the Ch9-30 retroactive sweep to give a future
+  // debrief/outcome-score feature (see OutcomeScoringEngine.ts) real data to consume.
+  // Mapping from the simulator's existing 5-stage surgical timeline to the broader 4-phase
+  // continuum-of-care model (PreOp/Intraoperative/PACU/PostDischarge) used by quality events.
+  const mapSurgicalPhaseToCareOfPhase = (surgPhase) => {
+    if (surgPhase === 'Pre-Op') return 'PreOp';
+    if (surgPhase === 'PACU') return 'PACU';
+    return 'Intraoperative';
+  };
+
+  const logQualityEvent = (input) => {
+    const currentPhase = input?.phase || mapSurgicalPhaseToCareOfPhase(stateRef.current.surgicalPhase);
+    const event = createQualityEvent({
+      ...input,
+      time: typeof input?.time === 'number' ? input.time : stateRef.current.time,
+      phase: currentPhase
+    });
+    const currentPatient = stateRef.current.patient || patientVal;
+    const existingEvents = Array.isArray(currentPatient.qualityEvents) ? currentPatient.qualityEvents : [];
+    setPatient(prev => ({ ...prev, qualityEvents: [...existingEvents, event] }));
+    if (logEvent && event.description) {
+      logEvent(`📋 [${event.category}/${event.severity.toUpperCase()}] ${event.description}`);
+    }
+  };
+
+  const time = timeVal;
+  const vitals = vitalsVal;
+  const targetVitals = targetVitalsVal;
+  const patient = patientVal;
+  const activeMeds = activeMedsVal;
+  const intravascularVolume = intravascularVolumeVal;
+  const totalBodyWaterLiters = totalBodyWaterLitersVal;
+  const electrolytes = electrolytesVal;
+  const coags = coagsVal;
+  const surgicalPhase = surgicalPhaseVal;
+
+  useEffect(() => {
+    stateRef.current = { 
+      time, vitals, targetVitals, patient, activeMeds, gasModels, intravascularVolume, totalBodyWaterLiters, electrolytes, coags, ventSettings, gasSettings, surgicalPhase, msmaidsComplete 
+    };
+  });
+
+  useEffect(() => {
+    if (activeCase && activeCase.id !== prevCaseId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPrevCaseId(activeCase.id);
+      DynamicMedicationRegistry.hydrate();
+        const __init = createInitialSimState(activeCase);
+        setVitals(__init.vitals);
+        setTargetVitals(__init.targetVitals);
+        setPatient(__init.patient);
+        setTime(__init.time); setActiveMeds(__init.activeMeds); setIntravascularVolume(__init.intravascularVolume); setSurgicalPhase(__init.surgicalPhase);
+        setGasModels(__init.gasModels);
+        setTotalBodyWaterLiters(__init.totalBodyWaterLiters);
+        setElectrolytes(__init.electrolytes);
+        setCoags(__init.coags);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCase, prevCaseId]);

@@ -170,3 +170,18 @@ Module-level symbols (all 78 engines, `MEDICATIONS`, `resolveDosingWeight`, `ext
   - **Next (Layer 1B finish):** extract `createInitialSimState(activeCase, ventSettings, gasSettings)`
     from the init `useEffect` for a faithful seed → record the headless golden-master fixture; then the
     one-time React characterization/equivalence proof. Then **Layer 1C** (fuzz→step→oracle loop).
+- 2026-07-31 — **Layer 1B finished (golden master).**
+  - Extracted `createInitialSimState(activeCase)` from the init `useEffect` (708-line body moved
+    verbatim via `scratchpad/extract_init.mjs`, using local setter shims that collect into a result
+    object — same trick as `runPhysicsStep`, zero body surgery). `no-undef` clean; the hook's init now
+    calls it and distributes to the real setters.
+  - Reusable headless harness: `src/testing/harness/headlessSim.ts`
+    (`createHeadlessSim`/`stepN`/`makeHeadlessCtx` + a canonical `HEALTHY_CASE`).
+  - Golden master `src/testing/golden_master.test.ts`: a healthy unmedicated adult stays
+    physiologically stable for 300s (hr 73–75, map 89–100, spo2 99, bis 98, etco2 38–39, temp 37) —
+    proving the faithful seed + drift-free integration — is deterministic, and is frozen as a
+    `toMatchSnapshot` regression fixture.
+  - Verification: `no-undef` 0 · build green · full suite **1755/1755** green.
+  - The React characterization/equivalence proof (happy-dom) remains a tracked rigor item; the
+    by-construction extraction + no-undef + stable deterministic golden master already give strong
+    evidence. **Next: Layer 1C** (fuzz→step→oracle loop) — also a heavy runtime stress of the extraction.
