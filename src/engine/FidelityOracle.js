@@ -520,7 +520,17 @@ export function evaluateFidelity(state, history = []) {
 
   // D1. Alveolar Gas Equation Differential Test
   // PAO2 = FiO2 * (Patm - PH2O) - PaCO2 / R
-  const calculatedPAO2 = (deliveredFiO2 * 7.13) - (paco2 / 0.8);
+  // The ceiling's FiO2 must be the RESERVOIR-aware inspired fraction, not just the instantaneous
+  // delivered FiO2: after breathing a higher FiO2 the alveolar O2 store (denitrogenation reservoir)
+  // legitimately keeps PaO2 elevated for minutes even after FiO2 is lowered (apneic oxygenation). Use
+  // the max inspired FiO2 over the recent history window so this physiologically-correct behaviour is
+  // not flagged, while a PaO2 above even that recent maximum is still a genuine violation.
+  let effInspiredFiO2 = deliveredFiO2;
+  for (const step of safeHistory.slice(-180)) {
+    const f = step && step.patient ? step.patient.currentFiO2 : undefined;
+    if (Number.isFinite(f) && f > effInspiredFiO2) effInspiredFiO2 = f;
+  }
+  const calculatedPAO2 = (effInspiredFiO2 * 7.13) - (paco2 / 0.8);
   if (Number.isFinite(pao2) && Number.isFinite(calculatedPAO2) && pao2 > calculatedPAO2 + 5.0 && !isArrest) {
     systemStatus.ventilation = 'FAILED';
     anomalies.push({

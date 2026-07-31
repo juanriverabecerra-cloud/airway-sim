@@ -5624,6 +5624,15 @@ export function runPhysicsStep(__ctx) {
               hcvrBlunting = Math.min(1.0, agentMac * 0.6);
           }
 
+          // F10 fix: opioids potently blunt BOTH the hypoxic (HVR) and hypercapnic (HCVR) ventilatory
+          // responses — the core mechanism of opioid respiratory depression. Previously only volatile
+          // agentMac blunted these, so a high opioid load plus hypoxia produced a PARADOXICAL
+          // compensatory tachypnea instead of the expected sustained depression/apnea. Fold the opioid
+          // effect into both blunting factors so the chemoreceptor drive is suppressed under opioids.
+          const opioidVentBlunt = Math.min(0.95, Math.max(0, opioidEff) * 0.7);
+          hvrBlunting = Math.min(1.0, hvrBlunting + opioidVentBlunt);
+          hcvrBlunting = Math.min(1.0, hcvrBlunting + opioidVentBlunt);
+
           let compensatoryRR = 0;
           if (safePaCO2 > 45) {
               compensatoryRR += Math.max(0, (safePaCO2 - 45) * 0.8 * (1.0 - hcvrBlunting));

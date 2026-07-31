@@ -80,3 +80,15 @@ medical review (Layer 4), structural/tooling (Layer 5), numerical robustness (La
   gate now enforces its absence across all audit cases + the fuzzer. Full suite 1800/1800; equivalence
   proof still green (both paths use the same engine).
   - Next: fix F7 (PaO₂ alveolar ceiling) + F10 (opioid compensatory drive), then triage F8.
+- 2026-07-31 — **F7 + F10 FIXED.**
+  - F7: `targetPaO2` (alveolar gas eqn + A-a + shunt) was computed but never written to output vitals —
+    the displayed PaO₂ was FROZEN at its input value and could exceed the alveolar ceiling. Fix
+    (`RespiratoryEngine`): apply `targetPaO2` (damped) and hard-clamp to PAO₂. Also made the oracle's
+    alveolar ceiling reservoir-aware (recent-max inspired FiO₂ over history) so legitimate apneic
+    oxygenation / denitrogenation reservoir isn't false-flagged. PaO₂ now responds (healthy ~84, tracks
+    down under hypoventilation) — no test broke (confirming the value was truly dead).
+  - F10: opioids now blunt `hvrBlunting`/`hcvrBlunting` (core mechanism of opioid resp depression), and
+    flag-based apnea (chest-wall rigidity / renarcotization) forces spontaneous RR to 0. Verified across
+    5 seeds: fentanyl still induces apnea but RR stays ≤8 (was ~25 paradoxical tachypnea).
+  - Both removed from `KNOWN_LAYER2_CRITICAL_RULES`; only F8 (sugammadex) remains. Full suite 1800/1800.
+  - Next: triage F8 (sim reversal vs. dose-unaware oracle check).

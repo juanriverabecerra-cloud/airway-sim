@@ -774,7 +774,13 @@ export class RespiratoryEngine {
     const baseRR = typeof safePatient.patientBaseRR === 'number' && Number.isFinite(safePatient.patientBaseRR) && safePatient.patientBaseRR > 0
       ? safePatient.patientBaseRR
       : (safeVitals.rr || 12);
-    let patientDriveRR = (isParalyzed || safePatient.swallowingActive) ? 0 : Math.max(0, baseRR + compensatoryRR + shiveringRRDrive + safeTotalRrDelta - opioidRRDrop);
+    // F10 fix: flag-based apnea causes force spontaneous RR to 0. Opioid-induced chest-wall rigidity
+    // (rigid thorax can't ventilate) and renarcotization (returning opioid depression) previously did
+    // NOT zero the drive, so as the opioid effect decayed the hypoxic drive un-blunted and produced a
+    // paradoxical tachypnea while the patient was still flagged apneic. (isApneic's rr<1 branch is
+    // deliberately NOT gated here — that would latch a transient apnea permanently.)
+    const flagBasedApnea = isParalyzed || safePatient.swallowingActive || safePatient.opioidRigidityActive || safePatient.renarcotizationActive;
+    let patientDriveRR = flagBasedApnea ? 0 : Math.max(0, baseRR + compensatoryRR + shiveringRRDrive + safeTotalRrDelta - opioidRRDrop);
     if (safeInputs.agent === 'xenon' && typeof safeInputs.etAgent === 'number' && safeInputs.etAgent > 0) {
       const xenonRRDepression = 0.25 * safeInputs.etAgent;
       patientDriveRR = Math.max(0, patientDriveRR - xenonRRDepression);
@@ -1053,6 +1059,15 @@ export class RespiratoryEngine {
     if (Math.abs(targetRR - (safeVitals.rr || 12)) < 1.5) newRr = targetRR;
     if (Math.abs(targetEtco2 - (safeVitals.etco2 || 40)) < 1.5) newEtco2 = targetEtco2;
 
+    // F7 fix: the displayed PaO2 was FROZEN — targetPaO2 (computed above from the alveolar gas
+    // equation + A-a gradient + shunt) was never applied to output vitals, so pao2 never responded to
+    // ventilation and could exceed the alveolar ceiling (PaO2 > PAO2, thermodynamically impossible).
+    // Apply it (damped) and hard-clamp to PAO2: arterial PO2 can never exceed alveolar PO2.
+    const targetPaO2Capped = Math.min(targetPaO2, PAO2);
+    let newPaO2 = (safeVitals.pao2 || 100) + (targetPaO2Capped - (safeVitals.pao2 || 100)) * 0.1;
+    if (Math.abs(targetPaO2Capped - (safeVitals.pao2 || 100)) < 1.5) newPaO2 = targetPaO2Capped;
+    newPaO2 = Math.max(10, Math.min(PAO2, newPaO2));
+
     if (safePatient.swallowingActive || (safePatient.icp && safePatient.cpp && safePatient.icp > 20.0 && safePatient.cpp < 40.0)) {
       newRr = 0;
     }
@@ -1060,6 +1075,7 @@ export class RespiratoryEngine {
     const outVitals = {
       ...safeVitals,
       spo2: Math.round(newSpo2),
+      pao2: Math.round(newPaO2), // F7 fix: was never set here -> pao2 had been frozen at its input value
       paco2: newPaCO2,
       etco2: Math.round(newEtco2),
       rr: Math.round(newRr),

@@ -155,10 +155,9 @@ export interface OracleAnomaly {
  * gate then enforces its absence.
  */
 export const KNOWN_LAYER2_CRITICAL_RULES = new Set<string>([
-  // F5/F5b RESOLVED (2026-07-31): displayed SVR is now the identity-consistent 80*(MAP-CVP)/CO, so
-  // 'Ohm Cardiovascular Law Consistency' is removed — the gate now ENFORCES its absence.
-  // F7: PaO2 stays ~100 when PaCO2 rises on room air, exceeding the alveolar O2 ceiling.
-  'Alveolar Gas Equation Thermodynamic Violation',
+  // F5/F5b RESOLVED (2026-07-31): displayed SVR is now identity-consistent 80*(MAP-CVP)/CO.
+  // F7 RESOLVED (2026-07-31): displayed PaO2 now tracks targetPaO2 and is hard-clamped to the alveolar
+  //   ceiling (was frozen at its input value). Both removed — the gate now ENFORCES their absence.
   // F8: TOF still 0/4 120s after sugammadex — reversal gap OR the oracle check is dose/depth-unaware.
   'Sugammadex Reversal Delayed Recovery',
 ]);

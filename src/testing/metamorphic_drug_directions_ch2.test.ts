@@ -44,23 +44,23 @@ describe('Layer 2 — drug→effect direction laws (metamorphic)', () => {
     });
   }
 
-  // KNOWN FINDING F10 (Layer 2 backlog): high-dose fentanyl correctly depresses RR early and causes
-  // apnea, but as severe hypoxia develops the sim generates a paradoxical compensatory tachypnea
-  // (RR ~25 while SpO2 ~77 and isApneic=true) — the hypoxic/hypercapnic ventilatory drive is not blunted
-  // by the opioid load, and isApneic coexists with a nonzero RR. This test PINS the finding; when the
-  // RespiratoryEngine blunts the compensatory drive by opioid Ce, flip it to assert RR stays depressed.
-  it('DOCUMENTS F10: opioid does NOT blunt the compensatory ventilatory drive (paradoxical late tachypnea)', () => {
-    const treat = createHeadlessSim(HEALTHY_CASE, { seed: 7, withPIV: true });
-    giveMed(treat, 'fentanyl', 250, { unit: 'mcg' });
-    let sawApnea = false;
-    let lateTachypneaWhileApneic = false;
-    for (let i = 0; i < 60; i++) {
-      stepN(treat, 1);
-      const v = treat.state.vitals; const p = treat.state.patient;
-      if (p.isApneic) sawApnea = true;
-      if (p.isApneic && v.rr > 15) lateTachypneaWhileApneic = true; // the paradox
+  // F10 RESOLVED (Layer 2): opioids now blunt the hypoxic + hypercapnic ventilatory responses, and
+  // flag-based apnea (chest-wall rigidity / renarcotization) forces RR to 0. High-dose fentanyl still
+  // induces apnea, but RR stays depressed instead of the old paradoxical tachypnea (RR ~25 while
+  // apneic). This guards the fix across seeds.
+  it('F10 RESOLVED: opioid apnea keeps RR depressed (no paradoxical tachypnea while apneic)', () => {
+    for (const seed of [7, 1, 2, 11, 42]) {
+      const treat = createHeadlessSim(HEALTHY_CASE, { seed, withPIV: true });
+      giveMed(treat, 'fentanyl', 300, { unit: 'mcg' });
+      let sawApnea = false;
+      let maxRrWhileApneic = 0;
+      for (let i = 0; i < 70; i++) {
+        stepN(treat, 1);
+        const v = treat.state.vitals; const p = treat.state.patient;
+        if (p.isApneic) { sawApnea = true; maxRrWhileApneic = Math.max(maxRrWhileApneic, v.rr); }
+      }
+      expect(sawApnea, `seed ${seed}: fentanyl should still induce apnea`).toBe(true);
+      expect(maxRrWhileApneic, `seed ${seed}: F10 fix — RR stays depressed while apneic`).toBeLessThan(13);
     }
-    expect(sawApnea, 'fentanyl should induce apnea (early opioid depression works)').toBe(true);
-    expect(lateTachypneaWhileApneic, 'F10: paradoxical tachypnea while apneic is the tracked defect').toBe(true);
   });
 });
