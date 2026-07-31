@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fuzzWithOracle, HEALTHY_CASE } from './harness/headlessSim';
+import { fuzzWithOracle, HEALTHY_CASE, KNOWN_LAYER2_CRITICAL_RULES } from './harness/headlessSim';
 
 /**
  * Layer 1C — closed loop WITH perturbation. A seeded guided fuzzer drives real clinical actions
@@ -15,26 +15,11 @@ function summarize(anoms: any[]) {
   return by;
 }
 
-/**
- * CRITICAL anomaly rules the perturbation fuzzer is KNOWN to surface, each a tracked Layer-2 physics
- * finding (docs/architecture/audit_findings.md). This harness is a REGRESSION GATE: it must fail on any
- * *new/unexpected* CRITICAL rule (a fresh physics break), while allowing these known ones. As Layer 2
- * fixes each, delete it from this set — the gate then enforces its absence.
- */
-const KNOWN_LAYER2_CRITICALS = new Set([
-  // F7: PaO2 stays ~100 when PaCO2 rises on room air, exceeding the alveolar O2 ceiling.
-  'Alveolar Gas Equation Thermodynamic Violation',
-  // F5 (amplified): vasopressors drive MAP directly (~38 mmHg) without raising SVR -> identity breaks.
-  'Ohm Cardiovascular Law Consistency',
-  // F8: TOF still 0/4 120s after sugammadex — real reversal gap OR oracle check is dose/depth-unaware.
-  'Sugammadex Reversal Delayed Recovery',
-]);
-
 describe('Layer 1C — guided fuzzer vs. live physics + oracle (regression gate)', () => {
   for (const seed of [1, 2, 3, 5, 8]) {
     it(`seed ${seed}: 40 guided actions surface no UNEXPECTED critical physics violation`, () => {
       const { criticals, warnings, applied } = fuzzWithOracle(HEALTHY_CASE, { seed, actions: 40, stepsPerAction: 6 });
-      const unexpected = criticals.filter((c) => !KNOWN_LAYER2_CRITICALS.has(c.rule));
+      const unexpected = criticals.filter((c) => !KNOWN_LAYER2_CRITICAL_RULES.has(c.rule));
       if (unexpected.length) {
         // eslint-disable-next-line no-console
         console.log(`[fuzz seed ${seed}] UNEXPECTED CRITICALS:`, JSON.stringify(summarize(unexpected), null, 2));

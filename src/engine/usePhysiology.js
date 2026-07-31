@@ -387,7 +387,7 @@ export function runPhysicsStep(__ctx) {
               fluidicsOutput.events.forEach(evt => {
                   patientAfterFluidics.events = [
                       ...(patientAfterFluidics.events || []),
-                      { time: Date.now(), msg: evt.msg, type: evt.type }
+                      { time: st.time, msg: evt.msg, type: evt.type } // Layer 1A: sim time, not Date.now (deterministic)
                   ];
               });
           }

@@ -111,6 +111,20 @@ export function step(sim: SimHandle): { skipped?: boolean } {
   return runPhysicsStep(sim.ctx);
 }
 
+/**
+ * Deep-clone sim state the way the hook's createSnapshot does — preserving the class prototypes of
+ * gasModels (GasKineticsModel) and activeMeds (PK models), which a naive JSON round-trip would strip.
+ * The serializable RNG rides on patient.rng and survives the JSON pass, so a clone captures it exactly.
+ */
+export function cloneSimState(state: any): any {
+  const withProto = (obj: any) => Object.assign(Object.create(Object.getPrototypeOf(obj)), JSON.parse(JSON.stringify(obj)));
+  const clone = JSON.parse(JSON.stringify(state));
+  clone.gasModels = {};
+  for (const k of Object.keys(state.gasModels || {})) clone.gasModels[k] = withProto(state.gasModels[k]);
+  clone.activeMeds = (state.activeMeds || []).map(withProto);
+  return clone;
+}
+
 export type VitalSample = Record<string, number>;
 
 /** Advance `n` ticks; returns the per-tick sampled vitals trajectory. */
@@ -133,6 +147,22 @@ export interface OracleAnomaly {
   rule: string;
   message: string;
 }
+
+/**
+ * CRITICAL rules the closed-loop harnesses are KNOWN to surface, each a tracked Layer-2 physics finding
+ * (docs/architecture/audit_findings.md). The oracle-vs-physics and fuzz harnesses are REGRESSION GATES:
+ * they fail on any *new* CRITICAL rule, allowing only these. Delete an entry as Layer 2 fixes it — the
+ * gate then enforces its absence.
+ */
+export const KNOWN_LAYER2_CRITICAL_RULES = new Set<string>([
+  // F5/F5b: disease/shock/vasopressor MAP modifiers applied directly to MAP, not via SVR — the
+  // displayed CO·SVR·CVP identity breaks (>25 mmHg in severe shock / under pressors).
+  'Ohm Cardiovascular Law Consistency',
+  // F7: PaO2 stays ~100 when PaCO2 rises on room air, exceeding the alveolar O2 ceiling.
+  'Alveolar Gas Equation Thermodynamic Violation',
+  // F8: TOF still 0/4 120s after sugammadex — reversal gap OR the oracle check is dose/depth-unaware.
+  'Sugammadex Reversal Delayed Recovery',
+]);
 
 export interface OracleRunResult {
   trajectory: VitalSample[];
@@ -213,6 +243,16 @@ export const AUDIT_CASES: Array<{ id: string; baseVitals: any; patient: any }> =
     id: 'gm_copd',
     baseVitals: { hr: 88, sys: 128, dia: 78, spo2: 91, rr: 20, temp: 36.9, etco2: 0 },
     patient: { age: 66, sex: 'male', height: 170, weight: 72, position: 'Supine', copd: true, gfr: 85, ef: 55 },
+  },
+  {
+    id: 'gm_trauma',
+    baseVitals: { hr: 122, sys: 84, dia: 46, spo2: 93, rr: 24, temp: 35.9, etco2: 0 },
+    patient: { age: 25, sex: 'male', height: 180, weight: 85, position: 'Supine', trauma: true, ebl: 800, gfr: 90, ef: 60 },
+  },
+  {
+    id: 'gm_pregnant',
+    baseVitals: { hr: 86, sys: 118, dia: 72, spo2: 98, rr: 16, temp: 37.0, etco2: 0 },
+    patient: { age: 31, sex: 'female', height: 165, weight: 78, position: 'Supine', isPregnant: true, gestationalAgeWeeks: 38, gfr: 110, ef: 62 },
   },
 ];
 

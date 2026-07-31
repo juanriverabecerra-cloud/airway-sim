@@ -125,6 +125,27 @@ Module-level symbols (all 78 engines, `MEDICATIONS`, `resolveDosingWeight`, `ext
 - [ ] Golden-master fixtures unchanged (or intentionally re-blessed with rationale)
 - [ ] Layer status updated in this doc + `walkthrough.md`
 
+## Status log (newest first for the finish)
+- 2026-07-31 — **Layer 1 finished rigorously.**
+  - **Action-driven fuzzing:** extracted `processMed` → `processMedCore(ctx,…)`; seeded `FidelityFuzzer`
+    (module-level `setFuzzRng`); `fuzzWithOracle` drives real drugs/vent/shock/cpr into the physics
+    with the oracle auditing every tick. Regression gate over 5 seeds; surfaced F7/F8/F5b.
+  - **Equivalence proof (happy-dom):** the real `usePhysiology` hook and the headless path produce a
+    byte-identical 40-tick trajectory — formal proof the extraction preserved behavior.
+  - **Determinism/replay:** `Date.now()` fluidics timestamp → sim `time`; snapshot RNG persistence
+    confirmed (rng rides on `patient`, JSON-cloned); `cloneSimState` (prototype-preserving, mirroring
+    the hook's `createSnapshot`) + a true-replay test (restore & continue reproduces the identical
+    future). A naive-JSON replay attempt mis-pointed at `electrolytes`; the diagnostic showed the real
+    cause was `gasModels` class-instance prototype loss, which the hook already handles — **no false
+    finding recorded** (the value of verifying before documenting).
+  - **Coverage:** `AUDIT_CASES` widened to 7 (added trauma, obstetric); the sick-case + fuzz gates now
+    share `KNOWN_LAYER2_CRITICAL_RULES` (regression gate = fail on any *new* CRITICAL).
+  - **Scope decision:** the 6 waveform/display models' `Math.random` (Ekg/Pleth/ArterialLine/EtCo2/
+    Vent/WaveformDatabase) + `ProceduralEngine` are left on `Math.random` **intentionally** — they are
+    render-time cosmetic noise that never feeds vitals/physics/grading, and clean waveform *replay*
+    needs regeneration-from-state, not a seeded stream. Documented, not blindly converted.
+  - Verification: `no-undef` 0 · build green · full suite green · equivalence + replay + fuzz gates green.
+
 ## Status log
 - 2026-07-30 — Recon complete. Tick body = lines 1791–8478 of `usePhysiology.js`; 78 engines;
   DI-seam extraction validated as feasible; **nondeterminism identified as the gating issue** →
