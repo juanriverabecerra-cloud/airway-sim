@@ -103,6 +103,13 @@ medical review (Layer 4), structural/tooling (Layer 5), numerical robustness (La
 - 2026-07-31 — **All Layer-1-surfaced findings fixed (F5/F5b, F7, F10, F8).** `KNOWN_LAYER2_CRITICAL_RULES`
   is now EMPTY: the oracle-vs-physics and fuzz gates enforce ZERO CRITICAL anomalies across all audit
   cases + seeded fuzzing. Full suite 1803/1803.
-  - Next: widen the net further — cross-monitor invariants + more metamorphic direction laws
-    (ventilation/metabolic/volume) to surface the next round of findings; begin Layer 3 (parameter
-    provenance) planning.
+  - Next: widen the net further — cross-monitor invariants + more metamorphic direction laws.
+- 2026-07-31 — **Exhaustive metamorphic net-widening.** Added `exhaustive_directions_ch2.test.ts`
+  (drug classes, reversal agents, mechanical ventilation) + `physiology_direction_laws_ch2.test.ts`.
+  **~24 direction laws now verified** (NMBs incl. panc/miv, vasoactives, reversal agents, vent laws,
+  FiO₂/fluid/furosemide). Surfaced **5 new findings**: **F12** pancuronium/mivacurium didn't paralyze
+  (**fixed** — added to NMJ occupancy), and **F11** (alpha-2/labetalol paradoxical reflex tachycardia),
+  **F13** (bicarbonate doesn't alkalinize), **F14** (flumazenil doesn't reverse benzo), **F15**
+  (etomidate under-sedates) — all confirmed, pinned as tracked findings, open for a focused fix pass.
+  Added a `setup` hook + `intubateMechanical` to the metamorphic harness. Full suite 1824/1824.
+  - Next: fix F11/F13/F14/F15; add cross-monitor invariants (SpO₂↔PaO₂, EtCO₂↔PaCO₂); then Layer 3.

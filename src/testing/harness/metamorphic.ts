@@ -42,6 +42,19 @@ export interface MetamorphicOptions {
   ventSettings?: any;
   gasSettings?: any;
   surgicalPhase?: string;
+  /** Applied to BOTH sims before the differential mutate + settle (e.g. give the pre-drug that a
+   *  reversal agent reverses, or put the patient on mechanical ventilation). */
+  setup?: (sim: SimHandle) => void;
+}
+
+/** Put a headless sim on controlled mechanical ventilation (paralyzed, tube in trachea) so vent
+ *  settings actually drive gas exchange. Mutates ventSettings in place so the tick sees it. */
+export function intubateMechanical(sim: SimHandle, ventRR = 12): void {
+  const p = sim.state.patient;
+  p.airwaySecured = true;
+  p.ventilationStatus = 'mechanical';
+  p.tubePosition = 'trachea';
+  Object.assign(sim.state.ventSettings, { mode: 'PCV-VG', rr: ventRR, vt: 500, peep: 5, pmax: 40, fio2: 21 });
 }
 
 export interface MetamorphicResult {
@@ -62,6 +75,7 @@ export function runMetamorphic(activeCase: any, mutate: (sim: SimHandle) => void
   const simOpts = { seed, withPIV: true, ventSettings: opts.ventSettings, gasSettings: opts.gasSettings, surgicalPhase: opts.surgicalPhase };
   const base = createHeadlessSim(activeCase, simOpts);
   const treat = createHeadlessSim(activeCase, simOpts);
+  if (opts.setup) { opts.setup(base); opts.setup(treat); }
   if (settle > 0) { stepN(base, settle); stepN(treat, settle); }
   mutate(treat);
   stepN(base, steps);

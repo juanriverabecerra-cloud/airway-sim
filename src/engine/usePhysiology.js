@@ -2324,6 +2324,12 @@ export function runPhysicsStep(__ctx) {
           const gantacuriumCe = gantacuriumModel ? gantacuriumModel.Ce : 0;
           const cw002Model = st.activeMeds?.find(m => m.name === 'CW002');
           const cw002Ce = cw002Model ? cw002Model.Ce : 0;
+          // F12 fix: pancuronium (long-acting) and mivacurium (short-acting) are NDMRs but were absent
+          // from the NMJ occupancy calc, so giving them produced NO paralysis (TOF stayed 4/4).
+          const pancuroniumModel = st.activeMeds?.find(m => m.name === 'Pancuronium');
+          const pancuroniumCe = pancuroniumModel ? pancuroniumModel.Ce : 0;
+          const mivacuriumModel = st.activeMeds?.find(m => m.name === 'Mivacurium');
+          const mivacuriumCe = mivacuriumModel ? mivacuriumModel.Ce : 0;
 
           const rocCeEff = rocuroniumCe * potentiationMult;
           let rocOccupancy = applyDisplacement(rocCeEff <= 0.15 ? (rocCeEff / 0.15) * 0.70 : 0.70 + Math.min(0.30, (rocCeEff - 0.15) * 0.5));
@@ -2386,6 +2392,25 @@ export function runPhysicsStep(__ctx) {
               cwOccupancy = cwOccupancy * 0.5;
           }
           if (cwOccupancy > maxNMJOccupancy) maxNMJOccupancy = cwOccupancy;
+
+          // F12 fix: pancuronium (potent, long-acting) and mivacurium (short-acting) NMJ occupancy.
+          const pancCeEff = pancuroniumCe * potentiationMult;
+          let pancOccupancy = applyDisplacement(pancCeEff <= 0.06 ? (pancCeEff / 0.06) * 0.70 : 0.70 + Math.min(0.30, (pancCeEff - 0.06) * 1.5));
+          if (st.patient.nAChR_state === 'downregulated' || (st.patient.age && st.patient.age < 2.0)) {
+              pancOccupancy = Math.min(1.0, pancOccupancy * 2.0);
+          } else if (st.patient.nAChR_state === 'upregulated') {
+              pancOccupancy = pancOccupancy * 0.5;
+          }
+          if (pancOccupancy > maxNMJOccupancy) maxNMJOccupancy = pancOccupancy;
+
+          const mivCeEff = mivacuriumCe * potentiationMult;
+          let mivOccupancy = applyDisplacement(mivCeEff <= 0.08 ? (mivCeEff / 0.08) * 0.70 : 0.70 + Math.min(0.30, (mivCeEff - 0.08) * 1.0));
+          if (st.patient.nAChR_state === 'downregulated' || (st.patient.age && st.patient.age < 2.0)) {
+              mivOccupancy = Math.min(1.0, mivOccupancy * 2.0);
+          } else if (st.patient.nAChR_state === 'upregulated') {
+              mivOccupancy = mivOccupancy * 0.5;
+          }
+          if (mivOccupancy > maxNMJOccupancy) maxNMJOccupancy = mivOccupancy;
 
           // Active Metabolites
           const renalMult = (st.patient.isRenal || st.patient.renalFailure) ? 0.1 : 1.0;

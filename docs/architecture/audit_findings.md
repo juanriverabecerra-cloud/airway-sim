@@ -17,7 +17,16 @@ Concrete bugs and fidelity issues surfaced by the Layer 1–6 audit initiative
 | F5b | **F5 amplified under vasopressors** — pressor drugs (phenylephrine/epi) drive MAP up ~38 mmHg with the tone-SVR display lagging → gross apparent MAP-CO-SVR decoupling (CRITICAL-scale). Same root cause as F5. | L1C perturbation fuzzer | Med (fidelity) | ✅ **Fixed (L2)** — folded into the F5 fix (displayed SVR is now identity-consistent). |
 | F10 | **Opioid doesn't blunt the compensatory ventilatory drive** — high-dose fentanyl correctly depresses RR and induces apnea early, but as severe hypoxia develops the sim produces a paradoxical compensatory tachypnea (RR ~25 while SpO₂ ~77 and `isApneic=true`). The hypoxic/hypercapnic drive isn't suppressed by opioid load, and `isApneic` coexists with a nonzero RR. | L2 metamorphic drug-direction battery | Med (fidelity) | ⏳ **Open — Layer 2.** Pinned by a test. Fix: scale `compensatoryRR` down by opioid Ce; gate RR to 0 when `isApneic`. Related to F7 (respiratory coupling). |
 
-**Direction laws VERIFIED correct (L2 metamorphic battery):** roc/vec→TOF↓ · propofol/midazolam→BIS↓ · phenylephrine/norepi→MAP↑ · epi/atropine→HR↑ · esmolol/metoprolol→HR↓ · nitroprusside→MAP↓. No sign errors found in these core drug→effect couplings.
+**Direction laws VERIFIED correct (L2 metamorphic battery):** roc/vec/cis/sux/panc/miv→TOF↓ · propofol/midazolam→BIS↓ · phenylephrine/norepi/ephedrine/vasopressin→MAP↑ · epi/atropine→HR↑ · esmolol/metoprolol→HR↓ · nitroprusside/nitroglycerin/hydralazine/clevidipine→MAP↓ · FiO₂→PaO₂↑ · fluid→MAP↑ · furosemide→urine↑ · naloxone→RR↑ · mechanical vent RR↑→PaCO₂↓/pH↑.
+
+### Findings surfaced by the EXHAUSTIVE metamorphic battery (L2)
+| # | Finding | Severity | Status |
+|---|---------|----------|--------|
+| F12 | **Pancuronium & mivacurium didn't paralyze** — both are NDMRs but were absent from the NMJ-occupancy calc, so administering them left TOF at 4/4 (a paralytic that doesn't paralyze). | High (safety) | ✅ **Fixed (L2):** added both to the occupancy calc with potency-appropriate thresholds. Verified panc→TOF 0, miv→TOF 1. |
+| F11 | **Alpha-2 agonists (dexmedetomidine, clonidine) & labetalol cause paradoxical reflex tachycardia** — they lower MAP (−11 to −19 mmHg) but their bradycardic / baroreflex-blunting effect is unmodeled, so HR rises (+16 to +18) instead of falling. | Med (fidelity) | ⏳ **Open.** Pinned in `exhaustive_directions_ch2.test.ts`. Fix: model alpha-2 central sympatholytic bradycardia + blunt the baroreflex under these agents (labetalol's β-effect must outweigh the reflex). |
+| F13 | **IV sodium bicarbonate doesn't alkalinize** — administration reaches an effect-site Ce but pH is unchanged and displayed HCO₃ is undefined; the acid-base model isn't fed the bicarbonate load. | Med (fidelity) | ⏳ **Open.** Pinned. Fix: feed administered HCO₃ into the strong-ion / AcidBaseModel. |
+| F14 | **Flumazenil doesn't reverse benzodiazepine sedation** — no effect on BIS after midazolam. | Med (fidelity) | ⏳ **Open.** Pinned. Fix: flumazenil should competitively reduce the effective benzodiazepine GABA-A effect. |
+| F15 | **Etomidate under-sedates** — reaches a therapeutic Ce (~0.33) and is in the GABA-A sedation sum, yet BIS does not drop as propofol/midazolam do at equivalent occupancy. | Low-Med (fidelity) | ⏳ **Open (verify).** Pinned. Likely a potency-coefficient calibration in the GABA-A→BIS mapping. |
 
 ## Layer 2 backlog (physiology correctness — seeded from L1C)
 - **F5**: MAP-CO-SVR self-consistency (route disease MAP shifts through SVR).
