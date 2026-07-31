@@ -4,6 +4,15 @@
  * to systematically stress-test the anesthesiology simulation's state space.
  */
 
+/**
+ * Layer 1: seedable RNG for the fuzzer (a test-only utility, so a module-level source is acceptable —
+ * the production physics uses proper ctx-injected RNG). Defaults to Math.random; call setFuzzRng with
+ * a seeded generator for reproducible guided-fuzz runs (a failure is then replayable from its seed).
+ */
+let _fuzzRng = Math.random;
+export function setFuzzRng(fn) { _fuzzRng = (typeof fn === 'function') ? fn : Math.random; }
+export function resetFuzzRng() { _fuzzRng = Math.random; }
+
 // Core static fuzzing actions (Fallbacks and discrete sequence blocks)
 export const FUZZ_ACTIONS = [
   // === 1. SEDATIVES & HYPNOTICS ===
@@ -95,7 +104,7 @@ export const FALLBACK_ACTION = { name: 'Observe physiology for 10 seconds', type
  * Returns a random action from the default set (Backwards Compatibility)
  */
 export function getRandomFuzzAction() {
-  const idx = Math.floor(Math.random() * FUZZ_ACTIONS.length);
+  const idx = Math.floor(_fuzzRng() * FUZZ_ACTIONS.length);
   return FUZZ_ACTIONS[idx] || FALLBACK_ACTION;
 }
 
@@ -231,7 +240,7 @@ function generateUltimateCoverageAction(state, fuzzerState) {
       { name: 'Push Cisatracurium 10mg', type: 'med', drug: 'Cisatracurium', dose: 10, unit: 'mg', medType: 'Bolus', route: 'IV' }
     ];
 
-    const shuffle = (arr) => Array.isArray(arr) ? [...arr].sort(() => Math.random() - 0.5) : [];
+    const shuffle = (arr) => Array.isArray(arr) ? [...arr].sort(() => _fuzzRng() - 0.5) : [];
     const shuffSed = shuffle(sedatives);
     const shuffOpi = shuffle(opioids);
     const shuffPar = shuffle(paralytics);
@@ -403,7 +412,7 @@ function generateUltimateCoverageAction(state, fuzzerState) {
       }
 
       // Shuffle challenges safely
-      fuzzerState.maintenanceChallenges = challengesList.sort(() => Math.random() - 0.5);
+      fuzzerState.maintenanceChallenges = challengesList.sort(() => _fuzzRng() - 0.5);
     }
 
     if (Array.isArray(fuzzerState.maintenanceChallenges) && fuzzerState.maintenanceChallenges.length > 0) {
@@ -468,18 +477,18 @@ function generateMaintenanceAction(state, fuzzerState, strategy) {
 
   // 1. Hypotension check (MAP < 65) - Clinically react with fluids or pressors
   if (hasMap && vitals.map < 65 && !patient.isArrest) {
-    if (strategy === 'malpractice' && Math.random() < 0.20) {
+    if (strategy === 'malpractice' && _fuzzRng() < 0.20) {
       // Malpractice: Extreme Epinephrine bolus overdose (1mg/1000mcg instead of pressor push)
       return { name: 'Push Epinephrine 1mg (ACLS Arrest Dose)', type: 'med', drug: 'Epinephrine', dose: 1000, unit: 'mcg', medType: 'Bolus', route: 'IV' };
     }
     
-    const pChoice = Math.random();
+    const pChoice = _fuzzRng();
     if (pChoice < 0.3 && Number.isFinite(patient.ebl) && patient.ebl > 1500) {
       return { name: 'Transfuse PRBC 1 Unit', type: 'fluid', nameFluid: 'Packed Red Blood Cells (PRBC)', volume: 1 };
     } else if (pChoice < 0.6) {
       return { name: 'Bolus LR 500mL', type: 'fluid', nameFluid: 'Lactated Ringers (LR)', volume: 500 };
     } else {
-      const vasopressor = Math.random() > 0.5 ? 'Phenylephrine' : 'Epinephrine';
+      const vasopressor = _fuzzRng() > 0.5 ? 'Phenylephrine' : 'Epinephrine';
       const dose = vasopressor === 'Phenylephrine' ? 100 : 50;
       return { name: `Push ${vasopressor} ${dose}mcg`, type: 'med', drug: vasopressor, dose, unit: 'mcg', medType: 'Bolus', route: 'IV' };
     }
@@ -487,18 +496,18 @@ function generateMaintenanceAction(state, fuzzerState, strategy) {
 
   // 2. Hypertension/Tachycardia check (MAP > 110 or HR > 110) - Treat with beta blockers
   if (((hasMap && vitals.map > 110) || (hasHr && vitals.hr > 110)) && !patient.isArrest) {
-    if (strategy === 'malpractice' && hasHr && vitals.hr < 60 && Math.random() < 0.35) {
+    if (strategy === 'malpractice' && hasHr && vitals.hr < 60 && _fuzzRng() < 0.35) {
       // Malpractice: Pushing beta-blocker in severe bradycardia
       return { name: 'Push Metoprolol 5mg', type: 'med', drug: 'Metoprolol', dose: 5, unit: 'mg', medType: 'Bolus', route: 'IV' };
     }
-    return Math.random() > 0.5 
+    return _fuzzRng() > 0.5 
       ? { name: 'Push Esmolol 20mg', type: 'med', drug: 'Esmolol', dose: 20, unit: 'mg', medType: 'Bolus', route: 'IV' }
       : { name: 'Push Labetalol 20mg', type: 'med', drug: 'Labetalol', dose: 20, unit: 'mg', medType: 'Bolus', route: 'IV' };
   }
 
   // 3. Awareness risk / Wake-up (BIS > 65) - Deepen anesthesia
   if (Number.isFinite(vitals.bis) && vitals.bis > 65 && !patient.isArrest) {
-    return Math.random() > 0.5 
+    return _fuzzRng() > 0.5 
       ? { name: 'Push Propofol 150mg', type: 'med', drug: 'Propofol', dose: 150, unit: 'mg', medType: 'Bolus', route: 'IV' }
       : { name: 'Push Fentanyl 100mcg', type: 'med', drug: 'Fentanyl', dose: 100, unit: 'mcg', medType: 'Bolus', route: 'IV' };
   }
@@ -507,7 +516,7 @@ function generateMaintenanceAction(state, fuzzerState, strategy) {
   const rocuroniumCe = Array.isArray(activeMeds)
     ? (activeMeds.find(m => (m.name || m.drug || '').toLowerCase() === 'rocuronium')?.Ce || 0)
     : 0;
-  if (Number.isFinite(rocuroniumCe) && rocuroniumCe > 0.1 && Math.random() < 0.20) {
+  if (Number.isFinite(rocuroniumCe) && rocuroniumCe > 0.1 && _fuzzRng() < 0.20) {
     if (strategy === 'polypharmacy') {
       // Test complex chelation and muscarinic antagonism
       fuzzerState.currentSequence = [
@@ -527,7 +536,7 @@ function generateMaintenanceAction(state, fuzzerState, strategy) {
 
   // 5. Active Cardiac Arrest Emergency ACLS
   if (patient.isArrest) {
-    const arrestChoice = Math.random();
+    const arrestChoice = _fuzzRng();
     if (!patient.cprActive) {
       return { name: 'Toggle CPR compressions', type: 'cpr' };
     } else if (arrestChoice < 0.4) {
@@ -540,16 +549,16 @@ function generateMaintenanceAction(state, fuzzerState, strategy) {
   }
 
   // 6. Polypharmacy custom drug blending override
-  if (strategy === 'polypharmacy' && Math.random() < 0.15) {
+  if (strategy === 'polypharmacy' && _fuzzRng() < 0.15) {
     const medsList = ['Ketamine', 'Etomidate', 'Midazolam', 'Sufentanil'];
-    const selectedMed = medsList[Math.floor(Math.random() * medsList.length)];
+    const selectedMed = medsList[Math.floor(_fuzzRng() * medsList.length)];
     const dose = selectedMed === 'Midazolam' ? 2 : (selectedMed === 'Sufentanil' ? 10 : 50);
     return { name: `Push ${selectedMed} ${dose}${selectedMed === 'Sufentanil' ? 'mcg' : 'mg'}`, type: 'med', drug: selectedMed, dose, unit: selectedMed === 'Sufentanil' ? 'mcg' : 'mg', medType: 'Bolus', route: 'IV' };
   }
 
   // 7. Mechanical failure troubleshooting / circuit leak override
-  if (strategy === 'mechanical' && Math.random() < 0.20) {
-    const mechChoice = Math.random();
+  if (strategy === 'mechanical' && _fuzzRng() < 0.20) {
+    const mechChoice = _fuzzRng();
     if (mechChoice < 0.4 && patient.tubePosition !== 'esophagus') {
       return { name: 'Set Vent PEEP 0 (Circuit Leak)', type: 'vent', field: 'peep', value: 0 };
     } else if (mechChoice < 0.7 && patient.tubePosition === 'right_mainstem') {
@@ -560,34 +569,34 @@ function generateMaintenanceAction(state, fuzzerState, strategy) {
   }
 
   // 8. General Maintenance Pool (40% Observe/Wait, 20% Vent adjustments, 15% Labs, 15% Positions, 10% Procedures)
-  const activityChoice = Math.random();
+  const activityChoice = _fuzzRng();
   if (activityChoice < 0.40) {
     // Periodic wait to let drug kinetics/ventilation run (inflection timer delays)
-    const duration = Math.random() > 0.5 ? 10 : 30;
+    const duration = _fuzzRng() > 0.5 ? 10 : 30;
     return { name: `Observe physiological circulation (t+${duration}s)`, type: 'wait', duration };
   } else if (activityChoice < 0.60) {
     // Vent settings adjustment
     const fields = ['rr', 'peep', 'vt', 'fio2'];
-    const field = fields[Math.floor(Math.random() * fields.length)] || 'rr';
+    const field = fields[Math.floor(_fuzzRng() * fields.length)] || 'rr';
     let val = 12;
-    if (field === 'rr') val = Math.random() > 0.5 ? 10 : 16;
-    else if (field === 'peep') val = Math.random() > 0.5 ? 5 : 8;
-    else if (field === 'vt') val = Math.random() > 0.5 ? 400 : 600;
-    else if (field === 'fio2') val = Math.random() > 0.5 ? 40 : 100;
+    if (field === 'rr') val = _fuzzRng() > 0.5 ? 10 : 16;
+    else if (field === 'peep') val = _fuzzRng() > 0.5 ? 5 : 8;
+    else if (field === 'vt') val = _fuzzRng() > 0.5 ? 400 : 600;
+    else if (field === 'fio2') val = _fuzzRng() > 0.5 ? 40 : 100;
     return { name: `Set Vent ${field} to ${val}`, type: 'vent', field, value: val };
   } else if (activityChoice < 0.75) {
     // Lab Diagnostics
     const labs = ['ABG', 'VBG', 'TEG', 'CBC'];
-    const labType = labs[Math.floor(Math.random() * labs.length)] || 'ABG';
+    const labType = labs[Math.floor(_fuzzRng() * labs.length)] || 'ABG';
     return { name: `Order POC ${labType} Panel`, type: 'lab', labType };
   } else if (activityChoice < 0.90) {
     // Positioning shifts
     const positions = ['Supine', 'Trendelenburg', 'Sitting', 'Ramped'];
-    const p = positions[Math.floor(Math.random() * positions.length)] || 'Supine';
+    const p = positions[Math.floor(_fuzzRng() * positions.length)] || 'Supine';
     return { name: `Position ${p}`, type: 'position', value: p };
   } else {
     // Pharyngeal suction / OPA / Larstons
-    return Math.random() > 0.5 
+    return _fuzzRng() > 0.5 
       ? { name: 'Suction pharynx', type: 'procedure', action: 'suction' }
       : { name: "Perform Larson's Maneuver", type: 'maneuver' };
   }
@@ -686,7 +695,7 @@ function generateMalpracticeAction(state, fuzzerState, flags) {
 
   // Induction: Human Error Dosing and Timing Mistakes
   if (fuzzerState.phase === 'INDUCTION') {
-    const errorType = Math.random();
+    const errorType = _fuzzRng();
     if (errorType < 0.33) {
       // 1. Massive 10x Propofol Overdose
       fuzzerState.currentSequence = [
@@ -794,7 +803,7 @@ function generateMechanicalFailureAction(state, fuzzerState, flags) {
 
   // Airway: Mechanical Failures (Esophageal placement, Mainstem, or tube kinking)
   if (fuzzerState.phase === 'AIRWAY_MGMT') {
-    const mechanicalTrouble = Math.random();
+    const mechanicalTrouble = _fuzzRng();
     if (mechanicalTrouble < 0.4) {
       // 1. Esophageal Intubation (checks if EtCO2 correctly drops to 0)
       fuzzerState.currentSequence = [

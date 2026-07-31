@@ -7609,391 +7609,13 @@ export function createInitialSimState(activeCase) {
   return __s;
 }
 
-export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, ventSettings, gasSettings, logEvent, msmaidsComplete }) {
-  const [timeVal, setTimeState] = useState(0);
-  const [vitalsVal, setVitalsState] = useState({});
-  const [targetVitalsVal, setTargetVitalsState] = useState({});
-  const [patientVal, setPatientState] = useState({});
-  const [activeMedsVal, setActiveMedsState] = useState([]);
-  const [gasModels, setGasModels] = useState({});
-  
-  const [intravascularVolumeVal, setIntravascularVolumeState] = useState(0); 
-  const [totalBodyWaterLitersVal, setTotalBodyWaterLitersState] = useState(42);
-  const [electrolytesVal, setElectrolytesState] = useState({ na: 140, k: 4.0, cl: 100, ca: 9.0, ph: 7.4 });
-  const [coagsVal, setCoagsState] = useState({ r_offset: 0, ma_offset: 0, angle_offset: 0 });
-  const [surgicalPhaseVal, setSurgicalPhaseState] = useState('Pre-Op');
-  const [prevCaseId, setPrevCaseId] = useState(null);
-
-  const ffRemainingRef = useRef(0);
-  const ffTotalRef = useRef(0);
-
-  // Synchronous State Setter Wrappers to synchronously bridge changes into stateRef
-  const stateRef = useRef({ time: timeVal, vitals: vitalsVal, targetVitals: targetVitalsVal, patient: patientVal, activeMeds: activeMedsVal, gasModels, intravascularVolume: intravascularVolumeVal, electrolytes: electrolytesVal, ventSettings, gasSettings, surgicalPhase: surgicalPhaseVal, msmaidsComplete });
-
-  const setTime = (update) => {
-    const prev = stateRef.current.time !== undefined ? stateRef.current.time : timeVal;
-    const next = typeof update === 'function' ? update(prev) : update;
-    stateRef.current.time = next;
-    setTimeState(next);
-  };
-
-  const setVitals = (update) => {
-    const prev = stateRef.current.vitals || vitalsVal;
-    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
-    stateRef.current.vitals = next;
-    setVitalsState(next);
-  };
-
-  const setTargetVitals = (update) => {
-    const prev = stateRef.current.targetVitals || targetVitalsVal;
-    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
-    stateRef.current.targetVitals = next;
-    setTargetVitalsState(next);
-  };
-
-  const setPatient = (update) => {
-    const prev = stateRef.current.patient || patientVal;
-    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
-    
-    // Sync fast-forward refs ONLY if they were explicitly changed by the update (not just spread from prev)
-    if (next.fastForwardRemaining !== undefined && next.fastForwardRemaining !== prev.fastForwardRemaining) {
-      ffRemainingRef.current = next.fastForwardRemaining || 0;
-    }
-    if (next.fastForwardTotal !== undefined && next.fastForwardTotal !== prev.fastForwardTotal) {
-      ffTotalRef.current = next.fastForwardTotal || 0;
-    }
-
-    stateRef.current.patient = next;
-    setPatientState(next);
-  };
-
-  const setActiveMeds = (update) => {
-    const prev = stateRef.current.activeMeds || activeMedsVal;
-    const next = typeof update === 'function' ? update(prev) : update;
-    stateRef.current.activeMeds = next;
-    setActiveMedsState(next);
-  };
-
-  const setIntravascularVolume = (update) => {
-    const prev = stateRef.current.intravascularVolume !== undefined ? stateRef.current.intravascularVolume : intravascularVolumeVal;
-    const next = typeof update === 'function' ? update(prev) : update;
-    stateRef.current.intravascularVolume = next;
-    setIntravascularVolumeState(next);
-  };
-
-  const setTotalBodyWaterLiters = (update) => {
-    const prev = stateRef.current.totalBodyWaterLiters !== undefined ? stateRef.current.totalBodyWaterLiters : totalBodyWaterLitersVal;
-    const next = typeof update === 'function' ? update(prev) : update;
-    stateRef.current.totalBodyWaterLiters = next;
-    setTotalBodyWaterLitersState(next);
-  };
-
-  const setElectrolytes = (update) => {
-    const prev = stateRef.current.electrolytes || electrolytesVal;
-    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
-    stateRef.current.electrolytes = next;
-    setElectrolytesState(next);
-  };
-
-  const setCoags = (update) => {
-    const prev = stateRef.current.coags || coagsVal;
-    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
-    stateRef.current.coags = next;
-    setCoagsState(next);
-  };
-
-  const setSurgicalPhase = (update) => {
-    const prev = stateRef.current.surgicalPhase || surgicalPhaseVal;
-    const next = typeof update === 'function' ? update(prev) : update;
-    stateRef.current.surgicalPhase = next;
-    setSurgicalPhaseState(next);
-  };
-
-  // Structured, scorable quality-of-care event log (distinct from the narrative `logEvent`
-  // text log). Introduced as part of the Ch9-30 retroactive sweep to give a future
-  // debrief/outcome-score feature (see OutcomeScoringEngine.ts) real data to consume.
-  // Mapping from the simulator's existing 5-stage surgical timeline to the broader 4-phase
-  // continuum-of-care model (PreOp/Intraoperative/PACU/PostDischarge) used by quality events.
-  const mapSurgicalPhaseToCareOfPhase = (surgPhase) => {
-    if (surgPhase === 'Pre-Op') return 'PreOp';
-    if (surgPhase === 'PACU') return 'PACU';
-    return 'Intraoperative';
-  };
-
-  const logQualityEvent = (input) => {
-    const currentPhase = input?.phase || mapSurgicalPhaseToCareOfPhase(stateRef.current.surgicalPhase);
-    const event = createQualityEvent({
-      ...input,
-      time: typeof input?.time === 'number' ? input.time : stateRef.current.time,
-      phase: currentPhase
-    });
-    const currentPatient = stateRef.current.patient || patientVal;
-    const existingEvents = Array.isArray(currentPatient.qualityEvents) ? currentPatient.qualityEvents : [];
-    setPatient(prev => ({ ...prev, qualityEvents: [...existingEvents, event] }));
-    if (logEvent && event.description) {
-      logEvent(`📋 [${event.category}/${event.severity.toUpperCase()}] ${event.description}`);
-    }
-  };
-
-  const time = timeVal;
-  const vitals = vitalsVal;
-  const targetVitals = targetVitalsVal;
-  const patient = patientVal;
-  const activeMeds = activeMedsVal;
-  const intravascularVolume = intravascularVolumeVal;
-  const totalBodyWaterLiters = totalBodyWaterLitersVal;
-  const electrolytes = electrolytesVal;
-  const coags = coagsVal;
-  const surgicalPhase = surgicalPhaseVal;
-
-  useEffect(() => {
-    stateRef.current = { 
-      time, vitals, targetVitals, patient, activeMeds, gasModels, intravascularVolume, totalBodyWaterLiters, electrolytes, coags, ventSettings, gasSettings, surgicalPhase, msmaidsComplete 
-    };
-  });
-
-  useEffect(() => {
-    if (activeCase && activeCase.id !== prevCaseId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPrevCaseId(activeCase.id);
-      DynamicMedicationRegistry.hydrate();
-        const __init = createInitialSimState(activeCase);
-        setVitals(__init.vitals);
-        setTargetVitals(__init.targetVitals);
-        setPatient(__init.patient);
-        setTime(__init.time); setActiveMeds(__init.activeMeds); setIntravascularVolume(__init.intravascularVolume); setSurgicalPhase(__init.surgicalPhase);
-        setGasModels(__init.gasModels);
-        setTotalBodyWaterLiters(__init.totalBodyWaterLiters);
-        setElectrolytes(__init.electrolytes);
-        setCoags(__init.coags);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCase, prevCaseId]);
-
-  const pushFluid = (fluidName, volumeStr, lineId, rateStr = undefined) => {
-    const currentPatient = stateRef.current.patient || patient;
-    const volume = parseFloat(volumeStr);
-    if (isNaN(volume) || !Number.isFinite(volume) || volume <= 0) {
-        logEvent(`❌ FAILED: Cannot administer ${fluidName}. Invalid volume specified!`);
-        return false;
-    }
-    const targetLine = currentPatient.accessLines?.find(l => l.id === lineId);
-    
-    if (!targetLine) {
-        logEvent(`❌ FAILED: Cannot administer ${fluidName}. No valid venous access line selected!`);
-        return false;
-    }
-    
-    if (targetLine.failed) {
-        logEvent(`❌ FAILED: Cannot administer ${fluidName}. Access Line: ${targetLine.name} has been BLOWN OUT!`);
-        return false;
-    }
-    
-    if (targetLine.category.includes('Arterial')) {
-        logEvent(`🚨 CRITICAL ERROR: Attempted fluid resuscitation via Arterial Line! Arteries cannot accommodate high volume infusion. Retrograde flow risks cerebral embolization and severe limb ischemia!`);
-        return false;
-    }
-
-    const fluidData = FLUIDS[fluidName]; if (!fluidData) return false;
-    const isBlood = fluidData.type === 'Blood Product';
-    
-    if (isBlood) {
-        const bb = currentPatient.bloodBank || { status: 'none', unitsInOR: 0, deliveryCountdown: 0, totalDeliveryTime: 0, preOpWorkup: 'none' };
-
-        if (bb.status === 'available' && bb.unitsInOR > 0) {
-            const requestedUnits = volume;
-            if (requestedUnits > bb.unitsInOR) {
-                logEvent(`❌ FAILED: Requested ${requestedUnits} unit(s) of ${fluidName}, but only ${bb.unitsInOR} unit(s) remain in the OR cooler. Order more from Blood Bank.`);
-                return false;
-            }
-            setPatient(prev => ({
-                ...prev,
-                bloodBank: {
-                    ...prev.bloodBank,
-                    unitsInOR: prev.bloodBank.unitsInOR - requestedUnits
-                }
-            }));
-            if (bb.unitsInOR - requestedUnits <= 0) {
-                logEvent(`⚠️ Blood Bank: Last unit(s) from OR cooler being administered. Order additional units if hemorrhage continues.`);
-            }
-        } else if (bb.status === 'ordered') {
-            const remaining = Math.ceil(bb.deliveryCountdown);
-            const mins = Math.floor(remaining / 60);
-            const secs = remaining % 60;
-            logEvent(`❌ FAILED: Blood products have not arrived yet! Cooler ETA: ${mins}m ${secs}s remaining (${remaining}s). Blood Bank is processing.`);
-            return false;
-        } else {
-            const hasTypeAndScreen = currentPatient.preOpOrders?.labs?.typeAndScreen || false;
-            const hasTypeAndCross = currentPatient.preOpOrders?.labs?.typeAndCross || false;
-
-            if (hasTypeAndCross && bb.status === 'none') {
-                logEvent(`✅ Blood Bank: Type & Crossmatch was completed pre-operatively. 2 crossmatched units of PRBCs are in the OR cooler. Proceeding with transfusion.`);
-                const requestedUnits = volume;
-                setPatient(prev => ({
-                    ...prev,
-                    bloodBank: {
-                        status: 'available',
-                        unitsInOR: Math.max(0, 2 - requestedUnits),
-                        deliveryCountdown: 0,
-                        totalDeliveryTime: 0,
-                        preOpWorkup: 'crossmatch'
-                    }
-                }));
-            } else {
-                const baselineDelay = 600; 
-                const delaySeconds = hasTypeAndScreen ? (baselineDelay * 0.50) : baselineDelay;
-                const deliveryUnits = 4; 
-
-                const rationale = hasTypeAndCross
-                    ? `Previous crossmatch on file. Reorder delivery: ${Math.round(delaySeconds)}s. Blood Bank pulling ${deliveryUnits} additional units.`
-                    : hasTypeAndScreen
-                        ? `Type & Screen on file — ABO/Rh and antibody screen already completed. Electronic crossmatch in progress. Delivery: ${Math.round(delaySeconds)}s (${Math.round(delaySeconds/60)} min). ${deliveryUnits} units being prepared.`
-                        : `NO pre-operative blood workup on file! Emergency uncrossmatched O-Negative release protocol initiated. Full ABO/Rh typing and antibody screen running concurrently. Delivery: ${Math.round(delaySeconds)}s (${Math.round(delaySeconds/60)} min). ${deliveryUnits} uncrossmatched units being dispatched.`;
-
-                logEvent(`🚨 Blood Bank: Emergency order placed for ${fluidName}. ${rationale}`);
-
-                setPatient(prev => ({
-                    ...prev,
-                    bloodBank: {
-                        status: 'ordered',
-                        unitsInOR: 0,
-                        deliveryCountdown: delaySeconds,
-                        totalDeliveryTime: delaySeconds,
-                        pendingUnits: deliveryUnits,
-                        preOpWorkup: hasTypeAndCross ? 'crossmatch' : (hasTypeAndScreen ? 'screen' : 'none')
-                    }
-                }));
-                return false;
-            }
-        }
-    }
-
-    const isUnit = isBlood || fluidData.type === 'Colloid';
-    
-    if (isUnit) {
-        if (volume > 20) {
-            logEvent(`❌ FAILED: Attempted to infuse ${volume} units of ${fluidName}. That is physiologically impossible and clinically absurd.`);
-            return false;
-        }
-    } else {
-        if (volume > 5000) {
-            logEvent(`❌ FAILED: Attempted to infuse ${volume} mL of ${fluidName} in a single bolus. That is clinically absurd.`);
-            return false;
-        }
-    }
-
-    const effectiveVolumeML = fluidName.includes('Fibrinogen') ? volume * 50 : (isUnit ? volume * (fluidData.defaultVol || 300) : volume);
-
-    let initialUserRate = undefined;
-    if (rateStr !== undefined && rateStr !== null && rateStr !== '') {
-        const parsedRate = parseFloat(rateStr);
-        if (!isNaN(parsedRate) && Number.isFinite(parsedRate) && parsedRate > 0) {
-            initialUserRate = parsedRate;
-        }
-    }
-
-    setPatient(prev => {
-        const newLines = [...(prev.accessLines || [])];
-        const lineIndex = newLines.findIndex(l => l.id === lineId);
-        if (lineIndex >= 0) {
-            newLines[lineIndex] = {
-                ...newLines[lineIndex],
-                activeInfusions: [
-                    ...(newLines[lineIndex].activeInfusions || []),
-                    { id: Date.now().toString(), name: fluidName, remainingVolume: effectiveVolumeML, startingVolume: effectiveVolumeML, userRate: initialUserRate, currentRate: 0 }
-                ]
-            };
-        }
-        return { ...prev, accessLines: newLines };
-    });
-
-    logEvent(`💧 Attached: ${volume} ${isUnit ? 'Units' : (fluidName.includes('Fibrinogen') ? 'g' : 'mL')} of ${fluidName} to ${targetLine.name}.`);
-    return true;
-  };
-
-  const updateFluidRate = (lineId, infusionId, newRate_ml_hr) => {
-    setPatient(prev => {
-        const newLines = (prev.accessLines || []).map(l => {
-            if (l.id !== lineId) return l;
-            return {
-                ...l,
-                activeInfusions: (l.activeInfusions || []).map(inf => {
-                    if (inf.id !== infusionId) return inf;
-                    return { ...inf };
-                })
-            };
-        });
-        const lineIndex = newLines.findIndex(l => l.id === lineId);
-        if (lineIndex >= 0) {
-            const line = newLines[lineIndex];
-            const infusions = line.activeInfusions;
-            const infIndex = infusions.findIndex(i => i.id === infusionId);
-            if (infIndex >= 0) {
-                if (newRate_ml_hr === '' || newRate_ml_hr === null || isNaN(parseFloat(newRate_ml_hr))) {
-                    delete infusions[infIndex].userRate;
-                    logEvent(`Max flow enabled for ${infusions[infIndex].name} on ${line.name}.`);
-                } else {
-                    let rate = parseFloat(newRate_ml_hr);
-                    if (isNaN(rate) || !Number.isFinite(rate) || rate < 0) {
-                        logEvent(`❌ FAILED: Invalid flow rate requested!`);
-                        return prev;
-                    }
-                    const lType = line.fluidLine || prev.fluidLine || 'gravity';
-                    let pInfusion = 74; 
-                    if (lType === 'ranger') pInfusion = 150;
-                    else if (lType === 'belmont') pInfusion = 300;
-                    
-                    const pv = line.venousPressure !== undefined ? line.venousPressure : 10;
-                    const rv = line.veinResistance !== undefined ? line.veinResistance : 500;
-                    let deltaP = pInfusion - pv;
-                    if (deltaP < 0) deltaP = 0;
-                    
-                    const fluidData = FLUIDS[infusions[infIndex].name];
-                    const eta = fluidData ? Math.max(0.01, fluidData.viscosity || 1.0) : 1.0;
-                    
-                    let rTubing = 150;
-                    if (lType === 'ranger') rTubing = 800;
-                    else if (lType === 'belmont') rTubing = 200;
-                    
-                    const safeRadius = Math.max(0.01, line.radius || 0.475);
-                    const safeLength = Math.max(1, line.length || 30);
-                    const rCath = safeLength / Math.pow(safeRadius, 4);
-                    const rTotal = Math.max(1.0, rTubing + rCath + rv);
-                    
-                    let q_ml_min = 1200 * deltaP / (eta * rTotal);
-                    if (isNaN(q_ml_min) || !Number.isFinite(q_ml_min) || q_ml_min < 0) {
-                        q_ml_min = 0;
-                    }
-                    if (lType === 'belmont' && q_ml_min > 500) q_ml_min = 500;
-                    
-                    const max_ml_hr = q_ml_min * 60;
-                    if (rate > max_ml_hr) {
-                        rate = max_ml_hr;
-                        logEvent(`⚠️ Requested rate exceeds physical limits of ${line.name}. Capped at ${Math.round(rate)} mL/hr.`);
-                    }
-                    infusions[infIndex].userRate = rate;
-                }
-            }
-        }
-        return { ...prev, accessLines: newLines };
-    });
-  };
-
-  const removeFluid = (lineId, infusionId) => {
-    setPatient(prev => {
-        const newLines = [...(prev.accessLines || [])];
-        const lineIndex = newLines.findIndex(l => l.id === lineId);
-        if (lineIndex >= 0) {
-            const infusions = [...(newLines[lineIndex].activeInfusions || [])];
-            const filtered = infusions.filter(i => i.id !== infusionId);
-            newLines[lineIndex] = { ...newLines[lineIndex], activeInfusions: filtered };
-        }
-        return { ...prev, accessLines: newLines };
-    });
-    logEvent(`Stopped and removed fluid infusion.`);
-  };
-
-  const processMed = (medId, doseInput, route, type, unit, lineId = null, modelName = null) => {
+/**
+ * Layer 1 (action handlers): the drug-administration handler, extracted verbatim from the hook so
+ * the fuzzer can drive real medication pushes/infusions headless. ctx-injected exactly like
+ * runPhysicsStep. See docs/architecture/audit_layer1_physics_core.md.
+ */
+export function processMedCore(ctx, medId, doseInput, route, type, unit, lineId = null, modelName = null) {
+  const { stateRef, patient, activeMeds, setPatient, setActiveMeds, logEvent, logQualityEvent, setSurgicalPhase, setElectrolytes } = ctx;
     const currentPatient = stateRef.current.patient || patient;
     const currentActiveMeds = stateRef.current.activeMeds || activeMeds;
 
@@ -8436,7 +8058,394 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
       logEvent(`⏹ Stopped ${medData.name} infusion.`);
     }
     setActiveMeds(updatedMeds);
+}
+
+export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, ventSettings, gasSettings, logEvent, msmaidsComplete }) {
+  const [timeVal, setTimeState] = useState(0);
+  const [vitalsVal, setVitalsState] = useState({});
+  const [targetVitalsVal, setTargetVitalsState] = useState({});
+  const [patientVal, setPatientState] = useState({});
+  const [activeMedsVal, setActiveMedsState] = useState([]);
+  const [gasModels, setGasModels] = useState({});
+  
+  const [intravascularVolumeVal, setIntravascularVolumeState] = useState(0); 
+  const [totalBodyWaterLitersVal, setTotalBodyWaterLitersState] = useState(42);
+  const [electrolytesVal, setElectrolytesState] = useState({ na: 140, k: 4.0, cl: 100, ca: 9.0, ph: 7.4 });
+  const [coagsVal, setCoagsState] = useState({ r_offset: 0, ma_offset: 0, angle_offset: 0 });
+  const [surgicalPhaseVal, setSurgicalPhaseState] = useState('Pre-Op');
+  const [prevCaseId, setPrevCaseId] = useState(null);
+
+  const ffRemainingRef = useRef(0);
+  const ffTotalRef = useRef(0);
+
+  // Synchronous State Setter Wrappers to synchronously bridge changes into stateRef
+  const stateRef = useRef({ time: timeVal, vitals: vitalsVal, targetVitals: targetVitalsVal, patient: patientVal, activeMeds: activeMedsVal, gasModels, intravascularVolume: intravascularVolumeVal, electrolytes: electrolytesVal, ventSettings, gasSettings, surgicalPhase: surgicalPhaseVal, msmaidsComplete });
+
+  const setTime = (update) => {
+    const prev = stateRef.current.time !== undefined ? stateRef.current.time : timeVal;
+    const next = typeof update === 'function' ? update(prev) : update;
+    stateRef.current.time = next;
+    setTimeState(next);
   };
+
+  const setVitals = (update) => {
+    const prev = stateRef.current.vitals || vitalsVal;
+    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+    stateRef.current.vitals = next;
+    setVitalsState(next);
+  };
+
+  const setTargetVitals = (update) => {
+    const prev = stateRef.current.targetVitals || targetVitalsVal;
+    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+    stateRef.current.targetVitals = next;
+    setTargetVitalsState(next);
+  };
+
+  const setPatient = (update) => {
+    const prev = stateRef.current.patient || patientVal;
+    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+    
+    // Sync fast-forward refs ONLY if they were explicitly changed by the update (not just spread from prev)
+    if (next.fastForwardRemaining !== undefined && next.fastForwardRemaining !== prev.fastForwardRemaining) {
+      ffRemainingRef.current = next.fastForwardRemaining || 0;
+    }
+    if (next.fastForwardTotal !== undefined && next.fastForwardTotal !== prev.fastForwardTotal) {
+      ffTotalRef.current = next.fastForwardTotal || 0;
+    }
+
+    stateRef.current.patient = next;
+    setPatientState(next);
+  };
+
+  const setActiveMeds = (update) => {
+    const prev = stateRef.current.activeMeds || activeMedsVal;
+    const next = typeof update === 'function' ? update(prev) : update;
+    stateRef.current.activeMeds = next;
+    setActiveMedsState(next);
+  };
+
+  const setIntravascularVolume = (update) => {
+    const prev = stateRef.current.intravascularVolume !== undefined ? stateRef.current.intravascularVolume : intravascularVolumeVal;
+    const next = typeof update === 'function' ? update(prev) : update;
+    stateRef.current.intravascularVolume = next;
+    setIntravascularVolumeState(next);
+  };
+
+  const setTotalBodyWaterLiters = (update) => {
+    const prev = stateRef.current.totalBodyWaterLiters !== undefined ? stateRef.current.totalBodyWaterLiters : totalBodyWaterLitersVal;
+    const next = typeof update === 'function' ? update(prev) : update;
+    stateRef.current.totalBodyWaterLiters = next;
+    setTotalBodyWaterLitersState(next);
+  };
+
+  const setElectrolytes = (update) => {
+    const prev = stateRef.current.electrolytes || electrolytesVal;
+    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+    stateRef.current.electrolytes = next;
+    setElectrolytesState(next);
+  };
+
+  const setCoags = (update) => {
+    const prev = stateRef.current.coags || coagsVal;
+    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+    stateRef.current.coags = next;
+    setCoagsState(next);
+  };
+
+  const setSurgicalPhase = (update) => {
+    const prev = stateRef.current.surgicalPhase || surgicalPhaseVal;
+    const next = typeof update === 'function' ? update(prev) : update;
+    stateRef.current.surgicalPhase = next;
+    setSurgicalPhaseState(next);
+  };
+
+  // Structured, scorable quality-of-care event log (distinct from the narrative `logEvent`
+  // text log). Introduced as part of the Ch9-30 retroactive sweep to give a future
+  // debrief/outcome-score feature (see OutcomeScoringEngine.ts) real data to consume.
+  // Mapping from the simulator's existing 5-stage surgical timeline to the broader 4-phase
+  // continuum-of-care model (PreOp/Intraoperative/PACU/PostDischarge) used by quality events.
+  const mapSurgicalPhaseToCareOfPhase = (surgPhase) => {
+    if (surgPhase === 'Pre-Op') return 'PreOp';
+    if (surgPhase === 'PACU') return 'PACU';
+    return 'Intraoperative';
+  };
+
+  const logQualityEvent = (input) => {
+    const currentPhase = input?.phase || mapSurgicalPhaseToCareOfPhase(stateRef.current.surgicalPhase);
+    const event = createQualityEvent({
+      ...input,
+      time: typeof input?.time === 'number' ? input.time : stateRef.current.time,
+      phase: currentPhase
+    });
+    const currentPatient = stateRef.current.patient || patientVal;
+    const existingEvents = Array.isArray(currentPatient.qualityEvents) ? currentPatient.qualityEvents : [];
+    setPatient(prev => ({ ...prev, qualityEvents: [...existingEvents, event] }));
+    if (logEvent && event.description) {
+      logEvent(`📋 [${event.category}/${event.severity.toUpperCase()}] ${event.description}`);
+    }
+  };
+
+  const time = timeVal;
+  const vitals = vitalsVal;
+  const targetVitals = targetVitalsVal;
+  const patient = patientVal;
+  const activeMeds = activeMedsVal;
+  const intravascularVolume = intravascularVolumeVal;
+  const totalBodyWaterLiters = totalBodyWaterLitersVal;
+  const electrolytes = electrolytesVal;
+  const coags = coagsVal;
+  const surgicalPhase = surgicalPhaseVal;
+
+  useEffect(() => {
+    stateRef.current = { 
+      time, vitals, targetVitals, patient, activeMeds, gasModels, intravascularVolume, totalBodyWaterLiters, electrolytes, coags, ventSettings, gasSettings, surgicalPhase, msmaidsComplete 
+    };
+  });
+
+  useEffect(() => {
+    if (activeCase && activeCase.id !== prevCaseId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPrevCaseId(activeCase.id);
+      DynamicMedicationRegistry.hydrate();
+        const __init = createInitialSimState(activeCase);
+        setVitals(__init.vitals);
+        setTargetVitals(__init.targetVitals);
+        setPatient(__init.patient);
+        setTime(__init.time); setActiveMeds(__init.activeMeds); setIntravascularVolume(__init.intravascularVolume); setSurgicalPhase(__init.surgicalPhase);
+        setGasModels(__init.gasModels);
+        setTotalBodyWaterLiters(__init.totalBodyWaterLiters);
+        setElectrolytes(__init.electrolytes);
+        setCoags(__init.coags);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCase, prevCaseId]);
+
+  const pushFluid = (fluidName, volumeStr, lineId, rateStr = undefined) => {
+    const currentPatient = stateRef.current.patient || patient;
+    const volume = parseFloat(volumeStr);
+    if (isNaN(volume) || !Number.isFinite(volume) || volume <= 0) {
+        logEvent(`❌ FAILED: Cannot administer ${fluidName}. Invalid volume specified!`);
+        return false;
+    }
+    const targetLine = currentPatient.accessLines?.find(l => l.id === lineId);
+    
+    if (!targetLine) {
+        logEvent(`❌ FAILED: Cannot administer ${fluidName}. No valid venous access line selected!`);
+        return false;
+    }
+    
+    if (targetLine.failed) {
+        logEvent(`❌ FAILED: Cannot administer ${fluidName}. Access Line: ${targetLine.name} has been BLOWN OUT!`);
+        return false;
+    }
+    
+    if (targetLine.category.includes('Arterial')) {
+        logEvent(`🚨 CRITICAL ERROR: Attempted fluid resuscitation via Arterial Line! Arteries cannot accommodate high volume infusion. Retrograde flow risks cerebral embolization and severe limb ischemia!`);
+        return false;
+    }
+
+    const fluidData = FLUIDS[fluidName]; if (!fluidData) return false;
+    const isBlood = fluidData.type === 'Blood Product';
+    
+    if (isBlood) {
+        const bb = currentPatient.bloodBank || { status: 'none', unitsInOR: 0, deliveryCountdown: 0, totalDeliveryTime: 0, preOpWorkup: 'none' };
+
+        if (bb.status === 'available' && bb.unitsInOR > 0) {
+            const requestedUnits = volume;
+            if (requestedUnits > bb.unitsInOR) {
+                logEvent(`❌ FAILED: Requested ${requestedUnits} unit(s) of ${fluidName}, but only ${bb.unitsInOR} unit(s) remain in the OR cooler. Order more from Blood Bank.`);
+                return false;
+            }
+            setPatient(prev => ({
+                ...prev,
+                bloodBank: {
+                    ...prev.bloodBank,
+                    unitsInOR: prev.bloodBank.unitsInOR - requestedUnits
+                }
+            }));
+            if (bb.unitsInOR - requestedUnits <= 0) {
+                logEvent(`⚠️ Blood Bank: Last unit(s) from OR cooler being administered. Order additional units if hemorrhage continues.`);
+            }
+        } else if (bb.status === 'ordered') {
+            const remaining = Math.ceil(bb.deliveryCountdown);
+            const mins = Math.floor(remaining / 60);
+            const secs = remaining % 60;
+            logEvent(`❌ FAILED: Blood products have not arrived yet! Cooler ETA: ${mins}m ${secs}s remaining (${remaining}s). Blood Bank is processing.`);
+            return false;
+        } else {
+            const hasTypeAndScreen = currentPatient.preOpOrders?.labs?.typeAndScreen || false;
+            const hasTypeAndCross = currentPatient.preOpOrders?.labs?.typeAndCross || false;
+
+            if (hasTypeAndCross && bb.status === 'none') {
+                logEvent(`✅ Blood Bank: Type & Crossmatch was completed pre-operatively. 2 crossmatched units of PRBCs are in the OR cooler. Proceeding with transfusion.`);
+                const requestedUnits = volume;
+                setPatient(prev => ({
+                    ...prev,
+                    bloodBank: {
+                        status: 'available',
+                        unitsInOR: Math.max(0, 2 - requestedUnits),
+                        deliveryCountdown: 0,
+                        totalDeliveryTime: 0,
+                        preOpWorkup: 'crossmatch'
+                    }
+                }));
+            } else {
+                const baselineDelay = 600; 
+                const delaySeconds = hasTypeAndScreen ? (baselineDelay * 0.50) : baselineDelay;
+                const deliveryUnits = 4; 
+
+                const rationale = hasTypeAndCross
+                    ? `Previous crossmatch on file. Reorder delivery: ${Math.round(delaySeconds)}s. Blood Bank pulling ${deliveryUnits} additional units.`
+                    : hasTypeAndScreen
+                        ? `Type & Screen on file — ABO/Rh and antibody screen already completed. Electronic crossmatch in progress. Delivery: ${Math.round(delaySeconds)}s (${Math.round(delaySeconds/60)} min). ${deliveryUnits} units being prepared.`
+                        : `NO pre-operative blood workup on file! Emergency uncrossmatched O-Negative release protocol initiated. Full ABO/Rh typing and antibody screen running concurrently. Delivery: ${Math.round(delaySeconds)}s (${Math.round(delaySeconds/60)} min). ${deliveryUnits} uncrossmatched units being dispatched.`;
+
+                logEvent(`🚨 Blood Bank: Emergency order placed for ${fluidName}. ${rationale}`);
+
+                setPatient(prev => ({
+                    ...prev,
+                    bloodBank: {
+                        status: 'ordered',
+                        unitsInOR: 0,
+                        deliveryCountdown: delaySeconds,
+                        totalDeliveryTime: delaySeconds,
+                        pendingUnits: deliveryUnits,
+                        preOpWorkup: hasTypeAndCross ? 'crossmatch' : (hasTypeAndScreen ? 'screen' : 'none')
+                    }
+                }));
+                return false;
+            }
+        }
+    }
+
+    const isUnit = isBlood || fluidData.type === 'Colloid';
+    
+    if (isUnit) {
+        if (volume > 20) {
+            logEvent(`❌ FAILED: Attempted to infuse ${volume} units of ${fluidName}. That is physiologically impossible and clinically absurd.`);
+            return false;
+        }
+    } else {
+        if (volume > 5000) {
+            logEvent(`❌ FAILED: Attempted to infuse ${volume} mL of ${fluidName} in a single bolus. That is clinically absurd.`);
+            return false;
+        }
+    }
+
+    const effectiveVolumeML = fluidName.includes('Fibrinogen') ? volume * 50 : (isUnit ? volume * (fluidData.defaultVol || 300) : volume);
+
+    let initialUserRate = undefined;
+    if (rateStr !== undefined && rateStr !== null && rateStr !== '') {
+        const parsedRate = parseFloat(rateStr);
+        if (!isNaN(parsedRate) && Number.isFinite(parsedRate) && parsedRate > 0) {
+            initialUserRate = parsedRate;
+        }
+    }
+
+    setPatient(prev => {
+        const newLines = [...(prev.accessLines || [])];
+        const lineIndex = newLines.findIndex(l => l.id === lineId);
+        if (lineIndex >= 0) {
+            newLines[lineIndex] = {
+                ...newLines[lineIndex],
+                activeInfusions: [
+                    ...(newLines[lineIndex].activeInfusions || []),
+                    { id: Date.now().toString(), name: fluidName, remainingVolume: effectiveVolumeML, startingVolume: effectiveVolumeML, userRate: initialUserRate, currentRate: 0 }
+                ]
+            };
+        }
+        return { ...prev, accessLines: newLines };
+    });
+
+    logEvent(`💧 Attached: ${volume} ${isUnit ? 'Units' : (fluidName.includes('Fibrinogen') ? 'g' : 'mL')} of ${fluidName} to ${targetLine.name}.`);
+    return true;
+  };
+
+  const updateFluidRate = (lineId, infusionId, newRate_ml_hr) => {
+    setPatient(prev => {
+        const newLines = (prev.accessLines || []).map(l => {
+            if (l.id !== lineId) return l;
+            return {
+                ...l,
+                activeInfusions: (l.activeInfusions || []).map(inf => {
+                    if (inf.id !== infusionId) return inf;
+                    return { ...inf };
+                })
+            };
+        });
+        const lineIndex = newLines.findIndex(l => l.id === lineId);
+        if (lineIndex >= 0) {
+            const line = newLines[lineIndex];
+            const infusions = line.activeInfusions;
+            const infIndex = infusions.findIndex(i => i.id === infusionId);
+            if (infIndex >= 0) {
+                if (newRate_ml_hr === '' || newRate_ml_hr === null || isNaN(parseFloat(newRate_ml_hr))) {
+                    delete infusions[infIndex].userRate;
+                    logEvent(`Max flow enabled for ${infusions[infIndex].name} on ${line.name}.`);
+                } else {
+                    let rate = parseFloat(newRate_ml_hr);
+                    if (isNaN(rate) || !Number.isFinite(rate) || rate < 0) {
+                        logEvent(`❌ FAILED: Invalid flow rate requested!`);
+                        return prev;
+                    }
+                    const lType = line.fluidLine || prev.fluidLine || 'gravity';
+                    let pInfusion = 74; 
+                    if (lType === 'ranger') pInfusion = 150;
+                    else if (lType === 'belmont') pInfusion = 300;
+                    
+                    const pv = line.venousPressure !== undefined ? line.venousPressure : 10;
+                    const rv = line.veinResistance !== undefined ? line.veinResistance : 500;
+                    let deltaP = pInfusion - pv;
+                    if (deltaP < 0) deltaP = 0;
+                    
+                    const fluidData = FLUIDS[infusions[infIndex].name];
+                    const eta = fluidData ? Math.max(0.01, fluidData.viscosity || 1.0) : 1.0;
+                    
+                    let rTubing = 150;
+                    if (lType === 'ranger') rTubing = 800;
+                    else if (lType === 'belmont') rTubing = 200;
+                    
+                    const safeRadius = Math.max(0.01, line.radius || 0.475);
+                    const safeLength = Math.max(1, line.length || 30);
+                    const rCath = safeLength / Math.pow(safeRadius, 4);
+                    const rTotal = Math.max(1.0, rTubing + rCath + rv);
+                    
+                    let q_ml_min = 1200 * deltaP / (eta * rTotal);
+                    if (isNaN(q_ml_min) || !Number.isFinite(q_ml_min) || q_ml_min < 0) {
+                        q_ml_min = 0;
+                    }
+                    if (lType === 'belmont' && q_ml_min > 500) q_ml_min = 500;
+                    
+                    const max_ml_hr = q_ml_min * 60;
+                    if (rate > max_ml_hr) {
+                        rate = max_ml_hr;
+                        logEvent(`⚠️ Requested rate exceeds physical limits of ${line.name}. Capped at ${Math.round(rate)} mL/hr.`);
+                    }
+                    infusions[infIndex].userRate = rate;
+                }
+            }
+        }
+        return { ...prev, accessLines: newLines };
+    });
+  };
+
+  const removeFluid = (lineId, infusionId) => {
+    setPatient(prev => {
+        const newLines = [...(prev.accessLines || [])];
+        const lineIndex = newLines.findIndex(l => l.id === lineId);
+        if (lineIndex >= 0) {
+            const infusions = [...(newLines[lineIndex].activeInfusions || [])];
+            const filtered = infusions.filter(i => i.id !== infusionId);
+            newLines[lineIndex] = { ...newLines[lineIndex], activeInfusions: filtered };
+        }
+        return { ...prev, accessLines: newLines };
+    });
+    logEvent(`Stopped and removed fluid infusion.`);
+  };
+
+  const processMed = (medId, doseInput, route, type, unit, lineId = null, modelName = null) =>
+    processMedCore({ stateRef, patient, activeMeds, setPatient, setActiveMeds, logEvent, logQualityEvent, setSurgicalPhase, setElectrolytes }, medId, doseInput, route, type, unit, lineId, modelName);
 
   const pushMed = (medName) => { 
     if (medName.includes('Topical')) { 

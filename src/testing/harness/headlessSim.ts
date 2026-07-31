@@ -7,10 +7,14 @@
  * hook's synchronous wrapper semantics exactly. See docs/architecture/audit_layer1_physics_core.md.
  */
 // @ts-ignore - usePhysiology is a .js module without type declarations
-import { runPhysicsStep, createInitialSimState } from '../../engine/usePhysiology.js';
+import { runPhysicsStep, createInitialSimState, processMedCore } from '../../engine/usePhysiology.js';
 // @ts-ignore - FidelityOracle is a .js module without type declarations
 import { evaluateFidelity } from '../../engine/FidelityOracle.js';
-import { seedRngState } from '../../engine/rng';
+// @ts-ignore - CardiovascularEngine .ts default resolution
+import { CardiovascularEngine } from '../../engine/CardiovascularEngine';
+// @ts-ignore - FidelityFuzzer is a .js module without type declarations
+import { getGuidedFuzzAction, executeFuzzAction, setFuzzRng, resetFuzzRng } from '../../engine/FidelityFuzzer.js';
+import { seedRngState, makeRng } from '../../engine/rng';
 
 export interface SimHandle {
   state: any;
@@ -45,6 +49,9 @@ export function makeHeadlessCtx(state: any, events: string[], quality: any[]) {
     setTotalBodyWaterLiters: scalarSetter('totalBodyWaterLiters'),
     setIntravascularVolume: scalarSetter('intravascularVolume'),
     setSurgicalPhase: scalarSetter('surgicalPhase'),
+    // Used by processMedCore (action handlers), not by runPhysicsStep itself.
+    setPatient: objSetter('patient'),
+    setActiveMeds: scalarSetter('activeMeds'),
     setIsRunning: () => {},
     ffRemainingRef: { current: 0 },
     ffTotalRef: { current: 0 },
@@ -58,6 +65,27 @@ export interface SimOptions {
   ventSettings?: any;
   gasSettings?: any;
   surgicalPhase?: string;
+  /** Pre-place an 18G peripheral IV so medication actions can be administered (opt-in; off by default
+   *  so the golden-master/oracle baselines are unchanged). */
+  withPIV?: boolean;
+}
+
+/** A minimal 18G peripheral IV access line so drugs can be pushed in fuzz scenarios. */
+function makePIVLine() {
+  return {
+    id: 'piv-headless-1',
+    category: 'Peripheral IV',
+    type: '18G Peripheral IV',
+    name: '18G PIV (Right Forearm)',
+    location: 'Right Forearm',
+    failed: false,
+    activeInfusions: [],
+    activeMedInfusions: [],
+    radius: 0.475,
+    length: 30,
+    venousPressure: 10,
+    veinResistance: 500,
+  };
 }
 
 /** Create a faithful headless sim from a real activeCase (baseVitals + patient), seeded for replay. */
@@ -67,6 +95,10 @@ export function createHeadlessSim(activeCase: any, opts: SimOptions = {}): SimHa
   state.gasSettings = opts.gasSettings || { ...DEFAULT_GAS };
   if (opts.surgicalPhase) state.surgicalPhase = opts.surgicalPhase;
   state.patient = state.patient || {};
+  if (opts.withPIV) {
+    state.patient.accessLines = [...(state.patient.accessLines || []), makePIVLine()];
+    state.patient.hasIV = true;
+  }
   state.patient.rng = seedRngState(opts.seed ?? 12345);
   const events: string[] = [];
   const quality: any[] = [];
@@ -183,3 +215,125 @@ export const AUDIT_CASES: Array<{ id: string; baseVitals: any; patient: any }> =
     patient: { age: 66, sex: 'male', height: 170, weight: 72, position: 'Supine', copd: true, gfr: 85, ef: 55 },
   },
 ];
+
+/**
+ * Build the executeFuzzAction handler set bound to a headless sim. Drug administration goes through
+ * the REAL processMedCore; vent/cpr/shock/position/o2 use faithful headless equivalents (shock calls
+ * the real CardiovascularEngine.deliverShock). Fluid is a simplified intravascular bolus. Rebuild per
+ * action so the current patient/access-lines are seen.
+ */
+export function makeFuzzHandlers(sim: SimHandle) {
+  const stateRef = sim.ctx.stateRef;
+  const logEvent = sim.ctx.logEvent;
+  const actionCtx = () => ({
+    stateRef,
+    patient: stateRef.current.patient,
+    activeMeds: stateRef.current.activeMeds,
+    setPatient: sim.ctx.setPatient,
+    setActiveMeds: sim.ctx.setActiveMeds,
+    logEvent,
+    logQualityEvent: sim.ctx.logQualityEvent,
+    setSurgicalPhase: sim.ctx.setSurgicalPhase,
+    setElectrolytes: sim.ctx.setElectrolytes,
+  });
+  return {
+    patient: stateRef.current.patient,
+    logEvent,
+    setPatient: sim.ctx.setPatient,
+    setSurgicalPhase: sim.ctx.setSurgicalPhase,
+    handleProcessMed: (medId: string, dose: any, route: any, medType: any, unit: any, lineId: any) =>
+      processMedCore(actionCtx(), medId, dose, route, medType, unit, lineId),
+    handleSetVentSettings: (obj: any) => { Object.assign(stateRef.current.ventSettings, obj); },
+    handleSetO2: (device: any, flow: any, fio2: any) => {
+      sim.ctx.setPatient((p: any) => ({ ...p, currentO2Device: device, currentO2Flow: flow, currentFiO2: fio2 }));
+    },
+    handleToggleCPR: () => {
+      sim.ctx.setPatient((p: any) => ({ ...p, cprActive: !p.cprActive, cprStartTime: !p.cprActive ? (stateRef.current.time ?? 0) : null }));
+    },
+    handleDeliverShock: (joules: number, sync: boolean) => {
+      const p = stateRef.current.patient;
+      const frc = p.lungVolumes?.frc_L ?? 2.4;
+      const res = CardiovascularEngine.deliverShock({
+        patient: p, activeMeds: stateRef.current.activeMeds || [],
+        currentBuffer: p.oxygenBuffer ?? frc * 0.21, currentFRC_L: frc,
+        bloodLossRatio: (p.ebl || 0) / (p.ebv || 5000), joules, isSync: sync,
+        simulationTime: stateRef.current.time || 0,
+        rng: makeRng(p.rng || seedRngState(1)),
+      });
+      sim.ctx.setPatient(res.patient);
+      (res.events || []).forEach((m: string) => logEvent(m));
+    },
+    handlePushFluid: (_name: any, volume: any) => {
+      sim.ctx.setIntravascularVolume((v: number) => v + (Number(volume) || 0));
+    },
+    establishAccess: () => {},
+    performLarsonManeuver: () => {},
+    checkCuffLeak: () => {},
+    examineNpoHistory: () => {},
+    handleExtubation: () => {},
+  };
+}
+
+export interface FuzzOptions {
+  seed?: number;
+  actions?: number;
+  stepsPerAction?: number;
+  strategy?: string;
+  settleTicks?: number;
+}
+
+export interface FuzzResult {
+  criticals: OracleAnomaly[];
+  warnings: OracleAnomaly[];
+  applied: string[];
+}
+
+/**
+ * The Layer 1C closed loop with PERTURBATION: a seeded guided fuzzer drives real clinical actions
+ * (drugs/vent/shock/cpr/…) into the physics, and the FidelityOracle audits every resulting tick. A
+ * CRITICAL anomaly is a hard physics violation; failures are reproducible from `seed`.
+ */
+export function fuzzWithOracle(activeCase: any, opts: FuzzOptions = {}): FuzzResult {
+  const { seed = 1, actions = 40, stepsPerAction = 6, strategy = 'guided', settleTicks = 5 } = opts;
+  const sim = createHeadlessSim(activeCase, { seed, withPIV: true });
+  setFuzzRng(makeRng(seedRngState((Math.imul(seed, 2654435761) >>> 0) || 1)));
+  const fuzzerState: any = {};
+  const history: any[] = [];
+  const criticals: OracleAnomaly[] = [];
+  const warnings: OracleAnomaly[] = [];
+  const applied: string[] = [];
+  let tick = 0;
+  try {
+    for (let a = 0; a < actions; a++) {
+      const st = sim.ctx.stateRef.current;
+      let label = '';
+      try {
+        const action = getGuidedFuzzAction(st, fuzzerState, strategy);
+        label = executeFuzzAction(action, makeFuzzHandlers(sim)) || (action && action.name) || '';
+      } catch (e: any) {
+        label = `ERR:${e && e.message}`;
+      }
+      applied.push(label);
+      for (let s = 0; s < stepsPerAction; s++) {
+        step(sim);
+        tick++;
+        const cur = sim.ctx.stateRef.current;
+        history.push({
+          tick: cur.time, vitals: { ...cur.vitals }, patient: { ...cur.patient },
+          electrolytes: { ...cur.electrolytes }, actionText: label,
+        });
+        if (history.length > 250) history.shift();
+        if (tick <= settleTicks) continue;
+        const { anomalies } = evaluateFidelity(cur, history);
+        for (const an of anomalies) {
+          const rec: OracleAnomaly = { tick: cur.time, system: an.system, severity: an.severity, rule: an.rule, message: an.message };
+          if (an.severity === 'CRITICAL') criticals.push(rec);
+          else if (an.severity === 'WARNING') warnings.push(rec);
+        }
+      }
+    }
+  } finally {
+    resetFuzzRng();
+  }
+  return { criticals, warnings, applied };
+}
