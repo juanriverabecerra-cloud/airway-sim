@@ -68,4 +68,15 @@ medical review (Layer 4), structural/tooling (Layer 5), numerical robustness (La
   - **New finding F10** (opioid doesn't blunt the compensatory ventilatory drive → paradoxical late
     tachypnea while apneic), pinned by a test. Metoprolol's apparent no-effect was a test-timing
     artifact (slower onset than esmolol — clinically correct), fixed by extending the window.
-  - Next: cross-monitor consistency invariants (SpO₂↔PaO₂, EtCO₂↔PaCO₂) in the oracle, then fix F5.
+  - Next: fix F5.
+- 2026-07-31 — **F5/F5b FIXED (flagship).** Root cause: the four-chamber model derives MAP from chamber
+  mechanics (`referencePressure=87`, `SVR_TO_R_SCALE=1500`), not `MAP=CO·SVR/80+CVP`, so the displayed
+  vasomotor-tone SVR (1100–1200) was not the SVR back-calculated from MAP/CO/CVP — the gap grew to
+  ~38 mmHg under vasopressors/shock. Fix (`CardiovascularEngine.ts`): display `vitals.svr` as the
+  identity-consistent `80·(MAP−CVP)/CO`; keep the tone as `vitals.svrTone` (drives the model + reflexes
+  + first-pass, unchanged). Blast radius was ~0 (only the oracle reads `vitals.svr`); MAP/CO unchanged.
+  Updated 2 unit tests to read `svrTone` (they test vasomotor tone), flipped the F5 doc-test to guard
+  the fix, and removed `Ohm Cardiovascular Law Consistency` from `KNOWN_LAYER2_CRITICAL_RULES` so the
+  gate now enforces its absence across all audit cases + the fuzzer. Full suite 1800/1800; equivalence
+  proof still green (both paths use the same engine).
+  - Next: fix F7 (PaO₂ alveolar ceiling) + F10 (opioid compensatory drive), then triage F8.

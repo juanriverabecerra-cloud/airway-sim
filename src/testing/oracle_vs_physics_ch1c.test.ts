@@ -44,15 +44,13 @@ describe('Layer 1C — FidelityOracle vs. live physics', () => {
     }
   }
 
-  // KNOWN LAYER-2 FINDING (surfaced by this harness): the CV engine applies disease-specific MAP
-  // modifiers (sepsisMAPShift, obesity/COPD shifts) directly to MAP without adjusting CO/SVR, so the
-  // displayed CO·SVR·CVP identity drifts ~12–17 mmHg in comorbid patients. This test PINS the finding
-  // so it stays visible and regression-tracked. When Layer 2 routes those shifts through SVR, this
-  // drift should collapse to ~0 and this expectation should be updated to assert its ABSENCE.
-  it('DOCUMENTS the MAP-CO-SVR coupling drift in comorbid patients (Layer 2 backlog)', () => {
-    const septic = AUDIT_CASES.find((c) => c.id === 'gm_septic')!;
-    const { warnings } = runWithOracle(createHeadlessSim(septic, { seed: 1 }), 120);
-    const drift = warnings.filter((w) => w.rule === 'MAP-CO-SVR Coupling Drift');
-    expect(drift.length, 'expected the known septic MAP-CO-SVR drift to still be present').toBeGreaterThan(0);
+  // F5 RESOLVED (Layer 2): displayed SVR is now the identity-consistent 80*(MAP-CVP)/CO, so comorbid
+  // patients no longer show MAP-CO-SVR coupling drift. This guards the fix from regressing.
+  it('F5 RESOLVED: comorbid patients show no MAP-CO-SVR coupling drift', () => {
+    for (const kase of AUDIT_CASES) {
+      const { warnings } = runWithOracle(createHeadlessSim(kase, { seed: 1 }), 120);
+      const drift = warnings.filter((w) => w.rule === 'MAP-CO-SVR Coupling Drift');
+      expect(drift.length, `${kase.id}: F5 fix should keep displayed SVR identity-consistent`).toBe(0);
+    }
   });
 });

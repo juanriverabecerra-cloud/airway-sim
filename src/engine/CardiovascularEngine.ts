@@ -161,7 +161,13 @@ export class CardiovascularEngine {
     const safeDia = typeof vitals.dia === 'number' && Number.isFinite(vitals.dia) ? vitals.dia : 80;
     const safeMap = typeof vitals.map === 'number' && Number.isFinite(vitals.map) ? vitals.map : 90;
     const safeCO = typeof vitals.co === 'number' && Number.isFinite(vitals.co) ? vitals.co : 5.0;
-    const safeSVR = typeof vitals.svr === 'number' && Number.isFinite(vitals.svr) ? vitals.svr : 1200;
+    // Vasomotor TONE SVR drives the four-chamber model + reflexes. Read the persisted tone
+    // (`svrTone`) rather than the displayed `svr`, which as of the Layer 2 F5 fix is the
+    // identity-consistent measured value 80*(MAP-CVP)/CO, not the tone. Fall back to `svr` for the
+    // first tick / callers that don't carry svrTone.
+    const safeSVR = typeof (vitals as any).svrTone === 'number' && Number.isFinite((vitals as any).svrTone)
+      ? (vitals as any).svrTone
+      : (typeof vitals.svr === 'number' && Number.isFinite(vitals.svr) ? vitals.svr : 1200);
 
     const safeCurrentMac = typeof inputs.currentMac === 'number' && Number.isFinite(inputs.currentMac) ? Math.max(0, inputs.currentMac) : 0;
     const safeBloodLossRatio = typeof inputs.bloodLossRatio === 'number' && Number.isFinite(inputs.bloodLossRatio) ? Math.max(0, Math.min(1.0, inputs.bloodLossRatio)) : 0;
@@ -976,7 +982,15 @@ export class CardiovascularEngine {
 
     // Update vital signs target values
     vitals.co = newCO;
-    vitals.svr = newSVR;
+    // Layer 2 (F5 fix): persist the vasomotor tone as svrTone (drives the model + reflexes next tick),
+    // and DISPLAY svr as the identity-consistent value a clinician back-calculates from MAP/CO/CVP, so
+    // displayed hemodynamics satisfy SVR = 80*(MAP-CVP)/CO by construction. MAP/CO are unchanged (they
+    // come from the tone-driven four-chamber call), so this only corrects the displayed SVR.
+    (vitals as any).svrTone = newSVR;
+    const cvpForSvr = (typeof vitals.cvp === 'number' && Number.isFinite(vitals.cvp)) ? vitals.cvp : 5.0;
+    vitals.svr = (!isArrestState && newCO > 0.2 && newMap > cvpForSvr)
+      ? Math.max(50, Math.min(6000, Math.round((80 * (newMap - cvpForSvr)) / newCO)))
+      : Math.round(newSVR);
     vitals.hr = Math.round(newHr);
     vitals.sys = roundedSys;
     vitals.dia = roundedDia;

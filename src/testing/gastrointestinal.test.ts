@@ -207,7 +207,9 @@ describe('Chapter 15 Gastrointestinal Physiology and Pathophysiology Unit Tests'
       // concentration) rather than hitting exactly 1.0, so this is no longer bit-for-bit
       // 1020 -- a real, intentional, sub-1% consequence of the more physiologically
       // complete model, not a precision bug.
-      expect(currentVitalsBlocked.svr).toBeCloseTo(1020, 0);
+      // Layer 2 F5 fix: displayed svr is now the identity-consistent measured value; the vasomotor
+      // tone this sympathetic-block test targets is svrTone.
+      expect((currentVitalsBlocked as any).svrTone).toBeCloseTo(1020, 0);
       
       // 2. Tick 50 times with Phenylephrine (alpha-agonist active)
       let currentVitalsTreated = { ...baseVitals };

@@ -550,7 +550,9 @@ describe('Chapter 11: Cerebral Physiology & Intracranial Mechanics Tests', () =>
 
       // SVR should rise (due to sympathetic vasoconstriction surge)
       // HR should fall (due to reflex bradycardia)
-      expect(out.vitals.svr).toBeGreaterThan(1200);
+      // Layer 2 F5 fix: displayed vitals.svr is now the identity-consistent measured value
+      // (80*(MAP-CVP)/CO); the vasomotor TONE the reflex controls is svrTone.
+      expect((out.vitals as any).svrTone).toBeGreaterThan(1200);
       expect(out.vitals.hr).toBeLessThan(70);
     });
 
