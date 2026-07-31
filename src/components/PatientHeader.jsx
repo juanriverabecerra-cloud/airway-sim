@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Undo2, FileText, CheckCircle2, Lock, Unlock, ShieldAlert, Check, FlaskConical, FastForward, Gauge, Dna, Monitor } from 'lucide-react';
+import { Undo2, FileText, CheckCircle2, Lock, Unlock, ShieldAlert, Check, FlaskConical, FastForward, Gauge, Dna } from 'lucide-react';
 import { AetherisLogo } from './AetherisLogo';
 
 export const PatientHeader = ({
@@ -26,7 +26,6 @@ export const PatientHeader = ({
   setMsmaidsModal,
   logEvent,
   setPatient,
-  onOpenDisplaySync,
   onOpenUltrasoundStudio
 }) => {
   const FONT_MIN = 0.80;
@@ -410,16 +409,6 @@ export const PatientHeader = ({
                 className="px-4 py-2 text-xs md:text-sm font-black flex items-center justify-center gap-1.5 flex-1 xl:flex-none whitespace-nowrap rounded-lg shadow-md transition duration-200 active:scale-95 border bg-cyan-500/20 text-cyan-300 border-cyan-500/60 hover:bg-cyan-500/30 shadow-[0_0_10px_rgba(34,211,238,0.25)]"
               >
                 📡 ULTRASOUND STUDIO
-              </button>
-            )}
-
-            {/* Multi-Display & Remote Sync Modal Toggle */}
-            {onOpenDisplaySync && (
-              <button
-                onClick={onOpenDisplaySync}
-                className="px-4 py-2 text-xs md:text-sm font-black flex items-center justify-center gap-1.5 flex-1 xl:flex-none whitespace-nowrap rounded-lg shadow-md transition duration-200 active:scale-95 border bg-emerald-500/20 text-emerald-300 border-emerald-500/60 hover:bg-emerald-500/30 shadow-[0_0_10px_rgba(16,185,129,0.25)]"
-              >
-                <Monitor size={14} /> MULTI-DISPLAY
               </button>
             )}
 

@@ -34,11 +34,6 @@ import { evaluateAttendingGuidance } from './engine/AttendingEngine';
 import FidelityPanel from './components/controls/FidelityPanel';
 import { CLINICAL_ACTIONS } from './engine/ClinicalActions';
 
-// Multi-Display & Distributed Sync Architecture
-import { DisplayRouter } from './components/displays/DisplayRouter';
-import { DisplaySyncModal } from './components/modals/DisplaySyncModal';
-import { syncEngine } from './sync/SyncEngine';
-
 // Lazy-loaded: this panel (via ClinicalAiChat -> KnowledgeSearch) eagerly
 // fetches and parses the full textbook search index on module load. Splitting
 // it into its own chunk means that fetch only starts once a case is actually
@@ -505,7 +500,6 @@ export default function App() {
   const [showLabPanel, setShowLabPanel] = useState(false);
   const [showFidelityPanel, setShowFidelityPanel] = useState(false);
   const [showReceptorPanel, setShowReceptorPanel] = useState(false);
-  const [showDisplaySyncModal, setShowDisplaySyncModal] = useState(false);
   // UI font scale: persisted to localStorage, default 1.1 (slightly larger than browser default)
   const [uiFontScale, setUiFontScale] = useState(() => {
     const saved = parseFloat(localStorage.getItem('airway-font-scale'));
@@ -641,103 +635,7 @@ export default function App() {
     msmaidsComplete
   });
 
-  const [poppedOutPanels, setPoppedOutPanels] = useState({});
 
-  // Instructor "God Mode" timed disease-progression trends (ARDS compliance drop, gradual
-  // bronchospasm) ramp a compliance/resistance penalty on an interval rather than snapping
-  // instantly, so they need their own cleanup-able timer handles.
-  const ardsProgressionTimerRef = useRef(null);
-  const bronchospasmTrendTimerRef = useRef(null);
-
-  const startArdsProgressionTrend = useCallback(() => {
-    if (ardsProgressionTimerRef.current) clearInterval(ardsProgressionTimerRef.current);
-    const durationMs = 120000; // 2 min, per Instructor Remote's "C: 60 -> 15" spec
-    const stepMs = 1000;
-    const targetPenalty = 0.75; // baseline compliance ~60 mL/cmH2O -> ~15 mL/cmH2O
-    const startedAt = Date.now();
-    ardsProgressionTimerRef.current = setInterval(() => {
-      const frac = Math.min(1, (Date.now() - startedAt) / durationMs);
-      setPatient(prev => prev ? { ...prev, ardsProgressionCompliancePenalty: targetPenalty * frac } : prev);
-      if (frac >= 1 && ardsProgressionTimerRef.current) {
-        clearInterval(ardsProgressionTimerRef.current);
-        ardsProgressionTimerRef.current = null;
-      }
-    }, stepMs);
-  }, [setPatient]);
-
-  const startBronchospasmTrend = useCallback(() => {
-    if (bronchospasmTrendTimerRef.current) clearInterval(bronchospasmTrendTimerRef.current);
-    const durationMs = 90000; // 90 sec, per Instructor Remote's "Raw: 5 -> 30" spec
-    const stepMs = 1000;
-    const targetPenalty = 25; // additive cmH2O/L/s, baseline ~5 -> ~30
-    const startedAt = Date.now();
-    bronchospasmTrendTimerRef.current = setInterval(() => {
-      const frac = Math.min(1, (Date.now() - startedAt) / durationMs);
-      setPatient(prev => prev ? { ...prev, bronchospasmTrendResistancePenalty: targetPenalty * frac } : prev);
-      if (frac >= 1 && bronchospasmTrendTimerRef.current) {
-        clearInterval(bronchospasmTrendTimerRef.current);
-        bronchospasmTrendTimerRef.current = null;
-      }
-    }, stepMs);
-  }, [setPatient]);
-
-  useEffect(() => {
-    return () => {
-      if (ardsProgressionTimerRef.current) clearInterval(ardsProgressionTimerRef.current);
-      if (bronchospasmTrendTimerRef.current) clearInterval(bronchospasmTrendTimerRef.current);
-    };
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = syncEngine.subscribe((event) => {
-      if (event.type === 'TRIGGER_INCIDENT') {
-        const { incidentId, active } = event.payload;
-        if (incidentId === 'afib') {
-          setVitals(prev => prev ? { ...prev, hr: active ? 145 : 72, rhythm: active ? 'afib' : 'sr' } : prev);
-        } else if (incidentId === 'vtach') {
-          setVitals(prev => prev ? { ...prev, hr: active ? 180 : 72, rhythm: active ? 'vtach' : 'sr', sbp: active ? 70 : 120, dbp: active ? 40 : 80 } : prev);
-        } else if (incidentId === 'bronchospasm') {
-          setPatient(prev => prev ? { ...prev, bronchospasm: active } : prev);
-        } else if (incidentId === 'laryngospasm') {
-          setPatient(prev => prev ? { ...prev, laryngospasm: active } : prev);
-        } else if (incidentId === 'pneumothorax') {
-          setPatient(prev => prev ? { ...prev, pneumothorax: active, pneumothoraxCompliancePenalty: active ? 0.83 : 0 } : prev);
-        } else if (incidentId === 'circuit_disconnect') {
-          setPatient(prev => prev ? { ...prev, circuitDisconnected: active } : prev);
-        } else if (incidentId === 'cuff_leak') {
-          setPatient(prev => prev ? { ...prev, cuffLeakPresent: active, cuffLeakVtePenalty: active ? 0.6 : 0 } : prev);
-        } else if (incidentId === 'ards_progression') {
-          if (active) {
-            startArdsProgressionTrend();
-          } else {
-            if (ardsProgressionTimerRef.current) { clearInterval(ardsProgressionTimerRef.current); ardsProgressionTimerRef.current = null; }
-            setPatient(prev => prev ? { ...prev, ardsProgressionCompliancePenalty: 0 } : prev);
-          }
-        } else if (incidentId === 'bronchospasm_trend') {
-          if (active) {
-            startBronchospasmTrend();
-          } else {
-            if (bronchospasmTrendTimerRef.current) { clearInterval(bronchospasmTrendTimerRef.current); bronchospasmTrendTimerRef.current = null; }
-            setPatient(prev => prev ? { ...prev, bronchospasmTrendResistancePenalty: 0 } : prev);
-          }
-        }
-      } else if (event.type === 'UPDATE_VENT_SETTINGS') {
-        setVentSettings(prev => ({ ...prev, ...event.payload }));
-      } else if (event.type === 'TOGGLE_POPOUT') {
-        setPoppedOutPanels(prev => ({
-          ...prev,
-          [event.payload.panelId]: event.payload.isPoppedOut,
-        }));
-      } else if (event.type === 'PUSH_MED') {
-        const { drugId, amount, isWeightBased } = event.payload;
-        if (pushMed) pushMed(drugId, amount, isWeightBased);
-      } else if (event.type === 'PUSH_FLUID') {
-        const { type, volume } = event.payload;
-        if (pushFluid) pushFluid(type, volume);
-      }
-    });
-    return unsubscribe;
-  }, [setVitals, setPatient, setVentSettings, pushMed, pushFluid, startArdsProgressionTrend, startBronchospasmTrend]);
 
   useEffect(() => {
     if (tutorialStep === null) return;
@@ -1018,61 +916,6 @@ export default function App() {
     });
   };
 
-  // Expose live in-memory state & action handlers for zero-latency pop-out window access
-  if (typeof window !== 'undefined') {
-    window.__AETHERIS_HOST__ = {
-      patient,
-      vitals,
-      nibp,
-      nibpIntervalMs,
-      isCyclingNibp,
-      cycleNibp,
-      setNibpIntervalMs,
-      ventSettings,
-      gasSettings,
-      activeMeds,
-      electrolytes,
-      logs,
-      history,
-      time,
-      surgicalPhase,
-      activeCase,
-      attendingGuidance,
-      pushMed,
-      pushFluid,
-      updateFluidRate,
-      removeFluid,
-      setPatient,
-      setVitals,
-      setVentSettings,
-      setGasSettings,
-      soundSettings,
-      setSoundSettings,
-      logEvent,
-    };
-  }
-
-  // Multi-Display Synchronization Broadcast
-  useEffect(() => {
-    if (patient && vitals) {
-      syncEngine.broadcastState({
-        patient,
-        vitals,
-        nibp,
-        nibpIntervalMs,
-        isCyclingNibp,
-        ventSettings,
-        gasSettings,
-        activeMeds,
-        electrolytes,
-        logs,
-        history,
-        time,
-        surgicalPhase,
-        activeCase,
-      });
-    }
-  }, [patient, vitals, nibp, nibpIntervalMs, isCyclingNibp, ventSettings, gasSettings, activeMeds, electrolytes, logs, history, time, surgicalPhase, activeCase]);
   const handleSetSurgicalPhase = (val) => {
     if (val === 'Induction' && !msmaidsComplete && !patient?.emergentRSI && !patient?.isFuzzing) {
       logEvent("ℹ️ MSMAIDS checklist is incomplete, but proceeding past restriction as requested.");
@@ -2064,14 +1907,6 @@ export default function App() {
     logEvent(`💡 ATTENDING CONSULT:\n[STATUS] ${currentStatus}\n[FORECAST] ${forecast}`);
   };
 
-  // handleExecuteClinicalAction and generateClinicalHint are declared after the main
-  // __AETHERIS_HOST__ assignment above, so they're patched onto the same host object here
-  // (same render pass, same object reference) for zero-latency access from pop-out windows.
-  if (typeof window !== 'undefined' && window.__AETHERIS_HOST__) {
-    window.__AETHERIS_HOST__.handleExecuteClinicalAction = handleExecuteClinicalAction;
-    window.__AETHERIS_HOST__.generateClinicalHint = generateClinicalHint;
-  }
-
   const generateLab = (type) => {
     let delay = 3000; // default 3s for POC iSTAT
     let label = type;
@@ -2698,7 +2533,6 @@ export default function App() {
         setMsmaidsModal={setMsmaidsModal}
         logEvent={logEvent}
         setPatient={setPatient}
-        onOpenDisplaySync={() => setShowDisplaySyncModal(true)}
         onOpenUltrasoundStudio={() => setUltrasoundStudioModal({ show: true, initialProcedureId: 'ij_cvc' })}
       />
 
@@ -3084,12 +2918,6 @@ export default function App() {
           }}
         />
       )}
-
-      {/* Multi-Display & Remote Synchronization Control Modal */}
-      <DisplaySyncModal
-        isOpen={showDisplaySyncModal}
-        onClose={() => setShowDisplaySyncModal(false)}
-      />
 
       {/* Creator Watermark */}
       <div className="fixed bottom-4 left-4 z-50 pointer-events-none select-none text-[10px] sm:text-xs text-white/20 font-sans tracking-wide">
