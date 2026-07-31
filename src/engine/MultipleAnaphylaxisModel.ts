@@ -37,6 +37,8 @@
  */
 
 export interface MultipleAnaphylaxisInputs {
+  /** Injected deterministic RNG (Layer 1A). Defaults to Math.random when omitted. */
+  rng?: () => number;
   // Patient risk factors
   hasKnownLatexAllergy?: boolean;
   hasSpinaOrBifida?: boolean;           // high latex sensitization risk
@@ -99,6 +101,7 @@ function clamp(v: number, lo: number, hi: number): number {
 export class MultipleAnaphylaxisModel {
   static tick(inputs: MultipleAnaphylaxisInputs = {}): MultipleAnaphylaxisOutput {
     const events: string[] = [];
+    const rng = inputs.rng || Math.random;
     let prevNMBAAnaphLogged = !!inputs.prevNMBAAnaphLogged;
     let prevLatexAnaphLogged = !!inputs.prevLatexAnaphLogged;
     let prevCefAnaphLogged = !!inputs.prevCefAnaphLogged;
@@ -140,7 +143,7 @@ export class MultipleAnaphylaxisModel {
       : 0.01;
 
     const latexExposure = !!inputs.latexExposure;
-    const latexAnaphylaxisActive = latexExposure && latexSensitizationRisk > 0.3 && (hasLatexAllergy || Math.random() < latexSensitizationRisk * 0.3);
+    const latexAnaphylaxisActive = latexExposure && latexSensitizationRisk > 0.3 && (hasLatexAllergy || rng() < latexSensitizationRisk * 0.3);
 
     if (latexAnaphylaxisActive && !prevLatexAnaphLogged) {
       events.push(
@@ -154,7 +157,7 @@ export class MultipleAnaphylaxisModel {
     // ===========================
     // ~1:6000 to 1:20,000 for rocuronium; atracurium slightly more common
     const nmbaCe = Math.max(rocCe, vecCe, atraCe);
-    const nmbaAnaphylaxisActive = nmbaCe > 0.1 && Math.random() < 0.00001; // very rare per tick
+    const nmbaAnaphylaxisActive = nmbaCe > 0.1 && rng() < 0.00001; // very rare per tick
 
     if (nmbaAnaphylaxisActive && !prevNMBAAnaphLogged) {
       const agent = rocCe > 0 ? 'Rocuronium' : vecCe > 0 ? 'Vecuronium' : 'Atracurium';
@@ -167,7 +170,7 @@ export class MultipleAnaphylaxisModel {
     // ===========================
     // CEFAZOLIN ANAPHYLAXIS
     // ===========================
-    const cefAnaphylaxisActive = cefCe > 0.1 && Math.random() < 0.00003;
+    const cefAnaphylaxisActive = cefCe > 0.1 && rng() < 0.00003;
 
     if (cefAnaphylaxisActive && !prevCefAnaphLogged) {
       events.push(
@@ -180,7 +183,7 @@ export class MultipleAnaphylaxisModel {
     // CHLORHEXIDINE REACTION
     // ===========================
     const chlorhexExposure = !!inputs.chlorhexidineExposure;
-    const chlorhexAnaphylaxisActive = chlorhexExposure && Math.random() < 0.000005;
+    const chlorhexAnaphylaxisActive = chlorhexExposure && rng() < 0.000005;
 
     if (chlorhexAnaphylaxisActive && !prevChlorhexLogged) {
       events.push(
@@ -193,7 +196,7 @@ export class MultipleAnaphylaxisModel {
     // BLUE DYE (PATENT BLUE / ISOSULFAN BLUE)
     // ===========================
     const blueDyeExposure = !!inputs.blueDyeExposure;
-    const blueDyeReactionActive = blueDyeExposure && Math.random() < 0.00005; // ~1:50
+    const blueDyeReactionActive = blueDyeExposure && rng() < 0.00005; // ~1:50
 
     // SpO2 artifact from blue dye: blue dye absorbs at 660nm → pulse ox reads falsely LOW
     const blueDyeSpO2Artifact = blueDyeExposure ? -5 : 0; // SpO2 reads 5% lower than reality

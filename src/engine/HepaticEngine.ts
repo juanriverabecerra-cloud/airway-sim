@@ -73,9 +73,12 @@ export class HepaticEngine {
       isoMac?: number;
       desMac?: number;
       haloMac?: number;
+      /** Injected deterministic RNG (Layer 1A). Defaults to Math.random when omitted. */
+      rng?: () => number;
     }
   ): HepaticOutput {
     const events: string[] = [];
+    const rng = inputs.rng || Math.random;
     const patient = st.patient || {};
     const safeTime = typeof st.time === 'number' && Number.isFinite(st.time) ? st.time : 0;
 
@@ -145,7 +148,7 @@ export class HepaticEngine {
     if (cirrhosisFactor > 0.5 && HVPG > 12.0 && bleedTriggerPressure && !varicealBleedingActive && !patient.hasTIPS) {
       if (varicealBleedRolled === undefined) {
         const baseProb = 0.10; // 10% baseline probability of variceal rupture
-        varicealBleedRolled = Math.random() < baseProb;
+        varicealBleedRolled = rng() < baseProb;
       }
       if (patient.forceVaricealBleed || varicealBleedRolled) {
         varicealBleedingActive = true;
@@ -212,7 +215,7 @@ export class HepaticEngine {
         const stressorCount = (hypoxicStressor ? 1 : 0) + (hypercapnicStressor ? 1 : 0) + (acidoticStressor ? 1 : 0);
         const modifier = (stressorCount > 1 ? 3.0 : 1.0) * (inputs.temp < 35.0 ? 2.0 : 1.0);
         const prob = Math.min(1.0, baseProb * modifier);
-        poPHCollapseRolled = Math.random() < prob;
+        poPHCollapseRolled = rng() < prob;
       }
       if (patient.forcePoPHCollapse || poPHCollapseRolled) {
         hasPoPHCollapse = true;

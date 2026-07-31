@@ -119,6 +119,8 @@
  */
 
 export interface SpecialSurgeryInputs {
+  /** Injected deterministic RNG (Layer 1A). Defaults to Math.random when omitted. */
+  rng?: () => number;
   // Position-specific
   position?: string;                // 'Prone', 'Trendelenburg', 'Steep Trendelenburg', etc.
   durationMinutes?: number;         // total case duration
@@ -196,6 +198,7 @@ function clamp(v: number, lo: number, hi: number): number {
 export class SpecialSurgeryPhysiology {
   static tick(inputs: SpecialSurgeryInputs = {}): SpecialSurgeryOutput {
     const events: string[] = [];
+    const rng = inputs.rng || Math.random;
     let prevEyePressureLogged = !!inputs.prevEyePressureLogged;
     let prevFacialEdemaLogged = !!inputs.prevFacialEdemaLogged;
     let prevTourniquetPainLogged = !!inputs.prevTourniquetPainLogged;
@@ -304,7 +307,7 @@ export class SpecialSurgeryPhysiology {
       }
 
       // Probabilistic fire: depends on risk level (very low even at high risk)
-      laserFireActive = laserFireRisk > 0.8 && Math.random() < 0.0001; // very rare but catastrophic
+      laserFireActive = laserFireRisk > 0.8 && rng() < 0.0001; // very rare but catastrophic
     }
     if (!laserActive) prevFireRiskLogged = false;
 

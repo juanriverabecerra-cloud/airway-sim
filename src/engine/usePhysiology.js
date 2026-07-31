@@ -99,6 +99,7 @@ import { CardiacRhythmManagementModel } from './CardiacRhythmManagementModel';
 import { AcuteKidneyInjuryModel } from './AcuteKidneyInjuryModel';
 import { createQualityEvent } from './OutcomeScoringEngine.ts';
 import { HERBAL_MEDICINES, DIETARY_SUPPLEMENTS } from './CAMKnowledgeEngine';
+import { ensureRng } from './rng';
 
 export function resolveDosingWeight(medData, type, patient) {
   const tbw = typeof patient.weight === 'number' && Number.isFinite(patient.weight) && patient.weight > 0 ? patient.weight : 70;
@@ -1241,7 +1242,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
         injectedArterial = true;
         if (medId === 'thiopental' || medId === 'methohexital') {
             const baseProb = 0.50;
-            const willPrecipitate = currentPatient.forceBarbituratePrecipitation || (Math.random() < baseProb);
+            const willPrecipitate = currentPatient.forceBarbituratePrecipitation || (ensureRng(currentPatient, currentPatient.rngSeed)() < baseProb);
             if (willPrecipitate) {
                 logEvent(`🚨 CRITICAL EMERGENCY: Injected Barbiturate ${medId === 'thiopental' ? 'Thiopental' : 'Methohexital'} into Arterial Line: ${targetLine.name}! This triggers immediate chemical endarteritis, microvascular crystal precipitation, profound arterial vasospasm, and severe distal limb ischemia!`);
                 setPatient(prev => ({
@@ -1741,7 +1742,9 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
       bloodLossRatio,
       joules,
       isSync,
-      simulationTime: stateRef.current.time || time
+      simulationTime: stateRef.current.time || time,
+      // Layer 1A: seed the defibrillation ROSC roll from the same serializable RNG the tick uses.
+      rng: currentPatient ? ensureRng(currentPatient, currentPatient.rngSeed) : Math.random
     });
 
     setPatient(result.patient);
@@ -1791,6 +1794,13 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
             stateRef.current.time = (stateRef.current.time || 0) + 1;
             
             const st = stateRef.current;
+          // Layer 1A determinism: every stochastic complication "roll" in this tick draws from a
+          // seeded, serializable RNG bound to st.patient.rng (see
+          // docs/architecture/audit_layer1_physics_core.md). Stored on patient because patient is the
+          // bag that survives the flush -> render -> stateRef-rebuild cycle and createSnapshot. Falls
+          // back to a Math.random-derived seed in production (still individually replayable because the
+          // seed is retained on st.patient.rng.seed). Tests/harness pre-seed st.patient.rng for repeatability.
+          const rng = st.patient ? ensureRng(st.patient, st.patient.rngSeed) : Math.random;
           const safeIntravascularVolume = typeof st.intravascularVolume === 'number' && Number.isFinite(st.intravascularVolume) ? st.intravascularVolume : 0;
           let currentMac = st.vitals.mac || 0;
           let deliveredFiO2 = st.vitals.fiO2 || 21;
@@ -2128,6 +2138,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
             const pecHydralazineModel = (st.activeMeds || []).find(m => m.name === 'Hydralazine');
             const pecNifedipineModel = (st.activeMeds || []).find(m => m.name === 'Nifedipine');
             const pecOutput = PreeclampsiaModel.tick({
+              rng,
               hasPreeclampsia: !!st.patient.hasPreeclampsia,
               gestationalAgeWeeks: st.patient.gestationalAgeWeeks,
               currentMAP: st.vitals.map,
@@ -2853,6 +2864,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
           {
             if (st.patient.hasSickleCellDisease) {
               const scdOutput = SickleCellModel.tick({
+                rng,
                 hasSickleCellDisease: true,
                 hbSPercent: st.patient.hbSPercent || 85,
                 currentSpO2: st.vitals.spo2,
@@ -4084,7 +4096,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
                   const baseProb = 0.15; // 15% base probability of seizures
                   const hasRisk = (st.patient.epilepsy || st.patient.seizureHistory) ? 3.0 : 1.0;
                   const prob = Math.min(1.0, baseProb * hasRisk);
-                  st.patient.normepSeizureRolled = Math.random() < prob;
+                  st.patient.normepSeizureRolled = rng() < prob;
               }
               if (st.patient.forceNormepSeizure || st.patient.normepSeizureRolled) {
                   isSeizure = true;
@@ -4104,7 +4116,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
               const baseProb = 0.15;
               const hasRisk = (st.patient.epilepsy || st.patient.seizureHistory) ? 3.0 : 1.0;
               const prob = Math.min(1.0, baseProb * hasRisk);
-              st.patient.laudanosineSeizureRolled = Math.random() < prob;
+              st.patient.laudanosineSeizureRolled = rng() < prob;
               if (st.patient.forceLaudanosineSeizure || st.patient.laudanosineSeizureRolled) {
                   st.patient.laudanosineSeizureTriggered = true;
                   logEvent("🚨 CRITICAL EMERGENCY: High levels of active metabolite Laudanosine have accumulated, triggering generalized seizures!");
@@ -4131,7 +4143,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
               const baseProb = 0.15;
               const hasRisk = (st.patient.epilepsy || st.patient.seizureHistory) ? 3.0 : 1.0;
               const prob = Math.min(1.0, baseProb * hasRisk);
-              st.patient.m3gSeizureRolled = Math.random() < prob;
+              st.patient.m3gSeizureRolled = rng() < prob;
               if (st.patient.forceM3gSeizure || st.patient.m3gSeizureRolled) {
                   st.patient.m3gSeizureTriggered = true;
                   logEvent("🚨 CRITICAL EMERGENCY: High levels of active metabolite Morphine-3-Glucuronide (M3G) have accumulated in renal failure, triggering myoclonus and generalized seizures!");
@@ -4207,7 +4219,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
                   const isYoung = typeof st.patient.age === 'number' && st.patient.age < 12;
                   const modifier = (st.patient.isSeptic || st.patient.trauma || isYoung) ? 4.0 : 1.0;
                   const prob = Math.min(1.0, baseProb * modifier);
-                  st.patient.prisRolled = Math.random() < prob;
+                  st.patient.prisRolled = rng() < prob;
               }
               if (st.patient.forcePris || st.patient.prisRolled) {
                   prisActive = true;
@@ -5071,7 +5083,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
               const isObese = st.patient.isObese || (st.patient.bmi && st.patient.bmi > 30.0);
               const hasRisk = (priorExposure ? 10.0 : 1.0) * (isObese ? 2.0 : 1.0) * (st.patient.sex === 'female' ? 2.0 : 1.0) * (age > 30 && age < 60 ? 2.0 : 1.0);
               const prob = Math.min(1.0, baseProb * hasRisk);
-              st.patient.halothaneHepatitisRolled = Math.random() < prob;
+              st.patient.halothaneHepatitisRolled = rng() < prob;
               
               if (st.patient.forceHalothaneHepatitis || st.patient.halothaneHepatitisRolled) {
                   isHepatitisActive = true;
@@ -5144,7 +5156,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
               const hasRenalDisease = st.patient.isRenal || st.patient.renalFailure || st.patient.hasAki;
               const modifier = (isElderly ? 2.0 : 1.0) * (hasRenalDisease ? 3.0 : 1.0);
               const prob = Math.min(1.0, baseProb * modifier);
-              st.patient.methoxyfluraneNephrotoxicityRolled = Math.random() < prob;
+              st.patient.methoxyfluraneNephrotoxicityRolled = rng() < prob;
               
               if (st.patient.forceMethoxyfluraneNephrotoxicity || st.patient.methoxyfluraneNephrotoxicityRolled) {
                   hasFluorideNephrotoxicity = true;
@@ -5210,7 +5222,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
               }
               if (st.patient.absorbent.temperature > 80.0 && !st.patient.isAirwayFire && st.patient.airwayFireRolled === undefined) {
                   const baseProb = 0.02; // 2% chance of runaway exothermic reaction leading to active fire
-                  st.patient.airwayFireRolled = Math.random() < baseProb;
+                  st.patient.airwayFireRolled = rng() < baseProb;
                   if (st.patient.forceAirwayFire || st.patient.airwayFireRolled) {
                       st.patient.isAirwayFire = true;
                       logEvent("🚨🚨 CRITICAL EMERGENCY: Desiccated CO2 absorbent has undergone a runaway exothermic reaction with Sevoflurane! Canister temperature has exceeded 80°C, melting circuit plastics and triggering an active AIRWAY FIRE!");
@@ -5320,7 +5332,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
                   const baseProb = 0.05; // 5% base chance of thick mucus plug forming
                   const hasRisk = (st.patient.tobaccoSmoker ? 2.0 : 1.0) * (st.patient.copd ? 2.0 : 1.0) * (st.patient.asthma ? 2.0 : 1.0);
                   const prob = Math.min(1.0, baseProb * hasRisk);
-                  st.patient.mucusPlugRolled = Math.random() < prob;
+                  st.patient.mucusPlugRolled = rng() < prob;
                   
                   if (st.patient.forceMucusPlug || st.patient.mucusPlugRolled) {
                       isMucusPlugged = true;
@@ -5947,7 +5959,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
           const isTASK3 = st.patient.isTASK3Knockout;
           const isTREK1 = st.patient.isTREK1Knockout;
           const macKnockoutResistFactor = 1.0 * (isTASK1 ? 1.3 : 1.0) * (isTASK3 ? 1.4 : 1.0) * (isTREK1 ? 1.5 : 1.0);
-          const painOutput = PainEngine.tick(1, st.patient, st.vitals, st.activeMeds, currentMac / macKnockoutResistFactor, st.time, adrenalOutput.nonNociceptiveSympatheticStimulus);
+          const painOutput = PainEngine.tick(1, st.patient, st.vitals, st.activeMeds, currentMac / macKnockoutResistFactor, st.time, adrenalOutput.nonNociceptiveSympatheticStimulus, rng);
           // Endogenous catecholamines' receptor activity joins the exogenous-drug
           // accumulator above -- one combined per-vascular-bed redistribution signal
           // (Phase 2's receptor-unification piece) regardless of source.
@@ -6035,7 +6047,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
                   const baseProb = 0.02;
                   const hasRisk = st.patient.copd || st.patient.asthma || st.patient.atopic || st.patient.highAnxiety;
                   const prob = Math.min(1.0, baseProb * (hasRisk ? 4.0 : 1.0));
-                  st.patient.penicillinAnaphylaxisRolled = Math.random() < prob;
+                  st.patient.penicillinAnaphylaxisRolled = rng() < prob;
               }
               if (st.patient.forcePenicillinAnaphylaxis || st.patient.penicillinAnaphylaxisRolled) {
                   anaphylaxisTriggered = true;
@@ -6087,6 +6099,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
             const methylpredForAnaph = (st.activeMeds || []).find(m => m.name === 'Methylprednisolone');
 
             const multiAnaphOutput = MultipleAnaphylaxisModel.tick({
+              rng,
               hasKnownLatexAllergy: !!st.patient.hasKnownLatexAllergy,
               hasSpinaOrBifida: !!st.patient.hasSpinaBifida,
               hasMultiplePriorSurgeries: (st.patient.priorAnestheticExposure && st.patient.age > 30),
@@ -6316,7 +6329,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
                   const isElderly = typeof st.patient.age === 'number' && st.patient.age > 65;
                   const modifier = (st.patient.isSeptic || st.patient.trauma || isElderly) ? 5.0 : 1.0;
                   const prob = Math.min(1.0, baseProb * modifier);
-                  st.patient.adrenalSuppressionRolled = Math.random() < prob;
+                  st.patient.adrenalSuppressionRolled = rng() < prob;
               }
               if (st.patient.forceAdrenalSuppression || st.patient.adrenalSuppressionRolled) {
                   adrenalSuppressionActive = true;
@@ -6356,7 +6369,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
                   const isAgeExtreme = typeof st.patient.age === 'number' && (st.patient.age < 18 || st.patient.age > 65);
                   const modifier = (st.patient.highAnxiety || st.patient.trauma || isAgeExtreme) ? 3.0 : 1.0;
                   const prob = Math.min(1.0, baseProb * modifier);
-                  st.patient.emergenceDeliriumRolled = Math.random() < prob;
+                  st.patient.emergenceDeliriumRolled = rng() < prob;
               }
               if (st.patient.forceEmergenceDelirium || st.patient.emergenceDeliriumRolled) {
                   emergenceDeliriumTriggered = true;
@@ -6377,7 +6390,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
                   deliriumMapMod = 25;
                   
                   // In un-intubated patients, saliva can trigger laryngospasm
-                  if (!st.patient.airwaySecured && st.patient.laryngospasm === false && Math.random() < 0.02) {
+                  if (!st.patient.airwaySecured && st.patient.laryngospasm === false && rng() < 0.02) {
                       st.patient.laryngospasm = true;
                       patientAfterFluidics.laryngospasm = true;
                       logEvent(`🚨 CRITICAL ALERT: Sialorrhea from Ketamine emergence delirium has triggered a Laryngospasm! Airway resistance is now infinite.`);
@@ -6425,7 +6438,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
                   const baseProb = 0.10;
                   const modifier = (st.patient.isSeptic || st.patient.trauma || st.patient.highAnxiety) ? 3.0 : 1.0;
                   const prob = Math.min(1.0, baseProb * modifier);
-                  st.patient.benzoWithdrawalSeizureRolled = Math.random() < prob;
+                  st.patient.benzoWithdrawalSeizureRolled = rng() < prob;
               }
               if (st.patient.forceBenzoWithdrawalSeizure || st.patient.benzoWithdrawalSeizureRolled) {
                   st.patient.benzoWithdrawalSeizureTriggered = true;
@@ -6470,7 +6483,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
                       const isAgeExtreme = typeof st.patient.age === 'number' && (st.patient.age < 12 || st.patient.age > 65);
                       const modifier = (isAgeExtreme || (sedativeEff < 0.1)) ? 4.0 : 1.0;
                       const prob = Math.min(1.0, baseProb * modifier);
-                      st.patient.opioidRigidityRolled = Math.random() < prob;
+                      st.patient.opioidRigidityRolled = rng() < prob;
                   }
                   if (st.patient.forceOpioidRigidity || st.patient.opioidRigidityRolled) {
                       opioidRigidityActive = true;
@@ -6509,7 +6522,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
                   const baseProb = 0.15;
                   const modifier = (st.patient.highAnxiety || st.patient.sex === 'female') ? 3.0 : 1.0;
                   const prob = Math.min(1.0, baseProb * modifier);
-                  st.patient.remiHyperalgesiaRolled = Math.random() < prob;
+                  st.patient.remiHyperalgesiaRolled = rng() < prob;
               }
               if (st.patient.forceRemifentanilHyperalgesia || st.patient.remiHyperalgesiaRolled) {
                   remifentanilHyperalgesiaActive = true;
@@ -6571,7 +6584,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
                           modifier = 4.0;
                       }
                       const prob = Math.min(1.0, baseProb * modifier);
-                      st.patient.sphincterOfOddiRolled = Math.random() < prob;
+                      st.patient.sphincterOfOddiRolled = rng() < prob;
                   }
                   if (st.patient.forceSphincterOfOddiSpasm || st.patient.sphincterOfOddiRolled) {
                       sphincterOfOddiSpasmActive = true;
@@ -6614,7 +6627,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
                   const baseProb = 0.10;
                   const modifier = (st.patient.sex === 'female') ? 3.0 : 1.0;
                   const prob = Math.min(1.0, baseProb * modifier);
-                  st.patient.opioidPruritusRolled = Math.random() < prob;
+                  st.patient.opioidPruritusRolled = rng() < prob;
               }
               if (st.patient.forceOpioidPruritus || st.patient.opioidPruritusRolled) {
                   opioidPruritusActive = true;
@@ -6668,7 +6681,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
                       modifier = 1.5;
                   }
                   const prob = Math.min(1.0, baseProb * modifier);
-                  st.patient.urinaryRetentionRolled = Math.random() < prob;
+                  st.patient.urinaryRetentionRolled = rng() < prob;
                   
                   if (st.patient.forceUrinaryRetention || st.patient.urinaryRetentionRolled) {
                       urinaryRetentionActive = true;
@@ -6732,7 +6745,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
                   const baseProb = 0.05;
                   const modifier = (st.patient.cad || st.patient.chf || st.patient.highAnxiety) ? 5.0 : 1.0;
                   const prob = Math.min(1.0, baseProb * modifier);
-                  st.patient.naloxoneSurgeRolled = Math.random() < prob;
+                  st.patient.naloxoneSurgeRolled = rng() < prob;
               }
               if (st.patient.forceNaloxoneSurge || st.patient.naloxoneSurgeRolled) {
                   naloxoneSurgeTriggered = true;
@@ -6963,7 +6976,8 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
               sevoMac: sevoMac,
               isoMac: isoMac,
               desMac: desMac,
-              haloMac: haloMac
+              haloMac: haloMac,
+              rng
           });
 
           if (hepaticOutput.events && hepaticOutput.events.length > 0) {
@@ -7040,6 +7054,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
               sys: st.vitals.sys || 120.0,
               cvp: cvp,
               peep: peepValCvp,
+              rng,
               temp: newTemp,
               currentMac: currentMac,
               C_cat: painOutput.C_cat || 0.0,
@@ -7434,6 +7449,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
               vasomotorSvrContribution: brainstemOutput.vasomotorSvrContribution + maoiSVRSpikeContribution,
               pregnancySvrMultiplier: pregnancyOutput.svrMultiplier
           }, {
+              rng,
               currentMac,
               bloodLossRatio,
               currentEbl,
@@ -7465,6 +7481,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
           const finalPatient = {
               ...patientAfterFluidics,
               ...cvOutput.patient,
+              rng: st.patient.rng, // Layer 1A: pin advanced RNG state so it survives the React flush.
               oxygenBuffer: respOutput.oxygenBuffer,
               isApneic: respOutput.isApneic,
               isParalyzed: respOutput.isParalyzed,

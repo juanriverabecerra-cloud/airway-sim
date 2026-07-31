@@ -143,9 +143,12 @@ export class CardiovascularEngine {
       angiotensinIILevel?: number;
       lastCvSeverity?: number;
       lastCvToxicityActive?: boolean;
+      /** Injected deterministic RNG (Layer 1A). Defaults to Math.random when omitted. */
+      rng?: () => number;
     }
   ): ResuscitationOutput {
     const events: string[] = [];
+    const rng = inputs.rng || Math.random;
     const patient = { ...st.patient };
     const vitals = { ...st.vitals };
 
@@ -530,7 +533,7 @@ export class CardiovascularEngine {
     // AFib HR Flutter
     let afibHRFlutter = 0;
     if (patient.afib || patient.hasAFib || patient.cardiacRhythm === 'afib') {
-      afibHRFlutter = (Math.random() - 0.5) * 12;
+      afibHRFlutter = (rng() - 0.5) * 12;
     }
 
     // Bezold-Jarisch Reflex
@@ -775,8 +778,8 @@ export class CardiovascularEngine {
     const thmEffect = isArrestState ? 0 : Math.sin(safeTime * 2 * Math.PI / 10.0) * 0.9;
 
     // Micro-fluctuations (Pulse Rate Variability / minor blood pressure noise)
-    const hrMicro = isArrestState ? 0 : (Math.random() - 0.5) * 0.4;
-    const bpMicro = isArrestState ? 0 : (Math.random() - 0.5) * 0.7;
+    const hrMicro = isArrestState ? 0 : (rng() - 0.5) * 0.4;
+    const bpMicro = isArrestState ? 0 : (rng() - 0.5) * 0.7;
 
     const hrNoise = rsaEffect + thmEffect * 0.2 + hrMicro;
     const sysNoise = respBpVar + thmEffect + bpMicro * 1.5;
@@ -814,8 +817,8 @@ export class CardiovascularEngine {
     const cprDiastolicBoost = cprEpiAlpha1 * 22 + (cprVasopressinPresent ? 8 : 0);
     if (isArrestState) {
       if (patient.cprActive) {
-        roundedSys = Math.round(80 + cprDiastolicBoost * 0.7 + Math.random() * 15);
-        roundedDia = Math.round(22 + cprDiastolicBoost + Math.random() * 8);
+        roundedSys = Math.round(80 + cprDiastolicBoost * 0.7 + rng() * 15);
+        roundedDia = Math.round(22 + cprDiastolicBoost + rng() * 8);
       } else {
         roundedSys = 0;
         roundedDia = 0;
@@ -892,14 +895,14 @@ export class CardiovascularEngine {
         if (bup && (bup as any).Ce > 0.3) {
           currentRhythm = 'vfib';
         } else {
-          currentRhythm = Math.random() > 0.5 ? 'pea' : 'asystole';
+          currentRhythm = rng() > 0.5 ? 'pea' : 'asystole';
         }
         patient.isLAST = true;
         events.push(`🚨 CRITICAL EMERGENCY: Local Anesthetic Systemic Toxicity (LAST) has triggered cardiac arrest (rhythm: ${currentRhythm.toUpperCase()})!`);
       } else {
         if (newSpo2 < 60) currentRhythm = 'asystole';
         else if (safeBloodLossRatio > 0.35) currentRhythm = 'pea';
-        else currentRhythm = Math.random() > 0.5 ? 'vfib' : 'asystole';
+        else currentRhythm = rng() > 0.5 ? 'vfib' : 'asystole';
         events.push(`🚨 CARDIAC ARREST! Rhythm: ${currentRhythm.toUpperCase()}`);
       }
     }
@@ -945,7 +948,7 @@ export class CardiovascularEngine {
       // Requires Intralipid lipid-sink rescue to terminate.
       if (tCv >= 1.3) roscProb *= 0.05;
 
-      if (Math.random() < roscProb) {
+      if (rng() < roscProb) {
         spontaneousRosc = true;
       }
     }
@@ -960,8 +963,8 @@ export class CardiovascularEngine {
     if (isArrestState) {
       if (patient.cprActive) {
         // Drug-augmented CPR pressures (same formula as first-pass block above, for consistency)
-        roundedSys = Math.round(80 + cprDiastolicBoost * 0.7 + Math.random() * 15);
-        roundedDia = Math.round(22 + cprDiastolicBoost + Math.random() * 8);
+        roundedSys = Math.round(80 + cprDiastolicBoost * 0.7 + rng() * 15);
+        roundedDia = Math.round(22 + cprDiastolicBoost + rng() * 8);
         newMap = Math.max(0, Math.round(roundedDia + (roundedSys - roundedDia) / 3));
       } else {
         roundedSys = 0;
@@ -1026,9 +1029,12 @@ export class CardiovascularEngine {
       joules: number;
       isSync: boolean;
       simulationTime: number;
+      /** Injected deterministic RNG (Layer 1A). Defaults to Math.random when omitted. */
+      rng?: () => number;
     }
   ): { patient: PatientState; events: string[] } {
     const { patient, activeMeds, currentBuffer, currentFRC_L, bloodLossRatio, joules, isSync, simulationTime } = inputs;
+    const rng = inputs.rng || Math.random;
     const updated = { ...patient };
     const events: string[] = [];
 
@@ -1093,7 +1099,7 @@ export class CardiovascularEngine {
       const lastPenalty = Math.min(0.9, 0.7 * tCv);
       const successChance = Math.max(0.01, 0.7 + totalBonus - ischemicPenalty - hypoxiaPenalty - hypovolemiaPenalty - lastPenalty);
 
-      if (Math.random() < successChance) {
+      if (rng() < successChance) {
         if (ischemicDamage > 4000) {
           events.push("⚠️ Shock converted rhythm to PEA. Myocardium too ischemic for ROSC.");
           updated.cardiacRhythm = 'pea';

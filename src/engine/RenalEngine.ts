@@ -164,9 +164,12 @@ export class RenalEngine {
       hasMismatchedTransfusion?: boolean;
       hasRhabdomyolysis?: boolean;
       hasContrastNephropathy?: boolean;
+      /** Injected deterministic RNG (Layer 1A). Defaults to Math.random when omitted. */
+      rng?: () => number;
     }
   ): RenalOutput {
     const events: string[] = [];
+    const rng = inputs.rng || Math.random;
     const patient = st.patient || {};
     const vitals = st.vitals || {};
     const safeDt = typeof dt === 'number' && Number.isFinite(dt) && dt > 0 ? dt : 1;
@@ -540,7 +543,7 @@ export class RenalEngine {
         const isElderly = typeof patient.age === 'number' && patient.age > 65;
         const modifier = (patient.chf || patient.cad ? 4.0 : 1.0) * (patient.isRenal || patient.renalFailure || isElderly ? 3.0 : 1.0);
         const prob = Math.min(1.0, baseProb * modifier);
-        fluidOverloadEdemaRolled = Math.random() < prob;
+        fluidOverloadEdemaRolled = rng() < prob;
       }
 
       if (fluidOverloadEdemaRolled) {

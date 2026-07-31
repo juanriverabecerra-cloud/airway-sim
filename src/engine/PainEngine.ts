@@ -81,7 +81,9 @@ export class PainEngine {
     activeMeds: any[],
     currentMac: number,
     simulationTime: number,
-    nonNociceptiveSympatheticStimulus: number = 0
+    nonNociceptiveSympatheticStimulus: number = 0,
+    /** Injected deterministic RNG (Layer 1A). Defaults to Math.random when omitted. */
+    rng: () => number = Math.random
   ): PainEngineOutput {
     // 1. Sanitizing/Initializing State Variables
     const safeTime = typeof simulationTime === 'number' && Number.isFinite(simulationTime) ? simulationTime : 0;
@@ -426,9 +428,9 @@ export class PainEngine {
     if (airwayProcActive && !isParalyzed && BAR_suppression < 0.50) {
       // 5% chance per second under inadequate anesthesia during airway manipulation
       // Seed/Mock compatibility
-      const randVal = Math.random();
+      const randVal = rng();
       if (randVal < 0.05) {
-        if (Math.random() < 0.50 && !airwaySecured && !p.laryngospasm) {
+        if (rng() < 0.50 && !airwaySecured && !p.laryngospasm) {
           triggerLaryngospasm = true;
         } else if (!p.bronchospasm) {
           triggerBronchospasm = true;

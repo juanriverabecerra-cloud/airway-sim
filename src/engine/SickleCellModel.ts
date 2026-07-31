@@ -50,6 +50,8 @@
  */
 
 export interface SickleCellInputs {
+  /** Injected deterministic RNG (Layer 1A). Defaults to Math.random when omitted. */
+  rng?: () => number;
   hasSickleCellDisease?: boolean;     // HbSS (most severe) — or HbSC, HbS/β-thal
   hbSPercent?: number;                // % of total Hb that is HbS (preop target < 30%)
   currentSpO2?: number;               // desaturation is the most dangerous trigger
@@ -103,6 +105,7 @@ function clamp(v: number, lo: number, hi: number): number {
 export class SickleCellModel {
   static tick(inputs: SickleCellInputs = {}): SickleCellOutput {
     const events: string[] = [];
+    const rng = inputs.rng || Math.random;
     let prevVOCLogged = !!inputs.prevVOCLogged;
     let prevACSLogged = !!inputs.prevACSLogged;
 
@@ -162,7 +165,7 @@ export class SickleCellModel {
     // VOC RISK
     // ===========================
     const vocRisk = sicklingRiskIndex * 0.001; // per-second risk of crisis
-    const vocActive = !!inputs.vocActive || (sicklingRiskIndex > 0.5 && Math.random() < vocRisk);
+    const vocActive = !!inputs.vocActive || (sicklingRiskIndex > 0.5 && rng() < vocRisk);
 
     if (vocActive && !prevVOCLogged) {
       events.push(

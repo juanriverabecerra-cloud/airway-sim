@@ -57,6 +57,8 @@
  */
 
 export interface PreeclampsiaInputs {
+  /** Injected deterministic RNG (Layer 1A). Defaults to Math.random when omitted. */
+  rng?: () => number;
   hasPreeclampsia?: boolean;
   gestationalAgeWeeks?: number;
   currentMAP?: number;        // mmHg
@@ -112,6 +114,7 @@ function clamp(v: number, lo: number, hi: number): number {
 export class PreeclampsiaModel {
   static tick(inputs: PreeclampsiaInputs = {}): PreeclampsiaOutput {
     const events: string[] = [];
+    const rng = inputs.rng || Math.random;
     let prevPECHypertensiveLogged = !!inputs.prevPECHypertensiveLogged;
     let prevEclampsiaLogged = !!inputs.prevEclampsiaLogged;
     let prevHELLPLogged = !!inputs.prevHELLPLogged;
@@ -216,7 +219,7 @@ export class PreeclampsiaModel {
     // Seizure risk driven by: uncontrolled severe HTN (MAP > 120), no Mg protection, cerebral edema
     const cerebralRisk = clamp((map - 90) / 40, 0, 1); // 0 at MAP 90, 1 at MAP 130+
     const rawEclampsiaRisk = cerebralRisk * (1 - mgSeizureProtection) * 0.002; // per-second risk
-    const eclampsiaActive = Math.random() < rawEclampsiaRisk && hasPEC && map > 105;
+    const eclampsiaActive = rng() < rawEclampsiaRisk && hasPEC && map > 105;
 
     if (eclampsiaActive && !prevEclampsiaLogged) {
       events.push(
