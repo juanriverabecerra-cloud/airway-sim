@@ -146,3 +146,27 @@ Module-level symbols (all 78 engines, `MEDICATIONS`, `resolveDosingWeight`, `ext
     `ProceduralEngine.js`; and adding `rng` to `createSnapshot`/`restoreSnapshot` for replay across
     snapshot/restore. `Date.now()` display timestamp (≈ line 211) still to swap for sim `time`.
   - Next: **Layer 1B** — extract `runPhysicsStep(ctx)` and stand up the headless golden master.
+- 2026-07-31 — **Layer 1B core extraction landed and validated.**
+  - `runPhysicsStep(__ctx)` is now a module-scope exported function in `usePhysiology.js` (body moved
+    verbatim, lines 1794–8496 of the pre-extraction file). Done via an assert-guarded Node script
+    (`scratchpad/extract_step.mjs`), not by hand.
+  - **ctx contract (15 fields), confirmed empirically:** `stateRef, ventSettings, gasSettings,
+    logEvent, logQualityEvent, setVitals, setElectrolytes, setCoags, setTotalBodyWaterLiters,
+    setIntravascularVolume, setSurgicalPhase, setIsRunning, ffRemainingRef, ffTotalRef, electrolytes`.
+    `electrolytes` was the only non-obvious one (the body reads/mutates the bare hook snapshot in 29
+    places, distinct from `st.electrolytes`).
+  - Exactly **one** top-level early return (empty-vitals guard) → returns `{skipped:true}`; the hook
+    wrapper `return`s to skip the flush, matching original semantics.
+  - **Free-variable safety net = ESLint `no-undef`** (js.configs.recommended). It caught the one thing
+    the manual grep missed and, in doing so, **found a real latent bug**: `clamp` was called at 4
+    bronchodilator sites but never defined anywhere — a `ReferenceError` the tick's try/catch
+    swallowed as "Physics Engine Tick Failed" whenever Albuterol/Ipratropium/Ketamine/Magnesium was
+    given. Fixed with a module-scope `clamp` helper (deliberate bugfix, documented).
+  - **Runtime validation:** `src/testing/headless_step_smoke.test.ts` — `runPhysicsStep` runs headless
+    over 120 steps with no throw, keeps all vitals finite, is deterministic (same seed → identical
+    trajectory), and advances the serializable RNG. (Seed is a hand-built healthy adult; the engines
+    drive it to extremes because it is not yet a faithful init — that is the next step.)
+  - Verification: `no-undef` 0 · `vite build` green · full suite **1753/1753** green.
+  - **Next (Layer 1B finish):** extract `createInitialSimState(activeCase, ventSettings, gasSettings)`
+    from the init `useEffect` for a faithful seed → record the headless golden-master fixture; then the
+    one-time React characterization/equivalence proof. Then **Layer 1C** (fuzz→step→oracle loop).

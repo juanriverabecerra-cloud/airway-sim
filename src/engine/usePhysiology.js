@@ -101,6 +101,15 @@ import { createQualityEvent } from './OutcomeScoringEngine.ts';
 import { HERBAL_MEDICINES, DIETARY_SUPPLEMENTS } from './CAMKnowledgeEngine';
 import { ensureRng } from './rng';
 
+/**
+ * Clamp `v` to [lo, hi]. Module-scope helper used by the physics step (bronchodilator effects).
+ * NOTE: `clamp` was referenced at 4 sites but never defined anywhere in this file — a latent
+ * ReferenceError that the tick's try/catch swallowed as "Physics Engine Tick Failed" whenever
+ * Albuterol/Ipratropium/Ketamine/Magnesium was administered. Surfaced by the Layer 1B extraction's
+ * ESLint no-undef gate and fixed here (docs/architecture/audit_layer1_physics_core.md).
+ */
+const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
 export function resolveDosingWeight(medData, type, patient) {
   const tbw = typeof patient.weight === 'number' && Number.isFinite(patient.weight) && patient.weight > 0 ? patient.weight : 70;
   const ibw = typeof patient.ibw === 'number' && Number.isFinite(patient.ibw) && patient.ibw > 0 ? patient.ibw : 70;
@@ -149,1648 +158,18 @@ export function resolveDosingWeight(medData, type, patient) {
   return tbw;
 }
 
-export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, ventSettings, gasSettings, logEvent, msmaidsComplete }) {
-  const [timeVal, setTimeState] = useState(0);
-  const [vitalsVal, setVitalsState] = useState({});
-  const [targetVitalsVal, setTargetVitalsState] = useState({});
-  const [patientVal, setPatientState] = useState({});
-  const [activeMedsVal, setActiveMedsState] = useState([]);
-  const [gasModels, setGasModels] = useState({});
-  
-  const [intravascularVolumeVal, setIntravascularVolumeState] = useState(0); 
-  const [totalBodyWaterLitersVal, setTotalBodyWaterLitersState] = useState(42);
-  const [electrolytesVal, setElectrolytesState] = useState({ na: 140, k: 4.0, cl: 100, ca: 9.0, ph: 7.4 });
-  const [coagsVal, setCoagsState] = useState({ r_offset: 0, ma_offset: 0, angle_offset: 0 });
-  const [surgicalPhaseVal, setSurgicalPhaseState] = useState('Pre-Op');
-  const [prevCaseId, setPrevCaseId] = useState(null);
-
-  const ffRemainingRef = useRef(0);
-  const ffTotalRef = useRef(0);
-
-  // Synchronous State Setter Wrappers to synchronously bridge changes into stateRef
-  const stateRef = useRef({ time: timeVal, vitals: vitalsVal, targetVitals: targetVitalsVal, patient: patientVal, activeMeds: activeMedsVal, gasModels, intravascularVolume: intravascularVolumeVal, electrolytes: electrolytesVal, ventSettings, gasSettings, surgicalPhase: surgicalPhaseVal, msmaidsComplete });
-
-  const setTime = (update) => {
-    const prev = stateRef.current.time !== undefined ? stateRef.current.time : timeVal;
-    const next = typeof update === 'function' ? update(prev) : update;
-    stateRef.current.time = next;
-    setTimeState(next);
-  };
-
-  const setVitals = (update) => {
-    const prev = stateRef.current.vitals || vitalsVal;
-    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
-    stateRef.current.vitals = next;
-    setVitalsState(next);
-  };
-
-  const setTargetVitals = (update) => {
-    const prev = stateRef.current.targetVitals || targetVitalsVal;
-    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
-    stateRef.current.targetVitals = next;
-    setTargetVitalsState(next);
-  };
-
-  const setPatient = (update) => {
-    const prev = stateRef.current.patient || patientVal;
-    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
-    
-    // Sync fast-forward refs ONLY if they were explicitly changed by the update (not just spread from prev)
-    if (next.fastForwardRemaining !== undefined && next.fastForwardRemaining !== prev.fastForwardRemaining) {
-      ffRemainingRef.current = next.fastForwardRemaining || 0;
-    }
-    if (next.fastForwardTotal !== undefined && next.fastForwardTotal !== prev.fastForwardTotal) {
-      ffTotalRef.current = next.fastForwardTotal || 0;
-    }
-
-    stateRef.current.patient = next;
-    setPatientState(next);
-  };
-
-  const setActiveMeds = (update) => {
-    const prev = stateRef.current.activeMeds || activeMedsVal;
-    const next = typeof update === 'function' ? update(prev) : update;
-    stateRef.current.activeMeds = next;
-    setActiveMedsState(next);
-  };
-
-  const setIntravascularVolume = (update) => {
-    const prev = stateRef.current.intravascularVolume !== undefined ? stateRef.current.intravascularVolume : intravascularVolumeVal;
-    const next = typeof update === 'function' ? update(prev) : update;
-    stateRef.current.intravascularVolume = next;
-    setIntravascularVolumeState(next);
-  };
-
-  const setTotalBodyWaterLiters = (update) => {
-    const prev = stateRef.current.totalBodyWaterLiters !== undefined ? stateRef.current.totalBodyWaterLiters : totalBodyWaterLitersVal;
-    const next = typeof update === 'function' ? update(prev) : update;
-    stateRef.current.totalBodyWaterLiters = next;
-    setTotalBodyWaterLitersState(next);
-  };
-
-  const setElectrolytes = (update) => {
-    const prev = stateRef.current.electrolytes || electrolytesVal;
-    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
-    stateRef.current.electrolytes = next;
-    setElectrolytesState(next);
-  };
-
-  const setCoags = (update) => {
-    const prev = stateRef.current.coags || coagsVal;
-    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
-    stateRef.current.coags = next;
-    setCoagsState(next);
-  };
-
-  const setSurgicalPhase = (update) => {
-    const prev = stateRef.current.surgicalPhase || surgicalPhaseVal;
-    const next = typeof update === 'function' ? update(prev) : update;
-    stateRef.current.surgicalPhase = next;
-    setSurgicalPhaseState(next);
-  };
-
-  // Structured, scorable quality-of-care event log (distinct from the narrative `logEvent`
-  // text log). Introduced as part of the Ch9-30 retroactive sweep to give a future
-  // debrief/outcome-score feature (see OutcomeScoringEngine.ts) real data to consume.
-  // Mapping from the simulator's existing 5-stage surgical timeline to the broader 4-phase
-  // continuum-of-care model (PreOp/Intraoperative/PACU/PostDischarge) used by quality events.
-  const mapSurgicalPhaseToCareOfPhase = (surgPhase) => {
-    if (surgPhase === 'Pre-Op') return 'PreOp';
-    if (surgPhase === 'PACU') return 'PACU';
-    return 'Intraoperative';
-  };
-
-  const logQualityEvent = (input) => {
-    const currentPhase = input?.phase || mapSurgicalPhaseToCareOfPhase(stateRef.current.surgicalPhase);
-    const event = createQualityEvent({
-      ...input,
-      time: typeof input?.time === 'number' ? input.time : stateRef.current.time,
-      phase: currentPhase
-    });
-    const currentPatient = stateRef.current.patient || patientVal;
-    const existingEvents = Array.isArray(currentPatient.qualityEvents) ? currentPatient.qualityEvents : [];
-    setPatient(prev => ({ ...prev, qualityEvents: [...existingEvents, event] }));
-    if (logEvent && event.description) {
-      logEvent(`📋 [${event.category}/${event.severity.toUpperCase()}] ${event.description}`);
-    }
-  };
-
-  const time = timeVal;
-  const vitals = vitalsVal;
-  const targetVitals = targetVitalsVal;
-  const patient = patientVal;
-  const activeMeds = activeMedsVal;
-  const intravascularVolume = intravascularVolumeVal;
-  const totalBodyWaterLiters = totalBodyWaterLitersVal;
-  const electrolytes = electrolytesVal;
-  const coags = coagsVal;
-  const surgicalPhase = surgicalPhaseVal;
-
-  useEffect(() => {
-    stateRef.current = { 
-      time, vitals, targetVitals, patient, activeMeds, gasModels, intravascularVolume, totalBodyWaterLiters, electrolytes, coags, ventSettings, gasSettings, surgicalPhase, msmaidsComplete 
-    };
-  });
-
-  useEffect(() => {
-    if (activeCase && activeCase.id !== prevCaseId) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPrevCaseId(activeCase.id);
-      DynamicMedicationRegistry.hydrate();
-        const safeBaseVitals = activeCase.baseVitals || {};
-        const baseDia = typeof safeBaseVitals.dia === 'number' && Number.isFinite(safeBaseVitals.dia) ? safeBaseVitals.dia : 80;
-        const baseSys = typeof safeBaseVitals.sys === 'number' && Number.isFinite(safeBaseVitals.sys) ? safeBaseVitals.sys : 120;
-        const baseHr = typeof safeBaseVitals.hr === 'number' && Number.isFinite(safeBaseVitals.hr) && safeBaseVitals.hr > 0 ? safeBaseVitals.hr : 70;
-
-        const initialMap = baseDia + ((baseSys - baseDia) / 3);
-        const safePatientObj = activeCase.patient || {};
-        const assumedBaseSV = safePatientObj.isObese ? 85 : 70; 
-        let initialCO = (baseHr * assumedBaseSV) / 1000;
-        if (isNaN(initialCO) || !Number.isFinite(initialCO) || initialCO <= 0.1) {
-          initialCO = 5.0;
-        }
-        // Calculate SVR based on the closed-loop four-chamber model calibration (fitted linear model)
-        const formulaHr = Math.max(40, Math.min(140, baseHr));
-        let calculatedBaseSVR = (initialMap + 95.0 - 0.64 * formulaHr) / (0.165 - 0.000723 * formulaHr);
-        if (isNaN(calculatedBaseSVR) || !Number.isFinite(calculatedBaseSVR) || calculatedBaseSVR <= 100.0) {
-          calculatedBaseSVR = 1200.0;
-        }
-        calculatedBaseSVR = Math.max(500, Math.min(3000, calculatedBaseSVR));
-
-        setVitals({ 
-          ...safeBaseVitals, pip: 0, pplat: 0, vte: 0, bis: 98, temp: 37.0, 
-          tofCount: 4, tofRatio: 1.0, perceivedTofCount: 4, perceivedTofRatio: 1.0, mac: 0, etAgent: 0, fiAgent: 0, etN2O: 0, fiN2O: 0, fiO2: 21, etO2: 21,
-          pao2: safePatientObj.isObese ? 75 : 100, 
-          paco2: safePatientObj.isObese ? 52 : 40, 
-          ph: safePatientObj.isSeptic ? 7.22 : (safePatientObj.isObese ? 7.36 : 7.4), 
-          co: initialCO, svr: calculatedBaseSVR, map: Math.round(initialMap), cmap: Math.round(initialMap), 
-          metHb: 0.8, coHb: activeCase.id === 'trauma' ? 12.0 : 1.0, cyanide: 0.0, lacticAcid: safePatientObj.isSeptic ? 4.5 : 1.0,
-          cao2: 20.0, cvo2: 15.0, p50: 26.6, r_ratio: 0.90,
-          lesTone: 25.0, gastricPressure: 7.0, bowelGasVolume: 1.0, gutMotility: 1.0, inflammatoryIleus: 0.0, postoperativeIleus: 0.0,
-          mPAP: 15.0, HVPG: 5.0, pbf: 1000.0, habf: 300.0, thbf: 1300.0, renalArteryResistance: 1.0, cvp: 5.0,
-          mapUnder60Time: 0.0, mapUnder55Time: 0.0,
-          mapUnder60AlertTriggered: false, mapUnder55AlertTriggered: false
-        });
-        setTargetVitals({ ...safeBaseVitals });
-        
-        const heightCm = typeof safePatientObj.height === 'number' && Number.isFinite(safePatientObj.height) ? safePatientObj.height : 170;
-        const weightKg = typeof safePatientObj.weight === 'number' && Number.isFinite(safePatientObj.weight) ? safePatientObj.weight : 70;
-        const sex = typeof safePatientObj.sex === 'string' ? safePatientObj.sex : 'male';
-        
-        const clampedHeight = Math.max(50.0, Math.min(250.0, heightCm));
-        const clampedWeight = Math.max(5.0, Math.min(300.0, weightKg));
-        const clampedAge = Math.max(1.0, Math.min(120.0, typeof safePatientObj.age === 'number' && Number.isFinite(safePatientObj.age) ? safePatientObj.age : 40));
-        
-        const ebv = typeof safePatientObj.ebv === 'number' && Number.isFinite(safePatientObj.ebv) && safePatientObj.ebv > 0 
-          ? safePatientObj.ebv 
-          : (clampedWeight * (sex.toLowerCase() === 'female' ? 65 : 75));
-        const baseBleedRate = typeof safePatientObj.bleedRate === 'number' && Number.isFinite(safePatientObj.bleedRate) ? safePatientObj.bleedRate : (activeCase.id === 'trauma' ? 1.5 : 0.05); 
-
-        const bmi = typeof safePatientObj.bmi === 'number' && Number.isFinite(safePatientObj.bmi) && safePatientObj.bmi > 0 
-          ? safePatientObj.bmi 
-          : (clampedWeight / Math.pow(clampedHeight / 100, 2));
-        const position = typeof safePatientObj.position === 'string' ? safePatientObj.position : 'Supine';
-        const lungVols = calculateLungVolumes(clampedHeight, clampedAge, sex, bmi, position, safePatientObj.copd || false, safePatientObj.restrictive || false);
-
-        setPatient({
-          ...safePatientObj, height: clampedHeight, weight: clampedWeight, sex, ebv, ebl: safePatientObj.ebl || 0, bleedRate: baseBleedRate,
-          ibw: calculateIBW(clampedHeight, sex), 
-          lbw: calculateLBW(clampedHeight, clampedWeight, sex),
-          lbm: calculateHumeLBM(clampedHeight, clampedWeight, sex),
-          ffm: calculateJanmahasatianFFM(clampedHeight, clampedWeight, sex),
-          cbw: calculateCBW(clampedHeight, clampedWeight, sex),
-          mffm: calculateMFFM(clampedHeight, clampedWeight, sex),
-          pkm: calculatePKM(clampedWeight),
-          lungVolumes: lungVols,
-          position: position,
-          isApneic: false, isParalyzed: false, isTopicalized: false,
-          airwaySecured: false, airwayExamined: false, ventilationStatus: 'spontaneous',
-          hasIV: false, hasALine: false, currentO2Device: 'Room Air', currentO2Flow: 0, currentFiO2: 21,
-          oxygenBuffer: lungVols.frc_L * 0.21, 
-          hasBisMonitor: false, hasTofMonitor: false, tofMonitorMode: 'quantitative',
-          qualityEvents: [],
-          // Captured once at case start for PACU/Aldrete-style readiness scoring ("circulation
-          // within 20% of baseline" criterion) - see OutcomeScoringEngine.ts.
-          baselineMap: Math.round(initialMap), baselineHr: baseHr,
-          isArrest: false, cardiacRhythm: 'normal', cprActive: false, ischemicDamage: 0, biologicalDeath: false, myocardialStunning: 0,
-          arrestThreshold: 1200, codeStartTime: null, apneaStartTime: null,
-          shuntFraction: activeCase.id === 'trauma' ? 0.20 : (safePatientObj.isObese ? 0.12 : 0.05),
-          // Disease models that multiply drugSvrMod (PEC +40%, sepsis -40%) will double-count
-          // if patientBaseSVR is computed from the already-diseased starting vitals. Use the
-          // normotensive equivalent so the model's multiplier reproduces the correct initial MAP.
-          patientBaseSVR: safePatientObj.hasPreeclampsia ? Math.round(calculatedBaseSVR / 1.4) :
-                          safePatientObj.isSeptic ? Math.round(calculatedBaseSVR / 0.6) :
-                          calculatedBaseSVR,
-          // Sepsis: start at maximum score (3) so sepsisVasoplegiaMod=0.6 × adjusted
-          // patientBaseSVR reproduces the initial vitals on the first tick instead of
-          // defaulting to 0.5 and crashing further below the presenting MAP.
-          sepsisScore: safePatientObj.isSeptic ? 3.0 : 0,
-          patientBaseSV: assumedBaseSV,
-          patientBaseHR: baseHr,
-          patientBaseSBP: safeBaseVitals.sys || 120,
-          patientBaseDBP: safeBaseVitals.dia || 80,
-          oculocardiacTriggered: false,
-          patientBaseRR: safeBaseVitals.rr || 12,
-          lastAirwayManipulationTime: -999,
-          lastAirwayManipulationType: '',
-          laryngoscopyActive: false,
-          laryngoscopyTime: -999,
-          cricPlacedTime: -999,
-          cricSympatheticSurgeActive: false,
-          ioPlacedTime: -999,
-          ioSympatheticSurgeActive: false,
-          lastLinePlacementTime: -999,
-          lastLineCategory: '',
-          
-          metHb: 0.8,
-          coHb: activeCase.id === 'trauma' ? 12.0 : 1.0,
-          cyanide: 0.0,
-          lacticAcid: safePatientObj.isSeptic ? 4.5 : 1.0,
-          glp1Held: activeCase.id === 'obese' ? false : true,
-          nAChR_state: activeCase.id === 'trauma' ? 'upregulated' : 'normal',
-          ivGauge: '18G',
-          fluidLine: 'gravity',
-          stomach: activeCase.id === 'obese' ? 'full' : (activeCase.id === 'trauma' ? 'full' : 'empty'),
-          fluidInfusing: null,
-          suxPotassiumLeaked: false,
-          mhActive: false,
-          charcoalFiltersPlaced: false,
-          mhStartTime: null,
-          dantroleneGiven: false,
-          isSeizure: false,
-          celiacBlockActive: safePatientObj.celiacBlockActive || false,
-          epiduralBlockActive: safePatientObj.epiduralBlockActive || false,
-          epiduralLevel: typeof safePatientObj.epiduralLevel === 'number' ? safePatientObj.epiduralLevel : null,
-          swallowingActive: safePatientObj.swallowingActive || false,
-          manipulationIndex: typeof safePatientObj.manipulationIndex === 'number' ? safePatientObj.manipulationIndex : 0.0,
-          hasRegurgitated: false,
-          hasAspirated: false,
-
-          // Hepatic states
-          cirrhosisFactor: safePatientObj.cirrhosisFactor || 0.0,
-          bilirubin: safePatientObj.bilirubin || 1.0,
-          inr: safePatientObj.inr || 1.0,
-          creatinine: (() => {
-              if (safePatientObj.creatinine !== undefined) return safePatientObj.creatinine;
-              if (safePatientObj.renalComorbidity) {
-                  const ren = safePatientObj.renalComorbidity.toLowerCase();
-                  if (ren.includes('stage 5') || ren.includes('dialysis')) return 5.2;
-                  if (ren.includes('stage 4')) return 2.8;
-                  if (ren.includes('stage 3')) return 1.8;
-                  if (ren.includes('stage 2')) return 1.3;
-                  if (ren.includes('aki')) return 2.2;
-              }
-              return 0.85;
-          })(),
-          albumin: safePatientObj.albumin || 4.0,
-          encephalopathyGrade: safePatientObj.encephalopathyGrade || 0,
-          ascitesDegree: safePatientObj.ascitesDegree || 0,
-          surgicalProcedure: safePatientObj.surgicalProcedure || '',
-          varicealBleedingActive: false,
-          varicealBleedTime: null,
-          hasPoPHCollapse: false,
-          hasTIPS: safePatientObj.hasTIPS || false,
-
-          // Renal states
-          gfr: (() => {
-              if (safePatientObj.gfr !== undefined) return safePatientObj.gfr;
-              if (safePatientObj.renalComorbidity) {
-                  const ren = safePatientObj.renalComorbidity.toLowerCase();
-                  if (ren.includes('stage 5') || ren.includes('dialysis')) return 12.5;
-                  if (ren.includes('stage 4')) return 25.0;
-                  if (ren.includes('stage 3')) return 45.0;
-                  if (ren.includes('stage 2')) return 75.0;
-                  if (ren.includes('aki')) return 35.0;
-              }
-              return 125.0;
-          })(),
-          rbf: 1100.0,
-          bun: (() => {
-              if (safePatientObj.bun !== undefined) return safePatientObj.bun;
-              if (safePatientObj.renalComorbidity) {
-                  const ren = safePatientObj.renalComorbidity.toLowerCase();
-                  if (ren.includes('stage 5') || ren.includes('dialysis')) return 74.0;
-                  if (ren.includes('stage 4')) return 42.0;
-                  if (ren.includes('stage 3')) return 28.0;
-                  if (ren.includes('stage 2')) return 18.0;
-                  if (ren.includes('aki')) return 32.0;
-              }
-              return 12.0;
-          })(),
-          urineOutput: 0.0,
-          urineOutputRate: 70.0,
-          urineOsmolality: 350.0,
-          feNa: 1.0,
-          akiStage: 0,
-          akiDamage: 0.0,
-          uopOliguriaTimer: 0,
-          uopAnuriaTimer: 0,
-          baselineCreatinine: (() => {
-              if (safePatientObj.baselineCreatinine !== undefined) return safePatientObj.baselineCreatinine;
-              if (safePatientObj.creatinine !== undefined) return safePatientObj.creatinine;
-              if (safePatientObj.renalComorbidity) {
-                  const ren = safePatientObj.renalComorbidity.toLowerCase();
-                  if (ren.includes('stage 5') || ren.includes('dialysis')) return 5.2;
-                  if (ren.includes('stage 4')) return 2.8;
-                  if (ren.includes('stage 3')) return 1.8;
-                  if (ren.includes('stage 2')) return 1.3;
-                  if (ren.includes('aki')) return 2.2;
-              }
-              return 0.85;
-          })(),
-          baselineBun: (() => {
-              if (safePatientObj.baselineBun !== undefined) return safePatientObj.baselineBun;
-              if (safePatientObj.bun !== undefined) return safePatientObj.bun;
-              if (safePatientObj.renalComorbidity) {
-                  const ren = safePatientObj.renalComorbidity.toLowerCase();
-                  if (ren.includes('stage 5') || ren.includes('dialysis')) return 74.0;
-                  if (ren.includes('stage 4')) return 42.0;
-                  if (ren.includes('stage 3')) return 28.0;
-                  if (ren.includes('stage 2')) return 18.0;
-                  if (ren.includes('aki')) return 32.0;
-              }
-              return 12.0;
-          })(),
-          vasopressinLevel: 0.1,
-          aldosteroneLevel: 0.1,
-          angiotensinIILevel: 0.1,
-          osm: 285.0,
-          hasAki: false,
-          hasPrerenalOliguria: false,
-          hasFluidOverloadEdema: false,
-          netFluidBalance: 0.0,
-          mapUnder60Time: 0.0,
-          mapUnder55Time: 0.0,
-          mapUnder60AlertTriggered: false,
-          mapUnder55AlertTriggered: false,
-          cortexRbf: 1034.0,
-          medullaRbf: 66.0,
-          cortexPo2: 50.0,
-          medullaPo2: 8.0,
-          cortexO2Extraction: 0.18,
-          medullaO2Extraction: 0.79,
-          glomerularCapillaryPressure: 60.0,
-          bowmanSpacePressure: 18.0,
-          glomerularOncoticPressure: 32.0,
-          netFiltrationPressure: 10.0,
-
-          // Consciousness & Memory states
-          lcActivity: 1.0,
-          tmnActivity: 1.0,
-          vlpoActivity: 0.0,
-          mnpoActivity: 0.0,
-          ldtPptActivity: 1.0,
-          prfActivity: 1.0,
-          vtaActivity: 1.0,
-          orexinLevel: safePatientObj.narcolepsy ? 0.1 : 1.0,
-          slowOscillationPower: 0.1,
-          thalamocorticalConn: 1.0,
-          frontoparietalFeedback: 1.0,
-          corticocorticalConn: 1.0,
-          basalGangliaConn: 1.0,
-          explicitEncoding: 1.0,
-          explicitConsolidation: 0.1,
-          ltpInductionInhibited: false,
-          neuralInertiaLag: 0.0,
-          alpha5Knockout: safePatientObj.alpha5Knockout || false,
-          alpha4Knockout: safePatientObj.alpha4Knockout || false,
-          tmnPropofolResistant: safePatientObj.tmnPropofolResistant || false,
-          narcolepsy: safePatientObj.narcolepsy || false,
-          alpha2AKnockout: safePatientObj.alpha2AKnockout || false,
-          sleepStage: safePatientObj.sleepStage || 'W',
-          sleepTimeInStage: safePatientObj.sleepTimeInStage || 0,
-          sleepDebt: typeof safePatientObj.sleepDebt === 'number' ? safePatientObj.sleepDebt : 0.0,
-          postOpSleepNight: typeof safePatientObj.postOpSleepNight === 'number' ? safePatientObj.postOpSleepNight : 0,
-          remReboundIntensity: typeof safePatientObj.remReboundIntensity === 'number' ? safePatientObj.remReboundIntensity : 1.0,
-          
-          isAwarenessActive: false,
-          ptsdScore: 0.0,
-          hasExplicitRecall: false,
-          hasImplicitRecall: false,
-          isDreaming: false,
-          displayEmergenceLag: false,
-          isF6Active: false,
-          isF3Active: false,
-          rightAmygdaloHippocampalConn: 1.0,
-          leftAmygdaloHippocampalConn: 1.0,
-          nbmHippocampalConn: 1.0,
-          soPhaseCouplingDecay: 0.0,
-          hippocampalRecollection: 1.0,
-          perirhinalFamiliarity: 1.0,
-          caudateProcedural: 1.0,
-          isTASK1Knockout: safePatientObj.isTASK1Knockout || false,
-          isTASK3Knockout: safePatientObj.isTASK3Knockout || false,
-          isTREK1Knockout: safePatientObj.isTREK1Knockout || false,
-          isHCN1Knockout: safePatientObj.isHCN1Knockout || false,
-          gabaa_occupancy: 0.0,
-          glycine_occupancy: 0.0,
-          k2p_activation: 0.0,
-          nmda_blockade: 0.0,
-          hcn_inhibition: 0.0,
-          nav_blockade: 0.0,
-          nachr_inhibition: 0.0,
-          tfaAdducts: 0.0,
-          AST: safePatientObj.AST || 25.0,
-          ALT: safePatientObj.ALT || 25.0,
-          bilirubin: safePatientObj.bilirubin || 1.0,
-          inr: safePatientObj.inr || 1.0,
-          albumin: safePatientObj.albumin || 4.0,
-          isHepatitisActive: false,
-          priorAnestheticExposure: safePatientObj.priorAnestheticExposure || false,
-          serumFluoride: 0.0,
-          accumulatedFluorideTime: 0.0,
-          hasFluorideNephrotoxicity: false,
-          coHb: activeCase.id === 'trauma' ? 12.0 : 1.0,
-          compoundA: 0.0,
-          absorbent: { waterContent: 15.0, temperature: 22.0, type: 'soda_lime' },
-          isAirwayFire: false,
-          methionineSynthaseActivity: 1.0,
-          homocysteine: 10.0,
-          b12Baseline: safePatientObj.b12Baseline || 400.0,
-          pediatricNeuroRisk: 0.0,
-          pocdRisk: 0.0,
-          ciliaBeatFrequency: 100.0,
-          ciliaryAtelectasisAccumulation: 0.0,
-          isMucusPlugged: false,
-          surfactantProduction: 100.0,
-          hpvInhibition: 0.0,
-          intercostalContribution: 1.0,
-          diaphragmContribution: 1.0,
-          isParadoxicalBreathing: false,
-          dilatorMuscleTone: 1.0,
-          airwayObstructionIndex: 0.0,
-          isAirwayObstruction: false,
-          postExtubationLaryngealEdema: false,
-          bronchialSmoothMuscleCa: 1.0,
-          atelectasis: 0.0,
-          recruitmentTime: 0.0,
-          isO2PipelineCrossover: false,
-          isO2CylinderOpen: false,
-          isO2PipelineDisconnected: false,
-          isOxygenFlushPressed: false,
-          breathingCircuitType: 'circle',
-          co2AbsorptiveCapacity: 100.0,
-          stuckExpiratoryValve: false,
-          stuckInspiratoryValve: false,
-          aplValveSetting: 0.0,
-          hasPneumothorax: false,
-          lipidSinkVol: 0.0,
-          prInterval: 160.0,
-          qrsDuration: 80.0,
-          isLAST: false,
-          lastSeizureTriggered: false,
-          hasMetHbLog: false,
-          lastMetHbLogTime: 0,
-
-          // Cerebral states (Chapter 11)
-          cbf: 50.0,
-          cmro2: 3.3,
-          cpp: 80.0,
-          cbv: 1.0,
-          icp: 10.0,
-          brainVolume: 1300.0,
-          csfVolume: 130.0,
-          intracranialVolumeOffset: safePatientObj.intracranialVolumeOffset || 0.0,
-          complianceState: safePatientObj.complianceState || 'normal',
-          hasCerebralIschemia: false,
-          rso2: 70.0,
-          isBBBOpen: safePatientObj.isBBBOpen || false,
-          cerebralElastance: safePatientObj.cerebralElastance,
-          urinaryRetentionActive: false,
-          bladderVolume: 0.0,
-          hasFoley: false,
-          opioidReceptorGenotype: safePatientObj.opioidReceptorGenotype || 'A118A',
-
-          highSpinalApneaLogged: false,
-
-          // === PREECLAMPSIA ===
-          hasPreeclampsia: !!safePatientObj.hasPreeclampsia,
-          prevPECHypertensiveLogged: false,
-          prevEclampsiaLogged: false,
-          prevHELLPLogged: false,
-          prevMgToxicLogged: false,
-          prevPECAirwayEdemaLogged: false,
-          pecSvrContribution: 0,
-
-          // === AMNIOTIC FLUID EMBOLISM ===
-          afeActive: !!safePatientObj.afeActive,
-          afeOnsetTime: null,
-          prevAFEOnsetLogged: false,
-          prevAFEPhase2Logged: false,
-
-          // === ACETAMINOPHEN HEPATOTOXICITY ===
-          apapCumulativeDoseMg: 0,
-          apapFirstDoseTime: null,
-          nacActive: false,
-          prevAPAPHepToxLogged: false,
-          prevAPAPALFLogged: false,
-          prevNACSuccessLogged: false,
-
-          finkEffectLogged: false,
-          n2oDiffusionHypoxiaShunt: 0,
-          isbActive: !!safePatientObj.isbActive,
-          isbPhrenicPalsyLogged: false,
-
-          // === CARDIOPULMONARY BYPASS ===
-          cpbActive: false,
-          cpbStartTime: null,
-          cpbFlowRateLMin: 4.5,
-          cpbTemperatureC: 37,
-          aortaClamped: false,
-          cpbPrimeVolumeMl: 1500,
-          prevCPBOnsetLogged: false,
-          prevCPBClampLogged: false,
-          prevProtamineLogged: false,
-          prevCPBWeaningLogged: false,
-
-          // === PERIOPERATIVE GLUCOSE ===
-          prevHyperglycemiaLogged: false,
-          prevHypoglycemiaLogged: false,
-          prevSGLT2Logged: false,
-          prevMetforminLogged: false,
-          sglt2Inhibitor: !!safePatientObj.sglt2Inhibitor,
-          glp1Agonist: !!safePatientObj.glp1Agonist,
-          sulfonylurea: !!safePatientObj.sulfonylurea,
-          metforminOnDayOfSurgery: !!safePatientObj.metformin,
-          previousGlucose: 100,
-
-          // === MASSIVE TRANSFUSION ===
-          isActiveMTP: false,
-          txaGiven: false,
-          txaAdminTime: null,
-          prevMTPLogged: false,
-          prevMTPTXALogged: false,
-          prevMTPCalciumLogged: false,
-
-          // === LABOR EPIDURAL ===
-          laborEpiduralActive: false,
-          laborStage: 1,
-          laborBupiConc: 0.0625,
-          laborFentanylConc: 2,
-          isCSEActive: false,
-          prevLaborEpiduralLogged: false,
-          prevHighBlockLogged: false,
-          prevFetalBradyLogged: false,
-          prevLaborEpiHypotensionLogged: false,
-
-          // === MALNUTRITION / FRAILTY ===
-          prevMalnutritionLogged: false,
-          prevRefeedingLogged: false,
-          prevFrailtyLogged: false,
-          isStarved: !!safePatientObj.isStarved,
-          starvationDays: safePatientObj.starvationDays || 0,
-
-          // === LIVER TRANSPLANT ===
-          meldScore: safePatientObj.meldScore || 10,
-          isALF: !!safePatientObj.isALF,
-          hasHepPulmonarySyndrome: !!safePatientObj.hasHepPulmonarySyndrome,
-          oltPhase: safePatientObj.oltPhase || 'pre_anhepatic',
-          anhepticStartTimeSec: null,
-          reperfusionStartTimeSec: null,
-          prevAnhepaticLogged: false,
-          prevReperfusionLogged: false,
-          prevHPSLogged: false,
-
-          // === CHRONIC OPIOID TOLERANCE + DELIRIUM ===
-          isChronicOpioidUser: !!safePatientObj.chronicOpioidUser,
-          morphineEquivalentDosePerDay: safePatientObj.medd || 0,
-          onMethadone: !!safePatientObj.methadone,
-          onBuprenorphine: !!safePatientObj.buprenorphine,
-          hasBaselineCognitivImpairment: !!safePatientObj.dementia,
-          hasFrailty: !!safePatientObj.frailty,
-          prevChronicOpioidLogged: false,
-          prevWithdrawalLogged: false,
-          prevDeliriumLogged: false,
-
-          // === CKD/ESRD PERIOPERATIVE ===
-          isOnDialysis: !!safePatientObj.dialysis,
-          daysSinceLastDialysis: safePatientObj.daysSinceLastDialysis || 1,
-          prevCKDWarningLogged: false,
-          prevUremiaPlateletLogged: false,
-          prevHyperKSuxCKDLogged: false,
-
-          // === ARRHYTHMIA MANAGEMENT ===
-          hasWPW: !!safePatientObj.hasWPW,
-          wpwHasAF: false,
-          prevSVTLogged: false,
-          prevWPWLogged: false,
-          prevVTLogged: false,
-
-          // === ANGIOEDEMA + STATUS ASTHMATICUS ===
-          angioedemaPresent: !!safePatientObj.angioedemaPresent,
-          angioedemaOnsetTime: null,
-          hasHAE: !!safePatientObj.hasHAE,
-          aceInhibitorActive: !!safePatientObj.aceInhibitorActive,
-          statusAsthmaticusActive: false,
-          statusAsthmaticusOnsetTime: null,
-          helioxActive: false,
-          prevAngioedemaLogged: false,
-          prevAngioedemaAirwayLogged: false,
-          prevStatusAsthmaLogged: false,
-          prevAutoPEEPLogged: false,
-
-          // === CARDIAC TAMPONADE + TAKOTSUBO ===
-          pericardialEffusionMl: safePatientObj.pericardialEffusionMl || 0,
-          effusionAccumulationRateMlMin: 0,
-          isChronicEffusion: !!safePatientObj.isChronicEffusion,
-          pericardiocentesisDone: false,
-          pericardiocentesisVolumeMl: 0,
-          takotsuboActive: false,
-          takotsuboOnsetTime: null,
-          prevTamponadeLogged: false,
-          prevTakotsuboLogged: false,
-
-          // === MULTIPLE ANAPHYLAXIS ===
-          hasKnownLatexAllergy: !!safePatientObj.latexAllergy,
-          hasSpinaBifida: !!safePatientObj.spinaBifida,
-          latexExposure: false,
-          chlorhexidineExposure: false,
-          blueDyeExposure: false,
-          prevNMBAAnaphLogged: false,
-          prevLatexAnaphLogged: false,
-          prevCefAnaphLogged: false,
-          prevChlorhexLogged: false,
-          prevBlueDyeLogged: false,
-
-          // === DIFFICULT AIRWAY ===
-          prevDifficultyAirwayLogged: false,
-          prevFailedIntubLogged: false,
-          prevCICOLogged: false,
-          intubationAttemptsMade: 0,
-          cormackLehaneGrade: 1,
-          sgaInPlace: false,
-          sgaVentilating: false,
-          cicoActive: false,
-          cricothyroidotomyDone: false,
-
-          // === TUMOR LYSIS / ELECTROLYTE ===
-          tlsActive: !!safePatientObj.tlsActive,
-          tlsRiskLevel: safePatientObj.tlsRiskLevel || 'intermediate',
-          tlsOnsetTime: null,
-          allopurinolActive: false,
-          rasburicaseActive: false,
-          prevTLSLogged: false,
-          prevHypoCaLogged: false,
-          prevHypoMgLogged: false,
-          prevHypoNaLogged: false,
-          magnesiumLevel: safePatientObj.magnesiumLevel || 1.8,
-          phosphorusLevel: safePatientObj.phosphorusLevel || 3.5,
-
-          // === DIGOXIN TOXICITY ===
-          prevDigoxinToxLogged: false,
-          prevDigoxinSevereLogged: false,
-
-          // === HYPERTENSIVE EMERGENCY ===
-          aorticDissectionPresent: !!safePatientObj.aorticDissectionPresent,
-          dissectionType: safePatientObj.dissectionType || 'B',
-          prevHyperEmergencyLogged: false,
-          prevDissectionLogged: false,
-          prevEncephalopathyLogged: false,
-
-          // === SICKLE CELL ===
-          hasSickleCellDisease: !!safePatientObj.hasSickleCellDisease,
-          hbSPercent: safePatientObj.hbSPercent || 85,
-          vocActive: false,
-          acsActive: false,
-          acsOnsetTime: null,
-          prevVOCLogged: false,
-          prevACSLogged: false,
-
-          // === ACUTE PORPHYRIA ===
-          hasAcutePorphyria: !!safePatientObj.hasAcutePorphyria,
-          porphyriaAttackActive: false,
-          porphyriaAttackStartTime: null,
-          heminGiven: false,
-          prevPorphyriaLogged: false,
-          prevPorphyriaParalysisLogged: false,
-
-          // === SPECIAL SURGERY ===
-          tourniquetActive: false,
-          tourniquetStartTime: null,
-          laserActive: false,
-          laserResistantETT: false,
-          openGlobeInjury: !!safePatientObj.openGlobeInjury,
-          adequateEyePads: true,
-          headDownAngleDegrees: 0,
-          prevEyePressureLogged: false,
-          prevFacialEdemaLogged: false,
-          prevTourniquetPainLogged: false,
-          prevFireRiskLogged: false,
-          prevIopLogged: false,
-
-          // === PDPH ===
-          dptOccurred: !!safePatientObj.dptOccurred,
-          dptNeedleGauge: safePatientObj.dptNeedleGauge || 17,
-          dptNeedleType: safePatientObj.dptNeedleType || 'cutting',
-          dptTimeHours: 0,
-          bloodPatchGiven: false,
-          caffeineActive: false,
-          caffeineDose: 0,
-          prevPDPHOnsetLogged: false,
-          prevBloodPatchLogged: false,
-
-          // === TACO ===
-          prbcVolumeReceivedMl: 0,
-          ffpVolumeReceivedMl: 0,
-          prevTACOLogged: false,
-          prevTACOSevereLogged: false,
-
-          // === TOXIDROME ===
-          organophosphatePoisoning: !!safePatientObj.organophosphatePoisoning,
-          organophosphateConcentration: safePatientObj.organophosphateConcentration || 0,
-          prevAnticholinLogged: false,
-          prevCholinergicLogged: false,
-          prevCholinergicSevereLogged: false,
-
-          // === CEA / REPERFUSION ===
-          ceaActive: !!safePatientObj.ceaActive,
-          carotidClamped: false,
-          carotidShuntInPlace: false,
-          carotidStumpPressureMmHg: 60,
-          ipsilateralRSO2Baseline: 68,
-          carotidBodyManipulation: false,
-          reperfusionActive: false,
-          reperfusionType: safePatientObj.reperfusionType || 'hepatic',
-          ischemicDurationMinutes: 0,
-          reperfusionStartTime: null,
-          coldPreservationSolution: false,
-          preservationKMEqL: 115,
-          prevCEAClampLogged: false,
-          prevCEAIschemiaLogged: false,
-          prevReperfusionLogged: false,
-          prevHyperperfusionLogged: false,
-          prevCarotidBodyLogged: false,
-
-          // === PERIOPERATIVE MI ===
-          ischemicBurdenAccumulator: 0,
-          troponinNgL: 3,
-          troponinPeakNgL: 3,
-          miActiveType1: false,
-          miActiveType2: false,
-          miOnsetTime: null,
-          prevIschemiaLogged: false,
-          prevMIType1Logged: false,
-          prevMIType2Logged: false,
-          prevTroponinAlertLogged: false,
-
-          // === FAT EMBOLISM ===
-          femActive: !!safePatientObj.femActive,
-          femTriggerType: safePatientObj.femTriggerType || 'fracture',
-          femOnsetTime: null,
-          prevFEMOnsetLogged: false,
-          prevFEMSevereLogged: false,
-
-          // === PULMONARY HYPERTENSION ===
-          phPresent: !!safePatientObj.phPresent,
-          phWhoGroup: safePatientObj.phWhoGroup || null,
-          phSeverity: safePatientObj.phSeverity || null,
-          baselineMpap: safePatientObj.baselineMpap || null,
-          inoActive: false,
-          inoPpm: 0,
-          inoJustStopped: false,
-          inhaledEpoprostenolActive: false,
-          inhaledEpoprostenolDose: 0,
-          phRvInotropyPenalty: 0,
-          prevPHCrisisLogged: false,
-          prevRVFailureLogged: false,
-          prevInoStartLogged: false,
-          prevReboundLogged: false,
-
-          // === ONE-LUNG VENTILATION ===
-          olvActive: !!safePatientObj.olvActive,
-          olvStartTimeSec: null,
-          olvCpapCmH2O: 0,
-          olvLateralOperativeLungUp: !!(safePatientObj.position === 'Lateral' || safePatientObj.olvLateralOperativeLungUp),
-          dltInPlace: !!safePatientObj.dltInPlace,
-          dltMalpositioned: false,
-          olvShuntContribution: 0,
-          olvCompliancePenaltyFraction: 0,
-          prevOlvOnsetLogged: false,
-          prevOlvHypoxiaLogged: false,
-
-          // === CO POISONING ===
-          smokeExposureActive: !!safePatientObj.smokeExposureActive,
-          smokeSeverity: safePatientObj.smokeSeverity || 0,
-          hyperbaricO2Active: false,
-          prevCO20Logged: false,
-          prevCO30Logged: false,
-          prevCO40Logged: false,
-          prevCO50Logged: false,
-
-          // === BURNS ===
-          burnsTBSAPercent: safePatientObj.burnsTBSAPercent || 0,
-          hoursPostBurn: safePatientObj.hoursPostBurn || 0,
-          inhalationInjury: !!safePatientObj.inhalationInjury,
-          inhalationSeverity: safePatientObj.inhalationSeverity || 0.5,
-          totalParklandGivenMl: 0,
-          prevBurnOnsetLogged: false,
-          prevInhalationLogged: false,
-          prevAirwayEdemaLogged: false,
-          prevParklandAlertLogged: false,
-          inhalationInjuryCompliancePenalty: 0,
-          inhalationInjuryResistancePenalty: 0,
-          inhalationInjuryShuntContribution: 0
-        });
-        
-        setTime(0); setActiveMeds([]); setIntravascularVolume(0); setSurgicalPhase('Pre-Op');
-        
-        const safeGasModels = {};
-        Object.keys(INHALATIONAL_AGENTS).forEach(key => {
-            if (INHALATIONAL_AGENTS[key]) {
-                safeGasModels[key] = new GasKineticsModel(INHALATIONAL_AGENTS[key]);
-            }
-        });
-        setGasModels(safeGasModels);
-        
-        setTotalBodyWaterLiters(clampedWeight * 0.6); 
-        setElectrolytes({ na: 140, k: safePatientObj.trauma ? 5.2 : 4.0, cl: 100, ca: 9.0, ph: safePatientObj.isSeptic ? 7.2 : 7.4 });
-        setCoags({ r_offset: safePatientObj.trauma ? 6 : 0, ma_offset: safePatientObj.trauma ? -15 : 0, angle_offset: safePatientObj.trauma ? -15 : 0 });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCase, prevCaseId]);
-
-  const pushFluid = (fluidName, volumeStr, lineId, rateStr = undefined) => {
-    const currentPatient = stateRef.current.patient || patient;
-    const volume = parseFloat(volumeStr);
-    if (isNaN(volume) || !Number.isFinite(volume) || volume <= 0) {
-        logEvent(`❌ FAILED: Cannot administer ${fluidName}. Invalid volume specified!`);
-        return false;
-    }
-    const targetLine = currentPatient.accessLines?.find(l => l.id === lineId);
-    
-    if (!targetLine) {
-        logEvent(`❌ FAILED: Cannot administer ${fluidName}. No valid venous access line selected!`);
-        return false;
-    }
-    
-    if (targetLine.failed) {
-        logEvent(`❌ FAILED: Cannot administer ${fluidName}. Access Line: ${targetLine.name} has been BLOWN OUT!`);
-        return false;
-    }
-    
-    if (targetLine.category.includes('Arterial')) {
-        logEvent(`🚨 CRITICAL ERROR: Attempted fluid resuscitation via Arterial Line! Arteries cannot accommodate high volume infusion. Retrograde flow risks cerebral embolization and severe limb ischemia!`);
-        return false;
-    }
-
-    const fluidData = FLUIDS[fluidName]; if (!fluidData) return false;
-    const isBlood = fluidData.type === 'Blood Product';
-    
-    if (isBlood) {
-        const bb = currentPatient.bloodBank || { status: 'none', unitsInOR: 0, deliveryCountdown: 0, totalDeliveryTime: 0, preOpWorkup: 'none' };
-
-        if (bb.status === 'available' && bb.unitsInOR > 0) {
-            const requestedUnits = volume;
-            if (requestedUnits > bb.unitsInOR) {
-                logEvent(`❌ FAILED: Requested ${requestedUnits} unit(s) of ${fluidName}, but only ${bb.unitsInOR} unit(s) remain in the OR cooler. Order more from Blood Bank.`);
-                return false;
-            }
-            setPatient(prev => ({
-                ...prev,
-                bloodBank: {
-                    ...prev.bloodBank,
-                    unitsInOR: prev.bloodBank.unitsInOR - requestedUnits
-                }
-            }));
-            if (bb.unitsInOR - requestedUnits <= 0) {
-                logEvent(`⚠️ Blood Bank: Last unit(s) from OR cooler being administered. Order additional units if hemorrhage continues.`);
-            }
-        } else if (bb.status === 'ordered') {
-            const remaining = Math.ceil(bb.deliveryCountdown);
-            const mins = Math.floor(remaining / 60);
-            const secs = remaining % 60;
-            logEvent(`❌ FAILED: Blood products have not arrived yet! Cooler ETA: ${mins}m ${secs}s remaining (${remaining}s). Blood Bank is processing.`);
-            return false;
-        } else {
-            const hasTypeAndScreen = currentPatient.preOpOrders?.labs?.typeAndScreen || false;
-            const hasTypeAndCross = currentPatient.preOpOrders?.labs?.typeAndCross || false;
-
-            if (hasTypeAndCross && bb.status === 'none') {
-                logEvent(`✅ Blood Bank: Type & Crossmatch was completed pre-operatively. 2 crossmatched units of PRBCs are in the OR cooler. Proceeding with transfusion.`);
-                const requestedUnits = volume;
-                setPatient(prev => ({
-                    ...prev,
-                    bloodBank: {
-                        status: 'available',
-                        unitsInOR: Math.max(0, 2 - requestedUnits),
-                        deliveryCountdown: 0,
-                        totalDeliveryTime: 0,
-                        preOpWorkup: 'crossmatch'
-                    }
-                }));
-            } else {
-                const baselineDelay = 600; 
-                const delaySeconds = hasTypeAndScreen ? (baselineDelay * 0.50) : baselineDelay;
-                const deliveryUnits = 4; 
-
-                const rationale = hasTypeAndCross
-                    ? `Previous crossmatch on file. Reorder delivery: ${Math.round(delaySeconds)}s. Blood Bank pulling ${deliveryUnits} additional units.`
-                    : hasTypeAndScreen
-                        ? `Type & Screen on file — ABO/Rh and antibody screen already completed. Electronic crossmatch in progress. Delivery: ${Math.round(delaySeconds)}s (${Math.round(delaySeconds/60)} min). ${deliveryUnits} units being prepared.`
-                        : `NO pre-operative blood workup on file! Emergency uncrossmatched O-Negative release protocol initiated. Full ABO/Rh typing and antibody screen running concurrently. Delivery: ${Math.round(delaySeconds)}s (${Math.round(delaySeconds/60)} min). ${deliveryUnits} uncrossmatched units being dispatched.`;
-
-                logEvent(`🚨 Blood Bank: Emergency order placed for ${fluidName}. ${rationale}`);
-
-                setPatient(prev => ({
-                    ...prev,
-                    bloodBank: {
-                        status: 'ordered',
-                        unitsInOR: 0,
-                        deliveryCountdown: delaySeconds,
-                        totalDeliveryTime: delaySeconds,
-                        pendingUnits: deliveryUnits,
-                        preOpWorkup: hasTypeAndCross ? 'crossmatch' : (hasTypeAndScreen ? 'screen' : 'none')
-                    }
-                }));
-                return false;
-            }
-        }
-    }
-
-    const isUnit = isBlood || fluidData.type === 'Colloid';
-    
-    if (isUnit) {
-        if (volume > 20) {
-            logEvent(`❌ FAILED: Attempted to infuse ${volume} units of ${fluidName}. That is physiologically impossible and clinically absurd.`);
-            return false;
-        }
-    } else {
-        if (volume > 5000) {
-            logEvent(`❌ FAILED: Attempted to infuse ${volume} mL of ${fluidName} in a single bolus. That is clinically absurd.`);
-            return false;
-        }
-    }
-
-    const effectiveVolumeML = fluidName.includes('Fibrinogen') ? volume * 50 : (isUnit ? volume * (fluidData.defaultVol || 300) : volume);
-
-    let initialUserRate = undefined;
-    if (rateStr !== undefined && rateStr !== null && rateStr !== '') {
-        const parsedRate = parseFloat(rateStr);
-        if (!isNaN(parsedRate) && Number.isFinite(parsedRate) && parsedRate > 0) {
-            initialUserRate = parsedRate;
-        }
-    }
-
-    setPatient(prev => {
-        const newLines = [...(prev.accessLines || [])];
-        const lineIndex = newLines.findIndex(l => l.id === lineId);
-        if (lineIndex >= 0) {
-            newLines[lineIndex] = {
-                ...newLines[lineIndex],
-                activeInfusions: [
-                    ...(newLines[lineIndex].activeInfusions || []),
-                    { id: Date.now().toString(), name: fluidName, remainingVolume: effectiveVolumeML, startingVolume: effectiveVolumeML, userRate: initialUserRate, currentRate: 0 }
-                ]
-            };
-        }
-        return { ...prev, accessLines: newLines };
-    });
-
-    logEvent(`💧 Attached: ${volume} ${isUnit ? 'Units' : (fluidName.includes('Fibrinogen') ? 'g' : 'mL')} of ${fluidName} to ${targetLine.name}.`);
-    return true;
-  };
-
-  const updateFluidRate = (lineId, infusionId, newRate_ml_hr) => {
-    setPatient(prev => {
-        const newLines = (prev.accessLines || []).map(l => {
-            if (l.id !== lineId) return l;
-            return {
-                ...l,
-                activeInfusions: (l.activeInfusions || []).map(inf => {
-                    if (inf.id !== infusionId) return inf;
-                    return { ...inf };
-                })
-            };
-        });
-        const lineIndex = newLines.findIndex(l => l.id === lineId);
-        if (lineIndex >= 0) {
-            const line = newLines[lineIndex];
-            const infusions = line.activeInfusions;
-            const infIndex = infusions.findIndex(i => i.id === infusionId);
-            if (infIndex >= 0) {
-                if (newRate_ml_hr === '' || newRate_ml_hr === null || isNaN(parseFloat(newRate_ml_hr))) {
-                    delete infusions[infIndex].userRate;
-                    logEvent(`Max flow enabled for ${infusions[infIndex].name} on ${line.name}.`);
-                } else {
-                    let rate = parseFloat(newRate_ml_hr);
-                    if (isNaN(rate) || !Number.isFinite(rate) || rate < 0) {
-                        logEvent(`❌ FAILED: Invalid flow rate requested!`);
-                        return prev;
-                    }
-                    const lType = line.fluidLine || prev.fluidLine || 'gravity';
-                    let pInfusion = 74; 
-                    if (lType === 'ranger') pInfusion = 150;
-                    else if (lType === 'belmont') pInfusion = 300;
-                    
-                    const pv = line.venousPressure !== undefined ? line.venousPressure : 10;
-                    const rv = line.veinResistance !== undefined ? line.veinResistance : 500;
-                    let deltaP = pInfusion - pv;
-                    if (deltaP < 0) deltaP = 0;
-                    
-                    const fluidData = FLUIDS[infusions[infIndex].name];
-                    const eta = fluidData ? Math.max(0.01, fluidData.viscosity || 1.0) : 1.0;
-                    
-                    let rTubing = 150;
-                    if (lType === 'ranger') rTubing = 800;
-                    else if (lType === 'belmont') rTubing = 200;
-                    
-                    const safeRadius = Math.max(0.01, line.radius || 0.475);
-                    const safeLength = Math.max(1, line.length || 30);
-                    const rCath = safeLength / Math.pow(safeRadius, 4);
-                    const rTotal = Math.max(1.0, rTubing + rCath + rv);
-                    
-                    let q_ml_min = 1200 * deltaP / (eta * rTotal);
-                    if (isNaN(q_ml_min) || !Number.isFinite(q_ml_min) || q_ml_min < 0) {
-                        q_ml_min = 0;
-                    }
-                    if (lType === 'belmont' && q_ml_min > 500) q_ml_min = 500;
-                    
-                    const max_ml_hr = q_ml_min * 60;
-                    if (rate > max_ml_hr) {
-                        rate = max_ml_hr;
-                        logEvent(`⚠️ Requested rate exceeds physical limits of ${line.name}. Capped at ${Math.round(rate)} mL/hr.`);
-                    }
-                    infusions[infIndex].userRate = rate;
-                }
-            }
-        }
-        return { ...prev, accessLines: newLines };
-    });
-  };
-
-  const removeFluid = (lineId, infusionId) => {
-    setPatient(prev => {
-        const newLines = [...(prev.accessLines || [])];
-        const lineIndex = newLines.findIndex(l => l.id === lineId);
-        if (lineIndex >= 0) {
-            const infusions = [...(newLines[lineIndex].activeInfusions || [])];
-            const filtered = infusions.filter(i => i.id !== infusionId);
-            newLines[lineIndex] = { ...newLines[lineIndex], activeInfusions: filtered };
-        }
-        return { ...prev, accessLines: newLines };
-    });
-    logEvent(`Stopped and removed fluid infusion.`);
-  };
-
-  const processMed = (medId, doseInput, route, type, unit, lineId = null, modelName = null) => {
-    const currentPatient = stateRef.current.patient || patient;
-    const currentActiveMeds = stateRef.current.activeMeds || activeMeds;
-
-    const targetLine = lineId ? currentPatient.accessLines?.find(l => l.id === lineId) : null;
-    let injectedArterial = false;
-    if (targetLine && targetLine.category?.includes('Arterial')) {
-        injectedArterial = true;
-        if (medId === 'thiopental' || medId === 'methohexital') {
-            const baseProb = 0.50;
-            const willPrecipitate = currentPatient.forceBarbituratePrecipitation || (ensureRng(currentPatient, currentPatient.rngSeed)() < baseProb);
-            if (willPrecipitate) {
-                logEvent(`🚨 CRITICAL EMERGENCY: Injected Barbiturate ${medId === 'thiopental' ? 'Thiopental' : 'Methohexital'} into Arterial Line: ${targetLine.name}! This triggers immediate chemical endarteritis, microvascular crystal precipitation, profound arterial vasospasm, and severe distal limb ischemia!`);
-                setPatient(prev => ({
-                    ...prev,
-                    barbiturateArterialPrecipitation: true,
-                    barbiturateArterialPrecipitationTime: stateRef.current.time,
-                    barbiturateArterialDrugName: medId === 'thiopental' ? 'Thiopental' : 'Methohexital'
-                }));
-            } else {
-                logEvent(`⚠️ Clinical Note: Injected Barbiturate ${medId === 'thiopental' ? 'Thiopental' : 'Methohexital'} into Arterial Line: ${targetLine.name}. Fortunately, microvascular crystal precipitation did not occur (occurs in ~50% of intra-arterial injections). Monitor extremity for delayed vasospasm.`);
-            }
-        } else {
-            logEvent(`🚨 CRITICAL ERROR: Injected ${medId} into Arterial Line: ${targetLine.name}! This causes immediate profound arterial vasospasm and endothelial irritation!`);
-            setPatient(prev => ({
-                ...prev,
-                genericArterialSpasm: true,
-                genericArterialSpasmTime: stateRef.current.time
-            }));
-        }
-    }
-    if (targetLine && targetLine.failed) {
-        logEvent(`❌ FAILED: Cannot administer ${medId}. Access Line: ${targetLine.name} has been BLOWN OUT!`);
-        return false;
-    }
-    const hasCVC = currentPatient.accessLines?.some(l => !l.failed && (l.category?.includes('CVC') || l.type?.includes('CVC') || l.category?.includes('Central') || l.type?.includes('Central') || l.type?.includes('Cordis') || l.type?.includes('Introducer')));
-    const hasPIV = currentPatient.accessLines?.some(l => !l.failed && (l.category?.includes('PIV') || l.name?.includes('PIV') || l.category?.includes('IV') || l.name?.includes('IV') || l.category?.includes('Peripheral')));
-    const hasIO = currentPatient.accessLines?.some(l => !l.failed && (l.category?.includes('IO') || l.name?.includes('IO') || l.type?.includes('IO') || l.type?.includes('Intraosseous')));
-    const hasArt = currentPatient.accessLines?.some(l => l.category?.includes('Arterial') || l.name?.includes('Arterial'));
-
-    if (route === 'IV' && !hasCVC && !hasPIV && !hasIO && !injectedArterial) {
-        logEvent(`❌ FAILED: No venous access available for ${medId}!`);
-        return false; 
-    }
-
-    const medData = MEDICATIONS[medId]; if (!medData) return false;
-
-    // PharmacologicChoice quality event: administering a penicillin-class drug to a
-    // documented-allergic patient is itself a decision error worth recording, independent of
-    // whether anaphylaxis actually occurs this tick (that probabilistic outcome is handled
-    // separately in the main tick loop's anaphylaxis trigger logic).
-    if ((medId === 'unasyn' || medId === 'piperacillin_tazobactam') && (currentPatient.penicillinAllergy || (currentPatient.allergies || '').toLowerCase().includes('penicillin'))) {
-        logQualityEvent({
-            category: 'PharmacologicChoice', severity: 'critical',
-            description: `Administered a penicillin-class antibiotic (${medData.name}) to a patient with a documented penicillin allergy.`,
-            idealAction: 'Verify allergy history before administering a penicillin-class drug; select a non-cross-reacting alternative.',
-            actualAction: `Administered ${medData.name} despite documented penicillin allergy.`,
-            impact: 'Risk of IgE-mediated anaphylaxis (vasoplegic shock, bronchospasm) - probabilistically elevated 4x in patients with COPD/asthma/atopy/high anxiety.',
-        });
-    }
-
-    const safePatientWeight = typeof currentPatient.weight === 'number' && Number.isFinite(currentPatient.weight) && currentPatient.weight > 0 ? currentPatient.weight : 70;
-    const safePatientIbw = typeof currentPatient.ibw === 'number' && Number.isFinite(currentPatient.ibw) && currentPatient.ibw > 0 ? currentPatient.ibw : 70;
-    const safePatientLbw = typeof currentPatient.lbw === 'number' && Number.isFinite(currentPatient.lbw) && currentPatient.lbw > 0 ? currentPatient.lbw : 60;
-
-    if (type === 'TCI_Cp' || type === 'TCI_Ce') {
-      const targetConc = parseFloat(doseInput);
-      if (isNaN(targetConc) || targetConc <= 0) {
-        logEvent(`❌ FAILED: Invalid target concentration specified!`);
-        return false;
-      }
-      
-      const mode = type === 'TCI_Cp' ? 'Cp' : 'Ce';
-      const selectedModelName = modelName || medData.pkModel || 'Schnider';
-      
-      let existingModel = currentActiveMeds.find(m => m.name === medData.name);
-      let updatedMeds = [...currentActiveMeds];
-      if (!existingModel) { 
-        existingModel = new PKPDModel(medData, safePatientWeight); 
-        updatedMeds.push(existingModel); 
-      }
-      
-      existingModel.setTci(mode, targetConc, selectedModelName, currentPatient);
-      existingModel.displayDose = `target: ${targetConc}`;
-      existingModel.displayUnit = 'mcg/mL';
-      existingModel.medId = medId;
-
-      const targetLineId = lineId || 
-        (currentPatient.accessLines || []).find(l => !l.failed && (l.category?.includes('PIV') || l.name?.includes('PIV') || l.category?.includes('Peripheral')))?.id ||
-        (currentPatient.accessLines || []).find(l => !l.category?.includes('Arterial'))?.id;
-      if (targetLineId) {
-        setPatient(prev => {
-          const updatedLines = (prev.accessLines || []).map(l => {
-            if (l.id !== targetLineId) return l;
-            const meds = [...(l.activeMedInfusions || [])];
-            const idx = meds.findIndex(m => m.medId === medId);
-            const infItem = { medId, rate: 0.0, unit: `mcg/mL (TCI ${mode} - ${selectedModelName})` };
-            if (idx >= 0) {
-              meds[idx] = infItem;
-            } else {
-              meds.push(infItem);
-            }
-            return { ...l, activeMedInfusions: meds };
-          });
-          return { ...prev, accessLines: updatedLines };
-        });
-      }
-      
-      setActiveMeds(updatedMeds);
-      logEvent(`🔁 Started TCI (${mode}-controlled) for ${medData.name} targeting ${targetConc} mcg/mL using ${selectedModelName} model.`);
-      return true;
-    }
-
-    if (route === 'IV' && !hasCVC && (hasPIV || hasIO)) {
-        if (type === 'Infusion' && medData.classes.some(c => c.includes('Vasopressor')) && medId !== 'phenylephrine') {
-            logEvent(`⚠️ WARNING: Infusing ${medData.name} via Peripheral IV. High risk of extravasation and severe tissue necrosis. Central line strongly recommended.`);
-        }
-        if (medId === 'calcium') {
-            logEvent(`⚠️ WARNING: Administering Calcium Chloride via PIV. High risk of severe phlebitis and tissue necrosis. Calcium Gluconate or CVC preferred.`);
-        }
-        if (medId === 'amiodarone' && type === 'Infusion') {
-            logEvent(`⚠️ WARNING: Continuous Amiodarone infusion via PIV risks severe chemical phlebitis.`);
-        }
-    }
-
-    let doseInMg = parseFloat(doseInput);
-    if (isNaN(doseInMg) || !Number.isFinite(doseInMg) || doseInMg <= 0) {
-        logEvent(`❌ FAILED: Invalid medication dose specified!`);
-        return false;
-    }
-
-    const dosingWeight = resolveDosingWeight(medData, 'Bolus', currentPatient);
-    const safeUnit = typeof unit === 'string' ? unit : '';
-    if (safeUnit.includes('mcg/kg/min')) doseInMg = (doseInMg * dosingWeight) / 1000;
-    else if (safeUnit.includes('mcg')) doseInMg = doseInMg / 1000;
-    else if (safeUnit.includes('mg/kg') || safeUnit.includes('mL/kg') || safeUnit.includes('ml/kg') || safeUnit.includes('mL/kg/min') || safeUnit.includes('ml/kg/min')) doseInMg = doseInMg * dosingWeight;
-
-    if (isNaN(doseInMg) || !Number.isFinite(doseInMg) || doseInMg <= 0) {
-        logEvent(`❌ FAILED: Invalid calculated medication dose in mg!`);
-        return false;
-    }
-
-    let existingModel = currentActiveMeds.find(m => m.name === medData.name);
-    let updatedMeds = [...currentActiveMeds];
-    if (!existingModel) { 
-      existingModel = new PKPDModel(medData, safePatientWeight); 
-      updatedMeds.push(existingModel); 
-    }
-
-    if (type === 'Bolus') {
-      const bio = route === 'IV' ? 1.0 : (route === 'IM' ? 0.8 : 0.5);
-      existingModel.giveBolus(doseInMg * bio);
-      logEvent(`💉 Pushed ${doseInput} ${unit} of ${medData.name} via ${route}.`);
-
-      // ACLS timing tracker: record when epinephrine is given during arrest.
-      // Used by the ACLS console to display the inter-dose interval timer (every 3-5 min per AHA).
-      if (medId === 'epinephrine') {
-          setPatient(prev => ({ ...prev, lastEpiPushTime: stateRef.current.time || 0 }));
-      }
-      // Track amiodarone doses for second-dose guidance (300mg first, 150mg second)
-      if (medId === 'amiodarone' && stateRef.current.patient?.isArrest) {
-          setPatient(prev => ({
-              ...prev,
-              amioDosesGivenInArrest: (prev.amioDosesGivenInArrest || 0) + 1,
-              lastAmioPushTime: stateRef.current.time || 0
-          }));
-      }
-
-      if (medId === 'intralipid') {
-          const volInMl = doseInMg * bio;
-          setPatient(prev => ({
-              ...prev,
-              lipidSinkVol: (prev.lipidSinkVol || 0) + volInMl
-          }));
-          logEvent(`⚡ Administered Intralipid 20% rescue bolus: ${volInMl.toFixed(1)} mL.`);
-      }
-
-      if (medId === 'pcc') {
-          setPatient(prev => ({
-              ...prev,
-              pccGiven: true
-          }));
-          logEvent(`⚡ 4-Factor PCC (Kcentra) active -- warfarin reversal initiated.`);
-      }
-
-      if (medId === 'andexanet') {
-          setPatient(prev => ({
-              ...prev,
-              andexanetGiven: true
-          }));
-          logEvent(`⚡ Andexanet Alfa (Andexxa) active -- Factor Xa inhibitor reversal initiated.`);
-      }
-
-      if (medId === 'idarucizumab') {
-          setPatient(prev => ({
-              ...prev,
-              idarucizumabGiven: true
-          }));
-          logEvent(`⚡ Idarucizumab (Praxbind) active -- dabigatran reversal initiated.`);
-      }
-
-      if (medId === 'rfviia') {
-          const doseVal = parseFloat(doseInput);
-          const incrementalMcgKg = safeUnit.includes('mcg/kg') ? doseVal : 90;
-          setPatient(prev => ({
-              ...prev,
-              fviiaBolusMg: (prev.fviiaBolusMg || 0) + incrementalMcgKg
-          }));
-          logEvent(`⚡ Recombinant Factor VIIa (NovoSeven) active -- bypass pathway initiated. Cumulative dose: ${(currentPatient.fviiaBolusMg || 0) + incrementalMcgKg} mcg/kg.`);
-      }
-
-      if (medId === 'factor_viii') {
-          const doseVal = parseFloat(doseInput);
-          setPatient(prev => ({
-              ...prev,
-              fviiiBolusMg: (prev.fviiiBolusMg || 0) + doseVal
-          }));
-          logEvent(`⚡ Factor VIII Concentrate administered. Cumulative dose: ${(currentPatient.fviiiBolusMg || 0) + doseVal} Units/kg.`);
-      }
-      
-      if (medId === 'sugammadex') {
-        const roc = currentActiveMeds.find(m => m.name === 'Rocuronium');
-        const vec = currentActiveMeds.find(m => m.name === 'Vecuronium');
-        const doseMgPerKg = doseInMg / currentPatient.weight;
-        let chelateFraction = 1.0;
-        if (doseMgPerKg >= 16) chelateFraction = 1.0;
-        else if (doseMgPerKg >= 4) chelateFraction = 0.95;
-        else if (doseMgPerKg >= 2) chelateFraction = 0.8;
-        else chelateFraction = doseMgPerKg / 2.0 * 0.8;
-        
-        chelateFraction = Math.min(1.0, chelateFraction);
-        
-        if (roc) {
-          roc.chelate(chelateFraction);
-          logEvent(`⚡ Sugammadex encapsulated Rocuronium (chelated ${Math.round(chelateFraction * 100)}%).`);
-        }
-        if (vec) {
-          vec.chelate(chelateFraction);
-          setPatient(prev => ({
-            ...prev,
-            vec3oh: Math.max(0, (prev.vec3oh || 0) * (1 - chelateFraction))
-          }));
-          logEvent(`⚡ Sugammadex encapsulated Vecuronium and its active 3-OH metabolite (chelated ${Math.round(chelateFraction * 100)}%).`);
-        }
-      }
- 
-      if (medId === 'succinylcholine') {
-        let leak = 0.5; 
-        let logMsg = `⚡ Succinylcholine administered. Normal transient potassium release (+0.5 mEq/L) observed.`;
-        
-        if (currentPatient.dmd || currentPatient.bmd) {
-          leak = Math.max(0, 9.0 - (stateRef.current.electrolytes?.k || 4.0));
-          logMsg = `🚨🚨 CRITICAL CLINICAL EMERGENCY: Succinylcholine given to patient with ${currentPatient.dmd ? 'Duchenne' : 'Becker'} Muscular Dystrophy! Triggered massive rhabdomyolysis and life-threatening hyperkalemic cardiac arrest!`;
-          setPatient(prev => ({
-              ...prev,
-              isArrest: true,
-              cardiacRhythm: 'pea',
-              suxArrestTriggered: true
-          }));
-          logQualityEvent({
-              category: 'PharmacologicChoice',
-              severity: 'critical',
-              description: `Succinylcholine administered to patient with ${currentPatient.dmd ? 'Duchenne' : 'Becker'} Muscular Dystrophy, triggering severe hyperkalemic cardiac arrest.`,
-              idealAction: 'Avoid succinylcholine in patients with muscular dystrophy; use non-depolarizing muscle relaxants.',
-              actualAction: 'Administered Succinylcholine.',
-              impact: 'Acute rhabdomyolysis, lethal hyperkalemia, and PEA cardiac arrest.',
-              chapterSource: "Miller's Anesthesia Chapter 35"
-          });
-        } else if (currentPatient.nAChR_state === 'upregulated') {
-          leak = getAnatomicalParameter("Succinylcholine upregulated potassium leak", 5.2);
-          logMsg = `🚨 CRITICAL CLINICAL EMERGENCY: Succinylcholine given to patient with nAChR upregulation! Extrajunctional receptors opened, triggering massive potassium leak (+${leak.toFixed(1)} mEq/L)!`;
-        } else if (currentPatient.cmt) {
-          leak = 4.2;
-          logMsg = `🚨 CRITICAL CLINICAL EMERGENCY: Succinylcholine given to patient with Charcot-Marie-Tooth! Extra-junctional receptors opened, triggering severe potassium leak (+4.2 mEq/L)!`;
-        } else if (currentPatient.cip) {
-          leak = 4.8;
-          logMsg = `🚨 CRITICAL CLINICAL EMERGENCY: Succinylcholine given to patient with Critical Illness Polyneuropathy! Extra-junctional receptors opened, triggering severe potassium leak (+4.8 mEq/L)!`;
-        } else if (currentPatient.hyperPP) {
-          // Chapter 35: Succinylcholine CONTRAINDICATED in HyperPP — aggravates myotonia, masseter spasm,
-          // prolonged weakness, and worsens hyperkalemia via NaV1.4 channelopathy (Miller 9th Ed, Ch 35 p. 1139)
-          leak = 2.5;
-          logMsg = `🚨 CRITICAL: Succinylcholine given to patient with Hyperkalemic Periodic Paralysis! Prolonged muscle weakness, masseter spasm, and aggravated hyperkalemia (+2.5 mEq/L) triggered via NaV1.4 channelopathy!`;
-          setPatient(prev => ({ ...prev, hyperPPAttackActive: true }));
-          logQualityEvent({
-              category: 'PharmacologicChoice',
-              severity: 'critical',
-              description: 'Succinylcholine administered to patient with Hyperkalemic Periodic Paralysis (HyperPP). This is CONTRAINDICATED — aggravates myotonia via NaV1.4 sustained sodium currents, causing masseter spasm and prolonged flaccid weakness.',
-              idealAction: 'Avoid succinylcholine entirely in HyperPP; use non-depolarizing muscle relaxants.',
-              actualAction: 'Administered Succinylcholine.',
-              impact: 'Masseter spasm, prolonged skeletal muscle weakness, hyperkalemic exacerbation.',
-              chapterSource: "Miller's Anesthesia Chapter 35"
-          });
-        }
-        
-        logEvent(logMsg);
-        setElectrolytes(prev => ({ ...prev, k: prev.k + leak }));
-        setPatient(prev => ({ ...prev, suxPotassiumLeaked: true }));
-      }
-
-      if (medId === 'neostigmine' || medId === 'pyridostigmine' || medId === 'edrophonium') {
-        // Chapter 35: Cholinesterase inhibitors CONTRAINDICATED in HyperPP — aggravate myotonia (Miller 9th Ed, Ch 35 p. 1139)
-        if (currentPatient.hyperPP) {
-            setPatient(prev => ({ ...prev, hyperPPAttackActive: true }));
-            logEvent(`🚨 CRITICAL: ${medData.name} administered to patient with Hyperkalemic Periodic Paralysis! Cholinesterase inhibitors aggravate myotonia in HyperPP patients — prolonged muscle stiffness and respiratory compromise triggered.`);
-            logQualityEvent({
-                category: 'PharmacologicChoice',
-                severity: 'major',
-                description: `${medData.name} administered to patient with Hyperkalemic Periodic Paralysis (HyperPP). Cholinesterase inhibitors are CONTRAINDICATED — they aggravate NaV1.4 myotonia.`,
-                idealAction: 'Use sugammadex for NMB reversal in HyperPP patients; avoid neostigmine/pyridostigmine.',
-                actualAction: `Administered ${medData.name}.`,
-                impact: 'Aggravated myotonia, masseter spasm, respiratory muscle stiffness.',
-                chapterSource: "Miller's Anesthesia Chapter 35"
-            });
-        }
-        const glyco = currentActiveMeds.find(m => m.name === 'Glycopyrrolate');
-        const glycoCe = glyco ? glyco.Ce : 0;
-        const atropine = currentActiveMeds.find(m => m.name === 'Atropine');
-        const atropineCe = atropine ? atropine.Ce : 0;
-        
-        const doseMgPerKg = doseInMg / currentPatient.weight;
-        const lastOccupancy = stateRef.current.patient?.maxNMJOccupancy || 0;
-        const noActiveBlock = lastOccupancy <= 0.15;
-        
-        let isOverdose = false;
-        if (medId === 'neostigmine' && doseMgPerKg > 0.08) isOverdose = true;
-        if (medId === 'pyridostigmine' && doseMgPerKg > 0.35) isOverdose = true;
-        if (medId === 'edrophonium' && doseMgPerKg > 1.0) isOverdose = true;
-        
-        if (noActiveBlock || isOverdose) {
-          setPatient(prev => ({ ...prev, neostigmineWeakness: true }));
-          logEvent(`⚠️ WARNING: ${medData.name} administered ${noActiveBlock ? 'in the absence of active neuromuscular blockade' : 'in overdose'}. Paradoxical anticholinesterase-associated muscle weakness induced.`);
-        }
-        
-        if (medId === 'neostigmine' || medId === 'pyridostigmine') {
-          if (glycoCe < 0.05 && atropineCe < 0.05) {
-            setPatient(prev => ({
-              ...prev,
-              bradycardiaTriggered: true,
-              bradycardiaTime: stateRef.current.time || 0
-            }));
-            logEvent(`🚨 CRITICAL CLINICAL EMERGENCY: ${medData.name} administered without anticholinergic protection! Unopposed muscarinic activation is causing profound vagal bradycardia and salivation!`);
-          } else if (glycoCe < 0.05 && atropineCe >= 0.05) {
-            logEvent(`⚡ ${medData.name} administered with Atropine. Safe reversal of neuromuscular blockade initiated, although transient tachycardia may occur due to Atropine's rapid onset.`);
-          } else {
-            logEvent(`⚡ ${medData.name} administered with Glycopyrrolate. Safe reversal of neuromuscular blockade initiated.`);
-          }
-        } else if (medId === 'edrophonium') {
-          if (atropineCe < 0.05 && glycoCe < 0.05) {
-            setPatient(prev => ({
-              ...prev,
-              bradycardiaTriggered: true,
-              bradycardiaTime: stateRef.current.time || 0
-            }));
-            logEvent(`🚨 CRITICAL CLINICAL EMERGENCY: Edrophonium administered without anticholinergic protection! Unopposed muscarinic activation is causing profound vagal bradycardia and salivation!`);
-          } else if (atropineCe < 0.05 && glycoCe >= 0.05) {
-            setPatient(prev => ({
-              ...prev,
-              bradycardiaTriggered: true,
-              bradycardiaTime: stateRef.current.time || 0,
-              transientBradycardia: true
-            }));
-            logEvent(`⚠️ CLINICAL ALERT: Edrophonium administered with Glycopyrrolate. Due to onset mismatch (Edrophonium onset is 1 min, Glycopyrrolate is 2-3 min), the patient will experience transient bradycardia before anticholinergic blockade takes effect.`);
-          } else {
-            logEvent(`⚡ Edrophonium administered with Atropine. Safe and rapid reversal of neuromuscular blockade initiated.`);
-          }
-        }
-      }
-
-      if (medId === 'glycopyrrolate' || medId === 'atropine') {
-        if (currentPatient.bradycardiaTriggered) {
-          setPatient(prev => ({ ...prev, bradycardiaTriggered: false, transientBradycardia: false }));
-          logEvent(`✅ ${medData.name} administered. Muscarinic bradycardia successfully resolved. Heart rate recovering.`);
-        }
-      }
-
-      if (medId === 'calcium') {
-        setPatient(prev => ({
-          ...prev,
-          calciumStabilized: true,
-          calciumStabilizedTime: stateRef.current.time || 0
-        }));
-        logEvent(`⚡ Calcium Chloride administered. Myocardial membranes stabilized. Hyperkalemic cardiac arrest risk mitigated.`);
-      }
-
-      if (stateRef.current.surgicalPhase === 'Pre-Op' && (medData.classes.includes('Sedative') || medData.classes.includes('Hypnotic') || medData.classes.includes('Dissociative'))) {
-        setSurgicalPhase('Induction');
-        logEvent(`➡️ Surgical Timeline Auto-Advanced: INDUCTION phase initiated.`);
-        if (!currentPatient.timeOutAuthorized) {
-          logQualityEvent({
-            category: 'SafetyChecklist',
-            severity: 'major',
-            phase: 'Pre-Op',
-            description: `Induction agent (${medData.name}) administered before the preoperative safety Time-Out checklist was conducted.`,
-            idealAction: 'Perform the WHO Surgical Safety Checklist (Time-Out) before administering sedatives or hypnotics.',
-            actualAction: `Administered ${medData.name} in Pre-Op.`,
-            impact: 'Critical safety violation. Increases the risk of wrong-patient, wrong-procedure, or wrong-site medication errors.'
-          });
-        }
-      }
-
-    } else if (type === 'Infusion') {
-      existingModel.setInfusion(doseInMg / 60);
-      existingModel.displayDose = doseInput;
-      existingModel.displayUnit = unit;
-      existingModel.medId = medId; 
-
-      const targetLineId = lineId || 
-        (currentPatient.accessLines || []).find(l => !l.failed && (l.category?.includes('PIV') || l.name?.includes('PIV') || l.category?.includes('Peripheral')))?.id ||
-        (currentPatient.accessLines || []).find(l => !l.category?.includes('Arterial'))?.id;
-
-      if (targetLineId) {
-        setPatient(prev => {
-          const updatedLines = (prev.accessLines || []).map(l => {
-            if (l.id !== targetLineId) return l;
-            const meds = [...(l.activeMedInfusions || [])];
-            const idx = meds.findIndex(m => m.medId === medId);
-            if (idx >= 0) {
-              meds[idx] = { ...meds[idx], rate: parseFloat(doseInput), unit };
-            } else {
-              meds.push({ medId, rate: parseFloat(doseInput), unit });
-            }
-            return { ...l, activeMedInfusions: meds };
-          });
-          return { ...prev, accessLines: updatedLines };
-        });
-      }
-      logEvent(`🔁 Started/Updated ${medData.name} infusion at ${doseInput} ${unit}.`);
-    } else if (type === 'Stop Infusion') {
-      existingModel.setInfusion(0);
-      existingModel.displayDose = 0;
-      existingModel.tciMode = 'none';
-      existingModel.tciTarget = 0;
-      
-      setPatient(prev => {
-        const updatedLines = (prev.accessLines || []).map(l => ({
-          ...l,
-          activeMedInfusions: (l.activeMedInfusions || []).filter(m => m.medId !== medId)
-        }));
-        return { ...prev, accessLines: updatedLines };
-      });
-      logEvent(`⏹ Stopped ${medData.name} infusion.`);
-    }
-    setActiveMeds(updatedMeds);
-  };
-
-  const pushMed = (medName) => { 
-    if (medName.includes('Topical')) { 
-      logEvent(`Administered Topical Lidocaine.`); 
-      setPatient(prev => ({...prev, isTopicalized: true})); 
-    } 
-  };
-
-  const toggleCPR = () => {
-    setPatient(p => {
-      const newState = !p.cprActive;
-      logEvent(newState ? "🩺 Initiated Chest Compressions." : "⏹ Stopped Chest Compressions.");
-      return { ...p, cprActive: newState, cprStartTime: newState ? (stateRef.current.time ?? 0) : null };
-    });
-  };
-
-  // Thoracic Epidural / Celiac Plexus Block (Ch15, Miller's 9th Ed: regional sympathetic
-  // blockade of the GI tract). Epidural coverage of gut/splanchnic sympathetic outflow is
-  // dermatome-graded by `epiduralLevel` (TABLE 15.2); celiac plexus block targets the ganglion
-  // directly (Fig 15.4/15.5) for complete splanchnic block regardless of level.
-  const placeEpidural = (level) => {
-    const safeLevel = typeof level === 'number' && Number.isFinite(level) ? level : 8;
-    setPatient(p => {
-      logEvent(`🦴 Thoracic epidural catheter placed at T${safeLevel}, local anesthetic bolus dosed and active.`);
-      return { ...p, epiduralBlockActive: true, epiduralLevel: safeLevel };
-    });
-  };
-
-  const removeEpidural = () => {
-    setPatient(p => {
-      logEvent("⏹ Thoracic epidural infusion stopped/catheter removed.");
-      return { ...p, epiduralBlockActive: false };
-    });
-  };
-
-  const toggleCeliacBlock = () => {
-    setPatient(p => {
-      const newState = !p.celiacBlockActive;
-      logEvent(newState ? "🩹 Celiac plexus block performed — complete splanchnic sympathetic block achieved." : "⏹ Celiac plexus block resolved/reversed.");
-      return { ...p, celiacBlockActive: newState };
-    });
-  };
-
-  const deliverShock = (joules, isSync) => {
-    const currentPatient = stateRef.current.patient || patient;
-    const bloodLossRatio = (currentPatient.ebl || 0) / (currentPatient.ebv || 5000);
-    const patLungVols = calculateLungVolumes(
-      currentPatient.height || 170,
-      currentPatient.age || 40,
-      currentPatient.sex || 'male',
-      currentPatient.bmi || 25,
-      currentPatient.position || 'Supine',
-      currentPatient.copd || false,
-      currentPatient.restrictive || false,
-      !!currentPatient.airwaySecured || !!currentPatient.isParalyzed
-    );
-    const currentFRC_L = patLungVols.frc_L;
-
-    const result = CardiovascularEngine.deliverShock({
-      patient: currentPatient,
-      activeMeds: stateRef.current.activeMeds || activeMeds,
-      currentBuffer: currentPatient.oxygenBuffer || (currentFRC_L * 0.21),
-      currentFRC_L,
-      bloodLossRatio,
-      joules,
-      isSync,
-      simulationTime: stateRef.current.time || time,
-      // Layer 1A: seed the defibrillation ROSC roll from the same serializable RNG the tick uses.
-      rng: currentPatient ? ensureRng(currentPatient, currentPatient.rngSeed) : Math.random
-    });
-
-    setPatient(result.patient);
-    result.events.forEach(msg => logEvent(msg));
-  };
-  useEffect(() => {
-    let interval;
-    const actualPaused = isPaused && !patient?.isFuzzing;
-    if (isRunning && !actualPaused) {
-      interval = setInterval(() => {
-        const ffRemainingInitial = ffRemainingRef.current;
-        let stepsToRun = 1;
-        if (ffRemainingInitial > 0) {
-          // Each physics tick now runs ~100 engine functions. Cap at 5 ticks per
-          // 100ms interval → 50x real-time max, ~125ms of CPU per slot — the browser
-          // stays responsive between intervals and the progress bar can update.
-          // (The old 80-tick cap was set before Phase 6 engines existed and caused
-          // the main thread to block for 1-2s per interval, crashing the tab.)
-          stepsToRun = Math.min(5, ffRemainingInitial);
-        } else {
-          const scale = stateRef.current.patient?.timeScale || 1;
-          if (scale === 30) {
-            stepsToRun = 3;
-          } else if (scale === 60) {
-            // 5 ticks × 100ms interval = 50x speed (6 was overshooting the 100ms budget)
-            stepsToRun = 5;
-          }
-        }
-
-        // Real-time budget guard: break the loop if a single interval exceeds 80ms.
-        // Prevents any accumulation of slow ticks from freezing the UI regardless of
-        // which engines fire (crash events, TRALI, crisis alerts, etc.).
-        const intervalBudgetMs = 80;
-        const intervalStartMs = typeof performance !== 'undefined' ? performance.now() : Date.now();
-
-        for (let step = 0; step < stepsToRun; step++) {
-          try {
-            if (step > 0) {
-              const currentSt = stateRef.current;
-              if (!(currentSt.patient?.fastForwardRemaining > 0)) {
-                break;
-              }
-              // Yield if we have already spent our time budget for this interval
-              const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - intervalStartMs;
-              if (elapsed > intervalBudgetMs) break;
-            }
+/**
+ * Layer 1B: the pure-ish per-step physics core, extracted verbatim from the hook so it can run
+ * headless (deterministic replay, golden-master + closed-loop oracle testing). Mutates
+ * __ctx.stateRef.current and emits side effects only through injected callbacks. The hook injects
+ * React-backed deps; the headless harness injects plain-object deps. See
+ * docs/architecture/audit_layer1_physics_core.md for the ctx contract.
+ * @returns {{skipped: boolean}} skipped=true when the step aborted early (empty/uninitialized vitals).
+ */
+export function runPhysicsStep(__ctx) {
+  const {
+    stateRef, ventSettings, gasSettings, logEvent, logQualityEvent, setVitals, setElectrolytes, setCoags, setTotalBodyWaterLiters, setIntravascularVolume, setSurgicalPhase, setIsRunning, ffRemainingRef, ffTotalRef, electrolytes
+  } = __ctx;
             stateRef.current.time = (stateRef.current.time || 0) + 1;
             
             const st = stateRef.current;
@@ -1807,7 +186,7 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
           let currentEtN2O = st.vitals.etN2O || 0;
           const activeVentSettings = st.ventSettings || ventSettings || { mode: 'PCV-VG', vt: 500, rr: 12, peep: 5, pmax: 40 };
           const activeGasSettings = st.gasSettings || gasSettings || { agent: 'sevoflurane', dial: 0, o2Flow: 2.0, airFlow: 0.0, n2oFlow: 0.0 };
-          if (!st || !st.vitals || Object.keys(st.vitals).length === 0) return;
+          if (!st || !st.vitals || Object.keys(st.vitals).length === 0) return { skipped: true };
           const pos = st.patient.position || 'Supine';
           const prevEblBeforeThisTick = st.patient.ebl || 0;
 
@@ -8494,6 +6873,1656 @@ export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, v
               t4: t4,
           };
 
+  return { skipped: false };
+}
+
+export function usePhysiology({ activeCase, isRunning, setIsRunning, isPaused, ventSettings, gasSettings, logEvent, msmaidsComplete }) {
+  const [timeVal, setTimeState] = useState(0);
+  const [vitalsVal, setVitalsState] = useState({});
+  const [targetVitalsVal, setTargetVitalsState] = useState({});
+  const [patientVal, setPatientState] = useState({});
+  const [activeMedsVal, setActiveMedsState] = useState([]);
+  const [gasModels, setGasModels] = useState({});
+  
+  const [intravascularVolumeVal, setIntravascularVolumeState] = useState(0); 
+  const [totalBodyWaterLitersVal, setTotalBodyWaterLitersState] = useState(42);
+  const [electrolytesVal, setElectrolytesState] = useState({ na: 140, k: 4.0, cl: 100, ca: 9.0, ph: 7.4 });
+  const [coagsVal, setCoagsState] = useState({ r_offset: 0, ma_offset: 0, angle_offset: 0 });
+  const [surgicalPhaseVal, setSurgicalPhaseState] = useState('Pre-Op');
+  const [prevCaseId, setPrevCaseId] = useState(null);
+
+  const ffRemainingRef = useRef(0);
+  const ffTotalRef = useRef(0);
+
+  // Synchronous State Setter Wrappers to synchronously bridge changes into stateRef
+  const stateRef = useRef({ time: timeVal, vitals: vitalsVal, targetVitals: targetVitalsVal, patient: patientVal, activeMeds: activeMedsVal, gasModels, intravascularVolume: intravascularVolumeVal, electrolytes: electrolytesVal, ventSettings, gasSettings, surgicalPhase: surgicalPhaseVal, msmaidsComplete });
+
+  const setTime = (update) => {
+    const prev = stateRef.current.time !== undefined ? stateRef.current.time : timeVal;
+    const next = typeof update === 'function' ? update(prev) : update;
+    stateRef.current.time = next;
+    setTimeState(next);
+  };
+
+  const setVitals = (update) => {
+    const prev = stateRef.current.vitals || vitalsVal;
+    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+    stateRef.current.vitals = next;
+    setVitalsState(next);
+  };
+
+  const setTargetVitals = (update) => {
+    const prev = stateRef.current.targetVitals || targetVitalsVal;
+    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+    stateRef.current.targetVitals = next;
+    setTargetVitalsState(next);
+  };
+
+  const setPatient = (update) => {
+    const prev = stateRef.current.patient || patientVal;
+    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+    
+    // Sync fast-forward refs ONLY if they were explicitly changed by the update (not just spread from prev)
+    if (next.fastForwardRemaining !== undefined && next.fastForwardRemaining !== prev.fastForwardRemaining) {
+      ffRemainingRef.current = next.fastForwardRemaining || 0;
+    }
+    if (next.fastForwardTotal !== undefined && next.fastForwardTotal !== prev.fastForwardTotal) {
+      ffTotalRef.current = next.fastForwardTotal || 0;
+    }
+
+    stateRef.current.patient = next;
+    setPatientState(next);
+  };
+
+  const setActiveMeds = (update) => {
+    const prev = stateRef.current.activeMeds || activeMedsVal;
+    const next = typeof update === 'function' ? update(prev) : update;
+    stateRef.current.activeMeds = next;
+    setActiveMedsState(next);
+  };
+
+  const setIntravascularVolume = (update) => {
+    const prev = stateRef.current.intravascularVolume !== undefined ? stateRef.current.intravascularVolume : intravascularVolumeVal;
+    const next = typeof update === 'function' ? update(prev) : update;
+    stateRef.current.intravascularVolume = next;
+    setIntravascularVolumeState(next);
+  };
+
+  const setTotalBodyWaterLiters = (update) => {
+    const prev = stateRef.current.totalBodyWaterLiters !== undefined ? stateRef.current.totalBodyWaterLiters : totalBodyWaterLitersVal;
+    const next = typeof update === 'function' ? update(prev) : update;
+    stateRef.current.totalBodyWaterLiters = next;
+    setTotalBodyWaterLitersState(next);
+  };
+
+  const setElectrolytes = (update) => {
+    const prev = stateRef.current.electrolytes || electrolytesVal;
+    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+    stateRef.current.electrolytes = next;
+    setElectrolytesState(next);
+  };
+
+  const setCoags = (update) => {
+    const prev = stateRef.current.coags || coagsVal;
+    const next = typeof update === 'function' ? update(prev) : { ...prev, ...update };
+    stateRef.current.coags = next;
+    setCoagsState(next);
+  };
+
+  const setSurgicalPhase = (update) => {
+    const prev = stateRef.current.surgicalPhase || surgicalPhaseVal;
+    const next = typeof update === 'function' ? update(prev) : update;
+    stateRef.current.surgicalPhase = next;
+    setSurgicalPhaseState(next);
+  };
+
+  // Structured, scorable quality-of-care event log (distinct from the narrative `logEvent`
+  // text log). Introduced as part of the Ch9-30 retroactive sweep to give a future
+  // debrief/outcome-score feature (see OutcomeScoringEngine.ts) real data to consume.
+  // Mapping from the simulator's existing 5-stage surgical timeline to the broader 4-phase
+  // continuum-of-care model (PreOp/Intraoperative/PACU/PostDischarge) used by quality events.
+  const mapSurgicalPhaseToCareOfPhase = (surgPhase) => {
+    if (surgPhase === 'Pre-Op') return 'PreOp';
+    if (surgPhase === 'PACU') return 'PACU';
+    return 'Intraoperative';
+  };
+
+  const logQualityEvent = (input) => {
+    const currentPhase = input?.phase || mapSurgicalPhaseToCareOfPhase(stateRef.current.surgicalPhase);
+    const event = createQualityEvent({
+      ...input,
+      time: typeof input?.time === 'number' ? input.time : stateRef.current.time,
+      phase: currentPhase
+    });
+    const currentPatient = stateRef.current.patient || patientVal;
+    const existingEvents = Array.isArray(currentPatient.qualityEvents) ? currentPatient.qualityEvents : [];
+    setPatient(prev => ({ ...prev, qualityEvents: [...existingEvents, event] }));
+    if (logEvent && event.description) {
+      logEvent(`📋 [${event.category}/${event.severity.toUpperCase()}] ${event.description}`);
+    }
+  };
+
+  const time = timeVal;
+  const vitals = vitalsVal;
+  const targetVitals = targetVitalsVal;
+  const patient = patientVal;
+  const activeMeds = activeMedsVal;
+  const intravascularVolume = intravascularVolumeVal;
+  const totalBodyWaterLiters = totalBodyWaterLitersVal;
+  const electrolytes = electrolytesVal;
+  const coags = coagsVal;
+  const surgicalPhase = surgicalPhaseVal;
+
+  useEffect(() => {
+    stateRef.current = { 
+      time, vitals, targetVitals, patient, activeMeds, gasModels, intravascularVolume, totalBodyWaterLiters, electrolytes, coags, ventSettings, gasSettings, surgicalPhase, msmaidsComplete 
+    };
+  });
+
+  useEffect(() => {
+    if (activeCase && activeCase.id !== prevCaseId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPrevCaseId(activeCase.id);
+      DynamicMedicationRegistry.hydrate();
+        const safeBaseVitals = activeCase.baseVitals || {};
+        const baseDia = typeof safeBaseVitals.dia === 'number' && Number.isFinite(safeBaseVitals.dia) ? safeBaseVitals.dia : 80;
+        const baseSys = typeof safeBaseVitals.sys === 'number' && Number.isFinite(safeBaseVitals.sys) ? safeBaseVitals.sys : 120;
+        const baseHr = typeof safeBaseVitals.hr === 'number' && Number.isFinite(safeBaseVitals.hr) && safeBaseVitals.hr > 0 ? safeBaseVitals.hr : 70;
+
+        const initialMap = baseDia + ((baseSys - baseDia) / 3);
+        const safePatientObj = activeCase.patient || {};
+        const assumedBaseSV = safePatientObj.isObese ? 85 : 70; 
+        let initialCO = (baseHr * assumedBaseSV) / 1000;
+        if (isNaN(initialCO) || !Number.isFinite(initialCO) || initialCO <= 0.1) {
+          initialCO = 5.0;
+        }
+        // Calculate SVR based on the closed-loop four-chamber model calibration (fitted linear model)
+        const formulaHr = Math.max(40, Math.min(140, baseHr));
+        let calculatedBaseSVR = (initialMap + 95.0 - 0.64 * formulaHr) / (0.165 - 0.000723 * formulaHr);
+        if (isNaN(calculatedBaseSVR) || !Number.isFinite(calculatedBaseSVR) || calculatedBaseSVR <= 100.0) {
+          calculatedBaseSVR = 1200.0;
+        }
+        calculatedBaseSVR = Math.max(500, Math.min(3000, calculatedBaseSVR));
+
+        setVitals({ 
+          ...safeBaseVitals, pip: 0, pplat: 0, vte: 0, bis: 98, temp: 37.0, 
+          tofCount: 4, tofRatio: 1.0, perceivedTofCount: 4, perceivedTofRatio: 1.0, mac: 0, etAgent: 0, fiAgent: 0, etN2O: 0, fiN2O: 0, fiO2: 21, etO2: 21,
+          pao2: safePatientObj.isObese ? 75 : 100, 
+          paco2: safePatientObj.isObese ? 52 : 40, 
+          ph: safePatientObj.isSeptic ? 7.22 : (safePatientObj.isObese ? 7.36 : 7.4), 
+          co: initialCO, svr: calculatedBaseSVR, map: Math.round(initialMap), cmap: Math.round(initialMap), 
+          metHb: 0.8, coHb: activeCase.id === 'trauma' ? 12.0 : 1.0, cyanide: 0.0, lacticAcid: safePatientObj.isSeptic ? 4.5 : 1.0,
+          cao2: 20.0, cvo2: 15.0, p50: 26.6, r_ratio: 0.90,
+          lesTone: 25.0, gastricPressure: 7.0, bowelGasVolume: 1.0, gutMotility: 1.0, inflammatoryIleus: 0.0, postoperativeIleus: 0.0,
+          mPAP: 15.0, HVPG: 5.0, pbf: 1000.0, habf: 300.0, thbf: 1300.0, renalArteryResistance: 1.0, cvp: 5.0,
+          mapUnder60Time: 0.0, mapUnder55Time: 0.0,
+          mapUnder60AlertTriggered: false, mapUnder55AlertTriggered: false
+        });
+        setTargetVitals({ ...safeBaseVitals });
+        
+        const heightCm = typeof safePatientObj.height === 'number' && Number.isFinite(safePatientObj.height) ? safePatientObj.height : 170;
+        const weightKg = typeof safePatientObj.weight === 'number' && Number.isFinite(safePatientObj.weight) ? safePatientObj.weight : 70;
+        const sex = typeof safePatientObj.sex === 'string' ? safePatientObj.sex : 'male';
+        
+        const clampedHeight = Math.max(50.0, Math.min(250.0, heightCm));
+        const clampedWeight = Math.max(5.0, Math.min(300.0, weightKg));
+        const clampedAge = Math.max(1.0, Math.min(120.0, typeof safePatientObj.age === 'number' && Number.isFinite(safePatientObj.age) ? safePatientObj.age : 40));
+        
+        const ebv = typeof safePatientObj.ebv === 'number' && Number.isFinite(safePatientObj.ebv) && safePatientObj.ebv > 0 
+          ? safePatientObj.ebv 
+          : (clampedWeight * (sex.toLowerCase() === 'female' ? 65 : 75));
+        const baseBleedRate = typeof safePatientObj.bleedRate === 'number' && Number.isFinite(safePatientObj.bleedRate) ? safePatientObj.bleedRate : (activeCase.id === 'trauma' ? 1.5 : 0.05); 
+
+        const bmi = typeof safePatientObj.bmi === 'number' && Number.isFinite(safePatientObj.bmi) && safePatientObj.bmi > 0 
+          ? safePatientObj.bmi 
+          : (clampedWeight / Math.pow(clampedHeight / 100, 2));
+        const position = typeof safePatientObj.position === 'string' ? safePatientObj.position : 'Supine';
+        const lungVols = calculateLungVolumes(clampedHeight, clampedAge, sex, bmi, position, safePatientObj.copd || false, safePatientObj.restrictive || false);
+
+        setPatient({
+          ...safePatientObj, height: clampedHeight, weight: clampedWeight, sex, ebv, ebl: safePatientObj.ebl || 0, bleedRate: baseBleedRate,
+          ibw: calculateIBW(clampedHeight, sex), 
+          lbw: calculateLBW(clampedHeight, clampedWeight, sex),
+          lbm: calculateHumeLBM(clampedHeight, clampedWeight, sex),
+          ffm: calculateJanmahasatianFFM(clampedHeight, clampedWeight, sex),
+          cbw: calculateCBW(clampedHeight, clampedWeight, sex),
+          mffm: calculateMFFM(clampedHeight, clampedWeight, sex),
+          pkm: calculatePKM(clampedWeight),
+          lungVolumes: lungVols,
+          position: position,
+          isApneic: false, isParalyzed: false, isTopicalized: false,
+          airwaySecured: false, airwayExamined: false, ventilationStatus: 'spontaneous',
+          hasIV: false, hasALine: false, currentO2Device: 'Room Air', currentO2Flow: 0, currentFiO2: 21,
+          oxygenBuffer: lungVols.frc_L * 0.21, 
+          hasBisMonitor: false, hasTofMonitor: false, tofMonitorMode: 'quantitative',
+          qualityEvents: [],
+          // Captured once at case start for PACU/Aldrete-style readiness scoring ("circulation
+          // within 20% of baseline" criterion) - see OutcomeScoringEngine.ts.
+          baselineMap: Math.round(initialMap), baselineHr: baseHr,
+          isArrest: false, cardiacRhythm: 'normal', cprActive: false, ischemicDamage: 0, biologicalDeath: false, myocardialStunning: 0,
+          arrestThreshold: 1200, codeStartTime: null, apneaStartTime: null,
+          shuntFraction: activeCase.id === 'trauma' ? 0.20 : (safePatientObj.isObese ? 0.12 : 0.05),
+          // Disease models that multiply drugSvrMod (PEC +40%, sepsis -40%) will double-count
+          // if patientBaseSVR is computed from the already-diseased starting vitals. Use the
+          // normotensive equivalent so the model's multiplier reproduces the correct initial MAP.
+          patientBaseSVR: safePatientObj.hasPreeclampsia ? Math.round(calculatedBaseSVR / 1.4) :
+                          safePatientObj.isSeptic ? Math.round(calculatedBaseSVR / 0.6) :
+                          calculatedBaseSVR,
+          // Sepsis: start at maximum score (3) so sepsisVasoplegiaMod=0.6 × adjusted
+          // patientBaseSVR reproduces the initial vitals on the first tick instead of
+          // defaulting to 0.5 and crashing further below the presenting MAP.
+          sepsisScore: safePatientObj.isSeptic ? 3.0 : 0,
+          patientBaseSV: assumedBaseSV,
+          patientBaseHR: baseHr,
+          patientBaseSBP: safeBaseVitals.sys || 120,
+          patientBaseDBP: safeBaseVitals.dia || 80,
+          oculocardiacTriggered: false,
+          patientBaseRR: safeBaseVitals.rr || 12,
+          lastAirwayManipulationTime: -999,
+          lastAirwayManipulationType: '',
+          laryngoscopyActive: false,
+          laryngoscopyTime: -999,
+          cricPlacedTime: -999,
+          cricSympatheticSurgeActive: false,
+          ioPlacedTime: -999,
+          ioSympatheticSurgeActive: false,
+          lastLinePlacementTime: -999,
+          lastLineCategory: '',
+          
+          metHb: 0.8,
+          coHb: activeCase.id === 'trauma' ? 12.0 : 1.0,
+          cyanide: 0.0,
+          lacticAcid: safePatientObj.isSeptic ? 4.5 : 1.0,
+          glp1Held: activeCase.id === 'obese' ? false : true,
+          nAChR_state: activeCase.id === 'trauma' ? 'upregulated' : 'normal',
+          ivGauge: '18G',
+          fluidLine: 'gravity',
+          stomach: activeCase.id === 'obese' ? 'full' : (activeCase.id === 'trauma' ? 'full' : 'empty'),
+          fluidInfusing: null,
+          suxPotassiumLeaked: false,
+          mhActive: false,
+          charcoalFiltersPlaced: false,
+          mhStartTime: null,
+          dantroleneGiven: false,
+          isSeizure: false,
+          celiacBlockActive: safePatientObj.celiacBlockActive || false,
+          epiduralBlockActive: safePatientObj.epiduralBlockActive || false,
+          epiduralLevel: typeof safePatientObj.epiduralLevel === 'number' ? safePatientObj.epiduralLevel : null,
+          swallowingActive: safePatientObj.swallowingActive || false,
+          manipulationIndex: typeof safePatientObj.manipulationIndex === 'number' ? safePatientObj.manipulationIndex : 0.0,
+          hasRegurgitated: false,
+          hasAspirated: false,
+
+          // Hepatic states
+          cirrhosisFactor: safePatientObj.cirrhosisFactor || 0.0,
+          bilirubin: safePatientObj.bilirubin || 1.0,
+          inr: safePatientObj.inr || 1.0,
+          creatinine: (() => {
+              if (safePatientObj.creatinine !== undefined) return safePatientObj.creatinine;
+              if (safePatientObj.renalComorbidity) {
+                  const ren = safePatientObj.renalComorbidity.toLowerCase();
+                  if (ren.includes('stage 5') || ren.includes('dialysis')) return 5.2;
+                  if (ren.includes('stage 4')) return 2.8;
+                  if (ren.includes('stage 3')) return 1.8;
+                  if (ren.includes('stage 2')) return 1.3;
+                  if (ren.includes('aki')) return 2.2;
+              }
+              return 0.85;
+          })(),
+          albumin: safePatientObj.albumin || 4.0,
+          encephalopathyGrade: safePatientObj.encephalopathyGrade || 0,
+          ascitesDegree: safePatientObj.ascitesDegree || 0,
+          surgicalProcedure: safePatientObj.surgicalProcedure || '',
+          varicealBleedingActive: false,
+          varicealBleedTime: null,
+          hasPoPHCollapse: false,
+          hasTIPS: safePatientObj.hasTIPS || false,
+
+          // Renal states
+          gfr: (() => {
+              if (safePatientObj.gfr !== undefined) return safePatientObj.gfr;
+              if (safePatientObj.renalComorbidity) {
+                  const ren = safePatientObj.renalComorbidity.toLowerCase();
+                  if (ren.includes('stage 5') || ren.includes('dialysis')) return 12.5;
+                  if (ren.includes('stage 4')) return 25.0;
+                  if (ren.includes('stage 3')) return 45.0;
+                  if (ren.includes('stage 2')) return 75.0;
+                  if (ren.includes('aki')) return 35.0;
+              }
+              return 125.0;
+          })(),
+          rbf: 1100.0,
+          bun: (() => {
+              if (safePatientObj.bun !== undefined) return safePatientObj.bun;
+              if (safePatientObj.renalComorbidity) {
+                  const ren = safePatientObj.renalComorbidity.toLowerCase();
+                  if (ren.includes('stage 5') || ren.includes('dialysis')) return 74.0;
+                  if (ren.includes('stage 4')) return 42.0;
+                  if (ren.includes('stage 3')) return 28.0;
+                  if (ren.includes('stage 2')) return 18.0;
+                  if (ren.includes('aki')) return 32.0;
+              }
+              return 12.0;
+          })(),
+          urineOutput: 0.0,
+          urineOutputRate: 70.0,
+          urineOsmolality: 350.0,
+          feNa: 1.0,
+          akiStage: 0,
+          akiDamage: 0.0,
+          uopOliguriaTimer: 0,
+          uopAnuriaTimer: 0,
+          baselineCreatinine: (() => {
+              if (safePatientObj.baselineCreatinine !== undefined) return safePatientObj.baselineCreatinine;
+              if (safePatientObj.creatinine !== undefined) return safePatientObj.creatinine;
+              if (safePatientObj.renalComorbidity) {
+                  const ren = safePatientObj.renalComorbidity.toLowerCase();
+                  if (ren.includes('stage 5') || ren.includes('dialysis')) return 5.2;
+                  if (ren.includes('stage 4')) return 2.8;
+                  if (ren.includes('stage 3')) return 1.8;
+                  if (ren.includes('stage 2')) return 1.3;
+                  if (ren.includes('aki')) return 2.2;
+              }
+              return 0.85;
+          })(),
+          baselineBun: (() => {
+              if (safePatientObj.baselineBun !== undefined) return safePatientObj.baselineBun;
+              if (safePatientObj.bun !== undefined) return safePatientObj.bun;
+              if (safePatientObj.renalComorbidity) {
+                  const ren = safePatientObj.renalComorbidity.toLowerCase();
+                  if (ren.includes('stage 5') || ren.includes('dialysis')) return 74.0;
+                  if (ren.includes('stage 4')) return 42.0;
+                  if (ren.includes('stage 3')) return 28.0;
+                  if (ren.includes('stage 2')) return 18.0;
+                  if (ren.includes('aki')) return 32.0;
+              }
+              return 12.0;
+          })(),
+          vasopressinLevel: 0.1,
+          aldosteroneLevel: 0.1,
+          angiotensinIILevel: 0.1,
+          osm: 285.0,
+          hasAki: false,
+          hasPrerenalOliguria: false,
+          hasFluidOverloadEdema: false,
+          netFluidBalance: 0.0,
+          mapUnder60Time: 0.0,
+          mapUnder55Time: 0.0,
+          mapUnder60AlertTriggered: false,
+          mapUnder55AlertTriggered: false,
+          cortexRbf: 1034.0,
+          medullaRbf: 66.0,
+          cortexPo2: 50.0,
+          medullaPo2: 8.0,
+          cortexO2Extraction: 0.18,
+          medullaO2Extraction: 0.79,
+          glomerularCapillaryPressure: 60.0,
+          bowmanSpacePressure: 18.0,
+          glomerularOncoticPressure: 32.0,
+          netFiltrationPressure: 10.0,
+
+          // Consciousness & Memory states
+          lcActivity: 1.0,
+          tmnActivity: 1.0,
+          vlpoActivity: 0.0,
+          mnpoActivity: 0.0,
+          ldtPptActivity: 1.0,
+          prfActivity: 1.0,
+          vtaActivity: 1.0,
+          orexinLevel: safePatientObj.narcolepsy ? 0.1 : 1.0,
+          slowOscillationPower: 0.1,
+          thalamocorticalConn: 1.0,
+          frontoparietalFeedback: 1.0,
+          corticocorticalConn: 1.0,
+          basalGangliaConn: 1.0,
+          explicitEncoding: 1.0,
+          explicitConsolidation: 0.1,
+          ltpInductionInhibited: false,
+          neuralInertiaLag: 0.0,
+          alpha5Knockout: safePatientObj.alpha5Knockout || false,
+          alpha4Knockout: safePatientObj.alpha4Knockout || false,
+          tmnPropofolResistant: safePatientObj.tmnPropofolResistant || false,
+          narcolepsy: safePatientObj.narcolepsy || false,
+          alpha2AKnockout: safePatientObj.alpha2AKnockout || false,
+          sleepStage: safePatientObj.sleepStage || 'W',
+          sleepTimeInStage: safePatientObj.sleepTimeInStage || 0,
+          sleepDebt: typeof safePatientObj.sleepDebt === 'number' ? safePatientObj.sleepDebt : 0.0,
+          postOpSleepNight: typeof safePatientObj.postOpSleepNight === 'number' ? safePatientObj.postOpSleepNight : 0,
+          remReboundIntensity: typeof safePatientObj.remReboundIntensity === 'number' ? safePatientObj.remReboundIntensity : 1.0,
+          
+          isAwarenessActive: false,
+          ptsdScore: 0.0,
+          hasExplicitRecall: false,
+          hasImplicitRecall: false,
+          isDreaming: false,
+          displayEmergenceLag: false,
+          isF6Active: false,
+          isF3Active: false,
+          rightAmygdaloHippocampalConn: 1.0,
+          leftAmygdaloHippocampalConn: 1.0,
+          nbmHippocampalConn: 1.0,
+          soPhaseCouplingDecay: 0.0,
+          hippocampalRecollection: 1.0,
+          perirhinalFamiliarity: 1.0,
+          caudateProcedural: 1.0,
+          isTASK1Knockout: safePatientObj.isTASK1Knockout || false,
+          isTASK3Knockout: safePatientObj.isTASK3Knockout || false,
+          isTREK1Knockout: safePatientObj.isTREK1Knockout || false,
+          isHCN1Knockout: safePatientObj.isHCN1Knockout || false,
+          gabaa_occupancy: 0.0,
+          glycine_occupancy: 0.0,
+          k2p_activation: 0.0,
+          nmda_blockade: 0.0,
+          hcn_inhibition: 0.0,
+          nav_blockade: 0.0,
+          nachr_inhibition: 0.0,
+          tfaAdducts: 0.0,
+          AST: safePatientObj.AST || 25.0,
+          ALT: safePatientObj.ALT || 25.0,
+          bilirubin: safePatientObj.bilirubin || 1.0,
+          inr: safePatientObj.inr || 1.0,
+          albumin: safePatientObj.albumin || 4.0,
+          isHepatitisActive: false,
+          priorAnestheticExposure: safePatientObj.priorAnestheticExposure || false,
+          serumFluoride: 0.0,
+          accumulatedFluorideTime: 0.0,
+          hasFluorideNephrotoxicity: false,
+          coHb: activeCase.id === 'trauma' ? 12.0 : 1.0,
+          compoundA: 0.0,
+          absorbent: { waterContent: 15.0, temperature: 22.0, type: 'soda_lime' },
+          isAirwayFire: false,
+          methionineSynthaseActivity: 1.0,
+          homocysteine: 10.0,
+          b12Baseline: safePatientObj.b12Baseline || 400.0,
+          pediatricNeuroRisk: 0.0,
+          pocdRisk: 0.0,
+          ciliaBeatFrequency: 100.0,
+          ciliaryAtelectasisAccumulation: 0.0,
+          isMucusPlugged: false,
+          surfactantProduction: 100.0,
+          hpvInhibition: 0.0,
+          intercostalContribution: 1.0,
+          diaphragmContribution: 1.0,
+          isParadoxicalBreathing: false,
+          dilatorMuscleTone: 1.0,
+          airwayObstructionIndex: 0.0,
+          isAirwayObstruction: false,
+          postExtubationLaryngealEdema: false,
+          bronchialSmoothMuscleCa: 1.0,
+          atelectasis: 0.0,
+          recruitmentTime: 0.0,
+          isO2PipelineCrossover: false,
+          isO2CylinderOpen: false,
+          isO2PipelineDisconnected: false,
+          isOxygenFlushPressed: false,
+          breathingCircuitType: 'circle',
+          co2AbsorptiveCapacity: 100.0,
+          stuckExpiratoryValve: false,
+          stuckInspiratoryValve: false,
+          aplValveSetting: 0.0,
+          hasPneumothorax: false,
+          lipidSinkVol: 0.0,
+          prInterval: 160.0,
+          qrsDuration: 80.0,
+          isLAST: false,
+          lastSeizureTriggered: false,
+          hasMetHbLog: false,
+          lastMetHbLogTime: 0,
+
+          // Cerebral states (Chapter 11)
+          cbf: 50.0,
+          cmro2: 3.3,
+          cpp: 80.0,
+          cbv: 1.0,
+          icp: 10.0,
+          brainVolume: 1300.0,
+          csfVolume: 130.0,
+          intracranialVolumeOffset: safePatientObj.intracranialVolumeOffset || 0.0,
+          complianceState: safePatientObj.complianceState || 'normal',
+          hasCerebralIschemia: false,
+          rso2: 70.0,
+          isBBBOpen: safePatientObj.isBBBOpen || false,
+          cerebralElastance: safePatientObj.cerebralElastance,
+          urinaryRetentionActive: false,
+          bladderVolume: 0.0,
+          hasFoley: false,
+          opioidReceptorGenotype: safePatientObj.opioidReceptorGenotype || 'A118A',
+
+          highSpinalApneaLogged: false,
+
+          // === PREECLAMPSIA ===
+          hasPreeclampsia: !!safePatientObj.hasPreeclampsia,
+          prevPECHypertensiveLogged: false,
+          prevEclampsiaLogged: false,
+          prevHELLPLogged: false,
+          prevMgToxicLogged: false,
+          prevPECAirwayEdemaLogged: false,
+          pecSvrContribution: 0,
+
+          // === AMNIOTIC FLUID EMBOLISM ===
+          afeActive: !!safePatientObj.afeActive,
+          afeOnsetTime: null,
+          prevAFEOnsetLogged: false,
+          prevAFEPhase2Logged: false,
+
+          // === ACETAMINOPHEN HEPATOTOXICITY ===
+          apapCumulativeDoseMg: 0,
+          apapFirstDoseTime: null,
+          nacActive: false,
+          prevAPAPHepToxLogged: false,
+          prevAPAPALFLogged: false,
+          prevNACSuccessLogged: false,
+
+          finkEffectLogged: false,
+          n2oDiffusionHypoxiaShunt: 0,
+          isbActive: !!safePatientObj.isbActive,
+          isbPhrenicPalsyLogged: false,
+
+          // === CARDIOPULMONARY BYPASS ===
+          cpbActive: false,
+          cpbStartTime: null,
+          cpbFlowRateLMin: 4.5,
+          cpbTemperatureC: 37,
+          aortaClamped: false,
+          cpbPrimeVolumeMl: 1500,
+          prevCPBOnsetLogged: false,
+          prevCPBClampLogged: false,
+          prevProtamineLogged: false,
+          prevCPBWeaningLogged: false,
+
+          // === PERIOPERATIVE GLUCOSE ===
+          prevHyperglycemiaLogged: false,
+          prevHypoglycemiaLogged: false,
+          prevSGLT2Logged: false,
+          prevMetforminLogged: false,
+          sglt2Inhibitor: !!safePatientObj.sglt2Inhibitor,
+          glp1Agonist: !!safePatientObj.glp1Agonist,
+          sulfonylurea: !!safePatientObj.sulfonylurea,
+          metforminOnDayOfSurgery: !!safePatientObj.metformin,
+          previousGlucose: 100,
+
+          // === MASSIVE TRANSFUSION ===
+          isActiveMTP: false,
+          txaGiven: false,
+          txaAdminTime: null,
+          prevMTPLogged: false,
+          prevMTPTXALogged: false,
+          prevMTPCalciumLogged: false,
+
+          // === LABOR EPIDURAL ===
+          laborEpiduralActive: false,
+          laborStage: 1,
+          laborBupiConc: 0.0625,
+          laborFentanylConc: 2,
+          isCSEActive: false,
+          prevLaborEpiduralLogged: false,
+          prevHighBlockLogged: false,
+          prevFetalBradyLogged: false,
+          prevLaborEpiHypotensionLogged: false,
+
+          // === MALNUTRITION / FRAILTY ===
+          prevMalnutritionLogged: false,
+          prevRefeedingLogged: false,
+          prevFrailtyLogged: false,
+          isStarved: !!safePatientObj.isStarved,
+          starvationDays: safePatientObj.starvationDays || 0,
+
+          // === LIVER TRANSPLANT ===
+          meldScore: safePatientObj.meldScore || 10,
+          isALF: !!safePatientObj.isALF,
+          hasHepPulmonarySyndrome: !!safePatientObj.hasHepPulmonarySyndrome,
+          oltPhase: safePatientObj.oltPhase || 'pre_anhepatic',
+          anhepticStartTimeSec: null,
+          reperfusionStartTimeSec: null,
+          prevAnhepaticLogged: false,
+          prevReperfusionLogged: false,
+          prevHPSLogged: false,
+
+          // === CHRONIC OPIOID TOLERANCE + DELIRIUM ===
+          isChronicOpioidUser: !!safePatientObj.chronicOpioidUser,
+          morphineEquivalentDosePerDay: safePatientObj.medd || 0,
+          onMethadone: !!safePatientObj.methadone,
+          onBuprenorphine: !!safePatientObj.buprenorphine,
+          hasBaselineCognitivImpairment: !!safePatientObj.dementia,
+          hasFrailty: !!safePatientObj.frailty,
+          prevChronicOpioidLogged: false,
+          prevWithdrawalLogged: false,
+          prevDeliriumLogged: false,
+
+          // === CKD/ESRD PERIOPERATIVE ===
+          isOnDialysis: !!safePatientObj.dialysis,
+          daysSinceLastDialysis: safePatientObj.daysSinceLastDialysis || 1,
+          prevCKDWarningLogged: false,
+          prevUremiaPlateletLogged: false,
+          prevHyperKSuxCKDLogged: false,
+
+          // === ARRHYTHMIA MANAGEMENT ===
+          hasWPW: !!safePatientObj.hasWPW,
+          wpwHasAF: false,
+          prevSVTLogged: false,
+          prevWPWLogged: false,
+          prevVTLogged: false,
+
+          // === ANGIOEDEMA + STATUS ASTHMATICUS ===
+          angioedemaPresent: !!safePatientObj.angioedemaPresent,
+          angioedemaOnsetTime: null,
+          hasHAE: !!safePatientObj.hasHAE,
+          aceInhibitorActive: !!safePatientObj.aceInhibitorActive,
+          statusAsthmaticusActive: false,
+          statusAsthmaticusOnsetTime: null,
+          helioxActive: false,
+          prevAngioedemaLogged: false,
+          prevAngioedemaAirwayLogged: false,
+          prevStatusAsthmaLogged: false,
+          prevAutoPEEPLogged: false,
+
+          // === CARDIAC TAMPONADE + TAKOTSUBO ===
+          pericardialEffusionMl: safePatientObj.pericardialEffusionMl || 0,
+          effusionAccumulationRateMlMin: 0,
+          isChronicEffusion: !!safePatientObj.isChronicEffusion,
+          pericardiocentesisDone: false,
+          pericardiocentesisVolumeMl: 0,
+          takotsuboActive: false,
+          takotsuboOnsetTime: null,
+          prevTamponadeLogged: false,
+          prevTakotsuboLogged: false,
+
+          // === MULTIPLE ANAPHYLAXIS ===
+          hasKnownLatexAllergy: !!safePatientObj.latexAllergy,
+          hasSpinaBifida: !!safePatientObj.spinaBifida,
+          latexExposure: false,
+          chlorhexidineExposure: false,
+          blueDyeExposure: false,
+          prevNMBAAnaphLogged: false,
+          prevLatexAnaphLogged: false,
+          prevCefAnaphLogged: false,
+          prevChlorhexLogged: false,
+          prevBlueDyeLogged: false,
+
+          // === DIFFICULT AIRWAY ===
+          prevDifficultyAirwayLogged: false,
+          prevFailedIntubLogged: false,
+          prevCICOLogged: false,
+          intubationAttemptsMade: 0,
+          cormackLehaneGrade: 1,
+          sgaInPlace: false,
+          sgaVentilating: false,
+          cicoActive: false,
+          cricothyroidotomyDone: false,
+
+          // === TUMOR LYSIS / ELECTROLYTE ===
+          tlsActive: !!safePatientObj.tlsActive,
+          tlsRiskLevel: safePatientObj.tlsRiskLevel || 'intermediate',
+          tlsOnsetTime: null,
+          allopurinolActive: false,
+          rasburicaseActive: false,
+          prevTLSLogged: false,
+          prevHypoCaLogged: false,
+          prevHypoMgLogged: false,
+          prevHypoNaLogged: false,
+          magnesiumLevel: safePatientObj.magnesiumLevel || 1.8,
+          phosphorusLevel: safePatientObj.phosphorusLevel || 3.5,
+
+          // === DIGOXIN TOXICITY ===
+          prevDigoxinToxLogged: false,
+          prevDigoxinSevereLogged: false,
+
+          // === HYPERTENSIVE EMERGENCY ===
+          aorticDissectionPresent: !!safePatientObj.aorticDissectionPresent,
+          dissectionType: safePatientObj.dissectionType || 'B',
+          prevHyperEmergencyLogged: false,
+          prevDissectionLogged: false,
+          prevEncephalopathyLogged: false,
+
+          // === SICKLE CELL ===
+          hasSickleCellDisease: !!safePatientObj.hasSickleCellDisease,
+          hbSPercent: safePatientObj.hbSPercent || 85,
+          vocActive: false,
+          acsActive: false,
+          acsOnsetTime: null,
+          prevVOCLogged: false,
+          prevACSLogged: false,
+
+          // === ACUTE PORPHYRIA ===
+          hasAcutePorphyria: !!safePatientObj.hasAcutePorphyria,
+          porphyriaAttackActive: false,
+          porphyriaAttackStartTime: null,
+          heminGiven: false,
+          prevPorphyriaLogged: false,
+          prevPorphyriaParalysisLogged: false,
+
+          // === SPECIAL SURGERY ===
+          tourniquetActive: false,
+          tourniquetStartTime: null,
+          laserActive: false,
+          laserResistantETT: false,
+          openGlobeInjury: !!safePatientObj.openGlobeInjury,
+          adequateEyePads: true,
+          headDownAngleDegrees: 0,
+          prevEyePressureLogged: false,
+          prevFacialEdemaLogged: false,
+          prevTourniquetPainLogged: false,
+          prevFireRiskLogged: false,
+          prevIopLogged: false,
+
+          // === PDPH ===
+          dptOccurred: !!safePatientObj.dptOccurred,
+          dptNeedleGauge: safePatientObj.dptNeedleGauge || 17,
+          dptNeedleType: safePatientObj.dptNeedleType || 'cutting',
+          dptTimeHours: 0,
+          bloodPatchGiven: false,
+          caffeineActive: false,
+          caffeineDose: 0,
+          prevPDPHOnsetLogged: false,
+          prevBloodPatchLogged: false,
+
+          // === TACO ===
+          prbcVolumeReceivedMl: 0,
+          ffpVolumeReceivedMl: 0,
+          prevTACOLogged: false,
+          prevTACOSevereLogged: false,
+
+          // === TOXIDROME ===
+          organophosphatePoisoning: !!safePatientObj.organophosphatePoisoning,
+          organophosphateConcentration: safePatientObj.organophosphateConcentration || 0,
+          prevAnticholinLogged: false,
+          prevCholinergicLogged: false,
+          prevCholinergicSevereLogged: false,
+
+          // === CEA / REPERFUSION ===
+          ceaActive: !!safePatientObj.ceaActive,
+          carotidClamped: false,
+          carotidShuntInPlace: false,
+          carotidStumpPressureMmHg: 60,
+          ipsilateralRSO2Baseline: 68,
+          carotidBodyManipulation: false,
+          reperfusionActive: false,
+          reperfusionType: safePatientObj.reperfusionType || 'hepatic',
+          ischemicDurationMinutes: 0,
+          reperfusionStartTime: null,
+          coldPreservationSolution: false,
+          preservationKMEqL: 115,
+          prevCEAClampLogged: false,
+          prevCEAIschemiaLogged: false,
+          prevReperfusionLogged: false,
+          prevHyperperfusionLogged: false,
+          prevCarotidBodyLogged: false,
+
+          // === PERIOPERATIVE MI ===
+          ischemicBurdenAccumulator: 0,
+          troponinNgL: 3,
+          troponinPeakNgL: 3,
+          miActiveType1: false,
+          miActiveType2: false,
+          miOnsetTime: null,
+          prevIschemiaLogged: false,
+          prevMIType1Logged: false,
+          prevMIType2Logged: false,
+          prevTroponinAlertLogged: false,
+
+          // === FAT EMBOLISM ===
+          femActive: !!safePatientObj.femActive,
+          femTriggerType: safePatientObj.femTriggerType || 'fracture',
+          femOnsetTime: null,
+          prevFEMOnsetLogged: false,
+          prevFEMSevereLogged: false,
+
+          // === PULMONARY HYPERTENSION ===
+          phPresent: !!safePatientObj.phPresent,
+          phWhoGroup: safePatientObj.phWhoGroup || null,
+          phSeverity: safePatientObj.phSeverity || null,
+          baselineMpap: safePatientObj.baselineMpap || null,
+          inoActive: false,
+          inoPpm: 0,
+          inoJustStopped: false,
+          inhaledEpoprostenolActive: false,
+          inhaledEpoprostenolDose: 0,
+          phRvInotropyPenalty: 0,
+          prevPHCrisisLogged: false,
+          prevRVFailureLogged: false,
+          prevInoStartLogged: false,
+          prevReboundLogged: false,
+
+          // === ONE-LUNG VENTILATION ===
+          olvActive: !!safePatientObj.olvActive,
+          olvStartTimeSec: null,
+          olvCpapCmH2O: 0,
+          olvLateralOperativeLungUp: !!(safePatientObj.position === 'Lateral' || safePatientObj.olvLateralOperativeLungUp),
+          dltInPlace: !!safePatientObj.dltInPlace,
+          dltMalpositioned: false,
+          olvShuntContribution: 0,
+          olvCompliancePenaltyFraction: 0,
+          prevOlvOnsetLogged: false,
+          prevOlvHypoxiaLogged: false,
+
+          // === CO POISONING ===
+          smokeExposureActive: !!safePatientObj.smokeExposureActive,
+          smokeSeverity: safePatientObj.smokeSeverity || 0,
+          hyperbaricO2Active: false,
+          prevCO20Logged: false,
+          prevCO30Logged: false,
+          prevCO40Logged: false,
+          prevCO50Logged: false,
+
+          // === BURNS ===
+          burnsTBSAPercent: safePatientObj.burnsTBSAPercent || 0,
+          hoursPostBurn: safePatientObj.hoursPostBurn || 0,
+          inhalationInjury: !!safePatientObj.inhalationInjury,
+          inhalationSeverity: safePatientObj.inhalationSeverity || 0.5,
+          totalParklandGivenMl: 0,
+          prevBurnOnsetLogged: false,
+          prevInhalationLogged: false,
+          prevAirwayEdemaLogged: false,
+          prevParklandAlertLogged: false,
+          inhalationInjuryCompliancePenalty: 0,
+          inhalationInjuryResistancePenalty: 0,
+          inhalationInjuryShuntContribution: 0
+        });
+        
+        setTime(0); setActiveMeds([]); setIntravascularVolume(0); setSurgicalPhase('Pre-Op');
+        
+        const safeGasModels = {};
+        Object.keys(INHALATIONAL_AGENTS).forEach(key => {
+            if (INHALATIONAL_AGENTS[key]) {
+                safeGasModels[key] = new GasKineticsModel(INHALATIONAL_AGENTS[key]);
+            }
+        });
+        setGasModels(safeGasModels);
+        
+        setTotalBodyWaterLiters(clampedWeight * 0.6); 
+        setElectrolytes({ na: 140, k: safePatientObj.trauma ? 5.2 : 4.0, cl: 100, ca: 9.0, ph: safePatientObj.isSeptic ? 7.2 : 7.4 });
+        setCoags({ r_offset: safePatientObj.trauma ? 6 : 0, ma_offset: safePatientObj.trauma ? -15 : 0, angle_offset: safePatientObj.trauma ? -15 : 0 });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCase, prevCaseId]);
+
+  const pushFluid = (fluidName, volumeStr, lineId, rateStr = undefined) => {
+    const currentPatient = stateRef.current.patient || patient;
+    const volume = parseFloat(volumeStr);
+    if (isNaN(volume) || !Number.isFinite(volume) || volume <= 0) {
+        logEvent(`❌ FAILED: Cannot administer ${fluidName}. Invalid volume specified!`);
+        return false;
+    }
+    const targetLine = currentPatient.accessLines?.find(l => l.id === lineId);
+    
+    if (!targetLine) {
+        logEvent(`❌ FAILED: Cannot administer ${fluidName}. No valid venous access line selected!`);
+        return false;
+    }
+    
+    if (targetLine.failed) {
+        logEvent(`❌ FAILED: Cannot administer ${fluidName}. Access Line: ${targetLine.name} has been BLOWN OUT!`);
+        return false;
+    }
+    
+    if (targetLine.category.includes('Arterial')) {
+        logEvent(`🚨 CRITICAL ERROR: Attempted fluid resuscitation via Arterial Line! Arteries cannot accommodate high volume infusion. Retrograde flow risks cerebral embolization and severe limb ischemia!`);
+        return false;
+    }
+
+    const fluidData = FLUIDS[fluidName]; if (!fluidData) return false;
+    const isBlood = fluidData.type === 'Blood Product';
+    
+    if (isBlood) {
+        const bb = currentPatient.bloodBank || { status: 'none', unitsInOR: 0, deliveryCountdown: 0, totalDeliveryTime: 0, preOpWorkup: 'none' };
+
+        if (bb.status === 'available' && bb.unitsInOR > 0) {
+            const requestedUnits = volume;
+            if (requestedUnits > bb.unitsInOR) {
+                logEvent(`❌ FAILED: Requested ${requestedUnits} unit(s) of ${fluidName}, but only ${bb.unitsInOR} unit(s) remain in the OR cooler. Order more from Blood Bank.`);
+                return false;
+            }
+            setPatient(prev => ({
+                ...prev,
+                bloodBank: {
+                    ...prev.bloodBank,
+                    unitsInOR: prev.bloodBank.unitsInOR - requestedUnits
+                }
+            }));
+            if (bb.unitsInOR - requestedUnits <= 0) {
+                logEvent(`⚠️ Blood Bank: Last unit(s) from OR cooler being administered. Order additional units if hemorrhage continues.`);
+            }
+        } else if (bb.status === 'ordered') {
+            const remaining = Math.ceil(bb.deliveryCountdown);
+            const mins = Math.floor(remaining / 60);
+            const secs = remaining % 60;
+            logEvent(`❌ FAILED: Blood products have not arrived yet! Cooler ETA: ${mins}m ${secs}s remaining (${remaining}s). Blood Bank is processing.`);
+            return false;
+        } else {
+            const hasTypeAndScreen = currentPatient.preOpOrders?.labs?.typeAndScreen || false;
+            const hasTypeAndCross = currentPatient.preOpOrders?.labs?.typeAndCross || false;
+
+            if (hasTypeAndCross && bb.status === 'none') {
+                logEvent(`✅ Blood Bank: Type & Crossmatch was completed pre-operatively. 2 crossmatched units of PRBCs are in the OR cooler. Proceeding with transfusion.`);
+                const requestedUnits = volume;
+                setPatient(prev => ({
+                    ...prev,
+                    bloodBank: {
+                        status: 'available',
+                        unitsInOR: Math.max(0, 2 - requestedUnits),
+                        deliveryCountdown: 0,
+                        totalDeliveryTime: 0,
+                        preOpWorkup: 'crossmatch'
+                    }
+                }));
+            } else {
+                const baselineDelay = 600; 
+                const delaySeconds = hasTypeAndScreen ? (baselineDelay * 0.50) : baselineDelay;
+                const deliveryUnits = 4; 
+
+                const rationale = hasTypeAndCross
+                    ? `Previous crossmatch on file. Reorder delivery: ${Math.round(delaySeconds)}s. Blood Bank pulling ${deliveryUnits} additional units.`
+                    : hasTypeAndScreen
+                        ? `Type & Screen on file — ABO/Rh and antibody screen already completed. Electronic crossmatch in progress. Delivery: ${Math.round(delaySeconds)}s (${Math.round(delaySeconds/60)} min). ${deliveryUnits} units being prepared.`
+                        : `NO pre-operative blood workup on file! Emergency uncrossmatched O-Negative release protocol initiated. Full ABO/Rh typing and antibody screen running concurrently. Delivery: ${Math.round(delaySeconds)}s (${Math.round(delaySeconds/60)} min). ${deliveryUnits} uncrossmatched units being dispatched.`;
+
+                logEvent(`🚨 Blood Bank: Emergency order placed for ${fluidName}. ${rationale}`);
+
+                setPatient(prev => ({
+                    ...prev,
+                    bloodBank: {
+                        status: 'ordered',
+                        unitsInOR: 0,
+                        deliveryCountdown: delaySeconds,
+                        totalDeliveryTime: delaySeconds,
+                        pendingUnits: deliveryUnits,
+                        preOpWorkup: hasTypeAndCross ? 'crossmatch' : (hasTypeAndScreen ? 'screen' : 'none')
+                    }
+                }));
+                return false;
+            }
+        }
+    }
+
+    const isUnit = isBlood || fluidData.type === 'Colloid';
+    
+    if (isUnit) {
+        if (volume > 20) {
+            logEvent(`❌ FAILED: Attempted to infuse ${volume} units of ${fluidName}. That is physiologically impossible and clinically absurd.`);
+            return false;
+        }
+    } else {
+        if (volume > 5000) {
+            logEvent(`❌ FAILED: Attempted to infuse ${volume} mL of ${fluidName} in a single bolus. That is clinically absurd.`);
+            return false;
+        }
+    }
+
+    const effectiveVolumeML = fluidName.includes('Fibrinogen') ? volume * 50 : (isUnit ? volume * (fluidData.defaultVol || 300) : volume);
+
+    let initialUserRate = undefined;
+    if (rateStr !== undefined && rateStr !== null && rateStr !== '') {
+        const parsedRate = parseFloat(rateStr);
+        if (!isNaN(parsedRate) && Number.isFinite(parsedRate) && parsedRate > 0) {
+            initialUserRate = parsedRate;
+        }
+    }
+
+    setPatient(prev => {
+        const newLines = [...(prev.accessLines || [])];
+        const lineIndex = newLines.findIndex(l => l.id === lineId);
+        if (lineIndex >= 0) {
+            newLines[lineIndex] = {
+                ...newLines[lineIndex],
+                activeInfusions: [
+                    ...(newLines[lineIndex].activeInfusions || []),
+                    { id: Date.now().toString(), name: fluidName, remainingVolume: effectiveVolumeML, startingVolume: effectiveVolumeML, userRate: initialUserRate, currentRate: 0 }
+                ]
+            };
+        }
+        return { ...prev, accessLines: newLines };
+    });
+
+    logEvent(`💧 Attached: ${volume} ${isUnit ? 'Units' : (fluidName.includes('Fibrinogen') ? 'g' : 'mL')} of ${fluidName} to ${targetLine.name}.`);
+    return true;
+  };
+
+  const updateFluidRate = (lineId, infusionId, newRate_ml_hr) => {
+    setPatient(prev => {
+        const newLines = (prev.accessLines || []).map(l => {
+            if (l.id !== lineId) return l;
+            return {
+                ...l,
+                activeInfusions: (l.activeInfusions || []).map(inf => {
+                    if (inf.id !== infusionId) return inf;
+                    return { ...inf };
+                })
+            };
+        });
+        const lineIndex = newLines.findIndex(l => l.id === lineId);
+        if (lineIndex >= 0) {
+            const line = newLines[lineIndex];
+            const infusions = line.activeInfusions;
+            const infIndex = infusions.findIndex(i => i.id === infusionId);
+            if (infIndex >= 0) {
+                if (newRate_ml_hr === '' || newRate_ml_hr === null || isNaN(parseFloat(newRate_ml_hr))) {
+                    delete infusions[infIndex].userRate;
+                    logEvent(`Max flow enabled for ${infusions[infIndex].name} on ${line.name}.`);
+                } else {
+                    let rate = parseFloat(newRate_ml_hr);
+                    if (isNaN(rate) || !Number.isFinite(rate) || rate < 0) {
+                        logEvent(`❌ FAILED: Invalid flow rate requested!`);
+                        return prev;
+                    }
+                    const lType = line.fluidLine || prev.fluidLine || 'gravity';
+                    let pInfusion = 74; 
+                    if (lType === 'ranger') pInfusion = 150;
+                    else if (lType === 'belmont') pInfusion = 300;
+                    
+                    const pv = line.venousPressure !== undefined ? line.venousPressure : 10;
+                    const rv = line.veinResistance !== undefined ? line.veinResistance : 500;
+                    let deltaP = pInfusion - pv;
+                    if (deltaP < 0) deltaP = 0;
+                    
+                    const fluidData = FLUIDS[infusions[infIndex].name];
+                    const eta = fluidData ? Math.max(0.01, fluidData.viscosity || 1.0) : 1.0;
+                    
+                    let rTubing = 150;
+                    if (lType === 'ranger') rTubing = 800;
+                    else if (lType === 'belmont') rTubing = 200;
+                    
+                    const safeRadius = Math.max(0.01, line.radius || 0.475);
+                    const safeLength = Math.max(1, line.length || 30);
+                    const rCath = safeLength / Math.pow(safeRadius, 4);
+                    const rTotal = Math.max(1.0, rTubing + rCath + rv);
+                    
+                    let q_ml_min = 1200 * deltaP / (eta * rTotal);
+                    if (isNaN(q_ml_min) || !Number.isFinite(q_ml_min) || q_ml_min < 0) {
+                        q_ml_min = 0;
+                    }
+                    if (lType === 'belmont' && q_ml_min > 500) q_ml_min = 500;
+                    
+                    const max_ml_hr = q_ml_min * 60;
+                    if (rate > max_ml_hr) {
+                        rate = max_ml_hr;
+                        logEvent(`⚠️ Requested rate exceeds physical limits of ${line.name}. Capped at ${Math.round(rate)} mL/hr.`);
+                    }
+                    infusions[infIndex].userRate = rate;
+                }
+            }
+        }
+        return { ...prev, accessLines: newLines };
+    });
+  };
+
+  const removeFluid = (lineId, infusionId) => {
+    setPatient(prev => {
+        const newLines = [...(prev.accessLines || [])];
+        const lineIndex = newLines.findIndex(l => l.id === lineId);
+        if (lineIndex >= 0) {
+            const infusions = [...(newLines[lineIndex].activeInfusions || [])];
+            const filtered = infusions.filter(i => i.id !== infusionId);
+            newLines[lineIndex] = { ...newLines[lineIndex], activeInfusions: filtered };
+        }
+        return { ...prev, accessLines: newLines };
+    });
+    logEvent(`Stopped and removed fluid infusion.`);
+  };
+
+  const processMed = (medId, doseInput, route, type, unit, lineId = null, modelName = null) => {
+    const currentPatient = stateRef.current.patient || patient;
+    const currentActiveMeds = stateRef.current.activeMeds || activeMeds;
+
+    const targetLine = lineId ? currentPatient.accessLines?.find(l => l.id === lineId) : null;
+    let injectedArterial = false;
+    if (targetLine && targetLine.category?.includes('Arterial')) {
+        injectedArterial = true;
+        if (medId === 'thiopental' || medId === 'methohexital') {
+            const baseProb = 0.50;
+            const willPrecipitate = currentPatient.forceBarbituratePrecipitation || (ensureRng(currentPatient, currentPatient.rngSeed)() < baseProb);
+            if (willPrecipitate) {
+                logEvent(`🚨 CRITICAL EMERGENCY: Injected Barbiturate ${medId === 'thiopental' ? 'Thiopental' : 'Methohexital'} into Arterial Line: ${targetLine.name}! This triggers immediate chemical endarteritis, microvascular crystal precipitation, profound arterial vasospasm, and severe distal limb ischemia!`);
+                setPatient(prev => ({
+                    ...prev,
+                    barbiturateArterialPrecipitation: true,
+                    barbiturateArterialPrecipitationTime: stateRef.current.time,
+                    barbiturateArterialDrugName: medId === 'thiopental' ? 'Thiopental' : 'Methohexital'
+                }));
+            } else {
+                logEvent(`⚠️ Clinical Note: Injected Barbiturate ${medId === 'thiopental' ? 'Thiopental' : 'Methohexital'} into Arterial Line: ${targetLine.name}. Fortunately, microvascular crystal precipitation did not occur (occurs in ~50% of intra-arterial injections). Monitor extremity for delayed vasospasm.`);
+            }
+        } else {
+            logEvent(`🚨 CRITICAL ERROR: Injected ${medId} into Arterial Line: ${targetLine.name}! This causes immediate profound arterial vasospasm and endothelial irritation!`);
+            setPatient(prev => ({
+                ...prev,
+                genericArterialSpasm: true,
+                genericArterialSpasmTime: stateRef.current.time
+            }));
+        }
+    }
+    if (targetLine && targetLine.failed) {
+        logEvent(`❌ FAILED: Cannot administer ${medId}. Access Line: ${targetLine.name} has been BLOWN OUT!`);
+        return false;
+    }
+    const hasCVC = currentPatient.accessLines?.some(l => !l.failed && (l.category?.includes('CVC') || l.type?.includes('CVC') || l.category?.includes('Central') || l.type?.includes('Central') || l.type?.includes('Cordis') || l.type?.includes('Introducer')));
+    const hasPIV = currentPatient.accessLines?.some(l => !l.failed && (l.category?.includes('PIV') || l.name?.includes('PIV') || l.category?.includes('IV') || l.name?.includes('IV') || l.category?.includes('Peripheral')));
+    const hasIO = currentPatient.accessLines?.some(l => !l.failed && (l.category?.includes('IO') || l.name?.includes('IO') || l.type?.includes('IO') || l.type?.includes('Intraosseous')));
+    const hasArt = currentPatient.accessLines?.some(l => l.category?.includes('Arterial') || l.name?.includes('Arterial'));
+
+    if (route === 'IV' && !hasCVC && !hasPIV && !hasIO && !injectedArterial) {
+        logEvent(`❌ FAILED: No venous access available for ${medId}!`);
+        return false; 
+    }
+
+    const medData = MEDICATIONS[medId]; if (!medData) return false;
+
+    // PharmacologicChoice quality event: administering a penicillin-class drug to a
+    // documented-allergic patient is itself a decision error worth recording, independent of
+    // whether anaphylaxis actually occurs this tick (that probabilistic outcome is handled
+    // separately in the main tick loop's anaphylaxis trigger logic).
+    if ((medId === 'unasyn' || medId === 'piperacillin_tazobactam') && (currentPatient.penicillinAllergy || (currentPatient.allergies || '').toLowerCase().includes('penicillin'))) {
+        logQualityEvent({
+            category: 'PharmacologicChoice', severity: 'critical',
+            description: `Administered a penicillin-class antibiotic (${medData.name}) to a patient with a documented penicillin allergy.`,
+            idealAction: 'Verify allergy history before administering a penicillin-class drug; select a non-cross-reacting alternative.',
+            actualAction: `Administered ${medData.name} despite documented penicillin allergy.`,
+            impact: 'Risk of IgE-mediated anaphylaxis (vasoplegic shock, bronchospasm) - probabilistically elevated 4x in patients with COPD/asthma/atopy/high anxiety.',
+        });
+    }
+
+    const safePatientWeight = typeof currentPatient.weight === 'number' && Number.isFinite(currentPatient.weight) && currentPatient.weight > 0 ? currentPatient.weight : 70;
+    const safePatientIbw = typeof currentPatient.ibw === 'number' && Number.isFinite(currentPatient.ibw) && currentPatient.ibw > 0 ? currentPatient.ibw : 70;
+    const safePatientLbw = typeof currentPatient.lbw === 'number' && Number.isFinite(currentPatient.lbw) && currentPatient.lbw > 0 ? currentPatient.lbw : 60;
+
+    if (type === 'TCI_Cp' || type === 'TCI_Ce') {
+      const targetConc = parseFloat(doseInput);
+      if (isNaN(targetConc) || targetConc <= 0) {
+        logEvent(`❌ FAILED: Invalid target concentration specified!`);
+        return false;
+      }
+      
+      const mode = type === 'TCI_Cp' ? 'Cp' : 'Ce';
+      const selectedModelName = modelName || medData.pkModel || 'Schnider';
+      
+      let existingModel = currentActiveMeds.find(m => m.name === medData.name);
+      let updatedMeds = [...currentActiveMeds];
+      if (!existingModel) { 
+        existingModel = new PKPDModel(medData, safePatientWeight); 
+        updatedMeds.push(existingModel); 
+      }
+      
+      existingModel.setTci(mode, targetConc, selectedModelName, currentPatient);
+      existingModel.displayDose = `target: ${targetConc}`;
+      existingModel.displayUnit = 'mcg/mL';
+      existingModel.medId = medId;
+
+      const targetLineId = lineId || 
+        (currentPatient.accessLines || []).find(l => !l.failed && (l.category?.includes('PIV') || l.name?.includes('PIV') || l.category?.includes('Peripheral')))?.id ||
+        (currentPatient.accessLines || []).find(l => !l.category?.includes('Arterial'))?.id;
+      if (targetLineId) {
+        setPatient(prev => {
+          const updatedLines = (prev.accessLines || []).map(l => {
+            if (l.id !== targetLineId) return l;
+            const meds = [...(l.activeMedInfusions || [])];
+            const idx = meds.findIndex(m => m.medId === medId);
+            const infItem = { medId, rate: 0.0, unit: `mcg/mL (TCI ${mode} - ${selectedModelName})` };
+            if (idx >= 0) {
+              meds[idx] = infItem;
+            } else {
+              meds.push(infItem);
+            }
+            return { ...l, activeMedInfusions: meds };
+          });
+          return { ...prev, accessLines: updatedLines };
+        });
+      }
+      
+      setActiveMeds(updatedMeds);
+      logEvent(`🔁 Started TCI (${mode}-controlled) for ${medData.name} targeting ${targetConc} mcg/mL using ${selectedModelName} model.`);
+      return true;
+    }
+
+    if (route === 'IV' && !hasCVC && (hasPIV || hasIO)) {
+        if (type === 'Infusion' && medData.classes.some(c => c.includes('Vasopressor')) && medId !== 'phenylephrine') {
+            logEvent(`⚠️ WARNING: Infusing ${medData.name} via Peripheral IV. High risk of extravasation and severe tissue necrosis. Central line strongly recommended.`);
+        }
+        if (medId === 'calcium') {
+            logEvent(`⚠️ WARNING: Administering Calcium Chloride via PIV. High risk of severe phlebitis and tissue necrosis. Calcium Gluconate or CVC preferred.`);
+        }
+        if (medId === 'amiodarone' && type === 'Infusion') {
+            logEvent(`⚠️ WARNING: Continuous Amiodarone infusion via PIV risks severe chemical phlebitis.`);
+        }
+    }
+
+    let doseInMg = parseFloat(doseInput);
+    if (isNaN(doseInMg) || !Number.isFinite(doseInMg) || doseInMg <= 0) {
+        logEvent(`❌ FAILED: Invalid medication dose specified!`);
+        return false;
+    }
+
+    const dosingWeight = resolveDosingWeight(medData, 'Bolus', currentPatient);
+    const safeUnit = typeof unit === 'string' ? unit : '';
+    if (safeUnit.includes('mcg/kg/min')) doseInMg = (doseInMg * dosingWeight) / 1000;
+    else if (safeUnit.includes('mcg')) doseInMg = doseInMg / 1000;
+    else if (safeUnit.includes('mg/kg') || safeUnit.includes('mL/kg') || safeUnit.includes('ml/kg') || safeUnit.includes('mL/kg/min') || safeUnit.includes('ml/kg/min')) doseInMg = doseInMg * dosingWeight;
+
+    if (isNaN(doseInMg) || !Number.isFinite(doseInMg) || doseInMg <= 0) {
+        logEvent(`❌ FAILED: Invalid calculated medication dose in mg!`);
+        return false;
+    }
+
+    let existingModel = currentActiveMeds.find(m => m.name === medData.name);
+    let updatedMeds = [...currentActiveMeds];
+    if (!existingModel) { 
+      existingModel = new PKPDModel(medData, safePatientWeight); 
+      updatedMeds.push(existingModel); 
+    }
+
+    if (type === 'Bolus') {
+      const bio = route === 'IV' ? 1.0 : (route === 'IM' ? 0.8 : 0.5);
+      existingModel.giveBolus(doseInMg * bio);
+      logEvent(`💉 Pushed ${doseInput} ${unit} of ${medData.name} via ${route}.`);
+
+      // ACLS timing tracker: record when epinephrine is given during arrest.
+      // Used by the ACLS console to display the inter-dose interval timer (every 3-5 min per AHA).
+      if (medId === 'epinephrine') {
+          setPatient(prev => ({ ...prev, lastEpiPushTime: stateRef.current.time || 0 }));
+      }
+      // Track amiodarone doses for second-dose guidance (300mg first, 150mg second)
+      if (medId === 'amiodarone' && stateRef.current.patient?.isArrest) {
+          setPatient(prev => ({
+              ...prev,
+              amioDosesGivenInArrest: (prev.amioDosesGivenInArrest || 0) + 1,
+              lastAmioPushTime: stateRef.current.time || 0
+          }));
+      }
+
+      if (medId === 'intralipid') {
+          const volInMl = doseInMg * bio;
+          setPatient(prev => ({
+              ...prev,
+              lipidSinkVol: (prev.lipidSinkVol || 0) + volInMl
+          }));
+          logEvent(`⚡ Administered Intralipid 20% rescue bolus: ${volInMl.toFixed(1)} mL.`);
+      }
+
+      if (medId === 'pcc') {
+          setPatient(prev => ({
+              ...prev,
+              pccGiven: true
+          }));
+          logEvent(`⚡ 4-Factor PCC (Kcentra) active -- warfarin reversal initiated.`);
+      }
+
+      if (medId === 'andexanet') {
+          setPatient(prev => ({
+              ...prev,
+              andexanetGiven: true
+          }));
+          logEvent(`⚡ Andexanet Alfa (Andexxa) active -- Factor Xa inhibitor reversal initiated.`);
+      }
+
+      if (medId === 'idarucizumab') {
+          setPatient(prev => ({
+              ...prev,
+              idarucizumabGiven: true
+          }));
+          logEvent(`⚡ Idarucizumab (Praxbind) active -- dabigatran reversal initiated.`);
+      }
+
+      if (medId === 'rfviia') {
+          const doseVal = parseFloat(doseInput);
+          const incrementalMcgKg = safeUnit.includes('mcg/kg') ? doseVal : 90;
+          setPatient(prev => ({
+              ...prev,
+              fviiaBolusMg: (prev.fviiaBolusMg || 0) + incrementalMcgKg
+          }));
+          logEvent(`⚡ Recombinant Factor VIIa (NovoSeven) active -- bypass pathway initiated. Cumulative dose: ${(currentPatient.fviiaBolusMg || 0) + incrementalMcgKg} mcg/kg.`);
+      }
+
+      if (medId === 'factor_viii') {
+          const doseVal = parseFloat(doseInput);
+          setPatient(prev => ({
+              ...prev,
+              fviiiBolusMg: (prev.fviiiBolusMg || 0) + doseVal
+          }));
+          logEvent(`⚡ Factor VIII Concentrate administered. Cumulative dose: ${(currentPatient.fviiiBolusMg || 0) + doseVal} Units/kg.`);
+      }
+      
+      if (medId === 'sugammadex') {
+        const roc = currentActiveMeds.find(m => m.name === 'Rocuronium');
+        const vec = currentActiveMeds.find(m => m.name === 'Vecuronium');
+        const doseMgPerKg = doseInMg / currentPatient.weight;
+        let chelateFraction = 1.0;
+        if (doseMgPerKg >= 16) chelateFraction = 1.0;
+        else if (doseMgPerKg >= 4) chelateFraction = 0.95;
+        else if (doseMgPerKg >= 2) chelateFraction = 0.8;
+        else chelateFraction = doseMgPerKg / 2.0 * 0.8;
+        
+        chelateFraction = Math.min(1.0, chelateFraction);
+        
+        if (roc) {
+          roc.chelate(chelateFraction);
+          logEvent(`⚡ Sugammadex encapsulated Rocuronium (chelated ${Math.round(chelateFraction * 100)}%).`);
+        }
+        if (vec) {
+          vec.chelate(chelateFraction);
+          setPatient(prev => ({
+            ...prev,
+            vec3oh: Math.max(0, (prev.vec3oh || 0) * (1 - chelateFraction))
+          }));
+          logEvent(`⚡ Sugammadex encapsulated Vecuronium and its active 3-OH metabolite (chelated ${Math.round(chelateFraction * 100)}%).`);
+        }
+      }
+ 
+      if (medId === 'succinylcholine') {
+        let leak = 0.5; 
+        let logMsg = `⚡ Succinylcholine administered. Normal transient potassium release (+0.5 mEq/L) observed.`;
+        
+        if (currentPatient.dmd || currentPatient.bmd) {
+          leak = Math.max(0, 9.0 - (stateRef.current.electrolytes?.k || 4.0));
+          logMsg = `🚨🚨 CRITICAL CLINICAL EMERGENCY: Succinylcholine given to patient with ${currentPatient.dmd ? 'Duchenne' : 'Becker'} Muscular Dystrophy! Triggered massive rhabdomyolysis and life-threatening hyperkalemic cardiac arrest!`;
+          setPatient(prev => ({
+              ...prev,
+              isArrest: true,
+              cardiacRhythm: 'pea',
+              suxArrestTriggered: true
+          }));
+          logQualityEvent({
+              category: 'PharmacologicChoice',
+              severity: 'critical',
+              description: `Succinylcholine administered to patient with ${currentPatient.dmd ? 'Duchenne' : 'Becker'} Muscular Dystrophy, triggering severe hyperkalemic cardiac arrest.`,
+              idealAction: 'Avoid succinylcholine in patients with muscular dystrophy; use non-depolarizing muscle relaxants.',
+              actualAction: 'Administered Succinylcholine.',
+              impact: 'Acute rhabdomyolysis, lethal hyperkalemia, and PEA cardiac arrest.',
+              chapterSource: "Miller's Anesthesia Chapter 35"
+          });
+        } else if (currentPatient.nAChR_state === 'upregulated') {
+          leak = getAnatomicalParameter("Succinylcholine upregulated potassium leak", 5.2);
+          logMsg = `🚨 CRITICAL CLINICAL EMERGENCY: Succinylcholine given to patient with nAChR upregulation! Extrajunctional receptors opened, triggering massive potassium leak (+${leak.toFixed(1)} mEq/L)!`;
+        } else if (currentPatient.cmt) {
+          leak = 4.2;
+          logMsg = `🚨 CRITICAL CLINICAL EMERGENCY: Succinylcholine given to patient with Charcot-Marie-Tooth! Extra-junctional receptors opened, triggering severe potassium leak (+4.2 mEq/L)!`;
+        } else if (currentPatient.cip) {
+          leak = 4.8;
+          logMsg = `🚨 CRITICAL CLINICAL EMERGENCY: Succinylcholine given to patient with Critical Illness Polyneuropathy! Extra-junctional receptors opened, triggering severe potassium leak (+4.8 mEq/L)!`;
+        } else if (currentPatient.hyperPP) {
+          // Chapter 35: Succinylcholine CONTRAINDICATED in HyperPP — aggravates myotonia, masseter spasm,
+          // prolonged weakness, and worsens hyperkalemia via NaV1.4 channelopathy (Miller 9th Ed, Ch 35 p. 1139)
+          leak = 2.5;
+          logMsg = `🚨 CRITICAL: Succinylcholine given to patient with Hyperkalemic Periodic Paralysis! Prolonged muscle weakness, masseter spasm, and aggravated hyperkalemia (+2.5 mEq/L) triggered via NaV1.4 channelopathy!`;
+          setPatient(prev => ({ ...prev, hyperPPAttackActive: true }));
+          logQualityEvent({
+              category: 'PharmacologicChoice',
+              severity: 'critical',
+              description: 'Succinylcholine administered to patient with Hyperkalemic Periodic Paralysis (HyperPP). This is CONTRAINDICATED — aggravates myotonia via NaV1.4 sustained sodium currents, causing masseter spasm and prolonged flaccid weakness.',
+              idealAction: 'Avoid succinylcholine entirely in HyperPP; use non-depolarizing muscle relaxants.',
+              actualAction: 'Administered Succinylcholine.',
+              impact: 'Masseter spasm, prolonged skeletal muscle weakness, hyperkalemic exacerbation.',
+              chapterSource: "Miller's Anesthesia Chapter 35"
+          });
+        }
+        
+        logEvent(logMsg);
+        setElectrolytes(prev => ({ ...prev, k: prev.k + leak }));
+        setPatient(prev => ({ ...prev, suxPotassiumLeaked: true }));
+      }
+
+      if (medId === 'neostigmine' || medId === 'pyridostigmine' || medId === 'edrophonium') {
+        // Chapter 35: Cholinesterase inhibitors CONTRAINDICATED in HyperPP — aggravate myotonia (Miller 9th Ed, Ch 35 p. 1139)
+        if (currentPatient.hyperPP) {
+            setPatient(prev => ({ ...prev, hyperPPAttackActive: true }));
+            logEvent(`🚨 CRITICAL: ${medData.name} administered to patient with Hyperkalemic Periodic Paralysis! Cholinesterase inhibitors aggravate myotonia in HyperPP patients — prolonged muscle stiffness and respiratory compromise triggered.`);
+            logQualityEvent({
+                category: 'PharmacologicChoice',
+                severity: 'major',
+                description: `${medData.name} administered to patient with Hyperkalemic Periodic Paralysis (HyperPP). Cholinesterase inhibitors are CONTRAINDICATED — they aggravate NaV1.4 myotonia.`,
+                idealAction: 'Use sugammadex for NMB reversal in HyperPP patients; avoid neostigmine/pyridostigmine.',
+                actualAction: `Administered ${medData.name}.`,
+                impact: 'Aggravated myotonia, masseter spasm, respiratory muscle stiffness.',
+                chapterSource: "Miller's Anesthesia Chapter 35"
+            });
+        }
+        const glyco = currentActiveMeds.find(m => m.name === 'Glycopyrrolate');
+        const glycoCe = glyco ? glyco.Ce : 0;
+        const atropine = currentActiveMeds.find(m => m.name === 'Atropine');
+        const atropineCe = atropine ? atropine.Ce : 0;
+        
+        const doseMgPerKg = doseInMg / currentPatient.weight;
+        const lastOccupancy = stateRef.current.patient?.maxNMJOccupancy || 0;
+        const noActiveBlock = lastOccupancy <= 0.15;
+        
+        let isOverdose = false;
+        if (medId === 'neostigmine' && doseMgPerKg > 0.08) isOverdose = true;
+        if (medId === 'pyridostigmine' && doseMgPerKg > 0.35) isOverdose = true;
+        if (medId === 'edrophonium' && doseMgPerKg > 1.0) isOverdose = true;
+        
+        if (noActiveBlock || isOverdose) {
+          setPatient(prev => ({ ...prev, neostigmineWeakness: true }));
+          logEvent(`⚠️ WARNING: ${medData.name} administered ${noActiveBlock ? 'in the absence of active neuromuscular blockade' : 'in overdose'}. Paradoxical anticholinesterase-associated muscle weakness induced.`);
+        }
+        
+        if (medId === 'neostigmine' || medId === 'pyridostigmine') {
+          if (glycoCe < 0.05 && atropineCe < 0.05) {
+            setPatient(prev => ({
+              ...prev,
+              bradycardiaTriggered: true,
+              bradycardiaTime: stateRef.current.time || 0
+            }));
+            logEvent(`🚨 CRITICAL CLINICAL EMERGENCY: ${medData.name} administered without anticholinergic protection! Unopposed muscarinic activation is causing profound vagal bradycardia and salivation!`);
+          } else if (glycoCe < 0.05 && atropineCe >= 0.05) {
+            logEvent(`⚡ ${medData.name} administered with Atropine. Safe reversal of neuromuscular blockade initiated, although transient tachycardia may occur due to Atropine's rapid onset.`);
+          } else {
+            logEvent(`⚡ ${medData.name} administered with Glycopyrrolate. Safe reversal of neuromuscular blockade initiated.`);
+          }
+        } else if (medId === 'edrophonium') {
+          if (atropineCe < 0.05 && glycoCe < 0.05) {
+            setPatient(prev => ({
+              ...prev,
+              bradycardiaTriggered: true,
+              bradycardiaTime: stateRef.current.time || 0
+            }));
+            logEvent(`🚨 CRITICAL CLINICAL EMERGENCY: Edrophonium administered without anticholinergic protection! Unopposed muscarinic activation is causing profound vagal bradycardia and salivation!`);
+          } else if (atropineCe < 0.05 && glycoCe >= 0.05) {
+            setPatient(prev => ({
+              ...prev,
+              bradycardiaTriggered: true,
+              bradycardiaTime: stateRef.current.time || 0,
+              transientBradycardia: true
+            }));
+            logEvent(`⚠️ CLINICAL ALERT: Edrophonium administered with Glycopyrrolate. Due to onset mismatch (Edrophonium onset is 1 min, Glycopyrrolate is 2-3 min), the patient will experience transient bradycardia before anticholinergic blockade takes effect.`);
+          } else {
+            logEvent(`⚡ Edrophonium administered with Atropine. Safe and rapid reversal of neuromuscular blockade initiated.`);
+          }
+        }
+      }
+
+      if (medId === 'glycopyrrolate' || medId === 'atropine') {
+        if (currentPatient.bradycardiaTriggered) {
+          setPatient(prev => ({ ...prev, bradycardiaTriggered: false, transientBradycardia: false }));
+          logEvent(`✅ ${medData.name} administered. Muscarinic bradycardia successfully resolved. Heart rate recovering.`);
+        }
+      }
+
+      if (medId === 'calcium') {
+        setPatient(prev => ({
+          ...prev,
+          calciumStabilized: true,
+          calciumStabilizedTime: stateRef.current.time || 0
+        }));
+        logEvent(`⚡ Calcium Chloride administered. Myocardial membranes stabilized. Hyperkalemic cardiac arrest risk mitigated.`);
+      }
+
+      if (stateRef.current.surgicalPhase === 'Pre-Op' && (medData.classes.includes('Sedative') || medData.classes.includes('Hypnotic') || medData.classes.includes('Dissociative'))) {
+        setSurgicalPhase('Induction');
+        logEvent(`➡️ Surgical Timeline Auto-Advanced: INDUCTION phase initiated.`);
+        if (!currentPatient.timeOutAuthorized) {
+          logQualityEvent({
+            category: 'SafetyChecklist',
+            severity: 'major',
+            phase: 'Pre-Op',
+            description: `Induction agent (${medData.name}) administered before the preoperative safety Time-Out checklist was conducted.`,
+            idealAction: 'Perform the WHO Surgical Safety Checklist (Time-Out) before administering sedatives or hypnotics.',
+            actualAction: `Administered ${medData.name} in Pre-Op.`,
+            impact: 'Critical safety violation. Increases the risk of wrong-patient, wrong-procedure, or wrong-site medication errors.'
+          });
+        }
+      }
+
+    } else if (type === 'Infusion') {
+      existingModel.setInfusion(doseInMg / 60);
+      existingModel.displayDose = doseInput;
+      existingModel.displayUnit = unit;
+      existingModel.medId = medId; 
+
+      const targetLineId = lineId || 
+        (currentPatient.accessLines || []).find(l => !l.failed && (l.category?.includes('PIV') || l.name?.includes('PIV') || l.category?.includes('Peripheral')))?.id ||
+        (currentPatient.accessLines || []).find(l => !l.category?.includes('Arterial'))?.id;
+
+      if (targetLineId) {
+        setPatient(prev => {
+          const updatedLines = (prev.accessLines || []).map(l => {
+            if (l.id !== targetLineId) return l;
+            const meds = [...(l.activeMedInfusions || [])];
+            const idx = meds.findIndex(m => m.medId === medId);
+            if (idx >= 0) {
+              meds[idx] = { ...meds[idx], rate: parseFloat(doseInput), unit };
+            } else {
+              meds.push({ medId, rate: parseFloat(doseInput), unit });
+            }
+            return { ...l, activeMedInfusions: meds };
+          });
+          return { ...prev, accessLines: updatedLines };
+        });
+      }
+      logEvent(`🔁 Started/Updated ${medData.name} infusion at ${doseInput} ${unit}.`);
+    } else if (type === 'Stop Infusion') {
+      existingModel.setInfusion(0);
+      existingModel.displayDose = 0;
+      existingModel.tciMode = 'none';
+      existingModel.tciTarget = 0;
+      
+      setPatient(prev => {
+        const updatedLines = (prev.accessLines || []).map(l => ({
+          ...l,
+          activeMedInfusions: (l.activeMedInfusions || []).filter(m => m.medId !== medId)
+        }));
+        return { ...prev, accessLines: updatedLines };
+      });
+      logEvent(`⏹ Stopped ${medData.name} infusion.`);
+    }
+    setActiveMeds(updatedMeds);
+  };
+
+  const pushMed = (medName) => { 
+    if (medName.includes('Topical')) { 
+      logEvent(`Administered Topical Lidocaine.`); 
+      setPatient(prev => ({...prev, isTopicalized: true})); 
+    } 
+  };
+
+  const toggleCPR = () => {
+    setPatient(p => {
+      const newState = !p.cprActive;
+      logEvent(newState ? "🩺 Initiated Chest Compressions." : "⏹ Stopped Chest Compressions.");
+      return { ...p, cprActive: newState, cprStartTime: newState ? (stateRef.current.time ?? 0) : null };
+    });
+  };
+
+  // Thoracic Epidural / Celiac Plexus Block (Ch15, Miller's 9th Ed: regional sympathetic
+  // blockade of the GI tract). Epidural coverage of gut/splanchnic sympathetic outflow is
+  // dermatome-graded by `epiduralLevel` (TABLE 15.2); celiac plexus block targets the ganglion
+  // directly (Fig 15.4/15.5) for complete splanchnic block regardless of level.
+  const placeEpidural = (level) => {
+    const safeLevel = typeof level === 'number' && Number.isFinite(level) ? level : 8;
+    setPatient(p => {
+      logEvent(`🦴 Thoracic epidural catheter placed at T${safeLevel}, local anesthetic bolus dosed and active.`);
+      return { ...p, epiduralBlockActive: true, epiduralLevel: safeLevel };
+    });
+  };
+
+  const removeEpidural = () => {
+    setPatient(p => {
+      logEvent("⏹ Thoracic epidural infusion stopped/catheter removed.");
+      return { ...p, epiduralBlockActive: false };
+    });
+  };
+
+  const toggleCeliacBlock = () => {
+    setPatient(p => {
+      const newState = !p.celiacBlockActive;
+      logEvent(newState ? "🩹 Celiac plexus block performed — complete splanchnic sympathetic block achieved." : "⏹ Celiac plexus block resolved/reversed.");
+      return { ...p, celiacBlockActive: newState };
+    });
+  };
+
+  const deliverShock = (joules, isSync) => {
+    const currentPatient = stateRef.current.patient || patient;
+    const bloodLossRatio = (currentPatient.ebl || 0) / (currentPatient.ebv || 5000);
+    const patLungVols = calculateLungVolumes(
+      currentPatient.height || 170,
+      currentPatient.age || 40,
+      currentPatient.sex || 'male',
+      currentPatient.bmi || 25,
+      currentPatient.position || 'Supine',
+      currentPatient.copd || false,
+      currentPatient.restrictive || false,
+      !!currentPatient.airwaySecured || !!currentPatient.isParalyzed
+    );
+    const currentFRC_L = patLungVols.frc_L;
+
+    const result = CardiovascularEngine.deliverShock({
+      patient: currentPatient,
+      activeMeds: stateRef.current.activeMeds || activeMeds,
+      currentBuffer: currentPatient.oxygenBuffer || (currentFRC_L * 0.21),
+      currentFRC_L,
+      bloodLossRatio,
+      joules,
+      isSync,
+      simulationTime: stateRef.current.time || time,
+      // Layer 1A: seed the defibrillation ROSC roll from the same serializable RNG the tick uses.
+      rng: currentPatient ? ensureRng(currentPatient, currentPatient.rngSeed) : Math.random
+    });
+
+    setPatient(result.patient);
+    result.events.forEach(msg => logEvent(msg));
+  };
+  useEffect(() => {
+    let interval;
+    const actualPaused = isPaused && !patient?.isFuzzing;
+    if (isRunning && !actualPaused) {
+      interval = setInterval(() => {
+        const ffRemainingInitial = ffRemainingRef.current;
+        let stepsToRun = 1;
+        if (ffRemainingInitial > 0) {
+          // Each physics tick now runs ~100 engine functions. Cap at 5 ticks per
+          // 100ms interval → 50x real-time max, ~125ms of CPU per slot — the browser
+          // stays responsive between intervals and the progress bar can update.
+          // (The old 80-tick cap was set before Phase 6 engines existed and caused
+          // the main thread to block for 1-2s per interval, crashing the tab.)
+          stepsToRun = Math.min(5, ffRemainingInitial);
+        } else {
+          const scale = stateRef.current.patient?.timeScale || 1;
+          if (scale === 30) {
+            stepsToRun = 3;
+          } else if (scale === 60) {
+            // 5 ticks × 100ms interval = 50x speed (6 was overshooting the 100ms budget)
+            stepsToRun = 5;
+          }
+        }
+
+        // Real-time budget guard: break the loop if a single interval exceeds 80ms.
+        // Prevents any accumulation of slow ticks from freezing the UI regardless of
+        // which engines fire (crash events, TRALI, crisis alerts, etc.).
+        const intervalBudgetMs = 80;
+        const intervalStartMs = typeof performance !== 'undefined' ? performance.now() : Date.now();
+
+        for (let step = 0; step < stepsToRun; step++) {
+          try {
+            if (step > 0) {
+              const currentSt = stateRef.current;
+              if (!(currentSt.patient?.fastForwardRemaining > 0)) {
+                break;
+              }
+              // Yield if we have already spent our time budget for this interval
+              const elapsed = (typeof performance !== 'undefined' ? performance.now() : Date.now()) - intervalStartMs;
+              if (elapsed > intervalBudgetMs) break;
+            }
+            const __ctx = {
+              stateRef, ventSettings, gasSettings, logEvent, logQualityEvent, setVitals, setElectrolytes, setCoags, setTotalBodyWaterLiters, setIntravascularVolume, setSurgicalPhase, setIsRunning, ffRemainingRef, ffTotalRef, electrolytes
+            };
+            const __step = runPhysicsStep(__ctx);
+            if (__step && __step.skipped) return;
           } catch (error) {
             console.error("Physics Engine Tick Failed: ", error);
             break;
