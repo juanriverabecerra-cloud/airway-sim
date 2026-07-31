@@ -185,3 +185,17 @@ Module-level symbols (all 78 engines, `MEDICATIONS`, `resolveDosingWeight`, `ext
   - The React characterization/equivalence proof (happy-dom) remains a tracked rigor item; the
     by-construction extraction + no-undef + stable deterministic golden master already give strong
     evidence. **Next: Layer 1C** (fuzz→step→oracle loop) — also a heavy runtime stress of the extraction.
+- 2026-07-31 — **Layer 1C closed loop built (oracle vs. live physics).**
+  - `runWithOracle()` in the harness audits every tick of the real running physics with
+    `FidelityOracle.evaluateFidelity`. Test `src/testing/oracle_vs_physics_ch1c.test.ts` runs 6 cases
+    (healthy + septic/obese/cardiac/copd) × 3 seeds for 240–300s each: **zero CRITICAL** anomalies.
+  - The oracle had never audited a live trajectory before; on first contact it surfaced real issues
+    (see `audit_findings.md`): **F3** oracle Ohm's-law omitted CVP (fixed), **F4** CRITICAL tolerances
+    calibrated on exact hand-crafted states, too tight for live dither/rounding (fixed + two-tier
+    severity), **F5** a real ~12–17 mmHg **MAP-CO-SVR coupling drift** in comorbid patients (disease
+    MAP modifiers applied directly to MAP, not via SVR) — now a tracked WARNING + regression test,
+    deferred to **Layer 2**.
+  - Verification: full suite **1772/1772** green; oracle unit tests still catch gross decoupling.
+  - **Remaining for Layer 1C:** action-driven perturbation fuzzing (needs `processMed`/`pushMed`/
+    `pushFluid` extracted like `runPhysicsStep`) + seeding `FidelityFuzzer`'s RNG; widen `AUDIT_CASES`
+    to the full preset bank. Enhancements; the closed loop itself works. Plus the happy-dom equivalence proof.

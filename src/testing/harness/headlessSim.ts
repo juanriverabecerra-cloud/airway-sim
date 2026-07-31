@@ -8,6 +8,8 @@
  */
 // @ts-ignore - usePhysiology is a .js module without type declarations
 import { runPhysicsStep, createInitialSimState } from '../../engine/usePhysiology.js';
+// @ts-ignore - FidelityOracle is a .js module without type declarations
+import { evaluateFidelity } from '../../engine/FidelityOracle.js';
 import { seedRngState } from '../../engine/rng';
 
 export interface SimHandle {
@@ -92,6 +94,59 @@ export function stepN(sim: SimHandle, n: number, keys: string[] = ['hr', 'sys', 
   return traj;
 }
 
+export interface OracleAnomaly {
+  tick: number;
+  system: string;
+  severity: string;
+  rule: string;
+  message: string;
+}
+
+export interface OracleRunResult {
+  trajectory: VitalSample[];
+  criticals: OracleAnomaly[];
+  warnings: OracleAnomaly[];
+}
+
+/**
+ * Step `n` ticks while auditing every tick with the FidelityOracle against the *real running state*.
+ * This is the Layer 1C closed loop: the oracle has never before seen a live trajectory. `settleTicks`
+ * skips oracle evaluation during the initial CV-equilibration transient. Returns all CRITICAL and
+ * WARNING anomalies with their tick, so a failure is reproducible from the sim's seed.
+ */
+export function runWithOracle(sim: SimHandle, n: number, opts: { settleTicks?: number } = {}): OracleRunResult {
+  const settle = opts.settleTicks ?? 3;
+  const history: any[] = [];
+  const criticals: OracleAnomaly[] = [];
+  const warnings: OracleAnomaly[] = [];
+  const trajectory: VitalSample[] = [];
+  const keys = ['hr', 'sys', 'dia', 'map', 'spo2', 'bis', 'paco2', 'etco2', 'temp'];
+  for (let i = 0; i < n; i++) {
+    step(sim);
+    const st = sim.ctx.stateRef.current;
+    const v = st.vitals;
+    history.push({
+      tick: st.time,
+      vitals: { ...v },
+      patient: { ...st.patient },
+      electrolytes: { ...st.electrolytes },
+      actionText: '',
+    });
+    if (history.length > 250) history.shift();
+    const row: VitalSample = {};
+    for (const k of keys) row[k] = v[k];
+    trajectory.push(row);
+    if (i < settle) continue;
+    const { anomalies } = evaluateFidelity(st, history);
+    for (const a of anomalies) {
+      const rec: OracleAnomaly = { tick: st.time, system: a.system, severity: a.severity, rule: a.rule, message: a.message };
+      if (a.severity === 'CRITICAL') criticals.push(rec);
+      else if (a.severity === 'WARNING') warnings.push(rec);
+    }
+  }
+  return { trajectory, criticals, warnings };
+}
+
 /** A canonical healthy adult activeCase (baseVitals + patient) for golden-master/regression use. */
 export const HEALTHY_CASE = {
   id: 'gm_healthy_adult',
@@ -103,3 +158,28 @@ export const HEALTHY_CASE = {
     cad: false, htn: false, gfr: 100, ef: 60,
   },
 };
+
+/** Representative comorbid cases (baseVitals + patient flags) for oracle-vs-physics property testing. */
+export const AUDIT_CASES: Array<{ id: string; baseVitals: any; patient: any }> = [
+  HEALTHY_CASE,
+  {
+    id: 'gm_septic',
+    baseVitals: { hr: 115, sys: 92, dia: 50, spo2: 95, rr: 22, temp: 38.6, etco2: 0 },
+    patient: { age: 64, sex: 'male', height: 178, weight: 88, position: 'Supine', isSeptic: true, gfr: 70, ef: 55 },
+  },
+  {
+    id: 'gm_obese',
+    baseVitals: { hr: 78, sys: 142, dia: 88, spo2: 94, rr: 16, temp: 37.0, etco2: 0 },
+    patient: { age: 52, sex: 'female', height: 163, weight: 130, isObese: true, position: 'Supine', htn: true, gfr: 90, ef: 60 },
+  },
+  {
+    id: 'gm_cardiac',
+    baseVitals: { hr: 64, sys: 135, dia: 82, spo2: 96, rr: 14, temp: 36.6, etco2: 0 },
+    patient: { age: 71, sex: 'male', height: 172, weight: 84, position: 'Supine', cad: true, chf: true, ef: 35, htn: true, onBetaBlocker: true, gfr: 65 },
+  },
+  {
+    id: 'gm_copd',
+    baseVitals: { hr: 88, sys: 128, dia: 78, spo2: 91, rr: 20, temp: 36.9, etco2: 0 },
+    patient: { age: 66, sex: 'male', height: 170, weight: 72, position: 'Supine', copd: true, gfr: 85, ef: 55 },
+  },
+];
