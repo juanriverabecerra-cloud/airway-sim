@@ -154,13 +154,10 @@ export interface OracleAnomaly {
  * they fail on any *new* CRITICAL rule, allowing only these. Delete an entry as Layer 2 fixes it — the
  * gate then enforces its absence.
  */
-export const KNOWN_LAYER2_CRITICAL_RULES = new Set<string>([
-  // F5/F5b RESOLVED (2026-07-31): displayed SVR is now identity-consistent 80*(MAP-CVP)/CO.
-  // F7 RESOLVED (2026-07-31): displayed PaO2 now tracks targetPaO2 and is hard-clamped to the alveolar
-  //   ceiling (was frozen at its input value). Both removed — the gate now ENFORCES their absence.
-  // F8: TOF still 0/4 120s after sugammadex — reversal gap OR the oracle check is dose/depth-unaware.
-  'Sugammadex Reversal Delayed Recovery',
-]);
+// ALL Layer-1-surfaced findings are now fixed (F5/F5b, F7, F8) — this set is intentionally EMPTY, so
+// the oracle-vs-physics and fuzz gates enforce ZERO CRITICAL anomalies. Add a rule here only to
+// temporarily quarantine a NEW finding while it is triaged; the goal is to keep it empty.
+export const KNOWN_LAYER2_CRITICAL_RULES = new Set<string>([]);
 
 export interface OracleRunResult {
   trajectory: VitalSample[];

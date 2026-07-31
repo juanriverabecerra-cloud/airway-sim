@@ -7848,11 +7848,17 @@ export function processMedCore(ctx, medId, doseInput, route, type, unit, lineId 
         const roc = currentActiveMeds.find(m => m.name === 'Rocuronium');
         const vec = currentActiveMeds.find(m => m.name === 'Vecuronium');
         const doseMgPerKg = doseInMg / currentPatient.weight;
+        // Dose-graded encapsulation. Now that chelate() reduces the effect-site Ce (F8 fix), these
+        // fractions map to actual TOF recovery, so the high-dose tiers must reach ~complete: an
+        // adequate rescue dose (>=16 mg/kg, or >=4 mg/kg for a deep block) restores TOF to 4/4, while
+        // an under-dose (2 mg/kg on a deep block) only partially reverses — the clinically correct
+        // dose/depth behaviour.
         let chelateFraction = 1.0;
         if (doseMgPerKg >= 16) chelateFraction = 1.0;
-        else if (doseMgPerKg >= 4) chelateFraction = 0.95;
-        else if (doseMgPerKg >= 2) chelateFraction = 0.8;
-        else chelateFraction = doseMgPerKg / 2.0 * 0.8;
+        else if (doseMgPerKg >= 8) chelateFraction = 0.99;
+        else if (doseMgPerKg >= 4) chelateFraction = 0.97;
+        else if (doseMgPerKg >= 2) chelateFraction = 0.85;
+        else chelateFraction = doseMgPerKg / 2.0 * 0.85;
         
         chelateFraction = Math.min(1.0, chelateFraction);
         

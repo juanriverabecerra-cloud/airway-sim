@@ -576,16 +576,26 @@ export function evaluateFidelity(state, history = []) {
       if (Number.isFinite(pushTick) && Number.isFinite(currentTick)) {
         const elapsedSec = currentTick - pushTick;
 
-        // If at least 120s has elapsed since Sugammadex administration
-        if (elapsedSec >= 120) {
+        // Dose-aware (Layer 2): only expect full reversal when the dose was ADEQUATE for the block
+        // depth at administration. An under-dose (e.g. 2 mg/kg on a deep block) legitimately fails to
+        // reverse, so flagging TOF<4 there is a false positive. Parse mg from the action and compare
+        // mg/kg to the depth: a deep block (TOF<=1 at push) needs >=4 mg/kg, moderate needs >=2 mg/kg.
+        const sugStep = safeHistory[sugammadexPushIdx];
+        const doseMatch = /([0-9]+(?:\.[0-9]+)?)\s*mg/i.exec(sugStep.actionText || '');
+        const sugMg = doseMatch ? parseFloat(doseMatch[1]) : Infinity; // unparseable -> assume adequate (still catch a true no-reversal bug)
+        const wt = Number.isFinite(patient.weight) && patient.weight > 0 ? patient.weight : 75;
+        const sugMgKg = sugMg / wt;
+        const tofAtPush = Number.isFinite(sugStep.vitals?.tofCount) ? sugStep.vitals.tofCount : 0;
+        const doseAdequate = tofAtPush <= 1 ? sugMgKg >= 4 : sugMgKg >= 2;
+        if (elapsedSec >= 120 && doseAdequate) {
           if (tofCount < 4 && !isArrest) {
             systemStatus.neurology = 'FAILED';
             anomalies.push({
               system: 'Neurology',
               severity: 'CRITICAL',
               rule: 'Sugammadex Reversal Delayed Recovery',
-              message: `Sugammadex was pushed ${fmt(elapsedSec)}s ago, but muscle TOF twitch count remains depressed at ${tofCount}/4 (expected: 4/4).`,
-              rationale: 'Sugammadex encapsulates steroidal neuromuscular blockers (Rocuronium, Vecuronium) on a 1:1 molar basis. An adequate dose (2-4 mg/kg routine, or 16 mg/kg rescue) must completely reverse neuromuscular blockade within 1.5 to 2 minutes, restoring twitches to 4/4.',
+              message: `An adequate Sugammadex dose (~${fmt(sugMgKg)} mg/kg) was pushed ${fmt(elapsedSec)}s ago, but muscle TOF twitch count remains depressed at ${tofCount}/4 (expected: 4/4).`,
+              rationale: 'Sugammadex encapsulates steroidal neuromuscular blockers (Rocuronium, Vecuronium) on a 1:1 molar basis. An adequate dose (>=4 mg/kg for a deep block, 16 mg/kg for profound block) must completely reverse neuromuscular blockade within 1.5 to 2 minutes, restoring twitches to 4/4.',
               resolution: 'Check Sugammadex chelation speed coefficients and TOF twitch binding calculations in usePhysiology.js.'
             });
           }

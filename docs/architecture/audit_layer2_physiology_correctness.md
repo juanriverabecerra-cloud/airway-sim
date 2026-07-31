@@ -92,3 +92,17 @@ medical review (Layer 4), structural/tooling (Layer 5), numerical robustness (La
     5 seeds: fentanyl still induces apnea but RR stays ≤8 (was ~25 paradoxical tachypnea).
   - Both removed from `KNOWN_LAYER2_CRITICAL_RULES`; only F8 (sugammadex) remains. Full suite 1800/1800.
   - Next: triage F8 (sim reversal vs. dose-unaware oracle check).
+- 2026-07-31 — **F8 FIXED — and it was a real, serious sim bug.** Sugammadex NEVER reversed rocuronium
+  (TOF stuck at 0 even at 16 mg/kg). Root cause: `PKPDEngine.chelate()` reduced only the plasma
+  compartment A1; A2/A3 refilled it and the effect-site Ce (drives TOF) relaxed only via the drug's
+  own slow ke0 (~10 min). Fix: `chelate()` encapsulates drug from ALL compartments incl. Ce; bumped the
+  dose→fraction tiers so an adequate rescue dose reaches ~complete reversal. Also made the oracle's
+  time-delayed sugammadex check dose-aware (parse mg, compare mg/kg to block depth at push) so an
+  under-dose that legitimately fails to reverse is not false-flagged. Verified dose-dependent recovery
+  (`nmb_reversal_ch2.test.ts`): rescue → 4/4, 5 mg/kg → 4/4, 2.5 mg/kg on deep block → partial/recurar.
+- 2026-07-31 — **All Layer-1-surfaced findings fixed (F5/F5b, F7, F10, F8).** `KNOWN_LAYER2_CRITICAL_RULES`
+  is now EMPTY: the oracle-vs-physics and fuzz gates enforce ZERO CRITICAL anomalies across all audit
+  cases + seeded fuzzing. Full suite 1803/1803.
+  - Next: widen the net further — cross-monitor invariants + more metamorphic direction laws
+    (ventilation/metabolic/volume) to surface the next round of findings; begin Layer 3 (parameter
+    provenance) planning.

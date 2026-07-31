@@ -252,8 +252,17 @@ export class PKPDModel {
       f = 0;
     }
     f = Math.max(0, Math.min(1.0, f));
+    // Sugammadex encapsulates the drug in a 1:1 molar ratio and the resulting free-drug gradient pulls
+    // it off the tissues AND the effect site — so the encapsulated fraction is removed from ALL
+    // compartments including Ce. Previously only A1 was reduced: A2/A3 immediately refilled it, and Ce
+    // (which drives NMJ occupancy/TOF) only relaxed via the drug's own slow ke0 (rocuronium half-life
+    // ~10 min at the effect site), so TOF never recovered — reversal silently failed even at 16 mg/kg
+    // (F8). Reducing Ce directly reproduces sugammadex's rapid effect-site stripping (recovery in
+    // seconds-to-minutes, dose-dependent) instead of being rate-limited by passive redistribution.
     this.A1 *= (1 - f);
-    // Note: This creates a concentration gradient that pulls drug out of Ce and A2/A3
+    this.A2 *= (1 - f);
+    this.A3 *= (1 - f);
+    this.Ce *= (1 - f);
   }
 
   // Set continuous infusion rate
