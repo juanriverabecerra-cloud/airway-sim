@@ -187,6 +187,7 @@ export class ConsciousnessEngine {
       - 0.80 * desMac * volatileHypnoticMultiplier     // desflurane (similar potency to sevo/iso)
       - 0.40 * inputs.n2oMac * volatileHypnoticMultiplier // N2O weaker at thalamocortical level
       - 0.70 * inputs.midazolamCe
+      - 0.40 * (inputs.etomidateCe / 0.3) // F15: etomidate is a potent hypnotic (EC50 ~0.3 mcg/mL) — was absent from BIS depth
       + 0.20 * inputs.ketamineCe // Ketamine ACTIVATES thalamic connectivity (paradox)
     ));
 
@@ -201,6 +202,7 @@ export class ConsciousnessEngine {
       - 0.85 * desMac * volatileHypnoticMultiplier
       - 0.45 * inputs.n2oMac * volatileHypnoticMultiplier
       - 0.85 * inputs.midazolamCe
+      - 0.45 * (inputs.etomidateCe / 0.3) // F15: etomidate hypnotic depth
       - 0.80 * effectiveBarbiturateCe
       - 0.05 * inputs.ketamineCe  // ketamine: very mild disruption (not suppression) of FP
       - 0.15 * gabapentinoidEff

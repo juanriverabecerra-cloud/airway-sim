@@ -3155,6 +3155,16 @@ export function runPhysicsStep(__ctx) {
               effectiveThiopentalCe *= 2.0;
           }
 
+          // F14 fix: flumazenil competitively antagonizes the benzodiazepine GABA-A site, so it reverses
+          // midazolam's sedation. Previously flumazenil had no effect on consciousness. Reduce the
+          // effective midazolam Ce by a potent, saturating blockade of its Ce.
+          const flumazenilModelForBenzo = st.activeMeds?.find(m => m.name === 'Flumazenil');
+          const flumazenilCeForBenzo = flumazenilModelForBenzo ? flumazenilModelForBenzo.Ce : 0;
+          if (flumazenilCeForBenzo > 0.0005) {
+              const benzoBlockade = Math.min(0.95, flumazenilCeForBenzo * 40.0);
+              effectiveMidazolamCe *= (1.0 - benzoBlockade);
+          }
+
           const consciousnessOutput = ConsciousnessEngine.tick(1, st.patient, st.vitals, {
               propofolCe: effectivePropofolCe,
               dexmedCe,
@@ -5717,13 +5727,18 @@ export function runPhysicsStep(__ctx) {
           // `hco3 = 24 - baseDeficit` formula with real strong-ion-difference physics.
           // FluidicsEngine's tracked electrolytes.cl/na/ca/buf are the key inputs -- this
           // is what makes NS vs. LR vs. PlasmaLyte mechanistically distinct for the first time.
+          // F13 fix: administered IV sodium bicarbonate is tracked as a med (Ce) but never fed the
+          // acid-base model's buffer input, so it didn't alkalinize. Translate its Ce into a buffered
+          // bicarbonate load (~2.5 mEq per unit Ce; 100 mEq -> Ce ~1.9 -> +~4.8 -> ~+3-4 base excess).
+          const bicarbModelForAB = st.activeMeds?.find(m => m.name === 'Sodium Bicarbonate');
+          const bicarbBufferEq = bicarbModelForAB ? bicarbModelForAB.Ce * 2.5 : 0;
           const acidBaseOutput = AcidBaseModel.tick({
               sodiumMeqL: fluidicsOutput.electrolytes.na,
               chlorideMeqL: fluidicsOutput.electrolytes.cl,
               lactateMmolL: currentLactate,
               albuminGdL: st.patient.albumin,
               paco2MmHg: st.vitals.paco2 || 40,
-              bufferedBicarbEq: fluidicsOutput.electrolytes.buf || 0,
+              bufferedBicarbEq: (fluidicsOutput.electrolytes.buf || 0) + bicarbBufferEq,
               isSeptic: !!st.patient.isSeptic,
               bloodLossRatio,
               akiDamage: st.patient.akiDamage || 0,
@@ -5814,6 +5829,18 @@ export function runPhysicsStep(__ctx) {
           if (st.patient.phRvInotropyPenalty && st.patient.phRvInotropyPenalty > 0) {
               drugInotropyMod *= (1.0 - st.patient.phRvInotropyPenalty);
           }
+
+          // F11 fix: alpha-2 agonists (dexmedetomidine, clonidine) cause central sympatholytic
+          // bradycardia, and labetalol's beta-blockade lowers HR — all three are antihypertensives, so
+          // without a direct HR effect they lower BP and the baroreflex produces PARADOXICAL reflex
+          // tachycardia. Add a direct bradycardic contribution strong enough to dominate that reflex.
+          const dexmedForBrady = (st.activeMeds || []).find(m => m.name === 'Dexmedetomidine');
+          const clonidineForBrady = (st.activeMeds || []).find(m => m.name === 'Clonidine');
+          const labetalolForBrady = (st.activeMeds || []).find(m => m.name === 'Labetalol');
+          const alpha2BradyIndex = Math.min(1.0, (dexmedForBrady ? dexmedForBrady.Ce : 0) * 200 + (clonidineForBrady ? clonidineForBrady.Ce : 0) * 700);
+          const labetalolBradyIndex = Math.min(1.0, (labetalolForBrady ? labetalolForBrady.Ce : 0) * 5.0);
+          totalHrDelta -= 26 * alpha2BradyIndex;   // alpha-2 central sympatholytic bradycardia
+          totalHrDelta -= 34 * labetalolBradyIndex; // labetalol beta-1 blockade must dominate the reflex from its larger BP drop
 
           // 5. CardiovascularEngine Tick
           const cvOutput = CardiovascularEngine.tick(1, {
