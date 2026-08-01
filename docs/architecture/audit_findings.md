@@ -26,6 +26,11 @@ Concrete bugs and fidelity issues surfaced by the Layer 1–6 audit initiative
 | F13 | **IV sodium bicarbonate didn't alkalinize** — the med's Ce never fed the acid-base model's buffer input, so pH was unchanged. | Med (fidelity) | ✅ **Fixed (L2):** translate the bicarbonate med Ce into `bufferedBicarbEq`. Verified 50/100/150 mEq → pH +0.03/+0.06/+0.08 (dose-dependent). |
 | F14 | **Flumazenil didn't reverse benzodiazepine sedation** — no effect on BIS after midazolam. | Med (fidelity) | ✅ **Fixed (L2):** flumazenil competitively reduces the effective midazolam Ce before the ConsciousnessEngine. Verified BIS 85→97 after flumazenil. |
 | F15 | **Etomidate under-sedated** — reached a therapeutic Ce but was absent from the ConsciousnessEngine's BIS depth terms (thalamocortical/frontoparietal); it fed only the alpha-5 amnesia receptor. | Low-Med (fidelity) | ✅ **Fixed (L2):** added etomidate (EC50 ~0.3) to the BIS depth terms. Verified etomidate 20 mg → BIS ~52. |
+| F17 | **Non-dihydropyridine CCBs (diltiazem, verapamil) didn't lower HR** — no AV-nodal HR wiring; diltiazem even showed reflex tachycardia from its vasodilation. | Med (fidelity) | ✅ **Fixed (L2):** added CCB AV-slowing bradycardia (dominates the reflex). Verified diltiazem −17, verapamil −20 bpm. |
+| F18 | **Amiodarone didn't lower HR** — rate-slowing effect unmodeled. | Med (fidelity) | ✅ **Fixed (L2):** added amiodarone rate-slowing. Verified −18 bpm. |
+| F19 | **Glucagon didn't raise HR** — β-independent positive chronotropy (used for β-blocker overdose) unmodeled. | Low-Med | ✅ **Fixed (L2):** added glucagon chronotropy. Verified +14 bpm. |
+| F16 | **Magnesium causes paradoxical reflex tachycardia** — it lowers MAP (vasodilation) but its rate-slowing (AV) effect is unmodeled, and its med carries no effect-site Ce (so it can't be Ce-wired like other rate drugs). | Med (fidelity) | ⏳ **Open.** Pinned in `comprehensive_directions_ch2.test.ts`. Fix needs a non-Ce magnesium-level signal. |
+| F20 | **Mannitol produces negligible diuresis** — osmotic diuretic's urine-output effect is weak/unmodeled (furosemide works). | Low-Med (fidelity) | ⏳ **Open.** Pinned. |
 
 ## Layer 2 backlog (physiology correctness — seeded from L1C)
 - **F5**: MAP-CO-SVR self-consistency (route disease MAP shifts through SVR).

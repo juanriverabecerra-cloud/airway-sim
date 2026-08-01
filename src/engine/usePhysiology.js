@@ -5842,6 +5842,18 @@ export function runPhysicsStep(__ctx) {
           totalHrDelta -= 26 * alpha2BradyIndex;   // alpha-2 central sympatholytic bradycardia
           totalHrDelta -= 34 * labetalolBradyIndex; // labetalol beta-1 blockade must dominate the reflex from its larger BP drop
 
+          // F17/F18/F19: other rate-control drugs had no HR wiring. Non-dihydropyridine CCBs (diltiazem,
+          // verapamil) slow AV conduction -> bradycardia (must dominate the reflex from their
+          // vasodilation); amiodarone slows the rate; glucagon is a positive chronotrope (β-independent).
+          const diltiazemForHr = (st.activeMeds || []).find(m => m.name === 'Diltiazem');
+          const verapamilForHr = (st.activeMeds || []).find(m => m.name === 'Verapamil');
+          const amiodaroneForHr = (st.activeMeds || []).find(m => m.name === 'Amiodarone');
+          const glucagonForHr = (st.activeMeds || []).find(m => m.name === 'Glucagon');
+          const ccbBradyIndex = Math.min(1.0, (diltiazemForHr ? diltiazemForHr.Ce : 0) * 5.0 + (verapamilForHr ? verapamilForHr.Ce : 0) * 40.0);
+          totalHrDelta -= 24 * ccbBradyIndex;
+          totalHrDelta -= 14 * Math.min(1.0, (amiodaroneForHr ? amiodaroneForHr.Ce : 0) * 7.0);
+          totalHrDelta += 18 * Math.min(1.0, (glucagonForHr ? glucagonForHr.Ce : 0) * 20.0);
+
           // 5. CardiovascularEngine Tick
           const cvOutput = CardiovascularEngine.tick(1, {
               patient: {
