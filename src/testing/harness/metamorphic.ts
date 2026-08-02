@@ -26,7 +26,10 @@ export function giveMed(
   const { route = 'IV', type = 'Bolus', unit = 'mg' } = opts;
   const handlers = makeFuzzHandlers(sim);
   const lineId = sim.state.patient?.accessLines?.[0]?.id || null;
-  handlers.handleProcessMed(medId.toLowerCase(), dose, route, type, unit, lineId);
+  // NOTE: pass the medId through UNCHANGED — processMedCore looks it up as MEDICATIONS[medId] with an
+  // exact key match, and some keys are camelCase (e.g. 'regularInsulin'). A prior forced .toLowerCase()
+  // silently no-op'd only because every previously-tested drug happened to have an all-lowercase key.
+  handlers.handleProcessMed(medId, dose, route, type, unit, lineId);
 }
 
 export type Direction = 'up' | 'down' | 'same';

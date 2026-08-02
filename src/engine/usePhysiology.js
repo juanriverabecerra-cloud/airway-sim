@@ -2079,6 +2079,13 @@ export function runPhysicsStep(__ctx) {
           // Pancreas Engine Tick (Phase 2, Stage C) -- real glucose homeostasis, reading
           // this tick's cortisol/sympathetic-stress signal directly from AdrenalEngine.
           const insulinModelForPancreas = st.activeMeds?.find(m => m.name === 'Insulin' || m.name === 'Regular Insulin');
+          // F23: PancreasEngine already accepts an exogenousDextroseMgPerMin input, but the caller never
+          // supplied it — so IV dextrose (D50) raised its own effect-site Ce yet had ZERO effect on blood
+          // glucose (a hypoglycemia rescue that doesn't rescue). Map the dextrose med's decaying effect-site
+          // concentration to a glucose flux; the gain is calibrated so a 25 g D50 bolus produces the
+          // clinically-taught transient rise (~50 mg/dL) that then clears as the substrate is metabolized.
+          const dextroseModelForPancreas = st.activeMeds?.find(m => m.name === 'Dextrose 50%');
+          const exogenousDextroseMgPerMin = (dextroseModelForPancreas ? dextroseModelForPancreas.Ce : 0) * 8;
           const pancreasOutput = PancreasEngine.tick(1, {
               patient: {
                   glucose: st.patient.glucose,
@@ -2091,7 +2098,8 @@ export function runPhysicsStep(__ctx) {
           }, {
               cortisolLevel: adrenalOutput.cortisolLevel,
               nonNociceptiveSympatheticStimulus: adrenalOutput.nonNociceptiveSympatheticStimulus,
-              exogenousInsulinCe: insulinModelForPancreas ? insulinModelForPancreas.Ce : 0
+              exogenousInsulinCe: insulinModelForPancreas ? insulinModelForPancreas.Ce : 0,
+              exogenousDextroseMgPerMin
           });
           if (pancreasOutput.events && pancreasOutput.events.length > 0) {
               pancreasOutput.events.forEach(evt => logEvent(evt));
