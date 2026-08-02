@@ -49,10 +49,17 @@ Concrete bugs and fidelity issues surfaced by the Layer 1–6 audit initiative
   the invariant sweep runs over the real case bank, not just representative cases.
 
 ### Layer 2 — to VERIFY before claiming (not yet confirmed findings)
-- **Dynamic `currentHb` not persisted**: the bleed/transfusion-adjusted `currentHb` (line ~2827) is
-  recomputed fresh each tick and fed to the late CV/O₂ engines, but is never written to
-  `st.patient.hemoglobin`, which the *early*-tick engine inputs (lines 637/799/855) read. Since it's
-  recomputed from persisted inputs (`prbcVolumeReceivedMl`, `bloodLossRatio`) it may be self-consistent,
-  but the early-vs-late Hb inconsistency (and the lack of a queryable `hemoglobin`/`hgb` vital, which
-  blocked a transfusion→Hgb metamorphic law) needs verification. Transfusion→Hgb law deferred until an
-  observable Hb is exposed and the real `pushFluid` (not the harness stub) is wired into the harness.
+- **Two divergent Hb values in one tick (needs a focused Hb/O₂-delivery pass, not a rushed fix):**
+  1. The dynamic, bleed/transfusion-adjusted `currentHb` (line ~2838) is derived from a HARDCODED
+     `baseHb = trauma ? 11.2 : 14.5` (line ~2790), NOT from `st.patient.hemoglobin`; it is fed to the
+     late CV/O₂ engines (lines ~5820/5959) and the MAC modifier (line ~3035).
+  2. The *early*-tick engine inputs (lines 637/799/855/958) instead read the static
+     `st.patient.hemoglobin || 14`, which is never written during the run.
+  For typical cases both are ≈14, so the discrepancy is small — BUT (a) during active bleeding
+  `currentHb` falls via dilution while the early engines stay at ~14 (they don't see the anemia), and
+  (b) any case that sets an anemic `patient.hemoglobin` would be ignored by `currentHb`/O₂ delivery
+  (which would treat it as ~14.5). No case bank currently sets a numeric `hemoglobin`, so impact is
+  latent. Fix likely = seed `baseHb` from `patient.hemoglobin` AND persist `currentHb` back to it AND
+  expose an observable `hemoglobin`/`hgb` vital — all touching sensitive O₂-content physics, so it needs
+  its own verified pass. The transfusion→Hgb metamorphic law is deferred until that observable Hb exists
+  and the real `pushFluid` (not the harness stub) is wired into the harness.
