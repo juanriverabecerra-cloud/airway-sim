@@ -31,6 +31,7 @@ Concrete bugs and fidelity issues surfaced by the Layer 1–6 audit initiative
 | F19 | **Glucagon didn't raise HR** — β-independent positive chronotropy (used for β-blocker overdose) unmodeled. | Low-Med | ✅ **Fixed (L2):** added glucagon chronotropy. Verified +14 bpm. |
 | F16 | **Magnesium causes paradoxical reflex tachycardia** — it lowers MAP (vasodilation) but its rate-slowing (AV) effect is unmodeled, and its med carries no effect-site Ce (so it can't be Ce-wired like other rate drugs). | Med (fidelity) | ⏳ **Open.** Pinned in `comprehensive_directions_ch2.test.ts`. Fix needs a non-Ce magnesium-level signal. |
 | F20 | **Mannitol produces negligible diuresis** — osmotic diuretic's urine-output effect is weak/unmodeled (furosemide works). | Low-Med (fidelity) | ⏳ **Open.** Pinned. |
+| F21 | **Volatile anesthetics didn't drop BIS** — the per-gas brain MAC fed to the ConsciousnessEngine/Hepatic (line ~3108) was recomputed from the STORED `model.Fb`, which the GasKineticsModel keeps ~100× smaller than the tick's returned `gasState.Fb` used by the correct `brainMac`. So `sevoMac`/`isoMac`/… ≈0 and volatile GA left BIS ≈98 (paralyzed + aware). | High (safety) | ✅ **Fixed (L2):** reuse the loop's per-gas brain MAC contribution. Verified sevoflurane MAC↑ → BIS 98→86; full suite green (no blast radius). |
 
 ## Layer 2 backlog (physiology correctness — seeded from L1C)
 - **F5**: MAP-CO-SVR self-consistency (route disease MAP shifts through SVR).

@@ -2820,6 +2820,11 @@ export function runPhysicsStep(__ctx) {
 
           // Gas kinetics
           let brainMac = 0;
+          // F21 fix: the per-gas brain MAC contributions computed in the loops below (using the tick's
+          // RETURNED gasState.Fb) are captured here so the ConsciousnessEngine/Hepatic inputs reuse
+          // them, instead of recomputing from the STORED model.Fb (which the GasKineticsModel keeps
+          // ~100x smaller) — that mismatch made sevoMac/isoMac/etc. ≈0, so volatiles never dropped BIS.
+          const perGasBrainMac = {};
           let displayedMac = 0;
           let currentEtAgent = 0;
           currentEtN2O = 0;
@@ -2969,7 +2974,8 @@ export function runPhysicsStep(__ctx) {
                   
                   const n2oAdjMac = Math.max(0.01, calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.n2o.mac40, st.patient.age || 40));
                   displayedMac += (n2oState.Fa / n2oAdjMac);
-                  brainMac += (n2oState.Fb / n2oAdjMac);
+                  perGasBrainMac.n2o = (n2oState.Fb / n2oAdjMac);
+                  brainMac += perGasBrainMac.n2o;
 
                   // === FINK EFFECT (N2O DIFFUSION HYPOXIA) ===
                   // When N2O dial is off (n2oPercent=0) but blood N2O is still high,
@@ -3031,6 +3037,7 @@ export function runPhysicsStep(__ctx) {
                               
                               displayedMac += gasState.Fa / safeAdjMac;
                               const brainMacContribution = gasState.Fb / safeAdjMac;
+                              perGasBrainMac[key] = brainMacContribution;
                               brainMac += brainMacContribution;
                               
                               sedativeEff = 1 - (1 - sedativeEff) * (1 - Math.min(1, brainMacContribution));
@@ -3105,12 +3112,15 @@ export function runPhysicsStep(__ctx) {
           totalRrDelta += st.patient.itMorphineRrDelta || 0;
 
           // Consciousness Engine Tick
-          const sevoMac = st.gasModels?.sevoflurane ? st.gasModels.sevoflurane.Fb / calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.sevoflurane.mac40, st.patient.age || 40) : 0;
-          const isoMac = st.gasModels?.isoflurane ? st.gasModels.isoflurane.Fb / calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.isoflurane.mac40, st.patient.age || 40) : 0;
-          const haloMac = st.gasModels?.halothane ? st.gasModels.halothane.Fb / calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.halothane.mac40, st.patient.age || 40) : 0;
-          const n2oMac = st.gasModels?.n2o ? st.gasModels.n2o.Fb / calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.n2o.mac40, st.patient.age || 40) : 0;
-          const desMac = st.gasModels?.desflurane ? st.gasModels.desflurane.Fb / calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.desflurane.mac40, st.patient.age || 40) : 0;
-          const xenonMac = st.gasModels?.xenon ? st.gasModels.xenon.Fb / calculateAgeAdjustedMAC(INHALATIONAL_AGENTS.xenon.mac40, st.patient.age || 40) : 0;
+          // F21 fix: reuse the loop's per-gas brain MAC (from the tick's returned gasState.Fb) rather
+          // than recomputing from the stored model.Fb, which was ~100x smaller -> volatiles never
+          // affected BIS/hepatic. These now match the displayed brainMac (vitals.mac).
+          const sevoMac = perGasBrainMac.sevoflurane || 0;
+          const isoMac = perGasBrainMac.isoflurane || 0;
+          const haloMac = perGasBrainMac.halothane || 0;
+          const n2oMac = perGasBrainMac.n2o || 0;
+          const desMac = perGasBrainMac.desflurane || 0;
+          const xenonMac = perGasBrainMac.xenon || 0;
 
           // const dexmedCe = dexmedModel ? dexmedModel.Ce : 0;
           // midazolamModel/midazolamCe and ketamineModel/ketamineCe already declared above (~L1211-1214)
