@@ -2797,6 +2797,17 @@ export function runPhysicsStep(__ctx) {
           activeBleedRate += st.patient.activeHepaticBleedRate || 0.0;
           const safeCurrentEbl = typeof st.patient.ebl === 'number' && Number.isFinite(st.patient.ebl) ? st.patient.ebl : 0;
           const currentEbl = safeCurrentEbl + activeBleedRate;
+          // F28: a surgical/trauma/hepatic bleed RATE must ACCUMULATE into total blood loss over time.
+          // Previously `currentEbl` (this tick's loss) drove `bloodLossRatio`/Hb-dilution but was never
+          // written back to `patient.ebl`, so a bleeding patient's ebl stayed flat — MAP/HR/Hgb never
+          // deteriorated (only the obstetric-PPH and fluoride-nephrotoxicity paths accumulated ebl). Persist
+          // the accumulation to both the live state and the fluidics snapshot that `finalPatient` spreads,
+          // so the loss progresses. The later obstetric-PPH path reads `st.patient.ebl` and adds its own
+          // rate ON TOP of this, so there is no double-counting.
+          if (activeBleedRate > 0) {
+              st.patient.ebl = currentEbl;
+              patientAfterFluidics.ebl = currentEbl;
+          }
           let bloodLossRatio = currentEbl / safeEbv;
           if (isNaN(bloodLossRatio) || !Number.isFinite(bloodLossRatio)) {
               bloodLossRatio = 0.05;
