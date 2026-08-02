@@ -16,7 +16,7 @@ Concrete bugs and fidelity issues surfaced by the Layer 1–6 audit initiative
 | F8 | **Sugammadex never reversed rocuronium** — `chelate()` reduced only the plasma compartment (A1); the peripheral compartments (A2/A3) immediately refilled it and the effect-site Ce (which drives NMJ occupancy/TOF) relaxed only via the drug's own slow ke0 (~10 min), so TOF never recovered — even at 16 mg/kg. **Both** a sim bug and a dose-unaware oracle check. | L1C perturbation fuzzer | High (sim bug) | ✅ **Fixed (L2):** `chelate()` now encapsulates drug from all compartments incl. Ce (dose-graded), giving correct dose-dependent recovery (rescue → 4/4, under-dose → partial/recurarization). Oracle's time-delayed check made dose-aware (only expects full reversal when the dose is adequate for the block depth). Verified in `nmb_reversal_ch2.test.ts`. |
 | F5b | **F5 amplified under vasopressors** — pressor drugs (phenylephrine/epi) drive MAP up ~38 mmHg with the tone-SVR display lagging → gross apparent MAP-CO-SVR decoupling (CRITICAL-scale). Same root cause as F5. | L1C perturbation fuzzer | Med (fidelity) | ✅ **Fixed (L2)** — folded into the F5 fix (displayed SVR is now identity-consistent). |
 
-**Direction laws VERIFIED correct (L2 metamorphic battery):** roc/vec/cis/sux/panc/miv→TOF↓ · propofol/midazolam/etomidate→BIS↓ · sevoflurane MAC↑→BIS↓ · phenylephrine/norepi/ephedrine/vasopressin→MAP↑ · epi/atropine/glucagon→HR↑ · esmolol/metoprolol/dexmed/clonidine/labetalol/diltiazem/verapamil/amiodarone/magnesium→HR↓ · adenosine→HR↓ · nitroprusside/nitroglycerin/hydralazine/clevidipine/magnesium→MAP↓ · calcium→MAP↑ · bicarbonate→pH↑ · flumazenil reverses benzo→BIS↑ · FiO₂→PaO₂↑ · fluid→MAP↑ · furosemide/mannitol→urine↑ · naloxone→RR↑ · mechanical vent RR↑→PaCO₂↓/pH↑ · epinephrine/dopamine→CO↑ · dobutamine→HR↑ · dextrose→glucose↑ · insulin→glucose↓.
+**Direction laws VERIFIED correct (L2 metamorphic battery):** roc/vec/cis/sux/panc/miv→TOF↓ · propofol/midazolam/etomidate→BIS↓ · sevoflurane MAC↑→BIS↓ · phenylephrine/norepi/ephedrine/vasopressin→MAP↑ · epi/atropine/glucagon→HR↑ · esmolol/metoprolol/dexmed/clonidine/labetalol/diltiazem/verapamil/amiodarone/magnesium→HR↓ · adenosine→HR↓ · nitroprusside/nitroglycerin/hydralazine/clevidipine/magnesium→MAP↓ · calcium→MAP↑ · bicarbonate→pH↑ · flumazenil reverses benzo→BIS↑ · FiO₂→PaO₂↑ · fluid→MAP↑ · furosemide/mannitol→urine↑ · naloxone→RR↑ · mechanical vent RR↑→PaCO₂↓/pH↑ · epinephrine/dopamine→CO↑ · dobutamine→HR↑ · dextrose→glucose↑ · insulin→glucose↓ · sepsis/hemorrhage/anaphylaxis→MAP↓+HR↑ (shock physiology).
 
 ### Findings surfaced by the EXHAUSTIVE metamorphic battery (L2)
 | # | Finding | Severity | Status |
@@ -36,6 +36,7 @@ Concrete bugs and fidelity issues surfaced by the Layer 1–6 audit initiative
 | F24 | **Dobutamine LOWERS cardiac output** (should raise it — it is a first-line low-CO inotrope). It has no receptor-coupling `coMultiplier`, so only its chronotropy + β2-vasodilation apply: BP falls → baroreflex tachycardia (HR +40–50) → diastolic filling collapses → SV 74→46 mL → CO drops. | High (fidelity) | ⏳ **Open.** A direct Ce-scaled contractility boost fixes the early phase but destabilizes the tail (reflex-tachycardia death-spiral at high Ce: HR 143 / MAP 59) — a CV-model reflex-instability that needs a focused fix (reflex damping / HR-filling coupling), not a direction-law patch. Attempted fix reverted; dobutamine→HR↑ IS codified (true direction). |
 | F25 | **Milrinone produces negligible CO effect** — its very slow ke0 (0.1/min, ~35 min to effect-site equilibration) means Ce barely rises over any practical horizon without a loading dose, and it shares F24's missing inotrope coupling. | Med (fidelity) | ⏳ **Open.** Needs a loading-bolus path + the F24 CV-model fix. |
 | F26 | **Isoproterenol produces negligible HR effect** — even a large bolus barely raises its effect-site Ce, so its potent chronotropy never registers. | Low-Med (fidelity) | ⏳ **Open.** Delivery/PK (ke0/V1) — Layer 3 provenance. |
+| F27 | **Anaphylaxis triggered at simulation t=0 never progresses** — severity is computed from `dt = st.time - (st.patient.anaphylaxisTime || st.time)`, and `|| st.time` treats a legitimate 0 onset time as "unset", so `dt` stays 0 and `anaphylaxisSvrMod` stays 1.0 (no shock). Reachable if a preset starts mid-anaphylaxis or a trigger fires at t=0. | Low (edge case) | ⏳ **Open.** Fix is `anaphylaxisTime ?? st.time` (nullish) once every trigger site is confirmed to set the field. Worked around in the disease-axis test by settling before triggering (mirrors real onset at t>0). |
 | F22 | **`cardiac_physiology_ch14.test.ts` was order-dependent/flaky** — its baseline-vs-scenario check read a single noisy CV-engine tick whose micro-fluctuation/afib noise uses unseeded `Math.random`, whose global state is not reset between test files. Surfaced when the F16/F20 changes shifted the number of preceding RNG calls and tipped a borderline `< 3` bpm tolerance to exactly 3. | Low (test robustness) | ✅ **Fixed (L2):** inject a fresh seeded `rng` (the engine already supports `inputs.rng`) into the test's `baselineInputs`, so every scenario gets an identical deterministic noise sequence and the comparison is order-independent. |
 
 ## Layer 2 backlog (physiology correctness — seeded from L1C)
@@ -45,3 +46,19 @@ Concrete bugs and fidelity issues surfaced by the Layer 1–6 audit initiative
   `FidelityFuzzer`'s RNG for reproducible guided fuzzing.
 - Widen `AUDIT_CASES` to cover every shipped preset (via a small reusable `buildCase`-equivalent), so
   the invariant sweep runs over the real case bank, not just representative cases.
+
+### Layer 2 — to VERIFY before claiming (not yet confirmed findings)
+- **Surgical/trauma `bleedRate` accumulation**: `activeBleedRate` (from `patient.trauma` or the
+  Incision/Maintenance phase) feeds `currentEbl`/`bloodLossRatio` for the *current* tick but appears
+  NOT to be written back to `st.patient.ebl` outside the obstetric-PPH path (line ~6217), so a surgical
+  bleed may not progress. The hypovolemia→hemodynamics coupling itself is verified (setting `ebl=1800`
+  directly → MAP↓/HR↑, `disease_axis_directions_ch2.test.ts`). Must confirm against the full hook path
+  (fluidics model / hook `setPatient`) before recording — could be handled by a mechanism not visible
+  in `runPhysicsStep` alone (cf. the F9 stale-closure false-alarm lesson).
+- **Dynamic `currentHb` not persisted**: the bleed/transfusion-adjusted `currentHb` (line ~2827) is
+  recomputed fresh each tick and fed to the late CV/O₂ engines, but is never written to
+  `st.patient.hemoglobin`, which the *early*-tick engine inputs (lines 637/799/855) read. Since it's
+  recomputed from persisted inputs (`prbcVolumeReceivedMl`, `bloodLossRatio`) it may be self-consistent,
+  but the early-vs-late Hb inconsistency (and the lack of a queryable `hemoglobin`/`hgb` vital, which
+  blocked a transfusion→Hgb metamorphic law) needs verification. Transfusion→Hgb law deferred until an
+  observable Hb is exposed and the real `pushFluid` (not the harness stub) is wired into the harness.
