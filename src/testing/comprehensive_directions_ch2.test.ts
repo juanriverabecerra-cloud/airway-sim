@@ -17,6 +17,11 @@ const VERIFIED: Law[] = [
   { name: 'verapamil->HR down', drug: 'verapamil', dose: 5, unit: 'mg', key: 'hr', direction: 'down', minDelta: 2, steps: 60 },
   { name: 'amiodarone->HR down', drug: 'amiodarone', dose: 150, unit: 'mg', key: 'hr', direction: 'down', minDelta: 2, steps: 90 },
   { name: 'glucagon->HR up', drug: 'glucagon', dose: 1, unit: 'mg', key: 'hr', direction: 'up', minDelta: 2, steps: 40 },
+  // F16 fix (magnesium no longer produces paradoxical reflex tachycardia — direct AV-slowing +
+  // sympatholytic decrement now dominates the reflex from its BP drop; deepens toward bradycardia):
+  { name: 'magnesium->HR down (no reflex tachy)', drug: 'magnesium', dose: 2000, unit: 'mg', key: 'hr', direction: 'down', minDelta: 5, steps: 40 },
+  // F20 fix (mannitol now produces a real osmotic diuresis, comparable to 40 mg furosemide):
+  { name: 'mannitol->urine up', drug: 'mannitol', dose: 25, unit: 'g', key: 'urineOutputRate', direction: 'up', minDelta: 5, steps: 60 },
 ];
 
 describe('Layer 2 — comprehensive direction laws (VERIFIED)', () => {
@@ -29,19 +34,6 @@ describe('Layer 2 — comprehensive direction laws (VERIFIED)', () => {
   }
 });
 
-describe('Layer 2 — comprehensive direction laws (DOCUMENTED FINDINGS)', () => {
-  // F16: magnesium lowers MAP (vasodilation) but its rate-slowing (AV) effect is unmodeled AND its
-  // med carries no effect-site Ce, so it can't be wired via Ce like the other rate drugs -> the
-  // baroreflex produces marked paradoxical tachycardia.
-  it('F16: magnesium currently RAISES HR (should slow/neutral)', () => {
-    const r = runMetamorphic(HEALTHY_CASE, (s) => giveMed(s, 'magnesium', 2000, { unit: 'mg' }), { key: 'hr', direction: 'up', minDelta: 5, steps: 40, seed: 4 });
-    expect(r.pass, `F16 pinned: magnesium HR base=${r.base} treat=${r.treat} (bug: reflex tachycardia)`).toBe(true);
-  });
-
-  // F20: mannitol (osmotic diuretic) barely increases urine output (furosemide works; mannitol's
-  // osmotic diuresis is weak/unmodeled).
-  it('F20: mannitol currently produces negligible diuresis', () => {
-    const r = runMetamorphic(HEALTHY_CASE, (s) => giveMed(s, 'mannitol', 25, { unit: 'g' }), { key: 'urineOutputRate', direction: 'same', sameTol: 3, steps: 60, seed: 4 });
-    expect(r.pass, `F20 pinned: mannitol urine base=${r.base} treat=${r.treat} (bug: negligible)`).toBe(true);
-  });
-});
+// F16 and F20 were fixed (magnesium reflex tachycardia; mannitol osmotic diuresis) and their laws
+// moved into VERIFIED above. No DOCUMENTED FINDINGS remain in this battery — a regression in the
+// VERIFIED laws means a physiology coupling has broken.

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { CardiovascularEngine, PatientState, VitalsState, CardiovascularDrugEffects } from '../engine/CardiovascularEngine';
 import { RenalEngine } from '../engine/RenalEngine';
+import { makeRng, seedRngState } from '../engine/rng';
 
 describe('Chapter 14: Cardiac Physiology', () => {
   const createBaselineState = (overrides: Partial<PatientState> = {}): { patient: PatientState; vitals: VitalsState; electrolytes: { k: number } } => ({
@@ -38,11 +39,16 @@ describe('Chapter 14: Cardiac Physiology', () => {
     ruleKOffset: 0, ruleSpo2Offset: 0
   });
 
+  // Inject a FRESH seeded RNG per scenario so the engine's micro-fluctuation/afib noise terms produce
+  // an identical, deterministic sequence in every run (default is unseeded Math.random, whose shared
+  // global state is not reset between test files — that made single-tick comparisons order-dependent
+  // and flaky). With identical noise, any residual difference reflects the input under test, not noise.
   const baselineInputs = (extra: Partial<{ vasopressinLevel: number; angiotensinIILevel: number }> = {}) => ({
     currentMac: 0, bloodLossRatio: 0, currentEbl: 0, positionPreloadMod: 0, positionHydrostaticMod: 0,
     shiveringMultiplier: 1.0, seizureMetabolicMultiplier: 1.0, cyanideVO2Mod: 1.0, VO2_sec: 0.250 / 60,
     currentBuffer: 2.4 * 0.21, currentFRC_L: 2.4, newTemp: 37.0, newPaCO2: 40, activeMeds: [],
     getAnatomicalParameter: (_kw: string, defVal: number) => defVal,
+    rng: makeRng(seedRngState(12345)),
     ...extra
   });
 

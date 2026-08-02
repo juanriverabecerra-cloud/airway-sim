@@ -5864,6 +5864,16 @@ export function runPhysicsStep(__ctx) {
           totalHrDelta -= 14 * Math.min(1.0, (amiodaroneForHr ? amiodaroneForHr.Ce : 0) * 7.0);
           totalHrDelta += 18 * Math.min(1.0, (glucagonForHr ? glucagonForHr.Ce : 0) * 20.0);
 
+          // F16: magnesium sulfate had no direct HR wiring, so its bolus vasodilation/hypotension drove
+          // marked PARADOXICAL reflex tachycardia. Physiologically Mg is HR-neutral-to-bradycardic: it
+          // slows AV conduction directly AND is sympatholytic (inhibits catecholamine release from the
+          // adrenal medulla / sympathetic terminals — the same property that makes it useful in pheo), so
+          // it BLUNTS the baroreflex rather than triggering a big tachycardia. Add a direct decrement that
+          // dominates the reflex from its BP drop; at frank hypermagnesemia this deepens toward bradycardia.
+          const magnesiumForHr = (st.activeMeds || []).find(m => m.name === 'Magnesium Sulfate');
+          const magHrIndex = Math.min(1.0, (magnesiumForHr ? magnesiumForHr.Ce : 0) * 0.16); // dose-graded: neutral at therapeutic, deepening toward frank hypermagnesemia
+          totalHrDelta -= 52 * magHrIndex;
+
           // 5. CardiovascularEngine Tick
           const cvOutput = CardiovascularEngine.tick(1, {
               patient: {

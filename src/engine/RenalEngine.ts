@@ -314,8 +314,13 @@ export class RenalEngine {
     const loopDiureticCe = (furosemideModel ? furosemideModel.Ce : 0.0) + (bumetanideModel ? bumetanideModel.Ce * 40.0 : 0.0);
     const mannitolModel = activeMeds.find(m => m.name === 'Mannitol 20%');
     const mannitolCe = mannitolModel ? mannitolModel.Ce : 0.0;
-    
-    const totalDiureticCe = loopDiureticCe + mannitolCe * 0.15;
+
+    // F20: mannitol's osmotic diuresis was effectively unmodeled — its effect-site Ce sits on a much
+    // smaller numeric scale than the loop diuretics' (a 25 g bolus reaches Ce≈0.1–0.2 over the first
+    // ~40 min), so the prior 0.15 coefficient contributed ≈0.03 to totalDiureticCe → no diuresis. A
+    // therapeutic mannitol bolus produces a BRISK osmotic diuresis comparable to (and, at higher g/kg
+    // doses, exceeding) a 40 mg furosemide response, so scale its Ce to sit on the loop-diuretic scale.
+    const totalDiureticCe = loopDiureticCe + mannitolCe * 3.0;
     const diureticEffect = Math.max(0.0, Math.min(0.92, totalDiureticCe / (totalDiureticCe + 1.2)));
     const diureticMultiplier = 1.0 + 8.5 * diureticEffect;
 
