@@ -1718,7 +1718,13 @@ export const MEDICATIONS = {
     metabolism: 'Hepatic (COMT)', proteinBinding: 0.0, mechanism: 'Agonist', targetReceptor: 'Beta-1 / Beta-2 Adrenergic',
     indications: { 'Bradycardia (Transplanted Heart)': { dose: '2-10', unit: 'mcg/min', type: 'Infusion' }, 'Complete Heart Block': { dose: '2-10', unit: 'mcg/min', type: 'Infusion' }, 'Brugada Syndrome Crisis': { dose: '1-5', unit: 'mcg/min', type: 'Infusion' } },
     pk: { V1: 15.0, V2: 30.0, V3: 0, k10: 0.15, k12: 0.08, k21: 0.05, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.3 },
-    pd: { c50: 0.5, gamma: 1.5, sysMax: -10, diaMax: -8, hrMax: 30, rrMax: 0 },
+    // F26: c50 0.5→0.004 mg/L. Isoproterenol is dosed in mcg/min (2-10), giving a plasma Css of only
+    // ~0.002-0.004 mg/L — 100x below the old c50, so the drug was clinically INERT (no chronotropy) at
+    // every real dose. It is an extremely potent β-agonist (effective plasma levels ~ng/mL, like the
+    // catecholamine scale used for norepinephrine's c50=0.001). With c50=0.004: 5 mcg/min→~+11 bpm,
+    // 10 mcg/min→more — restoring its role as the chronotrope of choice for the denervated (transplant)
+    // heart and complete heart block, where atropine is useless.
+    pd: { c50: 0.004, gamma: 1.5, sysMax: -10, diaMax: -8, hrMax: 30, rrMax: 0 },
     notes: 'Pure beta-1 AND beta-2 agonist. No alpha activity. THREE key anesthesia indications: (1) DENERVATED HEART (cardiac transplant) -- the transplanted heart has NO vagal innervation → atropine is completely ineffective for bradycardia; isoproterenol (or epinephrine) is the ONLY pharmacological chronotrope that works; (2) COMPLETE HEART BLOCK awaiting pacemaker -- pure chronotropy without the alpha vasoconstriction; (3) BRUGADA SYNDROME CRISIS -- quinidine and isoproterenol are the specific pharmacological treatments for ventricular storm in Brugada. Unlike epinephrine, isoproterenol causes vasodilation (beta-2 effect) → may cause hypotension despite increasing HR. Massive tachycardia and arrhythmia risk at higher doses.'
   },
 

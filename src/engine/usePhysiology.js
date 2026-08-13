@@ -634,7 +634,7 @@ export function runPhysicsStep(__ctx) {
               currentSBP: st.vitals.sys,
               currentDBP: st.vitals.dia,
               currentMAP: st.vitals.map,
-              currentHb: st.patient.hemoglobin || 14,
+              currentHb: st.patient.currentHemoglobin ?? st.patient.hemoglobin ?? 14, // live bleed/transfusion-adjusted Hb (one-tick lag), not the static baseline
               currentSaO2: (st.vitals.spo2 || 98) / 100,
               currentLVEDP: st.vitals.lvedp || 8,
               currentCO: st.vitals.co,
@@ -796,7 +796,7 @@ export function runPhysicsStep(__ctx) {
               txaGiven: !!st.patient.txaGiven,
               txaTimeFromInjuryHours: st.patient.txaAdminTime ? (st.time - st.patient.txaAdminTime) / 3600 : 0,
               currentCaIonized: st.patient.calcium ? st.patient.calcium / 4.0 : 1.2,
-              currentHb: st.patient.hemoglobin || 14,
+              currentHb: st.patient.currentHemoglobin ?? st.patient.hemoglobin ?? 14, // live bleed/transfusion-adjusted Hb (one-tick lag), not the static baseline
               permissiveHypotension: !!st.patient.permissiveHypotension,
               hasTBI: !!(st.patient.icp && st.patient.icp > 20),
               currentMAP: st.vitals.map,
@@ -852,7 +852,7 @@ export function runPhysicsStep(__ctx) {
               protamineCe: protamineForCPB ? protamineForCPB.Ce : 0,
               hasProtamineHistory: !!st.patient.hasProtamineHistory,
               hasNPHInsulin: !!st.patient.hasNPHInsulin,
-              currentHb: st.patient.hemoglobin || 14,
+              currentHb: st.patient.currentHemoglobin ?? st.patient.hemoglobin ?? 14, // live bleed/transfusion-adjusted Hb (one-tick lag), not the static baseline
               bsaM2: st.patient.bsa || 1.73,
               prevCPBOnsetLogged: !!st.patient.prevCPBOnsetLogged,
               prevClampLogged: !!st.patient.prevCPBClampLogged,
@@ -2787,7 +2787,14 @@ export function runPhysicsStep(__ctx) {
           setVitals({ metHb: currentMetHb });
 
           // Bleed rates & Haemoglobin dilution
-          const baseHb = st.patient.trauma ? 11.2 : 14.5;
+          // Hb fix: the patient's BASELINE hemoglobin drives the dynamic currentHb below. Previously this
+          // was a hardcoded 11.2/14.5, so an anemic patient (case-set hemoglobin, e.g. 8) was silently
+          // treated as having normal Hb by the O2-content physics. Seed from patient.hemoglobin when the
+          // case provides it (it is a stable baseline — never written back during a run, so no dilution
+          // feedback), falling back to the trauma/non-trauma default otherwise.
+          const baseHb = (typeof st.patient.hemoglobin === 'number' && Number.isFinite(st.patient.hemoglobin) && st.patient.hemoglobin > 0)
+              ? st.patient.hemoglobin
+              : (st.patient.trauma ? 11.2 : 14.5);
           let activeBleedRate = 0;
           if (st.patient.trauma) {
               activeBleedRate = st.patient.bleedRate !== undefined ? st.patient.bleedRate : 1.5;
@@ -2836,6 +2843,12 @@ export function runPhysicsStep(__ctx) {
               calculatedHb = 12.0;
           }
           const currentHb = Math.max(3.0, Math.min(25.0, calculatedHb));
+          // Hb fix: expose the live, bleed/transfusion-adjusted hemoglobin as an OBSERVABLE (it was only
+          // ever a tick-local, fed to the O2/CV engines but never surfaced). `currentHemoglobin` is a
+          // display/telemetry mirror only — it is deliberately NOT written to `patient.hemoglobin` (the
+          // stable baseline that seeds `baseHb`), so there is no per-tick dilution feedback loop.
+          st.patient.currentHemoglobin = currentHb;
+          patientAfterFluidics.currentHemoglobin = currentHb;
 
           // Gas kinetics
           let brainMac = 0;
@@ -4509,7 +4522,19 @@ export function runPhysicsStep(__ctx) {
           }
 
           if (st.patient.anaphylaxisTriggered) {
-              const startTime = st.patient.anaphylaxisTime || st.time;
+              // F27: anchor the onset time the first time the flag is seen true, so severity progresses
+              // from trigger. Use a NULLISH check (not `|| st.time`): a legitimate t=0 onset stores 0,
+              // and `0 || st.time` would wrongly treat it as "unset" and re-anchor every tick -> dt frozen
+              // at 0 -> no shock. Persisting it here also makes a flag set externally (e.g. a preset that
+              // starts mid-anaphylaxis, or a trigger site that forgot to stamp the time) anchor correctly.
+              if (st.patient.anaphylaxisTime === undefined || st.patient.anaphylaxisTime === null) {
+                  st.patient.anaphylaxisTime = st.time;
+                  // Also stamp the fluidics snapshot that `finalPatient` spreads at tick end — otherwise
+                  // this anchor (set after the snapshot at ~line 388) is lost on write-back and re-set to
+                  // st.time every tick, freezing dt at 0 (the original F27 symptom).
+                  patientAfterFluidics.anaphylaxisTime = st.patient.anaphylaxisTime;
+              }
+              const startTime = st.patient.anaphylaxisTime;
               const dt_anaph = st.time - startTime;
               anaphylaxisSvrMod = 0.25 + 0.75 * Math.exp(-0.05 * dt_anaph);
               anaphylaxisCompliancePenalty = Math.min(45, 45 * (1 - Math.exp(-0.08 * dt_anaph)));

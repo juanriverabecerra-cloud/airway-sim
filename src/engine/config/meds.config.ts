@@ -7854,7 +7854,7 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
       "coSensitivity": 0.3
     },
     "pd": {
-      "c50": 0.5,
+      "c50": 0.004,
       "gamma": 1.5,
       "sysMax": -10,
       "diaMax": -8,
