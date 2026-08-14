@@ -42,6 +42,15 @@ sigmoidally — flat >90, steep <60), dynamic preload indices (SVV/PPV rise with
 mechanical ventilation), and TOF (count+ratio collapse under deep block) all track physiology. FiO₂ is
 correctly driven by the fresh-gas mixture (anesthesia-machine model), not a vent dial. One finding: **F30**.
 
+**Procedures/mechanisms audit (L2, `procedures_mechanisms_ch2.test.ts`):** all correct, no findings —
+esophageal intubation (real flags `airwaySecured:false`/`ventilationStatus:'failed'`) causes rapid
+desaturation (SpO₂→19) with the esophageal capnograph sign (a brief gastric-CO₂ blip then EtCO₂≈0);
+correct tracheal ventilation oxygenates + controls PaCO₂; defibrillation fires the conversion pathway on
+shockable rhythms and warns/no-effect on non-shockable ones; volatile wash-in raises alveolar MAC
+monotonically toward the dial; CPR generates a perfusing pressure during arrest. (An initial "esophageal
+intubation doesn't desaturate" alarm was a TEST artifact — the probe forced `airwaySecured:true`, a state
+the real intubation flow never produces; corrected per the F9 verify-before-claiming discipline.)
+
 ### Findings surfaced by the EXHAUSTIVE metamorphic battery (L2)
 | # | Finding | Severity | Status |
 |---|---------|----------|--------|
