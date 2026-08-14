@@ -5361,6 +5361,24 @@ export function runPhysicsStep(__ctx) {
           // mL-equivalent preload channel position changes already use.
           positionPreloadMod += pregnancyOutput.bloodVolumeExpansionMl - pregnancyOutput.aortocavalCompressionPreloadPenaltyMl;
 
+          // F31: opioids cause venodilation / venous pooling -> reduced preload. Without this, an opioid's
+          // DIRECT bradycardia drives a Frank-Starling stroke-volume overshoot that the 4-chamber model
+          // turns into paradoxical HYPERTENSION (fentanyl MAP +20; morphine rebounds up after its histamine
+          // dip). Model the venous pooling as a preload reduction scaled by opioid RECEPTOR OCCUPANCY —
+          // NOT the hypnotic-weighted `opioidEff`, which is ≈0 for pure analgesics like fentanyl. Occupancy
+          // (Ce/(Ce+c50)) is ~0.9 for a therapeutic fentanyl dose, capturing the CV effect the hypnotic
+          // term misses. (Venodilation is also a genuine opioid hypotension mechanism, esp. morphine.)
+          const opioidCvOccupancy = (st.activeMeds || []).reduce((acc, m) => {
+              if (m.classes && m.classes.includes('Opioid')) {
+                  const oc50 = (m.pd && m.pd.c50) || (m.medData && m.medData.pd && m.medData.pd.c50) || 0.01;
+                  const occ = m.Ce / (m.Ce + oc50);
+                  return Math.max(acc, Number.isFinite(occ) ? occ : 0);
+              }
+              return acc;
+          }, 0);
+          positionPreloadMod -= opioidCvOccupancy * 620;
+          st.patient.__opioidCvOccupancy = opioidCvOccupancy; // F31: also blunts the baroreflex (sympatholysis) in the CV/Brainstem engines
+
           // Gastrointestinal Engine Tick
           const isParalyzedCurrent = maxNMJOccupancy > 0.90;
           const isApneicCurrent = isParalyzedCurrent || (st.vitals.rr !== undefined && Number.isFinite(st.vitals.rr) ? st.vitals.rr < 1 : false);

@@ -35,3 +35,11 @@ src/airway_ingest/source_material/
 podcast_source/*_chapter_*.md
 podcast_source/INDEX.md
 
+# Podcast inbox: dropped PDFs and recipes are local; the README/.gitkeep are kept.
+podcast_inbox/*.pdf
+podcast_inbox/*.recipe.txt
+podcast_inbox/done/
+
+
+# Generated faithful chapter docs (regenerate with `npm run chapter-md`).
+chapter_docs/*.md

@@ -4,13 +4,15 @@
     "source_path": "/Users/jsriverab/.gemini/antigravity/scratch/airway-sim/src/airway_ingest/source_material/Jaffe_AMSP_6th_Edition_Chapter_4.pdf",
     "file_size_bytes": 654931,
     "file_type": ".pdf",
-    "parsed_at": "2026-07-15T13:45:31.687Z",
+    "parsed_at": "2026-08-13T20:14:54.922Z",
     "parser_version": "2.1.0",
     "total_pages": 12,
-    "total_characters_extracted": 15326,
+    "total_characters_extracted": 11752,
     "extraction_success": true,
     "warnings": [
       "Phase 2 vision enrichment skipped for TBL_PAGE_003_0: no local image cropped at path \"\". Figure retained with Phase 1 (unenriched) data only.",
+      "Phase 2 vision enrichment returned no data for FIG_4_1 (provider: gemini). Figure retained with Phase 1 (unenriched) data only.",
+      "Phase 2 vision enrichment returned no data for FIG_4_1 (provider: gemini). Figure retained with Phase 1 (unenriched) data only.",
       "Phase 2 vision enrichment skipped for TBL_PAGE_004_0: no local image cropped at path \"\". Figure retained with Phase 1 (unenriched) data only.",
       "Phase 2 vision enrichment skipped for TBL_PAGE_004_1: no local image cropped at path \"\". Figure retained with Phase 1 (unenriched) data only.",
       "Phase 2 vision enrichment skipped for TBL_PAGE_007_0: no local image cropped at path \"\". Figure retained with Phase 1 (unenriched) data only.",
@@ -18,7 +20,20 @@
       "Phase 2 vision enrichment skipped for TBL_PAGE_008_1: no local image cropped at path \"\". Figure retained with Phase 1 (unenriched) data only.",
       "Phase 2 vision enrichment skipped for TBL_PAGE_011_1: no local image cropped at path \"\". Figure retained with Phase 1 (unenriched) data only.",
       "Phase 2 vision enrichment skipped for TBL_PAGE_012_0: no local image cropped at path \"\". Figure retained with Phase 1 (unenriched) data only."
-    ]
+    ],
+    "quality": {
+      "pages": 12,
+      "total_characters": 11752,
+      "chars_per_page": 979.3,
+      "empty_pages": 0,
+      "low_text_pages": 1,
+      "english_word_ratio": 0.282,
+      "nonascii_pct": 0.36,
+      "replacement_chars": 0,
+      "run_together_pct": 0,
+      "flags": [],
+      "ok": true
+    }
   },
   "fragments": [
     {
@@ -215,8 +230,8 @@
       "sourceFile": "Jaffe_AMSP_6th_Edition_Chapter_4.pdf",
       "pageNumber": 2,
       "contentType": "text",
-      "rawText": "TEMPOROMANDIBULAR JOINT\nARTHROSCOPY/ARTHROTOMY/ARTHROPLASTY\n\nSURGICAL CONSIDERATIONS\n\nDescription\n\nTemporomandibular joint (TMJ) surgical procedures include both open and closed\nsurgical techniques.\n\nTMJ arthrotomy involves a preauricular, postauricular, or endaural incision to gain\naccess to the joint compartment. It usually is performed for severe fibrous adhesion\nremoval in the TMJ, bony or fibrous ankylosis, tumor resection, chronic dislocation,\npainful nonreducing disc dislocation, and severe osteoarthritis. Open TMJ surgery may\nrange from discoplasty, discectomy, arthroplasty, and/or eminoplasty (reshaping of\narticular eminentia) to optimize the fit of the disc, condyle, and fossa to total joint\nreplacement utilizing costochondral grafts or total joint metal implants. For the open\ntreatment \nof \ncondylar \nfractures, \nextraoral \napproaches \n(e.g., \npreauricular,\nretromandibular, and submandibular) are used. All extraoral approaches to the TMJ\nhave the risks of facial nerve damage and the creation of visible scars. Due to those\npossible complications, endoscopically assisted transoral approaches for open\nreduction and miniplate fixation of condylar mandible fractures are being used more\noften. In any of these procedures, facial nerve monitoring is indicated.\n\nTMJ arthroscopy is a minimally invasive technique that has reduced the need for open\nsurgery of the TMJ. Arthroscopic TMJ surgery is indicated for treatment of interna\nderangements and intracapsular disorders. The major advantage is that it results in less\nperiarticular tissue disruption and better preservation of vascular supply and lymphatic\ndrainage of the joint. The procedure involves insertion of a TMJ miniscope through a\npreauricular puncture on the canthus-tragus line and insertion of an outflow needle. The\njoint compartment is continually lavaged with LR. A second cannula may be inserted.\nArthroscopic TMJ procedures include lysis of adhesions and lavage, partial\nsynovectomy, and abrasion arthroplasty. Sometimes a holmium:YAG laser is used to\nmake intra-articular incisions anterior to displaced discs and to treat inflamed synovial\ntissue. Usually, at the end of the procedure, 2-mg dexamethasone is injected into the\njoint space. Injection of 2 mL 0.5% bupivacaine mixed with 1 mL sterile saline solution\nhas been shown to significantly reduce postop pain. Arrhythmia, reflex bradycardia, and\npulmonary edema have been reported as general complications in TMJ arthroscopy.",
-      "characterCount": 2475,
+      "rawText": "TEMPOROMANDIBULAR JOINT\nARTHROSCOPY/ARTHROTOMY/ARTHROPLASTY\n\nSURGICAL CONSIDERATIONS\n\nSURGICAL CONSIDERATIONS\n\nDescription\n\nTemporomandibular joint (TMJ) surgical procedures include both open and closed\nsurgical techniques.\n\nTMJ arthrotomy involves a preauricular, postauricular, or endaural incision to gain\naccess to the joint compartment. It usually is performed for severe fibrous adhesion\nremoval in the TMJ, bony or fibrous ankylosis, tumor resection, chronic dislocation,\npainful nonreducing disc dislocation, and severe osteoarthritis. Open TMJ surgery may\nrange from discoplasty, discectomy, arthroplasty, and/or eminoplasty (reshaping of\narticular eminentia) to optimize the fit of the disc, condyle, and fossa to total joint\nreplacement utilizing costochondral grafts or total joint metal implants. For the open\ntreatment \nof \ncondylar \nfractures, \nextraoral \napproaches \n(e.g., \npreauricular,\nretromandibular, and submandibular) are used. All extraoral approaches to the TMJ\nhave the risks of facial nerve damage and the creation of visible scars. Due to those\npossible complications, endoscopically assisted transoral approaches for open\nreduction and miniplate fixation of condylar mandible fractures are being used more\noften. In any of these procedures, facial nerve monitoring is indicated.",
+      "characterCount": 1307,
       "parsedSections": [
         {
           "heading": "TEMPOROMANDIBULAR JOINT",
@@ -226,8 +241,14 @@
         },
         {
           "heading": "SURGICAL CONSIDERATIONS",
-          "body": "\nDescription\nTemporomandibular joint (TMJ) surgical procedures include both open and closed\nsurgical techniques.\nTMJ arthrotomy involves a preauricular, postauricular, or endaural incision to gain\naccess to the joint compartment. It usually is performed for severe fibrous adhesion\nremoval in the TMJ, bony or fibrous ankylosis, tumor resection, chronic dislocation,\npainful nonreducing disc dislocation, and severe osteoarthritis. Open TMJ surgery may\nrange from discoplasty, discectomy, arthroplasty, and/or eminoplasty (reshaping of\narticular eminentia) to optimize the fit of the disc, condyle, and fossa to total joint\nreplacement utilizing costochondral grafts or total joint metal implants. For the open\ntreatment \nof \ncondylar \nfractures, \nextraoral \napproaches \n(e.g., \npreauricular,\nretromandibular, and submandibular) are used. All extraoral approaches to the TMJ\nhave the risks of facial nerve damage and the creation of visible scars. Due to those\npossible complications, endoscopically assisted transoral approaches for open\nreduction and miniplate fixation of condylar mandible fractures are being used more\noften. In any of these procedures, facial nerve monitoring is indicated.\nTMJ arthroscopy is a minimally invasive technique that has reduced the need for open\nsurgery of the TMJ. Arthroscopic TMJ surgery is indicated for treatment of interna\nderangements and intracapsular disorders. The major advantage is that it results in less\nperiarticular tissue disruption and better preservation of vascular supply and lymphatic\ndrainage of the joint. The procedure involves insertion of a TMJ miniscope through a\npreauricular puncture on the canthus-tragus line and insertion of an outflow needle. The\njoint compartment is continually lavaged with LR. A second cannula may be inserted.\nArthroscopic TMJ procedures include lysis of adhesions and lavage, partial\nsynovectomy, and abrasion arthroplasty. Sometimes a holmium:YAG laser is used to\nmake intra-articular incisions anterior to displaced discs and to treat inflamed synovial\ntissue. Usually, at the end of the procedure, 2-mg dexamethasone is injected into the\njoint space. Injection of 2 mL 0.5% bupivacaine mixed with 1 mL sterile saline solution\nhas been shown to significantly reduce postop pain. Arrhythmia, reflex bradycardia, and\npulmonary edema have been reported as general complications in TMJ arthroscopy.",
+          "body": "",
           "startLine": 2,
+          "category": "heading"
+        },
+        {
+          "heading": "SURGICAL CONSIDERATIONS",
+          "body": "\nDescription\nTemporomandibular joint (TMJ) surgical procedures include both open and closed\nsurgical techniques.\nTMJ arthrotomy involves a preauricular, postauricular, or endaural incision to gain\naccess to the joint compartment. It usually is performed for severe fibrous adhesion\nremoval in the TMJ, bony or fibrous ankylosis, tumor resection, chronic dislocation,\npainful nonreducing disc dislocation, and severe osteoarthritis. Open TMJ surgery may\nrange from discoplasty, discectomy, arthroplasty, and/or eminoplasty (reshaping of\narticular eminentia) to optimize the fit of the disc, condyle, and fossa to total joint\nreplacement utilizing costochondral grafts or total joint metal implants. For the open\ntreatment \nof \ncondylar \nfractures, \nextraoral \napproaches \n(e.g., \npreauricular,\nretromandibular, and submandibular) are used. All extraoral approaches to the TMJ\nhave the risks of facial nerve damage and the creation of visible scars. Due to those\npossible complications, endoscopically assisted transoral approaches for open\nreduction and miniplate fixation of condylar mandible fractures are being used more\noften. In any of these procedures, facial nerve monitoring is indicated.",
+          "startLine": 3,
           "category": "heading"
         }
       ],
@@ -3326,12 +3347,12 @@
       "sourceFile": "Jaffe_AMSP_6th_Edition_Chapter_4.pdf",
       "pageNumber": 3,
       "contentType": "text",
-      "rawText": "Figure 4.1 Anatomy for TMJ procedure.\n\nUsual preop diagnosis\n\nInternal derangement; subluxation; and ankylosis of TMJ\n\nERAS: Preop counseling by the surgeon/anesthesiologist should include limiting\nNPO duration, carb loading, and postop pain management options. See Appendix\nK: Enhanced Recovery After Surgery, p. K-1.",
-      "characterCount": 318,
+      "rawText": "Figure 4.1 Anatomy for TMJ procedure.\n\nFigure 4.1 Anatomy for TMJ procedure.\n\nUsual preop diagnosis\n\nInternal derangement; subluxation; and ankylosis of TMJ",
+      "characterCount": 156,
       "parsedSections": [
         {
           "heading": "",
-          "body": "Figure 4.1 Anatomy for TMJ procedure.\nUsual preop diagnosis\nInternal derangement; subluxation; and ankylosis of TMJ\nERAS: Preop counseling by the surgeon/anesthesiologist should include limiting\nNPO duration, carb loading, and postop pain management options. See Appendix\nK: Enhanced Recovery After Surgery, p. K-1.",
+          "body": "Figure 4.1 Anatomy for TMJ procedure.\nFigure 4.1 Anatomy for TMJ procedure.\nUsual preop diagnosis\nInternal derangement; subluxation; and ankylosis of TMJ",
           "startLine": 1,
           "category": "paragraph"
         }
@@ -3965,25 +3986,31 @@
       "sourceFile": "Jaffe_AMSP_6th_Edition_Chapter_4.pdf",
       "pageNumber": 4,
       "contentType": "text",
-      "rawText": "ANESTHETIC CONSIDERATIONS\n\nSee Anesthetic Considerations for Dental/Oral Surgery.\n\nSuggested Readings\n\n1. Al-Ani Z, Gray R: TMD current concepts: 1. An update. Dent Update 2007;\n\n34(5):278–80, 282–4, 287–8.\n2. Furst IM, Kryshtalskyj B, Weinberg S: The use of intra-articular opioids and\n\nbupivacaine for analgesia following temporomandibular joint arthroscopy: a\nprospective, randomized trial. J Oral Maxillofac Surg 2001; 59(9):979–83.\n3. Hoffman D, Puig L: Complications of TMJ surgery. Oral Maxillofac Surg Clin North\n\nAm 2015; 27(1):109–24.\n4. Indresano AT: Surgical arthroscopy as the preferred treatment for internal",
-      "characterCount": 622,
+      "rawText": "ANESTHETIC CONSIDERATIONS\n\nANESTHETIC CONSIDERATIONS\n\nSee Anesthetic Considerations for Dental/Oral Surgery.\n\nSuggested Readings\n\n1. Al-Ani Z, Gray R: TMD current concepts: 1. An update. Dent Update 2007;\n\n34(5):278–80, 282–4, 287–8.\n2. Furst IM, Kryshtalskyj B, Weinberg S: The use of intra-articular opioids and\n\nbupivacaine for analgesia following temporomandibular joint arthroscopy: a\nprospective, randomized trial. J Oral Maxillofac Surg 2001; 59(9):979–83.\n3. Hoffman D, Puig L: Complications of TMJ surgery. Oral Maxillofac Surg Clin North",
+      "characterCount": 547,
       "parsedSections": [
         {
           "heading": "ANESTHETIC CONSIDERATIONS",
-          "body": "\nSee Anesthetic Considerations for Dental/Oral Surgery.",
+          "body": "",
           "startLine": 1,
+          "category": "heading"
+        },
+        {
+          "heading": "ANESTHETIC CONSIDERATIONS",
+          "body": "\nSee Anesthetic Considerations for Dental/Oral Surgery.",
+          "startLine": 2,
           "category": "heading"
         },
         {
           "heading": "Suggested Readings",
           "body": "",
-          "startLine": 2,
+          "startLine": 3,
           "category": "heading"
         },
         {
           "heading": "1. Al-Ani Z, Gray R: TMD current concepts: 1. An update. Dent Update 2007;",
-          "body": "\n34(5):278–80, 282–4, 287–8.\n2. Furst IM, Kryshtalskyj B, Weinberg S: The use of intra-articular opioids and\nbupivacaine for analgesia following temporomandibular joint arthroscopy: a\nprospective, randomized trial. J Oral Maxillofac Surg 2001; 59(9):979–83.\n3. Hoffman D, Puig L: Complications of TMJ surgery. Oral Maxillofac Surg Clin North\nAm 2015; 27(1):109–24.\n4. Indresano AT: Surgical arthroscopy as the preferred treatment for internal",
-          "startLine": 3,
+          "body": "\n34(5):278–80, 282–4, 287–8.\n2. Furst IM, Kryshtalskyj B, Weinberg S: The use of intra-articular opioids and\nbupivacaine for analgesia following temporomandibular joint arthroscopy: a\nprospective, randomized trial. J Oral Maxillofac Surg 2001; 59(9):979–83.\n3. Hoffman D, Puig L: Complications of TMJ surgery. Oral Maxillofac Surg Clin North",
+          "startLine": 4,
           "category": "heading"
         }
       ],
@@ -5507,8 +5534,8 @@
       "sourceFile": "Jaffe_AMSP_6th_Edition_Chapter_4.pdf",
       "pageNumber": 5,
       "contentType": "text",
-      "rawText": "derangements of the temporomandibular joint. J Oral Maxillofac Surg 2001;\n59(3):308–12.\n5. Laskin DM: Temporomandibular disorders: the past, present and future. Odontology\n\n2007; 95(1):10–5.\n6. Lieblich S: Providing anesthesia in the Oral and Maxillofacial Surgery Office: a look\n\nback, where we are now and a look ahead. J Oral Maxillofac Surg 2018; 76(5):917–\n25.\n7. Rajapakse S, Ahmed N, Sidebottom AJ: Current thinking about the management o\n\ndysfunction of the temporomandibular joint: a review. Br J Oral Maxillofac Surg\n2017; 55(4):351–6.\n8. Rigon M, Pereira LM, Bortoluzzi MC, et al: Arthroscopy for temporomandibula\n\ndisorders. Cochrane Database Syst Rev 2011; (5):CD006385.\n9. Tsuyama M, Kondoh T, Seto K, et al: Complications of temporomandibular joint\n\narthroscopy: a retrospective analysis of 301 lysis and lavage procedures performed\nusing the triangulation technique. J Oral Maxillofac Surg 2000; 58(5):500–5.\n\nORAL SURGERY\n\nSURGICAL CONSIDERATIONS\n\nDescription\n\nThe most common surgeries of the oral cavity are third-molar removal, surgical\nextractions, apicoectomies, orthodontic exposures of teeth, osseointegrated implants,\nbone grafting, treatment of oral pathologic conditions, and preprosthetic surgery.\nSurgical extractions of teeth involve intraoral exposure of the roots through a mucosal\nincision and removal of the overlying bone with a surgical drill. Risks associated with\nremoval of teeth in the mandible are damage to the inferior alveolar nerve (anesthetic\nnumb lip), lingual nerve (anesthetic numb tongue), and, rarely, mandibular fracture. In\nthe posterior maxilla, oroantral fistulas can occur and are closed with a mucoperiosteal\nflap. Exposure of teeth for orthodontic therapy involves creation of a mucoperiosteal\nflap and attachment of a bracket with a small gold chain on which the orthodontist can\npull to integrate the tooth into the dental arch. Grafting to the maxilla and mandible is\ndone for augmentation of the atrophied alveolar ridge and the maxillary sinus and in\ncases of cleft lip and palate, and can consist of bone and/or other materials to induce\nbone formation. A second team usually harvests the bone at the same time. Possible\nextraoral harvesting sites include the anterior or posterior iliac crest, the tibia, and the\nskull. Preprosthetic surgery of the oral soft tissue in preparation for dentures has been\nreplaced largely by insertion of osseointegrated implants for retention of individual",
-      "characterCount": 2453,
+      "rawText": "derangements of the temporomandibular joint. J Oral Maxillofac Surg 2001;\n59(3):308–12.\n5. Laskin DM: Temporomandibular disorders: the past, present and future. Odontology\n\n2007; 95(1):10–5.\n6. Lieblich S: Providing anesthesia in the Oral and Maxillofacial Surgery Office: a look\n\nback, where we are now and a look ahead. J Oral Maxillofac Surg 2018; 76(5):917–\n25.\n7. Rajapakse S, Ahmed N, Sidebottom AJ: Current thinking about the management o\n\ndysfunction of the temporomandibular joint: a review. Br J Oral Maxillofac Surg\n2017; 55(4):351–6.\n8. Rigon M, Pereira LM, Bortoluzzi MC, et al: Arthroscopy for temporomandibula\n\ndisorders. Cochrane Database Syst Rev 2011; (5):CD006385.\n9. Tsuyama M, Kondoh T, Seto K, et al: Complications of temporomandibular joint\n\narthroscopy: a retrospective analysis of 301 lysis and lavage procedures performed\nusing the triangulation technique. J Oral Maxillofac Surg 2000; 58(5):500–5.\n\nORAL SURGERY\n\nSURGICAL CONSIDERATIONS\n\nSURGICAL CONSIDERATIONS\n\nDescription",
+      "characterCount": 1001,
       "parsedSections": [
         {
           "heading": "",
@@ -5524,8 +5551,14 @@
         },
         {
           "heading": "SURGICAL CONSIDERATIONS",
-          "body": "\nDescription\nThe most common surgeries of the oral cavity are third-molar removal, surgical\nextractions, apicoectomies, orthodontic exposures of teeth, osseointegrated implants,\nbone grafting, treatment of oral pathologic conditions, and preprosthetic surgery.\nSurgical extractions of teeth involve intraoral exposure of the roots through a mucosal\nincision and removal of the overlying bone with a surgical drill. Risks associated with\nremoval of teeth in the mandible are damage to the inferior alveolar nerve (anesthetic\nnumb lip), lingual nerve (anesthetic numb tongue), and, rarely, mandibular fracture. In\nthe posterior maxilla, oroantral fistulas can occur and are closed with a mucoperiosteal\nflap. Exposure of teeth for orthodontic therapy involves creation of a mucoperiosteal\nflap and attachment of a bracket with a small gold chain on which the orthodontist can\npull to integrate the tooth into the dental arch. Grafting to the maxilla and mandible is\ndone for augmentation of the atrophied alveolar ridge and the maxillary sinus and in\ncases of cleft lip and palate, and can consist of bone and/or other materials to induce\nbone formation. A second team usually harvests the bone at the same time. Possible\nextraoral harvesting sites include the anterior or posterior iliac crest, the tibia, and the\nskull. Preprosthetic surgery of the oral soft tissue in preparation for dentures has been\nreplaced largely by insertion of osseointegrated implants for retention of individual",
+          "body": "",
           "startLine": 3,
+          "category": "heading"
+        },
+        {
+          "heading": "SURGICAL CONSIDERATIONS",
+          "body": "\nDescription",
+          "startLine": 4,
           "category": "heading"
         }
       ],
@@ -9350,8 +9383,8 @@
       "sourceFile": "Jaffe_AMSP_6th_Edition_Chapter_4.pdf",
       "pageNumber": 7,
       "contentType": "text",
-      "rawText": "Suggested Readings\n\n1. Bataineh AB: Sensory nerve impairment following mandibular third molar surgery. J\n\nOral Maxillofac Surg 2001; 59(9):1012–7.\n2. Zou L, He D, Ellis E: A comparison of clinical follow-up of different total\n\ntemporomandibular joint replacement prostheses: a systematic review and meta-\nanalysis. J Oral Maxillofac Surg 2018; 76(2):294–303.\n\nSuggested Viewing\nLinks are available online to the following video:\nTMJ \nAnatomy \n“The \nYoint” \nVideo: \nhttps://www.youtube.com/watch?\nv=nH8KG3fIoBM\n\nRESTORATIVE DENTISTRY\n\nSURGICAL CONSIDERATIONS\n\nDescription\n\nMultiple dental restorative procedures are performed under GA when there are rampant\ncaries, and an extensive amount of dental work must be performed at one time. The\nsecond most common indication for GA is for procedures that need to be performed on\nmentally retarded patients who are not candidates for a local anesthetic. The actual\namount of restorative dentistry is quite variable, depending on the individual case; thus,\nsurgical time can be quite variable. Generally, blood loss is not a problem.\n\nERAS: Preop counseling by the surgeon/anesthesiologist should include limiting\nNPO duration, carb loading, and postop pain management options. See Appendix K,\np. K-1.",
-      "characterCount": 1243,
+      "rawText": "Suggested Readings\n\n1. Bataineh AB: Sensory nerve impairment following mandibular third molar surgery. J\n\nOral Maxillofac Surg 2001; 59(9):1012–7.\n2. Zou L, He D, Ellis E: A comparison of clinical follow-up of different total\n\ntemporomandibular joint replacement prostheses: a systematic review and metaanalysis. J Oral Maxillofac Surg 2018; 76(2):294–303.\n\nSuggested Viewing\nLinks are available online to the following video:\nTMJ \nAnatomy \n“The \nYoint” \nVideo: \nhttps://www.youtube.com/watch?\nv=nH8KG3fIoBM\n\nRESTORATIVE DENTISTRY\n\nSURGICAL CONSIDERATIONS\n\nSURGICAL CONSIDERATIONS\n\nDescription\n\nMultiple dental restorative procedures are performed under GA when there are rampant\ncaries, and an extensive amount of dental work must be performed at one time. The\nsecond most common indication for GA is for procedures that need to be performed on\nmentally retarded patients who are not candidates for a local anesthetic. The actual\namount of restorative dentistry is quite variable, depending on the individual case; thus,\nsurgical time can be quite variable. Generally, blood loss is not a problem.",
+      "characterCount": 1098,
       "parsedSections": [
         {
           "heading": "Suggested Readings",
@@ -9361,7 +9394,7 @@
         },
         {
           "heading": "1. Bataineh AB: Sensory nerve impairment following mandibular third molar surgery. J",
-          "body": "\nOral Maxillofac Surg 2001; 59(9):1012–7.\n2. Zou L, He D, Ellis E: A comparison of clinical follow-up of different total\ntemporomandibular joint replacement prostheses: a systematic review and meta-\nanalysis. J Oral Maxillofac Surg 2018; 76(2):294–303.",
+          "body": "\nOral Maxillofac Surg 2001; 59(9):1012–7.\n2. Zou L, He D, Ellis E: A comparison of clinical follow-up of different total\ntemporomandibular joint replacement prostheses: a systematic review and metaanalysis. J Oral Maxillofac Surg 2018; 76(2):294–303.",
           "startLine": 2,
           "category": "heading"
         },
@@ -9379,8 +9412,14 @@
         },
         {
           "heading": "SURGICAL CONSIDERATIONS",
-          "body": "\nDescription\nMultiple dental restorative procedures are performed under GA when there are rampant\ncaries, and an extensive amount of dental work must be performed at one time. The\nsecond most common indication for GA is for procedures that need to be performed on\nmentally retarded patients who are not candidates for a local anesthetic. The actual\namount of restorative dentistry is quite variable, depending on the individual case; thus,\nsurgical time can be quite variable. Generally, blood loss is not a problem.\nERAS: Preop counseling by the surgeon/anesthesiologist should include limiting\nNPO duration, carb loading, and postop pain management options. See Appendix K,\np. K-1.",
+          "body": "",
           "startLine": 5,
+          "category": "heading"
+        },
+        {
+          "heading": "SURGICAL CONSIDERATIONS",
+          "body": "\nDescription\nMultiple dental restorative procedures are performed under GA when there are rampant\ncaries, and an extensive amount of dental work must be performed at one time. The\nsecond most common indication for GA is for procedures that need to be performed on\nmentally retarded patients who are not candidates for a local anesthetic. The actual\namount of restorative dentistry is quite variable, depending on the individual case; thus,\nsurgical time can be quite variable. Generally, blood loss is not a problem.",
+          "startLine": 6,
           "category": "heading"
         }
       ],
@@ -11138,8 +11177,8 @@
       "sourceFile": "Jaffe_AMSP_6th_Edition_Chapter_4.pdf",
       "pageNumber": 8,
       "contentType": "text",
-      "rawText": "ANESTHETIC CONSIDERATIONS FOR DENTAL/ORAL\n\nSURGERY\n\nPREOPERATIVE\n\nMost patients presenting for dental or oral surgery usually will require only local\nanesthesia provided by the dentist/oral surgeon. Deep sedation or GA may be required,\nhowever, for several unique patient groups: (a) young children (some with systemic\ndiseases such as CHD and hemophilia), (b) the mentally disabled, (c) those with poorly\ncontrolled seizure disorders, (d) those presenting for TMJ procedures, and (e) those\nwith an oral septic focus, who may be quite ill. If the patient does not fall into one of\nthese readily identifiable categories, the reasons for GA should be ascertained. An\nLMA with a flexible wire-reinforced airway tube (LMA Flexible) has been used\nsuccessfully for a variety of oral surgical procedures. The use of an LMA should be\ndiscussed with the surgeon in advance because its presence may interfere with the\nplanned procedure.",
-      "characterCount": 926,
+      "rawText": "ANESTHETIC CONSIDERATIONS FOR DENTAL/ORAL\n\nANESTHETIC CONSIDERATIONS FOR DENTAL/ORAL\n\nSURGERY\n\nMost patients presenting for dental or oral surgery usually will require only local\nanesthesia provided by the dentist/oral surgeon. Deep sedation or GA may be required,\nhowever, for several unique patient groups: (a) young children (some with systemic\ndiseases such as CHD and hemophilia), (b) the mentally disabled, (c) those with poorly\ncontrolled seizure disorders, (d) those presenting for TMJ procedures, and (e) those\nwith an oral septic focus, who may be quite ill. If the patient does not fall into one of\nthese readily identifiable categories, the reasons for GA should be ascertained. An\nLMA with a flexible wire-reinforced airway tube (LMA Flexible) has been used\nsuccessfully for a variety of oral surgical procedures. The use of an LMA should be\ndiscussed with the surgeon in advance because its presence may interfere with the\nplanned procedure.",
+      "characterCount": 955,
       "parsedSections": [
         {
           "heading": "ANESTHETIC CONSIDERATIONS FOR DENTAL/ORAL",
@@ -11148,13 +11187,13 @@
           "category": "heading"
         },
         {
-          "heading": "SURGERY",
+          "heading": "ANESTHETIC CONSIDERATIONS FOR DENTAL/ORAL",
           "body": "",
           "startLine": 2,
           "category": "heading"
         },
         {
-          "heading": "PREOPERATIVE",
+          "heading": "SURGERY",
           "body": "\nMost patients presenting for dental or oral surgery usually will require only local\nanesthesia provided by the dentist/oral surgeon. Deep sedation or GA may be required,\nhowever, for several unique patient groups: (a) young children (some with systemic\ndiseases such as CHD and hemophilia), (b) the mentally disabled, (c) those with poorly\ncontrolled seizure disorders, (d) those presenting for TMJ procedures, and (e) those\nwith an oral septic focus, who may be quite ill. If the patient does not fall into one of\nthese readily identifiable categories, the reasons for GA should be ascertained. An\nLMA with a flexible wire-reinforced airway tube (LMA Flexible) has been used\nsuccessfully for a variety of oral surgical procedures. The use of an LMA should be\ndiscussed with the surgeon in advance because its presence may interfere with the\nplanned procedure.",
           "startLine": 3,
           "category": "heading"
@@ -15110,8 +15149,8 @@
       "sourceFile": "Jaffe_AMSP_6th_Edition_Chapter_4.pdf",
       "pageNumber": 10,
       "contentType": "text",
-      "rawText": "associated with cricoarytenoid joint immobility and\ncervical spine immobility/instability that may\ncomplicate intubation. Patients with prosthetic joints\ndo not require special antibiotic prophylaxis.\nLaboratory\nOther tests as indicated from H&P\nPremedication\nStandard premedication usually is appreciated,\nalthough, in patients with limited airway access,\nsedation may be inappropriate. If FOL is planned,\npretreatment with an antisialagogue (e.g.,\nglycopyrrolate 4 mcg/kg) is useful. Metoclopramide\n(e.g., 10–20 mg iv adult) will reduce the incidence of\nPONV 2° swallowed blood. Avoid long-lasting\nsedative medications.\nERAS\nCheck compliance with presurgical ERAS\nrecommendations (see above) including NPO status.\nConsider preop acetaminophen (adult: 1000 mg po;\npeds: 10–15 mg/kg iv or po as an elixir).\n\nINTRAOPERATIVE\n\nAnesthetic technique\n\nGETA (although LMAs have been used successfully for many procedures). Typically a\nnasotracheal intubation is requested, using an ETT 0.5–1 mm smaller than for oral\nintubation. In patients with difficult airways, an awake nasal FOL is indicated. For\nconscious sedation, dexmedetomidine (e.g., 0.5 mcg/kg loading dose over 10 min + 0.5\nmcg/kg/h infusion) in combination with midazolam (e.g., 0.03 mg/kg) ± propofol (e.g.,\n25 mcg/kg/min) has the advantage of minimal respiratory depression.\n\nInduction\nIn patients with normal airways, a standard induction\nwith nasal intubation is appropriate. Following loss of\nconsciousness, topical intranasal cocaine may be\napplied (4% on pledgets, 4 mL maximum) to shrink\nthe nasal mucosa and for vasoconstriction. Side\neffects are rare but may include ↑ BP, ↑ or ↓ HR,\ndysrhythmias, and Sz. Other topical vasoconstrictors\n(e.g., 0.05% oxymetazoline) may be used; however,\nthey are also associated with cardiovascular side\neffects. The well-lubricated ETT is passed through",
-      "characterCount": 1854,
+      "rawText": "associated with cricoarytenoid joint immobility and\ncervical spine immobility/instability that may\ncomplicate intubation. Patients with prosthetic joints\ndo not require special antibiotic prophylaxis.\nLaboratory\nOther tests as indicated from H&P\nPremedication\nStandard premedication usually is appreciated,\nalthough, in patients with limited airway access,\nsedation may be inappropriate. If FOL is planned,\npretreatment with an antisialagogue (e.g.,\nglycopyrrolate 4 mcg/kg) is useful. Metoclopramide\n(e.g., 10–20 mg iv adult) will reduce the incidence of\nPONV 2° swallowed blood. Avoid long-lasting\nsedative medications.\nERAS\nCheck compliance with presurgical ERAS\nrecommendations (see above) including NPO status.\nConsider preop acetaminophen (adult: 1000 mg po;\npeds: 10–15 mg/kg iv or po as an elixir).\n\nINTRAOPERATIVE\n\nINTRAOPERATIVE\n\nAnesthetic technique\n\nGETA (although LMAs have been used successfully for many procedures). Typically a\nnasotracheal intubation is requested, using an ETT 0.5–1 mm smaller than for oral\nintubation. In patients with difficult airways, an awake nasal FOL is indicated. For\nconscious sedation, dexmedetomidine (e.g., 0.5 mcg/kg loading dose over 10 min + 0.5\nmcg/kg/h infusion) in combination with midazolam (e.g., 0.03 mg/kg) ± propofol (e.g.,\n25 mcg/kg/min) has the advantage of minimal respiratory depression.",
+      "characterCount": 1349,
       "parsedSections": [
         {
           "heading": "",
@@ -15121,8 +15160,14 @@
         },
         {
           "heading": "INTRAOPERATIVE",
-          "body": "\nAnesthetic technique\nGETA (although LMAs have been used successfully for many procedures). Typically a\nnasotracheal intubation is requested, using an ETT 0.5–1 mm smaller than for oral\nintubation. In patients with difficult airways, an awake nasal FOL is indicated. For\nconscious sedation, dexmedetomidine (e.g., 0.5 mcg/kg loading dose over 10 min + 0.5\nmcg/kg/h infusion) in combination with midazolam (e.g., 0.03 mg/kg) ± propofol (e.g.,\n25 mcg/kg/min) has the advantage of minimal respiratory depression.\nInduction\nIn patients with normal airways, a standard induction\nwith nasal intubation is appropriate. Following loss of\nconsciousness, topical intranasal cocaine may be\napplied (4% on pledgets, 4 mL maximum) to shrink\nthe nasal mucosa and for vasoconstriction. Side\neffects are rare but may include ↑ BP, ↑ or ↓ HR,\ndysrhythmias, and Sz. Other topical vasoconstrictors\n(e.g., 0.05% oxymetazoline) may be used; however,\nthey are also associated with cardiovascular side\neffects. The well-lubricated ETT is passed through",
+          "body": "",
           "startLine": 2,
+          "category": "heading"
+        },
+        {
+          "heading": "INTRAOPERATIVE",
+          "body": "\nAnesthetic technique\nGETA (although LMAs have been used successfully for many procedures). Typically a\nnasotracheal intubation is requested, using an ETT 0.5–1 mm smaller than for oral\nintubation. In patients with difficult airways, an awake nasal FOL is indicated. For\nconscious sedation, dexmedetomidine (e.g., 0.5 mcg/kg loading dose over 10 min + 0.5\nmcg/kg/h infusion) in combination with midazolam (e.g., 0.03 mg/kg) ± propofol (e.g.,\n25 mcg/kg/min) has the advantage of minimal respiratory depression.",
+          "startLine": 3,
           "category": "heading"
         }
       ],
@@ -17483,8 +17528,8 @@
       "sourceFile": "Jaffe_AMSP_6th_Edition_Chapter_4.pdf",
       "pageNumber": 11,
       "contentType": "text",
-      "rawText": "the nose into the trachea, either blindly or assisted\nby Magill forceps under direct laryngoscopy. The ETT\nis often sewn to the nasal septum. The successful\nuse of a flexible reinforced LMA in both adult and\npediatric dental patients has been reported. Claimed\nadvantages include no risk of epistaxis and no need\nfor a throat pack, laryngoscopy, or muscle relaxation.\nDisadvantages include interference with the\nprocedure, throat trauma (e.g., swelling of the\nepiglottis), and aspiration risk.\nERAS\nVerify preincision antibiotics. Maintain normovolemia\nand normothermia.\nMaintenance\nStandard maintenance\nEmergence\nNB: throat packs must be removed prior to\nextubation. An LMA is typically removed after the\npatient is awake and able to follow commands.\nBlood and fluid\n\nIV: 18 ga × 1\nNS/LR @ 4–6 mL/kg/h\nSee Zero Balance Fluid Management, Appendix K, p.\nK-2.\nMonitoring\nStandard monitors\nPositioning\n✓ pad pressure points\n✓ eyes\n\nrequirements\n\nPOSTOPERATIVE\n\nThese patients may swallow blood, with consequent PONV. Rx: metoclopramide 10–20\nmg iv ± ondansetron 4 mg iv.",
-      "characterCount": 1067,
+      "rawText": "the nose into the trachea, either blindly or assisted\nby Magill forceps under direct laryngoscopy. The ETT\nis often sewn to the nasal septum. The successful\nuse of a flexible reinforced LMA in both adult and\npediatric dental patients has been reported. Claimed\nadvantages include no risk of epistaxis and no need\nfor a throat pack, laryngoscopy, or muscle relaxation.\nDisadvantages include interference with the\nprocedure, throat trauma (e.g., swelling of the\nepiglottis), and aspiration risk.\nERAS\nVerify preincision antibiotics. Maintain normovolemia\nand normothermia.\nMaintenance\nStandard maintenance\nEmergence\nNB: throat packs must be removed prior to\nextubation. An LMA is typically removed after the\npatient is awake and able to follow commands.\nBlood and fluid\n\nIV: 18 ga × 1\nNS/LR @ 4–6 mL/kg/h\nSee Zero Balance Fluid Management, Appendix K, p.\nK-2.\nMonitoring\nStandard monitors\nPositioning\n✓ pad pressure points\n✓ eyes\n\nrequirements\n\nPOSTOPERATIVE\n\nPOSTOPERATIVE",
+      "characterCount": 971,
       "parsedSections": [
         {
           "heading": "",
@@ -17494,8 +17539,14 @@
         },
         {
           "heading": "POSTOPERATIVE",
-          "body": "\nThese patients may swallow blood, with consequent PONV. Rx: metoclopramide 10–20\nmg iv ± ondansetron 4 mg iv.",
+          "body": "",
           "startLine": 2,
+          "category": "heading"
+        },
+        {
+          "heading": "POSTOPERATIVE",
+          "body": "",
+          "startLine": 3,
           "category": "heading"
         }
       ],
@@ -22326,7 +22377,7 @@
             ""
           ]
         ],
-        "markdown_representation": "| ■ SUMMARY OF PROCEDURES |  |  |\n| --- | --- | --- |\n|  | Arthroscopy | Arthrotomy/Arthroplasty |\n| Position | Supine | ⇐ |\n| Incision | Preauricular | ⇐ |\n| Special\ninstrumentation | Arthroscope; laser | Power tools, endoscope,\nimplant plates |\n| Antibiotics | Cefazolin 2 g | ⇐ |\n|  |  |  |\n",
+        "markdown_representation": "| ■ SUMMARY OF PROCEDURES |  |  |\n| --- | --- | --- |\n|  | Arthroscopy | Arthrotomy/Arthroplasty |\n| Position | Supine | ⇐ |\n| Incision | Preauricular | ⇐ |\n| Special instrumentation | Arthroscope; laser | Power tools, endoscope, implant plates |\n| Antibiotics | Cefazolin 2 g | ⇐ |\n|  |  |  |\n",
         "headers": [
           "■ SUMMARY OF PROCEDURES",
           "",
@@ -22358,39 +22409,89 @@
       "pageNumber": 3,
       "image_path": "/Users/jsriverab/.gemini/antigravity/scratch/airway-sim/scratch/extracted_images/Jaffe_AMSP_6th_Edition_Chapter_4_pdf_FIG_4_1.png",
       "closest_text_heading": "",
-      "caption": "An anatomical illustration of the right side of the human head, highlighting the facial nerve and its temporal branch, superficial temporal artery and nerve, auriculotemporal nerve, temporomandibular joint, and retromandibular artery and vein.",
+      "caption": "Figure 4.1 Anatomy for TMJ procedure.",
       "archetype": "ANATOMICAL NETWORKS & MICROCIRCUIT MAPS",
       "details": {
         "nodes": {
-          "NODE_01": {
-            "name": "Temporal branch of facial n.",
+          "TEMPORAL": {
+            "name": "Temporal",
             "relational_variants": [],
-            "prevalence_percentage": null
+            "bbox": [
+              242,
+              105,
+              428,
+              150
+            ]
           },
-          "NODE_02": {
-            "name": "Superficial temporal a. and n.",
+          "BRANCH_OF": {
+            "name": "branch of",
             "relational_variants": [],
-            "prevalence_percentage": null
+            "bbox": [
+              249,
+              158,
+              439,
+              195
+            ]
           },
-          "NODE_03": {
-            "name": "Auriculotemporal n.",
-            "relational_variants": [],
-            "prevalence_percentage": null
-          },
-          "NODE_04": {
-            "name": "Temporomandibular joint",
-            "relational_variants": [],
-            "prevalence_percentage": null
-          },
-          "NODE_05": {
+          "FACIAL_N": {
             "name": "Facial n.",
             "relational_variants": [],
-            "prevalence_percentage": null
+            "bbox": [
+              1342,
+              932,
+              1507,
+              968
+            ]
           },
-          "NODE_06": {
+          "SUPERFICIAL": {
+            "name": "Superficial",
+            "relational_variants": [],
+            "bbox": [
+              1341,
+              335,
+              1551,
+              380
+            ]
+          },
+          "TEMPORAL_A_AND_N": {
+            "name": "temporal a. and n.",
+            "relational_variants": [],
+            "bbox": [
+              1340,
+              389,
+              1702,
+              432
+            ]
+          },
+          "AURICULOTEMPORAL_N": {
+            "name": "Auriculotemporal n.",
+            "relational_variants": [],
+            "bbox": [
+              1343,
+              481,
+              1732,
+              524
+            ]
+          },
+          "TEMPOROMANDIBULAR_JOINT": {
+            "name": "Temporomandibular joint",
+            "relational_variants": [],
+            "bbox": [
+              1337,
+              783,
+              1837,
+              828
+            ]
+          },
+          "RETROMANDIBULAR_A_AND_V": {
             "name": "Retromandibular a. and v.",
             "relational_variants": [],
-            "prevalence_percentage": null
+            "bbox": [
+              1345,
+              1018,
+              1852,
+              1054
+            ]
           }
         },
         "labels": [
@@ -22404,7 +22505,116 @@
           "Facial n.",
           "Retromandibular a. and v."
         ],
-        "source_target_vectors": []
+        "source_target_vectors": [
+          {
+            "source": "Temporal",
+            "target": "Superficial",
+            "status": "locally_verified",
+            "direction": "Detected"
+          },
+          {
+            "source": "Temporal",
+            "target": "temporal a.",
+            "status": "locally_verified",
+            "direction": "Detected"
+          },
+          {
+            "source": "Temporal",
+            "target": "and n.",
+            "status": "locally_verified",
+            "direction": "Detected"
+          },
+          {
+            "source": "Temporal",
+            "target": "Auriculotemporal n.",
+            "status": "locally_verified",
+            "direction": "Detected"
+          },
+          {
+            "source": "branch of",
+            "target": "Superficial",
+            "status": "locally_verified",
+            "direction": "Detected"
+          },
+          {
+            "source": "branch of",
+            "target": "temporal a.",
+            "status": "locally_verified",
+            "direction": "Detected"
+          },
+          {
+            "source": "branch of",
+            "target": "and n.",
+            "status": "locally_verified",
+            "direction": "Detected"
+          },
+          {
+            "source": "facial n.",
+            "target": "Superficial",
+            "status": "locally_verified",
+            "direction": "Detected"
+          },
+          {
+            "source": "Superficial",
+            "target": "Temporal",
+            "status": "locally_verified",
+            "direction": "Detected"
+          },
+          {
+            "source": "Superficial",
+            "target": "branch of",
+            "status": "locally_verified",
+            "direction": "Detected"
+          },
+          {
+            "source": "Superficial",
+            "target": "facial n.",
+            "status": "locally_verified",
+            "direction": "Detected"
+          },
+          {
+            "source": "temporal a.",
+            "target": "Temporal",
+            "status": "locally_verified",
+            "direction": "Detected"
+          },
+          {
+            "source": "temporal a.",
+            "target": "branch of",
+            "status": "locally_verified",
+            "direction": "Detected"
+          },
+          {
+            "source": "and n.",
+            "target": "Temporal",
+            "status": "locally_verified",
+            "direction": "Detected"
+          },
+          {
+            "source": "and n.",
+            "target": "branch of",
+            "status": "locally_verified",
+            "direction": "Detected"
+          },
+          {
+            "source": "Auriculotemporal n.",
+            "target": "Temporal",
+            "status": "locally_verified",
+            "direction": "Detected"
+          },
+          {
+            "source": "Ria",
+            "target": "Say",
+            "status": "locally_verified",
+            "direction": "Detected"
+          },
+          {
+            "source": "Say",
+            "target": "Ria",
+            "status": "locally_verified",
+            "direction": "Detected"
+          }
+        ]
       },
       "text_bounding_boxes": [
         {
@@ -22500,6 +22710,265 @@
       ]
     },
     {
+      "id": "FIG_4_1",
+      "sourceFile": "Jaffe_AMSP_6th_Edition_Chapter_4.pdf",
+      "pageNumber": 3,
+      "image_path": "/Users/jsriverab/.gemini/antigravity/scratch/airway-sim/scratch/extracted_images/Jaffe_AMSP_6th_Edition_Chapter_4_pdf_FIG_4_1.png",
+      "closest_text_heading": "",
+      "caption": "Figure 4.1 Anatomy for TMJ procedure.",
+      "archetype": "COORDINATE X-Y GRAPHS & COMPLEMENTARY PANELS",
+      "details": {
+        "matrix_rows": [
+          [
+            "Internal derangement; subluxation; and ankylosis of TMJ"
+          ],
+          [
+            "ERAS: Preop counseling by the surgeon/anesthesiologist should include limiting"
+          ],
+          [
+            "NPO duration, carb loading, and postop pain management options. See Appendix"
+          ],
+          [
+            "K: Enhanced Recovery After Surgery, p. K-1."
+          ],
+          [
+            "■ SUMMARY OF PROCEDURES"
+          ],
+          [
+            "Arthroscopy",
+            "Arthrotomy/Arthroplasty"
+          ],
+          [
+            "Position",
+            "Supine"
+          ],
+          [
+            "Incision",
+            "Preauricular"
+          ],
+          [
+            "Special",
+            "Arthroscope; laser",
+            "Power tools, endoscope,"
+          ],
+          [
+            "instrumentation",
+            "implant plates"
+          ],
+          [
+            "Antibiotics",
+            "Cefazolin 2 g"
+          ]
+        ],
+        "markdown_representation": "| Internal derangement; subluxation; and ankylosis of TMJ |\n| --- |\n| ERAS: Preop counseling by the surgeon/anesthesiologist should include limiting |\n| NPO duration, carb loading, and postop pain management options. See Appendix |\n| K: Enhanced Recovery After Surgery, p. K-1. |\n| ■ SUMMARY OF PROCEDURES |\n| Arthroscopy |\n| Position |\n| Incision |\n| Special |\n| instrumentation |\n| Antibiotics |\n",
+        "headers": [
+          "Internal derangement; subluxation; and ankylosis of TMJ"
+        ],
+        "labels": [
+          "Internal derangement; subluxation; and ankylosis of TMJ",
+          "ERAS: Preop counseling by the surgeon/anesthesiologist should include limiting",
+          "NPO duration, carb loading, and postop pain management options. See Appendix",
+          "K: Enhanced Recovery After Surgery, p. K-1.",
+          "■ SUMMARY OF PROCEDURES",
+          "Arthroscopy",
+          "Arthrotomy/Arthroplasty",
+          "Position",
+          "Supine",
+          "Incision",
+          "Preauricular",
+          "Special",
+          "Arthroscope; laser",
+          "Power tools, endoscope,",
+          "instrumentation",
+          "implant plates",
+          "Antibiotics",
+          "Cefazolin 2 g"
+        ]
+      },
+      "text_bounding_boxes": [
+        {
+          "text": "Internal derangement; subluxation; and ankylosis of TMJ",
+          "bbox": [
+            0,
+            19.60423787434896,
+            1386.812464396159,
+            88.79165649414062
+          ],
+          "confidence": 100
+        },
+        {
+          "text": "ERAS: Preop counseling by the surgeon/anesthesiologist should include limiting",
+          "bbox": [
+            0,
+            159.3541463216146,
+            2178.125,
+            229.41665649414065
+          ],
+          "confidence": 100
+        },
+        {
+          "text": "NPO duration, carb loading, and postop pain management options. See Appendix",
+          "bbox": [
+            1.0744730631510417,
+            235.22923787434897,
+            2175,
+            304.4166564941406
+          ],
+          "confidence": 100
+        },
+        {
+          "text": "K: Enhanced Recovery After Surgery, p. K-1.",
+          "bbox": [
+            0,
+            310.229237874349,
+            1196.875,
+            379.4166564941406
+          ],
+          "confidence": 100
+        },
+        {
+          "text": "■ SUMMARY OF PROCEDURES",
+          "bbox": [
+            15.625000000000002,
+            465.6041463216146,
+            944.8125203450521,
+            544.7916666666667
+          ],
+          "confidence": 100
+        },
+        {
+          "text": "Arthroscopy",
+          "bbox": [
+            668.75,
+            581.2291463216146,
+            1034.749984741211,
+            651.0416666666667
+          ],
+          "confidence": 100
+        },
+        {
+          "text": "Arthrotomy/Arthroplasty",
+          "bbox": [
+            1321.875,
+            581.2291463216146,
+            2041.0001118977866,
+            651.0416666666667
+          ],
+          "confidence": 100
+        },
+        {
+          "text": "Position",
+          "bbox": [
+            15.625000000000002,
+            687.4791463216146,
+            256.93750381469727,
+            757.2916666666667
+          ],
+          "confidence": 100
+        },
+        {
+          "text": "Supine",
+          "bbox": [
+            668.75,
+            687.4791463216146,
+            853.499984741211,
+            757.2916666666667
+          ],
+          "confidence": 100
+        },
+        {
+          "text": "Incision",
+          "bbox": [
+            15.625000000000002,
+            793.7291463216146,
+            244.4375038146973,
+            863.5416666666667
+          ],
+          "confidence": 100
+        },
+        {
+          "text": "Preauricular",
+          "bbox": [
+            668.75,
+            793.7291463216146,
+            995.812479654948,
+            863.5416666666667
+          ],
+          "confidence": 100
+        },
+        {
+          "text": "Special",
+          "bbox": [
+            15.625000000000002,
+            899.9791463216146,
+            229.8749923706055,
+            969.7916666666667
+          ],
+          "confidence": 100
+        },
+        {
+          "text": "Arthroscope; laser",
+          "bbox": [
+            668.75,
+            899.9791463216146,
+            1173.937479654948,
+            969.7916666666667
+          ],
+          "confidence": 100
+        },
+        {
+          "text": "Power tools, endoscope,",
+          "bbox": [
+            1321.875,
+            899.9791463216146,
+            2004.8749287923179,
+            969.7916666666667
+          ],
+          "confidence": 100
+        },
+        {
+          "text": "instrumentation",
+          "bbox": [
+            78.125,
+            974.9791463216146,
+            544.4374720255535,
+            1044.7916666666667
+          ],
+          "confidence": 100
+        },
+        {
+          "text": "implant plates",
+          "bbox": [
+            1321.875,
+            974.9791463216146,
+            1700.0000000000002,
+            1044.7916666666667
+          ],
+          "confidence": 100
+        },
+        {
+          "text": "Antibiotics",
+          "bbox": [
+            15.625000000000002,
+            1081.2291463216147,
+            328.50001653035486,
+            1151.0416666666667
+          ],
+          "confidence": 100
+        },
+        {
+          "text": "Cefazolin 2 g",
+          "bbox": [
+            668.75,
+            1081.2291463216147,
+            1025.374984741211,
+            1151.0416666666667
+          ],
+          "confidence": 100
+        }
+      ]
+    },
+    {
       "id": "TBL_PAGE_004_0",
       "sourceFile": "Jaffe_AMSP_6th_Edition_Chapter_4.pdf",
       "pageNumber": 4,
@@ -22540,7 +23009,7 @@
             "5"
           ]
         ],
-        "markdown_representation": "| Surgical time | 0.5 h | 1.5–3.5 h/side |\n| --- | --- | --- |\n| EBL | Minimal | Minimal-moderate |\n| Postop care | Outpatient procedure | 24-h stay |\n| Mortality | Minimal | ⇐ |\n| Morbidity | VII nerve damage\nV nerve damage\nHemorrhage\nPartial hearing loss\nEar fullness\nVertigo | ⇐\n⇐\n⇐ |\n| Pain score | 5 | 5 |\n",
+        "markdown_representation": "| Surgical time | 0.5 h | 1.5–3.5 h/side |\n| --- | --- | --- |\n| EBL | Minimal | Minimal-moderate |\n| Postop care | Outpatient procedure | 24-h stay |\n| Mortality | Minimal | ⇐ |\n| Morbidity | VII nerve damage V nerve damage Hemorrhage Partial hearing loss Ear fullness Vertigo | ⇐ ⇐ ⇐ |\n| Pain score | 5 | 5 |\n",
         "headers": [
           "Surgical time",
           "0.5 h",
@@ -22604,7 +23073,7 @@
             "Psychiatric problems (typically depression); trismus;\npain on opening the mouth; stress"
           ]
         ],
-        "markdown_representation": "| ■ PATIENT POPULATION CHARACTERISTICS |  |\n| --- | --- |\n| Age range | 20–40 yr |\n| Male:Female | 1:9 |\n| Incidence | 20% of adult population suffers from TMJ dysfunction\n(TMJD) |\n| Etiology | TMJD possibly 2° muscle spasm, bruxism, and\nosteoarthritis; idiopathic; trauma |\n| Associated\nconditions | Psychiatric problems (typically depression); trismus;\npain on opening the mouth; stress |\n",
+        "markdown_representation": "| ■ PATIENT POPULATION CHARACTERISTICS |  |\n| --- | --- |\n| Age range | 20–40 yr |\n| Male:Female | 1:9 |\n| Incidence | 20% of adult population suffers from TMJ dysfunction (TMJD) |\n| Etiology | TMJD possibly 2° muscle spasm, bruxism, and osteoarthritis; idiopathic; trauma |\n| Associated conditions | Psychiatric problems (typically depression); trismus; pain on opening the mouth; stress |\n",
         "headers": [
           "■ PATIENT POPULATION CHARACTERISTICS",
           ""
@@ -22660,7 +23129,7 @@
             ""
           ]
         ],
-        "markdown_representation": "| ■ SUMMARY OF PROCEDURES |  |\n| --- | --- |\n| Position | Supine |\n| Incision | Intraoral |\n| Special\ninstrumentation | Dental armamentarium |\n| Unique\nconsiderations | Nasal intubation; throat pack |\n|  |  |\n",
+        "markdown_representation": "| ■ SUMMARY OF PROCEDURES |  |\n| --- | --- |\n| Position | Supine |\n| Incision | Intraoral |\n| Special instrumentation | Dental armamentarium |\n| Unique considerations | Nasal intubation; throat pack |\n|  |  |\n",
         "headers": [
           "■ SUMMARY OF PROCEDURES",
           ""
@@ -22718,7 +23187,7 @@
             "1–3"
           ]
         ],
-        "markdown_representation": "| Antibiotics | Penicillin × 5 d po |\n| --- | --- |\n| Surgical time | 0.5–3 h |\n| EBL | Minimal |\n| Postop care | PACU → home |\n| Mortality | Minimal |\n| Morbidity | Pain\nAspiration of dental debris\nSwelling |\n| Pain score | 1–3 |\n",
+        "markdown_representation": "| Antibiotics | Penicillin × 5 d po |\n| --- | --- |\n| Surgical time | 0.5–3 h |\n| EBL | Minimal |\n| Postop care | PACU → home |\n| Mortality | Minimal |\n| Morbidity | Pain Aspiration of dental debris Swelling |\n| Pain score | 1–3 |\n",
         "headers": [
           "Antibiotics",
           "Penicillin × 5 d po"
@@ -22777,7 +23246,7 @@
             "Mental retardation (majority), Down syndrome,\nseizures"
           ]
         ],
-        "markdown_representation": "| ■ PATIENT POPULATION CHARACTERISTICS |  |\n| --- | --- |\n| Age range | 2 yr to adult |\n| Male:Female | 1:1 |\n| Incidence | Unknown |\n| Etiology | Idiopathic or congenital anomalies |\n| Associated\nconditions | Mental retardation (majority), Down syndrome,\nseizures |\n",
+        "markdown_representation": "| ■ PATIENT POPULATION CHARACTERISTICS |  |\n| --- | --- |\n| Age range | 2 yr to adult |\n| Male:Female | 1:1 |\n| Incidence | Unknown |\n| Etiology | Idiopathic or congenital anomalies |\n| Associated conditions | Mental retardation (majority), Down syndrome, seizures |\n",
         "headers": [
           "■ PATIENT POPULATION CHARACTERISTICS",
           ""
@@ -22817,7 +23286,7 @@
             "Oral analgesics Use nonopioid analgesics.\nBackup with po opioid"
           ]
         ],
-        "markdown_representation": "| Complications | Airway obstruction 2° Always check for retained\nretained throat pack throat pack in patients\nPONV exhibiting symptoms of\nairway obstruction.\nRx: ondansetron 4 mg iv |\n| --- | --- |\n| Multimodal pain\nmanagement | Oral analgesics Use nonopioid analgesics.\nBackup with po opioid |\n",
+        "markdown_representation": "| Complications | Airway obstruction 2° Always check for retained retained throat pack throat pack in patients PONV exhibiting symptoms of airway obstruction. Rx: ondansetron 4 mg iv |\n| --- | --- |\n| Multimodal pain management | Oral analgesics Use nonopioid analgesics. Backup with po opioid |\n",
         "headers": [
           "Complications",
           "Airway obstruction 2° Always check for retained\nretained throat pack throat pack in patients\nPONV exhibiting symptoms of\nairway obstruction.\nRx: ondansetron 4 mg iv"
@@ -22850,7 +23319,7 @@
             "PONV protocol (see Encourage early enteral\nAppendix B, p. B-1) nutrition and mobilization."
           ]
         ],
-        "markdown_representation": "|  | analgesics |\n| --- | --- |\n| ERAS | PONV protocol (see Encourage early enteral\nAppendix B, p. B-1) nutrition and mobilization. |\n",
+        "markdown_representation": "|  | analgesics |\n| --- | --- |\n| ERAS | PONV protocol (see Encourage early enteral Appendix B, p. B-1) nutrition and mobilization. |\n",
         "headers": [
           "",
           "analgesics"
@@ -22864,5 +23333,5 @@
       "text_bounding_boxes": []
     }
   ],
-  "full_extracted_text": "SECTION 4.0\n\nDENTAL SURGERY\n\nSURGEON\nStephen A. Schendel, MD, DDS, FACS\n\nANESTHESIOLOGIST\nRichard A. Jaffe, MD, PhD\n\n--- PAGE BREAK ---\n\nTEMPOROMANDIBULAR JOINT\nARTHROSCOPY/ARTHROTOMY/ARTHROPLASTY\n\nSURGICAL CONSIDERATIONS\n\nDescription\n\nTemporomandibular joint (TMJ) surgical procedures include both open and closed\nsurgical techniques.\n\nTMJ arthrotomy involves a preauricular, postauricular, or endaural incision to gain\naccess to the joint compartment. It usually is performed for severe fibrous adhesion\nremoval in the TMJ, bony or fibrous ankylosis, tumor resection, chronic dislocation,\npainful nonreducing disc dislocation, and severe osteoarthritis. Open TMJ surgery may\nrange from discoplasty, discectomy, arthroplasty, and/or eminoplasty (reshaping of\narticular eminentia) to optimize the fit of the disc, condyle, and fossa to total joint\nreplacement utilizing costochondral grafts or total joint metal implants. For the open\ntreatment \nof \ncondylar \nfractures, \nextraoral \napproaches \n(e.g., \npreauricular,\nretromandibular, and submandibular) are used. All extraoral approaches to the TMJ\nhave the risks of facial nerve damage and the creation of visible scars. Due to those\npossible complications, endoscopically assisted transoral approaches for open\nreduction and miniplate fixation of condylar mandible fractures are being used more\noften. In any of these procedures, facial nerve monitoring is indicated.\n\nTMJ arthroscopy is a minimally invasive technique that has reduced the need for open\nsurgery of the TMJ. Arthroscopic TMJ surgery is indicated for treatment of interna\nderangements and intracapsular disorders. The major advantage is that it results in less\nperiarticular tissue disruption and better preservation of vascular supply and lymphatic\ndrainage of the joint. The procedure involves insertion of a TMJ miniscope through a\npreauricular puncture on the canthus-tragus line and insertion of an outflow needle. The\njoint compartment is continually lavaged with LR. A second cannula may be inserted.\nArthroscopic TMJ procedures include lysis of adhesions and lavage, partial\nsynovectomy, and abrasion arthroplasty. Sometimes a holmium:YAG laser is used to\nmake intra-articular incisions anterior to displaced discs and to treat inflamed synovial\ntissue. Usually, at the end of the procedure, 2-mg dexamethasone is injected into the\njoint space. Injection of 2 mL 0.5% bupivacaine mixed with 1 mL sterile saline solution\nhas been shown to significantly reduce postop pain. Arrhythmia, reflex bradycardia, and\npulmonary edema have been reported as general complications in TMJ arthroscopy.\n\n--- PAGE BREAK ---\n\nFigure 4.1 Anatomy for TMJ procedure.\n\nUsual preop diagnosis\n\nInternal derangement; subluxation; and ankylosis of TMJ\n\nERAS: Preop counseling by the surgeon/anesthesiologist should include limiting\nNPO duration, carb loading, and postop pain management options. See Appendix\nK: Enhanced Recovery After Surgery, p. K-1.\n\n--- PAGE BREAK ---\n\nANESTHETIC CONSIDERATIONS\n\nSee Anesthetic Considerations for Dental/Oral Surgery.\n\nSuggested Readings\n\n1. Al-Ani Z, Gray R: TMD current concepts: 1. An update. Dent Update 2007;\n\n34(5):278–80, 282–4, 287–8.\n2. Furst IM, Kryshtalskyj B, Weinberg S: The use of intra-articular opioids and\n\nbupivacaine for analgesia following temporomandibular joint arthroscopy: a\nprospective, randomized trial. J Oral Maxillofac Surg 2001; 59(9):979–83.\n3. Hoffman D, Puig L: Complications of TMJ surgery. Oral Maxillofac Surg Clin North\n\nAm 2015; 27(1):109–24.\n4. Indresano AT: Surgical arthroscopy as the preferred treatment for internal\n\n--- PAGE BREAK ---\n\nderangements of the temporomandibular joint. J Oral Maxillofac Surg 2001;\n59(3):308–12.\n5. Laskin DM: Temporomandibular disorders: the past, present and future. Odontology\n\n2007; 95(1):10–5.\n6. Lieblich S: Providing anesthesia in the Oral and Maxillofacial Surgery Office: a look\n\nback, where we are now and a look ahead. J Oral Maxillofac Surg 2018; 76(5):917–\n25.\n7. Rajapakse S, Ahmed N, Sidebottom AJ: Current thinking about the management o\n\ndysfunction of the temporomandibular joint: a review. Br J Oral Maxillofac Surg\n2017; 55(4):351–6.\n8. Rigon M, Pereira LM, Bortoluzzi MC, et al: Arthroscopy for temporomandibula\n\ndisorders. Cochrane Database Syst Rev 2011; (5):CD006385.\n9. Tsuyama M, Kondoh T, Seto K, et al: Complications of temporomandibular joint\n\narthroscopy: a retrospective analysis of 301 lysis and lavage procedures performed\nusing the triangulation technique. J Oral Maxillofac Surg 2000; 58(5):500–5.\n\nORAL SURGERY\n\nSURGICAL CONSIDERATIONS\n\nDescription\n\nThe most common surgeries of the oral cavity are third-molar removal, surgical\nextractions, apicoectomies, orthodontic exposures of teeth, osseointegrated implants,\nbone grafting, treatment of oral pathologic conditions, and preprosthetic surgery.\nSurgical extractions of teeth involve intraoral exposure of the roots through a mucosal\nincision and removal of the overlying bone with a surgical drill. Risks associated with\nremoval of teeth in the mandible are damage to the inferior alveolar nerve (anesthetic\nnumb lip), lingual nerve (anesthetic numb tongue), and, rarely, mandibular fracture. In\nthe posterior maxilla, oroantral fistulas can occur and are closed with a mucoperiosteal\nflap. Exposure of teeth for orthodontic therapy involves creation of a mucoperiosteal\nflap and attachment of a bracket with a small gold chain on which the orthodontist can\npull to integrate the tooth into the dental arch. Grafting to the maxilla and mandible is\ndone for augmentation of the atrophied alveolar ridge and the maxillary sinus and in\ncases of cleft lip and palate, and can consist of bone and/or other materials to induce\nbone formation. A second team usually harvests the bone at the same time. Possible\nextraoral harvesting sites include the anterior or posterior iliac crest, the tibia, and the\nskull. Preprosthetic surgery of the oral soft tissue in preparation for dentures has been\nreplaced largely by insertion of osseointegrated implants for retention of individual\n\n--- PAGE BREAK ---\n\nteeth and dentures. Surgical treatment of oral pathology can range from removal of\ndentigerous cysts, with and without bone graft, to laser or surgical removal of mucosal\nlesions.\n\nERAS: Preop counseling by the surgeon/anesthesiologist should include limiting\nNPO duration, carb loading, and postop pain management options. See Appendix K,\np. K-1.\n\nANESTHETIC CONSIDERATIONS\n\nSee Anesthetic Considerations for Dental/Oral Surgery.\n\n--- PAGE BREAK ---\n\nSuggested Readings\n\n1. Bataineh AB: Sensory nerve impairment following mandibular third molar surgery. J\n\nOral Maxillofac Surg 2001; 59(9):1012–7.\n2. Zou L, He D, Ellis E: A comparison of clinical follow-up of different total\n\ntemporomandibular joint replacement prostheses: a systematic review and meta-\nanalysis. J Oral Maxillofac Surg 2018; 76(2):294–303.\n\nSuggested Viewing\nLinks are available online to the following video:\nTMJ \nAnatomy \n“The \nYoint” \nVideo: \nhttps://www.youtube.com/watch?\nv=nH8KG3fIoBM\n\nRESTORATIVE DENTISTRY\n\nSURGICAL CONSIDERATIONS\n\nDescription\n\nMultiple dental restorative procedures are performed under GA when there are rampant\ncaries, and an extensive amount of dental work must be performed at one time. The\nsecond most common indication for GA is for procedures that need to be performed on\nmentally retarded patients who are not candidates for a local anesthetic. The actual\namount of restorative dentistry is quite variable, depending on the individual case; thus,\nsurgical time can be quite variable. Generally, blood loss is not a problem.\n\nERAS: Preop counseling by the surgeon/anesthesiologist should include limiting\nNPO duration, carb loading, and postop pain management options. See Appendix K,\np. K-1.\n\n--- PAGE BREAK ---\n\nANESTHETIC CONSIDERATIONS FOR DENTAL/ORAL\n\nSURGERY\n\nPREOPERATIVE\n\nMost patients presenting for dental or oral surgery usually will require only local\nanesthesia provided by the dentist/oral surgeon. Deep sedation or GA may be required,\nhowever, for several unique patient groups: (a) young children (some with systemic\ndiseases such as CHD and hemophilia), (b) the mentally disabled, (c) those with poorly\ncontrolled seizure disorders, (d) those presenting for TMJ procedures, and (e) those\nwith an oral septic focus, who may be quite ill. If the patient does not fall into one of\nthese readily identifiable categories, the reasons for GA should be ascertained. An\nLMA with a flexible wire-reinforced airway tube (LMA Flexible) has been used\nsuccessfully for a variety of oral surgical procedures. The use of an LMA should be\ndiscussed with the surgeon in advance because its presence may interfere with the\nplanned procedure.\n\n--- PAGE BREAK ---\n\nAirway\nPatients presenting for TMJ procedures may have\nproblems with mouth opening (2° pain, trismus, and\narthritis), making airway examination difficult. Mouth\nopening may not improve with GA and muscle\nrelaxation. Nasotracheal intubation using FOL (done\nawake in patients with difficult airways) should be\nplanned. Examine nares for patency; check for loose\nteeth.\nRespiratory\nSurgery should be postponed (at least 2 wk) in\npatients presenting with Sx of acute RTI (fever,\ncoughing, purulent sputum, etc.). Sx of chronic\nrespiratory disease should be sought and treated\nbefore surgery. LMA use has been reported to\ndecrease respiratory complications in children with\nupper RTIs.\nTests: As indicated from H&P\nCardiovascular\nPatients with dysrhythmias may be sensitive to the\nepinephrine used in local anesthetic solutions\nadministered intraop. As with other types of elective\nsurgery, preexisting cardiovascular problems should\nbe treated before surgery. Prophylactic antibiotics for\nendocarditis are not required in most patients;\nexceptions include patients with prosthetic valves,\ncongenital heart disease, h/o infective endocarditis,\nor heart transplant. Endocarditis prophylaxis:\namoxicillin 2 g po or cefazolin 2 g iv 30–60 min\nbefore procedure.\nTests: As indicated from H&P\nNeurologic\nPatients with seizure disorders should be on optimal\nmedical therapy before surgery. Discuss precipitating\nfactors and prodromal Sx with the patient.\nTests: ✓ therapeutic levels of anticonvulsant (e.g.,\nlevetiracetam = 12–46 mcg/mL; phenytoin = 10–20\nmcg/mL,; carbamazepine = 3–12 mcg/mL;\nphenobarbital = 10–40 mcg/mL)\n\nMusculoskeletal\nIn addition to TMJ problems, rheumatoid arthritis is\n\n--- PAGE BREAK ---\n\nassociated with cricoarytenoid joint immobility and\ncervical spine immobility/instability that may\ncomplicate intubation. Patients with prosthetic joints\ndo not require special antibiotic prophylaxis.\nLaboratory\nOther tests as indicated from H&P\nPremedication\nStandard premedication usually is appreciated,\nalthough, in patients with limited airway access,\nsedation may be inappropriate. If FOL is planned,\npretreatment with an antisialagogue (e.g.,\nglycopyrrolate 4 mcg/kg) is useful. Metoclopramide\n(e.g., 10–20 mg iv adult) will reduce the incidence of\nPONV 2° swallowed blood. Avoid long-lasting\nsedative medications.\nERAS\nCheck compliance with presurgical ERAS\nrecommendations (see above) including NPO status.\nConsider preop acetaminophen (adult: 1000 mg po;\npeds: 10–15 mg/kg iv or po as an elixir).\n\nINTRAOPERATIVE\n\nAnesthetic technique\n\nGETA (although LMAs have been used successfully for many procedures). Typically a\nnasotracheal intubation is requested, using an ETT 0.5–1 mm smaller than for oral\nintubation. In patients with difficult airways, an awake nasal FOL is indicated. For\nconscious sedation, dexmedetomidine (e.g., 0.5 mcg/kg loading dose over 10 min + 0.5\nmcg/kg/h infusion) in combination with midazolam (e.g., 0.03 mg/kg) ± propofol (e.g.,\n25 mcg/kg/min) has the advantage of minimal respiratory depression.\n\nInduction\nIn patients with normal airways, a standard induction\nwith nasal intubation is appropriate. Following loss of\nconsciousness, topical intranasal cocaine may be\napplied (4% on pledgets, 4 mL maximum) to shrink\nthe nasal mucosa and for vasoconstriction. Side\neffects are rare but may include ↑ BP, ↑ or ↓ HR,\ndysrhythmias, and Sz. Other topical vasoconstrictors\n(e.g., 0.05% oxymetazoline) may be used; however,\nthey are also associated with cardiovascular side\neffects. The well-lubricated ETT is passed through\n\n--- PAGE BREAK ---\n\nthe nose into the trachea, either blindly or assisted\nby Magill forceps under direct laryngoscopy. The ETT\nis often sewn to the nasal septum. The successful\nuse of a flexible reinforced LMA in both adult and\npediatric dental patients has been reported. Claimed\nadvantages include no risk of epistaxis and no need\nfor a throat pack, laryngoscopy, or muscle relaxation.\nDisadvantages include interference with the\nprocedure, throat trauma (e.g., swelling of the\nepiglottis), and aspiration risk.\nERAS\nVerify preincision antibiotics. Maintain normovolemia\nand normothermia.\nMaintenance\nStandard maintenance\nEmergence\nNB: throat packs must be removed prior to\nextubation. An LMA is typically removed after the\npatient is awake and able to follow commands.\nBlood and fluid\n\nIV: 18 ga × 1\nNS/LR @ 4–6 mL/kg/h\nSee Zero Balance Fluid Management, Appendix K, p.\nK-2.\nMonitoring\nStandard monitors\nPositioning\n✓ pad pressure points\n✓ eyes\n\nrequirements\n\nPOSTOPERATIVE\n\nThese patients may swallow blood, with consequent PONV. Rx: metoclopramide 10–20\nmg iv ± ondansetron 4 mg iv.\n\n--- PAGE BREAK ---\n\nSuggested Readings for Dental/Oral Surgery\n\n1. Al-Jandan BA, Syed FA, Zeidan A, et al: Pharyngeal pack placement in minor ora\n\nsurgery: a prospective, randomized, controlled study. Ear Nose Throat J 2018;\n97(3):E18–21.\n2. Atan S, Ashley P, Gilthrope MS, et al: Morbidity following dental treatment of\n\nchildren under intubation general anaesthesia in a day-stay unit. Int J Paediatr Dent\n2004; 14(1):9–16.\n3. Cummings DR, Yamashita DD, McAndrews JP: Complications of local anesthesia\n\nused in oral and maxillofacial surgery. Oral Maxillofac Surg Clin North Am 2011;\n23(3):369–77.\n4. Hanzawa A, Handa T, Kohkita Y, et al: A comparative study of oral analgesics for\n\npostoperative pain after minor oral surgery. Anesth Prog 2018; 65(1):24–9.\n5. Lin S, McKenna SJ, Yao CF, et al: Effects of hypotensive anesthesia on reducing\n\nintraoperative blood loss, duration of operation, and quality of surgical field during\northognathic surgery: a systematic review and meta-analysis of randomized\ncontrolled trials. J Oral Maxillofac Surg 2017; 75(1):73–86.\n6. Mayhew JF: Airway management for oral and maxillofacial surgery. Int Anesthesiol\n\nClin 2003; 41(3):57–65.\n7. Njuguna B, Delahaye F: Infective endocarditis prophylaxis: a review. Expert Rev\n\nCardiovasc Ther 2017; 15(2):127–36.\n8. Ogle OE, Mahjoubi G: Local anesthesia: agents, techniques, and complications. Dent\n\nClin North Am 2012; 56(1):133–48.\n9. Smith MH, Lung KE: Nerve injuries after dental injection: a review of the literature\n\nJ Can Dent Assoc 2006; 72(6):559–64.\n0. Todd DW: Anesthetic considerations for the obese and morbidly obese oral and\n\nmaxillofacial surgery patient. J Oral Maxillofac Surg 2005; 63(9):1348–53.\n1. Wakita R, Kohase H, Fukayama H: A comparison of dexmedetomidine sedation with\n\nand without midazolam for dental implant surgery. Anesth Prog 2012; 59(2):62–8.\n2. Yasny JS: Perioperative dental considerations for the anesthesiologist. Anesth Analg\n\n2009; 108(5):1564–73.\n3. Yu SH, Beirne OR: Laryngeal mask airways have a lower risk of airway\n\ncomplications compared with endotracheal intubation: a systematic review. J Oral\nMaxillofac Surg 2010; 68(10):2359–76."
+  "full_extracted_text": "SECTION 4.0\n\nDENTAL SURGERY\n\nSURGEON\nStephen A. Schendel, MD, DDS, FACS\n\nANESTHESIOLOGIST\nRichard A. Jaffe, MD, PhD\n\n--- PAGE BREAK ---\n\nTEMPOROMANDIBULAR JOINT\nARTHROSCOPY/ARTHROTOMY/ARTHROPLASTY\n\nSURGICAL CONSIDERATIONS\n\nSURGICAL CONSIDERATIONS\n\nDescription\n\nTemporomandibular joint (TMJ) surgical procedures include both open and closed\nsurgical techniques.\n\nTMJ arthrotomy involves a preauricular, postauricular, or endaural incision to gain\naccess to the joint compartment. It usually is performed for severe fibrous adhesion\nremoval in the TMJ, bony or fibrous ankylosis, tumor resection, chronic dislocation,\npainful nonreducing disc dislocation, and severe osteoarthritis. Open TMJ surgery may\nrange from discoplasty, discectomy, arthroplasty, and/or eminoplasty (reshaping of\narticular eminentia) to optimize the fit of the disc, condyle, and fossa to total joint\nreplacement utilizing costochondral grafts or total joint metal implants. For the open\ntreatment \nof \ncondylar \nfractures, \nextraoral \napproaches \n(e.g., \npreauricular,\nretromandibular, and submandibular) are used. All extraoral approaches to the TMJ\nhave the risks of facial nerve damage and the creation of visible scars. Due to those\npossible complications, endoscopically assisted transoral approaches for open\nreduction and miniplate fixation of condylar mandible fractures are being used more\noften. In any of these procedures, facial nerve monitoring is indicated.\n\n--- PAGE BREAK ---\n\nFigure 4.1 Anatomy for TMJ procedure.\n\nFigure 4.1 Anatomy for TMJ procedure.\n\nUsual preop diagnosis\n\nInternal derangement; subluxation; and ankylosis of TMJ\n\n--- PAGE BREAK ---\n\nANESTHETIC CONSIDERATIONS\n\nANESTHETIC CONSIDERATIONS\n\nSee Anesthetic Considerations for Dental/Oral Surgery.\n\nSuggested Readings\n\n1. Al-Ani Z, Gray R: TMD current concepts: 1. An update. Dent Update 2007;\n\n34(5):278–80, 282–4, 287–8.\n2. Furst IM, Kryshtalskyj B, Weinberg S: The use of intra-articular opioids and\n\nbupivacaine for analgesia following temporomandibular joint arthroscopy: a\nprospective, randomized trial. J Oral Maxillofac Surg 2001; 59(9):979–83.\n3. Hoffman D, Puig L: Complications of TMJ surgery. Oral Maxillofac Surg Clin North\n\n--- PAGE BREAK ---\n\nderangements of the temporomandibular joint. J Oral Maxillofac Surg 2001;\n59(3):308–12.\n5. Laskin DM: Temporomandibular disorders: the past, present and future. Odontology\n\n2007; 95(1):10–5.\n6. Lieblich S: Providing anesthesia in the Oral and Maxillofacial Surgery Office: a look\n\nback, where we are now and a look ahead. J Oral Maxillofac Surg 2018; 76(5):917–\n25.\n7. Rajapakse S, Ahmed N, Sidebottom AJ: Current thinking about the management o\n\ndysfunction of the temporomandibular joint: a review. Br J Oral Maxillofac Surg\n2017; 55(4):351–6.\n8. Rigon M, Pereira LM, Bortoluzzi MC, et al: Arthroscopy for temporomandibula\n\ndisorders. Cochrane Database Syst Rev 2011; (5):CD006385.\n9. Tsuyama M, Kondoh T, Seto K, et al: Complications of temporomandibular joint\n\narthroscopy: a retrospective analysis of 301 lysis and lavage procedures performed\nusing the triangulation technique. J Oral Maxillofac Surg 2000; 58(5):500–5.\n\nORAL SURGERY\n\nSURGICAL CONSIDERATIONS\n\nSURGICAL CONSIDERATIONS\n\nDescription\n\n--- PAGE BREAK ---\n\nteeth and dentures. Surgical treatment of oral pathology can range from removal of\ndentigerous cysts, with and without bone graft, to laser or surgical removal of mucosal\nlesions.\n\nERAS: Preop counseling by the surgeon/anesthesiologist should include limiting\nNPO duration, carb loading, and postop pain management options. See Appendix K,\np. K-1.\n\nANESTHETIC CONSIDERATIONS\n\nSee Anesthetic Considerations for Dental/Oral Surgery.\n\n--- PAGE BREAK ---\n\nSuggested Readings\n\n1. Bataineh AB: Sensory nerve impairment following mandibular third molar surgery. J\n\nOral Maxillofac Surg 2001; 59(9):1012–7.\n2. Zou L, He D, Ellis E: A comparison of clinical follow-up of different total\n\ntemporomandibular joint replacement prostheses: a systematic review and metaanalysis. J Oral Maxillofac Surg 2018; 76(2):294–303.\n\nSuggested Viewing\nLinks are available online to the following video:\nTMJ \nAnatomy \n“The \nYoint” \nVideo: \nhttps://www.youtube.com/watch?\nv=nH8KG3fIoBM\n\nRESTORATIVE DENTISTRY\n\nSURGICAL CONSIDERATIONS\n\nSURGICAL CONSIDERATIONS\n\nDescription\n\nMultiple dental restorative procedures are performed under GA when there are rampant\ncaries, and an extensive amount of dental work must be performed at one time. The\nsecond most common indication for GA is for procedures that need to be performed on\nmentally retarded patients who are not candidates for a local anesthetic. The actual\namount of restorative dentistry is quite variable, depending on the individual case; thus,\nsurgical time can be quite variable. Generally, blood loss is not a problem.\n\n--- PAGE BREAK ---\n\nANESTHETIC CONSIDERATIONS FOR DENTAL/ORAL\n\nANESTHETIC CONSIDERATIONS FOR DENTAL/ORAL\n\nSURGERY\n\nMost patients presenting for dental or oral surgery usually will require only local\nanesthesia provided by the dentist/oral surgeon. Deep sedation or GA may be required,\nhowever, for several unique patient groups: (a) young children (some with systemic\ndiseases such as CHD and hemophilia), (b) the mentally disabled, (c) those with poorly\ncontrolled seizure disorders, (d) those presenting for TMJ procedures, and (e) those\nwith an oral septic focus, who may be quite ill. If the patient does not fall into one of\nthese readily identifiable categories, the reasons for GA should be ascertained. An\nLMA with a flexible wire-reinforced airway tube (LMA Flexible) has been used\nsuccessfully for a variety of oral surgical procedures. The use of an LMA should be\ndiscussed with the surgeon in advance because its presence may interfere with the\nplanned procedure.\n\n--- PAGE BREAK ---\n\nAirway\nPatients presenting for TMJ procedures may have\nproblems with mouth opening (2° pain, trismus, and\narthritis), making airway examination difficult. Mouth\nopening may not improve with GA and muscle\nrelaxation. Nasotracheal intubation using FOL (done\nawake in patients with difficult airways) should be\nplanned. Examine nares for patency; check for loose\nteeth.\nRespiratory\nSurgery should be postponed (at least 2 wk) in\npatients presenting with Sx of acute RTI (fever,\ncoughing, purulent sputum, etc.). Sx of chronic\nrespiratory disease should be sought and treated\nbefore surgery. LMA use has been reported to\ndecrease respiratory complications in children with\nupper RTIs.\nTests: As indicated from H&P\nCardiovascular\nPatients with dysrhythmias may be sensitive to the\nepinephrine used in local anesthetic solutions\nadministered intraop. As with other types of elective\nsurgery, preexisting cardiovascular problems should\nbe treated before surgery. Prophylactic antibiotics for\nendocarditis are not required in most patients;\nexceptions include patients with prosthetic valves,\ncongenital heart disease, h/o infective endocarditis,\nor heart transplant. Endocarditis prophylaxis:\namoxicillin 2 g po or cefazolin 2 g iv 30–60 min\nbefore procedure.\nTests: As indicated from H&P\nNeurologic\nPatients with seizure disorders should be on optimal\nmedical therapy before surgery. Discuss precipitating\nfactors and prodromal Sx with the patient.\nTests: ✓ therapeutic levels of anticonvulsant (e.g.,\nlevetiracetam = 12–46 mcg/mL; phenytoin = 10–20\nmcg/mL,; carbamazepine = 3–12 mcg/mL;\nphenobarbital = 10–40 mcg/mL)\n\nMusculoskeletal\nIn addition to TMJ problems, rheumatoid arthritis is\n\n--- PAGE BREAK ---\n\nassociated with cricoarytenoid joint immobility and\ncervical spine immobility/instability that may\ncomplicate intubation. Patients with prosthetic joints\ndo not require special antibiotic prophylaxis.\nLaboratory\nOther tests as indicated from H&P\nPremedication\nStandard premedication usually is appreciated,\nalthough, in patients with limited airway access,\nsedation may be inappropriate. If FOL is planned,\npretreatment with an antisialagogue (e.g.,\nglycopyrrolate 4 mcg/kg) is useful. Metoclopramide\n(e.g., 10–20 mg iv adult) will reduce the incidence of\nPONV 2° swallowed blood. Avoid long-lasting\nsedative medications.\nERAS\nCheck compliance with presurgical ERAS\nrecommendations (see above) including NPO status.\nConsider preop acetaminophen (adult: 1000 mg po;\npeds: 10–15 mg/kg iv or po as an elixir).\n\nINTRAOPERATIVE\n\nINTRAOPERATIVE\n\nAnesthetic technique\n\nGETA (although LMAs have been used successfully for many procedures). Typically a\nnasotracheal intubation is requested, using an ETT 0.5–1 mm smaller than for oral\nintubation. In patients with difficult airways, an awake nasal FOL is indicated. For\nconscious sedation, dexmedetomidine (e.g., 0.5 mcg/kg loading dose over 10 min + 0.5\nmcg/kg/h infusion) in combination with midazolam (e.g., 0.03 mg/kg) ± propofol (e.g.,\n25 mcg/kg/min) has the advantage of minimal respiratory depression.\n\n--- PAGE BREAK ---\n\nthe nose into the trachea, either blindly or assisted\nby Magill forceps under direct laryngoscopy. The ETT\nis often sewn to the nasal septum. The successful\nuse of a flexible reinforced LMA in both adult and\npediatric dental patients has been reported. Claimed\nadvantages include no risk of epistaxis and no need\nfor a throat pack, laryngoscopy, or muscle relaxation.\nDisadvantages include interference with the\nprocedure, throat trauma (e.g., swelling of the\nepiglottis), and aspiration risk.\nERAS\nVerify preincision antibiotics. Maintain normovolemia\nand normothermia.\nMaintenance\nStandard maintenance\nEmergence\nNB: throat packs must be removed prior to\nextubation. An LMA is typically removed after the\npatient is awake and able to follow commands.\nBlood and fluid\n\nIV: 18 ga × 1\nNS/LR @ 4–6 mL/kg/h\nSee Zero Balance Fluid Management, Appendix K, p.\nK-2.\nMonitoring\nStandard monitors\nPositioning\n✓ pad pressure points\n✓ eyes\n\nrequirements\n\nPOSTOPERATIVE\n\nPOSTOPERATIVE\n\n--- PAGE BREAK ---\n\nSuggested Readings for Dental/Oral Surgery\n\n1. Al-Jandan BA, Syed FA, Zeidan A, et al: Pharyngeal pack placement in minor ora\n\nsurgery: a prospective, randomized, controlled study. Ear Nose Throat J 2018;\n97(3):E18–21.\n2. Atan S, Ashley P, Gilthrope MS, et al: Morbidity following dental treatment of\n\nchildren under intubation general anaesthesia in a day-stay unit. Int J Paediatr Dent\n2004; 14(1):9–16.\n3. Cummings DR, Yamashita DD, McAndrews JP: Complications of local anesthesia\n\nused in oral and maxillofacial surgery. Oral Maxillofac Surg Clin North Am 2011;\n23(3):369–77.\n4. Hanzawa A, Handa T, Kohkita Y, et al: A comparative study of oral analgesics for\n\npostoperative pain after minor oral surgery. Anesth Prog 2018; 65(1):24–9.\n5. Lin S, McKenna SJ, Yao CF, et al: Effects of hypotensive anesthesia on reducing\n\nintraoperative blood loss, duration of operation, and quality of surgical field during\northognathic surgery: a systematic review and meta-analysis of randomized\ncontrolled trials. J Oral Maxillofac Surg 2017; 75(1):73–86.\n6. Mayhew JF: Airway management for oral and maxillofacial surgery. Int Anesthesiol\n\nClin 2003; 41(3):57–65.\n7. Njuguna B, Delahaye F: Infective endocarditis prophylaxis: a review. Expert Rev\n\nCardiovasc Ther 2017; 15(2):127–36.\n8. Ogle OE, Mahjoubi G: Local anesthesia: agents, techniques, and complications. Dent\n\nClin North Am 2012; 56(1):133–48.\n9. Smith MH, Lung KE: Nerve injuries after dental injection: a review of the literature\n\nJ Can Dent Assoc 2006; 72(6):559–64.\n0. Todd DW: Anesthetic considerations for the obese and morbidly obese oral and\n\nmaxillofacial surgery patient. J Oral Maxillofac Surg 2005; 63(9):1348–53.\n1. Wakita R, Kohase H, Fukayama H: A comparison of dexmedetomidine sedation with\n\nand without midazolam for dental implant surgery. Anesth Prog 2012; 59(2):62–8.\n2. Yasny JS: Perioperative dental considerations for the anesthesiologist. Anesth Analg\n\n2009; 108(5):1564–73.\n3. Yu SH, Beirne OR: Laryngeal mask airways have a lower risk of airway\n\ncomplications compared with endotracheal intubation: a systematic review. J Oral\nMaxillofac Surg 2010; 68(10):2359–76."
 }

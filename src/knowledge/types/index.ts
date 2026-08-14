@@ -65,6 +65,20 @@ export interface ParsedDocument {
     extraction_success: boolean;
     /** Any warnings or errors encountered */
     warnings: string[];
+    /** Text-quality metrics + flags computed by the parser (silent-failure gate). */
+    quality?: {
+      pages: number;
+      total_characters: number;
+      chars_per_page: number;
+      empty_pages: number;
+      low_text_pages: number;
+      english_word_ratio: number;
+      nonascii_pct: number;
+      replacement_chars: number;
+      run_together_pct: number;
+      flags: string[];
+      ok: boolean;
+    };
   };
   /** Array of extracted fragments, one per page/chunk */
   fragments: SourceFragment[];

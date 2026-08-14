@@ -10,7 +10,12 @@
     "preview": "vite preview",
     "test": "vitest run",
     "ingest-pdf": "npx tsx src/knowledge/utils/ingest_pdf.ts",
-    "podcast": "node scripts/build_podcast_md.mjs"
+    "podcast": "node scripts/build_podcast_md.mjs",
+    "split-pdf": "python3 scripts/split_pdf.py",
+    "podcastify": "node scripts/podcastify.mjs",
+    "chapter-md": "node scripts/chapter_to_md.mjs",
+    "audit-parses": "python3 scripts/audit_parses.py",
+    "parser-golden": "python3 scripts/parser_golden.py"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.4",

@@ -669,7 +669,10 @@ export const MEDICATIONS = {
     metabolism: 'Renal', mechanism: 'Inhibitor', targetReceptor: 'ACE',
     indications: { 'HTN': { dose: '1.25-5.0', unit: 'mg', type: 'Bolus' } },
     pk: { V1: 10.0, V2: 20.0, V3: 0, k10: 0.02, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.015, coSensitivity: 0.1 }, 
-    pd: { c50: 1.0, gamma: 1.5, sysMax: -25, diaMax: -20, hrMax: 0, rrMax: 0 },
+    // F29: c50 1.0→0.3 — ACE inhibition's acute BP drop is genuinely modest in a euvolemic normotensive
+    // patient (low renin/angiotensin drive), but the old c50 combined with the slow ke0 made it fully
+    // inert; a modest drop now registers. (A larger effect would require RAAS-state dependence — Layer 3.)
+    pd: { c50: 0.3, gamma: 1.5, sysMax: -25, diaMax: -20, hrMax: 0, rrMax: 0 },
     notes: 'Active IV form of enalapril. Inhibits Angiotensin Converting Enzyme. Can cause refractory intraoperative hypotension if not held on day of surgery.'
   },
   esmolol: { 
@@ -1194,7 +1197,9 @@ export const MEDICATIONS = {
     metabolism: 'Hepatic', proteinBinding: 0.15, targetReceptor: 'DAT / NET',
     indications: { 'Emergence Reversal': { dose: '10', unit: 'mg', type: 'Bolus' } },
     pk: { V1: 15.0, V2: 30.0, V3: 0, k10: 0.08, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 1.0, coSensitivity: 0.2 },
-    pd: { c50: 2.0, gamma: 1.5, sysMax: 15, diaMax: 10, hrMax: 20, rrMax: 2 },
+    // F29: c50 2.0→0.3 — a 10 mg IV bolus reaches Ce≈0.4-0.5, so the old c50 gave ~0 effect; the CNS
+    // stimulant's tachycardia/mild pressor action for emergence reversal now registers.
+    pd: { c50: 0.3, gamma: 1.5, sysMax: 15, diaMax: 10, hrMax: 20, rrMax: 2 },
     notes: 'CNS stimulant. Inhibits dopamine and norepinephrine reuptake. Reverses/accelerates emergence from general anesthetics (propofol, isoflurane) via VTA activation.'
   },
   atipamezole: {
@@ -1310,7 +1315,10 @@ export const MEDICATIONS = {
     metabolism: 'Hepatic', proteinBinding: 0.20, mechanism: 'Agonist', targetReceptor: 'Alpha-1 Adrenergic / Serotonergic',
     indications: { 'Postpartum Hemorrhage / Uterine Atony': { dose: '0.2', unit: 'mg', type: 'Bolus' } },
     pk: { V1: 15.0, V2: 25.0, V3: 0, k10: 0.01, k12: 0.04, k21: 0.03, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0.1 },
-    pd: { c50: 0.4, gamma: 1.5, sysMax: 15, diaMax: 10, hrMax: 0, rrMax: 0 },
+    // F29: c50 0.4→0.008 — a 0.2 mg dose reaches only Ce≈0.009, so the old c50 gave ~0 effect. The
+    // uterotonic's systemic vasoconstriction/HYPERTENSION is clinically critical (it is contraindicated in
+    // preeclampsia/HTN precisely because it raises BP) and must register.
+    pd: { c50: 0.008, gamma: 1.5, sysMax: 15, diaMax: 10, hrMax: 0, rrMax: 0 },
     notes: 'Potent ergot-alkaloid uterotonic, longer-acting than Oxytocin (~3h functional duration). CONTRAINDICATED in hypertension/preeclampsia -- generalized vasoconstriction (sysMax/diaMax above) can precipitate a hypertensive crisis (UterineToneModel.ts checks this against the patient hypertension/preeclampsia flags before applying its uterotonic effect, mirroring this codebase existing contraindication-checking pattern for Succinylcholine in muscular dystrophy).'
   },
   carboprost: {
@@ -1572,7 +1580,9 @@ export const MEDICATIONS = {
     metabolism: 'Hepatic / GI', proteinBinding: 0.10, mechanism: 'Agonist', targetReceptor: 'Beta-2 Adrenergic',
     indications: { 'Bronchospasm': { dose: '2.5', unit: 'mg', type: 'Bolus' }, 'Hyperkalemia': { dose: '20', unit: 'mg', type: 'Bolus' } },
     pk: { V1: 30.0, V2: 60.0, V3: 0, k10: 0.03, k12: 0.04, k21: 0.025, k13: 0, k31: 0, ke0: 0.6, coSensitivity: 0.2 },
-    pd: { c50: 0.5, gamma: 1.5, sysMax: -8, diaMax: -5, hrMax: 15, rrMax: 0 },
+    // F29: c50 0.5→0.05 — a 2.5 mg dose reaches only Ce≈0.05, so the β2-agonist tachycardia (a real,
+    // expected side effect, pronounced at the 20 mg hyperkalemia dose) was absent.
+    pd: { c50: 0.05, gamma: 1.5, sysMax: -8, diaMax: -5, hrMax: 15, rrMax: 0 },
     notes: 'Selective beta-2 adrenergic agonist. Primary bronchodilator for intraoperative bronchospasm (nebulized or MDI through ETT, or IV in severe cases). DUAL USE: also treats hyperkalemia by driving K+ intracellularly (shifts K+ ~0.5-1.0 mEq/L; slower onset than calcium but additive with insulin/glucose). Short t1/2 ~4h. Side effects: tachycardia, hypokalemia (dose-dependent), tremor. Does NOT reduce cardiac death risk in hyperkalemia (membrane stabilization requires calcium).'
   },
   ipratropium: {

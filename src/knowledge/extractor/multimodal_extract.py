@@ -607,6 +607,77 @@ def extract_image_visual(file_path):
         }]
     }
 
+def call_gemini_graph_points(img_base64, api_key, model_name, calibration):
+    """Vision digitization of ONE X-Y graph into (x,y) data, anchored to the
+    deterministic axis calibration read by the parser. The model must also report
+    the ticks it sees so they can be verified against the source — a hard guardrail
+    against fabricated axes."""
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={api_key}"
+    cal_txt = ""
+    if calibration:
+        xa = calibration.get('x_axis') or {}
+        ya = calibration.get('y_axis') or {}
+        cal_txt = ("\nThe source axes were already read deterministically — use these EXACT "
+                   "calibrations, do not re-estimate them:\n"
+                   f"  X axis: title={xa.get('title')!r} ticks={xa.get('ticks')} scale={xa.get('scale')}\n"
+                   f"  Y axis: title={ya.get('title')!r} ticks={ya.get('ticks')} scale={ya.get('scale')}\n")
+    prompt = (
+        "You are digitizing ONE scientific line graph from a medical textbook for a physiology "
+        "simulator. Extract each plotted curve as (x, y) points in real DATA coordinates.\n"
+        + cal_txt +
+        "\nSTRICT RULES — fidelity over completeness:\n"
+        "- Calibrate to the axis tick values. Report the tick numbers you actually SEE on each axis "
+        "(x_ticks_seen, y_ticks_seen) so they can be verified against the source.\n"
+        "- For each visibly drawn curve, sample ~8-14 points across its visible x-range, in "
+        "increasing x order, in real data units.\n"
+        "- NEVER invent data. If a curve or value is not clearly drawn/readable, omit that point or "
+        "series. Prefer fewer, correct points.\n"
+        "- Label each series from its legend/annotation. State overall readability as clear/partial/poor.\n"
+        "Respond with ONLY this JSON, no prose:\n"
+        '{"x_axis":{"label":"","unit":null,"ticks_seen":[],"scale":"linear"},'
+        '"y_axis":{"label":"","unit":null,"ticks_seen":[],"scale":"linear"},'
+        '"series":[{"label":"","points":[[0,0]]}],"readability":"clear"}'
+    )
+    body = {
+        "contents": [{"parts": [{"text": prompt},
+                                {"inlineData": {"mimeType": "image/jpeg", "data": img_base64}}]}],
+        "generationConfig": {"responseMimeType": "application/json", "temperature": 0.0},
+    }
+    req = urllib.request.Request(url, data=json.dumps(body).encode('utf-8'),
+                                 headers={'Content-Type': 'application/json'}, method='POST')
+    for attempt in range(1, 4):
+        try:
+            with urllib.request.urlopen(req, timeout=120) as response:
+                res = json.loads(response.read().decode('utf-8'))
+                text = res.get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '{}')
+                return json.loads(text)
+        except Exception as e:
+            if attempt == 3:
+                return {"error": str(e)}
+            time.sleep(3)
+
+def extract_graph_points(file_path, calibration_json=None):
+    from PIL import Image
+    api_key = load_api_key()
+    if not api_key:
+        raise ValueError("GEMINI_API_KEY not found in environment or .env file.")
+    model_name = os.environ.get('GEMINI_MODEL', 'gemini-2.5-flash')
+    calibration = None
+    if calibration_json:
+        try:
+            calibration = json.loads(calibration_json)
+        except Exception:
+            calibration = None
+    img = Image.open(file_path)
+    buffered = BytesIO()
+    if img.mode in ('RGBA', 'LA'):
+        img = img.convert('RGB')
+    img.save(buffered, format="JPEG")
+    img_str = base64.b64encode(buffered.getvalue()).decode('utf-8')
+    print(f"  [GRAPH POINTS] Digitizing graph via Gemini ({model_name})...", file=sys.stderr)
+    data = call_gemini_graph_points(img_str, api_key, model_name, calibration)
+    return {"graph_points": data, "model": model_name}
+
 def extract_pptx_text(file_path):
     from pptx import Presentation
     
@@ -662,6 +733,9 @@ def main():
             result = extract_image_ocr(file_path)
         elif mode == "image_visual":
             result = extract_image_visual(file_path)
+        elif mode == "graph_points":
+            calibration_json = sys.argv[3] if len(sys.argv) > 3 else None
+            result = extract_graph_points(file_path, calibration_json)
         elif mode == "pptx":
             result = extract_pptx_text(file_path)
         else:

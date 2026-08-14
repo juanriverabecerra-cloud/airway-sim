@@ -260,6 +260,12 @@ export class CardiovascularEngine {
 
     // Autonomic reflexes: Baroreceptor Reflex
     let baroreflexGain = Math.max(0, 1.0 - safeCurrentMac * 0.67);
+    // F31: opioids are SYMPATHOLYTIC — they blunt the baroreflex (why they attenuate the hypertensive/
+    // tachycardic response to laryngoscopy). Blunt the reflex gain by opioid receptor occupancy so the
+    // opioid-venodilation preload drop (usePhysiology) doesn't provoke a compensatory reflex tachycardia
+    // that would erase the opioid's own bradycardia. Scaled like the volatile-MAC blunting above.
+    const opioidOcc = typeof (patient as any).__opioidCvOccupancy === 'number' && Number.isFinite((patient as any).__opioidCvOccupancy) ? Math.max(0, Math.min(1, (patient as any).__opioidCvOccupancy)) : 0;
+    baroreflexGain *= Math.max(0.2, 1.0 - 0.8 * opioidOcc);
     if (patient.isAwarenessActive) {
       baroreflexGain = 0; // Overridden by central sympathetic surge during awareness crisis
     }

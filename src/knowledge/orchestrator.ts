@@ -70,6 +70,7 @@ export class PipelineOrchestrator {
     let fragments = localResult.fragments;
     let visual_data_engines = localResult.visual_data_engines;
     const warnings = localResult.warnings || [];
+    const quality = localResult.quality;
 
     if (fragments.length === 0) {
       console.error(`[ERROR] Extractor returned 0 fragments. This should not happen.`);
@@ -135,6 +136,36 @@ export class PipelineOrchestrator {
       );
     }
 
+    // Quality gate: turn silent parse failures into explicit, actionable warnings.
+    if (quality) {
+      const q = quality;
+      console.log(`  Quality:            english-word ratio ${q.english_word_ratio}, ` +
+        `non-ASCII ${q.nonascii_pct}%, run-together ${q.run_together_pct}%, ` +
+        `${q.chars_per_page} chars/page  [${q.ok ? 'OK' : 'REVIEW'}]`);
+      if (q.flags.includes('GARBLED_OR_NON_ENGLISH')) {
+        warnings.push(
+          `QUALITY: text looks garbled or non-English (english-word ratio ${q.english_word_ratio}). ` +
+          'Likely broken font encoding (no ToUnicode) or a non-English source. ' +
+          'Verify the text; this chapter may need OCR or a different extraction path.'
+        );
+      }
+      if (q.flags.includes('DECODE_ERRORS')) {
+        warnings.push(`QUALITY: ${q.replacement_chars} Unicode replacement char(s) (U+FFFD) — real decode failures in the source fonts.`);
+      }
+      if (q.flags.includes('HIGH_NONASCII')) {
+        warnings.push(`QUALITY: unusually high non-ASCII ratio (${q.nonascii_pct}%) — possible encoding problem or non-Latin script.`);
+      }
+      if (q.flags.includes('RUN_TOGETHER_WORDS')) {
+        warnings.push(`QUALITY: ${q.run_together_pct}% of tokens are abnormally long — words likely running together (missing spaces).`);
+      }
+      if (q.flags.includes('LOW_TEXT')) {
+        warnings.push(`QUALITY: only ${q.chars_per_page} chars/page — text may be missing (hybrid scan, columns dropped, or figure-dense).`);
+      }
+      if (q.flags.includes('MANY_EMPTY_PAGES')) {
+        warnings.push(`QUALITY: ${q.empty_pages}/${q.pages} pages have no extractable text — likely scanned pages needing OCR.`);
+      }
+    }
+
     // Step 3: Build the raw output document
     console.log(`\n[STEP 3] Building parsed document structure...`);
     const fullText = fragments
@@ -152,8 +183,11 @@ export class PipelineOrchestrator {
         parser_version: '2.1.0',
         total_pages: fragments.length,
         total_characters_extracted: totalChars,
-        extraction_success: totalChars > 0,
-        warnings
+        // Success now means "text came out AND it isn't garbled/decode-broken",
+        // not merely "chars > 0" (which a mis-encoded book would also pass).
+        extraction_success: totalChars > 0 && (quality ? quality.ok : true),
+        warnings,
+        quality
       },
       fragments,
       visual_data_engines,

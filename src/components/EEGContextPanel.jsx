@@ -12,6 +12,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { X, GripVertical, Brain } from 'lucide-react';
+import { useResizable, ResizeHandle } from './useResizable';
 
 // ─── Pre-compute SVG waveform paths ─────────────────────────────────────────
 // These are generated once at module load. Each function models the visual
@@ -167,6 +168,7 @@ export const EEGContextPanel = ({ patient, vitals, activeMeds, anchorRect, onClo
   const [dragging, setDragging]   = useState(false);
   const [tab,      setTab]        = useState('guide');      // 'current' | 'guide'
   const [selected, setSelected]   = useState(null);         // selected state id
+  const { size, isResizing, onResizeStart } = useResizable({ width: 380, height: 440, minWidth: 320, minHeight: 200 });
 
   // Position near anchor on open
   useEffect(() => {
@@ -258,7 +260,7 @@ export const EEGContextPanel = ({ patient, vitals, activeMeds, anchorRect, onClo
 
   return (
     <div ref={panelRef} className="fixed z-[210] select-none"
-         style={{ left: position.left, top: position.top, width: 380 }}>
+         style={{ left: position.left, top: position.top, width: size.width }}>
       <div className="rounded-xl overflow-hidden shadow-2xl"
            style={{ background: 'linear-gradient(160deg,rgba(2,6,22,0.99) 0%,rgba(5,10,35,0.97) 100%)', border: `1px solid ${BORDER}`, backdropFilter: 'blur(20px)' }}>
 
@@ -298,7 +300,7 @@ export const EEGContextPanel = ({ patient, vitals, activeMeds, anchorRect, onClo
         </div>
 
         {/* ── CONTENT ── */}
-        <div className="overflow-y-auto" style={{ maxHeight: 440 }}>
+        <div className="overflow-y-auto" style={{ maxHeight: size.height, overflowX: 'hidden', pointerEvents: isResizing ? 'none' : 'auto' }}>
 
           {/* ═══ EEG GUIDE TAB ═══════════════════════════════════════════ */}
           {tab === 'guide' && !selectedState && (
@@ -481,6 +483,7 @@ export const EEGContextPanel = ({ patient, vitals, activeMeds, anchorRect, onClo
           )}
         </div>
       </div>
+      <ResizeHandle onResizeStart={onResizeStart} color="rgba(168,85,247,0.6)" />
     </div>
   );
 };

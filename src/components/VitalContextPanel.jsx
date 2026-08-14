@@ -10,6 +10,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { X, Zap, Info, ChevronRight, GripVertical } from 'lucide-react';
 import { VITAL_CONFIG } from '../engine/vitalContextConfig';
+import { useResizable, ResizeHandle } from './useResizable';
 
 // Status → color mapping
 const STATUS_COLORS = {
@@ -63,6 +64,7 @@ export const VitalContextPanel = ({
   const [dragging, setDragging] = useState(false);
   const [tab, setTab] = useState('drivers'); // 'drivers' | 'actions' | 'info'
   const dragRef = useRef({ active: false, startX: 0, startY: 0, ox: 0, oy: 0 });
+  const { size, isResizing, onResizeStart } = useResizable({ width: 296, height: 320, minWidth: 240, minHeight: 160 });
 
   const config = VITAL_CONFIG[vitalId];
 
@@ -222,7 +224,7 @@ export const VitalContextPanel = ({
     <div
       ref={panelRef}
       className="fixed z-[200] select-none"
-      style={{ left: position.left, top: position.top, width: 296 }}
+      style={{ left: position.left, top: position.top, width: size.width }}
     >
       <div
         className="rounded-xl overflow-hidden shadow-2xl"
@@ -293,7 +295,7 @@ export const VitalContextPanel = ({
         </div>
 
         {/* ── CONTENT ── */}
-        <div className="overflow-y-auto" style={{ maxHeight: 320 }}>
+        <div className="overflow-y-auto" style={{ maxHeight: size.height, overflowX: 'hidden', pointerEvents: isResizing ? 'none' : 'auto' }}>
 
           {/* DRIVERS TAB */}
           {tab === 'drivers' && (
@@ -383,6 +385,7 @@ export const VitalContextPanel = ({
           )}
         </div>
       </div>
+      <ResizeHandle onResizeStart={onResizeStart} color={borderColor.replace('0.35', '0.7').replace('0.20', '0.6')} />
     </div>
   );
 };

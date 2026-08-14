@@ -1893,7 +1893,7 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
       "coSensitivity": 0.1
     },
     "pd": {
-      "c50": 1,
+      "c50": 0.3,
       "gamma": 1.5,
       "sysMax": -25,
       "diaMax": -20,
@@ -4739,7 +4739,7 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
       "coSensitivity": 0.2
     },
     "pd": {
-      "c50": 0.5,
+      "c50": 0.05,
       "gamma": 1.5,
       "sysMax": -8,
       "diaMax": -5,
@@ -5289,7 +5289,7 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
       "coSensitivity": 0.2
     },
     "pd": {
-      "c50": 2,
+      "c50": 0.3,
       "gamma": 1.5,
       "sysMax": 15,
       "diaMax": 10,
@@ -5933,7 +5933,7 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
       "coSensitivity": 0.1
     },
     "pd": {
-      "c50": 0.4,
+      "c50": 0.008,
       "gamma": 1.5,
       "sysMax": 15,
       "diaMax": 10,

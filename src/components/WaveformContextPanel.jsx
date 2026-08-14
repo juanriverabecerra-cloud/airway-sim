@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { X, GripVertical, Activity } from 'lucide-react';
 import { generateVentilatorFlowVolumeLoop } from '../engine/FlowVolumeLoopModel';
+import { useResizable, ResizeHandle } from './useResizable';
 import { generatePressureVolumeLoopFromMechanics } from '../engine/PressureVolumeLoopModel';
 
 // ─── SVG path generator ───────────────────────────────────────────────────────
@@ -997,6 +998,12 @@ export function WaveformContextPanel({ waveformId, anchorRect, onClose, patient,
   const [pos, setPos] = useState(null);
   const dragRef = useRef({ active: false, startX: 0, startY: 0, ox: 0, oy: 0 });
   const panelRef = useRef(null);
+  const { size, isResizing, onResizeStart } = useResizable({
+    width: 420,
+    height: Math.round(window.innerHeight * 0.82),
+    minWidth: 340,
+    minHeight: 240,
+  });
 
   // Initial position: near anchor, clamped to viewport
   useEffect(() => {
@@ -1052,7 +1059,7 @@ export function WaveformContextPanel({ waveformId, anchorRect, onClose, patient,
     <div
       ref={panelRef}
       className="fixed z-[300] flex flex-col rounded-xl border border-slate-700/80 bg-slate-950/97 shadow-2xl backdrop-blur-xl overflow-hidden"
-      style={{ left: pos.x, top: pos.y, width: 420, maxHeight: '88vh', userSelect: dragRef.current?.active ? 'none' : 'auto' }}
+      style={{ left: pos.x, top: pos.y, width: size.width, maxHeight: size.height, userSelect: (dragRef.current?.active || isResizing) ? 'none' : 'auto' }}
     >
       {/* Header */}
       <div
@@ -1355,6 +1362,7 @@ export function WaveformContextPanel({ waveformId, anchorRect, onClose, patient,
           </div>
         )}
       </div>
+      <ResizeHandle onResizeStart={onResizeStart} color={(config.color || 'rgba(148,163,184,1)') + 'aa'} />
     </div>
   );
 }

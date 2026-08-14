@@ -5,6 +5,7 @@ import re
 import math
 import shutil
 import traceback
+import unicodedata
 
 try:
     import fitz  # PyMuPDF
@@ -239,6 +240,139 @@ def cluster_ocr_phrases(img_path):
 
     return group_words_into_phrases(words)
 
+_RUNNING_HEADER_RE = re.compile(r"^SECTION\s+[IVXLC0-9]+\s*[•·].+", re.IGNORECASE)
+
+def strip_furniture_phrases(phrases, furniture=None):
+    """Drop figure-label phrases that are actually page furniture — a bare page
+    number, or a running header caught inside a figure's crop rect when the figure
+    sits against the top/bottom margin (e.g. '356', 'SECTION II • Anesthetic
+    Physiology' leaking into a graph's labels). Real figure labels are untouched."""
+    out = []
+    for p in phrases or []:
+        t = (p.get("text") or "").replace(" [uncertain]", "").strip()
+        if re.fullmatch(r"\d{1,4}", t):
+            continue
+        if _RUNNING_HEADER_RE.match(t):
+            continue
+        if furniture and _furniture_sig(t) in furniture:
+            continue
+        out.append(p)
+    return out
+
+def _graph_val(t):
+    return float(t) if re.fullmatch(r'-?\d+(?:\.\d+)?', t) else None
+
+def _graph_monotonic(vals):
+    if len(vals) < 3:
+        return False
+    return all(b > a for a, b in zip(vals, vals[1:])) or all(b < a for a, b in zip(vals, vals[1:]))
+
+def _graph_scale(vals):
+    v = sorted(vals)
+    if len(v) < 3:
+        return 'unknown'
+    diffs = [b - a for a, b in zip(v, v[1:])]
+    if max(diffs) - min(diffs) < 0.15 * (abs(sum(diffs) / len(diffs)) + 1e-9):
+        return 'linear'
+    if all(a > 0 for a in v):
+        ratios = [b / a for a, b in zip(v, v[1:])]
+        if max(ratios) - min(ratios) < 0.15 * (sum(ratios) / len(ratios)):
+            return 'log'
+    return 'irregular'
+
+def extract_graph_structure(text_bounding_boxes):
+    """DETERMINISTIC, exact-from-source structure of an X-Y graph: axis titles/units,
+    numeric tick VALUES -> range + scale (linear/log), and series/legend labels.
+    Read purely from the figure's own text layer via spatial clustering — it never
+    traces or invents (x,y) data points, so it cannot fabricate. Returns None if no
+    axis structure is confidently recoverable."""
+    P = []
+    for b in text_bounding_boxes or []:
+        t = (b.get('text') or '').replace(' [uncertain]', '').strip()
+        if not t:
+            continue
+        x0, y0, x1, y1 = b['bbox']
+        P.append({'t': t, 'x0': x0, 'y0': y0, 'x1': x1, 'y1': y1,
+                  'cx': (x0 + x1) / 2, 'cy': (y0 + y1) / 2, 'w': x1 - x0, 'h': y1 - y0})
+    if not P:
+        return None
+    nums = []
+    for p in P:
+        v = _graph_val(p['t'])
+        if v is not None:
+            p['v'] = v
+            nums.append(p)
+    hs = sorted(p['h'] for p in P if p['h'] > 0)
+    tol = (hs[len(hs) // 2] * 1.5) if hs else 20.0
+
+    def cluster(items, key):
+        clusters = []
+        for p in sorted(items, key=lambda p: p[key]):
+            for c in clusters:
+                if abs(p[key] - c['k']) <= tol:
+                    c['items'].append(p)
+                    c['k'] = sum(i[key] for i in c['items']) / len(c['items'])
+                    break
+            else:
+                clusters.append({'k': p[key], 'items': [p]})
+        return clusters
+
+    def pick_axis(clusters, sortkey):
+        for c in sorted(clusters, key=lambda c: -len(c['items'])):
+            if len(c['items']) < 3:
+                continue
+            items = sorted(c['items'], key=lambda p: p[sortkey])
+            vals = [p['v'] for p in items]
+            if _graph_monotonic(vals):
+                return items, {'ticks': vals, 'min': min(vals), 'max': max(vals),
+                               'scale': _graph_scale(vals)}
+        return None, None
+
+    y_items, y_axis = pick_axis(cluster(nums, 'cx'), 'cy')   # vertical tick column
+    x_items, x_axis = pick_axis(cluster(nums, 'cy'), 'cx')   # horizontal tick row
+
+    plot = None
+    if y_items:
+        plot = (max(p['x1'] for p in y_items), min(p['y0'] for p in y_items),
+                max(p['x1'] for p in P), max(p['y1'] for p in y_items))
+
+    texts = [p for p in P if 'v' not in p]
+    y_title = x_title = None
+    series = []
+    for p in texts:
+        if y_items and p['h'] > p['w'] * 1.5 and p['x1'] <= min(pp['x0'] for pp in y_items) + tol * 3:
+            y_title = p['t']
+            continue
+        if plot:
+            px0, py0, px1, py1 = plot
+            if p['cy'] > py1 and p['cx'] >= px0 and len(p['t']) <= 24 and x_title is None:
+                x_title = p['t']
+                continue
+            if p['cx'] >= px0 - tol and py0 - tol <= p['cy'] <= py1 + tol * 4 and len(p['t']) <= 28:
+                series.append(p['t'])
+    seen, clean = set(), []
+    for s in series:
+        if s in (x_title, y_title) or s in seen:
+            continue
+        seen.add(s)
+        clean.append(s)
+    series = clean
+
+    def unit(title):
+        m = re.search(r'\(([^)]+)\)', title or '')
+        return m.group(1) if m else None
+
+    if not (y_axis or x_axis):
+        return None  # no confident axis structure -> emit nothing rather than guess
+    conf = 'high' if (y_axis and (x_axis or x_title)) else 'partial'
+    return {
+        'x_axis': {**(x_axis or {}), 'title': x_title, 'unit': unit(x_title)},
+        'y_axis': {**(y_axis or {}), 'title': y_title, 'unit': unit(y_title)},
+        'series_labels': series,
+        'confidence': conf,
+        'method': 'deterministic-text-layer',
+    }
+
 def native_text_boxes_in_rect(page, rect, dpi=300):
     """
     Reads text that is ALREADY digitized in the PDF (exact Unicode glyphs,
@@ -255,10 +389,18 @@ def native_text_boxes_in_rect(page, rect, dpi=300):
     """
     scale = dpi / 72.0
     words_data = page.get_text("words", clip=rect)
+    # Drop running headers / page numbers that fall inside a figure crop when the
+    # figure sits against a page margin. Done by ABSOLUTE page position (before
+    # phrase clustering), so it's robust to the header being split into fragments
+    # like "SECTION II" + "• Anesthetic Physiology" — which text matching misses.
+    page_h = page.rect.height or 1
+    top_margin, bot_margin = page_h * 0.075, page_h * 0.925
     words = []
     for w in words_data:
         text = (w[4] or '').strip()
         if not text:
+            continue
+        if w[3] < top_margin or w[1] > bot_margin:  # word wholly in top/bottom margin
             continue
         words.append({
             'text': text,
@@ -762,7 +904,7 @@ def extract_figures_from_scanned_page(page, page_num, source_file, scratch_dir, 
             continue
 
         # No PDF text layer exists on a scanned page, so OCR is the only option here.
-        text_bounding_boxes = cluster_ocr_phrases(out_path)
+        text_bounding_boxes = strip_furniture_phrases(cluster_ocr_phrases(out_path))
         cap_lower = cap_text.lower()
         archetype = "COORDINATE X-Y GRAPHS & COMPLEMENTARY PANELS"
         # This initial guess gets superseded by the TS-side StrategyRouter's own
@@ -792,19 +934,326 @@ def extract_figures_from_scanned_page(page, page_num, source_file, scratch_dir, 
 
     return figures
 
+def find_gutter_x(blocks, page_w):
+    """For a two-column page, return the x of the vertical gutter, adaptively (so
+    asymmetric wide+narrow columns work), or None if the page is single-column.
+
+    Looks only in the central band and only at column-width prose blocks (not
+    full-width headers/figures): the gutter is a near-empty vertical strip there.
+    Returning None → caller reads the page as a single column. This is deliberately
+    conservative: it enhances the proven center split, it does not replace it."""
+    bins = 80
+    binw = page_w / bins
+    cover = [0] * bins
+    for b in blocks:
+        if (b[2] - b[0]) > page_w * 0.6:  # skip spanning/full-width blocks
+            continue
+        i0 = max(0, int(b[0] / binw))
+        i1 = min(bins - 1, int(b[2] / binw))
+        for i in range(i0, i1 + 1):
+            cover[i] += 1
+    lo_i, hi_i = int(bins * 0.38), int(bins * 0.62)
+    central = [(i, cover[i]) for i in range(lo_i, hi_i + 1)]
+    if not central or max(c for _, c in central) == 0:
+        return None
+    min_cov = min(c for _, c in central)
+    side_max = max(cover[:lo_i] + cover[hi_i + 1:]) if bins > (hi_i + 1) else 0
+    # A real gutter: the central strip is (near-)empty while the sides have text.
+    if min_cov > 0 or side_max < 2:
+        return None
+    empties = [i for i, c in central if c == min_cov]
+    return (min(empties) + max(empties) + 1) / 2.0 * binw
+
+def order_blocks_reading_order(blocks, page_w):
+    """Return blocks in true human reading order for 1- or 2-column pages.
+
+    A plain (y, x) sort interleaves the columns of a two-column page: it emits a
+    line from the left column, then the line beside it in the right column, and so
+    on — splicing unrelated half-sentences together. Correct order reads the ENTIRE
+    left column top-to-bottom, then the right column. Full-width "spanning" blocks
+    (titles, cross-column figures/tables) split the page into horizontal bands; each
+    band is read left column then right. Single-column pages fall through to plain
+    top-to-bottom. The gutter x is detected adaptively (find_gutter_x), defaulting to
+    page center — reliable for the 1- and 2-column layouts textbooks actually use.
+    (True 3+ column support is intentionally deferred until a 3-column source exists
+    to verify against — see docs/parser_hardening_audit.md item 2.2.)
+    """
+    if not blocks or page_w <= 0:
+        return blocks
+    mid = find_gutter_x(blocks, page_w)
+    if mid is None:
+        mid = page_w / 2.0
+    gutter_tol = page_w * 0.02
+    spanning, left, right = [], [], []
+    for b in blocks:
+        x0, x1 = b[0], b[2]
+        width = x1 - x0
+        center = (x0 + x1) / 2.0
+        crosses_gutter = x0 < mid - gutter_tol and x1 > mid + gutter_tol
+        if crosses_gutter and width > page_w * 0.55:
+            spanning.append(b)
+        elif center < mid:
+            left.append(b)
+        else:
+            right.append(b)
+
+    # No real two-column structure -> keep simple top-to-bottom, left-to-right.
+    if not left or not right:
+        return sorted(blocks, key=lambda b: (b[1], b[0]))
+
+    spanning.sort(key=lambda b: b[1])
+    sep_ys = [b[1] for b in spanning]
+    band_of = lambda b: sum(1 for sy in sep_ys if sy <= b[1])
+
+    from collections import defaultdict
+    bands_left, bands_right = defaultdict(list), defaultdict(list)
+    for b in left:
+        bands_left[band_of(b)].append(b)
+    for b in right:
+        bands_right[band_of(b)].append(b)
+
+    ordered = []
+    for band in range(len(spanning) + 1):
+        ordered.extend(sorted(bands_left.get(band, []), key=lambda b: b[1]))
+        ordered.extend(sorted(bands_right.get(band, []), key=lambda b: b[1]))
+        if band < len(spanning):
+            ordered.append(spanning[band])
+    return ordered
+
+# Common English function/domain words used only as a cheap "is this real English
+# prose or CID-garbled/non-English gibberish?" signal (never to alter text).
+_COMMON_WORDS = set((
+    "the of and to in a is that for it as was with be by on not he this are or from at "
+    "which but have an they you one had who all will more no if out so up what its about "
+    "into than them can only other new some could time these two may then do first any my "
+    "now such like our over me even most made after also did many before must through back "
+    "where much your way down should because each just those people how between both under "
+    "result increase decrease patients blood pressure effects during anesthesia dose cause "
+    "use administration heart rate cardiac renal hepatic respiratory arterial venous"
+).split())
+
+# Ligatures some fonts encode as single codepoints -> ASCII equivalents.
+_LIGATURES = {0xFB00: "ff", 0xFB01: "fi", 0xFB02: "fl", 0xFB03: "ffi",
+              0xFB04: "ffl", 0xFB05: "ft", 0xFB06: "st"}
+
+# Figure-caption openers across common textbook styles + a few non-English forms,
+# so figure capture isn't limited to English "Fig./Figure".
+_FIG_CAPTION_RE = re.compile(
+    r"^(?:Fig(?:ure)?\b\.?|Abb\b\.?|Figura\b|Scheme\b|Plate\b|Chart\b|Box\b|Exhibit\b)",
+    re.IGNORECASE)
+
+_TABLE_CAPTION_RE = re.compile(r"\bTab(?:le|\.)\s*\d", re.IGNORECASE)
+
+def page_has_table_signal(raw_blocks, drawings, page_w):
+    """Is a real table plausible on this page? Real data tables carry a 'Table N'
+    caption or ruling lines; prose/figure pages have neither. `find_tables()` is by
+    far the most expensive per-page call (~75% of parse time) and it also invents
+    false 'tables' from dense 2-column prose — so we only run it where this cheap
+    predicate says a table is plausible. Kept deliberately permissive (2 ruling
+    marks) so borderline real tables are not skipped."""
+    for b in raw_blocks:
+        if b[6] == 0 and _TABLE_CAPTION_RE.search(b[4] or ""):
+            return True
+    ruled = 0
+    for d in drawings or []:
+        for it in d.get("items", []):
+            if it[0] == "l":
+                p1, p2 = it[1], it[2]
+                if abs(p1.y - p2.y) < 1.5 and abs(p1.x - p2.x) > page_w * 0.2:
+                    ruled += 1
+            elif it[0] == "re":
+                r = it[1]
+                if r.width > page_w * 0.2 and r.height > 4:
+                    ruled += 1
+            if ruled >= 2:
+                return True
+    return False
+
+def clean_text(s):
+    """Normalize extracted text for fidelity, WITHOUT reordering or dropping words:
+      - Unicode NFC (canonical form) + expand ﬁ/ﬂ-style ligatures,
+      - repair soft line-break hyphenation ("anes-\\nthetics" -> "anesthetics").
+    De-hyphenation only fires on lowercase-hyphen-newline-lowercase, the syllable-
+    break pattern; a hyphen followed by a capital or digit (real compound / range)
+    is left intact."""
+    if not s:
+        return s
+    s = unicodedata.normalize("NFC", s).translate(_LIGATURES)
+    s = re.sub(r"([a-z])-\n[ \t]*([a-z])", r"\1\2", s)
+    return s
+
+# A superscript that is clearly a citation/footnote marker: 2+ digits, or
+# comma/dash-joined digit groups ("28,29"). Single digits are left alone so
+# exponents/units ("cm2", "m2") and chemistry ("CO2") are never broken.
+_SUPERSCRIPT_CITATION_RE = re.compile(r"^\d{2,}$|^\d+(?:[,–-]\d+)+$")
+
+def superscript_separated_block_texts(page):
+    """Map block-number -> text with citation superscripts separated from the word
+    they were glued to ('movement28,29' -> 'movement 28,29'), so tokens/search stay
+    clean. Uses the PyMuPDF superscript span flag; only multi-digit/comma markers are
+    touched. Returns {} on any failure (caller then keeps the original block text)."""
+    out = {}
+    try:
+        dd = page.get_text("dict")
+    except Exception:
+        return out
+    for b in dd.get("blocks", []):
+        if b.get("type", 0) != 0:
+            continue
+        line_texts = []
+        for l in b.get("lines", []):
+            buf = ""
+            for s in l.get("spans", []):
+                t = s.get("text", "")
+                if (s.get("flags", 0) & 1) and buf and buf[-1] not in " \t" \
+                        and _SUPERSCRIPT_CITATION_RE.match(t.strip()):
+                    buf += " " + t
+                else:
+                    buf += t
+            line_texts.append(buf)
+        out[b.get("number")] = "\n".join(line_texts)
+    return out
+
+def _furniture_sig(s):
+    """Normalize a candidate header/footer line so page numbers vary but the
+    template matches: 'SECTION II • Physiology 491' -> 'sectioniiphysiology'."""
+    return re.sub(r"[^a-z]", "", s.lower())
+
+def detect_running_furniture(doc):
+    """Find running headers/footers: text lines that recur near the top or bottom
+    margin on many pages (page-number digits ignored), so this print furniture never
+    pollutes the prose or the knowledge DB.
+
+    Returns (furniture_signatures, blocks_by_page): the raw get_text('blocks') result
+    for every page is cached and returned so the main pass reuses it instead of
+    re-extracting (blocks were otherwise extracted twice per page)."""
+    from collections import Counter
+    top, bot = Counter(), Counter()
+    npages = len(doc)
+    blocks_by_page = []
+    for page in doc:
+        h = page.rect.height or 1
+        try:
+            raw = page.get_text("blocks")
+        except Exception:
+            raw = []
+        blocks_by_page.append(raw)
+        for b in raw:
+            if b[6] != 0 or not b[4].strip():
+                continue
+            first = b[4].strip().split("\n")[0].strip()
+            sig = _furniture_sig(first)
+            if len(sig) < 3:
+                continue
+            if b[3] < h * 0.12:
+                top[sig] += 1
+            elif b[1] > h * 0.88:
+                bot[sig] += 1
+    thresh = max(3, int(npages * 0.3))
+    furniture = {s for s, c in top.items() if c >= thresh} | {s for s, c in bot.items() if c >= thresh}
+    return furniture, blocks_by_page
+
+def is_furniture_block(b, page_h, furniture):
+    """A block is print furniture if it's a bare page number, or a known running
+    header/footer signature sitting in the top/bottom margin."""
+    text = b[4].strip()
+    if re.fullmatch(r"\d{1,4}", text):
+        return True
+    sig = _furniture_sig(text.split("\n")[0].strip())
+    if sig in furniture and (b[3] < page_h * 0.12 or b[1] > page_h * 0.88):
+        return True
+    return False
+
+def page_needs_ocr(page):
+    """Per-PAGE decision (not per-document): OCR a page only when its native text
+    layer is empty/sparse OR is CID-garbled gibberish. This handles hybrid PDFs
+    (some real-text pages, some scanned) that a single per-document flag mishandles
+    — and recovers pages whose fonts have no usable ToUnicode map."""
+    try:
+        txt = page.get_text().strip()
+    except Exception:
+        return True
+    if len(txt) < 30:
+        return True  # effectively no text layer on this page
+    toks = re.findall(r"[A-Za-z]+", txt)
+    if len(toks) > 40:
+        eng = sum(1 for t in toks if t.lower() in _COMMON_WORDS) / len(toks)
+        if eng < 0.08:
+            return True  # decodes to gibberish -> OCR the rendered image instead
+    return False
+
+def compute_quality_metrics(fragments):
+    """Cheap, deterministic text-quality signals so a bad parse is never silent.
+    Operates on the already-extracted text; never changes it."""
+    text = "\n".join(f.get("rawText", "") or "" for f in fragments)
+    n = len(text) or 1
+    pages = len(fragments) or 1
+    total_chars = sum(f.get("characterCount", 0) for f in fragments)
+    empty = sum(1 for f in fragments if f.get("characterCount", 0) == 0)
+    low = sum(1 for f in fragments if 0 < f.get("characterCount", 0) < 150)
+    nonascii = sum(1 for c in text if ord(c) > 127)
+    repl = text.count("�")
+    toks = re.findall(r"[A-Za-z]+", text)
+    low_toks = [t.lower() for t in toks]
+    eng = (sum(1 for t in low_toks if t in _COMMON_WORDS) / len(low_toks)) if low_toks else 0.0
+    longtok = (sum(1 for t in toks if len(t) > 22) / len(toks)) if toks else 0.0
+    cpp = total_chars / pages
+    flags = []
+    if total_chars == 0:
+        flags.append("NO_TEXT")
+    elif cpp < 400:
+        flags.append("LOW_TEXT")
+    if eng < 0.15 and len(toks) > 200:
+        flags.append("GARBLED_OR_NON_ENGLISH")
+    if nonascii / n > 0.08:
+        flags.append("HIGH_NONASCII")
+    if repl > 0:
+        flags.append("DECODE_ERRORS")
+    if longtok > 0.03:
+        flags.append("RUN_TOGETHER_WORDS")
+    if empty > pages * 0.25:
+        flags.append("MANY_EMPTY_PAGES")
+    critical = {"NO_TEXT", "GARBLED_OR_NON_ENGLISH", "DECODE_ERRORS"}
+    return {
+        "pages": pages,
+        "total_characters": total_chars,
+        "chars_per_page": round(cpp, 1),
+        "empty_pages": empty,
+        "low_text_pages": low,
+        "english_word_ratio": round(eng, 3),
+        "nonascii_pct": round(100 * nonascii / n, 2),
+        "replacement_chars": repl,
+        "run_together_pct": round(100 * longtok, 2),
+        "flags": flags,
+        "ok": not any(f in critical for f in flags),
+    }
+
 def extract_pdf(file_path):
     doc = fitz.open(file_path)
     source_file = os.path.basename(file_path)
-    
-    # Check if PDF requires OCR
-    total_chars = 0
-    for page in doc:
-        total_chars += len(page.get_text().strip())
-    is_scanned = (total_chars < 150 * len(doc))
-    
+
+    # Encrypted/permission-locked PDFs: an empty password unlocks the common
+    # "owner-permissions only" case; a real user password can't be recovered, so
+    # warn explicitly instead of silently returning empty text.
+    enc_warning = None
+    if getattr(doc, "is_encrypted", False):
+        try:
+            authed = doc.authenticate("")
+        except Exception:
+            authed = 0
+        if not authed:
+            enc_warning = ("PDF is encrypted/password-protected and could not be opened without a "
+                           "password — no text can be extracted. Provide a decrypted copy.")
+
+    # Whether a page uses OCR is decided PER PAGE below (see page_needs_ocr),
+    # so hybrid PDFs (mixed real-text and scanned pages) are handled correctly.
+    running_furniture, blocks_by_page = detect_running_furniture(doc)
+
     fragments = []
     visual_data_engines = []
     warnings = []
+    if enc_warning:
+        warnings.append(enc_warning)
     
     try:
         if doc.is_repaired:
@@ -823,17 +1272,21 @@ def extract_pdf(file_path):
         raw_text = ""
         sections = []
         word_bounding_boxes = []
-        
-        if is_scanned:
+
+        if page_needs_ocr(page):
             try:
                 pix = page.get_pixmap(dpi=300)
                 img_data = pix.tobytes("png")
                 from io import BytesIO
                 img = Image.open(BytesIO(img_data))
                 
-                lang = 'eng_best' if os.path.exists('/opt/homebrew/share/tessdata/eng_best.traineddata') else 'eng'
-                custom_config = f'--oem 1 --psm 6 -l {lang}'
-                
+                # OCR language is configurable for non-English books (OCR_LANG,
+                # e.g. "deu" or "eng+deu"); psm 3 = automatic page segmentation so
+                # Tesseract detects columns/layout instead of reading straight across.
+                lang = os.environ.get('OCR_LANG') or (
+                    'eng_best' if os.path.exists('/opt/homebrew/share/tessdata/eng_best.traineddata') else 'eng')
+                custom_config = f'--oem 1 --psm 3 -l {lang}'
+
                 # Word coordinates via OCR
                 data = pytesseract.image_to_data(img, config=custom_config, output_type=pytesseract.Output.DICT)
                 raw_text_parts = []
@@ -857,7 +1310,7 @@ def extract_pdf(file_path):
                             "bbox": [x0, y0, x1, y1]
                         })
                         raw_text_parts.append(word)
-                raw_text = " ".join(raw_text_parts)
+                raw_text = clean_text(" ".join(raw_text_parts))
 
                 try:
                     scanned_figs = extract_figures_from_scanned_page(
@@ -878,8 +1331,13 @@ def extract_pdf(file_path):
                     "bbox": [round(w[0], 1), round(w[1], 1), round(w[2], 1), round(w[3], 1)]
                 })
 
-            raw_blocks = page.get_text("blocks")
-            raw_blocks = sorted(raw_blocks, key=lambda b: (b[1], b[0]))
+            # Reuse blocks already extracted during the furniture pre-pass.
+            raw_blocks = sorted(blocks_by_page[page_idx], key=lambda b: (b[1], b[0]))
+
+            # Drawings computed once here (reused by figure extraction below via the
+            # _page_drawings_cache) and used to decide whether the costly find_tables()
+            # is even worth running on this page.
+            page_drawings = page.get_drawings()
 
             # --- Native table detection (deterministic: vector ruling lines /
             # whitespace gaps, no OCR involved) runs BEFORE the flowing-text pass,
@@ -897,9 +1355,12 @@ def extract_pdf(file_path):
             # that overlaps an embedded image (diagrams, not tables, live there). ---
             images_for_table_filter = page.get_image_info(xrefs=True)
             table_rects = []
+            # Only run the expensive find_tables() where a table is actually plausible.
             try:
-                table_finder = page.find_tables()
-                for t_idx, table in enumerate(table_finder.tables):
+                table_finder = (page.find_tables()
+                                if page_has_table_signal(raw_blocks, page_drawings, page.rect.width)
+                                else None)
+                for t_idx, table in enumerate(table_finder.tables if table_finder else []):
                     try:
                         extracted_rows = table.extract()
                     except Exception:
@@ -907,7 +1368,8 @@ def extract_pdf(file_path):
                     if len(extracted_rows) < 2:
                         continue
 
-                    rows = [[(cell or '').strip() for cell in row] for row in extracted_rows]
+                    # Clean cell text (NFC/ligatures/de-hyphenation) for table fidelity.
+                    rows = [[clean_text(cell or '').strip() for cell in row] for row in extracted_rows]
                     headers = rows[0]
 
                     total_cells = sum(len(r) for r in rows)
@@ -921,11 +1383,15 @@ def extract_pdf(file_path):
                     )
                     if fill_ratio < 0.35 or max_cell_len > 200 or overlaps_image:
                         continue
-                    markdown_table = "| " + " | ".join(headers) + " |\n"
+                    # A stray "|" or newline inside a cell would corrupt the Markdown
+                    # table (shifting/merging columns downstream) — make cells safe.
+                    def _md_cell(c):
+                        return c.replace("\n", " ").replace("|", "\\|").strip()
+                    markdown_table = "| " + " | ".join(_md_cell(h) for h in headers) + " |\n"
                     markdown_table += "| " + " | ".join(["---"] * len(headers)) + " |\n"
                     for row in rows[1:]:
                         padded = list(row) + [''] * (len(headers) - len(row))
-                        markdown_table += "| " + " | ".join(padded[:len(headers)]) + " |\n"
+                        markdown_table += "| " + " | ".join(_md_cell(x) for x in padded[:len(headers)]) + " |\n"
 
                     t_rect = fitz.Rect(table.bbox)
                     table_rects.append(t_rect)
@@ -955,21 +1421,34 @@ def extract_pdf(file_path):
             # Exclude any flowing-text block that's mostly inside a detected table —
             # otherwise the same content appears twice: once correctly structured
             # above, once flattened/garbled into linear paragraph text below.
+            _page_h = page.rect.height
             blocks = [
                 b for b in raw_blocks
                 if not (b[6] == 0 and any(rect_overlap_ratio(fitz.Rect(b[:4]), tr) > 0.5 for tr in table_rects))
+                and not (b[6] == 0 and is_furniture_block(b, _page_h, running_furniture))
             ]
+
+            # Re-order into true reading order (whole left column, then whole
+            # right column) so a two-column page is not interleaved. The raw
+            # (y, x) sort above is kept for table geometry; text/sections below
+            # must follow human reading order instead.
+            blocks = order_blocks_reading_order(blocks, page.rect.width)
+
+            # Per-block text with citation superscripts separated (keyed by block
+            # number); .get() falls back to the original text if unavailable.
+            super_texts = superscript_separated_block_texts(page)
+            block_text = lambda b: clean_text(super_texts.get(b[5], b[4]))
 
             text_parts = []
             captions = []
 
             for idx, block in enumerate(blocks):
                 if block[6] == 0:
-                    text = block[4].strip()
+                    text = block_text(block).strip()
                     if not text:
                         continue
                     text_parts.append(text)
-                    if re.match(r'^(?:Fig\b\.|Figure\b)', text, re.IGNORECASE):
+                    if _FIG_CAPTION_RE.match(text):
                         captions.append((idx, block, text))
 
             raw_text = "\n\n".join(text_parts)
@@ -978,7 +1457,7 @@ def extract_pdf(file_path):
             current_sec = None
             for idx, block in enumerate(blocks):
                 if block[6] == 0:
-                    text = block[4].strip()
+                    text = block_text(block).strip()
                     lines = [l.strip() for l in text.split('\n') if l.strip()]
                     if lines:
                         first_line = lines[0]
@@ -1010,7 +1489,8 @@ def extract_pdf(file_path):
             images = images_for_table_filter
             mid_x = page.rect.width / 2.0
 
-            _page_drawings_cache = []
+            # Reuse the drawings already fetched for the table-signal check above.
+            _page_drawings_cache = [page_drawings]
 
             def get_page_drawings():
                 if not _page_drawings_cache:
@@ -1094,6 +1574,8 @@ def extract_pdf(file_path):
                             # Rare fallback: e.g. a figure with no text layer at all
                             # (pure raster photo). OCR is the only option here.
                             text_bounding_boxes = cluster_ocr_phrases(out_path)
+                        # Drop page furniture (header/page number) that fell inside the crop.
+                        text_bounding_boxes = strip_furniture_phrases(text_bounding_boxes, running_furniture)
 
                         # Relationship tracing: prefer real vector-path geometry (exact
                         # connector wires + actual arrowhead direction) over pixel
@@ -1267,6 +1749,8 @@ def extract_pdf(file_path):
                             text_bounding_boxes = native_text_boxes_in_rect(page, rect)
                             if not text_bounding_boxes:
                                 text_bounding_boxes = cluster_ocr_phrases(out_path)
+                            # Drop page furniture (header/page number) that fell inside the crop.
+                            text_bounding_boxes = strip_furniture_phrases(text_bounding_boxes, running_furniture)
 
                             # Archetype classification by caption keyword
                             archetype = "COORDINATE X-Y GRAPHS & COMPLEMENTARY PANELS"
@@ -1321,6 +1805,13 @@ def extract_pdf(file_path):
                                         "labels": [b["text"].replace(" [uncertain]", "") for b in text_bounding_boxes]
                                     }
 
+                            # Attach deterministic axis/series structure for X-Y graphs
+                            # (exact from the text layer; never fabricated).
+                            if "COORDINATE" in (archetype or ""):
+                                gs = extract_graph_structure(text_bounding_boxes)
+                                if gs:
+                                    details = {**details, "graph_structure": gs}
+
                             visual_data_engines.append({
                                 "id": fig_id,
                                 "sourceFile": source_file,
@@ -1354,7 +1845,8 @@ def extract_pdf(file_path):
     return {
         "fragments": fragments,
         "visual_data_engines": visual_data_engines,
-        "warnings": warnings
+        "warnings": warnings,
+        "quality": compute_quality_metrics(fragments)
     }
 
 def extract_image(file_path):
@@ -1420,8 +1912,8 @@ def extract_image(file_path):
         shutil.copy(file_path, out_path)
     except Exception:
         pass
-        
-    text_bounding_boxes = cluster_ocr_phrases(out_path)
+
+    text_bounding_boxes = strip_furniture_phrases(cluster_ocr_phrases(out_path))
     
     visual_data_engines = [{
         "id": "FIG_IMAGE_FULL",
@@ -1446,7 +1938,8 @@ def extract_image(file_path):
     return {
         "fragments": fragments,
         "visual_data_engines": visual_data_engines,
-        "warnings": warnings
+        "warnings": warnings,
+        "quality": compute_quality_metrics(fragments)
     }
 
 def extract_pptx(file_path):

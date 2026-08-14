@@ -60,6 +60,13 @@ const BOOKS = {
     outPrefix: 'jaffe_chapter_',
     sourceLabel: "Jaffe's Anesthesiologist's Manual of Surgical Procedures, 6th Edition",
   },
+  morgan: {
+    aliases: ['morgan', 'mikhail', 'mm'],
+    filePrefix: 'Morgan_Mikhail_Chapter_',
+    fileSuffix: '.json',
+    outPrefix: 'morgan_chapter_',
+    sourceLabel: "Morgan & Mikhail's Clinical Anesthesiology",
+  },
 };
 
 function resolveBook(token) {
@@ -125,6 +132,9 @@ function cleanText(s) {
 }
 
 const RUNNING_HEADER_RE = /^SECTION\s+[IVXLC0-9]+\s*[•·\-–]/i;
+// A bare structural marker line, e.g. "CHAPTER 13" / "SECTION 7.0" — it opens a
+// chapter but is not itself a readable title (the real title is the next line).
+const MARKER_LINE_RE = /^(?:CHAPTER|SECTION)\s+\d+(?:\.\d+)?$/i;
 
 /** A line that is just a page number, or a known running header, or empty. */
 function isNoiseLine(line) {
@@ -158,6 +168,7 @@ function classifyHeading(rawHeading, dropSet) {
   if (!h) return 'inline';
   if (dropSet.has(h)) return 'noise';
   if (RUNNING_HEADER_RE.test(h)) return 'noise';
+  if (MARKER_LINE_RE.test(h)) return 'noise';
   if (isByline(h)) return 'noise';
 
   const letters = (h.match(/[A-Za-z]/g) || []).length;
@@ -206,6 +217,7 @@ function detectTitle(fragments, dropSet) {
     if (/^KEY POINTS$/i.test(h)) continue;
     if (RUNNING_HEADER_RE.test(h)) continue;
     if (/^SECTION\b/i.test(h)) continue; // e.g. "SECTION 7.0" — not a real title
+    if (MARKER_LINE_RE.test(h)) continue; // e.g. "CHAPTER 1" marker, not the title
     if (isByline(h)) continue;
     const words = h.split(/\s+/).filter(Boolean);
     const letters = (h.match(/[A-Za-z]/g) || []).length;

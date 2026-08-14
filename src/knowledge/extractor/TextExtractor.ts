@@ -26,7 +26,7 @@ export class TextExtractor {
    * Phase 1: Local-First Mandatory Layout Extraction
    * Runs completely offline and at maximum speed, extracting text layout and cropping figures locally.
    */
-  public extractLocal(filePath: string): { fragments: SourceFragment[], visual_data_engines: VisualDataEngine[], warnings: string[] } {
+  public extractLocal(filePath: string): { fragments: SourceFragment[], visual_data_engines: VisualDataEngine[], warnings: string[], quality?: any } {
     const ext = path.extname(filePath).toLowerCase();
     const fileName = path.basename(filePath);
 
@@ -77,7 +77,8 @@ export class TextExtractor {
         return {
           fragments: parsed.fragments || [],
           visual_data_engines: visualEngines,
-          warnings: parsed.warnings || []
+          warnings: parsed.warnings || [],
+          quality: parsed.quality
         };
       } catch (error: unknown) {
         const errMsg = error instanceof Error ? error.message : String(error);
@@ -114,6 +115,18 @@ export class TextExtractor {
         warnings.push(msg);
         enrichedEngines.push(engine);
         continue;
+      }
+
+      // Guardrailed (x,y) digitization for coordinate graphs that carry a
+      // deterministic calibration frame. Verified against the source ticks and
+      // flagged model_derived; attached alongside (never replacing) the structure.
+      // Computed OUTSIDE the try so it survives even if the generic image_visual
+      // enrichment below times out / errors for this figure.
+      const graphPoints = this.maybeExtractGraphPoints(engine);
+      if (graphPoints) {
+        // Space the two vision calls so the graph-points request doesn't crowd the
+        // generic enrichment call below into a rate-limit-induced timeout.
+        await new Promise(resolve => setTimeout(resolve, 1500));
       }
 
       try {
@@ -166,7 +179,8 @@ export class TextExtractor {
           // (including the modality tag) every time Phase 2 succeeds. StrategyRouter
           // already ran a deliberate classification pass; keep its archetype as
           // authoritative and only layer Gemini's richer per-figure details on top.
-          const mergedDetails = { ...(engine.details || {}), ...(enrichedData.details || {}) } as any;
+          const mergedDetails = { ...(engine.details || {}), ...(enrichedData.details || {}),
+            ...(graphPoints ? { graph_points: graphPoints } : {}) } as any;
           // Phase 2 actually looked at the pixels — if it populated a modality-specific
           // findings object, trust that over (or in place of) the caption-keyword guess.
           if (mergedDetails.ecg_findings && Object.values(mergedDetails.ecg_findings).some(v => v)) {
@@ -184,14 +198,19 @@ export class TextExtractor {
           const msg = `Phase 2 vision enrichment returned no data for ${engine.id} (provider: ${provider}). Figure retained with Phase 1 (unenriched) data only.`;
           console.warn(`  [VISION ENRICHER WARNING] ${msg}`);
           warnings.push(msg);
-          enrichedEngines.push(engine);
+          enrichedEngines.push(graphPoints
+            ? { ...engine, details: { ...(engine.details || {}), graph_points: graphPoints } }
+            : engine);
         }
       } catch (err: unknown) {
         const errMsg = err instanceof Error ? err.message : String(err);
         const msg = `Phase 2 vision enrichment failed for ${engine.id}: ${errMsg}. Figure retained with Phase 1 (unenriched) data only.`;
         console.error(`  [VISION ENRICHER ERROR] ${msg}`);
         warnings.push(msg);
-        enrichedEngines.push(engine);
+        // Keep any graph-point digitization that already succeeded before the failure.
+        enrichedEngines.push(graphPoints
+          ? { ...engine, details: { ...(engine.details || {}), graph_points: graphPoints } }
+          : engine);
       }
 
       // Throttle queue to prevent rate limit bottlenecks
@@ -202,6 +221,68 @@ export class TextExtractor {
     }
 
     return { engines: enrichedEngines, warnings };
+  }
+
+  /**
+   * Do the deterministic axis ticks appear in what the vision model claims to see?
+   * Returns null when there is nothing to verify against (no deterministic ticks on
+   * that axis), true/false otherwise. This is the anti-hallucination guardrail: the
+   * model's own reported ticks are checked against ticks read exactly from the source.
+   */
+  private verifyTicks(deterministic: number[] | undefined, seen: number[] | undefined): boolean | null {
+    if (!Array.isArray(deterministic) || deterministic.length < 2) return null;
+    if (!Array.isArray(seen) || seen.length < 2) return false;
+    const span = Math.max(...deterministic) - Math.min(...deterministic) || 1;
+    return deterministic.every(t => seen.some(v => typeof v === 'number' && Math.abs(v - t) < span * 0.02));
+  }
+
+  /**
+   * Vision digitization of an X-Y graph into (x,y) points, anchored to and VERIFIED
+   * against the deterministic axis calibration (details.graph_structure). Returns a
+   * flagged, confidence-scored object (never overwrites the deterministic structure,
+   * never promoted to engine rules) or null. Only runs for coordinate graphs that
+   * already have a deterministic calibration frame.
+   */
+  private maybeExtractGraphPoints(engine: VisualDataEngine): any | null {
+    const gs = (engine.details as Record<string, any> | undefined)?.graph_structure;
+    if (!gs) return null;
+    if (!engine.image_path || !fs.existsSync(engine.image_path)) return null;
+    try {
+      const scriptPath = path.resolve(dirname, 'multimodal_extract.py');
+      const cal = JSON.stringify({ x_axis: gs.x_axis, y_axis: gs.y_axis });
+      const result = execSync(
+        `python3 ${JSON.stringify(scriptPath)} graph_points ${JSON.stringify(engine.image_path)} ${JSON.stringify(cal)}`,
+        { encoding: 'utf-8', maxBuffer: 100 * 1024 * 1024, timeout: 120000,
+          env: { ...process.env, PATH: `/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${process.env.PATH || ''}` } }
+      );
+      const parsed = JSON.parse(result.trim());
+      const gp = parsed.graph_points;
+      if (!gp || gp.error || !Array.isArray(gp.series) || gp.series.length === 0) return null;
+      const xMatch = this.verifyTicks(gs.x_axis?.ticks, gp.x_axis?.ticks_seen);
+      const yMatch = this.verifyTicks(gs.y_axis?.ticks, gp.y_axis?.ticks_seen);
+      const checks = [xMatch, yMatch].filter(v => v !== null) as boolean[];
+      const verified = checks.length > 0 && checks.every(Boolean);
+      const contradicted = checks.some(v => v === false);
+      let confidence: string;
+      if (verified && gp.readability === 'clear') confidence = 'high';
+      else if (verified) confidence = 'medium';
+      else if (!contradicted && gp.readability !== 'poor') confidence = 'medium';
+      else confidence = 'low';
+      return this.sanitizeVisionStrings({
+        series: gp.series,
+        x_axis: gp.x_axis,
+        y_axis: gp.y_axis,
+        readability: gp.readability,
+        model_derived: true,
+        model: parsed.model || 'gemini',
+        verification: { x_ticks_match: xMatch, y_ticks_match: yMatch, verified },
+        confidence,
+      });
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      console.warn(`  [GRAPH POINTS WARNING] digitization failed for ${engine.id}: ${errMsg}`);
+      return null;
+    }
   }
 
   /**
