@@ -20,7 +20,10 @@ const VERIFIED: Law[] = [
   // Inotrope/chronotrope -> cardiac output / heart rate:
   { name: 'epinephrine->CO up', mutate: (s) => giveMed(s, 'epinephrine', 100, { unit: 'mcg' }), key: 'co', direction: 'up', minDelta: 0.3, steps: 40 },
   { name: 'dopamine->CO up', mutate: (s) => giveMed(s, 'dopamine', 10, { unit: 'mcg/kg/min', type: 'Infusion' }), key: 'co', direction: 'up', minDelta: 0.05, steps: 300 },
-  { name: 'dobutamine->HR up', mutate: (s) => giveMed(s, 'dobutamine', 10, { unit: 'mcg/kg/min', type: 'Infusion' }), key: 'hr', direction: 'up', minDelta: 5, steps: 200 },
+  { name: 'dobutamine->HR up', mutate: (s) => giveMed(s, 'dobutamine', 10, { unit: 'mcg/kg/min', type: 'Infusion' }), key: 'hr', direction: 'up', minDelta: 5, steps: 300 },
+  // F24 fix (dobutamine now RAISES cardiac output — bounded inotropy + partial SVR support so the reflex
+  // tachycardia no longer collapses stroke volume; previously it paradoxically LOWERED CO):
+  { name: 'dobutamine->CO up (F24 fix)', mutate: (s) => giveMed(s, 'dobutamine', 10, { unit: 'mcg/kg/min', type: 'Infusion' }), key: 'co', direction: 'up', minDelta: 0.1, steps: 300 },
   // Glucose homeostasis:
   { name: 'dextrose->glucose up (F23 fix)', mutate: (s) => giveMed(s, 'dextrose', 25, { unit: 'g' }), key: 'glucose', direction: 'up', minDelta: 5, steps: 200 },
   { name: 'insulin->glucose down', mutate: (s) => giveMed(s, 'regularInsulin', 10, { unit: 'units' }), key: 'glucose', direction: 'down', minDelta: 3, steps: 200 },

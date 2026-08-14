@@ -5918,6 +5918,20 @@ export function runPhysicsStep(__ctx) {
           const magHrIndex = Math.min(1.0, (magnesiumForHr ? magnesiumForHr.Ce : 0) * 0.16); // dose-graded: neutral at therapeutic, deepening toward frank hypermagnesemia
           totalHrDelta -= 52 * magHrIndex;
 
+          // F24: dobutamine & milrinone are INOTROPES but carry no receptor-coupling coMultiplier, so only
+          // their chronotropy + β2/PDE3 vasodilation applied — dobutamine dropped BP, the baroreflex drove
+          // runaway tachycardia (HR +40-50), diastolic filling collapsed, SV fell and CO PARADOXICALLY
+          // dropped (a low-CO rescue drug that lowered CO). Fix pairs a BOUNDED contractility boost with
+          // partial support of the modeled SVR drop: keeping MAP up is what tempers the reflex tachycardia
+          // and prevents the SV-collapse spiral a contractility boost ALONE produced (its earlier tail
+          // instability). Indices saturate (Ce/(Ce+c50)) so the effect can't run away at high infusion Ce.
+          const dobutamineForIno = (st.activeMeds || []).find(m => m.name === 'Dobutamine');
+          const milrinoneForIno = (st.activeMeds || []).find(m => m.name === 'Milrinone');
+          const dobuInoFrac = dobutamineForIno ? dobutamineForIno.Ce / (dobutamineForIno.Ce + 0.12) : 0; // c50 0.12
+          const milInoFrac = milrinoneForIno ? milrinoneForIno.Ce / (milrinoneForIno.Ce + 0.10) : 0;      // c50 0.10
+          drugInotropyMod *= (1 + 0.45 * dobuInoFrac + 0.50 * milInoFrac); // +contractility -> +SV/CO
+          drugSvrMod *= (1 + 0.17 * dobuInoFrac); // partly offset the excessive β2 SVR drop -> MAP holds -> reflex self-limits (also keeps high-dose stable)
+
           // 5. CardiovascularEngine Tick
           const cvOutput = CardiovascularEngine.tick(1, {
               patient: {
