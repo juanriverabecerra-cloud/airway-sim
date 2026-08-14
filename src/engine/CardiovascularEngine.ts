@@ -266,6 +266,28 @@ export class CardiovascularEngine {
     // that would erase the opioid's own bradycardia. Scaled like the volatile-MAC blunting above.
     const opioidOcc = typeof (patient as any).__opioidCvOccupancy === 'number' && Number.isFinite((patient as any).__opioidCvOccupancy) ? Math.max(0, Math.min(1, (patient as any).__opioidCvOccupancy)) : 0;
     baroreflexGain *= Math.max(0.2, 1.0 - 0.8 * opioidOcc);
+    // F33: NEURAXIAL (epidural/spinal) sympathetic block. The sympathectomy that CAUSES neuraxial
+    // hypotension (splanchnic venous pooling → reduced preload, computed below) ALSO removes the
+    // sympathetic efferents that would compensate — so the hypotension must NOT be answered by a big
+    // reflex tachycardia (the sim previously produced a spurious ~+50 bpm). And a HIGH block reaching the
+    // cardiac accelerator fibers (T1–T4) removes sympathetic drive to the heart → BRADYCARDIA (the classic
+    // high-spinal sign / Bezold-Jarisch response to an underfilled heart). Blunt the reflex gain by the
+    // overall sympathetic block, and add a direct bradycardia scaled by cardiac-accelerator coverage.
+    // A neuraxial block silences the sympathetic chain from the injection site UP to its cephalad
+    // extent, and EVERYTHING BELOW is sympathectomized — so severity scales with how high the block
+    // reaches (a T4 block > T8 > T10), not with a symmetric ±window. Dermatome numbering: T1≈1 … L2≈14.
+    let neuraxialSympBlock = 0;    // fraction of the T1–L2 sympathetic outflow blocked
+    let neuraxialCardiacBlock = 0; // fraction of the T1–T4 cardiac accelerators blocked
+    if (patient.celiacBlockActive) {
+      neuraxialSympBlock = 1.0; // complete splanchnic sympathectomy
+    } else if (patient.epiduralBlockActive) {
+      const cephaladExtent = (typeof patient.epiduralLevel === 'number' && Number.isFinite(patient.epiduralLevel))
+        ? patient.epiduralLevel - 4 : 1; // most-cephalad dermatome reached (spread ~4 above the catheter)
+      neuraxialSympBlock = Math.max(0, Math.min(1, (14 - cephaladExtent) / 13)); // everything from cephalad extent → L2
+      neuraxialCardiacBlock = cephaladExtent <= 4 ? Math.max(0, Math.min(1, (5 - cephaladExtent) / 4)) : 0; // reaches T1–T4?
+    }
+    baroreflexGain *= Math.max(0.12, 1.0 - 0.85 * neuraxialSympBlock);
+    totalHrDelta -= 22 * neuraxialCardiacBlock;
     if (patient.isAwarenessActive) {
       baroreflexGain = 0; // Overridden by central sympathetic surge during awareness crisis
     }
@@ -328,7 +350,11 @@ export class CardiovascularEngine {
     const epiduralSplanchnicCoverage = calculateDifferentialDermatomalBlock(
       epiduralSpatialCoverage, 'sympathetic', patient.epiduralConcentrationIndex
     );
-    const sympatheticBlock = patient.celiacBlockActive ? 1.0 : epiduralSplanchnicCoverage;
+    // F33: a HIGH block sympathectomizes the whole chain below it — its venodilation/pooling is at least
+    // as severe as a mid-thoracic block, even though the symmetric ±window `epiduralSplanchnicCoverage`
+    // above under-counts it (the window rides ABOVE the splanchnic bed). Floor the splanchnic pooling at
+    // the cephalad-downward sympathetic-block fraction so a high (e.g. T4) block causes real hypotension.
+    const sympatheticBlock = patient.celiacBlockActive ? 1.0 : Math.max(epiduralSplanchnicCoverage, 0.85 * neuraxialSympBlock);
     const hasNeoSynephrine = inputs.activeMeds.some(m => m.name === 'Phenylephrine' && m.A1 > 0.1);
     const hasNorepi = inputs.activeMeds.some(m => m.name === 'Norepinephrine' && m.A1 > 0.1);
     const hasEpi = inputs.activeMeds.some(m => m.name === 'Epinephrine' && m.A1 > 0.1);
