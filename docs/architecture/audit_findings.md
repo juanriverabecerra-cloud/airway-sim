@@ -31,6 +31,17 @@ Concrete bugs and fidelity issues surfaced by the Layer 1–6 audit initiative
   reversal agents) have no `pd` hemodynamics by design; their key effects (glucose, reversal, TOF, BIS)
   are covered by the dedicated direction-law batteries.
 
+**Access-line delivery gating audit (L2, `access_line_gating_ch2.test.ts`):** all correct, no findings —
+no-access and blown lines reject delivery; an ARTERIAL line triggers the intra-arterial injury pathway
+(barbiturate crystal precipitation / generic vasospasm); PIV/CVC/IO all deliver; central-preferred
+drugs (norepinephrine, calcium) deliver via a PIV but warn (extravasation/phlebitis).
+
+**Instrument/waveform consistency audit (L2, `instrument_consistency_ch2.test.ts`):** capnography
+(EtCO₂↔ventilation, EtCO₂<PaCO₂ gradient), the oxyhemoglobin dissociation curve (SpO₂ tracks PaO₂
+sigmoidally — flat >90, steep <60), dynamic preload indices (SVV/PPV rise with hypovolemia under
+mechanical ventilation), and TOF (count+ratio collapse under deep block) all track physiology. FiO₂ is
+correctly driven by the fresh-gas mixture (anesthesia-machine model), not a vent dial. One finding: **F30**.
+
 ### Findings surfaced by the EXHAUSTIVE metamorphic battery (L2)
 | # | Finding | Severity | Status |
 |---|---------|----------|--------|
@@ -63,3 +74,4 @@ Concrete bugs and fidelity issues surfaced by the Layer 1–6 audit initiative
 
 | Hb | **Two divergent Hb values in one tick + no observable Hb** — the dynamic bleed/transfusion-adjusted `currentHb` was derived from a HARDCODED `baseHb = trauma ? 11.2 : 14.5` (ignoring an anemic `patient.hemoglobin`) and fed to the late CV/O₂ engines + MAC, while the early-tick engines (PerioperativeMI/MassiveTransfusion/CPB/SickleCell) read the STATIC `patient.hemoglobin||14`. During bleeding/transfusion the two diverged; an anemic baseline was silently ignored by O₂ delivery; and there was no queryable Hb. | Med (fidelity) | ✅ **Fixed (L2):** (1) `baseHb` now seeds from `patient.hemoglobin` when the case sets it (stable baseline, no dilution feedback) else the default; (2) expose the live `currentHb` as observable `patient.currentHemoglobin` (display mirror only — deliberately NOT written back to `hemoglobin`); (3) the `currentHb` early consumers now read the live value (`currentHemoglobin ?? hemoglobin`), CKD's `baselineHb` left alone. Verified: PRBC→Hgb↑, anemic case (hemoglobin=8) respected; full suite green. Note: hemorrhage of whole blood correctly does NOT change Hb *concentration* (RBCs+plasma lost proportionally) until crystalloid dilutes it — verified, not a bug. |
 | F29 | **A handful of niche drugs' declared `pd` effects are weak/unwired** (effect census) — methylphenidate & albuterol → HR barely moves; enalaprilat → MAP (ACE-I acute effect genuinely modest in a euvolemic patient); methylergonovine → MAP (uterotonic hypertension, OB-niche); morphine → MAP rose slightly instead of the histamine-mediated fall. | Low (fidelity, niche) | ⏳ **Open.** Documented; each needs its own c50/wiring provenance review (some are likely the same c50-scale error as F26). Deprioritized vs. mainline drugs. |
+| F30 | **A fully paralyzed/apneic patient displayed a nonzero (rising) respiratory rate** — flag-based apnea (paralysis / chest-wall rigidity / renarcotization) correctly zeroes the respiratory *drive*, but the pain/stress `ruleRrOffset` (large under severe hypoxia) is applied AFTER that zero (`targetRR = 0*scale + offset`) and the displayed `newRr` tracked it. So the RR monitor read up to ~23 on a TOF=0 patient while the capnograph correctly read EtCO₂=0 for the same tick — an internal contradiction. Surfaced by the instrument-consistency audit (apnea desaturation). Completes the F10 flag-apnea fix (which zeroed only the drive). | Med (fidelity) | ✅ **Fixed (L2):** force the monitored RR to 0 for flag-based apnea unless a machine/hand is ventilating (`!activeMechanicalVent && !isBMVActive`) — a paralyzed patient moves no air. Verified: paralyzed apnea now reads RR 0 throughout desaturation (SpO₂ 97→19), mechanically-ventilated patients still show the vent rate. Guarded by `instrument_consistency_ch2.test.ts`. |

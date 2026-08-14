@@ -1072,6 +1072,16 @@ export class RespiratoryEngine {
       newRr = 0;
     }
 
+    // F30: a flag-apneic patient (paralyzed / chest-wall rigid / renarcotized) moves NO air of their own,
+    // so the monitored respiratory rate must read 0 unless a machine or hand is breathing for them. The
+    // drive is already zeroed for these flags (patientDriveRR=0), but a large pain/stress `ruleRrOffset`
+    // under severe hypoxia leaks past it (targetRR = 0*scale + offset), which otherwise displays a
+    // paradoxical RISING RR on a fully paralyzed patient — contradicting the EtCO2=0 apnea reading the
+    // capnograph shows for the same tick. (Completes the F10 flag-apnea fix, which zeroed only the drive.)
+    if (flagBasedApnea && !activeMechanicalVent && !isBMVActiveVal) {
+      newRr = 0;
+    }
+
     const outVitals = {
       ...safeVitals,
       spo2: Math.round(newSpo2),
