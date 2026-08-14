@@ -2831,6 +2831,12 @@ export function runPhysicsStep(__ctx) {
           const safeRbcAdded = typeof fluidicsOutput.rbcVolumeAdded_mL === 'number' && Number.isFinite(fluidicsOutput.rbcVolumeAdded_mL) ? Math.max(0, fluidicsOutput.rbcVolumeAdded_mL) : 0;
           const cumulativePrbcVolML = Math.max(0, (st.patient.prbcVolumeReceivedMl || 0) + safeRbcAdded);
           st.patient.prbcVolumeReceivedMl = cumulativePrbcVolML; // persist for next tick
+          // F32: also stamp the fluidics snapshot that `finalPatient` spreads at tick end — this
+          // accumulation happens AFTER the snapshot at ~line 388, so without this it was lost on
+          // write-back every tick (an F28-class bug), leaving prbcVolumeReceivedMl frozen at 0. Result:
+          // an actual PRBC transfusion never raised Hb — it DILUTED it like saline (a transfusion that
+          // lowers the hemoglobin it's given to raise). Only a directly pre-set value ever survived.
+          patientAfterFluidics.prbcVolumeReceivedMl = cumulativePrbcVolML;
           const safeDilutingVol = Math.max(0, safeVolumeAdded - safeRbcAdded); // crystalloid/colloid only
 
           const initialHbMass = baseHb * (safeEbv / 100) * (1 - bloodLossRatio); // g: original Hb remaining

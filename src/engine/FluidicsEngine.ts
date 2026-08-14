@@ -226,7 +226,10 @@ export class FluidicsEngine {
         coagDelta.ma += (fluidData.coag.ma * unitEq);
         coagDelta.angle += (fluidData.coag.angle * unitEq);
         
-        if (fluidData.type === 'Blood Product') rbcVolumeAdded += infusedThisTick;
+        // F32: only RED-CELL-containing products add Hb mass. Gate on `hct` (present on PRBC/whole blood
+        // only) — FFP, platelets, cryoprecipitate and fibrinogen are "Blood Product" type but carry NO
+        // red cells, so counting them here would spuriously raise the hemoglobin they actually DILUTE.
+        if (fluidData.type === 'Blood Product' && typeof fluidData.hct === 'number' && fluidData.hct > 0) rbcVolumeAdded += infusedThisTick;
       }
       
       if (currentInfusion.remainingVolume <= 0) {
