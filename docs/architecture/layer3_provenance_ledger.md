@@ -40,10 +40,30 @@ means *either* c50 too high *or* Ce too low (PK). Triage below.
 | r_isoflurane, s_isoflurane, f3, l_cysteine, heparin, andexanet, fosaprepitant, gentamicin, pralidoxime, hydroxocobalamin | **Artifact/special** | Gas-agent enantiomers dosed as IV bolus in the sweep (not a real route); or non-hemodynamic agents. Not real dose-response bugs. |
 
 **Phase 3A.2 conclusion:** the sweep is validated (it re-flags the known F26/F29/F25 class and surfaces
-**alfentanil + sufentanil** as new opioid PK/PD candidates). The dominant lesson — consistent with the F9
+**alfentanil + sufentanil** as new opioid candidates). The dominant lesson — consistent with the F9
 discipline — is that a low Hill fraction is frequently *correct* (non-hemodynamic drug, or effect
 special-wired, or induction agent at full effect), so each flag is graded individually, not batch-fixed.
-The opioid candidates are carried to **3A.3 (PK sweep)** to attribute c50-vs-PK before any fix.
 
-_Next: 3A.3 PK time-constant sweep (t½ from k10, t_peak from ke0, Vdss) — disambiguates the inert opioids
-and grades the PK block that this c50 sweep cannot see._
+## Phase 3A.3 — PK derived-quantity sweep + the finding it exposed (F34)
+
+Static sweep (no sim) computing, per drug: elimination t½=ln2/k10, time-to-peak-effect from ke0/k10,
+Vdss=V1+V2+V3, CL=k10·V1, and Cp₀ per 1 mg. Diagnostic preserved at `scripts/layer3/pk_sweep.diagnostic.ts`.
+
+**F34 (High, FIXED) — the `mcg/kg` under-dose.** Cross-referencing the c50 sweep's "inert opioid" flags
+against the PK sweep resolved the paradox: alfentanil's `V1=7.8 L` means a real 25 mcg/kg bolus (1.75 mg
+for 70 kg) should give Cp₀ ≈ 224 ng/mL — therapeutic — yet the c50 sweep measured peak Ce = 1.7 ng/mL, a
+~130× gap. Not a PK-param error: the **dose was under-delivered**. `processMedCore`'s unit parser matched
+`'mcg'` before the `/kg` qualifier, so `'mcg/kg'` boluses dropped the weight factor (~70× under-dose).
+Fixed (F34) by matching `includes('mcg/kg')` first. So **alfentanil/sufentanil c50 were NOT bugs** — they
+were symptoms of F34; re-grade their c50/PK in 3B/3C once dosing is correct. This is the payoff of running
+the c50 and PK sweeps *together*.
+
+**Opioid PK first-pass grades (to verify against sources in 3B):** remifentanil (t½≈1min, tpeak≈1.8min —
+Minto; A−, t½ a touch short) · fentanyl (tpeak≈8.9min — Shafer; **B?**, published tpeak ~3.6min, ke0 may
+be too slow — 3B) · alfentanil (t½≈15min vs published ~90–110min — **B**, k10 too fast; 3B) · morphine
+(tpeak≈51min — **B?**, published ~20–30min; 3B) · propofol (t½≈2min, tpeak≈2.2min — Marsh/Schnider; A) ·
+lorazepam (tpeak≈43min — plausible for a slow benzo; verify). Full grading in Phase 3B.
+
+_Next: Phase 3B — PK audit by drug class, citing each param to its named model / Miller's-Morgan chapter,
+starting with the opioids (Shafer/Minto) whose PK the 3A.3 sweep already flags (fentanyl/alfentanil/morphine
+onset & elimination)._

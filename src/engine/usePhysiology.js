@@ -7923,7 +7923,13 @@ export function processMedCore(ctx, medId, doseInput, route, type, unit, lineId 
 
     const dosingWeight = resolveDosingWeight(medData, 'Bolus', currentPatient);
     const safeUnit = typeof unit === 'string' ? unit : '';
-    if (safeUnit.includes('mcg/kg/min')) doseInMg = (doseInMg * dosingWeight) / 1000;
+    // F34 (Layer 3): a weight-based microgram unit ('mcg/kg' or 'mcg/kg/min') MUST multiply by the dosing
+    // weight AND divide by 1000. The old order tested plain `includes('mcg')` before the `/kg` qualifier,
+    // so a 'mcg/kg' BOLUS (fentanyl 1–3 mcg/kg induction, alfentanil 25 mcg/kg, sufentanil, dexmed 1 mcg/kg
+    // load, etc.) fell into the flat-mcg branch and dropped the weight factor → a ~70× under-dose (a
+    // 2 mcg/kg fentanyl induction delivered 2 mcg total). Match the '/kg' form FIRST — `includes('mcg/kg')`
+    // covers both the per-min infusion and the bolus.
+    if (safeUnit.includes('mcg/kg')) doseInMg = (doseInMg * dosingWeight) / 1000;
     else if (safeUnit.includes('mcg')) doseInMg = doseInMg / 1000;
     else if (safeUnit.includes('mg/kg') || safeUnit.includes('mL/kg') || safeUnit.includes('ml/kg') || safeUnit.includes('mL/kg/min') || safeUnit.includes('ml/kg/min')) doseInMg = doseInMg * dosingWeight;
 
