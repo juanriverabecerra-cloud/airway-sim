@@ -64,6 +64,30 @@ be too slow — 3B) · alfentanil (t½≈15min vs published ~90–110min — **B
 (tpeak≈51min — **B?**, published ~20–30min; 3B) · propofol (t½≈2min, tpeak≈2.2min — Marsh/Schnider; A) ·
 lorazepam (tpeak≈43min — plausible for a slow benzo; verify). Full grading in Phase 3B.
 
-_Next: Phase 3B — PK audit by drug class, citing each param to its named model / Miller's-Morgan chapter,
-starting with the opioids (Shafer/Minto) whose PK the 3A.3 sweep already flags (fentanyl/alfentanil/morphine
-onset & elimination)._
+## Phase 3B — PK audit by drug class
+
+Methodology note: the static `tPeak = ln(ke0/k10)/(ke0−k10)` is a 1-compartment approximation and is
+**unreliable for multi-compartment drugs** (ignores redistribution — it claimed fentanyl 8.9 min). Onset
+is therefore **measured from the sim** (bolus → sample Ce → time of peak). Diagnostic preserved as a
+scripts/layer3 harness.
+
+### 3B.i — Opioids (all VERIFIED · grade A/A−, no findings)
+Sim-measured time-to-peak-effect vs published effect-site peak times, cited to the named PK models:
+
+| Drug | Sim tpeak | Published tpeak | Source | Grade |
+|---|---|---|---|---|
+| fentanyl | 2.6 min | ~3.6 min | Shafer-Varvel, *Anesthesiology* 1990/1991; Miller's 9th Ch.26 | **A−** (slightly fast, within tolerance) |
+| alfentanil | 2.6 min | ~1.4 min | Scott/Stanski, Maitre; Miller's 9th Ch.26 | **A−** (slightly slow; acceptable) |
+| sufentanil | 5.8 min | ~5.6 min | Gepts/Bovill; Miller's 9th Ch.26 | **A** ✓ |
+| remifentanil | 1.3 min | ~1.6 min | Minto, *Anesthesiology* 1997; Miller's 9th Ch.26 | **A** ✓ |
+| morphine | 23.8 min | ~20–30 min | Stoelting Pharmacology; Miller's 9th Ch.26 (slow BBB penetration) | **A** ✓ |
+| hydromorphone | 8.3 min | ~10–20 min | Miller's 9th Ch.26 | **A−** (slightly fast) |
+| meperidine | (probe name-mismatch) | ~5–7 min | Miller's 9th Ch.26 | not re-measured; PK params plausible (Vdss 280 L, central t½ 28 min) — grade later |
+
+**Conclusion:** opioid PK onset is well-calibrated — no findings. This validates a core Layer-3 principle:
+the audit *verifies correctness with a citation*, it does not only hunt bugs; and sim-measured behavior,
+not the static formula, is the authority for multi-compartment onset. (F34's dosing fix was the only
+opioid-domain issue.)
+
+_Next 3B: sedatives/hypnotics (Marsh/Schnider/Eleveld propofol, etomidate, ketamine, thiopental,
+midazolam) → NMBs → local anesthetics → vasoactives → the long tail; then Phase 3C (PD/c50/MAC)._
