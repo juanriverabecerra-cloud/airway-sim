@@ -144,5 +144,35 @@ Verified: toxic LA → LAST; therapeutic lidocaine → none; bupivacaine 50 mg �
 50 mg → CNS-only (textbook). This was the F32-class lesson again: a well-calibrated model reading the
 wrong input variable.
 
-_Next 3B: vasoactives/inotropes → antiarrhythmics → the long tail. Then Phase 3C (PD/c50/MAC) — where the
-F35 NMB occupancy-curve fix is best done alongside the NMB PD grading._
+### 3B.v — Vasoactives / inotropes (fast-acting PK VERIFIED grade A; long-acting duration = F37)
+PK offset t½ (=ln2/k10) + c50 + Emax, cited to Miller's Ch.14 (autonomic/cardiac pharmacology) + Stoelting:
+
+| Drug | t½ (sim) | Published | c50 grade | Verdict |
+|---|---|---|---|---|
+| epinephrine | 0.9 min | ~2 min | c50 0.002 (ng/mL scale) A | **A−** |
+| norepinephrine | 1.2 min | ~2 min | c50 0.001 (L2-corrected) A | **A** ✓ |
+| phenylephrine | 1.4 min | ~5 min | A | **A−** |
+| vasopressin | 6.9 min | ~10–20 min | A | **A−** |
+| dopamine | 1.7 min | ~2 min | A | **A** ✓ |
+| dobutamine | 1.4 min | ~2 min | c50 0.12 (L2) A | **A** ✓ |
+| isoproterenol | 4.6 min | ~2.5–5 min | c50 0.004 (F26-fixed) A | **A** ✓ |
+| angiotensin-II | 0.3 min | <1 min | A | **A** ✓ |
+| nitroprusside | 2.3 min | ~2 min | A | **A** ✓ |
+| nitroglycerin | 2.8 min | ~2–3 min | A | **A** ✓ |
+| clevidipine | 2.3 min | ~1 min (ultra-short) | A | **A** ✓ |
+| esmolol | 9.0 min | **~9 min** | A | **A** ✓ (exemplary) |
+| ephedrine | 14 min | elim 3–6 h, but **effect ~10–15 min** | A | **C** (models effect duration, disclosed) |
+| **metoprolol** | 35 min | effect 3–6 h | — | **F37** (too short) |
+| **atenolol** | 58 min | 6–9 h | — | **F37** |
+| **labetalol** | 99 min | 2–4 h | — | **F37** |
+| **phentolamine** | 4.6 min | ~15 min | — | **F37** |
+| **nifedipine** | 17 min | ~2 h | — | **F37** |
+| **milrinone** | 35 min | ~2.3 h | c50 0.1 | **F37** (+ F25 infusion coupling) |
+
+**Conclusion:** the fast-acting vasoactives — the ones that matter minute-to-minute intraop — are
+excellently calibrated (esmolol's 9 min is textbook). The long-acting bolus β-blockers/vasodilators wear
+off ~5–10× too fast (**F37**, deferred to a focused duration pass). Directions & magnitudes were already
+verified/corrected in L2 (F11/F16/F17–19/F24/F26).
+
+_Next 3B: antiarrhythmics/electrolytes → the long tail. Then Phase 3C (PD/c50/MAC + the F35 NMB
+occupancy-curve fix)._
