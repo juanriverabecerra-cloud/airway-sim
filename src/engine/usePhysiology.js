@@ -2281,22 +2281,15 @@ export function runPhysicsStep(__ctx) {
                   if (effects.group === 'Sedative') sedativeEff = 1 - (1 - sedativeEff) * (1 - effects.hypnoticEffect);
                   if (effects.group === 'Opioid') opioidEff = 1 - (1 - opioidEff) * (1 - effects.hypnoticEffect);
                   
-                  let occupancy = effects.receptorOccupancy;
-                  if (model.classes.includes('NDMR')) {
-                      occupancy = applyDisplacement(occupancy);
-                      if (st.patient.nAChR_state === 'downregulated' || (st.patient.age && st.patient.age < 2.0)) {
-                          occupancy = Math.min(1.0, occupancy * 2.0);
-                      } else if (st.patient.nAChR_state === 'upregulated') {
-                          occupancy = occupancy * 0.5;
-                      }
-                  } else if (model.classes.includes('Depolarizing NMBA')) {
-                      if (st.patient.nAChR_state === 'downregulated' || (st.patient.age && st.patient.age < 2.0)) {
-                          occupancy = occupancy * 0.5;
-                      } else if (st.patient.nAChR_state === 'upregulated') {
-                          occupancy = Math.min(1.0, occupancy * 1.5);
-                      }
-                  }
-                  if (occupancy > maxNMJOccupancy) maxNMJOccupancy = occupancy;
+                  // F35 (L3): NMJ occupancy is authoritatively computed per-drug below (the
+                  // rocOccupancy/suxOccupancy/... block), which encodes each agent's onset/potency
+                  // curve. The generic PKPD Hill fraction (effects.receptorOccupancy) used to ALSO
+                  // feed maxNMJOccupancy via a max(), silently overriding that per-drug calibration
+                  // for any agent whose raw Hill fraction ran higher — which is exactly why
+                  // succinylcholine reached TOF0 at ~5s (its low c50 saturates the Hill curve almost
+                  // instantly) regardless of the hand-tuned sux onset curve. All 9 NMBs have a
+                  // dedicated formula below, so this redundant second path is removed; the per-drug
+                  // block is now the single source of truth for maxNMJOccupancy.
               });
               
               drugSvrMod = Math.max(0.55, drugSvrMod);
@@ -2351,7 +2344,12 @@ export function runPhysicsStep(__ctx) {
           const mivacuriumCe = mivacuriumModel ? mivacuriumModel.Ce : 0;
 
           const rocCeEff = rocuroniumCe * potentiationMult;
-          let rocOccupancy = applyDisplacement(rocCeEff <= 0.15 ? (rocCeEff / 0.15) * 0.70 : 0.70 + Math.min(0.30, (rocCeEff - 0.15) * 0.5));
+          // F35 (L3): onset was ~3x too fast. Occupancy saturated at rocCeEff≈0.75 (~14% of the
+          // ~5.3 peak Ce), so complete block (TOF0) arrived at ~20s vs the clinical 60-90s for
+          // 0.6-0.9 mg/kg (Miller's Ch27; Naguib). Slope 0.5→0.125 and knee 0.15→0.4 push the
+          // 0.95-occupancy (TOF0) crossing out to Ce≈2.4 — reached at ~60-70s via ke0 — while
+          // still giving a deep block (occ>0.90) by 60s and full 1.0 occupancy at the ~5.3 peak.
+          let rocOccupancy = applyDisplacement(rocCeEff <= 0.4 ? (rocCeEff / 0.4) * 0.70 : 0.70 + Math.min(0.30, (rocCeEff - 0.4) * 0.125));
           if (st.patient.nAChR_state === 'downregulated' || (st.patient.age && st.patient.age < 2.0)) {
               rocOccupancy = Math.min(1.0, rocOccupancy * 2.0);
           } else if (st.patient.nAChR_state === 'upregulated') {
@@ -2377,7 +2375,12 @@ export function runPhysicsStep(__ctx) {
           }
           if (cisOccupancy > maxNMJOccupancy) maxNMJOccupancy = cisOccupancy;
 
-          let suxOccupancy = succinylcholineCe <= 0.08 ? (succinylcholineCe / 0.08) * 0.70 : 0.70 + Math.min(0.30, (succinylcholineCe - 0.08) * 1.0);
+          // F35 (L3): succinylcholine onset was ~10x too fast. Occupancy saturated at Ce≈0.4
+          // (~3% of the ~13 peak Ce), giving complete block (TOF0) at ~5s vs the clinical
+          // 30-60s for 1-1.5 mg/kg (Miller's Ch27; classic "45-60s to intubating conditions").
+          // Slope 1.0→0.02 pushes the 0.95-occupancy (TOF0) crossing out to Ce≈12.6, reached at
+          // ~40s via the fast sux ke0, preserving early fasciculation-phase twitch depression.
+          let suxOccupancy = succinylcholineCe <= 0.08 ? (succinylcholineCe / 0.08) * 0.70 : 0.70 + Math.min(0.30, (succinylcholineCe - 0.08) * 0.02);
           if (st.patient.nAChR_state === 'downregulated' || (st.patient.age && st.patient.age < 2.0)) {
               suxOccupancy = suxOccupancy * 0.5;
           } else if (st.patient.nAChR_state === 'upregulated') {

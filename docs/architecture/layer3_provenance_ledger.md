@@ -225,3 +225,29 @@ concentration variable (F36).
 
 _Next: Phase 3C — PD/c50/MAC audit by class (MAC values for volatiles; the c50/Emax the c50-sweep flagged;
 + execute the deferred F35 NMB-occupancy and F37 duration fixes here)._
+
+---
+
+## Phase 3C — PD / c50 / MAC audit by class
+
+### 3C.i — Volatile anesthetics: MAC + blood:gas + age adjustment (VERIFIED · grade A, exemplary)
+Every volatile PD constant checks out against published values (`Pharmacology.js` MAC block):
+- **MAC (vol%):** sevoflurane 2.05 (mac40), desflurane 6.0, isoflurane 1.15, halothane 0.75, enflurane,
+  N₂O 104, xenon 63, methoxyflurane 0.16, S-isoflurane 0.9 / R-isoflurane 1.8 (correct enantiomer split).
+  F6 sentinel 9999 (inert placeholder). All within the standard adult MAC table.
+- **Age adjustment:** `calculateAgeAdjustedMAC = m40 * 10^(-0.00269·(age−40))` — the exact Mapleson/Eger
+  formula (MAC falls ~6%/decade), grade A.
+- **MAC additivity:** per-gas `brainMac` summed (correct — MACs of co-administered volatiles + N₂O are
+  additive), and the effect-site partial pressures drive it. No finding.
+
+### 3C.ii — NMB occupancy → TOF onset (F35 FIXED)
+Executed the deferred F35 fix (see findings log). Two root causes fixed: (1) a **redundant dual occupancy
+path** — the generic PKPD Hill fraction (`PKPDEngine.ts:651`) fed `maxNMJOccupancy` via a `max()`
+(`usePhysiology.js:2299`) in parallel with the hand-tuned per-drug curves, silently overriding them for any
+agent whose raw Hill fraction ran higher (this is why sux hit TOF0 at ~5 s regardless of its curve). Removed
+it — all 9 NMBs have dedicated curves, now the single source of truth. (2) Re-sloped the roc/sux onset
+curves to track ke0. Result: roc TOF0 ~90 s, sux TOF0 ~45 s (clinical); other NMBs unchanged. Guard
+`nmb_onset_ch3.test.ts`; suite 1895/1895. The per-drug occupancy *breakpoints* (0.70/0.80/0.90/0.95 → TOF
+3/2/1/0) are internally consistent with `nmbds_ch27` (note: that test's inline mapping *replica* uses
+slightly different 0.85/0.80 breakpoints than the live 0.80/0.70 — a self-contained pure-logic replica, so
+it passes on its own copy; cosmetic doc drift, not a live bug).

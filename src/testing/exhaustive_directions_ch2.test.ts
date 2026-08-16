@@ -20,7 +20,9 @@ const VERIFIED: Law[] = [
   { name: 'nitroglycerin->MAP down', mutate: (s) => giveMed(s, 'nitroglycerin', 100, { unit: 'mcg' }), key: 'map', direction: 'down', minDelta: 3, steps: 30 },
   { name: 'hydralazine->MAP down', mutate: (s) => giveMed(s, 'hydralazine', 20, { unit: 'mg' }), key: 'map', direction: 'down', minDelta: 3, steps: 60 },
   { name: 'clevidipine->MAP down', mutate: (s) => giveMed(s, 'clevidipine', 4, { unit: 'mg' }), key: 'map', direction: 'down', minDelta: 3, steps: 40 },
-  { name: 'succinylcholine->TOF down', mutate: (s) => giveMed(s, 'succinylcholine', 100, { unit: 'mg' }), key: 'tofCount', direction: 'down', minDelta: 1, steps: 30 },
+  // F35 (L3): sux onset corrected from ~5s to a clinical ~45s (was saturating the Hill occupancy
+  // curve almost instantly); horizon 30→60 so the direction check lands after the corrected onset.
+  { name: 'succinylcholine->TOF down', mutate: (s) => giveMed(s, 'succinylcholine', 100, { unit: 'mg' }), key: 'tofCount', direction: 'down', minDelta: 1, steps: 60 },
   { name: 'cisatracurium->TOF down', mutate: (s) => giveMed(s, 'cisatracurium', 20, { unit: 'mg' }), key: 'tofCount', direction: 'down', minDelta: 1, steps: 90 },
   // F12 fix (pancuronium/mivacurium now wired into the NMJ occupancy):
   { name: 'pancuronium->TOF down', mutate: (s) => giveMed(s, 'pancuronium', 10, { unit: 'mg' }), key: 'tofCount', direction: 'down', minDelta: 1, steps: 90 },
