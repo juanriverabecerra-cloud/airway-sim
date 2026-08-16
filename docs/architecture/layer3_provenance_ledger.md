@@ -89,5 +89,37 @@ the audit *verifies correctness with a citation*, it does not only hunt bugs; an
 not the static formula, is the authority for multi-compartment onset. (F34's dosing fix was the only
 opioid-domain issue.)
 
-_Next 3B: sedatives/hypnotics (Marsh/Schnider/Eleveld propofol, etomidate, ketamine, thiopental,
-midazolam) → NMBs → local anesthetics → vasoactives → the long tail; then Phase 3C (PD/c50/MAC)._
+### 3B.ii — Sedatives / hypnotics (VERIFIED · grade A/C, no findings)
+Sim-measured onset (LOC occurs on the rising limb, before Ce peak):
+
+| Drug | Sim tpeak | Published | Source | Grade |
+|---|---|---|---|---|
+| propofol | 1.3 min | ~1.6–2.2 min | Marsh 1991 / Schnider 1998 (PKPDEngine TCI); Miller's Ch.23 | **A** |
+| etomidate | 2.7 min | ~1 min (LOC on rising limb) | Miller's Ch.23 | **A−** |
+| ketamine / esketamine | 0.8 min | ~1 min | Miller's Ch.23 | **A** ✓ |
+| thiopental | 0.8 min | ~1–1.5 min | Miller's Ch.23 | **A** ✓ |
+| methohexital | 0.3 min | ~0.5 min (fastest barbiturate) | Miller's Ch.23 (ke0=5.0, disclosed) | **C** (borderline fast; coarse 10 s sampling; relative order vs thiopental correct — not fixed, F9) |
+| midazolam | 2.7 min | ~3–5 min | Miller's Ch.25 | **A** ✓ |
+| lorazepam | 20.3 min | ~15–20 min | Miller's Ch.25 | **A** ✓ |
+| dexmedetomidine | 3.2 min (bolus) | slow clinical onset is the 10-min loading infusion + PD lag | Miller's Ch.23 | **A−** |
+
+### 3B.iii — NMBs (relative order + duration correct; onset **F35**)
+Sim-measured onset (time to TOF0) + duration (time to TOF4 recovery):
+
+| Drug | t→TOF0 (onset) | Published onset | Grade |
+|---|---|---|---|
+| succinylcholine | <2 s | ~30–60 s | **F35** (too fast) |
+| rocuronium | ~20 s | ~60–90 s | **F35** (too fast) |
+| gantacurium | ~30 s | ~1–1.5 min | A− |
+| atracurium | 1.8 min | ~2–3 min | A |
+| mivacurium | 1.9 min | ~2–3 min | A |
+| pancuronium | 2.2 min | ~3–5 min | A− |
+| vecuronium | 3.1 min | ~2–3 min | A |
+| cisatracurium | 4.4 min | ~3–5 min | A ✓ |
+
+**F35 (Med, open):** NMJ occupancy saturates at too low a Ce → complete block develops within seconds
+for roc/sux instead of over ~60–90 s. Root-caused; fix deferred (needs occupancy-curve recalibration +
+re-verification of every L2 NMB direction test / reversal / F12). Ordering & durations are otherwise right.
+
+_Next 3B: local anesthetics → vasoactives/inotropes → antiarrhythmics → the long tail. Then Phase 3C
+(PD/c50/MAC) — where the F35 occupancy-curve fix is best done alongside the NMB PD grading._
