@@ -174,5 +174,29 @@ excellently calibrated (esmolol's 9 min is textbook). The long-acting bolus β-b
 off ~5–10× too fast (**F37**, deferred to a focused duration pass). Directions & magnitudes were already
 verified/corrected in L2 (F11/F16/F17–19/F24/F26).
 
-_Next 3B: antiarrhythmics/electrolytes → the long tail. Then Phase 3C (PD/c50/MAC + the F35 NMB
-occupancy-curve fix)._
+### 3B.vi — Antiarrhythmics / electrolytes (adenosine A; several fold into F37; electrolytes special-wired)
+PK t½ + Vdss, cited to Miller's Ch.14/Vaughan-Williams + Stoelting:
+
+| Drug | t½ (sim) | Published | Verdict |
+|---|---|---|---|
+| adenosine | 6 s | ~10 s (t½<10s) | **A** ✓ (exemplary; 1-comp, ke0=5) |
+| amiodarone | 2.3 h, Vdss 500 L | terminal weeks, Vd ~5000 L | **C** — defensible ACUTE-effect model (true accumulation irrelevant to acute IV arrest use); disclosed |
+| digoxin | 72 h, Vdss 350 L | ~36–48 h | **B** (~1.5× long; huge V2=300 correctly gives a long t½) |
+| lidocaine (antiarrhythmic) | 14 min central | bolus antiarrhythmic effect ~15–20 min (→ infusion) | **C** (short bolus effect is real) |
+| **diltiazem** | effect t½ **7 min** (measured) | 1–3 h | **F37** (confirmed by measurement) |
+| **verapamil/procainamide/ibutilide/mexiletine/sotalol** | 9/9/14/17/35 min | 2–5 h / 3–4 h / 6 h / 10–12 h / 12 h | **F37** (same structure as diltiazem) |
+| magnesium / calcium / potassium / bicarbonate / sodium citrate | 7–28 min | — | **C** — effects special-wired (F16 Mg, Ca→MAP, K→hyperK, F13 bicarb→pH); c50/t½ serve those paths |
+
+**Key measurement (diltiazem):** effect half-life 7 min == its central t½ (6.9 min), proving that for
+modest-V2 multi-compartment agents the EFFECT tracks the fast central-redistribution decline — so ln2/k10
+is a valid effect-duration proxy across the F37 cluster (which the diltiazem datum extends to the
+antiarrhythmics). Contrast digoxin (V2/V1=6) whose large deep compartment correctly sustains a long t½.
+
+**Phase 3B PK summary (i–vi):** opioids, sedatives, local-anesthetic toxicity thresholds, and the
+FAST-acting vasoactives/antiarrhythmics are well-calibrated and source-cited (grade A). Two safety fixes
+(F34 dosing, F36 LAST). Two deferred fidelity clusters: **F35** (NMB onset too fast) and **F37** (a broad
+long-acting-drug effect-duration cluster — ~13 agents, root-caused + partly measured).
+
+_Next: 3B.vii long-tail classes (antibiotics/anticoagulants/endocrine/antiemetics/anticonvulsants/reversal
+— mostly non-hemodynamic; grade PK + confirm effects are wired) → Phase 3C (PD/c50/MAC) folding in the
+F35 + F37 fixes._
