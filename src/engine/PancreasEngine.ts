@@ -55,7 +55,7 @@ export class PancreasEngine {
   static tick(
     dt: number = 1,
     st: { patient: PancreasPatientState; time: number },
-    inputs: { cortisolLevel?: number; nonNociceptiveSympatheticStimulus?: number; exogenousInsulinCe?: number; exogenousDextroseMgPerMin?: number } = {}
+    inputs: { cortisolLevel?: number; nonNociceptiveSympatheticStimulus?: number; exogenousInsulinCe?: number; exogenousDextroseMgPerMin?: number; exogenousGlucocorticoidEquiv?: number } = {}
   ): PancreasOutput {
     const events: string[] = [];
     const safeSt = st || ({} as typeof st);
@@ -74,6 +74,13 @@ export class PancreasEngine {
     const sympatheticStimulus = Math.max(0, Math.min(100, safeNumber(inputs.nonNociceptiveSympatheticStimulus, 0)));
     const exogenousInsulinCe = Math.max(0, safeNumber(inputs.exogenousInsulinCe, 0));
     const exogenousDextroseMgPerMin = Math.max(0, safeNumber(inputs.exogenousDextroseMgPerMin, 0));
+    // F38: exogenous corticosteroids drive gluconeogenesis exactly as endogenous cortisol does (steroid
+    // hyperglycemia — clinically important for a diabetic given perioperative dexamethasone). Previously
+    // only ENDOGENOUS cortisol fed this flux; exogenous steroid was computed and sent only to a
+    // logging-only model, so IV dexamethasone/hydrocortisone/methylprednisolone never raised glucose.
+    // Add the exogenous glucocorticoid as a cortisol-equivalent (0-1) to the effective cortisol drive.
+    const exogenousGlucocorticoidEquiv = Math.max(0, Math.min(1, safeNumber(inputs.exogenousGlucocorticoidEquiv, 0)));
+    const effectiveCortisol = Math.max(0, Math.min(1.5, cortisolLevel + exogenousGlucocorticoidEquiv));
 
     // Insulin secretion: rises with glucose above baseline (real negative feedback),
     // blunted in diabetes; exogenous insulin administration adds directly.
@@ -98,7 +105,7 @@ export class PancreasEngine {
     // Clinical: surgical stress hyperglycemia peaks at 30-120 min (cortisol acts via
     // gluconeogenesis gene transcription, not acute catecholamine mechanism).
     const hepaticGlucoseOutputMgPerMin = 1.0 * newGlucagon * 10
-      + 0.008 * cortisolLevel * 100 * (1.0 + diabetesSeverity)
+      + 0.008 * effectiveCortisol * 100 * (1.0 + diabetesSeverity) // F38: endogenous + exogenous glucocorticoid
       + 0.015 * sympatheticStimulus * (1.0 + diabetesSeverity);
     const peripheralUptakeMgPerMin = 1.2 * newInsulin * 10 * insulinSensitivity;
     const netGlucoseFluxMgPerMin = hepaticGlucoseOutputMgPerMin - peripheralUptakeMgPerMin + exogenousDextroseMgPerMin;

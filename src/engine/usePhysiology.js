@@ -2086,6 +2086,16 @@ export function runPhysicsStep(__ctx) {
           // clinically-taught transient rise (~50 mg/dL) that then clears as the substrate is metabolized.
           const dextroseModelForPancreas = st.activeMeds?.find(m => m.name === 'Dextrose 50%');
           const exogenousDextroseMgPerMin = (dextroseModelForPancreas ? dextroseModelForPancreas.Ce : 0) * 8;
+          // F38: exogenous corticosteroids → steroid hyperglycemia. Convert each steroid's effect-site Ce
+          // to a cortisol-equivalent (0-1) by relative GLUCOCORTICOID potency (hydrocortisone 1×,
+          // methylprednisolone ~5×, dexamethasone ~25×) and feed it as an additive glucocorticoid drive.
+          const hydrocortModelForGluc = st.activeMeds?.find(m => m.name === 'Hydrocortisone');
+          const methylprednModelForGluc = st.activeMeds?.find(m => m.name === 'Methylprednisolone');
+          const dexModelForGluc = st.activeMeds?.find(m => m.name === 'Dexamethasone');
+          const exogenousGlucocorticoidEquiv = Math.min(1.0,
+              (hydrocortModelForGluc ? hydrocortModelForGluc.Ce : 0) * 0.4 +
+              (methylprednModelForGluc ? methylprednModelForGluc.Ce : 0) * 2.0 +
+              (dexModelForGluc ? dexModelForGluc.Ce : 0) * 10.0);
           const pancreasOutput = PancreasEngine.tick(1, {
               patient: {
                   glucose: st.patient.glucose,
@@ -2099,7 +2109,8 @@ export function runPhysicsStep(__ctx) {
               cortisolLevel: adrenalOutput.cortisolLevel,
               nonNociceptiveSympatheticStimulus: adrenalOutput.nonNociceptiveSympatheticStimulus,
               exogenousInsulinCe: insulinModelForPancreas ? insulinModelForPancreas.Ce : 0,
-              exogenousDextroseMgPerMin
+              exogenousDextroseMgPerMin,
+              exogenousGlucocorticoidEquiv
           });
           if (pancreasOutput.events && pancreasOutput.events.length > 0) {
               pancreasOutput.events.forEach(evt => logEvent(evt));

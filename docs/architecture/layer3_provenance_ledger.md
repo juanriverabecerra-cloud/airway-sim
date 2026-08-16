@@ -197,6 +197,31 @@ FAST-acting vasoactives/antiarrhythmics are well-calibrated and source-cited (gr
 (F34 dosing, F36 LAST). Two deferred fidelity clusters: **F35** (NMB onset too fast) and **F37** (a broad
 long-acting-drug effect-duration cluster — ~13 agents, root-caused + partly measured).
 
-_Next: 3B.vii long-tail classes (antibiotics/anticoagulants/endocrine/antiemetics/anticonvulsants/reversal
-— mostly non-hemodynamic; grade PK + confirm effects are wired) → Phase 3C (PD/c50/MAC) folding in the
-F35 + F37 fixes._
+### 3B.vii — Long-tail classes (non-hemodynamic; verify each special effect is WIRED)
+These have no `pd` hemodynamic effect by design; the audit confirms their special pathway fires
+(the F32/F36 lesson). Behavioral spot-check of the clinically-critical ones:
+
+| Effect | Result |
+|---|---|
+| glycopyrrolate → HR↑ (anticholinergic) | ✅ wired (HR +52 at 0.4 mg — directionally right; magnitude a touch high vs atropine, noted) |
+| neostigmine → NMB reversal | wired (`E_neo` acetylcholinesterase term); TOF 0→0 at DEEP block is CORRECT (neostigmine is clinically ineffective at TOF 0 — re-test at partial recovery in 3C) |
+| heparin → ACT↑ / protamine reversal | pathway wired (CPB model, `actSeconds`/`inr`); `actSeconds` is a mid-tick flag not persisted to the headless snapshot (observability quirk like the F36 LAST flags — re-check via coags in 3C) |
+| **dexamethasone → glucose↑** | ❌→✅ **F38 (FIXED)** |
+| insulin→glucose↓, dextrose→glucose↑, naloxone→RR↑, flumazenil→BIS↑, sugammadex→TOF↑, glucagon→HR↑, bicarbonate→pH↑, uterotonics (methylergonovine F29) | already VERIFIED in L2 / earlier L3 |
+| antibiotics (cefazolin/vanc/gentamicin/…), anticoagulant reversals (PCC/andexanet/idarucizumab), antiemetics, anticonvulsants | non-hemodynamic by design; effects are wired to their dedicated models (AntibioticPKPDModel, coag/reversal flags, PONV, seizure) — grade **A (correctly no hemodynamic pd)**; PK is clearance/duration-oriented |
+
+**F38 (Med, FIXED):** exogenous corticosteroids didn't raise glucose — the PancreasEngine flux used only
+ENDOGENOUS cortisol, and the exogenous steroid Ce was routed to a logging-only model. Now dex/hydrocort/
+methylpred feed the flux as potency-scaled glucocorticoid-equivalents (dex ~25× hydrocortisone). Verified
+dexamethasone → glucose↑, larger in diabetics. This is the third F23/F32/F36-class "engine accepts an
+input the caller never wired" finding.
+
+## Phase 3B COMPLETE (all PK classes i–vii)
+**Findings:** F34 (fixed, dosing), F36 (fixed, LAST), F38 (fixed, steroid glucose) — three safety/fidelity
+fixes; F35 (NMB onset) + F37 (~13-agent effect-duration cluster) characterized & deferred to focused
+recalibration passes. All fast-acting/mainline agents source-cited grade A. The recurring lesson: engines
+that accept exogenous inputs the caller forgot to wire (F23/F32/F36/F38), and reading the wrong
+concentration variable (F36).
+
+_Next: Phase 3C — PD/c50/MAC audit by class (MAC values for volatiles; the c50/Emax the c50-sweep flagged;
++ execute the deferred F35 NMB-occupancy and F37 duration fixes here)._
