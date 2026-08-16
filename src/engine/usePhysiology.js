@@ -2710,12 +2710,21 @@ export function runPhysicsStep(__ctx) {
           const mepivacaineModelForLast = (st.activeMeds || []).find(m => m.name === 'Mepivacaine');
           const intralipidModelForLast = (st.activeMeds || []).find(m => m.name === 'Intralipid 20%');
 
+          // F36 (Layer 3): LAST is driven by the PLASMA (arterial) concentration spike, not the slowly-
+          // equilibrating EFFECT-SITE Ce. A local anesthetic's ke0 is deliberately slow (bupivacaine
+          // ke0=0.1 → t½ ~7 min) to model the LOCAL block's onset, so the effect-site Ce is heavily damped
+          // — 150 mg IV bupivacaine spikes plasma to ~15 mg/L (grossly toxic) yet gave effect-site Ce=0.32,
+          // below even the CNS-symptom threshold, so LAST NEVER FIRED from an intravascular injection (its
+          // primary cause). The LastModel's thresholds and its own header comment are PLASMA-based, so feed
+          // it plasma Cp = A1/V1 for the anesthetics. (Intralipid keeps its Ce — the lipid-sink calc is
+          // calibrated on it.)
+          const cpForLast = (m) => (m && m.A1 > 0 && m.pk && m.pk.V1 > 0) ? m.A1 / m.pk.V1 : 0;
           const lastOutput = LastModel.tick({
-              lidocaineCe: lidocaineModelForLast ? lidocaineModelForLast.Ce : 0,
-              bupivacaineCe: bupivacaineModelForLast ? bupivacaineModelForLast.Ce : 0,
-              ropivacaineCe: ropivacaineModelForLast ? ropivacaineModelForLast.Ce : 0,
-              levobupivacaineCe: levobupivacaineModelForLast ? levobupivacaineModelForLast.Ce : 0,
-              mepivacaineCe: mepivacaineModelForLast ? mepivacaineModelForLast.Ce : 0,
+              lidocaineCe: cpForLast(lidocaineModelForLast),
+              bupivacaineCe: cpForLast(bupivacaineModelForLast),
+              ropivacaineCe: cpForLast(ropivacaineModelForLast),
+              levobupivacaineCe: cpForLast(levobupivacaineModelForLast),
+              mepivacaineCe: cpForLast(mepivacaineModelForLast),
               intralipidCe: intralipidModelForLast ? intralipidModelForLast.Ce : 0,
               prevCnsToxicityLogged: !!st.patient.lastCnsToxicityLogged,
               prevSeizureFromLastLogged: !!st.patient.lastSeizureLogged,

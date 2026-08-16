@@ -121,5 +121,28 @@ Sim-measured onset (time to TOF0) + duration (time to TOF4 recovery):
 for roc/sux instead of over ~60–90 s. Root-caused; fix deferred (needs occupancy-curve recalibration +
 re-verification of every L2 NMB direction test / reversal / F12). Ordering & durations are otherwise right.
 
-_Next 3B: local anesthetics → vasoactives/inotropes → antiarrhythmics → the long tail. Then Phase 3C
-(PD/c50/MAC) — where the F35 occupancy-curve fix is best done alongside the NMB PD grading._
+### 3B.iv — Local anesthetics (thresholds VERIFIED grade A; wiring bug F36 FIXED)
+The `LastModel` LAST thresholds `[CNS-symptom, seizure, CV-collapse]` mg/L (=μg/mL plasma) match published
+toxicity concentrations and encode the correct relative cardiotoxicity, cited to Miller's Ch.24 (local
+anesthetics) + Neal ASRA LAST guidance:
+
+| Drug | thresholds (mg/L) | CC:CNS (pd) | published | Grade |
+|---|---|---|---|---|
+| bupivacaine | [1.5, 3.0, 4.5] | 2.0 | narrowest CV margin (most cardiotoxic) | **A** |
+| ropivacaine | [2.0, 4.0, 8.0] | 4.0 | safer than bupiv | **A** |
+| levobupivacaine | [2.0, 4.5, 9.0] | 3.3 | between bupiv & ropiv | **A** |
+| lidocaine | [5.0, 8.0, 16.0] | 7.0 | CNS well before CV | **A** |
+| mepivacaine | [5.0, 8.0, 16.0] | — | ~lidocaine | **A−** |
+| chloroprocaine/tetracaine/prilocaine/benzocaine | — (not in LastModel) | 12/2.5/8/— | esters rapidly hydrolyzed (LAST ~impossible) or topical; prilocaine/benzocaine → **methemoglobinemia** (correctly wired at usePhysiology ~L2769) | **A** (scope) |
+
+Lipid-sink affinity ordering (bupivacaine 0.9 most lipophilic → best lipid-rescued) is correct.
+
+**F36 (High, FIXED):** the LastModel was fed the anesthetics' EFFECT-SITE Ce (heavily damped by the slow
+block-onset ke0) instead of the PLASMA Cp its plasma-calibrated thresholds expect — so 150 mg IV
+bupivacaine (plasma ~15 mg/L) gave Ce=0.32 and **no LAST fired** at all. Fixed by feeding plasma Cp=A1/V1.
+Verified: toxic LA → LAST; therapeutic lidocaine → none; bupivacaine 50 mg → arrest while ropivacaine
+50 mg → CNS-only (textbook). This was the F32-class lesson again: a well-calibrated model reading the
+wrong input variable.
+
+_Next 3B: vasoactives/inotropes → antiarrhythmics → the long tail. Then Phase 3C (PD/c50/MAC) — where the
+F35 NMB occupancy-curve fix is best done alongside the NMB PD grading._
