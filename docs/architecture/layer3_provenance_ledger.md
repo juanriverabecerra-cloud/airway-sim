@@ -297,9 +297,32 @@ consistent with dosing-convention variation, not a magnitude bug. **Conclusion:*
 layer (volatile MAC in 3C.i + IV hypnotic c50 here) is uniformly well-sourced — the same quality tier as the
 opioid/LA thresholds graded A in Phase 3B.
 
-### Phase 3C status
+### 3C.v — Special/receptor-pathway "inert" drugs — verified WIRED, one new gap (F39)
+Confirmed each c50-sweep "inert" drug's real clinical effect is actually produced (so the inert Hill fraction
+is correct, grade A) vs. genuinely vestigial (grade C):
+- **Wired → grade A** (effect via a dedicated model; no Hill-fraction hemodynamic by design): **desmopressin**
+  (DDAVP releases VWF → corrects uremic platelet dysfunction, `CKDPerioperativeModel`); **octreotide**
+  (variceal-bleed control, `HepaticEngine`); **physostigmine** (anticholinergic-toxidrome antidote +
+  cholinergic excess if overdosed, `ToxidromeModel`); **ziconotide** (N-type-Ca postural hypotension +
+  analgesia, `usePhysiology`/`PainEngine`); **benzocaine/prilocaine** (methemoglobinemia production + the
+  SpO2~85% artifact — see F39 for the delivery-consequence caveat); **carboprost/misoprostol/oxytocin/
+  methylergonovine** (uterotonics, `UterineToneModel`/`ObstetricHemorrhageModel`); **digoxin** (AV
+  slowing/inotropy/toxicity, `EkgModel`/`DigoxinToxicityModel`); **haloperidol**/**ondansetron** (QT via
+  the DDI/QT matrix; ondansetron also pruritus + CYP2D6).
+- **Vestigial → grade C** (disclosed; effect not wired as an administered-drug action, low perioperative
+  priority): **bromocriptine** (appears only in NMS-treatment *warning text*, no D2-agonist hemodynamic/NMS
+  effect wired); **granisetron**/**palonosetron** (no QT wiring unlike ondansetron — defensible, they are
+  the QT-*safer* 5-HT3 antagonists, palonosetron essentially none); **tetracaine** (ester LA, not in the
+  `LastModel` LA set nor a spinal-block contributor — niche route, low systemic LAST risk).
+- **New finding: F39** — methemoglobinemia (and coHb) reduce `functionalHb` but that never propagates to a
+  tissue-hypoxia consequence (`targetSpo2` is ~invariant to `functionalHb`; no CaO2/DO2 output; CO's Haldane
+  Bohr shift isn't injected into `bohrExponent`). metHb's only modeled consequence is the pulse-ox artifact.
+  A one-line `functionalHb -= metHb` was verified UNOBSERVABLE and deliberately NOT shipped (F9). Characterized
+  and deferred to the Phase 3D/3F O2-delivery review (the faithful fix — a metHb Bohr left-shift and/or wiring
+  CaO2/DO2 to tissue oxygenation — affects CO poisoning too).
+
+### Phase 3C status — substantially COMPLETE
 Done: 3C.i volatiles/MAC (A), 3C.ii **F35 fixed**, 3C.iii **F37 fixed** (12 agents), 3C.iv hypnotic c50 (A/B),
-verapamil/CCB pathway verified (grade C c50, effect special-wired — no bug). Both deferred L3 findings from
-Phase 3B are now resolved. Remaining 3C (lower priority, mostly grading): the "special/receptor pathway"
-inert drugs (desmopressin/octreotide/D2/5-HT3/anticholinesterase — confirm each pathway is wired), and the
-remaining responsive-bucket c50 spot-checks. Then Phase 3D+ (engine constants: CV/resp/renal/hepatic/neuro).
+3C.v special-pathway grading (A/C, surfaced **F39** deferred), verapamil/CCB verified (grade C c50, no bug).
+Both deferred L3 findings from Phase 3B (F35/F37) are resolved. The remaining responsive-bucket c50 spot-checks
+fold into Phase 3D (engine constants: CV/resp/renal/hepatic/neuro), where F39's O2-delivery fix also lands.
