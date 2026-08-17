@@ -251,3 +251,33 @@ curves to track ke0. Result: roc TOF0 ~90 s, sux TOF0 ~45 s (clinical); other NM
 3/2/1/0) are internally consistent with `nmbds_ch27` (note: that test's inline mapping *replica* uses
 slightly different 0.85/0.80 breakpoints than the live 0.80/0.70 — a self-contained pure-logic replica, so
 it passes on its own copy; cosmetic doc drift, not a live bug).
+
+### 3C.iii — Bolus effect DURATION recalibration (F37 FIXED — 12 agents)
+Executed the deferred F37 fix. **Method:** built a standalone PK integrator that replicates the sim's exact
+A1/A2/Ce Euler scheme (`PKPDEngine.ts:485-503` — rate constants /60 to per-sec, subDt=0.1s, 10 substeps,
+bolus→A1, Cp=A1/V1, Ce+=ke0·(Cp−Ce)·dt). Validated against the full sim: diltiazem sim peakCe 0.335 @4.5min
+Ce-t½ 9.1min vs integrator 0.337/4.8min/9.4min — <1% error. This let me tune 13 candidates instantly
+(effect = Hill(Ce) via each drug's c50/γ) and preserve peak effect while lengthening duration.
+
+**Deeper root cause than the finding's one-liner:** lowering k10 alone is insufficient. For 2-compartment
+agents the hemodynamic EFFECT tracks the fast central/redistribution (α) decline, not terminal β — labetalol
+already had k10=0.007 (t½β=6.2h) yet its effect-t½ was still 14min because k12=0.05 drains the central
+compartment. Fix per agent: lower k10 (elimination) + for 2-comp agents moderate k12 (less redistribution
+loss) and raise k21 (return sustains the tail). Peaks held within clinical bounds (most rises move the peak
+*toward* clinical, since several were under-strong).
+
+**effect-t½ before→after (clinical target):** metoprolol 17→112m (3-6h), atenolol 57→355m (6-9h), labetalol
+14→136m (2-4h), diltiazem 7→42m (1-3h), verapamil 8→29m (2-5h; peak effect still weak — a separate c50/dose
+question, flagged not fixed), phentolamine 5→11m (15-20min), nifedipine 17→77m (1-2h), nicardipine 17→56m
+(30-60min), sotalol 42→331m (8-12h), procainamide 20→108m (3-4h), mexiletine 73→259m (electrophysiologic),
+ibutilide 89→290m (electrophysiologic). A few (metoprolol/diltiazem/sotalol/procainamide) remain under the
+full clinical duration — pushing k10 lower would inflate peak past clinical, so they sit at the best
+peak-vs-duration compromise (still 5-8× better than before).
+
+**NOT changed — hydralazine:** its effect-t½ was already ~185min (peakCe 0.13 ≫ c50 0.03 → effect stays
+saturated long after Ce falls). The original finding conflated Ce-t½ (14min) with effect-t½. Left as-is.
+**Milrinone** (also listed under F37) is an INFUSION — its k10 sets steady-state Css, so its fix is coupled
+to F25 and was deliberately not touched. Both med DBs synced (`Pharmacology.js` + `meds.config.ts`); guard
+`effect_duration_ch3.test.ts`. **Housekeeping note:** `Pharmacology.js` `MEDICATIONS` has duplicate keys for
+`verapamil` and `sotalol` (two identical entries each; JS keeps the last) — harmless but worth a dedupe pass;
+updated both copies to stay consistent.

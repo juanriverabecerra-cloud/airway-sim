@@ -700,10 +700,12 @@ export const MEDICATIONS = {
     name: 'Labetalol', classes: ['Mixed Alpha/Beta'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
     metabolism: 'Hepatic', mechanism: 'Antagonist', targetReceptor: 'Alpha-1, Beta-1/2', intracellularCascade: 'Mixed antagonist -> blocks a1 (Gq), B1/B2 (Gs) -> prevents Ca2+ release and cAMP production',
     indications: { 'HTN': { dose: '10-20', unit: 'mg', type: 'Bolus' } },
-    // k10=0.007/min (↓ from 0.03): prior gave t½β=77 min (1-comp: 23 min). Clinical labetalol t½ 5-6h.
-    // 2-comp with k10=0.007, k12=0.05, k21=0.02: β=0.00187/min → t½β=370 min ≈ 6.2h ✓.
-    // k21: 0.03→0.02 for appropriate terminal half-life; ke0=0.8/min → onset ~5 min ✓.
-    pk: { V1: 60.0, V2: 0, V3: 0, k10: 0.007, k12: 0.05, k21: 0.02, k13: 0, k31: 0, ke0: 0.8, coSensitivity: 0.2 },
+    // F37 (L3): the prior k10=0.007 fixed the TERMINAL t½ (6.2h) but the hemodynamic EFFECT still
+    // decayed with an effect-t½ of only ~14 min — the effect follows the fast central/redistribution
+    // (α) decline, not terminal β. k12 0.05→0.025 (less redistribution loss) + k21 0.02→0.035 (faster
+    // return sustains the central tail) + k10→0.002 lengthen the effect-t½ to ~2.3h (clinical labetalol
+    // duration 2-4h) while holding the calibrated peak effect (~59% Emax → MAP ≈ −14 mmHg at 20 mg).
+    pk: { V1: 60.0, V2: 0, V3: 0, k10: 0.002, k12: 0.025, k21: 0.035, k13: 0, k31: 0, ke0: 0.8, coSensitivity: 0.2 },
     // c50=0.25 mg/L: prior 0.5 gave MAP -5 mmHg at 20 mg IV (clinical -10-20 mmHg). At Ce_peak=0.27 mg/L
     // with c50=0.25: fraction=54% → MAP -12 mmHg ✓, HR -11 bpm ✓ (clinical -10-15 bpm).
     pd: { c50: 0.25, gamma: 2.0, sysMax: -40, diaMax: -35, hrMax: -20, rrMax: 0 },
@@ -713,7 +715,9 @@ export const MEDICATIONS = {
     name: 'Metoprolol', classes: ['Beta-1 Blocker'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
     metabolism: 'Hepatic (CYP2D6)', proteinBinding: 0.12, mechanism: 'Antagonist', targetReceptor: 'Beta-1', intracellularCascade: 'B1 antagonist -> blocks Gs-coupled activation -> decreases cAMP in myocardium',
     indications: { 'Tachycardia': { dose: '2.5-5.0', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 40.0, V2: 0, V3: 0, k10: 0.02, k12: 0.04, k21: 0.02, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 }, 
+    // F37 (L3): effect-t½ 17→112 min (clinical metoprolol duration 3-6h). k10 0.02→0.004, k12 0.04→0.025,
+    // k21 0.02→0.03 — slower elimination + less redistribution loss; peak HR effect held (~52% Emax).
+    pk: { V1: 40.0, V2: 0, V3: 0, k10: 0.004, k12: 0.025, k21: 0.03, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 },
     pd: { c50: 0.1, gamma: 1.5, sysMax: -20, diaMax: -15, hrMax: -35, rrMax: 0 },
     notes: 'Cardioselective Beta-1 adrenergic blocker. Intermediate acting. Lowers heart rate and contractility.'
   },
@@ -736,7 +740,9 @@ export const MEDICATIONS = {
     metabolism: 'Renal (unchanged)', proteinBinding: 0.03, mechanism: 'Antagonist', targetReceptor: 'Beta-1 (cardioselective)',
     intracellularCascade: 'Selective B1 antagonist -> reduced heart rate and contractility; minimal B2 effects at therapeutic doses',
     indications: { 'Hypertension': { dose: '25-50', unit: 'mg/day', type: 'Bolus' }, 'Rate Control': { dose: '25-100', unit: 'mg/day', type: 'Bolus' } },
-    pk: { V1: 60.0, V2: 0, V3: 0, k10: 0.012, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0.1 },
+    // F37 (L3): 1-compartment — effect-t½ = ln2/k10. k10 0.012→0.0019 gives ~6h (clinical atenolol
+    // 6-9h; renally cleared, long-acting). Peak unchanged (independent of k10 for a 1-comp bolus).
+    pk: { V1: 60.0, V2: 0, V3: 0, k10: 0.0019, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0.1 },
     // c50 0.3→0.10 mg/L: prior value gave only 12.8% effect at 5mg IV (clinical 5mg IV has significant
     // beta-blockade). Published atenolol EC50 for HR reduction ~100 ng/mL = 0.10 mg/L. At 5mg (C1=0.0833):
     // fraction=43%; 10mg→68%; 2.5mg→21% ✓ — now spans the clinical dose-response range.
@@ -756,7 +762,9 @@ export const MEDICATIONS = {
     metabolism: 'Hepatic (CYP3A4)', proteinBinding: 0.92, mechanism: 'Blocker', targetReceptor: 'L-type Calcium',
     intracellularCascade: 'Dihydropyridine CCB -> blocks L-type VGCCs in vascular smooth muscle (selectivity: vascular >> cardiac) -> reduced Ca2+ influx -> vasodilation',
     indications: { 'Hypertension (PEC)': { dose: '10', unit: 'mg', type: 'Bolus' }, 'Hypertension (Chronic)': { dose: '30-60', unit: 'mg/day', type: 'Bolus' } },
-    pk: { V1: 40.0, V2: 0, V3: 0, k10: 0.04, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.4, coSensitivity: 0.1 },
+    // F37 (L3): 1-compartment — effect-t½ = ln2/k10. k10 0.04→0.008 gives ~77 min (clinical
+    // nifedipine acute BP effect ~1-2h). Peak unchanged (1-comp bolus).
+    pk: { V1: 40.0, V2: 0, V3: 0, k10: 0.008, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.4, coSensitivity: 0.1 },
     pd: { c50: 0.4, gamma: 1.5, sysMax: -35, diaMax: -30, hrMax: 12, rrMax: 0 },
     notes: 'Dihydropyridine L-type CCB. Highly vascular-selective (50:1 vascular:cardiac ratio vs diltiazem ~3:1). First-line oral antihypertensive for acute severe hypertension in preeclampsia (10 mg PO q20min, max 30 mg). Reflex tachycardia via baroreflex. Potentiated by MgSO4 in PEC (can cause profound hypotension). Contraindicated in severe aortic stenosis (afterload drop → coronary steal). Short-acting formulation (immediate release) used for acute PEC; extended-release for chronic HTN.'
   },
@@ -773,7 +781,9 @@ export const MEDICATIONS = {
     name: 'Nicardipine', classes: ['CCB'], routes: ['IV'], types: ['Infusion'], dosingWeight: 'TBW',
     metabolism: 'Hepatic', mechanism: 'Blocker', targetReceptor: 'L-type Calcium', intracellularCascade: 'Dihydropyridine CCB -> blocks L-type VGCCs in vascular smooth muscle -> prevents Ca2+ influx',
     indications: { 'HTN': { dose: '5-15', unit: 'mg/hr', type: 'Infusion' } },
-    pk: { V1: 25.0, V2: 0, V3: 0, k10: 0.05, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 }, 
+    // F37 (L3): 1-compartment — effect-t½ = ln2/k10. k10 0.05→0.0154 gives ~56 min (clinical
+    // nicardipine bolus effect ~30-60 min; offset is context-sensitive). Peak unchanged (1-comp bolus).
+    pk: { V1: 25.0, V2: 0, V3: 0, k10: 0.0154, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.1 },
     pd: { c50: 0.1, gamma: 2.0, sysMax: -25, diaMax: -35, hrMax: 10, rrMax: 0 },
     notes: 'Dihydropyridine calcium channel blocker. Strong selective arterial vasodilator. Excellent for stable, titrated SVR and SBP reduction.'
   },
@@ -797,7 +807,9 @@ export const MEDICATIONS = {
     name: 'Phentolamine', classes: ['Alpha Blocker'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
     metabolism: 'Hepatic', mechanism: 'Antagonist', targetReceptor: 'Alpha-1, Alpha-2',
     indications: { 'Pheochromocytoma': { dose: '1-5', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.15, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.2 }, 
+    // F37 (L3): 1-compartment — effect-t½ = ln2/k10. k10 0.15→0.046 gives ~15 min (clinical
+    // phentolamine α-blockade is short, ~15-20 min). Peak unchanged (1-comp bolus).
+    pk: { V1: 15.0, V2: 0, V3: 0, k10: 0.046, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.2 },
     pd: { c50: 0.5, gamma: 2.0, sysMax: -50, diaMax: -40, hrMax: 30, rrMax: 0 },
     notes: 'Nonselective competitive alpha-adrenergic blocker. Fast-acting. Triggers reflex tachycardia due to Alpha-2 blockade.'
   },
@@ -898,7 +910,9 @@ export const MEDICATIONS = {
     name: 'Diltiazem', classes: ['Class IV CCB'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
     metabolism: 'Hepatic (CYP3A4) to active deacetyldiltiazem', mechanism: 'Blocker', targetReceptor: 'L-type Calcium', intracellularCascade: 'Non-DHP CCB -> blocks L-type VGCCs in myocardium/AV node -> prevents Ca2+ influx',
     indications: { 'Afib / Rate Control': { dose: '10-20', unit: 'mg', type: 'Bolus' }, 'Infusion': { dose: '5-15', unit: 'mg/hr', type: 'Infusion' } },
-    pk: { V1: 30.0, V2: 60.0, V3: 0, k10: 0.1, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0.2 }, 
+    // F37 (L3): effect-t½ 7→42 min (was ~10x too short; clinical diltiazem rate-control 1-3h). Large V2
+    // (60L) drains the central compartment fast; k10 0.1→0.014 + k12 0.05→0.025 + k21 0.05→0.08 sustain it.
+    pk: { V1: 30.0, V2: 60.0, V3: 0, k10: 0.014, k12: 0.025, k21: 0.08, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0.2 },
     pd: { c50: 0.5, gamma: 2.0, sysMax: -20, diaMax: -20, hrMax: -25, rrMax: 0 },
     notes: 'Benzothiazepine CCB. Slows AV nodal conduction. Negatively inotropic and vasodilatory.'
   },
@@ -906,7 +920,9 @@ export const MEDICATIONS = {
     name: 'Ibutilide', classes: ['Class III'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
     metabolism: 'Hepatic', mechanism: 'Agonist', targetReceptor: 'Slow Inward Na+',
     indications: { 'Chemical Cardioversion': { dose: '1.0', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 10.0, V2: 20.0, V3: 0, k10: 0.05, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.2, coSensitivity: 0.2 }, 
+    // F37 (L3): effect-t½ 89→290 min. k10 0.05→0.015, k12 0.05→0.04 (ibutilide's antiarrhythmic action
+    // outlasts a few-min bolus PK). Hemodynamic Emax is small — ibutilide is mainly a QT/Ikr effect.
+    pk: { V1: 10.0, V2: 20.0, V3: 0, k10: 0.015, k12: 0.04, k21: 0.05, k13: 0, k31: 0, ke0: 0.2, coSensitivity: 0.2 }, 
     pd: { c50: 0.005, gamma: 1.5, sysMax: -5, diaMax: -5, hrMax: -10, rrMax: 0 },
     notes: 'Class III antiarrhythmic. Prompts slow inward sodium currents and delays potassium currents, prolonging action potential duration. Used to chemically cardiovert AF/flutter. High risk of torsades de pointes (prolonged QT).'
   },
@@ -1053,7 +1069,9 @@ export const MEDICATIONS = {
     metabolism: 'Hepatic (extensive first-pass)', proteinBinding: 0.90, mechanism: 'Blocker', targetReceptor: 'L-type Calcium (non-DHP)',
     intracellularCascade: 'Non-DHP CCB -> blocks L-type VGCCs in myocardium and AV node -> slows conduction',
     indications: { 'SVT Rate Control': { dose: '2.5-5.0', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 40.0, V2: 80.0, V3: 0, k10: 0.08, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.2, coSensitivity: 0.2 },
+    // F37 (L3): effect-t½ 8→29 min (clinical verapamil 2-5h). k10 0.08→0.012, k12 0.05→0.03, k21 0.05→0.06.
+    // (NB: verapamil 5mg peak effect is weak here — ~8% Emax — a separate c50/dose scale question, not F37.)
+    pk: { V1: 40.0, V2: 80.0, V3: 0, k10: 0.012, k12: 0.03, k21: 0.06, k13: 0, k31: 0, ke0: 0.2, coSensitivity: 0.2 },
     pd: { c50: 0.3, gamma: 2.0, sysMax: -25, diaMax: -25, hrMax: -35, rrMax: 0 },
     notes: 'Non-DHP CCB. Strong AV nodal depression. CRITICAL CONTRAINDICATION WITH BETA-BLOCKERS: additive AV block risk → complete heart block. ALSO DANGEROUS IN WPW + AF: blocks AV node → forces conduction through accessory pathway → VF. DO NOT use in WPW with AF.'
   },
@@ -1061,7 +1079,9 @@ export const MEDICATIONS = {
     name: 'Sotalol', classes: ['Class III Antiarrhythmic', 'Beta-Blocker'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
     metabolism: 'Renal (unchanged)', proteinBinding: 0, mechanism: 'Blocker', targetReceptor: 'IKr (hERG) + Beta-1/2',
     indications: { 'AF / VT': { dose: '75-150', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.02, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.1 },
+    // F37 (L3): 1-compartment — effect-t½ = ln2/k10. k10 0.02→0.0022 gives ~5.5h (clinical sotalol
+    // 8-12h; renally cleared, long-acting). ke0=0.1 is slow, so the effect-site peak rises modestly.
+    pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.0022, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.1 },
     pd: { c50: 2.0, gamma: 1.5, sysMax: -15, diaMax: -15, hrMax: -30, rrMax: 0 },
     notes: 'Non-selective beta-blocker + class III antiarrhythmic (IKr blocker). HIGH QT PROLONGATION RISK (>20 ms per dose) — dose-dependent torsades de pointes risk. Must monitor QTc. Renally cleared: dose reduce in CKD. Available IV for acute AF/flutter rate/rhythm control.'
   },
@@ -1397,7 +1417,9 @@ export const MEDICATIONS = {
     name: 'Mexiletine', classes: ['Class IB', 'Sodium Channel Blocker'], routes: ['PO'], types: ['Bolus'], dosingWeight: 'TBW',
     metabolism: 'Hepatic (CYP2D6)', proteinBinding: 0.70, mechanism: 'Blocker', targetReceptor: 'Fast Na+ Channels',
     indications: { 'Neuropathic Pain / Arrhythmia': { dose: '150', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 20.0, V2: 40.0, V3: 0, k10: 0.04, k12: 0.06, k21: 0.04, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.2 },
+    // F37 (L3): effect-t½ 73→259 min (clinical mexiletine 10-12h; long-acting oral analog). k10 0.04→0.012,
+    // k12 0.06→0.04, k21 0.04→0.05. (Hemodynamic Emax is small — mexiletine is mainly a Na-channel effect.)
+    pk: { V1: 20.0, V2: 40.0, V3: 0, k10: 0.012, k12: 0.04, k21: 0.05, k13: 0, k31: 0, ke0: 0.5, coSensitivity: 0.2 },
     pd: { c50: 1.0, gamma: 1.5, sysMax: -5, diaMax: -5, hrMax: -5, rrMax: 0 },
     notes: 'Orally active Class IB antiarrhythmic. Structurally similar to Lidocaine. Blocks sodium channels, dampening neuropathic ectopic discharges.'
   },
@@ -1821,7 +1843,9 @@ export const MEDICATIONS = {
     name: 'Procainamide', classes: ['Class IA Antiarrhythmic'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
     metabolism: 'Hepatic (N-acetyltransferase) to active NAPA', proteinBinding: 0.15, mechanism: 'Blocker', targetReceptor: 'Na⁺ Channel + IKr (hERG)',
     indications: { 'WPW + AF': { dose: '15', unit: 'mg/kg', type: 'Bolus' }, 'VT': { dose: '10-17', unit: 'mg/kg', type: 'Bolus' } },
-    pk: { V1: 40.0, V2: 60.0, V3: 0, k10: 0.08, k12: 0.05, k21: 0.04, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0.1 },
+    // F37 (L3): effect-t½ 20→108 min (clinical procainamide 3-4h). Already Ce≫c50 (saturated) so a
+    // gentle k10 0.08→0.02 (+ k12 0.05→0.03, k21 0.04→0.05) lengthens it without pinning the effect flat.
+    pk: { V1: 40.0, V2: 60.0, V3: 0, k10: 0.02, k12: 0.03, k21: 0.05, k13: 0, k31: 0, ke0: 0.3, coSensitivity: 0.1 },
     pd: { c50: 2.0, gamma: 1.5, sysMax: -15, diaMax: -10, hrMax: -10, rrMax: 0 },
     notes: 'Class IA antiarrhythmic. UNIQUE ROLE: One of the few safe drugs for WPW + AF (also blocks accessory pathway — unlike adenosine, verapamil, diltiazem, digoxin which are DANGEROUS in WPW+AF). Also effective for VT. SLOW IV infusion required (15 mg/kg over 30-60 min) — rapid administration → hypotension. Active metabolite NAPA also antiarrhythmic. Lupus-like syndrome with prolonged use. QT prolongation risk. Renally cleared — dose reduce in CKD.'
   },
@@ -1854,7 +1878,9 @@ export const MEDICATIONS = {
     name: 'Sotalol', classes: ['Class III / Beta-Blocker'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
     metabolism: 'Renal (Unchanged)', mechanism: 'Beta Blocker / K+ Blocker', targetReceptor: 'Potassium / Beta-1/2',
     indications: { 'Afib / VT': { dose: '75-150', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.02, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.1 },
+    // F37 (L3): 1-compartment — effect-t½ = ln2/k10. k10 0.02→0.0022 gives ~5.5h (clinical sotalol
+    // 8-12h; renally cleared, long-acting). ke0=0.1 is slow, so the effect-site peak rises modestly.
+    pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.0022, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.1 },
     pd: { c50: 2.0, gamma: 1.5, sysMax: -15, diaMax: -15, hrMax: -30, rrMax: 0 },
     notes: 'Nonselective beta blocker with strong Class III antiarrhythmic (K+ channel blocking) characteristics.'
   },
@@ -1862,7 +1888,9 @@ export const MEDICATIONS = {
     name: 'Verapamil', classes: ['Class IV CCB'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
     metabolism: 'Hepatic', mechanism: 'Calcium Channel Blocker', targetReceptor: 'L-type Calcium',
     indications: { 'SVT / Rate Control': { dose: '2.5-5.0', unit: 'mg', type: 'Bolus' } },
-    pk: { V1: 40.0, V2: 80.0, V3: 0, k10: 0.08, k12: 0.05, k21: 0.05, k13: 0, k31: 0, ke0: 0.2, coSensitivity: 0.2 },
+    // F37 (L3): effect-t½ 8→29 min (clinical verapamil 2-5h). k10 0.08→0.012, k12 0.05→0.03, k21 0.05→0.06.
+    // (NB: verapamil 5mg peak effect is weak here — ~8% Emax — a separate c50/dose scale question, not F37.)
+    pk: { V1: 40.0, V2: 80.0, V3: 0, k10: 0.012, k12: 0.03, k21: 0.06, k13: 0, k31: 0, ke0: 0.2, coSensitivity: 0.2 },
     pd: { c50: 0.3, gamma: 2.0, sysMax: -25, diaMax: -25, hrMax: -35, rrMax: 0 },
     notes: 'Phenylalkylamine calcium channel blocker. Acts selectively on AV/SA nodes. Strongly negatively inotropic.'
   },
