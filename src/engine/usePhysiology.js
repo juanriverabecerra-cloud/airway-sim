@@ -2681,7 +2681,20 @@ export function runPhysicsStep(__ctx) {
           // rather than a flat isSeptic ? 4.5 : 1.0 constant.
           const baselineLactate = 1.0 + (sepsisOutput.lactateContributionMmolL || 0);
           let currentLactate = st.patient.lacticAcid || baselineLactate;
-          
+
+          // F39: dyshemoglobinemia (methemoglobin from benzocaine/prilocaine; carboxyhemoglobin from CO)
+          // removes Hb from O2 transport -> reduced O2 DELIVERY, not merely a pulse-ox artifact. O2
+          // delivery is CO x arterial O2 CONTENT; the anaerobic-metabolism trigger below used only the
+          // flow (CO) term, so a 30-50% metHb showed SpO2 ~85% but no tissue-hypoxia consequence. Fold
+          // the non-functional Hb fraction into an effective-delivery ratio so dyshemoglobin drives the
+          // SAME anaerobic pathway as low flow (methemoglobinemia / CO-poisoning lactic acidosis), and
+          // compounds with shock. Baseline-subtract the physiologic ~1.8% (coHb 1 + metHb 0.8) so normal
+          // patients are unaffected; the ~0.8 threshold's extraction reserve means only >~20% dysHb bites.
+          // (metHb/coHb here are the prior tick's values, set later this tick -- negligible lag for a slow
+          // lactate integrator.)
+          const dysHbFrac = Math.max(0, Math.min(0.9, ((st.patient.metHb || 0.8) + (st.patient.coHb || 1.0) - 1.8) / 100));
+          const o2DeliveryRatio = coRatio * (1 - dysHbFrac);
+
           if (st.patient.isArrest) {
               if (st.patient.cprActive) {
                   // CPR provides low-flow perfusion, slowing lactate accumulation
@@ -2690,9 +2703,10 @@ export function runPhysicsStep(__ctx) {
                   // No flow in arrest causes rapid anaerobic conversion
                   currentLactate += 0.05;
               }
-          } else if (coRatio < 0.8) {
-              // Shock-induced hypoperfusion converts to anaerobic glycolysis
-              const deficit = 0.8 - coRatio;
+          } else if (o2DeliveryRatio < 0.8) {
+              // Anaerobic glycolysis from an O2-DELIVERY deficit: shock (low CO) AND/OR dyshemoglobinemia
+              // (low functional O2 content) -- both reduce tissue O2 delivery below the anaerobic threshold.
+              const deficit = 0.8 - o2DeliveryRatio;
               currentLactate += deficit * 0.02;
           } else {
               // Normal perfusion allows hepatic/renal lactate clearance towards baseline

@@ -50,7 +50,7 @@ describe('Layer 2 — fluid & transfusion effects', () => {
     expect(ca(lr.s), 'LR raises Ca').toBeGreaterThan(ca(lr.base) + 0.2);
     const prbc = runPair('Packed Red Blood Cells (PRBC)', 800);
     expect(ca(prbc.s), 'PRBC citrate lowers Ca').toBeLessThan(ca(prbc.base));
-  });
+  }, 90000); // runs 4 long sims (~2800 steps); raise timeout so parallel-load CPU contention can't time it out
 
   it('crystalloid causes dilutional coagulopathy (MA down)', () => {
     const { base, s } = runPair('Normal Saline (0.9% NS)');

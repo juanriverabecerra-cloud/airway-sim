@@ -990,12 +990,13 @@ export class RespiratoryEngine {
     // SpO2 reads falsely high (handled in pulse-ox model below) but actual O2 transport
     // is limited to the remaining Hb not bound by CO. This is the primary tissue hypoxia
     // mechanism in CO poisoning — ABG PaO2 normal, SaO2 looks OK, but O2 delivery crashes.
-    // F39 (L3, characterized/deferred): note this functionalHb only feeds targetSpo2 (below), which is
-    // ~invariant to it, and no CaO2/DO2 is output — so dyshemoglobin O2-CONTENT does not propagate to a
-    // tissue-hypoxia consequence for EITHER coHb or metHb (and CO's Haldane Bohr left-shift is computed
-    // in CarbonMonoxideModel but not injected into bohrExponent above). MetHb's only modeled consequence
-    // is the SpO2~85% pulse-ox artifact below. A faithful fix (wire dyshemoglobin content→ODC/DO2) is an
-    // O2-delivery-model change affecting CO too — deferred to the Phase 3D/3F resp/O2-delivery review.
+    // F39 (L3): this functionalHb feeds only targetSpo2 (below), which is ~invariant to it, and no
+    // CaO2/DO2 is output here — so the RESP engine alone does not turn reduced functional Hb into a
+    // consequence. The dyshemoglobin tissue-hypoxia consequence (methemoglobinemia / CO-poisoning lactic
+    // acidosis) is instead wired at the O2-DELIVERY level in usePhysiology.js: the anaerobic-metabolism/
+    // lactate trigger now uses an effective-delivery ratio = coRatio·(1 − dysHbFrac), so metHb/coHb reduce
+    // tissue O2 delivery and drive real, graded lactic acidosis. This functionalHb line is left coHb-only
+    // (adding metHb here is unobservable given the invariance) and the SpO2~85% artifact is unchanged.
     const coHbFraction = Math.max(0, Math.min(0.95, (safePatient.coHb || 1.0) / 100));
     const functionalHb = safeCurrentHb * (1.0 - coHbFraction);
     const capillaryO2Content = (functionalHb * 1.34 * (ScO2 / 100)) + (capillaryPO2 * 0.0031);

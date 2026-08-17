@@ -383,12 +383,16 @@ disclosed as calibrated Bucket-A frameworks. Drug PK had magnitude bugs (F34–F
 
 ### 3D — findings
 - **No new magnitude bugs** — the engine-constant layer is a genuine strength (opposite of the drug-PK layer).
-- **F39** (dyshemoglobin O2-delivery, surfaced in 3C.v) remains the one open item and lands here: even in the
-  grade-A resp engine, reduced functional Hb (coHb/metHb) doesn't propagate to a tissue-hypoxia consequence
-  (targetSpo2 ~invariant to functionalHb; CaO2/DO2 not output; CO's Haldane Bohr shift computed but not injected
-  into `bohrExponent`). Kept DEFERRED: the faithful fix (inject a metHb/coHb Bohr left-shift + wire CaO2/DO2 to
-  tissue oxygenation) is an O2-delivery-model change into carefully-calibrated grade-A code — it deserves a
-  focused effort, not a rushed injection. Precisely characterized for that session.
+- **F39 (dyshemoglobin O2-delivery) — FIXED here.** Root insight found by tracing the consequence chain: the
+  anaerobic-metabolism/lactate trigger keyed ONLY on the flow term (`coRatio` = CO/5), never on arterial O2
+  CONTENT — so reduced functional Hb (from metHb/coHb) had no tissue-hypoxia consequence, and the `functionalHb`
+  reduction was a no-op (feeds only the ~invariant `targetSpo2`). Fix at the O2-DELIVERY level: the lactate
+  trigger now uses `o2DeliveryRatio = coRatio·(1 − dysHbFrac)` with `dysHbFrac = (metHb + coHb − 1.8)/100`, so
+  dyshemoglobin drives the same anaerobic pathway as low flow and compounds with shock. Clinically graded
+  result (normal flow): metHb 20%→no acidosis, 30%→1.1, 50%→5.1, 60%→7.1; coHb 40%→3.0, 55%→6.1 mmol/L; trauma
+  (coHb 12) undisrupted. Guard `dyshemoglobin_hypoxia_ch3.test.ts`; suite 1902/1902. (Also fixed a load-flaky
+  Layer-2 `fluid_effects_ch2` timeout while verifying.) A metHb Bohr LEFT-shift for impaired O2 OFFLOADING
+  remains a possible future refinement, but the dominant DELIVERY consequence is now modeled.
 
 **Phase 3D status: COMPLETE.** Core engine constants verified grade A across respiratory, renal, cerebral,
-cardiovascular, thermoregulation, and endocrine/metabolic. One characterized/deferred gap (F39).
+cardiovascular, thermoregulation, and endocrine/metabolic. The one gap found (F39) is now FIXED.
