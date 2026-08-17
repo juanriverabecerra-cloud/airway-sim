@@ -1070,7 +1070,9 @@ export const MEDICATIONS = {
     intracellularCascade: 'Non-DHP CCB -> blocks L-type VGCCs in myocardium and AV node -> slows conduction',
     indications: { 'SVT Rate Control': { dose: '2.5-5.0', unit: 'mg', type: 'Bolus' } },
     // F37 (L3): effect-t½ 8→29 min (clinical verapamil 2-5h). k10 0.08→0.012, k12 0.05→0.03, k21 0.05→0.06.
-    // (NB: verapamil 5mg peak effect is weak here — ~8% Emax — a separate c50/dose scale question, not F37.)
+    // (Verapamil's AV-nodal bradycardia is delivered by the special ccbBradyIndex term in usePhysiology,
+    // saturating at Ce>0.025 → the sustained Ce here correctly lengthens the rate-control effect. Its
+    // pd.c50/hrMax Hill pathway is secondary/vestigial for HR — graded C, not a potency bug.)
     pk: { V1: 40.0, V2: 80.0, V3: 0, k10: 0.012, k12: 0.03, k21: 0.06, k13: 0, k31: 0, ke0: 0.2, coSensitivity: 0.2 },
     pd: { c50: 0.3, gamma: 2.0, sysMax: -25, diaMax: -25, hrMax: -35, rrMax: 0 },
     notes: 'Non-DHP CCB. Strong AV nodal depression. CRITICAL CONTRAINDICATION WITH BETA-BLOCKERS: additive AV block risk → complete heart block. ALSO DANGEROUS IN WPW + AF: blocks AV node → forces conduction through accessory pathway → VF. DO NOT use in WPW with AF.'
@@ -1889,7 +1891,9 @@ export const MEDICATIONS = {
     metabolism: 'Hepatic', mechanism: 'Calcium Channel Blocker', targetReceptor: 'L-type Calcium',
     indications: { 'SVT / Rate Control': { dose: '2.5-5.0', unit: 'mg', type: 'Bolus' } },
     // F37 (L3): effect-t½ 8→29 min (clinical verapamil 2-5h). k10 0.08→0.012, k12 0.05→0.03, k21 0.05→0.06.
-    // (NB: verapamil 5mg peak effect is weak here — ~8% Emax — a separate c50/dose scale question, not F37.)
+    // (Verapamil's AV-nodal bradycardia is delivered by the special ccbBradyIndex term in usePhysiology,
+    // saturating at Ce>0.025 → the sustained Ce here correctly lengthens the rate-control effect. Its
+    // pd.c50/hrMax Hill pathway is secondary/vestigial for HR — graded C, not a potency bug.)
     pk: { V1: 40.0, V2: 80.0, V3: 0, k10: 0.012, k12: 0.03, k21: 0.06, k13: 0, k31: 0, ke0: 0.2, coSensitivity: 0.2 },
     pd: { c50: 0.3, gamma: 2.0, sysMax: -25, diaMax: -25, hrMax: -35, rrMax: 0 },
     notes: 'Phenylalkylamine calcium channel blocker. Acts selectively on AV/SA nodes. Strongly negatively inotropic.'

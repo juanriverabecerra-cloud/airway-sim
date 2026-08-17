@@ -267,8 +267,11 @@ loss) and raise k21 (return sustains the tail). Peaks held within clinical bound
 *toward* clinical, since several were under-strong).
 
 **effect-t½ before→after (clinical target):** metoprolol 17→112m (3-6h), atenolol 57→355m (6-9h), labetalol
-14→136m (2-4h), diltiazem 7→42m (1-3h), verapamil 8→29m (2-5h; peak effect still weak — a separate c50/dose
-question, flagged not fixed), phentolamine 5→11m (15-20min), nifedipine 17→77m (1-2h), nicardipine 17→56m
+14→136m (2-4h), diltiazem 7→42m (1-3h), verapamil 8→29m (2-5h — measured via the Hill/hrMax pathway; the
+REAL verapamil/diltiazem bradycardia is the special `ccbBradyIndex` term in `usePhysiology.js:5953-5954`,
+−24 bpm max, saturating at verapamil Ce>0.025 / diltiazem Ce>0.2 — so F37's sustained Ce correctly lengthens
+the rate-control effect; their pd.c50 is secondary/vestigial for HR, grade C, NOT a potency bug — F9 check
+avoided a false finding), phentolamine 5→11m (15-20min), nifedipine 17→77m (1-2h), nicardipine 17→56m
 (30-60min), sotalol 42→331m (8-12h), procainamide 20→108m (3-4h), mexiletine 73→259m (electrophysiologic),
 ibutilide 89→290m (electrophysiologic). A few (metoprolol/diltiazem/sotalol/procainamide) remain under the
 full clinical duration — pushing k10 lower would inflate peak past clinical, so they sit at the best
@@ -281,3 +284,22 @@ to F25 and was deliberately not touched. Both med DBs synced (`Pharmacology.js` 
 `effect_duration_ch3.test.ts`. **Housekeeping note:** `Pharmacology.js` `MEDICATIONS` has duplicate keys for
 `verapamil` and `sotalol` (two identical entries each; JS keeps the last) — harmless but worth a dedupe pass;
 updated both copies to stay consistent.
+
+### 3C.iv — Induction / sedative c50 (effect-site EC50) — VERIFIED grade A/B, no findings
+Checked each hypnotic's `pd.c50` against published effect-site EC50 (LOC/hypnosis). All within range:
+propofol 2.5 µg/mL (Schnider Ce50 LOC ~2.5-3.5) **A−**; etomidate 0.3 (~0.3-0.5) **A**; thiopental 15
+(~15-20) **A**; ketamine 1.0 (racemic hypnosis ~1-2) **A−**; methohexital 3.5 (~2-3× thiopental potency)
+**A−**; midazolam 0.05 µg/mL = 50 ng/mL (sedation 40-100 ng/mL) **B**; lorazepam 0.05 **A−**; γ values 1.5-3
+are all physiologic (steep for the barbiturate/etomidate curves as expected). Soft flags, disclosed, NOT
+fixed: **esketamine** c50 0.29 (implies ~3.4× racemic potency vs the textbook ~2×; grade B), **dexmedetomidine**
+c50 0.001 µg/mL = 1 ng/mL (~1.5-2× the published ~0.5-0.7 ng/mL Ce50; grade B). Both within a factor of ~2 —
+consistent with dosing-convention variation, not a magnitude bug. **Conclusion:** the anesthetic-DEPTH PD
+layer (volatile MAC in 3C.i + IV hypnotic c50 here) is uniformly well-sourced — the same quality tier as the
+opioid/LA thresholds graded A in Phase 3B.
+
+### Phase 3C status
+Done: 3C.i volatiles/MAC (A), 3C.ii **F35 fixed**, 3C.iii **F37 fixed** (12 agents), 3C.iv hypnotic c50 (A/B),
+verapamil/CCB pathway verified (grade C c50, effect special-wired — no bug). Both deferred L3 findings from
+Phase 3B are now resolved. Remaining 3C (lower priority, mostly grading): the "special/receptor pathway"
+inert drugs (desmopressin/octreotide/D2/5-HT3/anticholinesterase — confirm each pathway is wired), and the
+remaining responsive-bucket c50 spot-checks. Then Phase 3D+ (engine constants: CV/resp/renal/hepatic/neuro).
