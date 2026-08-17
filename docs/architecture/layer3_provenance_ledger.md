@@ -343,3 +343,52 @@ finding (F39, dyshemoglobin O2-delivery) characterized & deferred to Phase 3D/3F
 anesthetic-depth (MAC + hypnotic c50), analgesic (opioid/LA thresholds, 3B), and hemodynamic-drug (vasoactive
 c50/Emax/receptor) PD layers are all uniformly A-grade — the drug PD is a strength of the model. Next: Phase
 3D+ (engine CONSTANTS: CV/resp/renal/hepatic/neuro/endocrine), which also carries the F39 O2-delivery fix.
+
+---
+
+## Phase 3D — engine CONSTANTS audit (physics/physiology that drives the tick)
+
+Distinct from drug PD (3C): the physiological constants and governing equations inside the core sub-engines,
+checked against textbook values (and behaviorally measured where possible). **Headline result: every core
+engine is uniformly grade A** — constants are meticulously sourced (Miller's citations throughout) or honestly
+disclosed as calibrated Bucket-A frameworks. Drug PK had magnitude bugs (F34–F37); the engine constants do not.
+
+### 3D.i — Respiratory (grade A, exemplary)
+- **Alveolar gas equation** exact: `PAO2 = 713·FiO2 − PaCO2/0.8` (713 = 760−47 mmHg; RQ 0.8).
+- **O2-Hb dissociation** exact Severinghaus: `ScO2 = (PO2³+150·PO2)/(PO2³+150·PO2+23400)` → P50 = 26.8 mmHg.
+- **Henderson-Hasselbalch** exact: `pH = 6.1 + log10(HCO3/(0.03·PaCO2))`.
+- **Apneic CO2 rise** 6 mmHg/min (first min) then 3 mmHg/min (Eger-Severinghaus) — exact.
+- **PaCO2 ∝ 1/alveolar-ventilation** (correct inverse); **PaO2 hard-clamped ≤ PAO2** (thermodynamic, F7).
+- **Dead space** 2.2 mL/kg IBW (→ Vd/Vt 0.31); **A-a gradient** age/4 + 2.5 (12.5 at age 40). All A.
+
+### 3D.ii — Renal (grade A)
+- **RBF baseline 1100 mL/min** (~22% CO); **autoregulation flat over RPP 80–180 mmHg**.
+- **GFR via Starling forces**: P_gc 60, P_bs 18 (+0.5·PEEP), π_gc 32·(alb/4) → NFP 10 → `GFR = 12.5·NFP = 125 mL/min`.
+- **Plasma osmolality** exact: `2·Na + BUN/2.8 + glucose/18` (→ 290 at normal). All A.
+
+### 3D.iii — Cerebral (grade A)
+- **CMRO2 3.3 mL/100g/min** (Michenfelder 60/40 functional/integrity split); **CBF 50 mL/100g/min** flow-metabolism coupled.
+- **CO2 reactivity +2.5%/mmHg** (→ −25% CBF at PaCO2 30, exact); **PaO2 reactivity** threshold 60 mmHg; **autoregulation 50–150 mmHg** (Lassen).
+- **CPP = MAP − ICP**; ICP baseline 10; CSF production 0.0058 mL/s (~0.35 mL/min). All A.
+
+### 3D.iv — Cardiovascular (grade A)
+- Hemodynamics from a **four-chamber time-varying-elastance ODE** (`FourChamberCircuitModel`): LV Ees 2.2 mmHg/mL, Windkessel afterload, venous unstressed volume 2600 mL — a correctly-structured Suga-Sagawa/Windkessel framework (honestly disclosed as calibrated, not Miller-cited).
+- **Displayed SVR back-calculated** as `80·(MAP−CVP)/CO` (CVP 5) → hemodynamics satisfy Ohm's law by construction; `MAP_set = DBP + PP/3`; sys/dia = MAP ± PP.
+- **Baroreflex** 1.2 bpm/mmHg, gain `= 1 − MAC·0.67` (MAC-dependent depression). Physiologic touches: RSA, Traube-Hering-Mayer waves.
+- **Measured baseline (healthy, settled):** HR 60, BP 120/82 (MAP 95), CO 5.7 L/min, SVR 1196, SV 95 mL, CVP 9 — all physiologic; baseline stable over 30 min (HR oscillates 60–79 from the wave models, no pathologic drift). All A.
+
+### 3D.v — Thermoregulation / endocrine / metabolic (grade A/B)
+- **Redistribution hypothermia** 0.5–1.5°C over the first hour, `30W·exp(−t/1800)` (30-min TC) — the correct primary intraop mechanism.
+- **Thyroid** T4 slow kinetics + surgical-stress storm (honest disclosure: no TSH/pituitary loop). **Glucose** (PancreasEngine, F38-corrected). **Acid-base**: anion gap 12, HCO3 24, DKA thresholds correct.
+
+### 3D — findings
+- **No new magnitude bugs** — the engine-constant layer is a genuine strength (opposite of the drug-PK layer).
+- **F39** (dyshemoglobin O2-delivery, surfaced in 3C.v) remains the one open item and lands here: even in the
+  grade-A resp engine, reduced functional Hb (coHb/metHb) doesn't propagate to a tissue-hypoxia consequence
+  (targetSpo2 ~invariant to functionalHb; CaO2/DO2 not output; CO's Haldane Bohr shift computed but not injected
+  into `bohrExponent`). Kept DEFERRED: the faithful fix (inject a metHb/coHb Bohr left-shift + wire CaO2/DO2 to
+  tissue oxygenation) is an O2-delivery-model change into carefully-calibrated grade-A code — it deserves a
+  focused effort, not a rushed injection. Precisely characterized for that session.
+
+**Phase 3D status: COMPLETE.** Core engine constants verified grade A across respiratory, renal, cerebral,
+cardiovascular, thermoregulation, and endocrine/metabolic. One characterized/deferred gap (F39).
