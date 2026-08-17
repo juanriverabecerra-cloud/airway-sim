@@ -321,8 +321,25 @@ is correct, grade A) vs. genuinely vestigial (grade C):
   and deferred to the Phase 3D/3F O2-delivery review (the faithful fix — a metHb Bohr left-shift and/or wiring
   CaO2/DO2 to tissue oxygenation — affects CO poisoning too).
 
-### Phase 3C status — substantially COMPLETE
+### 3C.vi — Vasoactive / vasopressor PD (c50 · Emax · receptor profile) — VERIFIED grade A/A−, no findings
+Phase 3B.v verified the vasoactive PK (grade A); this checks their PD potency. All within range:
+- **Pressors** (c50 in mg/L at catecholamine scale; receptor profile qualitatively correct; Emax signs right):
+  norepinephrine c50 0.001, α1:3/β1:2/β2:1, sys +40/hr +10 **A−**; epinephrine 0.002, balanced α/β 3/3/2,
+  sys +60/hr +50 **A−**; phenylephrine 0.02, pure α1 3/0/0, sys +30/**hr −35 reflex brady** ✓ **A**;
+  vasopressin 0.05, V1:3, sys +20/hr −5 **A**; angiotensin II 0.005, sys +60 **A**; dopamine 0.10, sys +30/
+  hr +40 **A−**; ephedrine 0.30 (titratable, submaximal at typical mg boluses), mixed 3/2/1, sys +40/hr +30
+  **A−**; dobutamine 0.12, sys +20/**dia −15** (β2 vasodilation ✓)/hr +30 **A−** (inotropy handled in F24);
+  isoproterenol 0.004 (F26-corrected), sys −10/hr +30 (pure β) **A**.
+- **Vasodilators** (correct NEGATIVE sysMax + reflex tachycardia): nitroprusside c50 0.002, sys −40/hr +20
+  **A**; nitroglycerin 0.005, sys −20 (venodilator-weighted)/hr +10 **A**; clevidipine 0.02, sys −30/hr +15
+  **A**. Milrinone c50 0.1, sys +10/hr +10 **B** (inodilator; F25 duration item known).
+No new findings — the vasoactive PD layer is uniformly well-calibrated, consistent with the F26/F29 c50 fixes.
+
+### Phase 3C status — COMPLETE
 Done: 3C.i volatiles/MAC (A), 3C.ii **F35 fixed**, 3C.iii **F37 fixed** (12 agents), 3C.iv hypnotic c50 (A/B),
-3C.v special-pathway grading (A/C, surfaced **F39** deferred), verapamil/CCB verified (grade C c50, no bug).
-Both deferred L3 findings from Phase 3B (F35/F37) are resolved. The remaining responsive-bucket c50 spot-checks
-fold into Phase 3D (engine constants: CV/resp/renal/hepatic/neuro), where F39's O2-delivery fix also lands.
+3C.v special-pathway grading (A/C, surfaced **F39** deferred), 3C.vi vasoactive PD (A/A−), verapamil/CCB
+verified (grade C c50, no bug). Both deferred L3 findings from Phase 3B (F35/F37) are resolved; one new
+finding (F39, dyshemoglobin O2-delivery) characterized & deferred to Phase 3D/3F. **Overall PD verdict:** the
+anesthetic-depth (MAC + hypnotic c50), analgesic (opioid/LA thresholds, 3B), and hemodynamic-drug (vasoactive
+c50/Emax/receptor) PD layers are all uniformly A-grade — the drug PD is a strength of the model. Next: Phase
+3D+ (engine CONSTANTS: CV/resp/renal/hepatic/neuro/endocrine), which also carries the F39 O2-delivery fix.
