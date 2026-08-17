@@ -396,3 +396,46 @@ disclosed as calibrated Bucket-A frameworks. Drug PK had magnitude bugs (F34–F
 
 **Phase 3D status: COMPLETE.** Core engine constants verified grade A across respiratory, renal, cerebral,
 cardiovascular, thermoregulation, and endocrine/metabolic. The one gap found (F39) is now FIXED.
+
+---
+
+## Phase 3E — disease/comorbidity models + fluids (exhaustive)
+
+Audited the pathology magnitude scalings against clinical values. **Result: uniformly grade A/B, no new
+findings** — the disease models are dynamic (cascade/score-driven), cited, and clinically calibrated (not the
+flat-multiplier models an earlier era used).
+
+- **Sepsis** (`SepsisCascadeModel`): SVR `× (1 − 0.40·score/3)` → ×0.60 at max (40% distributive drop); lactate
+  up to +3.5 (→ 4.5, Sepsis-3 shock >2); dynamic cytokine/score progression. A.
+- **CHF** (`FourChamberCircuitModel`): contractility penalty `EF/55` (EF 30 → ×0.55). A.
+- **Anaphylaxis** (`MultipleAnaphylaxisModel`): SVR drop up to 70% (profound vasodilation) + bronchospasm;
+  latex pathway (spina bifida 65% sensitized). A.
+- **Obesity** (`RespiratoryEngine`): FRC `exp(−0.035·(BMI−25))` = 59% at BMI 40 (Pelosi 1998; corrected from a
+  prior 74% that gave falsely long safe-apnea time); compliance −25. A.
+- **Malignant hyperthermia**: a 5× hypermetabolic multiplier coherently drives EtCO2/temp/HR/lactate through
+  the metabolic chain; dantrolene reversal + CCB-dantrolene lethal interaction. A.
+- **Pheochromocytoma**: surgical-crisis model (adrenal-manipulation trigger, α-blockade adequacy, phentolamine
+  rescue, tumor-ligation hypotension). A/B.
+- **CKD** (`CKDPerioperativeModel`): GFR staging exactly KDIGO (≥90/60-89/45-59/30-44/15-29/<15); DDAVP for
+  uremic platelet dysfunction. A.
+- **Hepatic/cirrhosis** (`HepaticEngine`): Child-Pugh + MELD scoring → coagulopathy/clearance; variceal bleed. A/B.
+- **Thyroid** (`ThyroidEngine`): T3/T4 → metabolic multiplier + baseline HR; storm = tachycardia/hyperthermia/
+  metabolic spike (honest disclosure: no TSH/pituitary loop). A.
+- **Adrenal** (`AdrenalEngine`): cortisol 0.1 baseline → 0.8 severe stress / 0.02 insufficiency, with the
+  catecholamine-receptor-responsiveness link (why AI patients are pressor-refractory). A.
+- **Fluids** (`FluidicsEngine` + FLUIDS): osmolality exact (NS 308, LR 273, Plasma-Lyte 294), coag effects
+  (FFP r−4, platelets/cryo MA+15, crystalloid dilutional), PRBC hct 0.70, viscosities, warmed-vs-cold
+  hypothermia. Crystalloid retention 0.75 intact / 0.20 inflamed reflects the modern ~1.3:1 colloid:crystalloid
+  ratio + sepsis capillary leak — defensible **B** (upper edge of the modern range, not the old 3:1 rule).
+
+**Phase 3E status: COMPLETE — no new findings.** Disease/fluids magnitudes are grade A/B throughout.
+
+---
+
+## Layer 3 — overall verdict (Phases 3A–3E)
+The numerical-fidelity findings clustered **entirely in the drug-PK layer** — dosing units (F34), LAST wiring
+(F36), effect durations (F37), steroid→glucose (F38), NMB onset (F35) — plus one O2-delivery consequence gap
+(F39). **All are now FIXED.** By contrast the physiological ENGINE constants (3D), drug PD (3C), and
+disease/fluids models (3E) are uniformly grade A/B — meticulously sourced and calibrated. The audit's lesson:
+this codebase's *emergent physiology* is a genuine strength; the fidelity risk lived in the drug **PK table**
+(concentrations/durations/wiring), which is exactly where a hand-entered parameter table is most error-prone.
