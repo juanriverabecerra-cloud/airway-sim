@@ -137,10 +137,27 @@ export class HpaAxisModel {
     const hpaSuppressionFraction = doseFraction * weeksFraction;
 
     // Stress cortisol deficit: during intraoperative stress, how much of the required cortisol
-    // response is missing. At full suppression (fraction=1) and major stress: 100% deficit.
+    // response the axis cannot mount.
+    //
+    // F45 (L4): the two quantities being compared here are in DIFFERENT UNITS, and the prior formula
+    // (`1 - cortisolCapacity / stressNeed`) divided one by the other directly. `cortisolCapacity` is a
+    // 0-1 FRACTION of axis reserve remaining; `stressNeed` is a MULTIPLE of baseline secretion (2x
+    // minor ... 10x major). So a completely healthy patient — capacity 1.0, zero suppression — scored
+    // `1 - 1/5 = 0.8`, i.e. "80% cortisol deficient", for any moderate-stress case. That tripped the
+    // crisis branch below in EVERY intact patient the moment MAP dipped under 70 (routine after
+    // induction), which then applied a persistent ~35% SVR cut at the call site, deepened the
+    // hypotension that latched the crisis on, and blunted every vasopressor given to treat it.
+    //
+    // Correct comparison: an INTACT axis can raise cortisol output ~10x above baseline under maximal
+    // stress. Suppression scales that reserve down toward 1x (baseline output only). The deficit is
+    // then how far the achievable multiple falls short of what the stress level demands.
     const stressNeed = STRESS_CORTISOL_NEED[surgicalStressLevel] ?? 1.0;
     const cortisolCapacity = 1 - hpaSuppressionFraction;
-    const cortisolStressDeficit = isIntraoperative ? clamp(1 - cortisolCapacity / stressNeed, 0, 1) : 0;
+    const MAX_STRESS_RESPONSE_MULTIPLE = 10.0;
+    const achievableStressMultiple = 1 + (MAX_STRESS_RESPONSE_MULTIPLE - 1) * cortisolCapacity;
+    const cortisolStressDeficit = isIntraoperative
+      ? clamp(1 - achievableStressMultiple / stressNeed, 0, 1)
+      : 0;
 
     // Stress-dose coverage: hydrocortisone 50-100 mg IV provides ~300-600 mg/day equivalent
     // (normal stress-response production is ~75-150 mg/day cortisol). Ce proxy here --

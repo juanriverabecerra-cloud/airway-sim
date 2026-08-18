@@ -619,14 +619,30 @@ export class RespiratoryEngine {
     const complianceModBowel = 1.0 / (1.0 + 0.3 * Math.max(0, bowelGasVol - 1.0));
     currentCompliance *= complianceModBowel;
 
-    // Scale by intercostal contribution (loss of chest wall expansion)
+    // F44 (L4): general anesthesia reduces respiratory-system compliance MODESTLY (~10-15%), via loss
+    // of inspiratory-muscle tone and the cephalad diaphragm shift. The bulk of GA's respiratory-mechanics
+    // penalty is FRC loss and atelectasis, which this engine already models on its own dedicated paths —
+    // it must not be double-counted here.
+    // This is deliberately NOT a raw multiply by `intercostalContribution`. That value (1 - 0.7*MAC,
+    // floored at 0.1) is a muscle ACTIVITY index, used correctly elsewhere to detect paradoxical
+    // breathing during SPONTANEOUS ventilation; multiplying a static MECHANICAL property by it was a
+    // category error. Its effect was catastrophic and silent: at 1 MAC it cost 70% of static compliance,
+    // so a routine maintenance case decayed to ~13 mL/cmH2O, PIP climbed to pmax, PCV-VG could no longer
+    // deliver the set tidal volume, minute ventilation collapsed, and a healthy patient arrested from
+    // respiratory acidosis (PaCO2 120, pH 6.2) at ~16 min with nothing administered.
     if (safeInputs.intercostalContribution !== undefined) {
-      currentCompliance *= safeInputs.intercostalContribution;
+      const gaDepthIndex = Math.max(0, Math.min(1, 1 - safeInputs.intercostalContribution));
+      currentCompliance *= (1 - 0.12 * gaDepthIndex);
     }
 
-    // Scale compliance by surfactant production (Chapter 21)
+    // Surfactant and compliance (Chapter 21). Only a SUBSTANTIAL surfactant deficit is mechanically
+    // significant — alveolar stability is preserved across the normal-to-mildly-reduced range, and the
+    // states where surfactant genuinely drives compliance (neonatal RDS, ARDS) sit far below it. The
+    // prior raw `production/100` ratio was linear from the very top of the range, so the routine 1-MAC
+    // volatile reduction (production 70) silently cost 30% of static compliance in every single case.
     if (safePatient.surfactantProduction !== undefined) {
-      currentCompliance *= (safePatient.surfactantProduction / 100.0);
+      const surfactantDeficit = Math.max(0, 1 - safePatient.surfactantProduction / 100.0);
+      currentCompliance *= Math.max(0.6, 1 - 0.2 * surfactantDeficit);
     }
 
     // Bronchospasm is a disease of airway RESISTANCE, not compliance.

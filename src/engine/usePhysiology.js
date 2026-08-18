@@ -110,6 +110,20 @@ import { ensureRng } from './rng';
  */
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
+/**
+ * Return `v` when it is a real number, else `fallback`. Use this instead of `v || fallback` for any
+ * VITAL SIGN, because zero is a legitimate — and clinically critical — value for most of them.
+ *
+ * F47 (L4): `st.vitals.map || 90` and friends were used at ~15 call sites feeding downstream engines.
+ * In cardiac arrest MAP/SBP/CO are genuinely 0, so every one of those sites silently substituted a
+ * NORMAL value: the CerebralEngine was told MAP 90 while the patient was asystolic and duly reported a
+ * comfortable CPP of ~64 mmHg next to an ICP of 26, the HPA model saw a normotensive patient and
+ * switched off its crisis branch, and the perfusion index read normal. That is the bulk of the
+ * "secondary monitor values make no sense once the patient decompensates" report — the monitor was
+ * faithfully displaying numbers computed from a fabricated blood pressure.
+ */
+const numOr = (v, fallback) => (typeof v === 'number' && Number.isFinite(v) ? v : fallback);
+
 export function resolveDosingWeight(medData, type, patient) {
   const tbw = typeof patient.weight === 'number' && Number.isFinite(patient.weight) && patient.weight > 0 ? patient.weight : 70;
   const ibw = typeof patient.ibw === 'number' && Number.isFinite(patient.ibw) && patient.ibw > 0 ? patient.ibw : 70;
@@ -229,7 +243,7 @@ export function runPhysicsStep(__ctx) {
           const sepsisOutput = SepsisCascadeModel.tick({
               isSeptic: !!st.patient.isSeptic,
               prevSepsisScore: st.patient.sepsisScore,
-              mapMmHg: st.vitals.map || 65,
+              mapMmHg: numOr(st.vitals.map, 65),
               netFluidBalanceMl: st.patient.netFluidBalance || 0,
               sourceControlActive: !!st.patient.sourceControlActive,
               corticosteroidCe: steroidCeForSepsis,
@@ -635,7 +649,7 @@ export function runPhysicsStep(__ctx) {
               currentDBP: st.vitals.dia,
               currentMAP: st.vitals.map,
               currentHb: st.patient.currentHemoglobin ?? st.patient.hemoglobin ?? 14, // live bleed/transfusion-adjusted Hb (one-tick lag), not the static baseline
-              currentSaO2: (st.vitals.spo2 || 98) / 100,
+              currentSaO2: numOr(st.vitals.spo2, 98) / 100,
               currentLVEDP: st.vitals.lvedp || 8,
               currentCO: st.vitals.co,
               ischemicBurdenAccumulator: st.patient.ischemicBurdenAccumulator || 0,
@@ -1517,8 +1531,8 @@ export function runPhysicsStep(__ctx) {
               plateletCountK: st.patient.plateletCount || 250,
               temperature: st.vitals.temp || 37,
               antithrombinLevel: 1.0,
-              vitals_spo2: st.vitals.spo2 || 98,
-              vitals_map: st.vitals.map || 90,
+              vitals_spo2: numOr(st.vitals.spo2, 98),
+              vitals_map: numOr(st.vitals.map, 90),
               baselineMap: st.patient.MAP_set || 90,
               vitals_rr: st.vitals.rr || 14,
               consciousnessLevel: 1 - Math.min(1, currentMac * 0.6 + opioidEff * 0.4),
@@ -1529,7 +1543,7 @@ export function runPhysicsStep(__ctx) {
               etco2Current: st.vitals.etco2 || 38,
               baselinePaCO2: st.patient.isPregnant ? 32 : st.patient.copd ? 50 : 40,
               tofRatio: st.vitals.tofRatio || 1.0,
-              isHemodynamicallyStable: (st.vitals.map || 0) > 60,
+              isHemodynamicallyStable: numOr(st.vitals.map, 0) > 60,
               temperatureForExtubation: st.vitals.temp || 37,
               patient_htn: !!st.patient.htn,
               patient_dm: !!st.patient.diabetes,
@@ -1545,11 +1559,11 @@ export function runPhysicsStep(__ctx) {
               patient_septic: !!st.patient.isSeptic,
               patient_trauma: !!st.patient.trauma,
               emergent_surgery: !!st.patient.emergentRSI,
-              pao2: st.vitals.pao2 || 100,
+              pao2: numOr(st.vitals.pao2, 100),
               fio2: deliveredFiO2 || 0.21,
               plateletCountK_sofa: st.patient.plateletCount || 250,
               bilirubinMgDl: st.patient.bilirubin || 0.8,
-              mapMmHg: st.vitals.map || 90,
+              mapMmHg: numOr(st.vitals.map, 90),
               vasopressorRequired: !!(((st.activeMeds || []).find(m => m.name === 'Norepinephrine')) || ((st.activeMeds || []).find(m => m.name === 'Vasopressin'))),
               norepinephrineDose: 0,
               glasgowComaScore: 15 - Math.round(currentMac * 5 + opioidEff * 4),
@@ -1790,7 +1804,7 @@ export function runPhysicsStep(__ctx) {
               isIntraoperative: !!(st.surgicalPhase === 'Induction' || st.surgicalPhase === 'Incision' || st.surgicalPhase === 'Maintenance'),
               hydrocortisoneCe: hpaHydrocortisoneModel ? hpaHydrocortisoneModel.Ce : 0,
               dexamethasoneCe: hpaDexamethasoneModel ? hpaDexamethasoneModel.Ce : 0,
-              mapMmHg: st.vitals.map || 90,
+              mapMmHg: numOr(st.vitals.map, 90),
               sepsisScore: sepsisOutput.sepsisScore || 0,
               prevAdrenalCrisisLogged: !!st.patient.adrenalCrisisLogged
           });
@@ -3164,7 +3178,7 @@ export function runPhysicsStep(__ctx) {
               C_cat: st.patient.C_cat,
               nonNociceptiveSympatheticStimulus: adrenalOutput.nonNociceptiveSympatheticStimulus,
               cortisolLevel: adrenalOutput.cortisolLevel,
-              baroreflexErrorMagnitude: Math.abs((st.vitals.map || 93) - (st.patient.MAP_set || 93))
+              baroreflexErrorMagnitude: Math.abs(numOr(st.vitals.map, 93) - numOr(st.patient.MAP_set, 93))
             }
           );
           totalHrDelta += ansOutput.vagalHrEffect;
@@ -4102,21 +4116,38 @@ export function runPhysicsStep(__ctx) {
           const prevPipVal = st.vitals.pip || 0;
           const currentAirwayPressure = Math.max(prevPipVal, currentPeepVal);
 
-          // Track recruitment time for PAW >= 40 cmH2O (sustained vital capacity maneuver)
+          // Recruitment maneuver (Fig 13.19, Miller's 9th Ed). F46 (L4): this must be driven by
+          // OPERATOR INTENT, not by measured airway pressure.
+          //
+          // Previously the maneuver triggered off `currentAirwayPressure >= 40` — i.e. measured PIP.
+          // But 40 is also the DEFAULT `pmax` safety ceiling, so any patient whose PIP rose to the
+          // limiter (pneumoperitoneum, Trendelenburg, bronchospasm, falling compliance) was credited
+          // with performing a sustained vital-capacity maneuver every 7 seconds, spamming the log with
+          // "recruitment maneuver completed" and repeatedly zeroing atelectasis nobody had treated.
+          // Meanwhile `recruitmentActive` — the flag the UI's "Lung Recruitment (40/40)" action
+          // actually sets — was read nowhere, so deliberately requesting a maneuver did nothing.
+          //
+          // A maneuver now requires either that explicit request, or that the operator deliberately
+          // raised the SET airway pressure (PEEP >= 30, the "40/40" done through vent settings).
+          // PIP merely reaching the pmax limiter is pathology, not a maneuver.
           let recruitmentTime = st.patient.recruitmentTime || 0;
-          if (currentAirwayPressure >= 40.0) {
+          const recruitmentRequested = !!st.patient.recruitmentActive || currentPeepVal >= 30.0;
+          if (recruitmentRequested && currentAirwayPressure >= 30.0) {
               recruitmentTime += 1.0; // 1 second per tick
-              if (recruitmentTime >= 7.0) { // Fig 13.19: 40 cmH2O for 7-8 seconds successfully opens almost all atelectasis
+              if (recruitmentTime >= 7.0) { // Fig 13.19: 40 cmH2O for 7-8s opens almost all atelectasis
                   atelectasis = 0.0;
                   recruitmentTime = 0.0;
-                  logEvent("✅ SUCCESS: Alveolar recruitment maneuver completed (sustained PAW >= 40 cmH2O for 7s). Atelectasis fully resolved!");
+                  st.patient.recruitmentActive = false;
+                  logEvent("✅ SUCCESS: Alveolar recruitment maneuver completed (sustained PAW >= 30 cmH2O for 7s). Atelectasis fully resolved!");
               }
-          } else if (currentAirwayPressure >= 30.0) {
-              // Fig 13.19: PAW >= 30 cmH2O required for initial opening
-              atelectasis = Math.max(0.0, atelectasis - 0.08); // rapid opening at 30-40 cmH2O
-              recruitmentTime = 0.0;
           } else {
               recruitmentTime = 0.0;
+              // Incidentally high plateau pressure does open SOME collapsed lung, but slowly and
+              // partially — it is not a maneuver and must not resolve atelectasis outright. (The prior
+              // -0.08/s here cleared even severe atelectasis in ~12s of merely-high PIP.)
+              if (currentAirwayPressure >= 30.0) {
+                  atelectasis = Math.max(0.0, atelectasis - 0.002);
+              }
           }
           st.patient.recruitmentTime = recruitmentTime;
 
@@ -5446,6 +5477,22 @@ export function runPhysicsStep(__ctx) {
           positionPreloadMod -= opioidCvOccupancy * 620;
           st.patient.__opioidCvOccupancy = opioidCvOccupancy; // F31: also blunts the baroreflex (sympatholysis) in the CV/Brainstem engines
 
+          // F50 (L4): IV hypnotic depth, exported for the CV engine's baroreflex gain. The baroreflex was
+          // blunted by volatile MAC, opioids, neuraxial block and awareness — but by NOTHING from the IV
+          // hypnotics, even though propofol is a potent baroreflex depressant (it resets the reflex and
+          // reduces its gain; that is precisely why propofol hypotension is NOT accompanied by a
+          // compensatory tachycardia). With the reflex left fully intact, a routine 2 mg/kg propofol
+          // induction produced a paradoxical reflex tachycardia to ~136 bpm chasing its own MAP drop.
+          // Same half-max constants as the F40 `ivHypnoticDepth` used for respiratory drive; ketamine and
+          // dexmedetomidine are excluded (ketamine is sympathomimetic, not a baroreflex depressant).
+          const etomidateCeCv = ((st.activeMeds || []).find(m => m.name === 'Etomidate') || { Ce: 0 }).Ce || 0;
+          st.patient.__hypnoticCvDepth = Math.min(1.0, Math.max(
+              propofolCe / (propofolCe + 2.5),
+              midazolamCe / (midazolamCe + 0.05),
+              thiopentalCe / (thiopentalCe + 15.0),
+              etomidateCeCv / (etomidateCeCv + 0.3)
+          ));
+
           // Gastrointestinal Engine Tick
           const isParalyzedCurrent = maxNMJOccupancy > 0.90;
           const isApneicCurrent = isParalyzedCurrent || (st.vitals.rr !== undefined && Number.isFinite(st.vitals.rr) ? st.vitals.rr < 1 : false);
@@ -5517,9 +5564,9 @@ export function runPhysicsStep(__ctx) {
               time: st.time
           }, st.activeMeds || [], {
               coRatio: coRatio,
-              map: st.vitals.map || 90.0,
-              sys: st.vitals.sys || 120.0,
-              spo2: st.vitals.spo2 || 98.0,
+              map: numOr(st.vitals.map, 90.0),
+              sys: numOr(st.vitals.sys, 120.0),
+              spo2: numOr(st.vitals.spo2, 98.0),
               paco2: st.vitals.paco2 || 40.0,
               temp: newTemp,
               cvp: cvp,
@@ -5593,7 +5640,7 @@ export function runPhysicsStep(__ctx) {
                   vasopressinLevel: st.vitals.vasopressinLevel,
                   aldosteroneLevel: st.vitals.aldosteroneLevel,
                   osm: st.vitals.osm,
-                  spo2: st.vitals.spo2 || 98.0,
+                  spo2: numOr(st.vitals.spo2, 98.0),
                   mapUnder60Time: st.vitals.mapUnder60Time,
                   mapUnder55Time: st.vitals.mapUnder55Time,
                   mapUnder60AlertTriggered: st.vitals.mapUnder60AlertTriggered,
@@ -5603,8 +5650,8 @@ export function runPhysicsStep(__ctx) {
               electrolytes: st.electrolytes
           }, st.activeMeds || [], {
               coRatio: coRatio,
-              map: st.vitals.map || 90.0,
-              sys: st.vitals.sys || 120.0,
+              map: numOr(st.vitals.map, 90.0),
+              sys: numOr(st.vitals.sys, 120.0),
               cvp: cvp,
               peep: peepValCvp,
               rng,
@@ -5776,8 +5823,8 @@ export function runPhysicsStep(__ctx) {
 
           // 4. RespiratoryEngine Tick
           const safePaCO2 = st.vitals.paco2 || 40;
-          const safePaO2 = st.vitals.pao2 || 100;
-          const safeSys = st.vitals.sys || 120;
+          const safePaO2 = numOr(st.vitals.pao2, 100);
+          const safeSys = numOr(st.vitals.sys, 120);
 
           // HVR and HCVR Blunting
           let hvrBlunting = 0.0;
@@ -5969,7 +6016,7 @@ export function runPhysicsStep(__ctx) {
           });
 
           // Calculate safePh early for LAST protein binding check and CV acidosis blunting
-          const safePh = Math.max(6.5, Math.min(7.8, 6.1 + Math.log10((acidBaseOutput.computedHco3 / Math.max(1e-9, 0.0307 * (respOutput.newPaCO2 || 40))))));
+          const safePh = Math.max(6.5, Math.min(7.8, 6.1 + Math.log10((acidBaseOutput.computedHco3 / Math.max(1e-9, 0.0307 * numOr(respOutput.newPaCO2, 40))))));
 
           // Apply LAST CV consequences to drugSvrMod / drugInotropyMod before CV engine tick.
           // (using the early-computed lastOutput from the top of the tick loop)
@@ -6037,6 +6084,17 @@ export function runPhysicsStep(__ctx) {
           const cvOutput = CardiovascularEngine.tick(1, {
               patient: {
                   ...patientAfterFluidics,
+                  // F53 (L4): the baroreflex-blunting indices must be read from the LIVE patient, not
+                  // from `patientAfterFluidics` — that is a snapshot taken near the top of the tick,
+                  // whereas both of these are computed ~5000 lines later. Neither field exists on the
+                  // snapshot and neither was carried into finalPatient, so both arrived here as
+                  // `undefined` on every tick and silently defaulted to zero blunting. F31's opioid
+                  // sympatholysis therefore never actually applied: a 200 mcg fentanyl dose dropped MAP
+                  // to 72 and the baroreflex answered at FULL gain with +27 bpm, producing exactly the
+                  // reflex tachycardia F31 was written to prevent (and which the opioid's own -20 hrMax
+                  // could not overcome).
+                  __opioidCvOccupancy: st.patient.__opioidCvOccupancy,
+                  __hypnoticCvDepth: st.patient.__hypnoticCvDepth,
                   intravascularVolume: safeIntravascularVolume + safeAdded,
                   hasAspirated,
                   anaphylaxisTriggered,
@@ -6052,7 +6110,7 @@ export function runPhysicsStep(__ctx) {
               vitals: {
                   ...respOutput.vitals,
                   ph: safePh,
-                  co: st.vitals.co || 5.0,
+                  co: numOr(st.vitals.co, 5.0),
                   svr: st.vitals.svr || 1200
               },
               electrolytes: fluidicsOutput.electrolytes,
@@ -6243,6 +6301,28 @@ export function runPhysicsStep(__ctx) {
               transientBradycardia: st.patient.transientBradycardia || false,
               maxNMJOccupancy: maxNMJOccupancy
           };
+
+          // F52 (L4): carry EVERY one-shot stochastic "already rolled" memo forward from the LIVE
+          // patient object.
+          //
+          // `patientAfterFluidics` (which finalPatient spreads) is a shallow snapshot of `st.patient`
+          // taken near the very top of the tick, but the `*Rolled` memos are written hundreds of lines
+          // later. Any memo not ALSO listed explicitly in the literal above was therefore discarded at
+          // the end of every tick and came back `undefined` on the next one — so the "roll once per
+          // exposure episode" gate re-rolled once per SIMULATED SECOND. A complication documented at 2%
+          // incidence then had a 1-0.98^n chance of firing over n seconds: effectively certain within a
+          // few minutes. Measured before this fix: sphincter-of-Oddi biliary spasm (baseProb 0.02) fired
+          // in 10 of 10 healthy patients given a single routine fentanyl dose, each logging the "tone
+          // remained stable" note dozens of times before finally hitting. Twelve of the twenty-one memos
+          // were affected; nine had been hand-listed above, which is exactly the kind of enumeration that
+          // goes stale as new rolls are added.
+          //
+          // Copying by the shared `*Rolled` suffix fixes the whole family at once and keeps new rolls
+          // correct by default. Assigning `undefined` is meaningful here — it is how a site RESETS a roll
+          // when the exposure ends — so copy the value whether or not it is defined.
+          for (const rollKey of Object.keys(st.patient)) {
+              if (rollKey.endsWith('Rolled')) finalPatient[rollKey] = st.patient[rollKey];
+          }
 
           // Phase 6B: Transfusion Immunology (TRALI, HIT, ABO incompatibility).
           // Cumulative blood product volumes estimated from per-tick coags offsets (same
@@ -6516,7 +6596,7 @@ export function runPhysicsStep(__ctx) {
               // SID/chloride/buffer/lactate/sepsis/AKI in one consistent computation. Re-derive
               // with this tick's freshly-computed PaCO2 so the coag model sees the same pH
               // the Stewart model would produce at the exact current CO2 level.
-              const coagPh = Math.max(6.5, Math.min(7.8, 6.1 + Math.log10((acidBaseOutput.computedHco3 / Math.max(1e-9, 0.0307 * (respOutput.newPaCO2 || 40))))));
+              const coagPh = Math.max(6.5, Math.min(7.8, 6.1 + Math.log10((acidBaseOutput.computedHco3 / Math.max(1e-9, 0.0307 * numOr(respOutput.newPaCO2, 40))))));
               const eblDeltaThisTick = Math.max(0, (finalPatient.ebl || 0) - prevEblBeforeThisTick);
               const totalInfusedMl = fluidicsOutput.intravascularVolumeAdded_mL || 0;
               const rbcInfusedMl = fluidicsOutput.rbcVolumeAdded_mL || 0;
@@ -6611,10 +6691,10 @@ export function runPhysicsStep(__ctx) {
               bronchospasmSeverity: Math.max(0, ((respOutput.resistance || 20) - 20) / 40),
               isEsophagealIntubation: !!(st.patient.esophagealIntubation),
               ventRR: respOutput.vitals.rr || 12,
-              trueSao2: respOutput.vitals.spo2 || 98,
+              trueSao2: numOr(respOutput.vitals.spo2, 98),
               metHbPercent: st.patient.metHb || 0,
               coHbPercent: st.patient.coHb || 0,
-              perfusionIndex: Math.min(1, Math.max(0, (cvOutput.vitals.co || 5) / 5 * (cvOutput.vitals.map || 90) / 90))
+              perfusionIndex: Math.min(1, Math.max(0, numOr(cvOutput.vitals.co, 5) / 5 * numOr(cvOutput.vitals.map, 90) / 90))
           });
           // Update the final SpO2 display with artifact-corrected value (if artifacts active)
           if (capnoOutput.metHbArtifact || capnoOutput.coHbArtifact || capnoOutput.signalQualityLost) {
@@ -6639,11 +6719,11 @@ export function runPhysicsStep(__ctx) {
               },
               time: st.time
           }, st.activeMeds || [], {
-              map: cvOutput.vitals.map || 90.0,
-              sys: cvOutput.vitals.sys || 120.0,
-              paco2: respOutput.newPaCO2 || 40.0,
-              pao2: respOutput.vitals.pao2 || 100.0,
-              spo2: respOutput.vitals.spo2 || 98.0,
+              map: numOr(cvOutput.vitals.map, 90.0),
+              sys: numOr(cvOutput.vitals.sys, 120.0),
+              paco2: numOr(respOutput.newPaCO2, 40.0),
+              pao2: numOr(respOutput.vitals.pao2, 100.0),
+              spo2: numOr(respOutput.vitals.spo2, 98.0),
               temp: newTemp,
               cvp: cvp,
               sevoMac: sevoMac,
@@ -6847,20 +6927,24 @@ export function runPhysicsStep(__ctx) {
               autonomicDysreflexiaActive: renalOutput.autonomicDysreflexiaActive
           };
 
-          // Apply natural wave-like fluctuations in non-arrest states
+          // Apply natural wave-like fluctuations in non-arrest states.
+          // F48 (L4): every one of these is floored at 0. The `> 0` guards only checked the value
+          // BEFORE adding the oscillation, so a vital sitting at 1-2 could be pushed NEGATIVE by the
+          // subtractive half of the wave — e.g. phenylephrine 200 mcg drove profound reflex bradycardia
+          // and the monitor then displayed a heart rate of -2 bpm.
           if (!finalPatient.isArrest && finalVitals.hr > 0 && finalPatient.cardiacRhythm !== 'asystole') {
               const hrOsc = Math.sin(st.time * 0.1) * 0.8 + Math.cos(st.time * 0.03) * 0.4;
-              finalVitals.hr = Math.round(finalVitals.hr + hrOsc);
+              finalVitals.hr = Math.max(0, Math.round(finalVitals.hr + hrOsc));
 
               const bpOsc = Math.sin(st.time * 0.07) * 1.5 + Math.cos(st.time * 0.02) * 1.0;
-              if (finalVitals.sys > 0) finalVitals.sys = Math.round(finalVitals.sys + bpOsc);
-              if (finalVitals.dia > 0) finalVitals.dia = Math.round(finalVitals.dia + bpOsc);
-              if (finalVitals.map > 0) finalVitals.map = Math.round(finalVitals.map + bpOsc);
-              if (finalVitals.cmap > 0) finalVitals.cmap = Math.round(finalVitals.cmap + bpOsc);
+              if (finalVitals.sys > 0) finalVitals.sys = Math.max(0, Math.round(finalVitals.sys + bpOsc));
+              if (finalVitals.dia > 0) finalVitals.dia = Math.max(0, Math.round(finalVitals.dia + bpOsc));
+              if (finalVitals.map > 0) finalVitals.map = Math.max(0, Math.round(finalVitals.map + bpOsc));
+              if (finalVitals.cmap > 0) finalVitals.cmap = Math.max(0, Math.round(finalVitals.cmap + bpOsc));
 
               if (finalVitals.rr > 0 && finalPatient.ventilationStatus === 'spontaneous') {
                   const rrOsc = Math.sin(st.time * 0.05) * 0.5;
-                  finalVitals.rr = Math.round(finalVitals.rr + rrOsc);
+                  finalVitals.rr = Math.max(0, Math.round(finalVitals.rr + rrOsc));
               }
 
               if (finalVitals.spo2 > 50 && finalVitals.spo2 <= 100) {
@@ -7093,8 +7177,8 @@ export function runPhysicsStep(__ctx) {
             }
 
             // Safety pause trigger: if patient becomes unstable, halt fast-forward and pause simulation
-            const hrVal = finalVitals.hr || 0;
-            const mapVal = finalVitals.map || 90.0;
+            const hrVal = numOr(finalVitals.hr, 0);
+            const mapVal = numOr(finalVitals.map, 90.0);
             const spo2Val = finalVitals.spo2 || 98.0;
 
             const isCardiacArrest = hrVal <= 0;

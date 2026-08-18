@@ -45,12 +45,25 @@ describe('Layer 2 — drug→effect direction laws (metamorphic)', () => {
   }
 
   // F10 RESOLVED (Layer 2): opioids now blunt the hypoxic + hypercapnic ventilatory responses, and
-  // flag-based apnea (chest-wall rigidity / renarcotization) forces RR to 0. High-dose fentanyl still
-  // induces apnea, but RR stays depressed instead of the old paradoxical tachypnea (RR ~25 while
-  // apneic). This guards the fix across seeds.
+  // flag-based apnea (chest-wall rigidity / renarcotization) forces RR to 0. The invariant guarded here
+  // is the F10 fix itself: while the patient is apneic, RR stays DEPRESSED rather than showing the old
+  // paradoxical tachypnea (RR ~25 while flagged apneic).
+  //
+  // Apnea is now induced deterministically via `forceOpioidRigidity` instead of by waiting for the
+  // stochastic 3% chest-wall-rigidity roll to come up. Before F52 that roll was re-evaluated every tick
+  // (its "already rolled" memo was being discarded each tick), so it fired on essentially every patient
+  // within seconds and the test got its apnea for free. With the roll correctly firing at its documented
+  // 3%, seeding-dependent luck is no longer a sound way to reach the state under test — and a test for
+  // RR behaviour DURING apnea should not be silently gated on how apnea was reached.
+  //
+  // NOTE (separate, pre-existing gap — not what this test covers): the `inducesApneaAtCe` PD threshold
+  // declared for fentanyl and ~20 other drugs is parsed into PKPDModel but never read anywhere, so a
+  // dose-driven apnea threshold does not currently exist. Fentanyl 300 mcg reaches Ce 0.0064 mg/L,
+  // above its declared 0.006 apnea threshold, without triggering apnea.
   it('F10 RESOLVED: opioid apnea keeps RR depressed (no paradoxical tachypnea while apneic)', () => {
     for (const seed of [7, 1, 2, 11, 42]) {
       const treat = createHeadlessSim(HEALTHY_CASE, { seed, withPIV: true });
+      treat.state.patient.forceOpioidRigidity = true;
       giveMed(treat, 'fentanyl', 300, { unit: 'mcg' });
       let sawApnea = false;
       let maxRrWhileApneic = 0;

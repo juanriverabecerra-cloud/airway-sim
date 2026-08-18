@@ -30,7 +30,12 @@ describe('Layer 2 — F29 niche-drug effects', () => {
     chk('albuterol20->HR', (s) => giveMed(s, 'albuterol', 20, { unit: 'mg' }), 'hr', 'up', 3, 200);
   });
   it('enalaprilat lowers MAP modestly (ACE inhibition, muted in a euvolemic patient)', () => {
-    chk('enalaprilat->MAP', (s) => giveMed(s, 'enalaprilat', 5, { unit: 'mg' }), 'map', 'down', 1.5, 400);
+    // 800 ticks (~13 min), not 400. IV enalaprilat's onset is ~15 min with peak effect at 1-4 h, so a
+    // ~6.7 min window was always sampling the very start of its curve — it only cleared the 1.5 mmHg
+    // threshold there because the baroreflex was being double-counted (PainEngine's copy summed on top
+    // of CardiovascularEngine's, see F51), which exaggerated short-horizon pressure swings. The law is
+    // unchanged and still holds: at 800 ticks MAP is 3 mmHg lower, and it stays down at 1200.
+    chk('enalaprilat->MAP', (s) => giveMed(s, 'enalaprilat', 5, { unit: 'mg' }), 'map', 'down', 1.5, 800);
   });
 });
 

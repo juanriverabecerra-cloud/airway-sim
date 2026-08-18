@@ -46,6 +46,10 @@ export interface PainEngineOutput {
   effectivePain: number;
   sympatheticDrive: number;
   hrSpike: number;
+  /** F51: this engine's own baroreflex HR term. Reported for telemetry only — it is deliberately NOT
+   *  summed into `hrSpike`, because CardiovascularEngine owns the baroreflex (see the note at its
+   *  computation site). Wiring it back into the HR chain would restore the double-counting. */
+  baroreflexHrModifier: number;
   svrSpike: number;
   contractilitySpike: number;
   alpha1Activity: number; // endogenous catecholamine pool's receptor activity (Phase 2's receptor-unification piece), for per-vascular-bed redistribution
@@ -367,9 +371,21 @@ export class PainEngine {
     // disclosed, intentional addition -- see ReceptorPharmacologyModel.ts's header.
     const endogenousCoupling = computeModulatedEndogenousCoupling(sympatheticDrive, E_beta1_max, E_alpha1_max);
 
-    // β1 chronotropic response
+    // β1 chronotropic response.
+    // F51 (L4): `hrSpike` carries ONLY the nociceptive/sympathetic β1 chronotropy it is named for.
+    // `baroModifier` is deliberately NOT added back in. It used to be, and the result was that every
+    // blood-pressure deviation drove heart rate through TWO independent baroreflex controllers summed
+    // together: this one (±35 bpm) plus CardiovascularEngine's own `autonomicHrMod` (-25/+30 bpm),
+    // since `hrSpike` is fed straight into that engine as `hrSympatheticSpike`. Worse, this copy is
+    // blunted by NONE of the anesthetic terms the CV engine's copy correctly respects (volatile MAC,
+    // opioid sympatholysis, IV-hypnotic depression, neuraxial sympathectomy), so anesthesia could never
+    // attenuate it. Both directions were visibly wrong: post-induction hypotension produced a
+    // paradoxical reflex tachycardia to ~136 bpm, and a phenylephrine bolus drove HR to single digits
+    // while the patient sat in sinus rhythm at 205 mmHg systolic.
+    // CardiovascularEngine is the single owner of the baroreflex; `baroreflexHrModifier` is still
+    // reported below for telemetry, and the dynamic setpoint (`MAP_set`) is still exported and consumed.
     const deltaHR_beta1 = endogenousCoupling.hrDeltaContribution;
-    const hrSpike = deltaHR_beta1 + baroModifier;
+    const hrSpike = deltaHR_beta1;
 
     // β1 inotropic response -- damped 0.4x relative to the shared model's raw
     // coMultiplierDelta (calibrated against the old formula's independently-tuned
@@ -446,6 +462,7 @@ export class PainEngine {
       effectivePain: Math.round(effectivePain),
       sympatheticDrive: parseFloat(sympatheticDrive.toFixed(4)),
       hrSpike: parseFloat(hrSpike.toFixed(2)),
+      baroreflexHrModifier: parseFloat(baroModifier.toFixed(2)),
       svrSpike: parseFloat(svrSpike.toFixed(2)),
       contractilitySpike: parseFloat(contractilitySpike.toFixed(4)),
       alpha1Activity: parseFloat(endogenousCoupling.alpha1Activity.toFixed(4)),

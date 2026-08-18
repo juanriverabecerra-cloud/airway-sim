@@ -266,6 +266,14 @@ export class CardiovascularEngine {
     // that would erase the opioid's own bradycardia. Scaled like the volatile-MAC blunting above.
     const opioidOcc = typeof (patient as any).__opioidCvOccupancy === 'number' && Number.isFinite((patient as any).__opioidCvOccupancy) ? Math.max(0, Math.min(1, (patient as any).__opioidCvOccupancy)) : 0;
     baroreflexGain *= Math.max(0.2, 1.0 - 0.8 * opioidOcc);
+    // F50: IV hypnotics (propofol/thiopental/etomidate/midazolam) are potent baroreflex depressants —
+    // they both reset the reflex to a lower pressure and reduce its gain. Nothing here accounted for that,
+    // so propofol's own venodilatory MAP drop provoked a full-gain compensatory tachycardia (~136 bpm on a
+    // routine 2 mg/kg induction), the exact opposite of the flat/mildly-raised HR seen clinically.
+    // Scaled like the volatile-MAC and opioid blunting above; floored at 0.25 so the reflex is attenuated,
+    // never abolished (a propofol-induced patient still mounts SOME response to frank hypovolemia).
+    const hypnoticDepth = typeof (patient as any).__hypnoticCvDepth === 'number' && Number.isFinite((patient as any).__hypnoticCvDepth) ? Math.max(0, Math.min(1, (patient as any).__hypnoticCvDepth)) : 0;
+    baroreflexGain *= Math.max(0.25, 1.0 - 0.75 * hypnoticDepth);
     // F33: NEURAXIAL (epidural/spinal) sympathetic block. The sympathectomy that CAUSES neuraxial
     // hypotension (splanchnic venous pooling → reduced preload, computed below) ALSO removes the
     // sympathetic efferents that would compensate — so the hypotension must NOT be answered by a big
@@ -607,6 +615,16 @@ export class CardiovascularEngine {
 
     const baseHR = typeof patient.patientBaseHR === 'number' && Number.isFinite(patient.patientBaseHR) && patient.patientBaseHR > 0 ? patient.patientBaseHR : 70;
     let targetHR = Math.max(0, baseHR + totalHrDelta + adjustedAutonomicHrMod + adjustedHypovolemicTachy + safeHrSympatheticSpike + shiveringHRDriveVal + afibHRFlutter + safeAnaphylaxisHrMod + hrBainbridge + neurohormonalHrDelta);
+    // F43 (L4): cap SINUS tachycardia at a physiologic maximum. The sum above had only a lower clamp, so a
+    // severe stress/hemorrhage stack drove HR to impossible values (240+). The maximum attainable sinus rate
+    // is ~220−age (beyond it diastolic filling collapses and the rhythm degenerates / bradys pre-terminally,
+    // which the arrest/rhythm logic handles separately). Floor at 150 so a stressed elderly patient can still
+    // mount a real tachycardia. Does not apply to tachy-ARRHYTHMIA rates (afib/flutter handled elsewhere).
+    {
+      const ageForMax = typeof patient.age === 'number' && Number.isFinite(patient.age) ? Math.max(0, patient.age) : 40;
+      const maxSinusHR = Math.max(150, Math.min(205, 220 - ageForMax));
+      targetHR = Math.min(targetHR, maxSinusHR);
+    }
     let lastHrPenalty = 0;
     if (tCv >= 0.5) {
       lastHrPenalty = 25.0 * (tCv - 0.5);
@@ -1023,7 +1041,12 @@ export class CardiovascularEngine {
     vitals.svr = (!isArrestState && newCO > 0.2 && newMap > cvpForSvr)
       ? Math.max(50, Math.min(6000, Math.round((80 * (newMap - cvpForSvr)) / newCO)))
       : Math.round(newSVR);
-    vitals.hr = Math.round(newHr);
+    // F48 (L4): floor at 0. `newHr` is the only vital in this block written without one — newMap,
+    // roundedSys and roundedDia all clamp at 0, but the HR path adds `hrNoise` (RSA + Traube-Hering-Mayer
+    // + micro-variability, which can total ~-1.5 bpm) AFTER the engine's own `Math.max(0, targetHR)`.
+    // So a profound reflex bradycardia — e.g. phenylephrine 200 mcg — produced a displayed heart rate of
+    // -1 to -2 bpm on the monitor.
+    vitals.hr = Math.max(0, Math.round(newHr));
     vitals.sys = roundedSys;
     vitals.dia = roundedDia;
     vitals.map = newMap;

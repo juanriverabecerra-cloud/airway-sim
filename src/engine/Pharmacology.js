@@ -629,10 +629,14 @@ export const MEDICATIONS = {
     metabolism: 'Hepatic (MAO)', mechanism: 'Agonist', targetReceptor: 'Alpha-1', intracellularCascade: 'Selective a1 (Gq-coupled -> Phospholipase C -> IP3/DAG -> intracellular Ca2+ release)',
     indications: { 'Push Dose': { dose: '50-100', unit: 'mcg', type: 'Bolus' }, 'Infusion': { dose: '0.1-0.5', unit: 'mcg/kg/min', type: 'Infusion' } },
     pk: { V1: 5.0, V2: 0, V3: 0, k10: 0.5, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 3.0, coSensitivity: 0.2 },
-    // hrMax=-35: pronounced baroreceptor-mediated reflex bradycardia from pure alpha-1 vasoconstriction.
-    // Clinical: MAP rise of 30 mmHg → HR drops 20-40 bpm via baroreceptor activation. Prior -15 was
-    // too weak. HR change = hrMax×fraction, so at typical SVR boost fraction ~0.7-0.8 → HR drops 25-28 bpm ✓
-    pd: { c50: 0.02, gamma: 1, sysMax: 30, diaMax: 45, hrMax: -35, rrMax: 0, receptors: { Alpha1: 3, Beta1: 0, Beta2: 0 } },
+    // hrMax=-12 (F49, L4): phenylephrine's bradycardia is almost entirely BAROREFLEX-mediated — it is a
+    // pure alpha-1 agonist with no meaningful direct chronotropic action. CardiovascularEngine already
+    // models that baroreflex explicitly (`autonomicHrMod`, which saturates at -25 bpm off the MAP error
+    // this drug creates), so the prior hrMax=-35 — whose own comment described it as "baroreceptor-
+    // mediated" — was charging the SAME reflex twice. The two summed to about -60 bpm, so a 200 mcg push
+    // drove HR from 58 to ~0 while the patient stayed in sinus rhythm at 205 mmHg systolic. This value
+    // now represents only the small direct/pre-baroreflex component; the engine supplies the rest.
+    pd: { c50: 0.02, gamma: 1, sysMax: 30, diaMax: 45, hrMax: -12, rrMax: 0, receptors: { Alpha1: 3, Beta1: 0, Beta2: 0 } },
     notes: 'Pure direct-acting Alpha-1 agonist. Causes selective arteriolar vasoconstriction. Triggers baroreceptor-mediated reflex bradycardia (reduces HR while raising BP). Neutral to slightly negative effect on CO.'
   },
   vasopressin: { 

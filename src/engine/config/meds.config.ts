@@ -1707,7 +1707,7 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
       "gamma": 1,
       "sysMax": 30,
       "diaMax": 45,
-      "hrMax": -35,
+      "hrMax": -12,
       "rrMax": 0,
       "receptors": {
         "Alpha1": 3,
