@@ -6903,7 +6903,12 @@ export function runPhysicsStep(__ctx) {
 
           let finalBis = Math.max(0, Math.min(98, targetBis + painOutput.bisSpike));
           if (finalPatient.isArrest) {
-              finalBis = finalPatient.biologicalDeath ? 0 : Math.max(0, (st.vitals.bis || 98) - 5);
+              // F42 (L4): decrement toward isoelectric during arrest. Use a NULLISH guard, not `|| 98` —
+              // BIS legitimately reaches 0 in arrest, and `0 || 98 === 98`, so the old code snapped BIS back
+              // to 93 every time it hit 0, producing a 93→…→0→93 oscillation (seen as 83↔33 at 10s sampling)
+              // in the peri-arrest hypoxic state. In cardiac arrest BIS falls to 0 (isoelectric) and STAYS.
+              const prevBis = typeof st.vitals.bis === 'number' && Number.isFinite(st.vitals.bis) ? st.vitals.bis : 98;
+              finalBis = finalPatient.biologicalDeath ? 0 : Math.max(0, prevBis - 5);
           }
 
           let sefVal = 30.0;

@@ -31,7 +31,12 @@ drive, so this masked the lethal consequence of not ventilating. Traced to IV hy
 inert `opioidEff`) not blunting the drive. **Fixed** with an IV-hypnotic-depth term + working opioid occupancy;
 the patient now stays apneic and desaturates to critical hypoxia (SpO2→17%). **F41** (root `synergyGroup`
 wiring bug → `sedativeEff`/`opioidEff` always ~0) characterized, root fix deferred (large blast radius).
-**F42 (open, next):** the F40 fix EXPOSED a pre-existing artifact — at SpO2 <25 the BIS oscillates 83↔33 every
-tick (a hypoxic-coma patient's BIS should fall toward 0, not bounce). To investigate next.
+**F42 (FIXED):** the F40 fix exposed a pre-existing BIS oscillation (83↔33) in the peri-arrest hypoxic state.
+Two causes, both fixed: (1) a **falsy-zero bug** in the arrest-BIS decrement `(st.vitals.bis || 98) − 5` —
+`0 || 98 === 98`, so BIS reset to 93 every time it reached 0 (sawtooth aliasing to 83↔33); nullish-guarded so
+BIS falls to 0 and stays. (2) hypoxia/hypercapnia cortical arousal (`ConsciousnessEngine`) fired regardless
+of anesthetic depth, force-waking a GA patient each hypoxic tick — gated by `!isAnesthetized`. The
+induction→hypoxic-arrest trajectory now reads BIS 98→23→4→1→0 monotonic. Guard `bis_arrest_ch4.test.ts`.
 
-_Status: scenario 1 done (F40 fixed); scenarios 2-7 pending; F42 to investigate._
+_Status: scenario 1 complete (F40, F42 fixed; F41 deferred). Scenarios 2-7 (RSI, hemorrhage, anaphylaxis,
+apnea/desat, emergence, arrest) pending. Full suite 1904/1904._

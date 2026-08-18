@@ -244,7 +244,13 @@ export class ConsciousnessEngine {
     // 1. Hypoxia (spo2 < 85%) or Hypercapnia (paco2 > 50 mmHg)
     // 2. Surgical stimulus while NOT anesthetized (propofolCe < 1.0 and activeIsoMac < 0.4)
     const isAnesthetized = inputs.propofolCe >= 1.0 || activeIsoMac >= 0.4 || inputs.sevoMac >= 0.4 || inputs.thiopentalCe >= 1.0 || inputs.midazolamCe >= 0.08;
-    const isArousalTriggered = (spo2 < 85.0) || (paco2 > 50.0) || (surgicalStimulus && !isAnesthetized);
+    // F42 (L4): cortical arousal — from hypoxia/hypercapnia OR surgical stimulus — is ABOLISHED by deep
+    // anesthesia. A GA patient does NOT wake from hypoxia (the reason GA apnea is lethal). Previously the
+    // hypoxia/hypercapnia arm fired regardless of depth, so a deep-propofol hypoxic patient was force-woken
+    // to 'W' every tick, making BIS oscillate (arousal pulls it up, propofol pulls it down: 83↔33 at SpO2<25).
+    // Gate the whole trigger by !isAnesthetized. (OSA / procedural-sedation patients are NOT "anesthetized"
+    // by this threshold, so they still correctly arouse from hypoxia — the protective response is preserved.)
+    const isArousalTriggered = !isAnesthetized && ((spo2 < 85.0) || (paco2 > 50.0) || surgicalStimulus);
 
     if (isArousalTriggered) {
       if (sleepStage !== 'W') {
