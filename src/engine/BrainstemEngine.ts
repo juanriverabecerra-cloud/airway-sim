@@ -36,6 +36,7 @@ export interface BrainstemInputs {
   spo2?: number;
   currentMac?: number;
   opioidEffect?: number; // 0-1, existing aggregate opioid receptor occupancy signal
+  sedativeEffect?: number; // 0-1, IV-hypnotic depth (propofol/etomidate/barbiturate/benzo); excludes ketamine (F40)
   map?: number;
   mapSet?: number;
 }
@@ -60,6 +61,10 @@ export class BrainstemEngine {
     const spo2 = Math.max(0, Math.min(100, safeNumber(inputs.spo2, 98)));
     const currentMac = Math.max(0, safeNumber(inputs.currentMac, 0));
     const opioidEffect = Math.max(0, Math.min(1, safeNumber(inputs.opioidEffect, 0)));
+    // F40 (L4): IV-hypnotic depth (propofol/etomidate/barbiturate/benzodiazepine; EXCLUDES ketamine,
+    // which preserves respiratory drive). Propofol profoundly blunts the hypoxic ventilatory response —
+    // the reason a deeply-anesthetized apneic patient does not self-rescue by breathing.
+    const sedativeEffect = Math.max(0, Math.min(1, safeNumber(inputs.sedativeEffect, 0)));
     const map = safeNumber(inputs.map, 93);
     const mapSet = safeNumber(inputs.mapSet, 93);
 
@@ -73,7 +78,8 @@ export class BrainstemEngine {
     // and opioids blunt it further still.
     const hypoxicBluntingFromMac = Math.min(0.85, currentMac * 0.55);
     const hypoxicBluntingFromOpioid = Math.min(0.7, opioidEffect * 0.7);
-    const hypoxicDriveRR = hypoxicStimulus * (1 - hypoxicBluntingFromMac) * (1 - hypoxicBluntingFromOpioid);
+    const hypoxicBluntingFromHypnotic = Math.min(0.92, sedativeEffect * 1.15); // F40 (input is IV-hypnotic depth 0-1)
+    const hypoxicDriveRR = hypoxicStimulus * (1 - hypoxicBluntingFromMac) * (1 - hypoxicBluntingFromOpioid) * (1 - hypoxicBluntingFromHypnotic);
 
     // Vasomotor center: the baroreflex's missing vasoconstrictive arm. Mirrors
     // CardiovascularEngine.ts's existing HR-side baroreflex error/gain structure (same

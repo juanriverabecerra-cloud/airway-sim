@@ -3176,10 +3176,34 @@ export function runPhysicsStep(__ctx) {
           // additively into existing accumulators (totalRrDelta here; targetSVR inside
           // CardiovascularEngine.ts via a new drugEffects field below), leaving every
           // existing tested formula unchanged.
+          // F40 (L4): IV-hypnotic depth (0-1) for ventilatory-drive blunting. propofol/midazolam/thiopental/
+          // etomidate potently blunt the hypoxic ventilatory response (the reason they cause apnea);
+          // ketamine and dexmedetomidine are EXCLUDED (they relatively preserve respiratory drive). Uses each
+          // agent's hypnotic c50 as the half-max; max() so the deepest agent dominates without over-blunting.
+          // NOTE: deliberately NOT `sedativeEff`, which is inert (always ~0) — see F41: synergyGroup is read
+          // from drug.pd.synergyGroup but declared at the drug TOP LEVEL, so effects.group is always 'None'.
+          const etomidateCeF40 = ((st.activeMeds || []).find(m => m.name === 'Etomidate') || { Ce: 0 }).Ce || 0;
+          const ivHypnoticDepth = Math.min(1.0, Math.max(
+            propofolCe / (propofolCe + 2.5),
+            midazolamCe / (midazolamCe + 0.05),
+            thiopentalCe / (thiopentalCe + 15.0),
+            etomidateCeF40 / (etomidateCeF40 + 0.3)
+          ));
+          // F40: opioid RECEPTOR occupancy (Ce/(Ce+c50)), the working opioid signal — NOT `opioidEff`, which
+          // is inert (F41) so the F10 opioid ventilatory blunting never actually fired. Opioids potently blunt
+          // both the hypoxic and hypercapnic drives (the core mechanism of opioid respiratory depression).
+          const opioidVentOccupancy = (st.activeMeds || []).reduce((acc, m) => {
+            if (m.classes && m.classes.includes('Opioid')) {
+              const oc50 = (m.pd && m.pd.c50) || (m.medData && m.medData.pd && m.medData.pd.c50) || 0.01;
+              return Math.max(acc, m.Ce / (m.Ce + oc50));
+            }
+            return acc;
+          }, 0);
           const brainstemOutput = BrainstemEngine.tick({
             spo2: st.vitals.spo2,
             currentMac,
-            opioidEffect: opioidEff,
+            opioidEffect: Math.max(opioidEff, opioidVentOccupancy), // F40: use the working opioid occupancy
+            sedativeEffect: ivHypnoticDepth, // F40: IV hypnotics (propofol) blunt the hypoxic drive too
             map: st.vitals.map,
             mapSet: st.patient.MAP_set
           });
@@ -5779,9 +5803,23 @@ export function runPhysicsStep(__ctx) {
           // agentMac blunted these, so a high opioid load plus hypoxia produced a PARADOXICAL
           // compensatory tachypnea instead of the expected sustained depression/apnea. Fold the opioid
           // effect into both blunting factors so the chemoreceptor drive is suppressed under opioids.
-          const opioidVentBlunt = Math.min(0.95, Math.max(0, opioidEff) * 0.7);
+          // F40/F41: use the working opioid occupancy (opioidEff is inert — see F41), so this F10 blunting
+          // actually fires. Opioids blunt HVR more than HCVR clinically; a single shared factor is a safe
+          // approximation that at least makes opioid respiratory depression real rather than a no-op.
+          const opioidVentBlunt = Math.min(0.95, Math.max(opioidEff, opioidVentOccupancy) * 0.7);
           hvrBlunting = Math.min(1.0, hvrBlunting + opioidVentBlunt);
           hcvrBlunting = Math.min(1.0, hcvrBlunting + opioidVentBlunt);
+
+          // F40 (L4): IV hypnotics (propofol/etomidate/thiopental/benzodiazepines) also potently blunt BOTH
+          // the hypoxic (HVR) and hypercapnic (HCVR) ventilatory drives — the reason propofol induction
+          // causes apnea and a deeply-anesthetized apneic patient does NOT self-rescue by breathing.
+          // Previously only volatile MAC and opioids blunted these, so a deep-propofol patient (no volatile,
+          // fentanyl already redistributed) mounted a full hypoxic drive (RR ~30) that reoxygenated them
+          // 31→88% — masking the lethal consequence of failing to ventilate under GA. `sedativeEff` is the
+          // hypnotic-depth signal and EXCLUDES ketamine (Dissociative), which correctly preserves the drive.
+          const hypnoticVentBlunt = Math.min(0.92, ivHypnoticDepth * 1.1); // F40 (IV-hypnotic depth, computed above)
+          hvrBlunting = Math.min(1.0, hvrBlunting + hypnoticVentBlunt);
+          hcvrBlunting = Math.min(1.0, hcvrBlunting + hypnoticVentBlunt);
 
           let compensatoryRR = 0;
           if (safePaCO2 > 45) {
@@ -5790,7 +5828,9 @@ export function runPhysicsStep(__ctx) {
           if (safePaO2 < 70) {
               compensatoryRR += Math.max(0, (70 - safePaO2) * 0.4 * (1.0 - hvrBlunting));
           }
-          if (safeSys < 90) compensatoryRR += 6; 
+          // Shock tachypnea, also obtunded by anesthetic depth (an anesthetized hypotensive patient does not
+          // mount it) — gate it by the ventilatory blunting so it can't repopulate a phantom drive under GA.
+          if (safeSys < 90) compensatoryRR += 6 * (1.0 - Math.max(hvrBlunting, hcvrBlunting));
 
           // === SPECIAL SURGERY PHYSIOLOGY ===
           {
