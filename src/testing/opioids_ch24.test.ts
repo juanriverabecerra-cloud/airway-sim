@@ -253,8 +253,8 @@ describe('Chapter 24: Opioids', () => {
       modelG.opioidReceptorGenotype = 'A118G';
       modelG.Ce = 0.002;
 
-      const effA = modelA.getEffects(1.0, 1.0);
-      const effG = modelG.getEffects(1.0, 1.0);
+      const effA = modelA.getEffects(1.0);
+      const effG = modelG.getEffects(1.0);
 
       // c50Hyp is 3x higher for A118G, so at the same Ce = 0.002, modelG should have less hypnosis/analgesia effect (so less delta) than modelA
       expect(Math.abs(effG.sysDelta)).toBeLessThan(Math.abs(effA.sysDelta));

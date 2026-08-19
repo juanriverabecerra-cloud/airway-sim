@@ -115,7 +115,7 @@ describe('Chapter 19: Inhalational Anesthetics & Physiology Tests', () => {
           patient: patientAir,
           vitals: vitalsAir,
           time: t
-        }, { mode: 'spontaneous' }, 21, { maxNMJOccupancy: 0 });
+        }, { mode: 'spontaneous' }, 21, { maxNMJOccupancy: 0 }, {} as any);
 
         patientAir.oxygenBuffer = out.oxygenBuffer;
         vitalsAir.spo2 = out.vitals.spo2;
@@ -131,7 +131,7 @@ describe('Chapter 19: Inhalational Anesthetics & Physiology Tests', () => {
           patient: patientO2,
           vitals: vitalsO2,
           time: t
-        }, { mode: 'spontaneous' }, 100, { maxNMJOccupancy: 0 });
+        }, { mode: 'spontaneous' }, 100, { maxNMJOccupancy: 0 }, {} as any);
 
         patientO2.oxygenBuffer = out.oxygenBuffer;
         vitalsO2.spo2 = out.vitals.spo2;

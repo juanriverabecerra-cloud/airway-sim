@@ -74,8 +74,8 @@ export interface VitalsState {
   map: number;
   co: number;
   svr: number;
-  cmap: number;
-  bis: number;
+  cmap?: number;
+  bis?: number;
   temp: number;
   spo2: number;
   paco2: number;
@@ -108,8 +108,8 @@ export interface CardiovascularDrugEffects {
   ruleHrClamp?: number;
   ruleMapScale: number;
   ruleMapOffset: number;
-  ruleKOffset: number;
-  ruleSpo2Offset: number;
+  ruleKOffset?: number;
+  ruleSpo2Offset?: number;
   catecholamineSensitivityMultiplier?: number; // from AdrenalEngine.ts's cortisol-driven permissive effect (Phase 2)
   alpha1ActivityIndex?: number; // aggregate exogenous + endogenous alpha-1 activity, for per-vascular-bed redistribution (Phase 2's receptor-unification piece)
   beta2ActivityIndex?: number;
@@ -130,7 +130,7 @@ export class CardiovascularEngine {
    */
   static tick(
     dt: number = 1,
-    st: { patient: PatientState; vitals: VitalsState; time: number; electrolytes: { k: number } },
+    st: { patient: PatientState; vitals: VitalsState; time?: number; electrolytes: { k: number } },
     drugEffects: CardiovascularDrugEffects,
     inputs: {
       currentMac: number;
@@ -1110,6 +1110,7 @@ export class CardiovascularEngine {
       joules: number;
       isSync: boolean;
       simulationTime: number;
+      lastCvSeverity?: number; // L5/F6: LAST cardiotoxicity index, read below but undeclared
       /** Injected deterministic RNG (Layer 1A). Defaults to Math.random when omitted. */
       rng?: () => number;
     }

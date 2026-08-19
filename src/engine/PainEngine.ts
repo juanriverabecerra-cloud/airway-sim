@@ -36,6 +36,11 @@ export interface PainVitalsState {
   rr: number;
   paco2: number;
   bis: number;
+  svr?: number;
+  co?: number;
+  spo2?: number;
+  temp?: number;
+  etco2?: number;
 }
 
 export interface PainEngineOutput {

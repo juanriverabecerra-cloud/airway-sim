@@ -69,6 +69,12 @@ export interface RespiratoryPatientState {
   renarcotizationActive?: boolean;
   icp?: number;
   cpp?: number;
+  // L5/F6: flags read across the engine but undeclared; patient is a dynamically-extended flag bag
+  isApneic?: boolean;
+  isO2PipelineDisconnected?: boolean;
+  isO2PipelineCrossover?: boolean;
+  sleepStage?: string;
+  [key: string]: any;
 }
 
 export interface RespiratoryVitalsState {
@@ -78,8 +84,8 @@ export interface RespiratoryVitalsState {
   map: number;
   co: number;
   svr: number;
-  cmap: number;
-  bis: number;
+  cmap?: number;
+  bis?: number;
   temp: number;
   spo2: number;
   paco2: number;
@@ -99,14 +105,18 @@ export interface RespiratoryVitalsState {
 
 export interface VentSettings {
   mode: string;
-  vt: number;
-  rr: number;
-  peep: number;
-  fio2: number;
-  pinsp: number;
-  ieRatio: number;
-  pmax: number;
-  ps: number;
+  // L5/F6: all but `mode` optional — callers legitimately construct partial vent settings (the engine
+  // defaults the rest); previously they were all required, so any partial `{mode, peep}` errored.
+  vt?: number;
+  rr?: number;
+  peep?: number;
+  fio2?: number;
+  pinsp?: number;
+  ieRatio?: number;
+  pmax?: number;
+  ps?: number;
+  modeType?: string;
+  [key: string]: unknown; // vent settings
 }
 
 export interface RespiratoryDrugEffects {
@@ -121,6 +131,7 @@ export interface RespiratoryDrugEffects {
 }
 
 export interface RespiratoryOutput {
+  pplat?: number; // L5/F6: plateau pressure, read by tests but undeclared
   vitals: RespiratoryVitalsState;
   oxygenBuffer: number;
   isApneic: boolean;
