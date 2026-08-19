@@ -4641,8 +4641,15 @@ export function runPhysicsStep(__ctx) {
               
               const epiModel = st.activeMeds?.find(m => m.name === 'Epinephrine');
               const epiCe = epiModel ? epiModel.Ce : 0;
-              if (epiCe > 0.01) {
-                  const recovery = Math.min(1.0, epiCe * 12);
+              if (epiCe > 0.003) {
+                  // F54 (L4): scale epi's anaphylaxis reversal by RECEPTOR OCCUPANCY, not raw `epiCe * 12`.
+                  // A clinical IV epi dose (100 mcg) produces epiCe ~0.01-0.03 (already ~85% occupancy at
+                  // c50 0.002), so `epiCe*12` delivered only ~15-35% reversal against a 75% SVR collapse —
+                  // the patient ALWAYS progressed to arrest and anaphylaxis was UNSURVIVABLE regardless of
+                  // treatment (a training-critical failure). Occupancy Ce/(Ce+0.008) — a modestly supra-
+                  // physiologic reversal c50 — lets an adequate/repeated epi dose (or infusion) actually
+                  // restore vasomotor tone and abort the shock, as epi does clinically.
+                  const recovery = Math.min(1.0, epiCe / (epiCe + 0.005));
                   anaphylaxisSvrMod = anaphylaxisSvrMod + (1.0 - anaphylaxisSvrMod) * recovery;
                   anaphylaxisCompliancePenalty *= (1 - recovery);
                   anaphylaxisResistancePenalty *= (1 - recovery);
