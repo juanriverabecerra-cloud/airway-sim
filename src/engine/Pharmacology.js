@@ -1880,28 +1880,10 @@ export const MEDICATIONS = {
     pd: { c50: 0.05, gamma: 1.5, sysMax: -5, diaMax: -5, hrMax: 0, rrMax: -4, inducesApneaAtCe: 0.5 },
     notes: 'Intermediate-acting benzodiazepine. Slower onset than midazolam. Highly stable profile.'
   },
-  sotalol: {
-    name: 'Sotalol', classes: ['Class III / Beta-Blocker'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
-    metabolism: 'Renal (Unchanged)', mechanism: 'Beta Blocker / K+ Blocker', targetReceptor: 'Potassium / Beta-1/2',
-    indications: { 'Afib / VT': { dose: '75-150', unit: 'mg', type: 'Bolus' } },
-    // F37 (L3): 1-compartment — effect-t½ = ln2/k10. k10 0.02→0.0022 gives ~5.5h (clinical sotalol
-    // 8-12h; renally cleared, long-acting). ke0=0.1 is slow, so the effect-site peak rises modestly.
-    pk: { V1: 20.0, V2: 0, V3: 0, k10: 0.0022, k12: 0, k21: 0, k13: 0, k31: 0, ke0: 0.1, coSensitivity: 0.1 },
-    pd: { c50: 2.0, gamma: 1.5, sysMax: -15, diaMax: -15, hrMax: -30, rrMax: 0 },
-    notes: 'Nonselective beta blocker with strong Class III antiarrhythmic (K+ channel blocking) characteristics.'
-  },
-  verapamil: {
-    name: 'Verapamil', classes: ['Class IV CCB'], routes: ['IV'], types: ['Bolus'], dosingWeight: 'TBW',
-    metabolism: 'Hepatic', mechanism: 'Calcium Channel Blocker', targetReceptor: 'L-type Calcium',
-    indications: { 'SVT / Rate Control': { dose: '2.5-5.0', unit: 'mg', type: 'Bolus' } },
-    // F37 (L3): effect-t½ 8→29 min (clinical verapamil 2-5h). k10 0.08→0.012, k12 0.05→0.03, k21 0.05→0.06.
-    // (Verapamil's AV-nodal bradycardia is delivered by the special ccbBradyIndex term in usePhysiology,
-    // saturating at Ce>0.025 → the sustained Ce here correctly lengthens the rate-control effect. Its
-    // pd.c50/hrMax Hill pathway is secondary/vestigial for HR — graded C, not a potency bug.)
-    pk: { V1: 40.0, V2: 80.0, V3: 0, k10: 0.012, k12: 0.03, k21: 0.06, k13: 0, k31: 0, ke0: 0.2, coSensitivity: 0.2 },
-    pd: { c50: 0.3, gamma: 2.0, sysMax: -25, diaMax: -25, hrMax: -35, rrMax: 0 },
-    notes: 'Phenylalkylamine calcium channel blocker. Acts selectively on AV/SA nodes. Strongly negatively inotropic.'
-  },
+  // L5/F6: duplicate `sotalol` and `verapamil` keys removed here — they were DEAD (JS object literals keep
+  // the LAST key, so these later, sparser entries silently shadowed the richer earlier ones). pk/pd were
+  // byte-identical, so removal is behavior-neutral; the earlier entries (with the WPW/beta-blocker
+  // contraindication notes) are now the single definitions.
   factorIXconcentrate: {
     name: 'Factor IX Concentrate (rFIX)', classes: ['Coagulation Factor', 'Hemostatic Agent'], routes: ['IV'], types: ['Bolus', 'Infusion'], dosingWeight: 'TBW',
     metabolism: 'Catabolism', proteinBinding: 0.0, mechanism: 'Serine Protease Replacement', targetReceptor: 'Intrinsic Coagulation Pathway',

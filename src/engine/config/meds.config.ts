@@ -3956,7 +3956,8 @@ export const MEDICATIONS_CONFIG: Record<string, MedicationProfile> = {
   sotalol: {
     "name": "Sotalol",
     "classes": [
-      "Class III / Beta-Blocker"
+      "Class III Antiarrhythmic",
+      "Beta-Blocker"
     ],
     "routes": [
       "IV"

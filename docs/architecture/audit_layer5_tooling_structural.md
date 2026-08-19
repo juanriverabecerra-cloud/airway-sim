@@ -42,12 +42,31 @@ Remaining (scoped for continuation):
 - **Mechanical type-declaration backlog** (~120): tests constructing partial objects (missing `cmap`/`bis`/
   `ibw`/`oxygenBuffer`/…) + interfaces missing runtime fields. Add the fields / make optional to reach 0.
 
-### Remaining L5 scope (not yet started)
-- **Lint coverage**: ESLint covers only `.js`/`.jsx` (309 errors, 16 warnings) — the `.ts` engines are UNLINTED
-  (no typescript-eslint parser). Extend the config to `.ts`/`.tsx`, triage the 309 `.js` findings (unused vars, etc.).
-- **CI**: none (`.github/workflows` absent) — add a workflow running `test` + `typecheck` + `lint` on push/PR (the real gate).
-- **Structural**: dedupe the duplicate `verapamil`/`sotalol` keys in `MEDICATIONS` (harmless — identical, last wins — but a smell);
-  verify the `MEDICATIONS` ↔ `MEDICATIONS_CONFIG` sync invariant programmatically.
+### Type-gate grind — PRODUCTION now 100% type-clean
+Drove the type-error count **213 → 52** with the suite staying green (1913/1913). **All `src/engine` production
+code type-checks with zero errors.** Fixed production defects (missing `types.ts`, PostopPain dead ERAS check,
+Pediatric boolean|number, `lastCvSeverity`/`weightKg`/`hasRenalInsufficiency`/`nsaidContrib` gaps, VitalsState/
+RespiratoryVitalsState/VentSettings/PainVitalsState/RespiratoryOutput completions, ProceduralEngine/FluidicsEngine
+`||{}` fallbacks) and real test bugs (opioids `getEffects` extra arg, gas_kinetics missing 6th arg). The residual
+**52 = 42 test partial-object type-gaps** (tests passing incomplete vitals/patient objects — the rigorous fix is
+COMPLETING those objects, never weakening core types; left as a burn-down baseline) **+ 10 out-of-scope
+`src/knowledge`**.
 
-_Status: rigorously STARTED — F6 gate established + first F55 defects fixed (suite green). Reaching a passing gate,
-lint `.ts` coverage, CI, and the structural cleanups remain._
+### CI — added
+`.github/workflows/ci.yml`: `npm ci` → **`test` (hard gate, passes 1913)** → `typecheck` + `lint` (reported /
+`continue-on-error` until their baselines reach zero). Runs on push to `main`/`audit/**` and on PRs.
+
+### Structural — MEDICATIONS dedup done
+Removed the **duplicate `verapamil` and `sotalol` keys** in `MEDICATIONS` (JS keeps the last, so the later sparser
+entries silently shadowed the richer earlier ones; pk/pd were byte-identical → behavior-neutral). Kept the richer
+earlier definitions (WPW/β-blocker contraindication notes) and re-synced `MEDICATIONS_CONFIG`'s sotalol `classes`
+to match — the `audit_meds` sync invariant caught the drift and now passes.
+
+### Remaining L5 scope
+- **Type gate → 0**: complete the 42 test partial-object constructions (burn-down; don't weaken core types), then
+  flip CI `typecheck` to blocking.
+- **Lint**: extend ESLint to `.ts`/`.tsx` (needs typescript-eslint) and triage the 309 `.js`/`.jsx` findings; flip CI `lint` to blocking.
+- **The positioning_ch34 vacuous test** (no assertions + wrong tick args, F55): rewrite as a real prone-supports→compliance assertion.
+
+_Status: substantially advanced — production type-clean, F6 gate + CI + dedup done, suite green. Type-gate→0,
+lint `.ts`, and the vacuous-test rewrite remain as burn-down._

@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'audit/**']
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+
+      # Hard gate: the full headless physics test suite must pass.
+      - name: Test
+        run: npm test
+
+      # Type-check gate (L5/F6). Production code is type-clean; a documented residual of
+      # test partial-object type-gaps + out-of-scope src/knowledge remains being burned down,
+      # so this is reported but non-blocking until the baseline reaches zero.
+      - name: Typecheck (reported)
+        run: npm run typecheck
+        continue-on-error: true
+
+      # Lint (reported). ESLint currently covers .js/.jsx only with a known findings backlog;
+      # non-blocking until triaged and extended to .ts.
+      - name: Lint (reported)
+        run: npm run lint
+        continue-on-error: true
