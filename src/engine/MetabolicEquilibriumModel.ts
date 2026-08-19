@@ -81,6 +81,7 @@
  */
 
 export interface MetabolicEquilibriumInputs {
+  weightKg?: number;
   // Adrenal crisis / stress steroids
   chronicSteroidUser?: boolean;
   prednisoneEquivalentMgPerDay?: number;

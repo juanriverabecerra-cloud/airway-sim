@@ -1,4 +1,4 @@
-import { PKParameters, PDParameters } from './config/meds.config';
+import { PKParameters, PDParameters } from './config/types';
 import { computeReceptorCoupling } from './ReceptorPharmacologyModel';
 
 export interface MedicationProfileInput {

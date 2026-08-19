@@ -210,7 +210,7 @@ export class PostopPainManagementModel {
     // ===========================
     let erasElements = 0;
     if (acetaminophenCe > 0) erasElements++;
-    if (ketorolacCe > 0 || inputs.nsaidContrib) erasElements++;
+    if (ketorolacCe > 0 || nsaidContrib) erasElements++; // L5/F6: was inputs.nsaidContrib (undefined — dead); use the local computed above
     if (regionalActive) erasElements++;
     if (inputs.earlyMobilization) erasElements++;
     if (inputs.earlyOralIntake) erasElements++;

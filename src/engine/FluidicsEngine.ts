@@ -83,7 +83,7 @@ export class FluidicsEngine {
     st: { patient: FluidicsPatientState; electrolytes: ElectrolytesState; coags: CoagsState; vitals: FluidicsVitalsState; time: number }
   ): FluidicsOutput {
     // Defensively handle missing state container
-    const safeSt = st || {};
+    const safeSt: any = st || {};
     const patient = safeSt.patient || {};
     const electrolytes = safeSt.electrolytes || { k: 4.0, na: 140, cl: 103, ca: 2.2, ph: 7.40, buf: 0 };
     const coags = safeSt.coags || { r_offset: 0, ma_offset: 0, angle_offset: 0 };

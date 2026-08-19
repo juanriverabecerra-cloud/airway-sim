@@ -46,6 +46,7 @@
  */
 
 export interface PerioperativeGlucoseInputs {
+  hasRenalInsufficiency?: boolean;
   // Current glucose status
   currentGlucoseMgDl?: number;
   previousGlucose?: number;       // previous measurement for trend

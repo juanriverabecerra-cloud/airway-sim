@@ -59,6 +59,12 @@ export interface PatientState {
   icp?: number;
   cpp?: number;
   ziconotideHypotensionActive?: boolean;
+  // L5/F6: flags read here but undeclared on PatientState
+  thyroidFunctionIndex?: number;
+  thyroidStormActive?: boolean;
+  isLAST?: boolean;
+  isAwarenessActive?: boolean;
+  [key: string]: any; // patient is a dynamically-extended flag bag; permit runtime-added flags
 }
 
 export interface VitalsState {
@@ -81,6 +87,10 @@ export interface VitalsState {
   mvo2?: number;
   mvo2Supply?: number;
   pip?: number;
+  rr?: number;   // respiratory rate — used/displayed here, was undeclared (L5/F6)
+  cvp?: number;  // central venous pressure — used for the SVR identity, was undeclared (L5/F6)
+  svrTone?: number;
+  ph?: number;
 }
 
 export interface CardiovascularDrugEffects {
@@ -154,7 +164,7 @@ export class CardiovascularEngine {
 
     // Sanitizing inputs defensively to prevent NaN/Infinity propagation
     const safeTime = typeof st.time === 'number' && Number.isFinite(st.time) ? st.time : 0;
-    const safeElectrolytes = st.electrolytes || {};
+    const safeElectrolytes = st.electrolytes || { k: 4.0 };
     const safeK = typeof safeElectrolytes.k === 'number' && Number.isFinite(safeElectrolytes.k) ? safeElectrolytes.k : 4.0;
     const safeHR = typeof vitals.hr === 'number' && Number.isFinite(vitals.hr) ? vitals.hr : 70;
     const safeSys = typeof vitals.sys === 'number' && Number.isFinite(vitals.sys) ? vitals.sys : 120;

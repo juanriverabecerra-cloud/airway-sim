@@ -248,7 +248,11 @@ export class PediatricPhysiologyEngine {
     // ===========================
     // PFO present in ~80% of neonates at birth; closed in ~80% by 12 months.
     // Estimated persistence: 1.0 at birth → 0.2 at 1 year (linear approximation)
-    const estimatedPfoPresence = inputs.hasPFO ?? (isNeonate ? 1.0 : isInfant ? Math.max(0, 1.0 - ageYears / 1.0) * 0.8 : 0.05);
+    // L5/F6: preserve the original boolean-coercion semantics (explicit hasPFO true→1 / false→0; only
+    // undefined falls back to the age estimate) as a real number — the old `hasPFO ?? …` yielded boolean|number.
+    const estimatedPfoPresence: number = inputs.hasPFO !== undefined
+      ? (inputs.hasPFO ? 1.0 : 0.0)
+      : (isNeonate ? 1.0 : isInfant ? Math.max(0, 1.0 - ageYears / 1.0) * 0.8 : 0.05);
 
     // R-to-L shunting through PFO: occurs when PVR exceeds SVR (normal in utero, pathologic postnatal)
     // In neonates: hypoxia → PVR rise → PFO opens → profound hypoxia unresponsive to O2

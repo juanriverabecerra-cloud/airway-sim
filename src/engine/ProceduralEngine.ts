@@ -25,7 +25,7 @@ export class ProceduralEngine {
     patient: ProceduralPatientState,
     blade: string
   ): { grade: number; description: string } {
-    const p = patient || {};
+    const p: any = patient || {};
     const safeBlade = typeof blade === 'string' ? blade : '';
     
     // 1. Calculate Base Cormack-Lehane Grade from Anatomy
@@ -137,7 +137,7 @@ export class ProceduralEngine {
 
   static auscultateLungs(location: string, patient: ProceduralPatientState): string {
     const safeLocation = typeof location === 'string' ? location : '';
-    const p = patient || {};
+    const p: any = patient || {};
     const tubePosition = p.tubePosition || 'none';
     const ventilationStatus = p.ventilationStatus || 'none';
     const airwaySecured = !!p.airwaySecured;
@@ -176,7 +176,7 @@ export class ProceduralEngine {
    */
   static performPocus(type: string, patient: ProceduralPatientState): string {
     const safeType = typeof type === 'string' ? type : '';
-    const p = patient || {};
+    const p: any = patient || {};
     const isSeptic = !!p.isSeptic;
     const stomach = p.stomach || 'empty';
     const dlAttempts = p.dlAttempts || 0;
