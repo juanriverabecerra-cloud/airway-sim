@@ -27,6 +27,7 @@ export interface FourChamberInputs {
   inotropy: number; // CardiovascularEngine.ts's inotropyFinal, ~0.01-2 range
   svr: number; // dyn-s/cm^5-convention SVR already used elsewhere in this codebase
   totalBloodVolumeMl: number; // total circulating volume; ~5000 mL euvolemic
+  bloodLossRatio?: number; // 0-1 fraction of EBV lost — drives sympathetic venous-reservoir recruitment (F43)
   aorticStenosis?: boolean;
   chf?: boolean;
   ef?: number; // existing CHF ejection-fraction flag (0-100)
@@ -175,6 +176,7 @@ export function simulateFourChamberCycle(inputs: FourChamberInputs): {
   // preloadRatio clamp; extreme but real iatrogenic fluid overload should be representable,
   // not unbounded.
   const totalBloodVolumeMl = Math.max(500, Math.min(15000, safeNumber(safeInputs.totalBloodVolumeMl, 5000)));
+  const safeBloodLossRatio = Math.max(0, Math.min(1, safeNumber(safeInputs.bloodLossRatio, 0)));
   const isAorticStenosis = !!safeInputs.aorticStenosis;
   const isChf = !!safeInputs.chf;
   const isAfib = !!safeInputs.afib;
@@ -276,7 +278,17 @@ export function simulateFourChamberCycle(inputs: FourChamberInputs): {
   // Only the excess above that drives pressure. Recruits unstressed volume (defends preload)
   // under sympathetic activation, proxied by elevated SVR relative to its own baseline --
   // the same efferent sympathetic outflow that raises arterial tone also venoconstricts.
-  const venousToneFactor = Math.max(0.35, 1.0 - 0.5 * (svr / 1200 - 1));
+  // F43 (L4): the SVR-proxied recruitment above is too weak at LOW blood loss (the baroreflex barely raises
+  // SVR at 10-20% loss), so the venous reservoir was not recruited and CO/MAP crashed at Class I-II loss —
+  // clinically these are compensated (MAP maintained). Add a DIRECT hemorrhage-driven recruitment: sympathetic
+  // venoconstriction recruits the ~2600 mL unstressed reservoir roughly in proportion to the volume lost,
+  // defending preload. This is blood-loss-specific (does not touch drug/sepsis vasodilation), and the max(0.35)
+  // floor still caps total recruitment so severe loss (>~30-40%) decompensates as it should.
+  // The recruitment SATURATES (~-0.40 by ~20% loss): the finite venous reservoir defends the first
+  // ~20-25% of loss (Class I-II stay compensated, MAP maintained) and is then exhausted, so further loss
+  // decompensates (Class III-IV — MAP falls) exactly as ATLS describes.
+  const hemorrhageRecruitment = Math.min(0.28, 1.4 * safeBloodLossRatio);
+  const venousToneFactor = Math.max(0.35, 1.0 - 0.5 * (svr / 1200 - 1) - hemorrhageRecruitment);
   const cVenCentral = 55;
   const centralUnstressedVol = 2600 * venousToneFactor;
   const rVenousReturn = 0.1;

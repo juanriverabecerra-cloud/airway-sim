@@ -440,6 +440,7 @@ export class CardiovascularEngine {
       inotropy: inotropyInitial,
       svr: safeSVR,
       totalBloodVolumeMl: totalBloodVolumeForCycle,
+      bloodLossRatio: safeBloodLossRatio, // F43: drives venous-reservoir recruitment (preload defense)
       splanchnicTone,
       alpha1ActivityIndex: safeAlpha1ActivityIndex,
       beta2ActivityIndex: safeBeta2ActivityIndex,
@@ -722,6 +723,7 @@ export class CardiovascularEngine {
       inotropy: Math.max(0.1, inotropyFinal) * neurohormonalInotropy,
       svr: targetSVR,
       totalBloodVolumeMl: totalBloodVolumeForCycle,
+      bloodLossRatio: safeBloodLossRatio, // F43: drives venous-reservoir recruitment (preload defense)
       splanchnicTone,
       alpha1ActivityIndex: safeAlpha1ActivityIndex,
       beta2ActivityIndex: safeBeta2ActivityIndex,
