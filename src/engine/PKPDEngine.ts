@@ -82,7 +82,13 @@ export class PKPDModel {
       diaMax: typeof rawPd.diaMax === 'number' && Number.isFinite(rawPd.diaMax) ? rawPd.diaMax : 0,
       hrMax: typeof rawPd.hrMax === 'number' && Number.isFinite(rawPd.hrMax) ? rawPd.hrMax : 0,
       rrMax: typeof rawPd.rrMax === 'number' && Number.isFinite(rawPd.rrMax) ? rawPd.rrMax : 0,
-      synergyGroup: typeof rawPd.synergyGroup === 'string' ? rawPd.synergyGroup : 'None',
+      // F41 (L4 root fix): synergyGroup is declared at the DRUG TOP LEVEL in the medication defs
+      // (`med.synergyGroup`), not inside `pd`. Reading only `rawPd.synergyGroup` made it always 'None',
+      // so effects.group never matched and `sedativeEff`/`opioidEff` stayed ~0 for EVERY drug — silently
+      // disabling opioid RR depression, opioid consciousness/GCS effects, aggregateHypnosis, and the
+      // sedative/opioid one-shot event gates. Fall back to the top-level field so the signals actually work.
+      synergyGroup: typeof rawPd.synergyGroup === 'string' ? rawPd.synergyGroup
+        : (typeof (med as any).synergyGroup === 'string' ? (med as any).synergyGroup : 'None'),
       inducesApneaAtCe: typeof rawPd.inducesApneaAtCe === 'number' && Number.isFinite(rawPd.inducesApneaAtCe) ? rawPd.inducesApneaAtCe : 999,
       inducesParalysisAtCe: typeof rawPd.inducesParalysisAtCe === 'number' && Number.isFinite(rawPd.inducesParalysisAtCe) ? rawPd.inducesParalysisAtCe : 999,
       receptors: rawPd.receptors ? {
