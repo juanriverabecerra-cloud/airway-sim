@@ -38,5 +38,31 @@ BIS falls to 0 and stays. (2) hypoxia/hypercapnia cortical arousal (`Consciousne
 of anesthetic depth, force-waking a GA patient each hypoxic tick — gated by `!isAnesthetized`. The
 induction→hypoxic-arrest trajectory now reads BIS 98→23→4→1→0 monotonic. Guard `bis_arrest_ch4.test.ts`.
 
-_Status: scenario 1 complete (F40, F42 fixed; F41 deferred). Scenarios 2-7 (RSI, hemorrhage, anaphylaxis,
-apnea/desat, emergence, arrest) pending. Full suite 1904/1904._
+### Scenario 2 — RSI (preox + etomidate + succinylcholine) → no findings
+Preoxygenation reserve (O2 buffer 0.56→2.68 L = denitrogenated FRC), room-air apnea time (66 s, spot-on),
+anesthetized preox apnea time (~12 min — defensible: GA lowers VO2 ~15%), sux fast onset (TOF0 ~45-60 s, F35),
+etomidate hemodynamic stability (pd −5, more stable than propofol) all check out. F9 avoided two false findings
+(the −18% etomidate MAP was a ventilation-transient confound; the long apnea time is correct for an
+anesthetized fully-preoxygenated patient).
+
+### Scenario 3 — hemorrhage → **F43**
+50% blood loss drove HR to an impossible 240 (no sinus cap) → **F43 HR cap fixed**; the over-steep compensation
+curve (MAP crashes at 10% loss) characterized & deferred.
+
+### Scenarios 4-7 (continuation) — RSI-hemodynamics, laparoscopic (pneumoperitoneum), opioid/biliary, induction
+A productive batch of integration bugs, most in two families:
+- **Falsy-zero / `|| fallback`**: **F47** (`map || 90` fabricated normal vitals during arrest — CerebralEngine
+  reported CPP 64 during asystole; the bulk of the "decompensated monitors make no sense" report), **F48**
+  (oscillator pushed HR to −2 bpm), sibling of the scenario-1 **F42**.
+- **Live-vs-snapshot state**: **F52** (one-shot events re-rolled every tick → sphincter-of-Oddi spasm repeated),
+  **F53** (the F31 opioid sympatholysis read a stale snapshot and NEVER applied — fentanyl still caused reflex
+  tachycardia).
+- **Reflex-tachycardia / baroreflex**: **F50** (baroreflex not blunted by IV hypnotics → propofol induction →
+  paradoxical HR 136), **F51** (PainEngine `hrSpike` was a second un-blunted baroreflex controller summed on top).
+- Plus **F44** (GA crushed resp compliance ~70% at 1 MAC — a static-vs-activity category error), **F45** (adrenal
+  crisis fired in EVERY intact patient from a unit mismatch → spurious ~35% SVR cut), **F46** (phantom recruitment
+  maneuvers from measured PIP hitting the pmax ceiling).
+All fixed; see F43-F53 in `audit_findings.md`.
+
+_Status: scenarios 1-7 covered. Findings F40-F53 (minus F49): 11 fixed, F41 + the F43 compensation-curve
+deferred. Full suite 1906/1906._
