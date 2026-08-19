@@ -64,5 +64,25 @@ A productive batch of integration bugs, most in two families:
   maneuvers from measured PIP hitting the pmax ceiling).
 All fixed; see F43-F53 in `audit_findings.md`.
 
-_Status: scenarios 1-7 covered. Findings F40-F53 (minus F49): 11 fixed, F41 + the F43 compensation-curve
-deferred. Full suite 1906/1906._
+### Scenario 5 — anaphylaxis → epi rescue → **F54**
+Direct-triggered anaphylactic shock: SVR collapses to ×0.25 (75% drop, correct), MAP crashes to ~28, reflex
+tachycardia HR 176-189 (correctly capped by F43, not 240+). **F54 (FIXED):** epinephrine could not rescue it —
+the reversal term `min(1, epiCe·12)` gave only ~13-35% reversal at clinical epi Ce, so the patient ALWAYS
+arrested regardless of treatment (anaphylaxis was 100% fatal). Fixed by scaling reversal by epi receptor
+occupancy `Ce/(Ce+0.005)`; treated patients now survive and perfuse. Bronchospasm→hypoxia checked and left
+as-is (PCV-VG compensates to pmax; awake patients arrest from shock first). F9 also confirmed the reflex
+tachycardia and HR cap behave.
+
+### Scenario 6 — emergence / NMB reversal → no findings
+Sugammadex 2.9 mg/kg at a DEEP block (TOF 0) → partial reversal (TOF 3) — correct (deep block needs 4 mg/kg;
+the L2 `nmb_reversal` test confirms full-dose reaches 4/4). Neostigmine at TOF 0 → ineffective (correct, needs
+TOF≥2). Neostigmine 3 mg WITHOUT glycopyrrolate → asystole in 30 s (the real unopposed-muscarinic interaction,
+correctly modeled); WITH glyco → no arrest, block appropriately unreversed. Reversal pharmacology is sound.
+
+### Scenario 7 — cardiac arrest / ACLS → no findings
+VF arrest → CPR generates MAP ~66-71 (effective compressions); ROSC is coronary-perfusion-gated. Directionally
+correct: ROSC achievable with CPR+epi+shocks, never without (untreated VF correctly does not self-resolve).
+~25% sustained-ROSC in a small stochastic sample is defensible; not flagged (F9).
+
+_Status: **Layer 4 COMPLETE** — scenarios 1-7 all reviewed. Findings F40-F54 (F49 skipped): **13 fixed**, 2
+deferred (F41 root-fix; F43 compensation-curve). Guards added across ch4 test files. Full suite green._
