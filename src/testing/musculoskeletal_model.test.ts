@@ -16,7 +16,7 @@ describe('MusculoskeletalModel — rhabdomyolysis, nerve injury risk, compartmen
       state = { prevCkLevelUPerL: out.ckLevelUPerL, prevMyoglobinUgL: out.myoglobinUgL, prevRhabdomyolysisLogged: out.rhabdomyolysisActive, prevMyoglobinuriaLogged: out.myoglobinuriaRisk };
     }
     expect(state.prevCkLevelUPerL).toBeGreaterThan(5000);
-    expect(state.prevMyoglobinUriaLogged || state.prevCkLevelUPerL > 5000).toBe(true);
+    expect(state.prevMyoglobinuriaLogged || state.prevCkLevelUPerL > 5000).toBe(true);
   });
 
   it('succinylcholine-triggered myopathy rhabdomyolysis raises CK more slowly than MH', () => {

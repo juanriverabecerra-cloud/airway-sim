@@ -177,6 +177,7 @@ export class PediatricPhysiologyEngine {
         hepaticMaturityFactor: 1.0, pfoShuntRisk: 0, pfoShuntContribution: 0,
         apneaDesaturationRateFactor: 1.0, bsaToWeightRatio: 0.025,
         thermalInstabilityBonus: 0, metabolicRatePerKg: 3.5,
+        prevPediatricBradycardiaLogged: false, // L5/F6: was omitted from the non-pediatric early return (required by PediatricOutput)
         events,
       };
     }

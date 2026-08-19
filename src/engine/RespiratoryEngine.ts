@@ -84,6 +84,9 @@ export interface RespiratoryVitalsState {
   spo2: number;
   paco2: number;
   etco2: number;
+  rr?: number;        // respiratory rate (breaths/min) — used across the engine, was undeclared (L5/F6)
+  pao2?: number;      // arterial O2 tension (mmHg) — was undeclared (L5/F6)
+  cvp?: number;       // central venous pressure (mmHg) — was undeclared (L5/F6)
   pip?: number;
   pplat?: number;
   vte?: number;

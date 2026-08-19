@@ -15,7 +15,8 @@
     "podcastify": "node scripts/podcastify.mjs",
     "chapter-md": "node scripts/chapter_to_md.mjs",
     "audit-parses": "python3 scripts/audit_parses.py",
-    "parser-golden": "python3 scripts/parser_golden.py"
+    "parser-golden": "python3 scripts/parser_golden.py",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.4",
@@ -42,6 +43,7 @@
     "happy-dom": "^20.11.1",
     "postcss": "^8.5.14",
     "tailwindcss": "^4.2.4",
+    "typescript": "^5.7.2",
     "vite": "^8.0.10",
     "vitest": "^4.1.7"
   }

@@ -7,6 +7,7 @@
  * direction here. Deterministic ⇒ any violation is reproducible. See audit_layer2_physiology_correctness.md.
  */
 import { createHeadlessSim, stepN, makeFuzzHandlers, type SimHandle } from './headlessSim';
+export type { SimHandle };
 
 /** Read a numeric telemetry value, checking vitals first then patient. */
 export function getVital(sim: SimHandle, key: string): number | undefined {
